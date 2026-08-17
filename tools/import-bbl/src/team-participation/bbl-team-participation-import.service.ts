@@ -31,7 +31,6 @@ export interface ImportTeamParticipationOptions {
   competitionsByBblId: Map<string, UpsertCompetition>;
   teamsByCode: Map<string, UpsertTeam>;
   racesByRaceId: Map<number, UpsertRace>;
-  eraIdsByName: Map<string, number>;
   competitionIdsByBblId: Map<string, number>;
 }
 
@@ -102,10 +101,6 @@ export class BblTeamParticipationImportService {
     competitionsByBblId,
     teamsByCode,
     racesByRaceId,
-    // eraIdsByName is part of the public options shape (mirrors the sibling
-    // import services' signatures) but this step derives eraIdsByRaceId from
-    // each team's own era field, not by era name, so it goes unused here.
-    eraIdsByName: _eraIdsByName,
     competitionIdsByBblId,
   }: ImportTeamParticipationOptions): Promise<{
     result: ImportResult;

@@ -4,6 +4,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   PlayersImportService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -21,7 +22,6 @@ interface ImportPlayersOptions {
   teamsByCode: Map<string, UpsertTeam>;
   positionIdsByBblId: Map<string, number>;
   racesByBblId: Map<string, { id: number; name: string }>;
-  eraIdsByName: Map<string, number>;
 }
 
 @Injectable()
@@ -37,6 +37,7 @@ export class BblPlayersImportService {
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -53,7 +54,6 @@ export class BblPlayersImportService {
     teamsByCode,
     positionIdsByBblId,
     racesByBblId,
-    eraIdsByName,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByPid: Map<string, number>;
@@ -98,6 +98,28 @@ export class BblPlayersImportService {
     const [bblSystemId] = bootstrap.ids;
 
     const eras = this.eraConfig.getEras();
+
+    // One round trip for the whole run: every era referenced here was
+    // upserted moments ago by the eras step, so it is already in the
+    // database and resolvable by the same external id (its name) that step
+    // wrote. Resolved once into a name-keyed map so the per-player loop below
+    // can keep looking eras up by name.
+    const eraNames = [...new Set(eras.map((era) => era.identity.name))];
+    const eraRefs = eraNames.map((name) => ({
+      externalSystemId: bblSystemId,
+      externalId: name,
+    }));
+    const resolvedEraIds = await this.lookup.lookupMap('era', eraRefs);
+    const eraIdsByName = new Map<string, number>();
+    for (const name of eraNames) {
+      const id = resolvedEraIds.get(
+        this.lookup.keyOf({ externalSystemId: bblSystemId, externalId: name }),
+      );
+      if (id !== undefined) {
+        eraIdsByName.set(name, id);
+      }
+    }
+
     const raceBblIdByDbId = new Map<number, string>();
     for (const [bblId, info] of racesByBblId) {
       raceBblIdByDbId.set(info.id, bblId);

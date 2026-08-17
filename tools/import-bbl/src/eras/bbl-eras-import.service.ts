@@ -36,11 +36,9 @@ export class BblErasImportService {
    */
   async importEras(): Promise<{
     result: ImportResult;
-    eraIdsByName: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const eraIdsByName = new Map<string, number>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
@@ -56,7 +54,6 @@ export class BblErasImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
 
@@ -68,7 +65,6 @@ export class BblErasImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -154,14 +150,12 @@ export class BblErasImportService {
         errors,
       );
       if (upsertedEra) {
-        eraIdsByName.set(era.identity.name, upsertedEra.id);
         imported += 1;
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      eraIdsByName,
     };
   }
 }

@@ -1,227 +1,33 @@
-import type {
-  ImportError,
-  ImportResult,
-  MatchDateRange,
-} from '@blood-bowl-tracker/import';
-import {
-  CompetitionsImportService,
-  ExternalSystemBootstrapService,
-  ImportResultService,
-  MatchDateRangeService,
-} from '@blood-bowl-tracker/import';
-import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { type EraConfig, EraConfigService } from '../eras/era-config.service';
-import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
-import type { BblMatch } from '../matches/match-list-page-parser';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
-import type { BblPage } from '../source/bbl-page.types';
-import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { PageParseErrorService } from '../source/page-parse-error.service';
-import { BblCompetitionsImportService } from './bbl-competitions-import.service';
-import { CompetitionListPageParser } from './competition-list-page-parser';
-
-/**
- * The canned ImportResult the mocked ImportResultService.result returns.
- * ImportResultService's own `success: errors.length === 0` derivation is
- * covered by packages/import/src/import-result.service.spec.ts; this spec
- * asserts what the service under test *passes to* result() (via
- * `resultArgs()`) and that it returns result()'s value unchanged. The
- * deliberately impossible field values make any leftover assertion that reads
- * the returned object instead of the recorded call arguments fail loudly.
- */
-const CANNED_RESULT: ImportResult = {
-  success: false,
-  imported: -1,
-  errors: [{ item: { canned: true }, message: 'canned import result' }],
-};
-
-/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
-function resultArgs(importResults: MockProxy<ImportResultService>): {
-  imported: number;
-  errors: ImportError[];
-} {
-  return importResults.result.mock.calls[0][0];
-}
-
-/**
- * The canned ImportError the mocked PageParseErrorService.build returns.
- * PageParseErrorService's own message template — including the
- * `error instanceof Error ? error.message : String(error)` branch — is
- * covered by ../source/page-parse-error.service.spec.ts. This spec asserts
- * only what BblCompetitionsImportService hands to build() and that it pushes
- * build()'s return value onto the errors list.
- */
-const CANNED_PAGE_PARSE_ERROR: ImportError = {
-  item: { page: 'canned' },
-  message: 'canned page parse error',
-};
-
-const erasConfig: EraConfig[] = [
-  {
-    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-    dates: {
-      startDate: '2011-09-09',
-      endDate: '2021-09-01',
-      autoAssignByDate: true,
-    },
-    players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-  },
-  {
-    identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-    dates: { startDate: '2021-09-01', autoAssignByDate: true },
-    players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-  },
-];
-
-const eraIdsByName = new Map<string, number>([
-  ['Living rulebook', 100],
-  ['BB2020', 200],
-]);
-
-/**
- * The canned range the mocked MatchDateRangeService returns by default:
- * an 11-day span (=> season) inside the "Living rulebook" era. The real
- * min/max/span arithmetic is covered by
- * packages/import/src/match-date-range.service.spec.ts; each test here stubs
- * the exact range it expects and asserts what the service does with it.
- */
-const CANNED_RANGE: MatchDateRange = {
-  earliestDate: new Date(Date.UTC(2011, 11, 7)),
-  latestDate: new Date(Date.UTC(2011, 11, 18)),
-  spanDays: 11,
-};
-
-/**
- * A canned full-row `upsertCompetitionResult` response for a given id. This
- * spec only asserts what the service under test passes to
- * upsertCompetitionResult and how it reads `.id` from the resolved value —
- * the other fields are unused filler needed only to satisfy the widened
- * return type (see packages/import/src/competitions-import.service.ts).
- */
-const upsertedCompetition = (id: number) => ({
-  id,
-  name: 'Some competition',
-  type: 'season' as const,
-  eraId: 1,
-  teamEraIds: [],
-  startDate: '2024-01-01',
-  endDate: '2024-06-01',
-  competitionGroupId: 1,
-  createdAt: new Date('2026-01-01'),
-  created: true,
-});
-
-/** A fake page carrying only params; its load() must never be called (parser is mocked). */
-function page(type: string, params: Record<string, string>): BblPage {
-  return {
-    type,
-    params,
-    load: () => {
-      throw new Error('load() should not be called in this test');
-    },
-  };
-}
-
-/** date-only fixtures turned into per-competition BblMatch arrays for the reader mock. */
-function matchesByCompetition(
-  datesById: Record<string, Date[]>,
-): Map<string, BblMatch[]> {
-  return new Map(
-    Object.entries(datesById).map(([id, dates]) => [
-      id,
-      dates.map((date, i) => ({ bblId: `${id}-${i}`, date })),
-    ]),
-  );
-}
-
-interface Mocks {
-  listParser: MockProxy<CompetitionListPageParser>;
-  matchListReader: MockProxy<BblMatchListReaderService>;
-  competitionsImport: MockProxy<CompetitionsImportService>;
-  bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  eraConfig: MockProxy<EraConfigService>;
-  importResults: MockProxy<ImportResultService>;
-  pageParseError: MockProxy<PageParseErrorService>;
-  dateRange: MockProxy<MatchDateRangeService>;
-}
-
-/**
- * Builds the service under test through a TestingModule with every
- * collaborator mocked. ImportResultService.result and
- * PageParseErrorService.build return canned values (see the constants above);
- * tests assert what this service passes to them, not what they compute.
- */
-async function makeService(
-  reader: BblSourceReader,
-): Promise<{ service: BblCompetitionsImportService; mocks: Mocks }> {
-  const listParser = mock<CompetitionListPageParser>();
-
-  const matchListReader = mock<BblMatchListReaderService>();
-  matchListReader.getMatchesByCompetitionId.mockResolvedValue(new Map());
-
-  const competitionsImport = mock<CompetitionsImportService>();
-
-  const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1] });
-
-  const eraConfig = mock<EraConfigService>();
-  eraConfig.getEras.mockReturnValue(erasConfig);
-
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
-  const importResults = mock<ImportResultService>();
-  // `error` is a pure identity field copy with no branching or formatting, so
-  // there is no algorithm here that can drift out of sync with the real
-  // ImportResultService — exempt from the canned-response rule.
-  importResults.error.mockImplementation((args) => ({
-    item: args.item,
-    message: args.message,
-  }));
-  importResults.result.mockReturnValue(CANNED_RESULT);
-
-  const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
-
-  const dateRange = mock<MatchDateRangeService>();
-  dateRange.computeRange.mockReturnValue(CANNED_RANGE);
-
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      BblCompetitionsImportService,
-      { provide: BblSourceReader, useValue: reader },
-      { provide: CompetitionListPageParser, useValue: listParser },
-      { provide: BblMatchListReaderService, useValue: matchListReader },
-      { provide: CompetitionsImportService, useValue: competitionsImport },
-      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: EraConfigService, useValue: eraConfig },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
-      { provide: ImportResultService, useValue: importResults },
-      { provide: PageParseErrorService, useValue: pageParseError },
-      { provide: MatchDateRangeService, useValue: dateRange },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(BblCompetitionsImportService),
-    mocks: {
-      listParser,
-      matchListReader,
-      competitionsImport,
-      bootstrap,
-      eraConfig,
-      importResults,
-      pageParseError,
-      dateRange,
-    },
-  };
-}
+import {
+  BBL_SYSTEM_ID,
+  CANNED_PAGE_PARSE_ERROR,
+  CANNED_RESULT,
+  makeService,
+  matchesByCompetition,
+  page,
+  resultArgs,
+  upsertedCompetition,
+} from './bbl-competitions-import.test-helpers';
 
 describe('BblCompetitionsImportService', () => {
+  it('resolves configured eras through the api once for the whole run', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([]);
+
+    await service.importCompetitions();
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: 'Living rulebook' },
+      { externalSystemId: BBL_SYSTEM_ID, externalId: 'BB2020' },
+    ]);
+  });
+
   it('populates startDate and endDate from the match-date range', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
@@ -240,7 +46,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(42),
     );
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     expect(mocks.dateRange.computeRange).toHaveBeenCalledWith(dates);
     expect(
@@ -252,167 +58,6 @@ describe('BblCompetitionsImportService', () => {
       }),
       expect.any(Array),
     );
-  });
-
-  it("derives an overridden competition's dates from its matches, not from the configured override dates", async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '30', name: 'Chaos Cup' },
-    ]);
-    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
-      matchesByCompetition({
-        '30': [new Date(Date.UTC(2013, 4, 4)), new Date(Date.UTC(2013, 4, 5))],
-      }),
-    );
-    mocks.dateRange.computeRange.mockReturnValue({
-      earliestDate: new Date(Date.UTC(2013, 4, 4)),
-      latestDate: new Date(Date.UTC(2013, 4, 5)),
-      spanDays: 1,
-    });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(30),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: {
-          overrides: [
-            // startDate present but must be ignored: has real matches.
-            { bblId: '30', type: 'cup', startDate: '1999-01-01' },
-          ],
-        },
-      },
-    ]);
-
-    await service.importCompetitions(eraIdsByName);
-
-    expect(resultArgs(mocks.importResults).errors).toHaveLength(0);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'cup',
-        eraId: 100,
-        startDate: '2013-05-04',
-        endDate: '2013-05-05',
-      }),
-      expect.any(Array),
-    );
-  });
-
-  it("uses the override's own startDate/endDate for an overridden competition with no matches", async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '74', name: 'Minor Season 25' },
-    ]);
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(74),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: {
-          overrides: [
-            {
-              bblId: '74',
-              type: 'season',
-              startDate: '2023-07-01',
-              endDate: '2023-12-31',
-            },
-          ],
-        },
-      },
-    ]);
-
-    await service.importCompetitions(eraIdsByName);
-
-    const { imported, errors } = resultArgs(mocks.importResults);
-    expect(imported).toBe(1);
-    expect(errors).toHaveLength(0);
-    expect(mocks.dateRange.computeRange).not.toHaveBeenCalled();
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      {
-        name: 'Minor Season 25',
-        type: 'season',
-        eraId: 200,
-        startDate: '2023-07-01',
-        endDate: '2023-12-31',
-        teamEraIds: [],
-        externalIds: [{ externalSystemId: 1, externalId: '74' }],
-      },
-      expect.any(Array),
-    );
-  });
-
-  it('omits endDate when the override has no endDate', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '74', name: 'Minor Season 25' },
-    ]);
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(74),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: {
-          overrides: [{ bblId: '74', type: 'season', startDate: '2023-07-01' }],
-        },
-      },
-    ]);
-
-    await service.importCompetitions(eraIdsByName);
-
-    const upsertArg =
-      mocks.competitionsImport.upsertCompetitionResult.mock.calls[0][0];
-    expect(upsertArg.startDate).toBe('2023-07-01');
-    expect(upsertArg.endDate).toBeUndefined();
-  });
-
-  it('skips an overridden competition with no matches and no configured startDate, recording an error', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '74', name: 'Minor Season 25' },
-    ]);
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
-      },
-    ]);
-
-    await service.importCompetitions(eraIdsByName);
-
-    const { imported, errors } = resultArgs(mocks.importResults);
-    expect(imported).toBe(0);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).not.toHaveBeenCalled();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('Minor Season 25');
-    expect(errors[0].message).toContain('no startDate');
   });
 
   it('derives type=season from a >3-day span and resolves the containing era', async () => {
@@ -435,7 +80,7 @@ describe('BblCompetitionsImportService', () => {
     );
 
     const { competitionsByBblId, competitionIdsByBblId } =
-      await service.importCompetitions(eraIdsByName);
+      await service.importCompetitions();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
@@ -488,7 +133,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(7),
     );
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -507,7 +152,7 @@ describe('BblCompetitionsImportService', () => {
       { bblId: '9', name: 'In Progress' },
     ]);
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -537,7 +182,7 @@ describe('BblCompetitionsImportService', () => {
       spanDays: 152,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -549,9 +194,10 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it('skips and records a distinct error when the matched era has no known database id', async () => {
+  it('skips and records a distinct error when the matched era could not be resolved', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
+      new Map(),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '1', name: 'Major Season 1' },
@@ -564,10 +210,10 @@ describe('BblCompetitionsImportService', () => {
         ],
       }),
     );
-    // "Living rulebook" matches by date, but is absent from eraIdsByName,
+    // "Living rulebook" matches by date, but the lookup resolves nothing,
     // simulating its rules set having failed to import earlier in the run.
 
-    await service.importCompetitions(new Map());
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -578,48 +224,10 @@ describe('BblCompetitionsImportService', () => {
       errors.some(
         (e) =>
           e.message.includes('"Living rulebook"') &&
-          e.message.includes('no known database id'),
+          e.message.includes('could not be resolved'),
       ),
     ).toBe(true);
     expect(errors.some((e) => e.message.includes('no configured era'))).toBe(
-      false,
-    );
-  });
-
-  it('skips and records a distinct error when the override era has no known database id', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '74', name: 'Minor Season 25' },
-    ]);
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
-      },
-    ]);
-    // "BB2020" is matched by the competitions.overrides entry, but is absent
-    // from eraIdsByName, simulating its rules set having failed to import
-    // earlier in the run.
-
-    await service.importCompetitions(new Map());
-
-    const { imported, errors } = resultArgs(mocks.importResults);
-    expect(imported).toBe(0);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).not.toHaveBeenCalled();
-    expect(
-      errors.some(
-        (e) =>
-          e.message.includes('"BB2020"') &&
-          e.message.includes('no known database id'),
-      ),
-    ).toBe(true);
-    expect(errors.some((e) => e.message.includes('no dated matches'))).toBe(
       false,
     );
   });
@@ -645,7 +253,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(1),
     );
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
@@ -677,7 +285,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(1),
     );
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
@@ -698,7 +306,7 @@ describe('BblCompetitionsImportService', () => {
       },
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
@@ -723,7 +331,7 @@ describe('BblCompetitionsImportService', () => {
     });
 
     const { competitionsByBblId, competitionIdsByBblId } =
-      await service.importCompetitions(eraIdsByName);
+      await service.importCompetitions();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -746,7 +354,7 @@ describe('BblCompetitionsImportService', () => {
       throw new Error('bad se page');
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     // readCompetitionList returns null on a parse failure, and the caller
     // treats a null result the same as "no se or sr page was found" — so a
@@ -768,359 +376,13 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it('imports a zero-match competition via its era override as type season', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '74', name: 'Minor Season 25' },
-    ]);
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(74),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: {
-          overrides: [
-            {
-              bblId: '74',
-              type: 'season',
-              startDate: '2023-07-01',
-              endDate: '2023-12-31',
-            },
-          ],
-        },
-      },
-    ]);
-
-    const { competitionsByBblId, competitionIdsByBblId } =
-      await service.importCompetitions(eraIdsByName);
-
-    const { imported, errors } = resultArgs(mocks.importResults);
-    expect(imported).toBe(1);
-    expect(errors).toHaveLength(0);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      {
-        name: 'Minor Season 25',
-        type: 'season',
-        eraId: 200,
-        startDate: '2023-07-01',
-        endDate: '2023-12-31',
-        teamEraIds: [],
-        externalIds: [{ externalSystemId: 1, externalId: '74' }],
-      },
-      expect.any(Array),
-    );
-    expect(competitionsByBblId.get('74')?.eraId).toBe(200);
-    expect(competitionIdsByBblId.get('74')).toBe(74);
-  });
-
-  it('applies an era override ahead of match-date resolution even when the competition has matches', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '74', name: 'Minor Season 25' },
-    ]);
-    // Dates fall in the "Living rulebook" range and span 1 day (would be a
-    // cup); the override must still pin BB2020 (era 200) and type season.
-    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
-      matchesByCompetition({
-        '74': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 0, 2))],
-      }),
-    );
-    mocks.dateRange.computeRange.mockReturnValue({
-      earliestDate: new Date(Date.UTC(2012, 0, 1)),
-      latestDate: new Date(Date.UTC(2012, 0, 2)),
-      spanDays: 1,
-    });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(74),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
-      },
-    ]);
-
-    await service.importCompetitions(eraIdsByName);
-
-    expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'season', eraId: 200 }),
-      expect.any(Array),
-    );
-  });
-
-  it('applies a competitions.overrides entry forcing type cup even when the span would compute season', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '33', name: 'Stunty Leeg 2' },
-    ]);
-    // 6-day span -> would compute 'season' under CUP_MAX_SPAN_DAYS; the cup
-    // override must force 'cup' and pin the Living rulebook era (100).
-    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
-      matchesByCompetition({
-        '33': [
-          new Date(Date.UTC(2016, 10, 19)),
-          new Date(Date.UTC(2016, 10, 25)),
-        ],
-      }),
-    );
-    mocks.dateRange.computeRange.mockReturnValue({
-      earliestDate: new Date(Date.UTC(2016, 10, 19)),
-      latestDate: new Date(Date.UTC(2016, 10, 25)),
-      spanDays: 6,
-    });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(33),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { overrides: [{ bblId: '33', type: 'cup' }] },
-      },
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-      },
-    ]);
-
-    await service.importCompetitions(eraIdsByName);
-
-    expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Stunty Leeg 2',
-        type: 'cup',
-        eraId: 100,
-      }),
-      expect.any(Array),
-    );
-  });
-
-  it('resolves a competition override regardless of overlapping era date-range order', async () => {
-    // Two eras whose date ranges overlap; the override era is listed SECOND but
-    // must still win, proving override resolution is independent of array order
-    // and of natural date-range matching.
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '30', name: 'Stunty Leeg 1' },
-    ]);
-    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
-      matchesByCompetition({ '30': [new Date(Date.UTC(2016, 2, 12))] }),
-    );
-    mocks.dateRange.computeRange.mockReturnValue({
-      earliestDate: new Date(Date.UTC(2016, 2, 12)),
-      latestDate: new Date(Date.UTC(2016, 2, 12)),
-      spanDays: 0,
-    });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(30),
-    );
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-      {
-        identity: { name: 'Stunty', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
-      },
-    ]);
-
-    const overlapEraIds = new Map<string, number>([
-      ['Living rulebook', 100],
-      ['Stunty', 300],
-    ]);
-    await service.importCompetitions(overlapEraIds);
-
-    expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Stunty Leeg 1',
-        type: 'cup',
-        eraId: 300,
-      }),
-      expect.any(Array),
-    );
-  });
-
-  it('excludes an autoAssignByDate:false era from date resolution but still honors its competition override', async () => {
-    // One override-only era (autoAssignByDate:false) whose date range would,
-    // if scanned, capture the dated competition below — proving the scan skips
-    // it. Its own override-listed competition still resolves to it.
-    const overrideOnlyEras: EraConfig[] = [
-      {
-        identity: { name: 'Main', rulesSets: ['BB2020'] },
-        dates: {
-          startDate: '2016-01-01',
-          endDate: '2017-01-01',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-      {
-        identity: { name: 'Side', rulesSets: ['CRP'] },
-        dates: {
-          startDate: '2016-01-01',
-          endDate: '2017-01-01',
-          autoAssignByDate: false,
-        },
-        players: { autoAssignByPlayerId: false },
-        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
-      },
-    ];
-    const eraIds = new Map<string, number>([
-      ['Main', 100],
-      ['Side', 200],
-    ]);
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
-    );
-    mocks.eraConfig.getEras.mockReturnValue(overrideOnlyEras);
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '1', name: 'Dated Season' },
-      { bblId: '30', name: 'Side Cup' },
-    ]);
-    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
-      matchesByCompetition({
-        '1': [new Date('2016-06-01'), new Date('2016-08-01')],
-        '30': [new Date('2016-06-15')],
-      }),
-    );
-    mocks.dateRange.computeRange
-      .mockReturnValueOnce({
-        earliestDate: new Date('2016-06-01'),
-        latestDate: new Date('2016-08-01'),
-        spanDays: 61,
-      })
-      .mockReturnValueOnce({
-        earliestDate: new Date('2016-06-15'),
-        latestDate: new Date('2016-06-15'),
-        spanDays: 0,
-      });
-    mocks.competitionsImport.upsertCompetitionResult
-      .mockResolvedValueOnce(upsertedCompetition(1))
-      .mockResolvedValueOnce(upsertedCompetition(30));
-
-    const { competitionsByBblId } = await service.importCompetitions(eraIds);
-
-    // The plain dated competition lands in Main (the only auto-assign era).
-    expect(competitionsByBblId.get('1')?.eraId).toBe(100);
-    // The override-listed competition lands in Side despite its date.
-    expect(competitionsByBblId.get('30')?.eraId).toBe(200);
-    expect(competitionsByBblId.get('30')?.type).toBe('cup');
-  });
-
-  it('resolves a competition to an override era from a second league', async () => {
-    const erasWithGbbl: EraConfig[] = [
-      ...erasConfig,
-      {
-        leagueName: 'GBBL',
-        identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
-        dates: {
-          startDate: '2019-08-03',
-          endDate: '2019-11-13',
-          autoAssignByDate: false,
-        },
-        players: { autoAssignByPlayerId: false },
-        competitions: { overrides: [{ bblId: '55', type: 'season' }] },
-        teams: { teamCodeOverrides: ['fes2'] },
-      },
-    ];
-    const eraIds = new Map<string, number>([...eraIdsByName, ['GBBL 1', 900]]);
-
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ se: [page('se', { s: '55' })] }),
-    );
-    mocks.eraConfig.getEras.mockReturnValue(erasWithGbbl);
-    mocks.listParser.extractCompetitions.mockReturnValue([
-      { bblId: '55', name: 'GBBL 1' },
-    ]);
-    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
-      matchesByCompetition({ '55': [new Date('2019-08-03')] }),
-    );
-    mocks.dateRange.computeRange.mockReturnValue({
-      earliestDate: new Date('2019-08-03'),
-      latestDate: new Date('2019-08-03'),
-      spanDays: 0,
-    });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
-      upsertedCompetition(1),
-    );
-
-    await service.importCompetitions(eraIds);
-
-    expect(
-      mocks.competitionsImport.upsertCompetitionResult,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({ eraId: 900, type: 'season' }),
-      expect.anything(),
-    );
-  });
-
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([]);
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    const { result } = await service.importCompetitions();
 
     expect(result).toBe(CANNED_RESULT);
   });

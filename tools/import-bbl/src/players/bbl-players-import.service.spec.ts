@@ -4,6 +4,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   PlayersImportService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
@@ -66,6 +67,33 @@ function plPage(player: BblPlayer | null, pid = '388'): BblPage {
   };
 }
 
+/** The numeric id the mocked bootstrap assigns to the BBL external system. */
+const BBL_SYSTEM_ID = 1;
+
+/**
+ * Configures `lookup.lookupMap` to resolve any era ref whose name appears in
+ * `idsByName`, keyed via the mocked (deterministic) `keyOf`. Mirrors what
+ * ReferenceLookupService itself does, without reimplementing its resolution
+ * algorithm (idsByName is supplied by the caller, not derived here).
+ */
+function mockEraLookup(
+  lookup: MockProxy<ReferenceLookupService>,
+  idsByName: Map<string, number>,
+): void {
+  lookup.lookupMap.mockImplementation((_kind, refs) =>
+    Promise.resolve(
+      new Map(
+        refs
+          .filter((ref) => idsByName.has(ref.externalId))
+          .map((ref) => [
+            lookup.keyOf(ref),
+            idsByName.get(ref.externalId) as number,
+          ]),
+      ),
+    ),
+  );
+}
+
 const team: UpsertTeam = {
   name: 'Knights',
   raceId: 70, // DB race id
@@ -78,6 +106,8 @@ const racesByBblId = new Map<string, { id: number; name: string }>([
   ['7', { id: 70, name: 'Goblin Team' }],
 ]);
 const positionIdsByBblId = new Map<string, number>([['33-7', 200]]);
+
+/** The default era name -> DB id resolution the mocked lookup answers with. */
 const eraIdsByName = new Map<string, number>([['LRB', 500]]);
 
 const defaultEras: EraConfig[] = [
@@ -101,6 +131,7 @@ interface Mocks {
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
   upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }
 
 /**
@@ -126,11 +157,14 @@ function makeTeamRecord(eras: { id: number; eraId: number }[]) {
  * PageParseErrorService.build return canned values (see the constants above);
  * tests assert what this service passes to them, not what they compute.
  * `eras` seeds the EraConfigService mock since every test needs its own era
- * set.
+ * set. `idsByName` seeds the mocked lookup's era resolution (defaulting to
+ * `eraIdsByName`); a test wanting different resolution results passes its own
+ * map.
  */
 async function makeService(
   reader: BblSourceReader,
   eras: EraConfig[] = defaultEras,
+  idsByName: Map<string, number> = eraIdsByName,
 ): Promise<{ service: BblPlayersImportService; mocks: Mocks }> {
   const parser = mock<PlayerPageParser>();
   parser.extractPlayer.mockImplementation(
@@ -149,7 +183,7 @@ async function makeService(
   eraConfig.getEras.mockReturnValue(eras);
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1] });
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [BBL_SYSTEM_ID] });
 
   const nameConfig = mock<ExternalSystemNameConfigService>();
   nameConfig.getBblSystemName.mockReturnValue('BBL');
@@ -175,6 +209,15 @@ async function makeService(
     (t) => t.raceId as number,
   );
 
+  const lookup = mock<ReferenceLookupService>();
+  // `keyOf` is a pure, deterministic key derivation with no branching that
+  // could drift from ReferenceLookupService's own real implementation --
+  // exempt from the canned-response rule, same as the other passthroughs.
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  );
+  mockEraLookup(lookup, idsByName);
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPlayersImportService,
@@ -191,6 +234,7 @@ async function makeService(
         provide: UpsertFieldNarrowingService,
         useValue: upsertFieldNarrowing,
       },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -205,6 +249,7 @@ async function makeService(
       importResults,
       pageParseError,
       upsertFieldNarrowing,
+      lookup,
     },
   };
 }
@@ -218,6 +263,23 @@ const goodPlayer: BblPlayer = {
 };
 
 describe('BblPlayersImportService', () => {
+  it('resolves configured eras through the api once for the whole run', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [] }),
+    );
+
+    await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+    });
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: 'LRB' },
+    ]);
+  });
+
   it('imports a resolvable player and maps its pid to the DB id', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
@@ -228,7 +290,6 @@ describe('BblPlayersImportService', () => {
         teamsByCode,
         positionIdsByBblId,
         racesByBblId,
-        eraIdsByName,
       });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -264,7 +325,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     // Default makeService wiring resolves the team era to id 5000 (see
@@ -284,7 +344,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(playerIdsByPid.has('42')).toBe(false);
@@ -321,7 +380,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -360,13 +418,16 @@ describe('BblPlayersImportService', () => {
           },
         },
       ],
+      otherEraIdsByName,
+    );
+    mocks.teamsImport.upsertTeam.mockResolvedValue(
+      makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
     await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: otherEraIdsByName,
     });
 
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
@@ -407,6 +468,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
@@ -416,7 +478,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -460,6 +521,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 7000, eraId: 700 }]),
@@ -469,7 +531,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -513,6 +574,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
@@ -522,7 +584,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -563,6 +624,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
@@ -572,7 +634,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -616,6 +677,7 @@ describe('BblPlayersImportService', () => {
           },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
@@ -625,7 +687,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -654,6 +715,7 @@ describe('BblPlayersImportService', () => {
           },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
@@ -663,7 +725,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -689,7 +750,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -716,7 +776,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -736,7 +795,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -756,7 +814,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -780,7 +837,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { errors } = resultArgs(mocks.importResults);
@@ -794,6 +850,7 @@ describe('BblPlayersImportService', () => {
     expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
     expect(playerIdsByPid.size).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
+    expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
   });
 
   it('records an error and skips players the parser cannot read', async () => {
@@ -805,7 +862,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -832,7 +888,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -868,7 +923,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -888,7 +942,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -907,7 +960,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -929,7 +981,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode: localTeamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -949,7 +1000,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -969,7 +1019,6 @@ describe('BblPlayersImportService', () => {
         teamsByCode,
         positionIdsByBblId,
         racesByBblId,
-        eraIdsByName,
       });
 
     expect(positionsUsedByEra.size).toBe(0);
@@ -985,7 +1034,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(result).toBe(CANNED_RESULT);
@@ -1015,7 +1063,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(outcome.scrapedSppTotalsByPlayerId).toEqual(
@@ -1036,7 +1083,6 @@ describe('BblPlayersImportService', () => {
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(outcome.scrapedSppTotalsByPlayerId).toEqual(new Map());

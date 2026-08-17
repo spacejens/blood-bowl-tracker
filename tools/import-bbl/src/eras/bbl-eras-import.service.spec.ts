@@ -198,10 +198,9 @@ describe('BblErasImportService', () => {
       makeEraRecord({ id: 500, name: 'Era One' }),
     );
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(eraIdsByName).toEqual(new Map([['Era One', 500]]));
     expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
       {
         name: 'Era One',
@@ -243,9 +242,8 @@ describe('BblErasImportService', () => {
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.lookup.lookupMap.mockResolvedValue(new Map());
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
-    expect(eraIdsByName.size).toBe(0);
     expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'could not be resolved',
     );
@@ -284,9 +282,8 @@ describe('BblErasImportService', () => {
       ),
     );
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
-    expect(eraIdsByName.size).toBe(0);
     expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'could not be resolved',
     );

@@ -1,11 +1,14 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface SyncPositionRaceErasOptions {
   positionRaceCandidates: Map<
@@ -14,7 +17,6 @@ export interface SyncPositionRaceErasOptions {
   >;
   positionIdsByBblId: Map<string, number>;
   racesByBblId: Map<string, { id: number; name: string }>;
-  eraIdsByName: Map<string, number>;
   eraIdsByRaceId: Map<number, Set<number>>;
   positionsUsedByEra: Set<string>;
   racesActiveByEra: Set<string>;
@@ -26,6 +28,9 @@ export class BblPositionRaceErasImportService {
     private readonly positionsImport: PositionsImportService,
     private readonly eraConfig: EraConfigService,
     private readonly importResults: ImportResultService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
+    private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -53,7 +58,6 @@ export class BblPositionRaceErasImportService {
     positionRaceCandidates,
     positionIdsByBblId,
     racesByBblId,
-    eraIdsByName,
     eraIdsByRaceId,
     positionsUsedByEra,
     racesActiveByEra,
@@ -61,10 +65,44 @@ export class BblPositionRaceErasImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
+    const bblSystemName = this.externalSystemName.getBblSystemName();
+    const bootstrap = await this.externalSystemBootstrap.bootstrap(
+      [{ name: bblSystemName, category: 'imported_data_source' }],
+      'Failed to upsert external system: ',
+    );
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return { result: this.importResults.result({ imported, errors }) };
+    }
+    const [bblSystemId] = bootstrap.ids;
+
+    const eras = this.eraConfig.getEras();
+
+    // One round trip for the whole run: every era referenced here was
+    // upserted moments ago by the eras step, so it is already in the
+    // database and resolvable by the same external id (its name) that step
+    // wrote. Resolved once into a name-keyed map so the override loop below
+    // can keep looking eras up by name.
+    const eraNames = [...new Set(eras.map((era) => era.identity.name))];
+    const eraRefs = eraNames.map((name) => ({
+      externalSystemId: bblSystemId,
+      externalId: name,
+    }));
+    const resolvedEraIds = await this.lookup.lookupMap('era', eraRefs);
+    const eraIdsByName = new Map<string, number>();
+    for (const name of eraNames) {
+      const id = resolvedEraIds.get(
+        this.lookup.keyOf({ externalSystemId: bblSystemId, externalId: name }),
+      );
+      if (id !== undefined) {
+        eraIdsByName.set(name, id);
+      }
+    }
+
     // Resolve config overrides to DB ids, grouped by positionId.
     // overridesByPositionId: positionId -> ("${raceId}:${eraId}" -> available)
     const overridesByPositionId = new Map<number, Map<string, boolean>>();
-    for (const era of this.eraConfig.getEras()) {
+    for (const era of eras) {
       const eraId = eraIdsByName.get(era.identity.name);
       for (const o of era.positions ?? []) {
         const positionId = positionIdsByBblId.get(

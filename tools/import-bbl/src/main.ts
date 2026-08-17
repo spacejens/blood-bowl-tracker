@@ -40,7 +40,7 @@ async function run(): Promise<ImportResult> {
     const eraOutcome = await app.get(BblErasImportService).importEras();
     const competitionOutcome = await app
       .get(BblCompetitionsImportService)
-      .importCompetitions(eraOutcome.eraIdsByName);
+      .importCompetitions();
     const matchOutcome = await app
       .get(BblMatchesImportService)
       .importMatches(
@@ -58,7 +58,6 @@ async function run(): Promise<ImportResult> {
         competitionsByBblId: competitionOutcome.competitionsByBblId,
         teamsByCode: teamOutcome.teamsByCode,
         racesByRaceId: raceOutcome.racesByRaceId,
-        eraIdsByName: eraOutcome.eraIdsByName,
         competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
       });
     const positionOutcome = await app
@@ -68,7 +67,6 @@ async function run(): Promise<ImportResult> {
       teamsByCode: teamOutcome.teamsByCode,
       positionIdsByBblId: positionOutcome.positionIdsByBblId,
       racesByBblId: raceOutcome.racesByBblId,
-      eraIdsByName: eraOutcome.eraIdsByName,
     });
     const positionRaceErasOutcome = await app
       .get(BblPositionRaceErasImportService)
@@ -76,7 +74,6 @@ async function run(): Promise<ImportResult> {
         positionRaceCandidates: positionOutcome.positionRaceCandidates,
         positionIdsByBblId: positionOutcome.positionIdsByBblId,
         racesByBblId: raceOutcome.racesByBblId,
-        eraIdsByName: eraOutcome.eraIdsByName,
         eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
         positionsUsedByEra: playerOutcome.positionsUsedByEra,
         racesActiveByEra: playerOutcome.racesActiveByEra,

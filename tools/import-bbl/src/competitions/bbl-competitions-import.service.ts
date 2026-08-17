@@ -5,6 +5,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   MatchDateRangeService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -32,7 +33,7 @@ interface ResolveTypeAndEraOptions {
   competition: BblCompetition;
   dates: Date[];
   eras: EraConfig[];
-  eraIdsByName: Map<string, number>;
+  eraIds: Map<string, number>;
   errors: ImportError[];
 }
 
@@ -64,6 +65,7 @@ export class BblCompetitionsImportService {
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
     private readonly dateRange: MatchDateRangeService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -81,7 +83,7 @@ export class BblCompetitionsImportService {
    * `competitionsByBblId`) carries no DB id, but matches need one to set their
    * `competitionId`.
    */
-  async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
+  async importCompetitions(): Promise<{
     result: ImportResult;
     competitionsByBblId: Map<string, UpsertCompetition>;
     competitionIdsByBblId: Map<string, number>;
@@ -123,6 +125,27 @@ export class BblCompetitionsImportService {
     }
     const [bblSystemId] = bootstrap.ids;
 
+    // One round trip for the whole run: every era referenced here was
+    // upserted moments ago by the preceding eras step, so it is already in
+    // the database and resolvable by the same external id (its name) that
+    // step wrote. Resolved once into a name-keyed map so the rest of this
+    // method (and its private helpers) can keep looking eras up by name.
+    const eraNames = [...new Set(eras.map((era) => era.identity.name))];
+    const eraRefs = eraNames.map((name) => ({
+      externalSystemId: bblSystemId,
+      externalId: name,
+    }));
+    const resolvedEraIds = await this.lookup.lookupMap('era', eraRefs);
+    const eraIds = new Map<string, number>();
+    for (const name of eraNames) {
+      const id = resolvedEraIds.get(
+        this.lookup.keyOf({ externalSystemId: bblSystemId, externalId: name }),
+      );
+      if (id !== undefined) {
+        eraIds.set(name, id);
+      }
+    }
+
     const datesByCompetitionId = await this.collectMatchDates(errors);
     const competitions = await this.readCompetitionList(errors);
     if (competitions === null) {
@@ -148,7 +171,7 @@ export class BblCompetitionsImportService {
         competition,
         dates: datesByCompetitionId.get(competition.bblId) ?? [],
         eras,
-        eraIdsByName,
+        eraIds,
         errors,
       });
       if (resolved === undefined) {
@@ -254,18 +277,18 @@ export class BblCompetitionsImportService {
     competition,
     dates,
     eras,
-    eraIdsByName,
+    eraIds,
     errors,
   }: ResolveTypeAndEraOptions): ResolvedCompetition | undefined {
     const match = this.findOverride(competition.bblId, eras);
     if (match !== undefined) {
       const { era: overrideEra, override } = match;
-      const eraId = eraIdsByName.get(overrideEra.identity.name);
+      const eraId = eraIds.get(overrideEra.identity.name);
       if (eraId === undefined) {
         errors.push(
           this.importResults.error({
             item: competition,
-            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its configured era override "${overrideEra.identity.name}" has no known database id (its rules set may have failed to import).`,
+            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its configured era override "${overrideEra.identity.name}" could not be resolved.`,
           }),
         );
         return undefined;
@@ -299,13 +322,13 @@ export class BblCompetitionsImportService {
     const { eraName, eraId } = this.resolveEraId(
       range.earliestDate,
       eras,
-      eraIdsByName,
+      eraIds,
     );
     if (eraId === undefined) {
       const message =
         eraName === undefined
           ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in no configured era.`
-          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
+          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in the configured era "${eraName}", which could not be resolved (its rules set may have failed to import).`;
       errors.push(this.importResults.error({ item: competition, message }));
       return undefined;
     }
@@ -394,7 +417,7 @@ export class BblCompetitionsImportService {
   private resolveEraId(
     date: Date,
     eras: EraConfig[],
-    eraIdsByName: Map<string, number>,
+    eraIds: Map<string, number>,
   ): { eraName: string | undefined; eraId: number | undefined } {
     const day = this.toIsoDay(date);
     for (const era of eras) {
@@ -407,7 +430,7 @@ export class BblCompetitionsImportService {
       ) {
         return {
           eraName: era.identity.name,
-          eraId: eraIdsByName.get(era.identity.name),
+          eraId: eraIds.get(era.identity.name),
         };
       }
     }

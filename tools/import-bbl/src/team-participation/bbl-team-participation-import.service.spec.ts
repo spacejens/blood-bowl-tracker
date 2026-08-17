@@ -29,8 +29,6 @@ import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.se
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
-const eraIdsByName = new Map<string, number>([['BB2020', 200]]);
-
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
  * ImportResultService's own `success: errors.length === 0` derivation is
@@ -285,7 +283,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -337,7 +334,6 @@ describe('BblTeamParticipationImportService', () => {
           ['vor', away],
         ]),
         racesByRaceId,
-        eraIdsByName,
         competitionIdsByBblId: new Map([['1', 42]]),
       });
 
@@ -380,7 +376,6 @@ describe('BblTeamParticipationImportService', () => {
       ]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([
         ['1', 42],
         ['2', 43],
@@ -408,7 +403,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -449,7 +443,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -473,7 +466,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -505,7 +497,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -530,7 +521,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId: new Map(),
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -548,7 +538,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -571,7 +560,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -601,7 +589,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -648,7 +635,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -677,7 +663,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -704,7 +689,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map(),
     });
 
@@ -804,7 +788,6 @@ describe('BblTeamParticipationImportService', () => {
         ['b2', teamB2],
       ]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -836,7 +819,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -867,7 +849,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -889,7 +870,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -910,7 +890,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
@@ -931,7 +910,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 

@@ -1,13 +1,16 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblPositionRaceErasImportService } from './bbl-position-race-eras-import.service';
 
 function makeEra(overrides: Partial<EraConfig> = {}): EraConfig {
@@ -42,20 +45,55 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
   return importResults.result.mock.calls[0][0];
 }
 
+/** The numeric id the mocked bootstrap assigns to the BBL external system. */
+const BBL_SYSTEM_ID = 1;
+
+/** The default era name -> DB id resolution the mocked lookup answers with. */
+const eraIdsByName = new Map<string, number>([['Living rulebook', 500]]);
+
+/**
+ * Configures `lookup.lookupMap` to resolve any era ref whose name appears in
+ * `idsByName`, keyed via the mocked (deterministic) `keyOf`. Mirrors what
+ * ReferenceLookupService itself does, without reimplementing its resolution
+ * algorithm (idsByName is supplied by the caller, not derived here).
+ */
+function mockEraLookup(
+  lookup: MockProxy<ReferenceLookupService>,
+  idsByName: Map<string, number>,
+): void {
+  lookup.lookupMap.mockImplementation((_kind, refs) =>
+    Promise.resolve(
+      new Map(
+        refs
+          .filter((ref) => idsByName.has(ref.externalId))
+          .map((ref) => [
+            lookup.keyOf(ref),
+            idsByName.get(ref.externalId) as number,
+          ]),
+      ),
+    ),
+  );
+}
+
 interface Mocks {
   positionsImport: MockProxy<PositionsImportService>;
   eraConfig: MockProxy<EraConfigService>;
   importResults: MockProxy<ImportResultService>;
+  bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }
 
 /**
  * Builds the service under test through a TestingModule with every
  * collaborator mocked. ImportResultService.result returns a canned value
  * (see CANNED_RESULT above); tests assert what this service passes to it,
- * not what it computes.
+ * not what it computes. `idsByName` seeds the mocked lookup's era resolution
+ * (defaulting to `eraIdsByName`); a test wanting different resolution results
+ * passes its own map.
  */
 async function makeService(
   eras: EraConfig[],
+  idsByName: Map<string, number> = eraIdsByName,
 ): Promise<{ service: BblPositionRaceErasImportService; mocks: Mocks }> {
   const positionsImport = mock<PositionsImportService>();
 
@@ -72,18 +110,36 @@ async function makeService(
   }));
   importResults.result.mockReturnValue(CANNED_RESULT);
 
+  const bootstrap = mock<ExternalSystemBootstrapService>();
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [BBL_SYSTEM_ID] });
+
+  const nameConfig = mock<ExternalSystemNameConfigService>();
+  nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+  const lookup = mock<ReferenceLookupService>();
+  // `keyOf` is a pure, deterministic key derivation with no branching that
+  // could drift from ReferenceLookupService's own real implementation --
+  // exempt from the canned-response rule, same as the other passthroughs.
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  );
+  mockEraLookup(lookup, idsByName);
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPositionRaceErasImportService,
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: EraConfigService, useValue: eraConfig },
       { provide: ImportResultService, useValue: importResults },
+      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
   return {
     service: moduleRef.get(BblPositionRaceErasImportService),
-    mocks: { positionsImport, eraConfig, importResults },
+    mocks: { positionsImport, eraConfig, importResults, bootstrap, lookup },
   };
 }
 
@@ -92,7 +148,28 @@ describe('BblPositionRaceErasImportService', () => {
   const racesByBblId = new Map<string, { id: number; name: string }>([
     ['7', { id: 7, name: 'Orcs' }],
   ]);
-  const eraIdsByName = new Map<string, number>([['Living rulebook', 500]]);
+
+  it('resolves configured eras through the api once for the whole run', async () => {
+    const { service, mocks } = await makeService([makeEra()]);
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+
+    await service.syncPositionRaceEras({
+      positionRaceCandidates,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByRaceId,
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: 'Living rulebook' },
+    ]);
+  });
 
   it('includes all race_eras of a star player position regardless of usage', async () => {
     const { service, mocks } = await makeService([]);
@@ -112,7 +189,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -150,7 +226,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -179,7 +254,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -208,7 +282,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -237,7 +310,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -271,7 +343,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -305,7 +376,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -337,7 +407,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -370,7 +439,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -402,7 +470,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -411,6 +478,39 @@ describe('BblPositionRaceErasImportService', () => {
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0]?.message).toContain('Unknown era');
+  });
+
+  it('records one error and imports nothing when external system bootstrap fails', async () => {
+    const { service, mocks } = await makeService([makeEra()]);
+    mocks.bootstrap.bootstrap.mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL'] },
+        message: 'Failed to upsert external system: network timeout',
+      },
+    });
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+
+    await service.syncPositionRaceEras({
+      positionRaceCandidates,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByRaceId,
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe(
+      'Failed to upsert external system: network timeout',
+    );
+    expect(mocks.positionsImport.syncRaceEras).not.toHaveBeenCalled();
+    expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
@@ -424,7 +524,6 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
