@@ -1,4 +1,8 @@
-import { CompetitionsService } from '@blood-bowl-tracker/game-data';
+import type { CompetitionTrophyAward } from '@blood-bowl-tracker/game-data';
+import {
+  CompetitionsService,
+  TrophyAwardsService,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -19,12 +23,17 @@ import {
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
+  DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
+  DEEPDIVE_COMPETITION_TROPHIES_TIMEOUT_MESSAGE,
+  DEEPDIVE_COMPETITION_TROPHY_CONTEXT_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import { PlayerContextService } from '../../insights/player-context.service';
+import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
@@ -32,37 +41,46 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
 interface MakeServiceOptions {
   competitions: CompetitionsService;
+  trophyAwards?: MockProxy<TrophyAwardsService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   teamContext?: MockProxy<TeamContextService>;
+  playerContext?: MockProxy<PlayerContextService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
 }
 
 async function makeService({
   competitions,
+  trophyAwards = makeTrophyAwards([]),
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   teamContext = passthroughTeamContext(),
+  playerContext = passthroughPlayerContext(),
   dateRangeFormatter = mock<DateRangeFormatterService>(),
 }: MakeServiceOptions): Promise<{
   service: CompetitionDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
   teamContext: MockProxy<TeamContextService>;
+  playerContext: MockProxy<PlayerContextService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       CompetitionDeepdiveService,
       { provide: CompetitionsService, useValue: competitions },
+      { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TeamContextService, useValue: teamContext },
+      { provide: PlayerContextService, useValue: playerContext },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
   }).compile();
@@ -70,6 +88,7 @@ async function makeService({
     service: moduleRef.get(CompetitionDeepdiveService),
     entityComponents,
     teamContext,
+    playerContext,
     dateRangeFormatter,
   };
 }
@@ -109,6 +128,44 @@ function competitionHeader(
     competitionGroupName: 'The Major',
     startDate: '2024-01-15',
     endDate: '2024-06-30',
+    ...overrides,
+  };
+}
+
+function makeTrophyAwards(
+  awards: CompetitionTrophyAward[],
+): MockProxy<TrophyAwardsService> {
+  const trophyAwards = mock<TrophyAwardsService>();
+  trophyAwards.listForCompetition.mockResolvedValue(awards);
+  return trophyAwards;
+}
+
+function teamAward(
+  overrides: Partial<CompetitionTrophyAward> = {},
+): CompetitionTrophyAward {
+  return {
+    trophyId: 70,
+    trophyName: 'Season Gold',
+    recipientKind: 'team',
+    teamId: 5,
+    teamName: 'Gouged Eye',
+    playerId: null,
+    playerName: null,
+    ...overrides,
+  };
+}
+
+function playerAward(
+  overrides: Partial<CompetitionTrophyAward> = {},
+): CompetitionTrophyAward {
+  return {
+    trophyId: 71,
+    trophyName: 'Most Valuable Player',
+    recipientKind: 'player',
+    teamId: 9,
+    teamName: 'Reikland Reavers',
+    playerId: 40,
+    playerName: 'Griff Oberwald',
     ...overrides,
   };
 }
@@ -177,6 +234,8 @@ describe('CompetitionDeepdiveService', () => {
             'Participating teams:',
             'Gouged Eye (Orc, Skarsnik)',
             'Reikland Reavers (Orc, Skarsnik)',
+            '',
+            DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE,
           ].join('\n'),
         },
       ],
@@ -496,6 +555,284 @@ describe('CompetitionDeepdiveService', () => {
       },
       () => undefined,
       DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('renders the no-trophies message when the competition awarded nothing', async () => {
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      trophyAwards: makeTrophyAwards([]),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain(DEEPDIVE_COMPETITION_NO_TROPHIES_MESSAGE);
+    expect(lines).not.toContain('Trophies & awards:');
+  });
+
+  it('skips the recipient-context lookup entirely when the competition awarded nothing', async () => {
+    const playerContext = passthroughPlayerContext();
+    const { service, teamContext } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      trophyAwards: makeTrophyAwards([]),
+      playerContext,
+    });
+    await service.resolve(1);
+    // Only the participating-teams decoration runs; nothing decorates awards.
+    expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
+    expect(playerContext.attachSuffixes).not.toHaveBeenCalled();
+  });
+
+  it('renders a team award with its race/coach context, after the participating-teams block', async () => {
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      trophyAwards: makeTrophyAwards([teamAward()]),
+      teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toEqual([
+      'Type: season',
+      'Era: BB2020',
+      'Group: The Major',
+      'Duration: undefined',
+      '',
+      'Participating teams:',
+      'Gouged Eye (Orc, Skarsnik)',
+      '',
+      'Trophies & awards:',
+      'Season Gold: Gouged Eye (Orc, Skarsnik)',
+    ]);
+  });
+
+  it('renders a player award with its position/team/race/coach context', async () => {
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [],
+      }),
+      trophyAwards: makeTrophyAwards([playerAward()]),
+      playerContext: passthroughPlayerContext(
+        ' (Blitzer, Reikland Reavers, Human, Ludwig)',
+      ),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Most Valuable Player: Griff Oberwald (Blitzer, Reikland Reavers, Human, Ludwig)',
+    );
+  });
+
+  it('treats a malformed player-kind award with a null playerId/playerName as a team award', async () => {
+    const entityComponents = entityComponentsMock();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
+    const malformedAward = playerAward({ playerId: null, playerName: null });
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [],
+      }),
+      trophyAwards: makeTrophyAwards([malformedAward]),
+      entityComponents,
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Most Valuable Player: Reikland Reavers',
+    );
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toContainEqual({
+      customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '9',
+      label: 'Reikland Reavers',
+    });
+  });
+
+  it('renders team and player awards together, in the order the query returned them', async () => {
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [],
+      }),
+      trophyAwards: makeTrophyAwards([teamAward(), playerAward()]),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines.slice(lines.indexOf('Trophies & awards:'))).toEqual([
+      'Trophies & awards:',
+      'Season Gold: Gouged Eye',
+      'Most Valuable Player: Griff Oberwald',
+    ]);
+  });
+
+  it('decorates team awards and player awards with the right context options', async () => {
+    const teamContext = passthroughTeamContext();
+    const playerContext = passthroughPlayerContext();
+    const awards = [teamAward(), playerAward()];
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [],
+      }),
+      trophyAwards: makeTrophyAwards(awards),
+      teamContext,
+      playerContext,
+    });
+
+    await service.resolve(1);
+
+    // Call 0 decorates the (empty) participating-teams list; call 1 decorates
+    // the team-kind award rows only.
+    const [teamRows, teamIdOf, teamOptions] =
+      teamContext.attachSuffixes.mock.calls[1];
+    expect(teamRows).toEqual([awards[0]]);
+    expect(teamIdOf(awards[0])).toBe(5);
+    expect(teamOptions).toEqual({ includeRace: true, includeCoach: true });
+
+    const [playerRows, playerIdOf, playerOptions] =
+      playerContext.attachSuffixes.mock.calls[0];
+    expect(playerRows).toEqual([awards[1]]);
+    expect(playerIdOf(awards[1])).toBe(40);
+    expect(playerOptions).toEqual({
+      includePosition: true,
+      includeTeam: true,
+      includeRace: true,
+      includeEra: false,
+      includeCoach: true,
+    });
+  });
+
+  it('adds recipient and distinct-trophy entries between the team entries and the era entry, deduping a trophy shared by several awards', async () => {
+    const entityComponents = entityComponentsMock();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
+    // Two awards of the same trophy (a tie) plus one player award: the tied
+    // trophy must contribute exactly one trophy entry.
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      trophyAwards: makeTrophyAwards([
+        teamAward(),
+        teamAward({ teamId: 9, teamName: 'Reikland Reavers' }),
+        playerAward(),
+      ]),
+      entityComponents,
+    });
+
+    await service.resolve(1);
+
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toEqual([
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Gouged Eye',
+      },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Gouged Eye',
+      },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '9',
+        label: 'Reikland Reavers',
+      },
+      {
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '40',
+        label: 'Griff Oberwald',
+      },
+      {
+        customIdPrefix: TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '70',
+        label: 'Season Gold',
+      },
+      {
+        customIdPrefix: TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '71',
+        label: 'Most Valuable Player',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
+      },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'The Major',
+      },
+    ]);
+  });
+
+  it('falls back to the trophies timeout message when the awards lookup times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          competitions: makeCompetitions({
+            competition: competitionHeader(),
+            teams: [{ id: 5, name: 'Gouged Eye' }],
+          }),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_COMPETITION_TROPHIES_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the trophy-context timeout message when decorating the award recipients times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          competitions: makeCompetitions({
+            competition: competitionHeader(),
+            teams: [{ id: 5, name: 'Gouged Eye' }],
+          }),
+          trophyAwards: makeTrophyAwards([teamAward()]),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_COMPETITION_TROPHY_CONTEXT_TIMEOUT_MESSAGE,
     );
   });
 });

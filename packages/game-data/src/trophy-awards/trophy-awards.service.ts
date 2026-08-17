@@ -11,7 +11,7 @@ import {
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNull } from 'drizzle-orm';
 
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -51,6 +51,25 @@ export type TrophyRecipient = {
   competitionStartDate: string;
   eraId: number;
   eraName: string;
+  teamId: number;
+  teamName: string;
+  playerId: number | null;
+  playerName: string | null;
+};
+
+/**
+ * One trophy handed out in a single competition, as the competition deepdive
+ * renders it: which trophy, whether it goes to a team or a player, the team
+ * that won it, and — for a player trophy — the player. `playerId`/`playerName`
+ * are `null` for a team trophy. This is the reverse view of `TrophyRecipient`:
+ * that one fixes the trophy and lists competitions, this one fixes the
+ * competition and lists trophies, so it carries no competition or era columns
+ * (a competition belongs to exactly one era, and the caller already knows both).
+ */
+export type CompetitionTrophyAward = {
+  trophyId: number;
+  trophyName: string;
+  recipientKind: 'team' | 'player';
   teamId: number;
   teamName: string;
   playerId: number | null;
@@ -133,6 +152,61 @@ export class TrophyAwardsService {
         desc(competitions.startDate),
       )
       .limit(limit);
+  }
+
+  /**
+   * Every trophy handed out in one competition, team awards first (season
+   * placements, wooden spoon) and player awards after (MVP, best stunty), each
+   * group ordered by trophy name — a clearer hall-of-fame narrative than
+   * mixing the two kinds together.
+   *
+   * `asc(trophies.recipientKind)` is what puts team before player: Postgres
+   * orders an enum by its declaration order, and `trophy_recipient_kind` is
+   * declared `['team', 'player']` (see `packages/db/src/schema/trophies.ts`),
+   * so no `CASE` expression is needed.
+   *
+   * `players` is left-joined because a team trophy's award row carries no
+   * player at all; `team_eras` is only a stepping stone to the team's id and
+   * name, since the deepdive links to the team, not the era. There is
+   * deliberately no `limit` and no era grouping (unlike `listRecipients`): a
+   * competition belongs to exactly one era, so there is nothing to group by,
+   * and one competition only ever awards a small, bounded number of trophies.
+   *
+   * `trophies.id`, `teams.name`/`teams.id` and `players.name`/`players.id`
+   * are appended as tiebreakers: neither `recipientKind` nor `trophies.name`
+   * is unique (a tie, or one trophy covering several podium places, means
+   * several award rows share both), and team/player *names* are not unique
+   * either, so the trailing `teams.id`/`players.id` pair is what actually
+   * guarantees a fully deterministic order — without them, two same-named
+   * teams or players tied for one trophy could still return in arbitrary
+   * order on every call.
+   */
+  listForCompetition(competitionId: number): Promise<CompetitionTrophyAward[]> {
+    return this.db
+      .select({
+        trophyId: trophies.id,
+        trophyName: trophies.name,
+        recipientKind: trophies.recipientKind,
+        teamId: teams.id,
+        teamName: teams.name,
+        playerId: players.id,
+        playerName: players.name,
+      })
+      .from(trophyAwards)
+      .innerJoin(trophies, eq(trophies.id, trophyAwards.trophyId))
+      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .leftJoin(players, eq(players.id, trophyAwards.playerId))
+      .where(eq(trophyAwards.competitionId, competitionId))
+      .orderBy(
+        asc(trophies.recipientKind),
+        asc(trophies.name),
+        asc(trophies.id),
+        asc(teams.name),
+        asc(teams.id),
+        asc(players.name),
+        asc(players.id),
+      );
   }
 
   /**

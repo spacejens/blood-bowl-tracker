@@ -256,6 +256,138 @@ describe('TrophyAwardsService', () => {
     });
   });
 
+  describe('listForCompetition', () => {
+    const teamAwardRecipient = {
+      trophyId: 1,
+      trophyName: 'Season Gold',
+      recipientKind: 'team' as const,
+      teamId: 30,
+      teamName: 'Reikland Reavers',
+      playerId: null,
+      playerName: null,
+    };
+    const playerAwardRecipient = {
+      trophyId: 2,
+      trophyName: 'Most Valuable Player',
+      recipientKind: 'player' as const,
+      teamId: 31,
+      teamName: 'Gouged Eye',
+      playerId: 40,
+      playerName: 'Griff Oberwald',
+    };
+
+    it('returns the team awards recorded for the requested competition', async () => {
+      const { chains } = await build([teamAwardRecipient]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([
+        teamAwardRecipient,
+      ]);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+    });
+
+    it('returns the player id and name for a player award', async () => {
+      await build([playerAwardRecipient]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([
+        playerAwardRecipient,
+      ]);
+    });
+
+    it('returns team and player awards together for a mixed competition', async () => {
+      await build([teamAwardRecipient, playerAwardRecipient]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([
+        teamAwardRecipient,
+        playerAwardRecipient,
+      ]);
+    });
+
+    it('returns one row per recipient when a trophy was tied between several players', async () => {
+      const tied = {
+        ...playerAwardRecipient,
+        teamId: 32,
+        teamName: 'Skavenblight Scramblers',
+        playerId: 41,
+        playerName: 'Hakflem Skuttlespike',
+      };
+      await build([playerAwardRecipient, tied]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([
+        playerAwardRecipient,
+        tied,
+      ]);
+    });
+
+    it('orders by recipient kind (team before player, per the enum declaration order) then trophy name, then trophy id, team name/id and player name/id as tiebreakers, all ascending', async () => {
+      const { chains } = await build([teamAwardRecipient]);
+
+      await service.listForCompetition(7);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['trophies.recipient_kind'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 0))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['trophies.name'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 1))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['trophies.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 3))).toEqual(
+        ['teams.name'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 3))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 4))).toEqual(
+        ['teams.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 4))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 5))).toEqual(
+        ['players.name'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 5))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 6))).toEqual(
+        ['players.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 6))).toContain(' asc');
+    });
+
+    it('joins through trophies, team eras and teams, and left-joins players', async () => {
+      const { chains } = await build([]);
+
+      await service.listForCompetition(7);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['trophies.id', 'trophy_awards.trophy_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['teams.id', 'team_eras.team_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
+      ).toEqual(['players.id', 'trophy_awards.player_id']);
+    });
+
+    it('does not cap the result, since a single competition awards a bounded number of trophies', async () => {
+      const { chains } = await build([teamAwardRecipient]);
+
+      await service.listForCompetition(7);
+
+      expect(chains[0].limit).not.toHaveBeenCalled();
+    });
+
+    it('returns an empty list when the competition awarded nothing', async () => {
+      await build([]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([]);
+    });
+  });
+
   describe('listByTeam', () => {
     const teamHonor = {
       trophyId: 1,
