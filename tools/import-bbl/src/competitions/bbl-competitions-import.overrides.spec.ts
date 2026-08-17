@@ -250,8 +250,7 @@ describe('BblCompetitionsImportService overrides', () => {
       },
     ]);
 
-    const { competitionsByBblId, competitionIdsByBblId } =
-      await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(1);
@@ -271,7 +270,6 @@ describe('BblCompetitionsImportService overrides', () => {
       expect.any(Array),
     );
     expect(competitionsByBblId.get('74')?.eraId).toBe(200);
-    expect(competitionIdsByBblId.get('74')).toBe(74);
   });
 
   it('applies an era override ahead of match-date resolution even when the competition has matches', async () => {

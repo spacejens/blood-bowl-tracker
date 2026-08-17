@@ -1,8 +1,12 @@
-import type { ResolveMatchOutcomesResult } from '@blood-bowl-tracker/api-contract';
+import type {
+  ResolveMatchOutcomesResult,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchOutcomesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -22,6 +26,18 @@ const COMPETITION_BBL_ID = '69';
 const COMPETITION_DB_ID = 7;
 const MATCH_BBL_ID = '1830';
 const MATCH_DB_ID = 11;
+/** The numeric id the mocked bootstrap would assign to the BBL external system. */
+const BBL_SYSTEM_ID = 1;
+
+const COMPETITION: UpsertCompetition = {
+  name: 'Major Season 3',
+  type: 'season',
+  eraId: 200,
+  teamEraIds: [],
+  externalIds: [
+    { externalSystemId: BBL_SYSTEM_ID, externalId: COMPETITION_BBL_ID },
+  ],
+};
 
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
@@ -88,6 +104,34 @@ interface Mocks {
   matchMerge: MockProxy<MatchMergeService>;
   matchOutcomes: MockProxy<MatchOutcomesImportService>;
   importResults: MockProxy<ImportResultService>;
+  lookup: MockProxy<ReferenceLookupService>;
+}
+
+/**
+ * Configures `lookup.lookupMap` to resolve any 'competition' ref whose
+ * external id appears in `competitionIdsByBblId`, keyed via the mocked
+ * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
+ * without reimplementing its resolution algorithm.
+ */
+function mockCompetitionLookup(
+  lookup: MockProxy<ReferenceLookupService>,
+  competitionIdsByBblId: Map<string, number>,
+): void {
+  lookup.lookupMap.mockImplementation((kind, refs) => {
+    if (kind !== 'competition') {
+      return Promise.resolve(new Map<string, number>());
+    }
+    return Promise.resolve(
+      new Map(
+        refs
+          .filter((ref) => competitionIdsByBblId.has(ref.externalId))
+          .map((ref) => [
+            lookup.keyOf(ref),
+            competitionIdsByBblId.get(ref.externalId) as number,
+          ]),
+      ),
+    );
+  });
 }
 
 /**
@@ -102,6 +146,7 @@ async function makeService(seed?: {
   overrides?: Map<string, string | null>;
   merges?: MatchMergeResolution;
   outcomeResult?: ResolveMatchOutcomesResult;
+  competitionIdsByBblId?: Map<string, number>;
 }): Promise<{ service: BblMatchOutcomesImportService; mocks: Mocks }> {
   const matchListReader = mock<BblMatchListReaderService>();
   matchListReader.getMatchesByCompetitionId.mockResolvedValue(
@@ -133,6 +178,19 @@ async function makeService(seed?: {
   }));
   importResults.result.mockReturnValue(CANNED_RESULT);
 
+  const lookup = mock<ReferenceLookupService>();
+  // `keyOf` is a pure, deterministic key derivation with no branching that
+  // could drift from ReferenceLookupService's own real implementation --
+  // exempt from the canned-response rule, same as the other passthroughs.
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  );
+  mockCompetitionLookup(
+    lookup,
+    seed?.competitionIdsByBblId ??
+      new Map([[COMPETITION_BBL_ID, COMPETITION_DB_ID]]),
+  );
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblMatchOutcomesImportService,
@@ -142,6 +200,7 @@ async function makeService(seed?: {
       { provide: MatchMergeService, useValue: matchMerge },
       { provide: MatchOutcomesImportService, useValue: matchOutcomes },
       { provide: ImportResultService, useValue: importResults },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -154,6 +213,7 @@ async function makeService(seed?: {
       matchMerge,
       matchOutcomes,
       importResults,
+      lookup,
     },
   };
 }
@@ -163,7 +223,7 @@ function defaultOptions(
   overrides: Partial<ImportBblMatchOutcomesOptions> = {},
 ): ImportBblMatchOutcomesOptions {
   return {
-    competitionIdsByBblId: new Map([[COMPETITION_BBL_ID, COMPETITION_DB_ID]]),
+    competitionsByBblId: new Map([[COMPETITION_BBL_ID, COMPETITION]]),
     matchIdsByBblId: new Map([[MATCH_BBL_ID, MATCH_DB_ID]]),
     categoriesByBblId: new Map([[MATCH_BBL_ID, 'normal']]),
     teamEraIdsByCompetitionBblId: new Map([
@@ -508,7 +568,7 @@ describe('BblMatchOutcomesImportService', () => {
 
   it('skips a competition that was not imported', async () => {
     const { service, mocks } = await makeService();
-    const options = defaultOptions({ competitionIdsByBblId: new Map() });
+    const options = defaultOptions({ competitionsByBblId: new Map() });
 
     await service.importMatchOutcomes(options);
 

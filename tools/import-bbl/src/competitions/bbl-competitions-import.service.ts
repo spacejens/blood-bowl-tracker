@@ -77,21 +77,14 @@ export class BblCompetitionsImportService {
    * under the configured BBL external system.
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
-   *
-   * Also returns `competitionIdsByBblId`, mapping each imported competition's
-   * BBL id to its DB id — `UpsertCompetition` (used for
-   * `competitionsByBblId`) carries no DB id, but matches need one to set their
-   * `competitionId`.
    */
   async importCompetitions(): Promise<{
     result: ImportResult;
     competitionsByBblId: Map<string, UpsertCompetition>;
-    competitionIdsByBblId: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const competitionsByBblId = new Map<string, UpsertCompetition>();
-    const competitionIdsByBblId = new Map<string, number>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
@@ -108,7 +101,6 @@ export class BblCompetitionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
-        competitionIdsByBblId,
       };
     }
 
@@ -120,7 +112,6 @@ export class BblCompetitionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
-        competitionIdsByBblId,
       };
     }
     const [bblSystemId] = bootstrap.ids;
@@ -162,7 +153,6 @@ export class BblCompetitionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
-        competitionIdsByBblId,
       };
     }
 
@@ -197,7 +187,6 @@ export class BblCompetitionsImportService {
       );
       if (upserted !== undefined) {
         competitionsByBblId.set(competition.bblId, competitionData);
-        competitionIdsByBblId.set(competition.bblId, upserted.id);
         imported += 1;
       }
     }
@@ -205,7 +194,6 @@ export class BblCompetitionsImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       competitionsByBblId,
-      competitionIdsByBblId,
     };
   }
 

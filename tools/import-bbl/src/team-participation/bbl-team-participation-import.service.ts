@@ -14,6 +14,7 @@ import {
   ImportResultService,
   MatchesImportService,
   RacesImportService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -31,7 +32,6 @@ export interface ImportTeamParticipationOptions {
   competitionsByBblId: Map<string, UpsertCompetition>;
   teamsByCode: Map<string, UpsertTeam>;
   racesByRaceId: Map<number, UpsertRace>;
-  competitionIdsByBblId: Map<string, number>;
 }
 
 interface CollectTeamIdsOptions {
@@ -47,7 +47,7 @@ interface SyncMatchTeamsOptions {
   matches: BblMatch[];
   matchTeamsByBblId: Map<string, BblMatchDetails>;
   teamEraIdByTeamId: Map<string, number>;
-  competitionIdsByBblId: Map<string, number>;
+  competitionIds: Map<string, number>;
   merges: MatchMergeResolution;
   matchBatch: BatchBuffer<UpsertMatch>;
   errors: ImportError[];
@@ -66,6 +66,7 @@ export class BblTeamParticipationImportService {
     private readonly competitionStandingsReader: BblCompetitionStandingsReaderService,
     private readonly importResults: ImportResultService,
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -101,7 +102,6 @@ export class BblTeamParticipationImportService {
     competitionsByBblId,
     teamsByCode,
     racesByRaceId,
-    competitionIdsByBblId,
   }: ImportTeamParticipationOptions): Promise<{
     result: ImportResult;
     eraIdsByRaceId: Map<number, Set<number>>;
@@ -112,6 +112,18 @@ export class BblTeamParticipationImportService {
     const matchBatch = this.matchesImport.createBatch(errors);
     const teamEraIdsByCompetitionBblId = new Map<string, Map<string, number>>();
     const eraIdsByRaceId = new Map<number, Set<number>>();
+
+    // One round trip for the whole run: every competition referenced here was
+    // upserted moments ago by the preceding competitions step, so it is
+    // already in the database and resolvable by its BBL id. Matches need the
+    // resolved DB id to set their `competitionId`.
+    const competitionIds = await this.lookup.lookupMap(
+      'competition',
+      [...competitionsByBblId].map(([bblId, competition]) => ({
+        externalSystemId: competition.externalIds[0].externalSystemId,
+        externalId: bblId,
+      })),
+    );
 
     try {
       const matchesByCompetitionId =
@@ -202,7 +214,7 @@ export class BblTeamParticipationImportService {
           matches: matchesByCompetitionId.get(bblId) ?? [],
           matchTeamsByBblId,
           teamEraIdByTeamId,
-          competitionIdsByBblId,
+          competitionIds,
           merges,
           matchBatch,
           errors,
@@ -246,12 +258,15 @@ export class BblTeamParticipationImportService {
       matches,
       matchTeamsByBblId,
       teamEraIdByTeamId,
-      competitionIdsByBblId,
+      competitionIds,
       merges,
       matchBatch,
       errors,
     } = options;
-    const competitionId = competitionIdsByBblId.get(competitionBblId);
+    const externalSystemId = competition.externalIds[0].externalSystemId;
+    const competitionId = competitionIds.get(
+      this.lookup.keyOf({ externalSystemId, externalId: competitionBblId }),
+    );
     if (competitionId === undefined) {
       errors.push(
         this.importResults.error({
@@ -261,8 +276,6 @@ export class BblTeamParticipationImportService {
       );
       return;
     }
-
-    const externalSystemId = competition.externalIds[0].externalSystemId;
 
     for (const match of matches) {
       const teams = matchTeamsByBblId.get(match.bblId);

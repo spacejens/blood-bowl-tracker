@@ -79,8 +79,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(42),
     );
 
-    const { competitionsByBblId, competitionIdsByBblId } =
-      await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
@@ -109,7 +108,6 @@ describe('BblCompetitionsImportService', () => {
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '1' }],
     });
-    expect(competitionIdsByBblId.get('1')).toBe(42);
   });
 
   it('derives type=cup from a <=3-day span', async () => {
@@ -330,8 +328,7 @@ describe('BblCompetitionsImportService', () => {
       throw new Error('era config is malformed');
     });
 
-    const { competitionsByBblId, competitionIdsByBblId } =
-      await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -343,7 +340,6 @@ describe('BblCompetitionsImportService', () => {
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(competitionsByBblId.size).toBe(0);
-    expect(competitionIdsByBblId.size).toBe(0);
   });
 
   it('records an error and reports zero imports when the master list page fails to parse', async () => {

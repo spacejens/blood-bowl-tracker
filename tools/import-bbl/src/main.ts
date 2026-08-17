@@ -43,10 +43,7 @@ async function run(): Promise<ImportResult> {
       .importCompetitions();
     const matchOutcome = await app
       .get(BblMatchesImportService)
-      .importMatches(
-        competitionOutcome.competitionsByBblId,
-        competitionOutcome.competitionIdsByBblId,
-      );
+      .importMatches(competitionOutcome.competitionsByBblId);
     // Races and coaches must be upserted before teams referencing them can be
     // resolved server-side, by external id.
     const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
@@ -58,7 +55,6 @@ async function run(): Promise<ImportResult> {
         competitionsByBblId: competitionOutcome.competitionsByBblId,
         teamsByCode: teamOutcome.teamsByCode,
         racesByRaceId: raceOutcome.racesByRaceId,
-        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
       });
     const positionOutcome = await app
       .get(BblPositionsImportService)
@@ -101,7 +97,7 @@ async function run(): Promise<ImportResult> {
     const matchOutcomesOutcome = await app
       .get(BblMatchOutcomesImportService)
       .importMatchOutcomes({
-        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        competitionsByBblId: competitionOutcome.competitionsByBblId,
         matchIdsByBblId: matchOutcome.matchIdsByBblId,
         categoriesByBblId: matchOutcome.categoriesByBblId,
         teamEraIdsByCompetitionBblId:
@@ -115,7 +111,7 @@ async function run(): Promise<ImportResult> {
     const trophyAwardsOutcome = await app
       .get(BblTrophyAwardsImportService)
       .importTrophyAwards({
-        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        competitionsByBblId: competitionOutcome.competitionsByBblId,
         teamEraIdsByCompetitionBblId:
           teamParticipationOutcome.teamEraIdsByCompetitionBblId,
         playerIdsByPid: playerOutcome.playerIdsByPid,
