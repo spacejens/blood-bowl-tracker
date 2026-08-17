@@ -18,6 +18,7 @@ import {
   DEEPDIVE_COMPETITION_GROUP_TROPHIES_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
@@ -50,7 +51,10 @@ type GroupCompetition = {
  * (`undefined`). Competition entries come before trophy entries in the
  * drill-down pool because listing the instances is this deepdive's primary
  * job, and `buildEntityComponents` has no internal prioritisation — first
- * entries win the components budget.
+ * entries win the components budget. Instances are grouped into per-era
+ * sections, each headed `<era> competitions:`, oldest era first, so a
+ * long-running group reads as one block per era instead of one flat list
+ * repeating the era on every row.
  */
 @Injectable()
 export class CompetitionGroupDeepdiveService {
@@ -61,6 +65,7 @@ export class CompetitionGroupDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly eraSectionGrouper: EraSectionGrouperService,
   ) {}
 
   async resolve(
@@ -100,10 +105,15 @@ export class CompetitionGroupDeepdiveService {
         : [DEEPDIVE_COMPETITION_GROUP_NO_TROPHIES_MESSAGE];
     const competitionLines =
       comps.length > 0
-        ? comps.map(
-            (comp) =>
-              `${comp.name} (${comp.eraName}): ${this.dateRangeFormatter.format(comp.startDate, comp.endDate)}`,
-          )
+        ? this.eraSectionGrouper
+            .group(comps)
+            .flatMap((section) => [
+              `${section.eraName} competitions:`,
+              ...section.rows.map(
+                (comp) =>
+                  `${comp.name}: ${this.dateRangeFormatter.format(comp.startDate, comp.endDate)}`,
+              ),
+            ])
         : [DEEPDIVE_COMPETITION_GROUP_NO_COMPETITIONS_MESSAGE];
 
     const entries: EntityComponentEntry[] = [
@@ -127,7 +137,6 @@ export class CompetitionGroupDeepdiveService {
       'Trophies:',
       ...trophyLines,
       '',
-      'Competitions:',
       ...competitionLines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');

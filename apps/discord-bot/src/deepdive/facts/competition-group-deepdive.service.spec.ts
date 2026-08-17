@@ -28,6 +28,11 @@ import {
   DEEPDIVE_COMPETITION_GROUP_TROPHIES_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import {
+  cannedEraSectionGrouper,
+  singleEraSectionGrouper,
+} from '../../shared/era-section-grouper-mock.test-helpers';
 import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
@@ -57,6 +62,7 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
+  eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
 }
 
 async function makeService({
@@ -66,11 +72,13 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   dateRangeFormatter = mock<DateRangeFormatterService>(),
+  eraSectionGrouper = singleEraSectionGrouper('BB2020'),
 }: MakeServiceOptions): Promise<{
   service: CompetitionGroupDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
   entityComponents: MockProxy<EntityComponentsService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
+  eraSectionGrouper: MockProxy<EraSectionGrouperService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -81,6 +89,7 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
+      { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
     ],
   }).compile();
   return {
@@ -88,6 +97,7 @@ async function makeService({
     databaseTimeout,
     entityComponents,
     dateRangeFormatter,
+    eraSectionGrouper,
   };
 }
 
@@ -216,6 +226,9 @@ describe('CompetitionGroupDeepdiveService', () => {
       trophies: makeTrophies(TROPHIES),
       competitions: makeCompetitions(COMPETITIONS),
       dateRangeFormatter,
+      eraSectionGrouper: cannedEraSectionGrouper([
+        { eraName: 'BB2020', rows: COMPETITIONS },
+      ]),
     });
 
     const result = await service.resolve(4);
@@ -241,9 +254,9 @@ describe('CompetitionGroupDeepdiveService', () => {
             'Chaos Cup Winner',
             'Most Casualties',
             '',
-            'Competitions:',
-            'Chaos Cup 23 (BB2020): 2023-10-01..2023-10-02',
-            'Chaos Cup 24 (BB2020 v2): 2024-10-01..now',
+            'BB2020 competitions:',
+            'Chaos Cup 23: 2023-10-01..2023-10-02',
+            'Chaos Cup 24: 2024-10-01..now',
           ].join('\n'),
         },
       ],
@@ -251,7 +264,7 @@ describe('CompetitionGroupDeepdiveService', () => {
   });
 
   it('says so when the group has no trophies and no competitions', async () => {
-    const { service } = await makeService({
+    const { service, eraSectionGrouper } = await makeService({
       competitionGroups: makeGroups(GROUP),
     });
 
@@ -267,12 +280,40 @@ describe('CompetitionGroupDeepdiveService', () => {
             'Trophies:',
             DEEPDIVE_COMPETITION_GROUP_NO_TROPHIES_MESSAGE,
             '',
-            'Competitions:',
             DEEPDIVE_COMPETITION_GROUP_NO_COMPETITIONS_MESSAGE,
           ].join('\n'),
         },
       ],
     });
+    expect(eraSectionGrouper.group).not.toHaveBeenCalled();
+  });
+
+  it('heads one section per era, oldest era first, with no era repeated on the rows', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('dates');
+    const { service, eraSectionGrouper } = await makeService({
+      competitionGroups: makeGroups(GROUP),
+      competitions: makeCompetitions(COMPETITIONS),
+      dateRangeFormatter,
+      eraSectionGrouper: cannedEraSectionGrouper([
+        { eraName: 'BB2020', rows: [COMPETITIONS[0]] },
+        { eraName: 'BB2020 v2', rows: [COMPETITIONS[1]] },
+      ]),
+    });
+
+    const result = await service.resolve(4);
+
+    expect(eraSectionGrouper.group).toHaveBeenCalledWith(COMPETITIONS);
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description
+        .split('\n')
+        .slice(-4),
+    ).toEqual([
+      'BB2020 competitions:',
+      'Chaos Cup 23: dates',
+      'BB2020 v2 competitions:',
+      'Chaos Cup 24: dates',
+    ]);
   });
 
   it('offers a button per competition first, then one per trophy', async () => {

@@ -99,10 +99,11 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   recurring group: the group name as the title, then `League: <league>`, a
   blank line, `Trophies:` followed by every trophy the group awards, one line
   per trophy (or "Not one piece of silverware rides on this one." when it
-  awards none), a blank line, and `Competitions:` followed by every
-  competition instance in the group, oldest first, one line per competition
-  formatted `<name> (<era>): <date range>` (or "This fixture has never
-  actually been played." when it has none). Competitions are rendered as
+  awards none), a blank line, and one `<era> competitions:` heading per era,
+  oldest era first, each followed by that era's competition instances, oldest
+  first, one line per competition formatted `<name>: <date range>` (or "This
+  fixture has never actually been played." when the group has no instances at
+  all, in which case no era heading is shown). Competitions are rendered as
   drill-down buttons before trophies (competitions take priority over trophies
   when the combined list is too long for buttons and switches to select
   menus).
