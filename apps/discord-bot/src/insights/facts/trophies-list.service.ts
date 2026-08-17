@@ -27,16 +27,14 @@ export class TrophiesListService {
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    const rows = await this.databaseTimeout.run<TrophyEntry[] | null>(
+    const rows = await this.databaseTimeout.run(
       this.trophies.listAllWithLeague(scope),
       null,
     );
     if (rows === null) {
       return TROPHIES_LIST_TIMEOUT_MESSAGE;
     }
-
-    const typedRows = rows;
-    if (typedRows.length === 0) {
+    if (rows.length === 0) {
       return {
         embeds: [
           { title: 'Trophies', description: TROPHIES_LIST_NO_DATA_MESSAGE },
@@ -46,7 +44,7 @@ export class TrophiesListService {
 
     // Group first so trophies awarded by the same competition cluster
     // together, then trophy name within (and across) groups.
-    const ordered: TrophyEntry[] = typedRows
+    const ordered: TrophyEntry[] = rows
       .slice()
       .sort(
         (a, b) =>

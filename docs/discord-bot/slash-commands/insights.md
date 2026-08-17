@@ -42,9 +42,9 @@ replies with a per-scope refusal message. All but seven facts support
 `race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`,
 `eras.list` and `trophies.list` — which list or count teams, eras or trophies
 rather than matches — and `stats`, which is excluded deliberately: only two of
-the dozen counts it reports
-(matches and match events) have a category at all, so a category-scoped
-`stats` would show two scoped numbers beside ten all-time ones.
+the dozen counts it reports (matches and match events) have a category at
+all, so a category-scoped `stats` would show two scoped numbers beside ten
+all-time ones.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
