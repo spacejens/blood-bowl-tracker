@@ -8,6 +8,6 @@ import { TpLeaguesImportService } from './tp-leagues-import.service';
 @Module({
   imports: [ImportModule, SourceModule],
   providers: [LeagueConfigService, TpLeaguesImportService],
-  exports: [TpLeaguesImportService],
+  exports: [LeagueConfigService, TpLeaguesImportService],
 })
 export class LeaguesModule {}

@@ -32,16 +32,14 @@ async function run(): Promise<ImportResult> {
     logger: false,
   });
   try {
-    // Bootstrap order: the league is foundational; rule sets and eras come
-    // from config and must exist before entities that reference them, then
-    // competitions, resolved from the era directories.
+    // Bootstrap order still matters: the league and rule sets must be
+    // upserted before eras, which resolve both server-side, by external id,
+    // against whatever these two prior steps just wrote.
     const leagueOutcome = await app.get(TpLeaguesImportService).importLeague();
     const rulesSetsOutcome = await app
       .get(TpRulesSetsImportService)
       .importRulesSets();
-    const eraOutcome = await app
-      .get(TpErasImportService)
-      .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
+    const eraOutcome = await app.get(TpErasImportService).importEras();
 
     const competitionOutcome = await app
       .get(TpCompetitionsImportService)
