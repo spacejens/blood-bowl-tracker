@@ -33,6 +33,11 @@ import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import {
+  cannedEraSectionGrouper,
+  singleEraSectionGrouper,
+} from '../../shared/era-section-grouper-mock.test-helpers';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -47,6 +52,7 @@ interface MakeServiceOptions {
   entityComponents?: MockProxy<EntityComponentsService>;
   teamContext?: MockProxy<TeamContextService>;
   playerContext?: MockProxy<PlayerContextService>;
+  eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
 }
 
 async function makeService({
@@ -56,6 +62,7 @@ async function makeService({
   entityComponents = nullEntityComponents(),
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
+  eraSectionGrouper = singleEraSectionGrouper('Season 24 Era'),
 }: MakeServiceOptions): Promise<{
   service: TrophyDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
@@ -63,6 +70,7 @@ async function makeService({
   trophyAwards: MockProxy<TrophyAwardsService>;
   teamContext: MockProxy<TeamContextService>;
   playerContext: MockProxy<PlayerContextService>;
+  eraSectionGrouper: MockProxy<EraSectionGrouperService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -73,6 +81,7 @@ async function makeService({
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TeamContextService, useValue: teamContext },
       { provide: PlayerContextService, useValue: playerContext },
+      { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
     ],
   }).compile();
   return {
@@ -82,6 +91,7 @@ async function makeService({
     trophyAwards,
     teamContext,
     playerContext,
+    eraSectionGrouper,
   };
 }
 
@@ -102,6 +112,8 @@ function teamRecipient(
   return {
     competitionName: 'Major Season 24',
     competitionStartDate: '2024-01-15',
+    eraId: 20,
+    eraName: 'Season 24 Era',
     teamId: 30,
     teamName: 'Reikland Reavers',
     playerId: null,
@@ -226,7 +238,7 @@ describe('TrophyDeepdiveService', () => {
       'Awarded for: Major',
       'Description: The team that wins after four matches.',
       '',
-      'Recipients:',
+      'Season 24 Era recipients:',
       'Major Season 24: Reikland Reavers',
     ]);
   });
@@ -248,14 +260,14 @@ describe('TrophyDeepdiveService', () => {
       trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([playerRecipient()]),
       playerContext: passthroughPlayerContext(
-        ' (Blitzer, Reikland Reavers, Human, Season 24 Era, Ariel Fenwick)',
+        ' (Blitzer, Reikland Reavers, Human, Ariel Fenwick)',
       ),
     });
 
     const lines = descriptionLines(await service.resolve(1));
 
     expect(lines).toContain(
-      'Major Season 24: Griff Oberwald (Blitzer, Reikland Reavers, Human, Season 24 Era, Ariel Fenwick)',
+      'Major Season 24: Griff Oberwald (Blitzer, Reikland Reavers, Human, Ariel Fenwick)',
     );
   });
 
@@ -278,7 +290,7 @@ describe('TrophyDeepdiveService', () => {
     );
   });
 
-  it("decorates a player recipient with the player's position, team, race, era and coach context", async () => {
+  it("decorates a player recipient with the player's position, team, race and coach context, leaving the era to the section heading", async () => {
     const { service, playerContext } = await makeService({
       trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([playerRecipient()]),
@@ -293,7 +305,7 @@ describe('TrophyDeepdiveService', () => {
         includePosition: true,
         includeTeam: true,
         includeRace: true,
-        includeEra: true,
+        includeEra: false,
         includeCoach: true,
       },
     );
@@ -565,5 +577,60 @@ describe('TrophyDeepdiveService', () => {
     const lines = descriptionLines(await service.resolve(1));
 
     expect(lines[lines.length - 1]).toBe('…and 3 more without a link.');
+  });
+
+  it("heads each era section with the era name and lists that era's recipients under it", async () => {
+    const newer = teamRecipient({
+      competitionName: 'Major Season 24',
+      teamId: 30,
+      teamName: 'Reikland Reavers',
+      eraId: 20,
+      eraName: 'Season 24 Era',
+    });
+    const older = teamRecipient({
+      competitionName: 'Major Season 23',
+      teamId: 31,
+      teamName: 'Gouged Eye',
+      eraId: 19,
+      eraName: 'Season 23 Era',
+    });
+    const { service, eraSectionGrouper } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([newer, older]),
+      eraSectionGrouper: cannedEraSectionGrouper([
+        { eraName: 'Season 24 Era', rows: [newer] },
+        { eraName: 'Season 23 Era', rows: [older] },
+      ]),
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(eraSectionGrouper.group).toHaveBeenCalledWith([newer, older]);
+    expect(lines).toEqual([
+      'Awarded for: Major',
+      'Description: The team that wins after four matches.',
+      '',
+      'Season 24 Era recipients:',
+      'Major Season 24: Reikland Reavers',
+      'Season 23 Era recipients:',
+      'Major Season 23: Gouged Eye',
+    ]);
+  });
+
+  it('shows no era heading at all when the trophy has never been awarded', async () => {
+    const { service, eraSectionGrouper } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([], 0),
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(lines).toEqual([
+      'Awarded for: Major',
+      'Description: The team that wins after four matches.',
+      '',
+      DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE,
+    ]);
+    expect(eraSectionGrouper.group).not.toHaveBeenCalled();
   });
 });

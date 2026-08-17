@@ -21,6 +21,7 @@ import {
 } from '../../error-messages';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { TeamContextService } from '../../insights/team-context.service';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -35,7 +36,7 @@ import {
  */
 const MAX_TROPHY_RECIPIENTS = 30;
 
-/** A recipient's decorated race/coach (team) or position/team/race/era/coach (player) suffix, keyed by the id `formatRecipient` looks it up with. */
+/** A recipient's decorated race/coach (team) or position/team/race/coach (player) suffix, keyed by the id `formatRecipient` looks it up with. */
 type RecipientContext = {
   teamSuffixes: Map<number, string>;
   playerSuffixes: Map<number, string>;
@@ -50,9 +51,10 @@ type RecipientContext = {
  * recipient becomes a drill-down entry — the team for a team trophy, the
  * player for a player trophy — and the competition is deliberately not linked.
  * Recipient lines are decorated with the same race/coach (team) or
- * position/team/race/era/coach (player) context the toplist insights show, so
+ * position/team/race/coach (player) context the toplist insights show, so
  * a reader can identify a recipient they do not know by name — see
  * `TeamContextService`/`PlayerContextService`.
+ * Recipients are rendered in per-era sections, each headed `<era> recipients:`, most recent era first — so the era is named once per section instead of on every player row.
  */
 @Injectable()
 export class TrophyDeepdiveService {
@@ -63,6 +65,7 @@ export class TrophyDeepdiveService {
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
     private readonly playerContext: PlayerContextService,
+    private readonly eraSectionGrouper: EraSectionGrouperService,
   ) {}
 
   async resolve(trophyId: number): Promise<string | InteractionReplyOptions> {
@@ -131,7 +134,14 @@ export class TrophyDeepdiveService {
     const recipientLines =
       total === 0
         ? [DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE]
-        : shown.map((recipient) => this.formatRecipient(recipient, context));
+        : this.eraSectionGrouper
+            .group(shown)
+            .flatMap((section) => [
+              `${section.eraName} recipients:`,
+              ...section.rows.map((recipient) =>
+                this.formatRecipient(recipient, context),
+              ),
+            ]);
     if (truncatedCount > 0) {
       recipientLines.push(`…and ${truncatedCount} more not shown.`);
     }
@@ -156,7 +166,6 @@ export class TrophyDeepdiveService {
         ? []
         : [`Description: ${trophy.description}`]),
       '',
-      'Recipients:',
       ...recipientLines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
@@ -169,7 +178,7 @@ export class TrophyDeepdiveService {
 
   /**
    * Batches the race/coach lookup for every team recipient and the
-   * position/team/race/era/coach lookup for every player recipient into a
+   * position/team/race/coach lookup for every player recipient into a
    * suffix map each, so `formatRecipient` is a plain lookup. Run as one
    * `Promise.all` (rather than two separate `databaseTimeout.run` calls) since
    * a trophy's recipients are always one kind or the other, so only one of the
@@ -192,7 +201,7 @@ export class TrophyDeepdiveService {
           includePosition: true,
           includeTeam: true,
           includeRace: true,
-          includeEra: true,
+          includeEra: false,
           includeCoach: true,
         },
       ),
@@ -212,7 +221,7 @@ export class TrophyDeepdiveService {
 
   /**
    * A team trophy names the team with its race/coach context; a player
-   * trophy names the player with their position/team/race/era/coach context.
+   * trophy names the player with their position/team/race/coach context.
    */
   private formatRecipient(
     recipient: TrophyRecipient,

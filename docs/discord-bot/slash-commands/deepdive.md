@@ -110,12 +110,14 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   not-found message.
 - **`trophy:<trophy>`** — the bot replies with an embed for that trophy: the
   trophy name as the title, then `Awarded for: <competition group>` and, only
-  when the trophy has one, `Description: <description>`, a blank line, and
-  `Recipients:` followed by one line per award, newest-first, formatted
+  when the trophy has one, `Description: <description>`, a blank line, then
+  one `<era> recipients:` heading per era, newest era first, each followed by
+  that era's awards, newest-first, one line per award formatted
   `<competition>: <team> (<race>, <coach>)` for a team trophy or
-  `<competition>: <player> (<position>, <team>, <race>, <era>, <coach>)` for a
-  player trophy — the same race/coach and position/team/race/era/coach context
-  the `team.toplist` and `player.toplist` insights append to their own rows.
+  `<competition>: <player> (<position>, <team>, <race>, <coach>)` for a player
+  trophy — the same race/coach and position/team/race/coach context the
+  `team.toplist` and `player.toplist` insights append to their own rows (the
+  era is left off the row, since the section heading already names it).
   At most 30 recipients are shown; when there are more, the list ends with an
   exact `…and N more not shown.` note computed from the trophy's true award
   count. A trophy with no recorded awards shows a short "nobody has got their
