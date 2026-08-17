@@ -268,4 +268,51 @@ describe('TrophiesService', () => {
       await expect(service.listByCompetitionGroup(4)).resolves.toEqual([]);
     });
   });
+
+  describe('listAllWithLeague', () => {
+    const rows = [
+      {
+        id: 1,
+        name: 'Chaos Cup',
+        competitionGroupId: 3,
+        competitionGroupName: 'Chaos Cup',
+      },
+      {
+        id: 2,
+        name: '1st',
+        competitionGroupId: 4,
+        competitionGroupName: 'Major Season',
+      },
+    ];
+
+    it('returns the rows the query resolves to and joins trophies to competition groups', async () => {
+      const { db, chains } = await build(rows);
+      await expect(service.listAllWithLeague({})).resolves.toEqual(rows);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
+    });
+
+    it("filters by the competition group's league id when the scope carries a leagueId", async () => {
+      const { chains } = await build(rows);
+      await service.listAllWithLeague({ leagueId: 42 });
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(42);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'competition_groups.league_id',
+      ]);
+    });
+
+    it('applies no league filter when the scope has no leagueId', async () => {
+      const { chains } = await build(rows);
+      await service.listAllWithLeague({});
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(firstCallArg(chains[0].where)).toBeUndefined();
+    });
+
+    it('resolves to an empty list when the catalog is empty', async () => {
+      await build([]);
+      await expect(service.listAllWithLeague({})).resolves.toEqual([]);
+    });
+  });
 });

@@ -9,6 +9,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, ilike } from 'drizzle-orm';
 
+import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MissingRequiredFieldError } from '../shared/missing-required-field-error';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
@@ -89,6 +90,41 @@ export class TrophiesService {
       .from(trophies)
       .where(eq(trophies.competitionGroupId, competitionGroupId))
       .orderBy(trophies.name);
+  }
+
+  /**
+   * The whole curated trophy catalog, for the `trophies.list` insight (#422),
+   * each row carrying the competition group that awards it. Optionally scoped
+   * to a league: trophies have no league of their own, so the filter goes
+   * through the competition group's `leagueId` (which is NOT NULL, so the
+   * inner join loses nothing). Ordering is left to the caller, which sorts by
+   * group then name for display.
+   */
+  listAllWithLeague(scope: FactScope): Promise<
+    {
+      id: number;
+      name: string;
+      competitionGroupId: number;
+      competitionGroupName: string;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: trophies.id,
+        name: trophies.name,
+        competitionGroupId: trophies.competitionGroupId,
+        competitionGroupName: competitionGroups.name,
+      })
+      .from(trophies)
+      .innerJoin(
+        competitionGroups,
+        eq(competitionGroups.id, trophies.competitionGroupId),
+      )
+      .where(
+        scope.leagueId === undefined
+          ? undefined
+          : eq(competitionGroups.leagueId, scope.leagueId),
+      );
   }
 
   async upsert(
