@@ -181,8 +181,10 @@ describe('ManualImportService', () => {
     expect(result.errors).toHaveLength(0);
   });
 
-  it('reads the directory, bootstraps, and shares one context/id-map across processors', async () => {
+  it('reads the directory, bootstraps, and shares one context across processors', async () => {
     const { service, reader, externalSystems, procs } = await makeService({});
+    const systemIds = new Map([['Name', 2]]);
+    externalSystems.bootstrap.mockResolvedValue(systemIds);
 
     await service.run('/data/dir');
 
@@ -190,8 +192,11 @@ describe('ManualImportService', () => {
     expect(externalSystems.bootstrap).toHaveBeenCalledTimes(1);
     const rulesCtx = procs.rulesSets.process.mock.calls[0][0];
     const teamsCtx = procs.teams.process.mock.calls[0][0];
-    expect(teamsCtx.idMap).toBe(rulesCtx.idMap);
     expect(teamsCtx.errors).toBe(rulesCtx.errors);
+    const ctx = rulesCtx;
+    expect(ctx).not.toHaveProperty('idMap');
+    expect(ctx.systemIds).toBe(systemIds);
+    expect(ctx.errors).toEqual([]);
   });
 
   it('runs processors in dependency order', async () => {

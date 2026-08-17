@@ -15,10 +15,12 @@ import {
 } from '../shared/query-assertions.test-helpers';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
 import { fakeTeam } from './teams.service.test-helpers';
+import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsService', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
+  let statistics: MockProxy<TeamsStatisticsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -29,6 +31,7 @@ describe('TeamsService', () => {
       providers: [
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: TeamsStatisticsService, useValue: statistics },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -38,6 +41,7 @@ describe('TeamsService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    statistics = mock<TeamsStatisticsService>();
   });
 
   const baseData = {

@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
@@ -33,6 +34,9 @@ const CANNED_RESULT: ImportResult = {
   imported: -1,
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
+
+/** The numeric id the mocked bootstrap assigns to the BBL external system. */
+const BBL_SYSTEM_ID = 1;
 
 /** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
 function resultArgs(importResults: MockProxy<ImportResultService>): {
@@ -89,6 +93,7 @@ interface Mocks {
   nameExternalId: MockProxy<NameExternalIdService>;
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }
 
 /**
@@ -160,6 +165,21 @@ async function makeService(
   const pageParseError = mock<PageParseErrorService>();
   pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
+  const lookup = mock<ReferenceLookupService>();
+  // `keyOf` is a pure, deterministic key derivation with no branching that
+  // could drift from ReferenceLookupService's own real implementation --
+  // exempt from the canned-response rule, same as the other passthroughs.
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  );
+  lookup.lookupMap.mockImplementation((kind) =>
+    Promise.resolve(
+      kind === 'race'
+        ? new Map([[`${BBL_SYSTEM_ID}\t16`, 500]])
+        : new Map([[`${BBL_SYSTEM_ID}\tHugo E`, 900]]),
+    ),
+  );
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblTeamsImportService,
@@ -173,6 +193,7 @@ async function makeService(
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -188,12 +209,10 @@ async function makeService(
       nameExternalId,
       importResults,
       pageParseError,
+      lookup,
     },
   };
 }
-
-const raceIds = new Map<string, number>([['16', 500]]);
-const coachIds = new Map<string, number>([['Hugo E', 900]]);
 
 describe('BblTeamsImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
@@ -208,7 +227,7 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
@@ -229,7 +248,7 @@ describe('BblTeamsImportService', () => {
     );
     mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
@@ -249,7 +268,7 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { teamsByName } = await service.importTeams(raceIds, coachIds);
+    const { teamsByCode } = await service.importTeams();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
@@ -265,7 +284,7 @@ describe('BblTeamsImportService', () => {
       },
       expect.any(Array),
     );
-    expect(teamsByName.get('40 grinders')).toEqual({
+    expect(teamsByCode.get('40g')).toEqual({
       name: '40 grinders',
       raceId: 500,
       coachId: 900,
@@ -275,6 +294,29 @@ describe('BblTeamsImportService', () => {
         { externalSystemId: 2, externalId: '40 grinders' },
       ],
     });
+  });
+
+  it("resolves each team's race and coach in one batched call per kind", async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([
+        page({
+          teamId: '40g',
+          teamName: '40 grinders',
+          raceBblId: '16',
+          coachName: 'Hugo E',
+        }),
+      ]),
+    );
+
+    await service.importTeams();
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('race', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '16' },
+    ]);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('coach', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: 'Hugo E' },
+    ]);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(2);
   });
 
   it('deduplicates a team (by id) appearing on multiple pages', async () => {
@@ -295,7 +337,7 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -306,7 +348,7 @@ describe('BblTeamsImportService', () => {
       mockBblSourceReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
     );
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -324,7 +366,7 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
@@ -340,7 +382,7 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
@@ -361,7 +403,23 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
+
+    const { errors } = resultArgs(mocks.importResults);
+    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(
+      errors.some((e) => e.message.includes('could not resolve coach')),
+    ).toBe(true);
+  });
+
+  it('records an error and skips a team with no coach on the page', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([
+        page({ teamId: '40g', teamName: '40 grinders', raceBblId: '16' }),
+      ]),
+    );
+
+    await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
@@ -389,7 +447,7 @@ describe('BblTeamsImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -404,7 +462,7 @@ describe('BblTeamsImportService', () => {
       throw new Error('bad page');
     });
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -425,7 +483,7 @@ describe('BblTeamsImportService', () => {
       throw 'bad page';
     });
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -456,7 +514,7 @@ describe('BblTeamsImportService', () => {
       },
     });
 
-    await service.importTeams(raceIds, coachIds);
+    await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
@@ -482,32 +540,9 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { teamRaceIdsByCode } = await service.importTeams(raceIds, coachIds);
+    const { teamRaceIdsByCode } = await service.importTeams();
 
     expect(teamRaceIdsByCode.get('40g')).toBe(500);
-  });
-
-  it('returns teamsByCode keyed by the team BBL code', async () => {
-    const { service } = await makeService(
-      mockBblSourceReader([
-        page({
-          teamId: '40g',
-          teamName: '40 grinders',
-          raceBblId: '16',
-          coachName: 'Hugo E',
-        }),
-      ]),
-    );
-
-    const { teamsByName, teamsByCode } = await service.importTeams(
-      raceIds,
-      coachIds,
-    );
-
-    // same UpsertTeam object is indexed under both name and code
-    const code = '40g';
-    const name = '40 grinders';
-    expect(teamsByCode.get(code)).toEqual(teamsByName.get(name));
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
@@ -522,7 +557,7 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams();
 
     expect(result).toBe(CANNED_RESULT);
   });

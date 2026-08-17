@@ -349,26 +349,6 @@ describe('BblRacesImportService', () => {
     expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
   });
 
-  it('returns a map from each race BBL id to its local id', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReader([page('Orc', '16'), page('Elf', '6')]),
-    );
-    mocks.racesImport.upsertRace.mockImplementation((data) =>
-      Promise.resolve({
-        id: data.name === 'Orc' ? 100 : 200,
-        name: data.name!, // fixtures always supply a race name
-        eras: [],
-        createdAt: new Date('2026-01-01'),
-        created: true,
-      }),
-    );
-
-    const { raceIdsByBblId } = await service.importRaces();
-
-    expect(raceIdsByBblId.get('16')).toBe(100);
-    expect(raceIdsByBblId.get('6')).toBe(200);
-  });
-
   it('returns a map from each race BBL id to its local id and name', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReader([page('Orc', '16'), page('Elf', '6')]),

@@ -1,4 +1,8 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import type { Competition, Db } from '@blood-bowl-tracker/db';
 import {
   competitionExternalIds,
@@ -17,6 +21,7 @@ import { and, count, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -63,6 +68,28 @@ export class CompetitionsService {
 
     const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);
     return { competition: { ...competition, teamEraIds }, created };
+  }
+
+  /**
+   * Resolve one external-id pair to the competition that already declares it.
+   * The read-only half of what `upsert` does internally, exposed on its own
+   * so a caller can reference a competition imported in an earlier run,
+   * phase or tool.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: competitionExternalIds,
+      ownerIdColumn: competitionExternalIds.competitionId,
+      externalSystemIdColumn: competitionExternalIds.externalSystemId,
+      externalIdColumn: competitionExternalIds.externalId,
+      externalIds,
+    });
   }
 
   private async syncTeamEras(

@@ -1,5 +1,7 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import type { ResolvableEntityKind } from '@blood-bowl-tracker/import';
 import {
+  ExternalIdResolverService,
   ImportResultService,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -7,37 +9,35 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import type { ExternalRef } from '../data-file/manual-data-file.schema';
-import type { EntityKind } from './entity-kind';
-import type { ExternalIdMap } from './external-id-map';
 
 export interface ResolveRefOptions {
   ref: ExternalRef;
-  idMap: ExternalIdMap;
+  systemIds: ReadonlyMap<string, number>;
   errors: ImportError[];
   item: unknown;
   label: string;
   /** The kind of the entity being *referenced*, not the referring one. */
-  kind: EntityKind;
+  kind: ResolvableEntityKind;
 }
 
 export interface ResolveRefsOptions {
   refs: readonly ExternalRef[];
-  idMap: ExternalIdMap;
+  systemIds: ReadonlyMap<string, number>;
   errors: ImportError[];
   item: unknown;
   label: string;
   /** The kind of the entities being *referenced*, not the referring one. */
-  kind: EntityKind;
+  kind: ResolvableEntityKind;
 }
 
 export interface ResolveOptionalRefOptions {
   ref: ExternalRef | undefined;
-  idMap: ExternalIdMap;
+  systemIds: ReadonlyMap<string, number>;
   errors: ImportError[];
   item: unknown;
   label: string;
   /** The kind of the entity being *referenced*, not the referring one. */
-  kind: EntityKind;
+  kind: ResolvableEntityKind;
 }
 
 /**
@@ -52,6 +52,7 @@ export type OptionalRefResult =
 @Injectable()
 export class ReferenceResolverService {
   constructor(
+    private readonly resolver: ExternalIdResolverService,
     private readonly importResults: ImportResultService,
     private readonly nameExternalId: NameExternalIdService,
   ) {}
@@ -92,46 +93,63 @@ export class ReferenceResolverService {
   }
 
   /**
-   * Resolve a single cross-reference against the run's ExternalIdMap. Records
-   * one ImportError (prefixed with `label`) and returns undefined when
-   * unresolved.
+   * The single-ref counterpart of {@link toExternalIds}, with the same
+   * throw-on-unknown-system contract.
    */
-  resolveRef(options: ResolveRefOptions): number | undefined {
-    const id = options.idMap.resolve(options.ref, options.kind);
+  toExternalId(
+    ref: ExternalRef,
+    systemIds: ReadonlyMap<string, number>,
+  ): { externalSystemId: number; externalId: string } {
+    return this.toExternalIds([ref], systemIds)[0];
+  }
+
+  /**
+   * Resolve a single cross-reference against the database, through the API's
+   * `resolve` procedure. Records one ImportError (prefixed with `label`) and
+   * returns undefined when unresolved.
+   *
+   * The error message quotes the external system by the *name* the data file
+   * spells it with, not the numeric id the API works in — which is why this
+   * calls ExternalIdResolverService directly rather than going through
+   * packages/import's ReferenceLookupService.
+   */
+  async resolveRef(options: ResolveRefOptions): Promise<number | undefined> {
+    const id = await this.resolver.resolve(
+      options.kind,
+      this.toExternalId(options.ref, options.systemIds),
+    );
     if (id === undefined) {
-      options.errors.push(
-        this.importResults.error({
-          item: options.item,
-          message: `${options.label}: could not resolve reference ${options.ref.system}|${options.ref.id}.`,
-        }),
-      );
+      options.errors.push(this.unresolvedError(options.ref, options));
     }
     return id;
   }
 
   /**
-   * Resolve a list of cross-references. Records one ImportError per
-   * unresolved ref and returns undefined if any failed, so the caller can
-   * skip the entry; returns the resolved ids in order when all succeed.
+   * Resolve a list of cross-references in one round trip. Records one
+   * ImportError per unresolved ref and returns undefined if any failed, so
+   * the caller can skip the entry; returns the resolved ids in order when
+   * all succeed.
    */
-  resolveRefs(options: ResolveRefsOptions): number[] | undefined {
+  async resolveRefs(
+    options: ResolveRefsOptions,
+  ): Promise<number[] | undefined> {
+    if (options.refs.length === 0) {
+      return [];
+    }
+    const resolved = await this.resolver.resolveBatch(
+      options.kind,
+      this.toExternalIds(options.refs, options.systemIds),
+    );
     const ids: number[] = [];
     let ok = true;
-    for (const ref of options.refs) {
-      const id = this.resolveRef({
-        ref,
-        idMap: options.idMap,
-        errors: options.errors,
-        item: options.item,
-        label: options.label,
-        kind: options.kind,
-      });
+    resolved.forEach((id, index) => {
       if (id === undefined) {
         ok = false;
+        options.errors.push(this.unresolvedError(options.refs[index], options));
       } else {
         ids.push(id);
       }
-    }
+    });
     return ok ? ids : undefined;
   }
 
@@ -142,18 +160,23 @@ export class ReferenceResolverService {
    * unresolvable records one ImportError and reports `{ ok: false }`, so
    * the caller skips the entry exactly as before.
    */
-  resolveOptionalRef(options: ResolveOptionalRefOptions): OptionalRefResult {
+  async resolveOptionalRef(
+    options: ResolveOptionalRefOptions,
+  ): Promise<OptionalRefResult> {
     if (options.ref === undefined) {
       return { ok: true, id: undefined };
     }
-    const id = this.resolveRef({
-      ref: options.ref,
-      idMap: options.idMap,
-      errors: options.errors,
-      item: options.item,
-      label: options.label,
-      kind: options.kind,
-    });
+    const id = await this.resolveRef({ ...options, ref: options.ref });
     return id === undefined ? { ok: false } : { ok: true, id };
+  }
+
+  private unresolvedError(
+    ref: ExternalRef,
+    options: { item: unknown; label: string },
+  ): ImportError {
+    return this.importResults.error({
+      item: options.item,
+      message: `${options.label}: could not resolve reference ${ref.system}|${ref.id}.`,
+    });
   }
 }

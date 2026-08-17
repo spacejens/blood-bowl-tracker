@@ -6,6 +6,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -34,15 +35,17 @@ export class BblMatchesImportService {
     private readonly importResults: ImportResultService,
     private readonly categoryClassifier: MatchCategoryClassifierService,
     private readonly categoryConfig: MatchCategoryConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
    * Import every completed match from the ma match-list rows. Each match is
    * keyed by its numeric BBL id (m=<id>) under the same BBL external system the
-   * competition is keyed under; its competitionId is the competition's DB id
-   * (resolved via competitionIdsByBblId). A competition whose matches exist but
-   * which is absent from the id map (its import failed) has all its matches
-   * skipped with one recorded error.
+   * competition is keyed under; its competitionId is the competition's DB id,
+   * resolved in one batched call against every competition referenced by
+   * `competitionsByBblId`. A competition whose matches exist but whose DB id
+   * could not be resolved (its import failed) has all its matches skipped
+   * with one recorded error.
    *
    * A configured merge pair (see MatchMergeService) is imported as a single
    * match: the primary member is upserted once with BOTH members' external ids
@@ -63,7 +66,6 @@ export class BblMatchesImportService {
    */
   async importMatches(
     competitionsByBblId: Map<string, UpsertCompetition>,
-    competitionIdsByBblId: Map<string, number>,
   ): Promise<{
     result: ImportResult;
     matchIdsByBblId: Map<string, number>;
@@ -74,6 +76,14 @@ export class BblMatchesImportService {
     const matchIdsByBblId = new Map<string, number>();
     const categoriesByBblId = new Map<string, MatchCategory>();
 
+    const competitionIds = await this.lookup.lookupMap(
+      'competition',
+      [...competitionsByBblId].map(([bblId, competition]) => ({
+        externalSystemId: competition.externalIds[0].externalSystemId,
+        externalId: bblId,
+      })),
+    );
+
     const matchesByCompetitionId =
       await this.matchListReader.getMatchesByCompetitionId(errors);
     const merges = await this.matchMerge.resolve(errors);
@@ -83,7 +93,14 @@ export class BblMatchesImportService {
 
     for (const [competitionBblId, matches] of matchesByCompetitionId) {
       const competition = competitionsByBblId.get(competitionBblId);
-      const competitionId = competitionIdsByBblId.get(competitionBblId);
+      const competitionId = competition
+        ? competitionIds.get(
+            this.lookup.keyOf({
+              externalSystemId: competition.externalIds[0].externalSystemId,
+              externalId: competitionBblId,
+            }),
+          )
+        : undefined;
       if (competition === undefined || competitionId === undefined) {
         errors.push(
           this.importResults.error({

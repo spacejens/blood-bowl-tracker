@@ -152,7 +152,7 @@ describe('BblRulesSetsImportService', () => {
       .mockResolvedValueOnce(makeRulesSetRecord(100))
       .mockResolvedValueOnce(makeRulesSetRecord(200));
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
@@ -171,8 +171,6 @@ describe('BblRulesSetsImportService', () => {
       },
       expect.any(Array),
     );
-    expect(rulesSetIdsByName.get('Living rulebook')).toBe(100);
-    expect(rulesSetIdsByName.get('BB2020')).toBe(200);
   });
 
   it('dedupes a rules set shared by multiple eras, upserting it once', async () => {
@@ -194,11 +192,10 @@ describe('BblRulesSetsImportService', () => {
       makeRulesSetRecord(200),
     );
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(rulesSetIdsByName.get('BB2020')).toBe(200);
   });
 
   it('imports the distinct rules-set names across all eras (flattened)', async () => {
@@ -263,10 +260,9 @@ describe('BblRulesSetsImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
-    expect(rulesSetIdsByName.has('BB2020')).toBe(false);
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {

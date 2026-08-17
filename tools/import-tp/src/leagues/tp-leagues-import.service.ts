@@ -29,7 +29,7 @@ export class TpLeaguesImportService {
    * league's external ID under two systems: TP (canonical) and Name (cross-tool
    * matching). Idempotent: re-running upserts the existing league.
    */
-  async importLeague(): Promise<{ result: ImportResult; leagueId?: number }> {
+  async importLeague(): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
 
@@ -77,7 +77,6 @@ export class TpLeaguesImportService {
 
     return {
       result: this.importResults.result({ imported, errors }),
-      leagueId: league?.id,
     };
   }
 }

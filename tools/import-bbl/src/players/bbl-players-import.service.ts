@@ -4,6 +4,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   PlayersImportService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -19,9 +20,7 @@ const PLAYER_PAGE_TYPE = 'pl';
 
 interface ImportPlayersOptions {
   teamsByCode: Map<string, UpsertTeam>;
-  positionIdsByBblId: Map<string, number>;
   racesByBblId: Map<string, { id: number; name: string }>;
-  eraIdsByName: Map<string, number>;
 }
 
 @Injectable()
@@ -37,6 +36,7 @@ export class BblPlayersImportService {
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -51,9 +51,7 @@ export class BblPlayersImportService {
    */
   async importPlayers({
     teamsByCode,
-    positionIdsByBblId,
     racesByBblId,
-    eraIdsByName,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByPid: Map<string, number>;
@@ -98,10 +96,73 @@ export class BblPlayersImportService {
     const [bblSystemId] = bootstrap.ids;
 
     const eras = this.eraConfig.getEras();
+
+    // One round trip for the whole run: every era referenced here was
+    // upserted moments ago by the eras step, so it is already in the
+    // database and resolvable by the same external id (its name) that step
+    // wrote. Resolved once into a name-keyed map so the per-player loop below
+    // can keep looking eras up by name.
+    const eraNames = [...new Set(eras.map((era) => era.identity.name))];
+    const eraRefs = eraNames.map((name) => ({
+      externalSystemId: bblSystemId,
+      externalId: name,
+    }));
+    const resolvedEraIds = await this.lookup.lookupMap('era', eraRefs);
+    const eraIdsByName = new Map<string, number>();
+    for (const name of eraNames) {
+      const id = resolvedEraIds.get(
+        this.lookup.keyOf({ externalSystemId: bblSystemId, externalId: name }),
+      );
+      if (id !== undefined) {
+        eraIdsByName.set(name, id);
+      }
+    }
+
     const raceBblIdByDbId = new Map<number, string>();
     for (const [bblId, info] of racesByBblId) {
       raceBblIdByDbId.set(info.id, bblId);
     }
+
+    // One round trip for the whole run: every position referenced here was
+    // upserted moments ago by the positions step, so it is already in the
+    // database and resolvable by its composite typId-raceBblId external id.
+    // A first pass over the player pages (this service cannot know which
+    // positions it needs until it has seen every player's typId and team)
+    // collects the distinct refs; the per-player loop below then resolves
+    // each player's position from the one batched result.
+    const positionRefs = new Set<string>();
+    for await (const page of this.sourceReader.pages(PLAYER_PAGE_TYPE)) {
+      try {
+        const player = this.playerPageParser.extractPlayer(page);
+        if (!player) {
+          continue;
+        }
+        const team = teamsByCode.get(player.teamCode);
+        if (!team) {
+          continue;
+        }
+        const raceBblId = raceBblIdByDbId.get(
+          this.upsertFieldNarrowing.resolveDefiniteRaceId(team),
+        );
+        if (raceBblId === undefined) {
+          continue;
+        }
+        positionRefs.add(`${player.typId}-${raceBblId}`);
+      } catch {
+        // A bad team (e.g. no resolvable race id) is skipped here; the main
+        // loop below re-processes this page inside its own try/catch and
+        // records the actual error for it.
+        continue;
+      }
+    }
+    const positionIds = await this.lookup.lookupMap(
+      'position',
+      [...positionRefs].map((externalId) => ({
+        externalSystemId: bblSystemId,
+        externalId,
+      })),
+    );
+
     const eraByOverriddenPid = new Map<number, (typeof eras)[number]>();
     for (const era of eras) {
       for (const pid of era.players.playerIdOverrides ?? []) {
@@ -195,7 +256,12 @@ export class BblPlayersImportService {
         );
         const positionId =
           raceBblId !== undefined
-            ? positionIdsByBblId.get(`${player.typId}-${raceBblId}`)
+            ? positionIds.get(
+                this.lookup.keyOf({
+                  externalSystemId: bblSystemId,
+                  externalId: `${player.typId}-${raceBblId}`,
+                }),
+              )
             : undefined;
         if (positionId === undefined) {
           errors.push(

@@ -14,6 +14,7 @@ import {
   ImportResultService,
   MatchesImportService,
   RacesImportService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
@@ -25,11 +26,10 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
-
-const eraIdsByName = new Map<string, number>([['BB2020', 200]]);
 
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
@@ -76,6 +76,7 @@ interface Mocks {
   standingsReader: MockProxy<BblCompetitionStandingsReaderService>;
   importResults: MockProxy<ImportResultService>;
   upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }
 
 /**
@@ -122,6 +123,7 @@ async function makeService(opts: {
   matches?: Record<string, { bblId: string; date: Date }[]>;
   matchTeamsByBblId?: Record<string, BblMatchDetails>;
   standings?: Record<string, string[]>;
+  competitionIdsByBblId?: Map<string, number>;
 }): Promise<{ service: BblTeamParticipationImportService; mocks: Mocks }> {
   const matchListReader = mock<BblMatchListReaderService>();
   matchListReader.getMatchesByCompetitionId.mockResolvedValue(
@@ -179,6 +181,11 @@ async function makeService(opts: {
     (t) => t.raceId as number,
   );
 
+  const lookup = mock<ReferenceLookupService>();
+  mockReferenceLookup(lookup, {
+    competition: opts.competitionIdsByBblId ?? new Map([['1', 42]]),
+  });
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblTeamParticipationImportService,
@@ -198,6 +205,7 @@ async function makeService(opts: {
         provide: UpsertFieldNarrowingService,
         useValue: upsertFieldNarrowing,
       },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -214,6 +222,7 @@ async function makeService(opts: {
       standingsReader,
       importResults,
       upsertFieldNarrowing,
+      lookup,
     },
   };
 }
@@ -285,8 +294,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -337,8 +344,6 @@ describe('BblTeamParticipationImportService', () => {
           ['vor', away],
         ]),
         racesByRaceId,
-        eraIdsByName,
-        competitionIdsByBblId: new Map([['1', 42]]),
       });
 
     expect(teamEraIdsByCompetitionBblId.get('1')?.get('sew')).toBe(1001);
@@ -380,11 +385,6 @@ describe('BblTeamParticipationImportService', () => {
       ]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([
-        ['1', 42],
-        ['2', 43],
-      ]),
     });
 
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
@@ -408,8 +408,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -449,8 +447,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -473,8 +469,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -505,8 +499,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -530,8 +522,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId: new Map(),
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -548,8 +538,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -571,8 +559,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -601,8 +587,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(mocks.matchesImport.addToBatch).toHaveBeenCalledWith(
@@ -648,8 +632,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(mocks.matchesImport.createBatch).toHaveBeenCalledTimes(1);
@@ -677,8 +659,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(mocks.matchesImport.addToBatch).not.toHaveBeenCalled();
@@ -693,6 +673,7 @@ describe('BblTeamParticipationImportService', () => {
     const { service, mocks } = await makeService({
       matches: { '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }] },
       matchTeamsByBblId: { m1: matchTeams('m1', 'sew', 'sew') },
+      competitionIdsByBblId: new Map(),
     });
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
@@ -704,8 +685,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map(),
     });
 
     expect(mocks.matchesImport.addToBatch).not.toHaveBeenCalled();
@@ -804,8 +783,6 @@ describe('BblTeamParticipationImportService', () => {
         ['b2', teamB2],
       ]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     const matchCalls = mocks.matchesImport.addToBatch.mock.calls.map(
@@ -836,8 +813,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -867,8 +842,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -889,8 +862,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -910,8 +881,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionsByBblId: new Map([['1', competition]]),
       teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -931,8 +900,6 @@ describe('BblTeamParticipationImportService', () => {
         ['vor', away],
       ]),
       racesByRaceId,
-      eraIdsByName,
-      competitionIdsByBblId: new Map([['1', 42]]),
     });
 
     expect(result).toBe(CANNED_RESULT);

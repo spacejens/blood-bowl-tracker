@@ -26,17 +26,16 @@ export class BblLeaguesImportService {
   /**
    * Import every league the BBL data covers. Names come from the leagues[]
    * config (not parsed from the data); each is used as that league's external
-   * ID under two systems: BBL (canonical) and Name (cross-tool matching).
-   * Returns the imported leagues' ids keyed by name for the eras import to
-   * resolve each era's league. Idempotent: re-running upserts existing leagues.
+   * ID under two systems: BBL (canonical) and Name (cross-tool matching). The
+   * eras import resolves each era's league server-side, by that same external
+   * id, once this step has upserted it. Idempotent: re-running upserts
+   * existing leagues.
    */
   async importLeagues(): Promise<{
     result: ImportResult;
-    leagueIdsByName: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const leagueIdsByName = new Map<string, number>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
@@ -52,7 +51,6 @@ export class BblLeaguesImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        leagueIdsByName,
       };
     }
 
@@ -64,7 +62,6 @@ export class BblLeaguesImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        leagueIdsByName,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -84,14 +81,12 @@ export class BblLeaguesImportService {
         errors,
       );
       if (league) {
-        leagueIdsByName.set(name, league.id);
         imported += 1;
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      leagueIdsByName,
     };
   }
 }

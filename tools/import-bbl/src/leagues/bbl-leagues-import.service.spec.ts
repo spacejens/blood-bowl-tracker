@@ -137,7 +137,7 @@ describe('BblLeaguesImportService', () => {
     ]);
   });
 
-  it('upserts every configured league and returns their ids by name', async () => {
+  it('upserts every configured league', async () => {
     const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
     mocks.leaguesImport.upsertLeague
@@ -154,15 +154,9 @@ describe('BblLeaguesImportService', () => {
         created: true,
       });
 
-    const { leagueIdsByName } = await service.importLeagues();
+    await service.importLeagues();
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
-    expect(leagueIdsByName).toEqual(
-      new Map([
-        ['tLoEG', 42],
-        ['GBBL', 43],
-      ]),
-    );
     expect(mocks.leaguesImport.upsertLeague).toHaveBeenNthCalledWith(
       1,
       {
@@ -202,11 +196,9 @@ describe('BblLeaguesImportService', () => {
         return Promise.resolve(undefined);
       });
 
-    const { leagueIdsByName } = await service.importLeagues();
+    await service.importLeagues();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(leagueIdsByName.get('tLoEG')).toBe(42);
-    expect(leagueIdsByName.has('GBBL')).toBe(false);
   });
 
   it('records one error and imports nothing when leagues config is invalid', async () => {

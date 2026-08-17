@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { PositionsProcessor } from './positions.processor';
@@ -27,14 +26,10 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap,
     errors: [],
   };
 }
@@ -57,7 +52,7 @@ describe('PositionsProcessor', () => {
     processor = moduleRef.get(PositionsProcessor);
   });
 
-  it('upserts the position, records ids, and syncs resolved race-eras', async () => {
+  it('upserts the position and syncs resolved race-eras', async () => {
     positions.upsertPosition.mockResolvedValue({
       id: 80,
       name: 'Zombie',
@@ -75,8 +70,8 @@ describe('PositionsProcessor', () => {
     refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     // One resolveRef call per race-era pair: race first, then era.
     refResolver.resolveRef
-      .mockReturnValueOnce(40) // race
-      .mockReturnValueOnce(50); // era
+      .mockResolvedValueOnce(40) // race
+      .mockResolvedValueOnce(50); // era
     const data = emptyData();
     data.positions = [
       {
@@ -91,7 +86,7 @@ describe('PositionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:zombie' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -106,9 +101,6 @@ describe('PositionsProcessor', () => {
       { positionId: 80, raceEras: [{ raceId: 40, eraId: 50 }] },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:zombie' }, 'position'),
-    ).toBe(80);
     expect(refResolver.resolveRef).toHaveBeenCalledWith(
       expect.objectContaining({
         ref: data.positions[0].raceEras[0].race,
@@ -142,9 +134,7 @@ describe('PositionsProcessor', () => {
       },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
@@ -165,8 +155,8 @@ describe('PositionsProcessor', () => {
     });
     refResolver.toExternalIds.mockReturnValue([]);
     refResolver.resolveRef
-      .mockReturnValueOnce(40) // race resolves
-      .mockReturnValueOnce(undefined); // era fails
+      .mockResolvedValueOnce(40) // race resolves
+      .mockResolvedValueOnce(undefined); // era fails
     const data = emptyData();
     data.positions = [
       {
@@ -181,7 +171,7 @@ describe('PositionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:zombie' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -201,9 +191,7 @@ describe('PositionsProcessor', () => {
       },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(0);
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
@@ -227,7 +215,7 @@ describe('PositionsProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, new ExternalIdMap()));
+    await processor.process(makeContext(data));
 
     expect(positions.upsertPosition.mock.calls[0][0]).toEqual({
       name: 'Blitzer',

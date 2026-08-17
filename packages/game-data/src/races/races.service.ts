@@ -1,4 +1,8 @@
-import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertRace,
+} from '@blood-bowl-tracker/api-contract';
 import type { Race } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
@@ -20,6 +24,7 @@ import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { countMatchesWithOutcomeByRace } from '../shared/match-outcome-counts';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -109,6 +114,27 @@ export class RacesService {
 
     const eras = await this.syncEras(race.id, data.eras);
     return { race: { ...race, eras }, created };
+  }
+
+  /**
+   * Resolve one external-id pair to the race that already declares it. The
+   * read-only half of what `upsert` does internally, exposed on its own so a
+   * caller can reference a race imported in an earlier run, phase or tool.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: raceExternalIds,
+      ownerIdColumn: raceExternalIds.raceId,
+      externalSystemIdColumn: raceExternalIds.externalSystemId,
+      externalIdColumn: raceExternalIds.externalId,
+      externalIds,
+    });
   }
 
   private async syncEras(raceId: number, eraIds: number[]): Promise<number[]> {

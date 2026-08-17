@@ -9,6 +9,7 @@ import { CoachesImportService } from './coaches-import.service';
 import { CompetitionGroupsImportService } from './competition-groups-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
+import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportModule } from './import.module';
@@ -23,6 +24,7 @@ import { NameExternalIdService } from './name-external-id.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
+import { ReferenceLookupService } from './reference-lookup.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
 import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
@@ -48,6 +50,8 @@ const providers = [
   RacesImportService,
   ExternalSystemsImportService,
   ExternalSystemBootstrapService,
+  ExternalIdResolverService,
+  ReferenceLookupService,
   RulesSetsImportService,
   SppAdjustmentsImportService,
   SppAwardValuesImportService,

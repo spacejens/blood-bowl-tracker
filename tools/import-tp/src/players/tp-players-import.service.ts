@@ -8,6 +8,7 @@ import {
   NameExternalIdService,
   PlayersImportService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type {
   TpCareerSppCounts,
@@ -16,6 +17,7 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
@@ -46,8 +48,6 @@ export interface StarPositionUsage {
 export interface ImportPlayersOptions {
   rosters: RosterEntry[];
   teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
-  eraIdsByName: Map<string, number>;
-  positionIdsByTpPositionId: Map<number, number>;
   /**
    * Star players hired via an `inducements_roll` match event, grouped by
    * hiring roster id AND real era id (pre-scanned by `main.ts` from
@@ -88,14 +88,17 @@ export class TpPlayersImportService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly rosterCollection: RosterCollectionService,
     private readonly importResults: ImportResultService,
+    private readonly eraDataConfig: EraDataConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
    * Import every player instance from the TP roster files' `lineUps[]`. Each
    * player resolves to a team era (via its roster's `teamErasByRosterId`
    * entry whose `eraId` matches the roster's era) and a position (via its
-   * `lineUpMasterId` looked up in `positionIdsByTpPositionId`, the map
-   * TpPositionsImportService returns from its own upserts). A player whose
+   * `lineUpMasterId`, resolved server-side, by external id, against whatever
+   * TpPositionsImportService upserted moments earlier in the same run --
+   * one batched lookup for the whole run, not one per player). A player whose
    * team era or position cannot be resolved is recorded as a non-fatal error
    * and skipped rather than upserted with an invalid foreign key (mirrors
    * BblPlayersImportService). Players get NO Name external id -- only the TP
@@ -142,8 +145,6 @@ export class TpPlayersImportService {
   async importPlayers({
     rosters,
     teamErasByRosterId,
-    eraIdsByName,
-    positionIdsByTpPositionId,
     inducedStarPlayerHireGroups,
     matchEmbeddedPlayersByRosterId,
     starPositionIds,
@@ -165,9 +166,6 @@ export class TpPlayersImportService {
     // only a rosterId), so every emitted usage carries raw string references.
     const teamRaceCodeByRosterId = new Map<number, string>(
       rosters.map(({ roster }) => [roster.id, roster.teamRaceCode]),
-    );
-    const eraNameByEraId = new Map<number, string>(
-      [...eraIdsByName].map(([name, id]) => [id, name]),
     );
 
     // Star Player Points is a career total that only ever increases. The
@@ -263,10 +261,83 @@ export class TpPlayersImportService {
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
+
+    let eraNames: string[];
+    try {
+      eraNames = [
+        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
+      ];
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { externalSystems: [tpSystemName] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+        playerIdsByLineUpId,
+        starPlayerIdsByRosterAndMaster,
+        starPositionUsages,
+        careerSppCountsByPlayerId,
+      };
+    }
+    const eraIds = await this.lookup.lookupMap(
+      'era',
+      eraNames.map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
+    // Reverse lookup for the induced-star path (which knows numeric eraId /
+    // only a rosterId), so every emitted usage carries raw string references.
+    const eraNameByEraId = new Map<number, string>(
+      eraNames
+        .map(
+          (name) =>
+            [
+              eraIds.get(
+                this.lookup.keyOf({
+                  externalSystemId: tpSystemId,
+                  externalId: name,
+                }),
+              ),
+              name,
+            ] as const,
+        )
+        .filter((entry): entry is [number, string] => entry[0] !== undefined),
+    );
     const mercenaryPositionIdsByName = new Map<string, number>();
 
+    // One batched lookup for the whole run, not one per player: collect
+    // every distinct lineUpMasterId across the merged roster players (the
+    // standalone roster file's own players plus any match-embedded ones) up
+    // front, then resolve them all in a single lookupMap call.
+    const lineUpMasterIds = new Set<number>();
+    for (const { roster } of rosters) {
+      for (const player of roster.players) {
+        lineUpMasterIds.add(player.lineUpMasterId);
+      }
+    }
+    if (matchEmbeddedPlayersByRosterId) {
+      for (const players of matchEmbeddedPlayersByRosterId.values()) {
+        for (const player of players) {
+          lineUpMasterIds.add(player.lineUpMasterId);
+        }
+      }
+    }
+    const positionIds = await this.lookup.lookupMap(
+      'position',
+      [...lineUpMasterIds].map((lineUpMasterId) => ({
+        externalSystemId: tpSystemId,
+        externalId: String(lineUpMasterId),
+      })),
+    );
+
     for (const { roster, era } of rosters) {
-      const eraId = eraIdsByName.get(era);
+      const eraId = eraIds.get(
+        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
+      );
       if (eraId === undefined) {
         errors.push(this.rosterCollection.unknownEraError(era, roster));
       }
@@ -299,7 +370,12 @@ export class TpPlayersImportService {
           continue;
         }
 
-        let positionId = positionIdsByTpPositionId.get(player.lineUpMasterId);
+        let positionId = positionIds.get(
+          this.lookup.keyOf({
+            externalSystemId: tpSystemId,
+            externalId: String(player.lineUpMasterId),
+          }),
+        );
         let fromMercenary = false;
         if (positionId === undefined && player.isBigGuy) {
           positionId = await this.resolveMercenaryPositionId({

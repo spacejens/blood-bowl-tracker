@@ -1,5 +1,6 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import {
+  ExternalIdResolverService,
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
@@ -8,7 +9,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { ExternalIdMap } from './external-id-map';
 import { ReferenceResolverService } from './reference-resolver.service';
 
 describe('ReferenceResolverService', () => {
@@ -29,6 +29,10 @@ describe('ReferenceResolverService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ReferenceResolverService,
+        {
+          provide: ExternalIdResolverService,
+          useValue: mock<ExternalIdResolverService>(),
+        },
         { provide: ImportResultService, useValue: importResults },
         { provide: NameExternalIdService, useValue: nameExternalId },
       ],
@@ -63,154 +67,6 @@ describe('ReferenceResolverService', () => {
     });
   });
 
-  describe('resolveRef', () => {
-    it('returns the id when the ref resolves', () => {
-      const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:l' }], 5, 'league');
-      const errors: ImportError[] = [];
-      const id = service.resolveRef({
-        ref: { system: 'Name', id: 'name:l' },
-        idMap,
-        errors,
-        item: { name: 'era' },
-        label: 'Cannot import era "E"',
-        kind: 'league',
-      });
-      expect(id).toBe(5);
-      expect(errors).toHaveLength(0);
-    });
-
-    it('does not resolve a ref registered under a different kind', () => {
-      const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:l' }], 5, 'league');
-      const errors: ImportError[] = [];
-
-      const id = service.resolveRef({
-        ref: { system: 'Name', id: 'name:l' },
-        idMap,
-        errors,
-        item: { name: 'era' },
-        label: 'Cannot import era "E"',
-        kind: 'race',
-      });
-
-      expect(id).toBeUndefined();
-      expect(errors).toHaveLength(1);
-    });
-
-    it('records one error and returns undefined when unresolved', () => {
-      const errors: ImportError[] = [];
-      const id = service.resolveRef({
-        ref: { system: 'Name', id: 'name:missing' },
-        idMap: new ExternalIdMap(),
-        errors,
-        item: { name: 'era' },
-        label: 'Cannot import era "E"',
-        kind: 'league',
-      });
-      expect(id).toBeUndefined();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('Cannot import era "E"');
-      expect(errors[0].message).toContain('Name|name:missing');
-    });
-  });
-
-  describe('resolveRefs', () => {
-    it('returns the resolved ids in order', () => {
-      const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:a' }], 1, 'era');
-      idMap.add([{ system: 'Name', id: 'name:b' }], 2, 'era');
-      const errors: ImportError[] = [];
-      const ids = service.resolveRefs({
-        refs: [
-          { system: 'Name', id: 'name:a' },
-          { system: 'Name', id: 'name:b' },
-        ],
-        idMap,
-        errors,
-        item: {},
-        label: 'race "R"',
-        kind: 'era',
-      });
-      expect(ids).toEqual([1, 2]);
-      expect(errors).toHaveLength(0);
-    });
-
-    it('records one error per unresolved ref and returns undefined', () => {
-      const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:a' }], 1, 'era');
-      const errors: ImportError[] = [];
-      const ids = service.resolveRefs({
-        refs: [
-          { system: 'Name', id: 'name:a' },
-          { system: 'Name', id: 'name:missing' },
-          { system: 'Name', id: 'name:gone' },
-        ],
-        idMap,
-        errors,
-        item: {},
-        label: 'race "R"',
-        kind: 'era',
-      });
-      expect(ids).toBeUndefined();
-      expect(errors).toHaveLength(2);
-    });
-  });
-
-  describe('resolveOptionalRef', () => {
-    it('reports ok with no id when the entry supplied no ref', () => {
-      const errors: ImportError[] = [];
-      const idMap = new ExternalIdMap();
-
-      const result = service.resolveOptionalRef({
-        ref: undefined,
-        idMap,
-        errors,
-        item: {},
-        label: 'Cannot import thing "X"',
-        kind: 'era',
-      });
-
-      expect(result).toEqual({ ok: true, id: undefined });
-      expect(errors).toEqual([]);
-    });
-
-    it('reports ok with the resolved id when the ref resolves', () => {
-      const errors: ImportError[] = [];
-      const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'first-era' }], 3, 'era');
-
-      const result = service.resolveOptionalRef({
-        ref: { system: 'Name', id: 'first-era' },
-        idMap,
-        errors,
-        item: {},
-        label: 'Cannot import thing "X"',
-        kind: 'era',
-      });
-
-      expect(result).toEqual({ ok: true, id: 3 });
-      expect(errors).toEqual([]);
-    });
-
-    it('reports not-ok and records an error when a supplied ref cannot be resolved', () => {
-      importResults.error.mockReturnValue({ item: {}, message: 'boom' });
-      const errors: ImportError[] = [];
-
-      const result = service.resolveOptionalRef({
-        ref: { system: 'Name', id: 'missing' },
-        idMap: new ExternalIdMap(),
-        errors,
-        item: {},
-        label: 'Cannot import thing "X"',
-        kind: 'era',
-      });
-
-      expect(result).toEqual({ ok: false });
-      expect(errors).toHaveLength(1);
-    });
-  });
-
   describe('competitionGroupRef', () => {
     it("builds the group's Name-system ref from its curated name", () => {
       nameExternalId.forCompetitionGroup.mockReturnValue('Major Season');
@@ -223,5 +79,203 @@ describe('ReferenceResolverService', () => {
         'Major Season',
       );
     });
+  });
+});
+
+const systemIds = new Map([['BBL', 7]]);
+const ref = { system: 'BBL', id: 'id:47' };
+const other = { system: 'BBL', id: 'id:48' };
+
+/**
+ * The canned ImportError the mocked ImportResultService.error returns.
+ * ImportResultService's own message-formatting is covered by
+ * packages/import/src/import-result.service.spec.ts; these tests assert what
+ * ReferenceResolverService passes to error() (via `toHaveBeenCalledWith`) and
+ * that it pushes error()'s return value onto the errors array.
+ */
+const CANNED_ERROR: ImportError = {
+  item: { canned: true },
+  message: 'canned import error',
+};
+
+describe('ReferenceResolverService resolution', () => {
+  let service: ReferenceResolverService;
+  let resolver: MockProxy<ExternalIdResolverService>;
+  let importResults: MockProxy<ImportResultService>;
+  let errors: ImportError[];
+
+  beforeEach(async () => {
+    resolver = mock<ExternalIdResolverService>();
+    importResults = mock<ImportResultService>();
+    importResults.error.mockReturnValue(CANNED_ERROR);
+    errors = [];
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReferenceResolverService,
+        { provide: ExternalIdResolverService, useValue: resolver },
+        { provide: ImportResultService, useValue: importResults },
+        {
+          provide: NameExternalIdService,
+          useValue: mock<NameExternalIdService>(),
+        },
+      ],
+    }).compile();
+    service = moduleRef.get(ReferenceResolverService);
+  });
+
+  it('resolves a ref through the api, translating the system name to its id', async () => {
+    resolver.resolve.mockResolvedValue(9);
+
+    await expect(
+      service.resolveRef({
+        ref,
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'race',
+      }),
+    ).resolves.toBe(9);
+    expect(resolver.resolve).toHaveBeenCalledWith('race', {
+      externalSystemId: 7,
+      externalId: 'id:47',
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('records one error naming the external system by name on a miss', async () => {
+    resolver.resolve.mockResolvedValue(undefined);
+
+    await expect(
+      service.resolveRef({
+        ref,
+        systemIds,
+        errors,
+        item: { a: 1 },
+        label: 'L',
+        kind: 'race',
+      }),
+    ).resolves.toBeUndefined();
+    expect(importResults.error).toHaveBeenCalledWith({
+      item: { a: 1 },
+      message: 'L: could not resolve reference BBL|id:47.',
+    });
+    expect(errors).toEqual([CANNED_ERROR]);
+  });
+
+  it('throws on an unknown external system name rather than resolving', async () => {
+    await expect(
+      service.resolveRef({
+        ref: { system: 'Nope', id: 'x' },
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'race',
+      }),
+    ).rejects.toThrow('Unknown external system "Nope".');
+  });
+
+  it('resolves a whole list in one batched call', async () => {
+    resolver.resolveBatch.mockResolvedValue([9, 10]);
+
+    await expect(
+      service.resolveRefs({
+        refs: [ref, other],
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'era',
+      }),
+    ).resolves.toEqual([9, 10]);
+    expect(resolver.resolveBatch).toHaveBeenCalledWith('era', [
+      { externalSystemId: 7, externalId: 'id:47' },
+      { externalSystemId: 7, externalId: 'id:48' },
+    ]);
+  });
+
+  it('records one error per unresolved ref in a list and returns undefined', async () => {
+    resolver.resolveBatch.mockResolvedValue([undefined, undefined]);
+
+    await expect(
+      service.resolveRefs({
+        refs: [ref, other],
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'era',
+      }),
+    ).resolves.toBeUndefined();
+    expect(importResults.error).toHaveBeenNthCalledWith(1, {
+      item: {},
+      message: 'L: could not resolve reference BBL|id:47.',
+    });
+    expect(importResults.error).toHaveBeenNthCalledWith(2, {
+      item: {},
+      message: 'L: could not resolve reference BBL|id:48.',
+    });
+    expect(errors).toEqual([CANNED_ERROR, CANNED_ERROR]);
+  });
+
+  it('resolves an empty list to an empty array without calling the api', async () => {
+    await expect(
+      service.resolveRefs({
+        refs: [],
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'era',
+      }),
+    ).resolves.toEqual([]);
+    expect(resolver.resolveBatch).not.toHaveBeenCalled();
+  });
+
+  it('passes an omitted optional ref through with no error', async () => {
+    await expect(
+      service.resolveOptionalRef({
+        ref: undefined,
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'league',
+      }),
+    ).resolves.toEqual({ ok: true, id: undefined });
+    expect(resolver.resolve).not.toHaveBeenCalled();
+    expect(errors).toEqual([]);
+  });
+
+  it('reports a present-but-unresolvable optional ref as not ok', async () => {
+    resolver.resolve.mockResolvedValue(undefined);
+
+    await expect(
+      service.resolveOptionalRef({
+        ref,
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'league',
+      }),
+    ).resolves.toEqual({ ok: false });
+    expect(errors).toHaveLength(1);
+  });
+
+  it('reports a resolved optional ref as ok with its id', async () => {
+    resolver.resolve.mockResolvedValue(4);
+
+    await expect(
+      service.resolveOptionalRef({
+        ref,
+        systemIds,
+        errors,
+        item: {},
+        label: 'L',
+        kind: 'league',
+      }),
+    ).resolves.toEqual({ ok: true, id: 4 });
   });
 });

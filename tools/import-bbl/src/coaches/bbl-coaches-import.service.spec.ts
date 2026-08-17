@@ -296,20 +296,6 @@ describe('BblCoachesImportService', () => {
     expect(mocks.coachesImport.upsertCoach).not.toHaveBeenCalled();
   });
 
-  it('returns a coachIdsByName map from coach name to upserted db id', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReader([page('Hugo E'), page('Roze Madder')]),
-    );
-    mocks.coachesImport.upsertCoach
-      .mockResolvedValueOnce(makeCoachRecord())
-      .mockResolvedValueOnce(makeCoachRecord({ id: 200, name: 'Roze Madder' }));
-
-    const { coachIdsByName } = await service.importCoaches();
-
-    expect(coachIdsByName.get('Hugo E')).toBe(100);
-    expect(coachIdsByName.get('Roze Madder')).toBe(200);
-  });
-
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const { service } = await makeService(
       mockBblSourceReader([page('Hugo E')]),

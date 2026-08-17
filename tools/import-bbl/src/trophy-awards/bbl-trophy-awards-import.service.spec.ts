@@ -1,7 +1,9 @@
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
+  ReferenceLookupService,
   TrophiesImportService,
   TrophyAwardsImportService,
 } from '@blood-bowl-tracker/import';
@@ -11,6 +13,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-trophy-reader.service';
 import type { CompetitionTrophyRows } from '../matches/competition-trophy-page-parser';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import {
   BblTrophyAwardsImportService,
@@ -44,10 +47,26 @@ interface Mocks {
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
+  lookup: MockProxy<ReferenceLookupService>;
+}
+
+/** The numeric id the mocked bootstrap assigns to the BBL external system. */
+const BBL_SYSTEM_ID = 7;
+
+/** An UpsertCompetition fixture keyed under the BBL system by `bblId`. */
+function makeCompetition(bblId: string): UpsertCompetition {
+  return {
+    name: `Competition ${bblId}`,
+    type: 'season',
+    eraId: 200,
+    teamEraIds: [],
+    externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }],
+  };
 }
 
 async function makeService(
   rowsByCompetitionId: Map<string, CompetitionTrophyRows>,
+  competitionIdsByBblId: Map<string, number> = new Map([['1', 11]]),
 ): Promise<{ service: BblTrophyAwardsImportService; mocks: Mocks }> {
   const mocks: Mocks = {
     trophyReader: mock<BblCompetitionTrophyReaderService>(),
@@ -56,12 +75,16 @@ async function makeService(
     bootstrap: mock<ExternalSystemBootstrapService>(),
     nameConfig: mock<ExternalSystemNameConfigService>(),
     importResults: mock<ImportResultService>(),
+    lookup: mock<ReferenceLookupService>(),
   };
   mocks.trophyReader.getRowsByCompetitionId.mockResolvedValue(
     rowsByCompetitionId,
   );
   mocks.nameConfig.getBblSystemName.mockReturnValue('tloeg.bbleague.se');
-  mocks.bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [7] });
+  mocks.bootstrap.bootstrap.mockResolvedValue({
+    ok: true,
+    ids: [BBL_SYSTEM_ID],
+  });
   mocks.importResults.error.mockImplementation((args) => args);
   mocks.importResults.result.mockReturnValue(CANNED_RESULT);
   // Default: every label resolves to trophy 100, every award write succeeds.
@@ -71,6 +94,7 @@ async function makeService(
   mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue({
     id: 500,
   } as never);
+  mockReferenceLookup(mocks.lookup, { competition: competitionIdsByBblId });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -87,6 +111,7 @@ async function makeService(
       { provide: ExternalSystemBootstrapService, useValue: mocks.bootstrap },
       { provide: ExternalSystemNameConfigService, useValue: mocks.nameConfig },
       { provide: ImportResultService, useValue: mocks.importResults },
+      { provide: ReferenceLookupService, useValue: mocks.lookup },
     ],
   }).compile();
 
@@ -100,7 +125,7 @@ function options(
   overrides: Partial<ImportBblTrophyAwardsOptions> = {},
 ): ImportBblTrophyAwardsOptions {
   return {
-    competitionIdsByBblId: new Map([['1', 11]]),
+    competitionsByBblId: new Map([['1', makeCompetition('1')]]),
     teamEraIdsByCompetitionBblId: new Map([['1', new Map([['sew', 21]])]]),
     playerIdsByPid: new Map([
       ['102', 31],
@@ -185,7 +210,7 @@ describe('BblTrophyAwardsImportService', () => {
     );
 
     await service.importTrophyAwards(
-      options({ competitionIdsByBblId: new Map() }),
+      options({ competitionsByBblId: new Map() }),
     );
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
@@ -286,7 +311,13 @@ describe('BblTrophyAwardsImportService', () => {
         },
       ],
     ]);
-    const { service, mocks } = await makeService(rowsByCompetitionId);
+    const { service, mocks } = await makeService(
+      rowsByCompetitionId,
+      new Map([
+        ['1', 11],
+        ['2', 12],
+      ]),
+    );
     // Every label resolves to trophy 100 except the made-up one, which
     // TrophiesImportService answers undefined for (as it would for any label
     // matching no curated trophy).
@@ -300,9 +331,9 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionIdsByBblId: new Map([
-          ['1', 11],
-          ['2', 12],
+        competitionsByBblId: new Map([
+          ['1', makeCompetition('1')],
+          ['2', makeCompetition('2')],
         ]),
         teamEraIdsByCompetitionBblId: new Map([
           ['1', new Map([['sew', 21]])],
@@ -346,14 +377,20 @@ describe('BblTrophyAwardsImportService', () => {
         },
       ],
     ]);
-    const { service, mocks } = await makeService(rowsByCompetitionId);
+    const { service, mocks } = await makeService(
+      rowsByCompetitionId,
+      new Map([
+        ['1', 11],
+        ['2', 12],
+      ]),
+    );
     mocks.trophiesImport.upsertTrophy.mockResolvedValue(undefined);
 
     await service.importTrophyAwards(
       options({
-        competitionIdsByBblId: new Map([
-          ['1', 11],
-          ['2', 12],
+        competitionsByBblId: new Map([
+          ['1', makeCompetition('1')],
+          ['2', makeCompetition('2')],
         ]),
         teamEraIdsByCompetitionBblId: new Map([
           ['1', new Map([['sew', 21]])],

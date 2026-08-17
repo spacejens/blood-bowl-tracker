@@ -28,16 +28,14 @@ export class TpRulesSetsImportService {
    * Import the rule sets the TP league played under. Rule sets are not named in
    * TP's data (only an opaque numeric code is), so their names are the distinct
    * rulesSets values across the configured eras. Each is keyed by its name
-   * under both the TP and Name external systems. Returns a name->id map so the
-   * eras import can reference each rule set's id. Idempotent.
+   * under both the TP and Name external systems. The eras import resolves
+   * each rule set's id itself, server-side, by external id. Idempotent.
    */
   async importRulesSets(): Promise<{
     result: ImportResult;
-    rulesSetIdsByName: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const rulesSetIdsByName = new Map<string, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
 
@@ -55,7 +53,6 @@ export class TpRulesSetsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        rulesSetIdsByName,
       };
     }
 
@@ -67,7 +64,6 @@ export class TpRulesSetsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        rulesSetIdsByName,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -88,14 +84,12 @@ export class TpRulesSetsImportService {
         errors,
       );
       if (rulesSet) {
-        rulesSetIdsByName.set(name, rulesSet.id);
         imported += 1;
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      rulesSetIdsByName,
     };
   }
 }

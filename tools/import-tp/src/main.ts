@@ -10,6 +10,7 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
+import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
@@ -32,34 +33,41 @@ async function run(): Promise<ImportResult> {
     logger: false,
   });
   try {
-    // Bootstrap order: the league is foundational; rule sets and eras come
-    // from config and must exist before entities that reference them, then
-    // competitions, resolved from the era directories.
+    // Bootstrap order still matters: the league and rule sets must be
+    // upserted before eras, which resolve both server-side, by external id,
+    // against whatever these two prior steps just wrote.
     const leagueOutcome = await app.get(TpLeaguesImportService).importLeague();
     const rulesSetsOutcome = await app
       .get(TpRulesSetsImportService)
       .importRulesSets();
-    const eraOutcome = await app
-      .get(TpErasImportService)
-      .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
+    const eraOutcome = await app.get(TpErasImportService).importEras();
 
     const competitionOutcome = await app
       .get(TpCompetitionsImportService)
-      .importCompetitions(eraOutcome.eraIdsByName);
+      .importCompetitions();
+
+    // Every competition's DB id is resolved once here, server-side by
+    // external id (its TP id, stringified), rather than threaded through as
+    // a client-side id map: one batched lookup for the whole run, reused
+    // below both for match category classification and for the hired-star
+    // era resolution. A resolve miss is recorded as an ImportError by the
+    // service itself (see TpCompetitionIdResolverService), not silently
+    // dropped.
+    const {
+      result: competitionIdResolutionResult,
+      competitionTypesByCompetitionId,
+      eraIdByCompetitionId,
+    } = await app.get(TpCompetitionIdResolverService).resolveCompetitionIds({
+      competitionsByTpId: competitionOutcome.competitionsByTpId,
+    });
 
     // Matches link to their competition only via the directory scan competitions
     // import already performed (match files carry no tournament id), so this
     // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
     // Each competition's type (for match category classification) comes from
     // the same competitions import's upsert payloads, keyed by DB competition
-    // id via competitionIdsByTpId.
-    const competitionTypesByCompetitionId = new Map<number, 'season' | 'cup'>();
-    for (const [tpId, entry] of competitionOutcome.competitionsByTpId) {
-      const competitionId = competitionOutcome.competitionIdsByTpId.get(tpId);
-      if (competitionId !== undefined && entry.upsert.type !== undefined) {
-        competitionTypesByCompetitionId.set(competitionId, entry.upsert.type);
-      }
-    }
+    // id via competitionTypesByCompetitionId, resolved just above by
+    // TpCompetitionIdResolverService.
 
     const { result: matchResult, matchIdsByTpId } = await app
       .get(TpMatchesImportService)
@@ -84,55 +92,25 @@ async function run(): Promise<ImportResult> {
 
     const raceOutcome = await app
       .get(TpRacesImportService)
-      .importRaces(rosters, eraOutcome.eraIdsByName);
+      .importRaces(rosters);
 
     const teamOutcome = await app
       .get(TpTeamsImportService)
-      .importTeams(rosters, {
-        raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
-        coachIdsByTpId: coachOutcome.coachIdsByTpId,
-        eraIdsByName: eraOutcome.eraIdsByName,
-      });
+      .importTeams(rosters);
 
-    const {
-      result: positionResult,
-      positionIdsByTpPositionId,
-      starPositionIds,
-    } = await app.get(TpPositionsImportService).importPositions(rosters, {
-      raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
-      eraIdsByName: eraOutcome.eraIdsByName,
-      raceNamesById: raceOutcome.raceNamesById,
-    });
+    const { result: positionResult, starPositionIds } = await app
+      .get(TpPositionsImportService)
+      .importPositions(rosters, {
+        raceNamesById: raceOutcome.raceNamesById,
+      });
 
     // A roster id can appear under more than one era (TpTeamsImportService's
     // era-union grouping), so resolving a hired star player's team era later
     // needs the real eraId the inducements_roll event came from -- not a
-    // guess. The DB competition id (matchesByCompetitionId's key) maps to its
-    // real eraId via competitionIdsByTpId + competitionsByTpId's upsert.eraId,
-    // the same value TpTeamParticipationImportService already resolves
-    // roster ids against.
-    const eraIdByCompetitionId = new Map<number, number>();
-    for (const [
-      tpCompetitionId,
-      dbCompetitionId,
-    ] of competitionOutcome.competitionIdsByTpId) {
-      const competitionEntry =
-        competitionOutcome.competitionsByTpId.get(tpCompetitionId);
-      if (competitionEntry) {
-        // UpsertCompetitionSchema.eraId is optional to support
-        // partial-upsert payloads from other callers, but
-        // TpCompetitionsImportService always resolves eraId from the era
-        // name before building this upsert -- skipping and recording an
-        // error otherwise -- so every entry reaching this map has one.
-        const { eraId } = competitionEntry.upsert;
-        if (eraId === undefined) {
-          throw new Error(
-            `Competition "${competitionEntry.upsert.name}" has no eraId; import-tp always resolves eraId before building its upsert.`,
-          );
-        }
-        eraIdByCompetitionId.set(dbCompetitionId, eraId);
-      }
-    }
+    // guess. eraIdByCompetitionId (each DB competition id's real eraId) was
+    // already resolved above by TpCompetitionIdResolverService, the same
+    // value TpTeamParticipationImportService already resolves roster ids
+    // against.
 
     // Star players hired via an inducements_roll event aren't part of any
     // roster's lineUps[], so they're gathered from the already-parsed match
@@ -223,8 +201,9 @@ async function run(): Promise<ImportResult> {
     );
 
     // Players run after positions and teams: each roster player resolves a
-    // team era (via teamOutcome.teamErasByRosterId) and a position (via
-    // positionIdsByTpPositionId), so both must exist first. Roster player
+    // team era (via teamOutcome.teamErasByRosterId) and a position (server-
+    // side, by external id, against whatever the positions step above just
+    // upserted), so both must exist first. Roster player
     // data is unioned with matchEmbeddedPlayersByRosterId (built above) so a
     // player who has since left/been replaced on a roster -- absent from the
     // standalone roster file -- is still imported and resolvable.
@@ -239,8 +218,6 @@ async function run(): Promise<ImportResult> {
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
-      eraIdsByName: eraOutcome.eraIdsByName,
-      positionIdsByTpPositionId,
       inducedStarPlayerHireGroups,
       matchEmbeddedPlayersByRosterId,
       starPositionIds,
@@ -257,8 +234,6 @@ async function run(): Promise<ImportResult> {
       .get(TpPositionRaceErasImportService)
       .syncStarPositionRaceEras({
         starPositionUsages,
-        raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
-        eraIdsByName: eraOutcome.eraIdsByName,
       });
 
     // Team participation (match_teams + competition_teams) runs before match
@@ -269,24 +244,23 @@ async function run(): Promise<ImportResult> {
       .get(TpTeamParticipationImportService)
       .importTeamParticipation({
         competitionsByTpId: competitionOutcome.competitionsByTpId,
-        competitionIdsByTpId: competitionOutcome.competitionIdsByTpId,
         matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
         teamErasByRosterId: teamOutcome.teamErasByRosterId,
         rosters,
       });
 
     // Trophy awards run after competitions, teams and team participation:
-    // each award resolves its competition (competitionIdsByTpId), that
-    // competition's curated group (competitionsByTpId's competitionGroupId,
-    // read off the competition upsert's own response) and its winning team's
-    // team era (teamErasByRosterId + the competition's own eraId). TP records
+    // each award resolves its own competition (server-side, by external id,
+    // from competitionsByTpId), that competition's curated group
+    // (competitionsByTpId's competitionGroupId, read off the competition
+    // upsert's own response) and its winning team's team era
+    // (teamErasByRosterId + the competition's own eraId). TP records
     // team awards only -- placements plus Best Stunty / Wooden Spoon -- so no
     // player data is needed here.
     const trophyAwardsOutcome = await app
       .get(TpTrophyAwardsImportService)
       .importTrophyAwards({
         competitionsByTpId: competitionOutcome.competitionsByTpId,
-        competitionIdsByTpId: competitionOutcome.competitionIdsByTpId,
         teamErasByRosterId: teamOutcome.teamErasByRosterId,
       });
 
@@ -351,6 +325,7 @@ async function run(): Promise<ImportResult> {
       rulesSetsOutcome.result,
       eraOutcome.result,
       competitionOutcome.result,
+      competitionIdResolutionResult,
       matchResult,
       coachOutcome.result,
       rosterCollectionResult,

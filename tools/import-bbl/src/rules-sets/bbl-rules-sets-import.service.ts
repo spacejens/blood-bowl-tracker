@@ -28,16 +28,15 @@ export class BblRulesSetsImportService {
    * Import the rules sets the BBL league played under. Rules sets are not in
    * the source data; their names are the distinct `rulesSet` values across the
    * configured eras (BBL_ERAS). Each is keyed by its name under both the BBL
-   * and Name external systems. Returns a name→id map so the eras import can
-   * reference each rules set's id. Idempotent.
+   * and Name external systems. The eras import resolves each era's rules sets
+   * server-side, by that same external id, once this step has upserted them.
+   * Idempotent.
    */
   async importRulesSets(): Promise<{
     result: ImportResult;
-    rulesSetIdsByName: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const rulesSetIdsByName = new Map<string, number>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
@@ -57,7 +56,6 @@ export class BblRulesSetsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        rulesSetIdsByName,
       };
     }
 
@@ -69,7 +67,6 @@ export class BblRulesSetsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        rulesSetIdsByName,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -90,14 +87,12 @@ export class BblRulesSetsImportService {
         errors,
       );
       if (rulesSet) {
-        rulesSetIdsByName.set(name, rulesSet.id);
         imported += 1;
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      rulesSetIdsByName,
     };
   }
 }

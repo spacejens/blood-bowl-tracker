@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { CompetitionGroupsProcessor } from './competition-groups.processor';
@@ -31,7 +30,6 @@ function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap: new ExternalIdMap(),
     errors: [],
   };
 }
@@ -54,8 +52,8 @@ describe('CompetitionGroupsProcessor', () => {
     processor = moduleRef.get(CompetitionGroupsProcessor);
   });
 
-  it('upserts each declared group, records its id, and counts it', async () => {
-    refResolver.resolveRef.mockReturnValue(9);
+  it('upserts each declared group and counts it', async () => {
+    refResolver.resolveRef.mockResolvedValue(9);
     refResolver.competitionGroupRef.mockReturnValue({
       system: 'Name',
       id: 'Chaos Cup',
@@ -87,12 +85,6 @@ describe('CompetitionGroupsProcessor', () => {
       },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve(
-        { system: 'Name', id: 'Chaos Cup' },
-        'competitionGroup',
-      ),
-    ).toBe(6);
     expect(refResolver.resolveRef).toHaveBeenCalledWith(
       expect.objectContaining({
         ref: data.competitionGroups[0].league,
@@ -112,7 +104,7 @@ describe('CompetitionGroupsProcessor', () => {
   });
 
   it('throws when the Name external system was not bootstrapped', async () => {
-    refResolver.resolveRef.mockReturnValue(9);
+    refResolver.resolveRef.mockResolvedValue(9);
     const data = emptyData();
     data.competitionGroups = [
       {
@@ -131,7 +123,7 @@ describe('CompetitionGroupsProcessor', () => {
     // "Name" system declaration surfaces that root cause -- not a confusing
     // "unknown league" error from the first entry whose league also fails to
     // resolve.
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRef.mockResolvedValue(undefined);
     const data = emptyData();
     data.competitionGroups = [
       {
@@ -146,7 +138,7 @@ describe('CompetitionGroupsProcessor', () => {
   });
 
   it('skips an entry whose league cannot be resolved', async () => {
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRef.mockResolvedValue(undefined);
     const data = emptyData();
     data.competitionGroups = [
       {
@@ -160,16 +152,10 @@ describe('CompetitionGroupsProcessor', () => {
 
     expect(count).toBe(0);
     expect(groups.upsertCompetitionGroup).not.toHaveBeenCalled();
-    expect(
-      ctx.idMap.resolve(
-        { system: 'Name', id: 'Chaos Cup' },
-        'competitionGroup',
-      ),
-    ).toBeUndefined();
   });
 
-  it('does not record an id or count when the upsert fails', async () => {
-    refResolver.resolveRef.mockReturnValue(9);
+  it('does not count when the upsert fails', async () => {
+    refResolver.resolveRef.mockResolvedValue(9);
     refResolver.competitionGroupRef.mockReturnValue({
       system: 'Name',
       id: 'Chaos Cup',
@@ -185,11 +171,5 @@ describe('CompetitionGroupsProcessor', () => {
     const ctx = makeContext(data);
 
     expect(await processor.process(ctx)).toBe(0);
-    expect(
-      ctx.idMap.resolve(
-        { system: 'Name', id: 'Chaos Cup' },
-        'competitionGroup',
-      ),
-    ).toBeUndefined();
   });
 });

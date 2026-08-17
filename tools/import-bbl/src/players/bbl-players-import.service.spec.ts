@@ -4,6 +4,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   PlayersImportService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
@@ -12,6 +13,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
@@ -66,6 +68,9 @@ function plPage(player: BblPlayer | null, pid = '388'): BblPage {
   };
 }
 
+/** The numeric id the mocked bootstrap assigns to the BBL external system. */
+const BBL_SYSTEM_ID = 1;
+
 const team: UpsertTeam = {
   name: 'Knights',
   raceId: 70, // DB race id
@@ -77,8 +82,17 @@ const teamsByCode = new Map<string, UpsertTeam>([['knu', team]]);
 const racesByBblId = new Map<string, { id: number; name: string }>([
   ['7', { id: 70, name: 'Goblin Team' }],
 ]);
-const positionIdsByBblId = new Map<string, number>([['33-7', 200]]);
+
+/** The default era name -> DB id resolution the mocked lookup answers with. */
 const eraIdsByName = new Map<string, number>([['LRB', 500]]);
+
+/**
+ * The default position `typId-raceBblId` -> DB id resolution the mocked
+ * lookup answers with. goodPlayer's typId is '33'; its team (Knights, DB
+ * race id 70) maps to BBL race id '7' via racesByBblId, so '33-7' is the
+ * composite external id.
+ */
+const positionIdsByExternalId = new Map<string, number>([['33-7', 200]]);
 
 const defaultEras: EraConfig[] = [
   {
@@ -101,6 +115,7 @@ interface Mocks {
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
   upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }
 
 /**
@@ -126,11 +141,15 @@ function makeTeamRecord(eras: { id: number; eraId: number }[]) {
  * PageParseErrorService.build return canned values (see the constants above);
  * tests assert what this service passes to them, not what they compute.
  * `eras` seeds the EraConfigService mock since every test needs its own era
- * set.
+ * set. `idsByName` seeds the mocked lookup's era resolution (defaulting to
+ * `eraIdsByName`); a test wanting different resolution results passes its own
+ * map. Position resolution always defaults to `positionIdsByExternalId`; no
+ * test in this file needs a different one.
  */
 async function makeService(
   reader: BblSourceReader,
   eras: EraConfig[] = defaultEras,
+  idsByName: Map<string, number> = eraIdsByName,
 ): Promise<{ service: BblPlayersImportService; mocks: Mocks }> {
   const parser = mock<PlayerPageParser>();
   parser.extractPlayer.mockImplementation(
@@ -149,7 +168,7 @@ async function makeService(
   eraConfig.getEras.mockReturnValue(eras);
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1] });
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [BBL_SYSTEM_ID] });
 
   const nameConfig = mock<ExternalSystemNameConfigService>();
   nameConfig.getBblSystemName.mockReturnValue('BBL');
@@ -175,6 +194,12 @@ async function makeService(
     (t) => t.raceId as number,
   );
 
+  const lookup = mock<ReferenceLookupService>();
+  mockReferenceLookup(lookup, {
+    era: idsByName,
+    position: positionIdsByExternalId,
+  });
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPlayersImportService,
@@ -191,6 +216,7 @@ async function makeService(
         provide: UpsertFieldNarrowingService,
         useValue: upsertFieldNarrowing,
       },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -205,6 +231,7 @@ async function makeService(
       importResults,
       pageParseError,
       upsertFieldNarrowing,
+      lookup,
     },
   };
 }
@@ -218,6 +245,44 @@ const goodPlayer: BblPlayer = {
 };
 
 describe('BblPlayersImportService', () => {
+  it('resolves configured eras and referenced positions through the api once for the whole run', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [] }),
+    );
+
+    await service.importPlayers({
+      teamsByCode,
+      racesByBblId,
+    });
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: 'LRB' },
+    ]);
+    // No player pages, so the batched position call still happens (one round
+    // trip per run, regardless of whether it finds anything to resolve) but
+    // with an empty ref list.
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('position', []);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(2);
+  });
+
+  it('resolves positions by their typId-raceBblId external id', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+    );
+
+    await service.importPlayers({
+      teamsByCode,
+      racesByBblId,
+    });
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith(
+      'position',
+      expect.arrayContaining([
+        { externalSystemId: BBL_SYSTEM_ID, externalId: '33-7' },
+      ]),
+    );
+  });
+
   it('imports a resolvable player and maps its pid to the DB id', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
@@ -226,9 +291,7 @@ describe('BblPlayersImportService', () => {
     const { playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
       await service.importPlayers({
         teamsByCode,
-        positionIdsByBblId,
         racesByBblId,
-        eraIdsByName,
       });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -262,9 +325,7 @@ describe('BblPlayersImportService', () => {
 
     const { teamEraIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     // Default makeService wiring resolves the team era to id 5000 (see
@@ -282,9 +343,7 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid, teamEraIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(playerIdsByPid.has('42')).toBe(false);
@@ -319,9 +378,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -360,13 +417,15 @@ describe('BblPlayersImportService', () => {
           },
         },
       ],
+      otherEraIdsByName,
+    );
+    mocks.teamsImport.upsertTeam.mockResolvedValue(
+      makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: otherEraIdsByName,
     });
 
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
@@ -407,6 +466,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
@@ -414,9 +474,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -460,6 +518,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 7000, eraId: 700 }]),
@@ -467,9 +526,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -513,6 +570,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
@@ -520,9 +578,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -563,6 +619,7 @@ describe('BblPlayersImportService', () => {
           teams: { teamCodeOverrides: ['knu'] },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
@@ -570,9 +627,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -616,6 +671,7 @@ describe('BblPlayersImportService', () => {
           },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
@@ -623,9 +679,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -654,6 +708,7 @@ describe('BblPlayersImportService', () => {
           },
         },
       ],
+      overrideEraIds,
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
@@ -661,9 +716,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName: overrideEraIds,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -687,9 +740,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -714,9 +765,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -734,9 +783,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -754,9 +801,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -778,9 +823,7 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { errors } = resultArgs(mocks.importResults);
@@ -794,6 +837,7 @@ describe('BblPlayersImportService', () => {
     expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
     expect(playerIdsByPid.size).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
+    expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
   });
 
   it('records an error and skips players the parser cannot read', async () => {
@@ -803,9 +847,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -830,9 +872,7 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -866,9 +906,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -886,9 +924,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -905,9 +941,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -927,9 +961,7 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode: localTeamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -937,6 +969,71 @@ describe('BblPlayersImportService', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0]?.message).toContain('33-?');
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
+  });
+
+  it('records a page-parse error via the main loop for a team whose race id cannot be resolved, without aborting the run for other pages', async () => {
+    // Regression test for bfa7bc34: the pre-pass loop that collects position
+    // refs now wraps its resolveDefiniteRaceId call in try/catch and silently
+    // skips a bad team (`continue`), rather than letting the throw abort the
+    // whole importPlayers run before any ImportResult is produced. The main
+    // loop below re-processes the same page inside its own try/catch, which
+    // is what actually records the error via pageParseError.build. This test
+    // proves both: the run completes (doesn't reject) and still imports a
+    // player from another page, and the bad page's error is recorded exactly
+    // once by the main loop, not the pre-pass.
+    const badTeam: UpsertTeam = {
+      name: 'Bad Team',
+      raceId: 999,
+      coachId: 9,
+      eras: [],
+      externalIds: [],
+    };
+    const localTeamsByCode = new Map<string, UpsertTeam>([
+      ['knu', team],
+      ['bad', badTeam],
+    ]);
+    const badPlayer: BblPlayer = {
+      pid: '77',
+      name: 'Bad Player',
+      typId: '33',
+      teamCode: 'bad',
+      sppTotal: null,
+    };
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pl: [plPage(badPlayer, '77'), plPage(goodPlayer, '42')],
+      }),
+    );
+    mocks.upsertFieldNarrowing.resolveDefiniteRaceId.mockImplementation((t) => {
+      if (t === badTeam) {
+        throw new Error('no resolvable race id');
+      }
+      return t.raceId as number;
+    });
+
+    const { result, playerIdsByPid } = await service.importPlayers({
+      teamsByCode: localTeamsByCode,
+      racesByBblId,
+    });
+
+    // The run resolves rather than rejecting, and still returns the mocked
+    // result unchanged.
+    expect(result).toBe(CANNED_RESULT);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    // Exactly one error: the pre-pass's catch is silent (no push), so only
+    // the main loop's catch records it.
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(mocks.pageParseError.build).toHaveBeenCalledTimes(1);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { player: JSON.stringify(badPlayer), pid: '77' },
+      'player',
+      expect.any(Error),
+    );
+    // The bad page is skipped, but the run continues and still imports the
+    // player from the other page.
+    expect(imported).toBe(1);
+    expect(playerIdsByPid.has('77')).toBe(false);
+    expect(playerIdsByPid.get('42')).toBe(900);
   });
 
   it('does not count or map the player when the upsert reports failure', async () => {
@@ -947,9 +1044,7 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -967,9 +1062,7 @@ describe('BblPlayersImportService', () => {
     const { positionsUsedByEra, racesActiveByEra } =
       await service.importPlayers({
         teamsByCode,
-        positionIdsByBblId,
         racesByBblId,
-        eraIdsByName,
       });
 
     expect(positionsUsedByEra.size).toBe(0);
@@ -983,9 +1076,7 @@ describe('BblPlayersImportService', () => {
 
     const { result } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(result).toBe(CANNED_RESULT);
@@ -1013,9 +1104,7 @@ describe('BblPlayersImportService', () => {
 
     const outcome = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(outcome.scrapedSppTotalsByPlayerId).toEqual(
@@ -1034,9 +1123,7 @@ describe('BblPlayersImportService', () => {
 
     const outcome = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
-      eraIdsByName,
     });
 
     expect(outcome.scrapedSppTotalsByPlayerId).toEqual(new Map());

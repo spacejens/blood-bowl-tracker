@@ -6,10 +6,12 @@ import {
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { LeagueConfigService } from '../leagues/league-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { EraDataConfig, EraDataConfigService } from './era-data-config.service';
@@ -31,13 +33,18 @@ export class TpErasImportService {
     private readonly tournamentParser: TournamentParserService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
+    private readonly leagueConfig: LeagueConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
-   * Import the configured eras, each referencing the league id and its rule
-   * set ids (both resolved earlier in the run and passed in). Each era is keyed
-   * by its name under both the TP and Name external systems. Eras whose league
-   * id or rule set id is unknown are skipped with a recorded error.
+   * Import the configured eras, each referencing its league and its rule
+   * sets. Both are resolved server-side, by external id, against whatever the
+   * leagues and rules-sets steps upserted moments earlier in the same run --
+   * one batched lookup per kind for the whole run, not one per era. Each era
+   * is keyed by its name under both the TP and Name external systems. Eras
+   * whose league or a rule set does not resolve are skipped with a recorded
+   * error.
    *
    * Additionally cross-checks TP's opaque numeric rule-set code: every base
    * tournament file under one era's directory should report the same code. A
@@ -45,13 +52,11 @@ export class TpErasImportService {
    * the era is still upserted, since config-driven identity is authoritative.
    * Idempotent.
    */
-  async importEras(
-    leagueId: number | undefined,
-    rulesSetIdsByName: Map<string, number>,
-  ): Promise<{ result: ImportResult; eraIdsByName: Map<string, number> }> {
+  async importEras(): Promise<{
+    result: ImportResult;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const eraIdsByName = new Map<string, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
 
@@ -67,7 +72,6 @@ export class TpErasImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
 
@@ -79,23 +83,49 @@ export class TpErasImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
+
+    let leagueName: string;
+    try {
+      leagueName = this.leagueConfig.getLeagueName();
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { eras: eras.map((e) => e.name) },
+          message:
+            'Cannot import eras: the league name could not be read from ' +
+            `configuration: ${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+      };
+    }
+    const leagueRef = { externalSystemId: tpSystemId, externalId: leagueName };
+    const leagueIds = await this.lookup.lookupMap('league', [leagueRef]);
+    const leagueId = leagueIds.get(this.lookup.keyOf(leagueRef));
+
+    const rulesSetIds = await this.lookup.lookupMap(
+      'rulesSet',
+      [...new Set(eras.flatMap((era) => era.rulesSets))].map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
 
     if (leagueId === undefined) {
       errors.push(
         this.importResults.error({
           item: { eras: eras.map((e) => e.name) },
           message:
-            'Cannot import eras: the league was not imported successfully, so ' +
-            'its id is unknown.',
+            'Cannot import eras: the league could not be resolved, so its id ' +
+            'is unknown.',
         }),
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
 
@@ -115,7 +145,7 @@ export class TpErasImportService {
     }
 
     for (const era of eras) {
-      const resolved = this.resolveRulesSetIds(era, rulesSetIdsByName);
+      const resolved = this.resolveRulesSetIds(era, rulesSetIds, tpSystemId);
       if (resolved.errors.length > 0) {
         errors.push(...resolved.errors);
         continue;
@@ -141,14 +171,12 @@ export class TpErasImportService {
         errors,
       );
       if (upsertedEra) {
-        eraIdsByName.set(era.name, upsertedEra.id);
         imported += 1;
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      eraIdsByName,
     };
   }
 
@@ -158,18 +186,21 @@ export class TpErasImportService {
    */
   private resolveRulesSetIds(
     era: EraDataConfig,
-    rulesSetIdsByName: Map<string, number>,
+    rulesSetIds: Map<string, number>,
+    tpSystemId: number,
   ): { ids: number[]; errors: ImportError[] } {
     const ids: number[] = [];
     for (const name of era.rulesSets) {
-      const id = rulesSetIdsByName.get(name);
+      const id = rulesSetIds.get(
+        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: name }),
+      );
       if (id === undefined) {
         return {
           ids: [],
           errors: [
             this.importResults.error({
               item: era,
-              message: `Cannot import era "${era.name}": its rule set "${name}" was not imported successfully.`,
+              message: `Cannot import era "${era.name}": its rule set "${name}" could not be resolved.`,
             }),
           ],
         };

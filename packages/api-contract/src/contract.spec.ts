@@ -159,3 +159,39 @@ describe('contract', () => {
     expect(contract.sppAwardValues.sync).toBeDefined();
   });
 });
+
+describe('resolve procedures', () => {
+  const resolvable = [
+    'coaches',
+    'leagues',
+    'races',
+    'positions',
+    'rulesSets',
+    'eras',
+    'competitions',
+    'competitionGroups',
+    'teams',
+  ] as const;
+
+  it.each(resolvable)('exposes resolve and resolveBatch on %s', (name) => {
+    const namespace = contract[name] as Record<string, unknown>;
+    expect(namespace.resolve).toBeDefined();
+    expect(namespace.resolveBatch).toBeDefined();
+  });
+
+  const notResolvable = [
+    'players',
+    'matches',
+    'matchEvents',
+    'trophies',
+    'trophyAwards',
+    'sppAwardValues',
+    'externalSystems',
+  ] as const;
+
+  it.each(notResolvable)('does not expose resolve on %s', (name) => {
+    const namespace = contract[name] as Record<string, unknown>;
+    expect(namespace.resolve).toBeUndefined();
+    expect(namespace.resolveBatch).toBeUndefined();
+  });
+});

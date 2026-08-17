@@ -3,6 +3,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -48,6 +49,9 @@ const detail = (bblId: string, name: string): BblMatchDetails => ({
   name,
 });
 
+/** The numeric id the mocked bootstrap assigns to the BBL external system. */
+const BBL_SYSTEM_ID = 1;
+
 /** A resolution with no merged pairs: every match imports independently. */
 function noMergeResolution(): MatchMergeResolution {
   return {
@@ -67,11 +71,41 @@ interface Mocks {
   importResults: MockProxy<ImportResultService>;
   classifier: MockProxy<MatchCategoryClassifierService>;
   categoryConfig: MockProxy<MatchCategoryConfigService>;
+  lookup: MockProxy<ReferenceLookupService>;
+}
+
+/**
+ * Configures `lookup.lookupMap` to answer a fixed 'competition' resolution: a
+ * db id for every entry in `competitionIdsByBblId`, keyed via the mocked
+ * (deterministic) `keyOf`. This is a canned response, not a re-derivation of
+ * ReferenceLookupService's own algorithm -- it ignores the `refs` argument
+ * entirely, so a test asserting on the request the service makes (e.g.
+ * "resolves every competition id in one batched call") is exercising the
+ * service's own call, not an echo of it.
+ */
+function mockCompetitionLookup(
+  lookup: MockProxy<ReferenceLookupService>,
+  competitionIdsByBblId: Map<string, number>,
+): void {
+  lookup.lookupMap.mockImplementation((kind) => {
+    if (kind !== 'competition') {
+      return Promise.resolve(new Map<string, number>());
+    }
+    return Promise.resolve(
+      new Map(
+        [...competitionIdsByBblId].map(([bblId, id]) => [
+          lookup.keyOf({ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }),
+          id,
+        ]),
+      ),
+    );
+  });
 }
 
 async function makeService(
   matchesById: Record<string, BblMatch[]>,
   detailsById: Record<string, BblMatchDetails>,
+  competitionIdsByBblId: Map<string, number> = new Map(),
 ): Promise<{ service: BblMatchesImportService; mocks: Mocks }> {
   const matchListReader = mock<BblMatchListReaderService>();
   matchListReader.getMatchesByCompetitionId.mockResolvedValue(
@@ -104,6 +138,15 @@ async function makeService(
   const categoryConfig = mock<MatchCategoryConfigService>();
   categoryConfig.getCategoryOverrides.mockReturnValue(new Map());
 
+  const lookup = mock<ReferenceLookupService>();
+  // `keyOf` is a pure, deterministic key derivation with no branching that
+  // could drift from ReferenceLookupService's own real implementation --
+  // exempt from the canned-response rule, same as the other passthroughs.
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  );
+  mockCompetitionLookup(lookup, competitionIdsByBblId);
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblMatchesImportService,
@@ -114,6 +157,7 @@ async function makeService(
       { provide: ImportResultService, useValue: importResults },
       { provide: MatchCategoryClassifierService, useValue: classifier },
       { provide: MatchCategoryConfigService, useValue: categoryConfig },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -127,6 +171,7 @@ async function makeService(
       importResults,
       classifier,
       categoryConfig,
+      lookup,
     },
   };
 }
@@ -149,12 +194,12 @@ describe('BblMatchesImportService', () => {
     const { service, mocks } = await makeService(
       { '3': [match] },
       { '89': detail('89', 'Match 3') },
+      new Map([['3', 42]]),
     );
     mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 7 });
 
     const { matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
-      new Map([['3', 42]]),
     );
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -172,16 +217,37 @@ describe('BblMatchesImportService', () => {
     );
   });
 
+  it('resolves every competition id in one batched call', async () => {
+    const { service, mocks } = await makeService(
+      { '5': [match] },
+      { '89': detail('89', 'Match 5') },
+      new Map([['5', 42]]),
+    );
+    const competitionsByBblId = new Map([
+      [
+        '5',
+        {
+          ...competition,
+          externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: '5' }],
+        },
+      ],
+    ]);
+
+    await service.importMatches(competitionsByBblId);
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('competition', [
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '5' },
+    ]);
+  });
+
   it('records an error and skips a competition absent from the id map', async () => {
     const { service, mocks } = await makeService(
       { '3': [match, { ...match, bblId: '90' }] },
       {},
     );
 
-    const { matchIdsByBblId } = await service.importMatches(
-      new Map(),
-      new Map(),
-    );
+    const { matchIdsByBblId } = await service.importMatches(new Map());
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -194,12 +260,12 @@ describe('BblMatchesImportService', () => {
     const { service, mocks } = await makeService(
       { '3': [match] },
       { '89': detail('89', 'Match 3') },
+      new Map([['3', 42]]),
     );
     mocks.matchesImport.upsertMatchResult.mockResolvedValue(undefined);
 
     const { matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
-      new Map([['3', 42]]),
     );
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
@@ -219,6 +285,7 @@ describe('BblMatchesImportService', () => {
     const { service, mocks } = await makeService(
       { '32': [primary, secondary] },
       { '1061': detail('1061', 'Bierhallentodball') },
+      new Map([['32', 99]]),
     );
     mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 500 });
     mocks.matchMerge.resolve.mockResolvedValue({
@@ -244,7 +311,6 @@ describe('BblMatchesImportService', () => {
           },
         ],
       ]),
-      new Map([['32', 99]]),
     );
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
@@ -277,6 +343,10 @@ describe('BblMatchesImportService', () => {
     const { service, mocks } = await makeService(
       { '32': [a], '40': [b] },
       { '1061': detail('1061', 'Match A'), '1062': detail('1062', 'Match B') },
+      new Map([
+        ['32', 99],
+        ['40', 88],
+      ]),
     );
     mocks.matchesImport.upsertMatchResult
       .mockResolvedValueOnce({ id: 500 })
@@ -307,10 +377,6 @@ describe('BblMatchesImportService', () => {
           },
         ],
       ]),
-      new Map([
-        ['32', 99],
-        ['40', 88],
-      ]),
     );
 
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(2);
@@ -325,11 +391,14 @@ describe('BblMatchesImportService', () => {
   });
 
   it('records an error and skips a match with no detail-page entry', async () => {
-    const { service, mocks } = await makeService({ '3': [match] }, {});
+    const { service, mocks } = await makeService(
+      { '3': [match] },
+      {},
+      new Map([['3', 42]]),
+    );
 
     const { matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
-      new Map([['3', 42]]),
     );
 
     expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
@@ -342,7 +411,7 @@ describe('BblMatchesImportService', () => {
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const { service } = await makeService({ '3': [match] }, {});
 
-    const { result } = await service.importMatches(new Map(), new Map());
+    const { result } = await service.importMatches(new Map());
 
     expect(result).toBe(CANNED_RESULT);
   });
@@ -364,12 +433,12 @@ describe('BblMatchesImportService', () => {
     let mocks: Mocks;
     let service: BblMatchesImportService;
     let competitionsByBblId: Map<string, UpsertCompetition>;
-    let competitionIdsByBblId: Map<string, number>;
 
     beforeEach(async () => {
       ({ service, mocks } = await makeService(
         { '55': [cupMatch] },
         { '1830': detail('1830', 'Final') },
+        new Map([['55', 900]]),
       ));
       mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 700 });
       mocks.matchMerge.resolve.mockResolvedValue({
@@ -389,12 +458,11 @@ describe('BblMatchesImportService', () => {
         errors: args.errors,
       }));
       competitionsByBblId = new Map([['55', cupCompetition]]);
-      competitionIdsByBblId = new Map([['55', 900]]);
     });
 
     it('sends the classifier-derived category on the upsert', async () => {
       mocks.classifier.classify.mockReturnValue('season_final');
-      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'season_final' }),
         expect.anything(),
@@ -402,7 +470,7 @@ describe('BblMatchesImportService', () => {
     });
 
     it('passes the match name and the competition type to the classifier', async () => {
-      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.classifier.classify).toHaveBeenCalledWith({
         bblId: '1830',
         name: 'Final',
@@ -415,7 +483,7 @@ describe('BblMatchesImportService', () => {
         new Map([['1830', 'cup_final']]),
       );
       mocks.classifier.classify.mockReturnValue('normal');
-      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'cup_final' }),
         expect.anything(),
@@ -428,7 +496,7 @@ describe('BblMatchesImportService', () => {
       mocks.categoryConfig.getCategoryOverrides.mockReturnValue(
         new Map([['1831', 'cup_final']]),
       );
-      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'cup_final' }),
         expect.anything(),
@@ -439,10 +507,7 @@ describe('BblMatchesImportService', () => {
       mocks.classifier.classify.mockImplementation(() => {
         throw new Error('looks like a knock-out stage');
       });
-      const { result } = await service.importMatches(
-        competitionsByBblId,
-        competitionIdsByBblId,
-      );
+      const { result } = await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
       expect(result.errors).toHaveLength(1);
     });
@@ -451,26 +516,21 @@ describe('BblMatchesImportService', () => {
       // competitionsByBblId entry built without `type`
       const { type: _type, ...withoutType } = cupCompetition;
       competitionsByBblId = new Map([['55', withoutType]]);
-      const { result } = await service.importMatches(
-        competitionsByBblId,
-        competitionIdsByBblId,
-      );
+      const { result } = await service.importMatches(competitionsByBblId);
       expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
       expect(result.errors).toHaveLength(1);
     });
 
     it('reads the override list once per import run, not once per match', async () => {
-      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      await service.importMatches(competitionsByBblId);
       expect(mocks.categoryConfig.getCategoryOverrides).toHaveBeenCalledTimes(
         1,
       );
     });
 
     it('reports each imported match its resolved category', async () => {
-      const { categoriesByBblId } = await service.importMatches(
-        competitionsByBblId,
-        competitionIdsByBblId,
-      );
+      const { categoriesByBblId } =
+        await service.importMatches(competitionsByBblId);
       expect(categoriesByBblId.get('1830')).toBe('normal');
     });
   });
@@ -487,6 +547,7 @@ describe('BblMatchesImportService', () => {
     const { service, mocks } = await makeService(
       { '32': [primary, secondary] },
       { '1061': detail('1061', 'Bierhallentodball') },
+      new Map([['32', 99]]),
     );
     mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 500 });
     mocks.matchMerge.resolve.mockResolvedValue({
@@ -515,7 +576,6 @@ describe('BblMatchesImportService', () => {
           },
         ],
       ]),
-      new Map([['32', 99]]),
     );
 
     expect(categoriesByBblId.get('1061')).toBe('cup_final');

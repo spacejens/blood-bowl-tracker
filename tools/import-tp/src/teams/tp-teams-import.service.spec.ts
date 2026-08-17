@@ -4,26 +4,42 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import {
   asProviderMethod,
+  mockEraDataConfigService,
   mockImportResultService,
   mockNameExternalIdService,
+  mockReferenceLookupService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
 import { TpTeamsImportService } from './tp-teams-import.service';
 
+/** The numeric id the mocked bootstrap assigns to the TP external system. */
+const TP_SYSTEM_ID = 1;
+
 interface MakeServiceOptions {
   bootstrap: ReturnType<typeof vi.fn>;
   upsertTeam: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
+  /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
+  eraIdsByName?: Map<string, number>;
+  /** Team race code -> DB race id, as if already resolved via ReferenceLookupService. */
+  raceIdsByCode?: Map<string, number>;
+  /** TP coach id -> DB coach id, as if already resolved via ReferenceLookupService. */
+  coachIdsByTpId?: Map<string, number>;
+  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
+  getEras?: () => EraDataConfig[];
 }
 
 /**
@@ -51,9 +67,23 @@ async function makeService({
   bootstrap,
   upsertTeam,
   getTpSystemName = () => 'TP',
+  eraIdsByName = new Map([
+    ['Fourth era', 100],
+    ['Fifth era', 200],
+  ]),
+  raceIdsByCode = new Map([
+    ['Orc', 50],
+    ['Orc_BB2025', 50],
+  ]),
+  coachIdsByTpId = new Map([
+    ['guid-c', 900],
+    ['guid-d', 901],
+  ]),
+  getEras,
 }: MakeServiceOptions): Promise<{
   service: TpTeamsImportService;
   importResults: MockProxy<ImportResultService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }> {
   const teamsImport = mock<TeamsImportService>();
   teamsImport.upsertTeam.mockImplementation(asProviderMethod(upsertTeam));
@@ -75,6 +105,14 @@ async function makeService({
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
+  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
+  if (getEras) {
+    eraDataConfig.getEras.mockImplementation(getEras);
+  }
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
+    raceIdsByCode,
+    coachIdsByTpId,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -91,11 +129,14 @@ async function makeService({
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: RosterCollectionService, useValue: rosterCollection },
       { provide: ImportResultService, useValue: importResults },
+      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
   return {
     service: moduleRef.get(TpTeamsImportService),
     importResults,
+    lookup,
   };
 }
 
@@ -149,21 +190,14 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
@@ -187,6 +221,32 @@ describe('TpTeamsImportService', () => {
     );
   });
 
+  it("resolves each team's race by team race code and coach by TP id", async () => {
+    const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
+    const { service, lookup } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertTeam,
+      raceIdsByCode: new Map([['HUM', 50]]),
+      coachIdsByTpId: new Map([['4711', 900]]),
+    });
+
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'HUM',
+        coachTpId: '4711',
+      }),
+    ]);
+
+    expect(lookup.lookupMap).toHaveBeenCalledWith('race', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: 'HUM' },
+    ]);
+    expect(lookup.lookupMap).toHaveBeenCalledWith('coach', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: '4711' },
+    ]);
+  });
+
   it('accumulates eras for one team seen under multiple eras', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
     const { service } = await makeService({
@@ -194,31 +254,18 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-        rosterEntry('Fifth era', {
-          id: 5,
-          teamRace: 'Orc_BB2025',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([
-          ['Orc', 50],
-          ['Orc_BB2025', 50],
-        ]),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([
-          ['Fourth era', 100],
-          ['Fifth era', 200],
-        ]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+      rosterEntry('Fifth era', {
+        id: 5,
+        teamRace: 'Orc_BB2025',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(upsertTeam).toHaveBeenCalledTimes(1);
     expect((upsertTeam.mock.calls[0][0] as UpsertTeam).eras).toEqual([
@@ -231,38 +278,26 @@ describe('TpTeamsImportService', () => {
     const { service } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
+      raceIdsByCode: new Map([
+        ['Orc', 50],
+        ['Orc_BB2025', 60],
+      ]),
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-        rosterEntry('Fifth era', {
-          id: 5,
-          teamName: 'Renamed Boyz',
-          teamRace: 'Orc_BB2025',
-          coachTpId: 'guid-d',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([
-          ['Orc', 50],
-          ['Orc_BB2025', 60],
-        ]),
-        coachIdsByTpId: new Map([
-          ['guid-c', 900],
-          ['guid-d', 901],
-        ]),
-        eraIdsByName: new Map([
-          ['Fourth era', 100],
-          ['Fifth era', 200],
-        ]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+      rosterEntry('Fifth era', {
+        id: 5,
+        teamName: 'Renamed Boyz',
+        teamRace: 'Orc_BB2025',
+        coachTpId: 'guid-d',
+      }),
+    ]);
 
     expect(upsertTeam).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Da Boyz', raceId: 50, coachId: 900 }),
@@ -275,23 +310,17 @@ describe('TpTeamsImportService', () => {
     const { service, importResults } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
+      raceIdsByCode: new Map(),
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map(),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(upsertTeam).not.toHaveBeenCalled();
     const { errors } = resultArgs(importResults);
@@ -305,23 +334,17 @@ describe('TpTeamsImportService', () => {
     const { service, importResults } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
+      coachIdsByTpId: new Map(),
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
-        coachIdsByTpId: new Map(),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(upsertTeam).not.toHaveBeenCalled();
     const { errors } = resultArgs(importResults);
@@ -337,27 +360,20 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-        rosterEntry('Ghost era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+      rosterEntry('Ghost era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(upsertTeam).toHaveBeenCalledTimes(1);
     expect((upsertTeam.mock.calls[0][0] as UpsertTeam).eras).toEqual([100]);
@@ -378,20 +394,13 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
@@ -409,21 +418,14 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    const { teamErasByRosterId } = await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    const { teamErasByRosterId } = await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(teamErasByRosterId.get(5)).toEqual([{ id: 700, eraId: 100 }]);
   });
@@ -435,22 +437,66 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    const { result } = await service.importTeams(
-      [
-        rosterEntry('Fourth era', {
-          id: 5,
-          teamName: 'Da Boyz',
-          teamRace: 'Orc',
-          coachTpId: 'guid-c',
-        }),
-      ],
-      {
-        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
-        coachIdsByTpId: new Map([['guid-c', 900]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
-      },
-    );
+    const { result } = await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('resolves every configured era in one batched call', async () => {
+    const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
+    const { service, lookup } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertTeam,
+    });
+
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
+
+    expect(lookup.lookupMap).toHaveBeenCalledWith(
+      'era',
+      expect.arrayContaining([
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fifth era' },
+      ]),
+    );
+  });
+
+  it('records one error and imports nothing when the era config cannot be read', async () => {
+    const upsertTeam = vi.fn();
+    const { service, importResults } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertTeam,
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+    });
+
+    await service.importTeams([
+      rosterEntry('Fourth era', {
+        id: 5,
+        teamName: 'Da Boyz',
+        teamRace: 'Orc',
+        coachTpId: 'guid-c',
+      }),
+    ]);
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('TP_ERAS');
+    expect(upsertTeam).not.toHaveBeenCalled();
   });
 });

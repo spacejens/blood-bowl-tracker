@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { TeamsProcessor } from './teams.processor';
@@ -27,14 +26,10 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap,
     errors: [],
   };
 }
@@ -57,7 +52,7 @@ describe('TeamsProcessor', () => {
     processor = moduleRef.get(TeamsProcessor);
   });
 
-  it('resolves race, coach, and era refs, upserts, and records ids', async () => {
+  it('resolves race, coach, and era refs and upserts', async () => {
     teams.upsertTeam.mockResolvedValue({
       id: 99,
       name: 'Grave Diggers',
@@ -69,9 +64,9 @@ describe('TeamsProcessor', () => {
     });
     // Calls happen in the order the processor makes them: race, then coach.
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 40 }) // race
-      .mockReturnValueOnce({ ok: true, id: 12 }); // coach
-    refResolver.resolveRefs.mockReturnValue([50]);
+      .mockResolvedValueOnce({ ok: true, id: 40 }) // race
+      .mockResolvedValueOnce({ ok: true, id: 12 }); // coach
+    refResolver.resolveRefs.mockResolvedValue([50]);
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:grave-diggers' },
     ];
@@ -86,7 +81,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:grave-diggers' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -103,9 +98,6 @@ describe('TeamsProcessor', () => {
       },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:grave-diggers' }, 'team'),
-    ).toBe(99);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: data.teams[0].race, kind: 'race' }),
     );
@@ -128,9 +120,9 @@ describe('TeamsProcessor', () => {
       created: true,
     });
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 40 })
-      .mockReturnValueOnce({ ok: true, id: 12 });
-    refResolver.resolveRefs.mockReturnValue([]);
+      .mockResolvedValueOnce({ ok: true, id: 40 })
+      .mockResolvedValueOnce({ ok: true, id: 12 });
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.teams = [
@@ -143,9 +135,7 @@ describe('TeamsProcessor', () => {
       },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
     expect(teams.upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
@@ -156,8 +146,8 @@ describe('TeamsProcessor', () => {
   // the processor's own logic: it must skip the entry (no upsert) and never
   // reach toExternalIds when any reference fails to resolve.
   it('skips the team and never upserts when references are unresolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
-    refResolver.resolveRefs.mockReturnValue(undefined);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
+    refResolver.resolveRefs.mockResolvedValue(undefined);
     const data = emptyData();
     data.teams = [
       {
@@ -168,7 +158,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:orphan' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -187,8 +177,11 @@ describe('TeamsProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.teams = [
@@ -198,7 +191,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'gyttjevralarna' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -218,9 +211,9 @@ describe('TeamsProcessor', () => {
 
   it('still skips the entry when a supplied race ref cannot be resolved', async () => {
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: false })
-      .mockReturnValueOnce({ ok: true, id: 8 });
-    refResolver.resolveRefs.mockReturnValue([]);
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true, id: 8 });
+    refResolver.resolveRefs.mockResolvedValue([]);
     const data = emptyData();
     data.teams = [
       {
@@ -231,7 +224,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'orphan' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 

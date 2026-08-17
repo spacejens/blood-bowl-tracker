@@ -1,16 +1,18 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import type { StarPositionUsage } from '../players/tp-players-import.service';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface SyncStarPositionRaceErasOptions {
   starPositionUsages: StarPositionUsage[];
-  raceIdsByTeamRaceCode: Map<string, number>;
-  eraIdsByName: Map<string, number>;
 }
 
 @Injectable()
@@ -18,6 +20,10 @@ export class TpPositionRaceErasImportService {
   constructor(
     private readonly positionsImport: PositionsImportService,
     private readonly importResults: ImportResultService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
+    private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly eraDataConfig: EraDataConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -39,11 +45,49 @@ export class TpPositionRaceErasImportService {
    */
   async syncStarPositionRaceEras({
     starPositionUsages,
-    raceIdsByTeamRaceCode,
-    eraIdsByName,
   }: SyncStarPositionRaceErasOptions): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
+
+    const tpSystemName = this.externalSystemName.getTpSystemName();
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      { name: tpSystemName, category: 'imported_data_source' },
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return { result: this.importResults.result({ imported, errors }) };
+    }
+    const [tpSystemId] = bootstrap.ids;
+
+    let eraNames: string[];
+    try {
+      eraNames = [
+        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
+      ];
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { externalSystems: [tpSystemName] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      return { result: this.importResults.result({ imported, errors }) };
+    }
+    const [eraIds, raceIds] = await Promise.all([
+      this.lookup.lookupMap(
+        'era',
+        eraNames.map((name) => ({
+          externalSystemId: tpSystemId,
+          externalId: name,
+        })),
+      ),
+      this.lookup.lookupMap(
+        'race',
+        [...new Set(starPositionUsages.map((u) => u.teamRaceCode))].map(
+          (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+        ),
+      ),
+    ]);
 
     // positionId -> ("raceId:eraId" -> { raceId, eraId }) for per-position dedup.
     const pairsByPosition = new Map<
@@ -52,8 +96,18 @@ export class TpPositionRaceErasImportService {
     >();
 
     for (const usage of starPositionUsages) {
-      const raceId = raceIdsByTeamRaceCode.get(usage.teamRaceCode);
-      const eraId = eraIdsByName.get(usage.era);
+      const raceId = raceIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: usage.teamRaceCode,
+        }),
+      );
+      const eraId = eraIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: usage.era,
+        }),
+      );
       if (raceId === undefined || eraId === undefined) {
         errors.push(
           this.importResults.error({

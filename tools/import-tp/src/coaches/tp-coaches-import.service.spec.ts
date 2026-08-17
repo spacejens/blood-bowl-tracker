@@ -215,7 +215,7 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { coachIdsByTpId } = await service.importCoaches();
+    await service.importCoaches();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -231,7 +231,6 @@ describe('TpCoachesImportService', () => {
       },
       expect.any(Array),
     );
-    expect(coachIdsByTpId.get('guid-a')).toBe(10);
   });
 
   it('gives a coach without a nafNumber only two external ids', async () => {
@@ -429,11 +428,9 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { coachIdsByTpId } = await service.importCoaches();
+    await service.importCoaches();
 
     expect(resultArgs(importResults).imported).toBe(1);
-    expect(coachIdsByTpId.has('a')).toBe(false);
-    expect(coachIdsByTpId.get('b')).toBe(11);
   });
 
   it('re-runs idempotently, upserting the same coach with identical data', async () => {

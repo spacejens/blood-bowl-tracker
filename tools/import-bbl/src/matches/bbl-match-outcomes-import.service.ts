@@ -1,11 +1,13 @@
 import type {
   MatchCategory,
   MatchOutcomeHint,
+  UpsertCompetition,
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchOutcomesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -16,7 +18,7 @@ import { MatchMergeService } from './match-merge.service';
 import { MatchResultConfigService } from './match-result-config.service';
 
 export interface ImportBblMatchOutcomesOptions {
-  competitionIdsByBblId: Map<string, number>;
+  competitionsByBblId: Map<string, UpsertCompetition>;
   matchIdsByBblId: Map<string, number>;
   categoriesByBblId: Map<string, MatchCategory>;
   teamEraIdsByCompetitionBblId: Map<string, Map<string, number>>;
@@ -37,6 +39,7 @@ export class BblMatchOutcomesImportService {
     private readonly matchMerge: MatchMergeService,
     private readonly matchOutcomes: MatchOutcomesImportService,
     private readonly importResults: ImportResultService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -61,6 +64,17 @@ export class BblMatchOutcomesImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
+    // One round trip for the whole run: every competition referenced here was
+    // upserted moments ago by the preceding competitions step, so it is
+    // already in the database and resolvable by its BBL id.
+    const competitionIds = await this.lookup.lookupMap(
+      'competition',
+      [...options.competitionsByBblId].map(([bblId, competition]) => ({
+        externalSystemId: competition.externalIds[0].externalSystemId,
+        externalId: bblId,
+      })),
+    );
+
     const matchesByCompetitionId =
       await this.matchListReader.getMatchesByCompetitionId(errors);
     const placementsByCompetitionId =
@@ -69,7 +83,15 @@ export class BblMatchOutcomesImportService {
     const resultOverrides = this.resultConfig.getResultOverrides();
 
     for (const [competitionBblId, matches] of matchesByCompetitionId) {
-      const competitionId = options.competitionIdsByBblId.get(competitionBblId);
+      const competition = options.competitionsByBblId.get(competitionBblId);
+      const competitionId = competition
+        ? competitionIds.get(
+            this.lookup.keyOf({
+              externalSystemId: competition.externalIds[0].externalSystemId,
+              externalId: competitionBblId,
+            }),
+          )
+        : undefined;
       if (competitionId === undefined) {
         errors.push(
           this.importResults.error({

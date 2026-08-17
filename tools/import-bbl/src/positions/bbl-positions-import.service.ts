@@ -103,7 +103,6 @@ export class BblPositionsImportService {
     teamRaceIdsByCode: Map<string, number>,
   ): Promise<{
     result: ImportResult;
-    positionIdsByBblId: Map<string, number>;
     positionRaceCandidates: Map<
       number,
       { isStarPlayer: boolean; raceDbIds: Set<number> }
@@ -111,7 +110,6 @@ export class BblPositionsImportService {
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const positionIdsByBblId = new Map<string, number>();
     const positionRaceCandidates = new Map<
       number,
       { isStarPlayer: boolean; raceDbIds: Set<number> }
@@ -145,7 +143,6 @@ export class BblPositionsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        positionIdsByBblId,
         positionRaceCandidates,
       };
     }
@@ -230,10 +227,6 @@ export class BblPositionsImportService {
           );
           if (upserted) {
             imported += 1;
-            positionIdsByBblId.set(
-              `${position.typId}-${race.bblId}`,
-              upserted.id,
-            );
             recordCandidate(upserted.id, false, [dbId]);
           }
         }
@@ -283,12 +276,6 @@ export class BblPositionsImportService {
           );
           if (upserted) {
             imported += 1;
-            for (const race of resolved) {
-              positionIdsByBblId.set(
-                `${position.typId}-${race.bblId}`,
-                upserted.id,
-              );
-            }
             recordCandidate(
               upserted.id,
               true,
@@ -314,10 +301,6 @@ export class BblPositionsImportService {
             );
             if (upserted) {
               imported += 1;
-              positionIdsByBblId.set(
-                `${position.typId}-${race.bblId}`,
-                upserted.id,
-              );
               recordCandidate(upserted.id, false, [race.dbId]);
             }
           }
@@ -330,7 +313,6 @@ export class BblPositionsImportService {
 
     return {
       result: this.importResults.result({ imported, errors }),
-      positionIdsByBblId,
       positionRaceCandidates,
     };
   }
