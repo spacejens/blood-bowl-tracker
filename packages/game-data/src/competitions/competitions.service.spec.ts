@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { competitions, competitionTeams, DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { Column, getColumnTable, getTableName, is } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -469,6 +470,32 @@ describe('CompetitionsService', () => {
       await expect(
         service.listByCompetitionGroupChronological(4),
       ).resolves.toEqual([]);
+    });
+
+    it("orders by the era's own start date before the match-date aggregate, so an unplayed competition cannot split its era's rows apart", async () => {
+      const { chains } = await build([]);
+
+      await service.listByCompetitionGroupChronological(4);
+
+      const eraOrderColumn = firstCallArg(chains[0].orderBy, 0, 0);
+      expect(is(eraOrderColumn, Column)).toBe(true);
+      expect(getTableName(getColumnTable(eraOrderColumn as Column))).toBe(
+        'eras',
+      );
+      expect((eraOrderColumn as Column).name).toBe('start_date');
+    });
+
+    it('breaks ties on equal era start dates by era id, so two eras sharing a start date cannot interleave', async () => {
+      const { chains } = await build([]);
+
+      await service.listByCompetitionGroupChronological(4);
+
+      const tiebreakerColumn = firstCallArg(chains[0].orderBy, 0, 1);
+      expect(is(tiebreakerColumn, Column)).toBe(true);
+      expect(getTableName(getColumnTable(tiebreakerColumn as Column))).toBe(
+        'eras',
+      );
+      expect((tiebreakerColumn as Column).name).toBe('id');
     });
   });
 
