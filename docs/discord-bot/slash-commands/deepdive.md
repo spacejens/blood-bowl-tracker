@@ -99,10 +99,13 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   recurring group: the group name as the title, then `League: <league>`, a
   blank line, `Trophies:` followed by every trophy the group awards, one line
   per trophy (or "Not one piece of silverware rides on this one." when it
-  awards none), a blank line, and `Competitions:` followed by every
-  competition instance in the group, oldest first, one line per competition
-  formatted `<name> (<era>): <date range>` (or "This fixture has never
-  actually been played." when it has none). Competitions are rendered as
+  awards none), a blank line, and one `<era> competitions:` heading per era,
+  oldest era first, each followed by that era's competition instances, oldest
+  first, one line per competition formatted `<name>: <date range>` (or "This
+  fixture has never actually been played." when the group has no instances at
+  all, in which case no era heading is shown) — a blank line separates each
+  era section from the next, so a multi-era group doesn't read as one packed
+  block. Competitions are rendered as
   drill-down buttons before trophies (competitions take priority over trophies
   when the combined list is too long for buttons and switches to select
   menus).
@@ -110,12 +113,16 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   not-found message.
 - **`trophy:<trophy>`** — the bot replies with an embed for that trophy: the
   trophy name as the title, then `Awarded for: <competition group>` and, only
-  when the trophy has one, `Description: <description>`, a blank line, and
-  `Recipients:` followed by one line per award, newest-first, formatted
+  when the trophy has one, `Description: <description>`, a blank line, then
+  one `<era> recipients:` heading per era, newest era first, each followed by
+  that era's awards, newest-first, one line per award formatted
   `<competition>: <team> (<race>, <coach>)` for a team trophy or
-  `<competition>: <player> (<position>, <team>, <race>, <era>, <coach>)` for a
-  player trophy — the same race/coach and position/team/race/era/coach context
-  the `team.toplist` and `player.toplist` insights append to their own rows.
+  `<competition>: <player> (<position>, <team>, <race>, <coach>)` for a player
+  trophy — the same race/coach and position/team/race/coach context the
+  `team.toplist` and `player.toplist` insights append to their own rows (the
+  era is left off the row, since the section heading already names it). A
+  blank line separates each era section from the next, so a long-running
+  trophy doesn't read as one packed block.
   At most 30 recipients are shown; when there are more, the list ends with an
   exact `…and N more not shown.` note computed from the trophy's true award
   count. A trophy with no recorded awards shows a short "nobody has got their

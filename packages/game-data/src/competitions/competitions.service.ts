@@ -260,8 +260,16 @@ export class CompetitionsService {
    * `listByEraChronological`: the left join on matches keeps competitions that
    * have no matches yet, `groupBy` collapses that join back to one row per
    * competition, and `min(playedAt) asc nulls last` sorts never-played
-   * competitions after every dated one. Each competition's era name comes
-   * along so the group deepdive can say which era an instance ran in.
+   * competitions after every dated one *within their era*. Each competition's
+   * era name comes along so the group deepdive can say which era an instance
+   * ran in — and ordering by `eras.startDate` first, ahead of the match-date
+   * aggregate, is what the deepdive's era-section grouping relies on: it
+   * guarantees every row of one era is adjacent in the result, even an
+   * unplayed competition that would otherwise sort to the very end and split
+   * its era's section in two. `eras.id` is a tiebreaker right after it:
+   * `startDate` carries no uniqueness constraint, so two distinct eras
+   * sharing a start date would otherwise sort arbitrarily relative to each
+   * other and could interleave, splitting one of them into two sections.
    */
   listByCompetitionGroupChronological(competitionGroupId: number): Promise<
     {
@@ -287,7 +295,11 @@ export class CompetitionsService {
       .leftJoin(matches, eq(matches.competitionId, competitions.id))
       .where(eq(competitions.competitionGroupId, competitionGroupId))
       .groupBy(competitions.id, eras.id)
-      .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
+      .orderBy(
+        eras.startDate,
+        eras.id,
+        sql`min(${matches.playedAt}) asc nulls last`,
+      );
   }
 
   /**
