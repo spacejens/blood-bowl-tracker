@@ -20,6 +20,7 @@ import {
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -91,7 +92,7 @@ export class CoachDeepdiveService {
       return {
         embeds: [
           {
-            title: coach.name,
+            title: `${this.entityComponents.getEmojiForPrefix(COACH_BUTTON_CUSTOM_ID_PREFIX)} ${coach.name}`,
             description: [
               `Eras: ${eraNames}`,
               DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -161,7 +162,12 @@ export class CoachDeepdiveService {
     ].join('\n');
 
     return {
-      embeds: [{ title: coach.name, description }],
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(COACH_BUTTON_CUSTOM_ID_PREFIX)} ${coach.name}`,
+          description,
+        },
+      ],
       ...(components.length > 0 ? { components } : {}),
     };
   }

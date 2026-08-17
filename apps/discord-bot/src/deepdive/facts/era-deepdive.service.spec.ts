@@ -16,8 +16,10 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   nullEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
@@ -29,7 +31,10 @@ import {
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
-import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import {
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 import { EraDeepdiveService } from './era-deepdive.service';
 
 type EraHeader = {
@@ -168,7 +173,7 @@ describe('EraDeepdiveService', () => {
     expect(result).toMatchObject({
       embeds: [
         {
-          title: 'BB2020',
+          title: `${stubEntityEmoji(ERA_BUTTON_CUSTOM_ID_PREFIX)} BB2020`,
           description: [
             'League: Premier',
             'Dates: 2021-09-01 – 2023-06-10',
@@ -223,7 +228,7 @@ describe('EraDeepdiveService', () => {
     expect(result).toMatchObject({
       embeds: [
         {
-          title: 'BB2020',
+          title: `${stubEntityEmoji(ERA_BUTTON_CUSTOM_ID_PREFIX)} BB2020`,
           description: [
             'League: Premier',
             'Dates: 2021-09-01 – present',
@@ -320,7 +325,7 @@ describe('EraDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'BB2020',
+          title: `${stubEntityEmoji(ERA_BUTTON_CUSTOM_ID_PREFIX)} BB2020`,
           description: [
             'League: Premier',
             'Dates: 2021-09-01 – 2023-06-10',
@@ -371,7 +376,7 @@ describe('EraDeepdiveService', () => {
   // EraDeepdiveService itself owns: the per-competition entry pool (id/label
   // pairs, one per competition) it hands to buildEntityComponents.
   it('builds one component entry per competition, keyed by competition id', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     const cannedComponents = [
       {
         type: ComponentType.ActionRow as const,

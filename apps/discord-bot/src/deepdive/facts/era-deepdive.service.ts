@@ -17,7 +17,10 @@ import {
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
-import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import {
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 
 type EraHeader = {
   id: number;
@@ -124,7 +127,12 @@ export class EraDeepdiveService {
     ].join('\n');
 
     return {
-      embeds: [{ title: era.name, description }],
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(ERA_BUTTON_CUSTOM_ID_PREFIX)} ${era.name}`,
+          description,
+        },
+      ],
       ...(components.length > 0 ? { components } : {}),
     };
   }
