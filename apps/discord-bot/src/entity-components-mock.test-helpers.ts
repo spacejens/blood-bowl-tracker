@@ -33,7 +33,7 @@ export function stubEntityEmoji(prefix: ButtonCustomIdPrefix): string {
 
 /**
  * A bare `EntityComponentsService` mock with only `getEmojiForPrefix` stubbed,
- * for specs that can their own `buildEntityComponents` return value. Without
+ * for specs that configure their own `buildEntityComponents` return value. Without
  * the emoji stub, an embed headline built by the service under test would
  * render as `undefined <name>`.
  *
