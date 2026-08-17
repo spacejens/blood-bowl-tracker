@@ -132,21 +132,28 @@ export class BblPlayersImportService {
     // each player's position from the one batched result.
     const positionRefs = new Set<string>();
     for await (const page of this.sourceReader.pages(PLAYER_PAGE_TYPE)) {
-      const player = this.playerPageParser.extractPlayer(page);
-      if (!player) {
+      try {
+        const player = this.playerPageParser.extractPlayer(page);
+        if (!player) {
+          continue;
+        }
+        const team = teamsByCode.get(player.teamCode);
+        if (!team) {
+          continue;
+        }
+        const raceBblId = raceBblIdByDbId.get(
+          this.upsertFieldNarrowing.resolveDefiniteRaceId(team),
+        );
+        if (raceBblId === undefined) {
+          continue;
+        }
+        positionRefs.add(`${player.typId}-${raceBblId}`);
+      } catch {
+        // A bad team (e.g. no resolvable race id) is skipped here; the main
+        // loop below re-processes this page inside its own try/catch and
+        // records the actual error for it.
         continue;
       }
-      const team = teamsByCode.get(player.teamCode);
-      if (!team) {
-        continue;
-      }
-      const raceBblId = raceBblIdByDbId.get(
-        this.upsertFieldNarrowing.resolveDefiniteRaceId(team),
-      );
-      if (raceBblId === undefined) {
-        continue;
-      }
-      positionRefs.add(`${player.typId}-${raceBblId}`);
     }
     const positionIds = await this.lookup.lookupMap(
       'position',
