@@ -21,8 +21,9 @@
 // run, because tools/import-tp's awards import resolves a trophy by the
 // competition's group name. Renaming cannot run there: it can only run once
 // the importers have (re-)created their rows under the raw source names.
-// Nothing here references a league or a group, so this phase's
-// ExternalIdMap needs neither catalog.
+// Nothing here references a league or a group -- if an entry ever needs to,
+// the API's resolve procedure can answer it directly from this phase, same
+// as any other phase.
 //
 // Runs AFTER the BBL/TP importers (this is the after-other-importers
 // directory): each entry matches its existing database row by that row's own

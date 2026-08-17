@@ -7,8 +7,8 @@
 // applicable to a competition.
 //
 // Every group names its league by that league's own external id, resolved
-// against this run's ExternalIdMap -- which is why leagues.json5 sits in this
-// same directory.
+// against the database through the API's resolve procedure -- which is why
+// leagues.json5 sits in this same directory.
 //
 // A group carries no authored external ids: one is derived in code from its
 // name under the synthetic "Name" system (declared below so the run
