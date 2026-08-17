@@ -1,4 +1,8 @@
-import { TeamsService } from '@blood-bowl-tracker/game-data';
+import type { TeamHonor } from '@blood-bowl-tracker/game-data';
+import {
+  TeamsService,
+  TrophyAwardsService,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -19,6 +23,7 @@ import {
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE,
+  DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
@@ -30,8 +35,33 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
-import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import {
+  cannedEraSectionGrouper,
+  singleEraSectionGrouper,
+} from '../../shared/era-section-grouper-mock.test-helpers';
+import {
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 import { TeamDeepdiveService } from './team-deepdive.service';
+
+/**
+ * A `TrophyAwardsService` mock. Defaults to a team with no honors, so tests
+ * about other parts of the embed are unaffected by the honors section beyond
+ * its "None recorded" placeholder line. `count` defaults to the row count, so
+ * a test only supplies it when exercising the overflow remainder.
+ */
+function makeTrophyAwards(
+  honors: TeamHonor[] = [],
+  count = honors.length,
+): MockProxy<TrophyAwardsService> {
+  const trophyAwards = mock<TrophyAwardsService>();
+  trophyAwards.countByTeam.mockResolvedValue(count);
+  trophyAwards.listByTeam.mockResolvedValue(honors);
+  return trophyAwards;
+}
 
 interface MakeServiceOptions {
   teams: TeamsService;
@@ -39,6 +69,8 @@ interface MakeServiceOptions {
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   playerContext?: MockProxy<PlayerContextService>;
+  trophyAwards?: MockProxy<TrophyAwardsService>;
+  eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
 }
 
 async function makeService({
@@ -47,10 +79,13 @@ async function makeService({
   leaderboard = mock<LeaderboardService>(),
   entityComponents = passthroughEntityComponents(),
   playerContext = passthroughPlayerContext(),
+  trophyAwards = makeTrophyAwards(),
+  eraSectionGrouper = singleEraSectionGrouper(),
 }: MakeServiceOptions): Promise<{
   service: TeamDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
+  trophyAwards: MockProxy<TrophyAwardsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -60,12 +95,15 @@ async function makeService({
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: PlayerContextService, useValue: playerContext },
+      { provide: TrophyAwardsService, useValue: trophyAwards },
+      { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
     ],
   }).compile();
   return {
     service: moduleRef.get(TeamDeepdiveService),
     leaderboard,
     entityComponents,
+    trophyAwards,
   };
 }
 
@@ -141,6 +179,8 @@ describe('TeamDeepdiveService', () => {
             'Eras: None recorded',
             'Career: 2021-09-01 – 2023-06-10',
             '',
+            'Honors: None recorded',
+            '',
             'Top players by match events:',
             '1. Griff — 20',
             '1. Morg — 11',
@@ -208,6 +248,8 @@ describe('TeamDeepdiveService', () => {
             'Coach: Roze Madder',
             'Eras: BB2016, BB2020',
             'Career: 2021-09-01 – 2023-06-10',
+            '',
+            'Honors: None recorded',
             '',
             'Top players by match events:',
             '1. Griff — 20',
@@ -629,5 +671,330 @@ describe('TeamDeepdiveService', () => {
       () => undefined,
       DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
     );
+  });
+
+  const spikeCup: TeamHonor = {
+    trophyId: 7,
+    trophyName: 'Spike! Cup',
+    competitionName: 'Season 4 Major',
+    competitionStartDate: '2024-01-15',
+    eraId: 20,
+    eraName: 'Season 4',
+    playerId: null,
+    playerName: null,
+  };
+  const mvp: TeamHonor = {
+    trophyId: 9,
+    trophyName: 'MVP',
+    competitionName: 'Season 4 Minor',
+    competitionStartDate: '2024-01-10',
+    eraId: 20,
+    eraName: 'Season 4',
+    playerId: 55,
+    playerName: 'Grombrindal',
+  };
+
+  it('renders a team honor as "<trophy>: <team>" under its era heading', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup]),
+      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toEqual([
+      'Race: Dwarf',
+      'Coach: Roze Madder',
+      'Eras: None recorded',
+      'Career: 2021-09-01 – 2023-06-10',
+      '',
+      'Honors:',
+      'Season 4 recipients:',
+      'Spike! Cup: 40 grinders',
+      '',
+      'Top players by match events:',
+      '1. Griff — 20',
+    ]);
+  });
+
+  it('renders a player honor as "<trophy>: <player><position suffix>"', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      playerContext: passthroughPlayerContext(' (Blitzer)'),
+      trophyAwards: makeTrophyAwards([mvp]),
+      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'MVP: Grombrindal (Blitzer)',
+    );
+  });
+
+  it('asks for the player position only, leaving team, race, era and coach off honor rows', async () => {
+    const playerContext = passthroughPlayerContext();
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      playerContext,
+      trophyAwards: makeTrophyAwards([mvp]),
+    });
+    await service.resolve(1);
+    // Call 0 is the top-players decoration; call 1 is the honors decoration.
+    const [rows, playerIdOf, options] =
+      playerContext.attachSuffixes.mock.calls[1];
+    expect(playerIdOf(rows[0])).toBe(55);
+    expect(options).toEqual({
+      includePosition: true,
+      includeTeam: false,
+      includeRace: false,
+      includeEra: false,
+      includeCoach: false,
+    });
+  });
+
+  it('interleaves team and player honors inside one era section, in query order', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup, mvp]),
+      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    const start = lines.indexOf('Honors:');
+    expect(lines.slice(start, start + 4)).toEqual([
+      'Honors:',
+      'Season 4 recipients:',
+      'Spike! Cup: 40 grinders',
+      'MVP: Grombrindal',
+    ]);
+  });
+
+  it('heads one section per era, separated by a blank line, newest era first', async () => {
+    const older: TeamHonor = {
+      ...spikeCup,
+      eraId: 18,
+      eraName: 'Season 2',
+      competitionName: 'Season 2 Major',
+      competitionStartDate: '2022-01-15',
+    };
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup, older]),
+      eraSectionGrouper: cannedEraSectionGrouper([
+        { eraName: 'Season 4', rows: [spikeCup] },
+        { eraName: 'Season 2', rows: [older] },
+      ]),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    const start = lines.indexOf('Honors:');
+    expect(lines.slice(start, start + 6)).toEqual([
+      'Honors:',
+      'Season 4 recipients:',
+      'Spike! Cup: 40 grinders',
+      '',
+      'Season 2 recipients:',
+      'Spike! Cup: 40 grinders',
+    ]);
+  });
+
+  it('shows "Honors: None recorded" when the team has won nothing', async () => {
+    const { service, trophyAwards } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([], 0),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Honors: None recorded',
+    );
+    // A confirmed zero total means there is nothing left to list, so the list
+    // query is never issued.
+    expect(trophyAwards.listByTeam).not.toHaveBeenCalled();
+  });
+
+  it('caps the honors list and appends an exact remainder note when there are more', async () => {
+    const { service, trophyAwards } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup], 34),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(trophyAwards.listByTeam).toHaveBeenCalledWith(1, 30);
+    expect(result.embeds[0].description.split('\n')).toContain(
+      '…and 33 more not shown.',
+    );
+  });
+
+  it('offers a trophy button for a team honor and trophy + player buttons for a player honor, before the header buttons', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([spikeCup, mvp]),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons.map((button) => button.custom_id)).toEqual([
+      `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}7`,
+      `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}9`,
+      `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}55`,
+      `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}5`,
+      'deepdive:race:4',
+      'deepdive:coach:12',
+    ]);
+    expect(buttons.map((button) => button.label)).toEqual([
+      'Spike! Cup',
+      'MVP',
+      'Grombrindal',
+      'Griff',
+      'Dwarf',
+      'Roze Madder',
+    ]);
+  });
+
+  it('falls back to the honors timeout message when the honors count times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          teams: makeTeams({
+            team: grinders,
+            span: { start: '2021-09-01', end: '2023-06-10' },
+            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+          }),
+          leaderboard: passthroughLeaderboard(),
+          trophyAwards: makeTrophyAwards([spikeCup]),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the honors timeout message when the honors list times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          teams: makeTeams({
+            team: grinders,
+            span: { start: '2021-09-01', end: '2023-06-10' },
+            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+          }),
+          leaderboard: passthroughLeaderboard(),
+          trophyAwards: makeTrophyAwards([spikeCup]),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the player-context timeout message when decorating player honors times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          teams: makeTeams({
+            team: grinders,
+            span: { start: '2021-09-01', end: '2023-06-10' },
+            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+          }),
+          leaderboard: passthroughLeaderboard(),
+          trophyAwards: makeTrophyAwards([mvp]),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('skips the honor-suffix lookup entirely when no honor is a player award', async () => {
+    const playerContext = passthroughPlayerContext();
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      playerContext,
+      trophyAwards: makeTrophyAwards([spikeCup]),
+    });
+    await service.resolve(1);
+    // Only the top-players decoration ran.
+    expect(playerContext.attachSuffixes).toHaveBeenCalledTimes(1);
   });
 });
