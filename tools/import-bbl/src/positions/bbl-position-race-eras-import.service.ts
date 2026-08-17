@@ -33,9 +33,13 @@ export class BblPositionRaceErasImportService {
   ) {}
 
   /**
-   * Phase 2 of the positions_race_eras heuristic (issue #153): runs entirely
-   * client-side, after players are imported, over the candidate
-   * (position, race) pairs Phase 1 (`BblPositionsImportService`) collected.
+   * Phase 2 of the positions_race_eras heuristic (issue #153): runs after
+   * players are imported, over the candidate (position, race) pairs Phase 1
+   * (`BblPositionsImportService`) collected. Era identities come from
+   * `EraConfigService.getEras()`; era and position ids are then resolved
+   * server-side via `ReferenceLookupService` round trips (each era by its
+   * name, each position by its composite typId-raceBblId external id) before
+   * the availability decision below runs, rather than entirely client-side.
    *
    * For each candidate position and each race it was seen fielding, and each
    * era the race spans (`eraIdsByRaceId`), decides availability:
