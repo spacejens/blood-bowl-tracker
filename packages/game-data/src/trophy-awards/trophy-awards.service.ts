@@ -99,6 +99,26 @@ export type TeamHonor = {
   playerName: string | null;
 };
 
+/**
+ * One honor a player has personally won, as the player deepdive renders it:
+ * which trophy, in which competition. The player, their team and their era
+ * are not carried: every row is already scoped to the one player that was
+ * asked about, and that player has exactly one team and one era for their
+ * whole career (a player never changes teams) — both already named by the
+ * player deepdive's own header, so repeating them here would add nothing.
+ * This is the player-scoped sibling `TeamHonor`'s doc comment anticipated:
+ * `trophy_awards.playerId` filters directly to one player's rows, and every
+ * one of them is unambiguously a player honor by construction — there is no
+ * team/player split to resolve, unlike `TeamHonor`, which mixes both kinds.
+ */
+export type PlayerHonor = {
+  trophyId: number;
+  trophyName: string;
+  competitionId: number;
+  competitionName: string;
+  competitionStartDate: string;
+};
+
 @Injectable()
 export class TrophyAwardsService {
   constructor(@Inject(DB) private readonly db: Db) {}
@@ -279,6 +299,55 @@ export class TrophyAwardsService {
       .from(trophyAwards)
       .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
       .where(eq(teamEras.teamId, teamId));
+    return row.count;
+  }
+
+  /**
+   * Every honor one player has personally won, most recent competition first,
+   * capped at exactly `limit` rows. Filters `trophy_awards` directly on
+   * `playerId` — no join through `team_eras` is needed (unlike `listByTeam`),
+   * since a player award always names the player directly and a player never
+   * changes teams, so there is nothing to group or resolve beyond the
+   * competition itself.
+   *
+   * Ordered by `competitions.startDate` descending, with `competitions.id` and
+   * `trophies.id` as tiebreakers for full determinism (`startDate` carries no
+   * uniqueness constraint, and a player could in principle win more than one
+   * trophy in the same competition). Callers that need the true remainder pair
+   * this with `countByPlayer`.
+   */
+  listByPlayer(playerId: number, limit: number): Promise<PlayerHonor[]> {
+    return this.db
+      .select({
+        trophyId: trophies.id,
+        trophyName: trophies.name,
+        competitionId: competitions.id,
+        competitionName: competitions.name,
+        competitionStartDate: competitions.startDate,
+      })
+      .from(trophyAwards)
+      .innerJoin(trophies, eq(trophies.id, trophyAwards.trophyId))
+      .innerJoin(competitions, eq(competitions.id, trophyAwards.competitionId))
+      .where(eq(trophyAwards.playerId, playerId))
+      .orderBy(
+        desc(competitions.startDate),
+        desc(competitions.id),
+        desc(trophies.id),
+      )
+      .limit(limit);
+  }
+
+  /**
+   * How many honors this player holds in total. Kept separate from
+   * `listByPlayer` for the same reason `countByTeam` is kept separate from
+   * `listByTeam`: the deepdive can render an exact "…and N more not shown."
+   * remainder without fetching every row.
+   */
+  async countByPlayer(playerId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(trophyAwards)
+      .where(eq(trophyAwards.playerId, playerId));
     return row.count;
   }
 
