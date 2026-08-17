@@ -314,6 +314,28 @@ run after that because they depend on `match_teams`, which team participation
 is what populates. Match outcomes run last of all because they count scores
 from the touchdown events match events just imported.
 
+### Reference resolution
+
+Where an import step needs the database id of an entity it does not create
+itself — an era's league and rules sets, a competition's era, a team's race
+and coach, a position's race, a player's position, a competition id — it
+asks the API to resolve that entity's external id (see
+[RPC conventions](../api/rpc-conventions.md#reference-resolution)) rather
+than consulting a map built earlier in the same run. Each step resolves
+everything it needs in one batched call and then looks records up locally,
+so the network cost is one round trip per step, not per record.
+
+The ordering in `main.ts` still matters — a race has to be upserted before a
+team referencing it can be resolved — but no id map is threaded between the
+steps any more.
+
+Some maps deliberately remain, because no external-id resolve can answer
+them: the competition payload carrier `competitionsByTpId` and the two maps
+`main.ts` derives from it, parsed match data, a race's display name
+(`raceNamesById`), `team_eras` rows (which have no external ids of their
+own), classification and evidence sets, and matches and players (which have
+no resolve procedure).
+
 ## Related documentation
 
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
