@@ -13,6 +13,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-trophy-reader.service';
 import type { CompetitionTrophyRows } from '../matches/competition-trophy-page-parser';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import {
   BblTrophyAwardsImportService,
@@ -63,33 +64,6 @@ function makeCompetition(bblId: string): UpsertCompetition {
   };
 }
 
-/**
- * Configures `lookup.lookupMap` to resolve any 'competition' ref whose
- * external id appears in `competitionIdsByBblId`, keyed via the mocked
- * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
- * without reimplementing its resolution algorithm.
- */
-function mockCompetitionLookup(
-  lookup: MockProxy<ReferenceLookupService>,
-  competitionIdsByBblId: Map<string, number>,
-): void {
-  lookup.lookupMap.mockImplementation((kind, refs) => {
-    if (kind !== 'competition') {
-      return Promise.resolve(new Map<string, number>());
-    }
-    return Promise.resolve(
-      new Map(
-        refs
-          .filter((ref) => competitionIdsByBblId.has(ref.externalId))
-          .map((ref) => [
-            lookup.keyOf(ref),
-            competitionIdsByBblId.get(ref.externalId) as number,
-          ]),
-      ),
-    );
-  });
-}
-
 async function makeService(
   rowsByCompetitionId: Map<string, CompetitionTrophyRows>,
   competitionIdsByBblId: Map<string, number> = new Map([['1', 11]]),
@@ -120,13 +94,7 @@ async function makeService(
   mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue({
     id: 500,
   } as never);
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  mocks.lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
-  mockCompetitionLookup(mocks.lookup, competitionIdsByBblId);
+  mockReferenceLookup(mocks.lookup, { competition: competitionIdsByBblId });
 
   const moduleRef = await Test.createTestingModule({
     providers: [

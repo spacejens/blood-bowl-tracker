@@ -26,6 +26,7 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
@@ -76,33 +77,6 @@ interface Mocks {
   importResults: MockProxy<ImportResultService>;
   upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
   lookup: MockProxy<ReferenceLookupService>;
-}
-
-/**
- * Configures `lookup.lookupMap` to resolve any 'competition' ref whose
- * external id appears in `competitionIdsByBblId`, keyed via the mocked
- * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
- * without reimplementing its resolution algorithm.
- */
-function mockCompetitionLookup(
-  lookup: MockProxy<ReferenceLookupService>,
-  competitionIdsByBblId: Map<string, number>,
-): void {
-  lookup.lookupMap.mockImplementation((kind, refs) => {
-    if (kind !== 'competition') {
-      return Promise.resolve(new Map<string, number>());
-    }
-    return Promise.resolve(
-      new Map(
-        refs
-          .filter((ref) => competitionIdsByBblId.has(ref.externalId))
-          .map((ref) => [
-            lookup.keyOf(ref),
-            competitionIdsByBblId.get(ref.externalId) as number,
-          ]),
-      ),
-    );
-  });
 }
 
 /**
@@ -208,16 +182,9 @@ async function makeService(opts: {
   );
 
   const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
-  mockCompetitionLookup(
-    lookup,
-    opts.competitionIdsByBblId ?? new Map([['1', 42]]),
-  );
+  mockReferenceLookup(lookup, {
+    competition: opts.competitionIdsByBblId ?? new Map([['1', 42]]),
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [

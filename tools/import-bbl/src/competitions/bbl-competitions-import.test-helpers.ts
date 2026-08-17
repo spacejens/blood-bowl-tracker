@@ -16,6 +16,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatch } from '../matches/match-list-page-parser';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -84,30 +85,6 @@ export const eraIdsByName = new Map<string, number>([
   ['Living rulebook', 100],
   ['BB2020', 200],
 ]);
-
-/**
- * Configures `lookup.lookupMap` to resolve any era ref whose name appears in
- * `idsByName`, keyed via the mocked (deterministic) `keyOf`. Mirrors what
- * ReferenceLookupService itself does, without reimplementing its resolution
- * algorithm (idsByName is supplied by the caller, not derived here).
- */
-function mockEraLookup(
-  lookup: MockProxy<ReferenceLookupService>,
-  idsByName: Map<string, number>,
-): void {
-  lookup.lookupMap.mockImplementation((_kind, refs) =>
-    Promise.resolve(
-      new Map(
-        refs
-          .filter((ref) => idsByName.has(ref.externalId))
-          .map((ref) => [
-            lookup.keyOf(ref),
-            idsByName.get(ref.externalId) as number,
-          ]),
-      ),
-    ),
-  );
-}
 
 /**
  * The canned range the mocked MatchDateRangeService returns by default:
@@ -223,13 +200,7 @@ export async function makeService(
   dateRange.computeRange.mockReturnValue(CANNED_RANGE);
 
   const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
-  mockEraLookup(lookup, idsByName);
+  mockReferenceLookup(lookup, { era: idsByName });
 
   const moduleRef = await Test.createTestingModule({
     providers: [

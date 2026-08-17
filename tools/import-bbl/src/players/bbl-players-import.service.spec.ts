@@ -13,6 +13,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
@@ -69,37 +70,6 @@ function plPage(player: BblPlayer | null, pid = '388'): BblPage {
 
 /** The numeric id the mocked bootstrap assigns to the BBL external system. */
 const BBL_SYSTEM_ID = 1;
-
-/**
- * Configures `lookup.lookupMap` to resolve any ref whose external id appears
- * in the map registered for that call's `kind`, keyed via the mocked
- * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
- * without reimplementing its resolution algorithm (each kind's map is
- * supplied by the caller, not derived here).
- */
-function mockLookup(
-  lookup: MockProxy<ReferenceLookupService>,
-  idsByKind: { era: Map<string, number>; position: Map<string, number> },
-): void {
-  lookup.lookupMap.mockImplementation((kind, refs) => {
-    const idsByExternalId =
-      kind === 'era'
-        ? idsByKind.era
-        : kind === 'position'
-          ? idsByKind.position
-          : new Map<string, number>();
-    return Promise.resolve(
-      new Map(
-        refs
-          .filter((ref) => idsByExternalId.has(ref.externalId))
-          .map((ref) => [
-            lookup.keyOf(ref),
-            idsByExternalId.get(ref.externalId) as number,
-          ]),
-      ),
-    );
-  });
-}
 
 const team: UpsertTeam = {
   name: 'Knights',
@@ -225,13 +195,10 @@ async function makeService(
   );
 
   const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
-  mockLookup(lookup, { era: idsByName, position: positionIdsByExternalId });
+  mockReferenceLookup(lookup, {
+    era: idsByName,
+    position: positionIdsByExternalId,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
