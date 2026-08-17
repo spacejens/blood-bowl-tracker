@@ -75,27 +75,28 @@ interface Mocks {
 }
 
 /**
- * Configures `lookup.lookupMap` to resolve any 'competition' ref whose
- * external id appears in `competitionIdsByBblId`, keyed via the mocked
- * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
- * without reimplementing its resolution algorithm.
+ * Configures `lookup.lookupMap` to answer a fixed 'competition' resolution: a
+ * db id for every entry in `competitionIdsByBblId`, keyed via the mocked
+ * (deterministic) `keyOf`. This is a canned response, not a re-derivation of
+ * ReferenceLookupService's own algorithm -- it ignores the `refs` argument
+ * entirely, so a test asserting on the request the service makes (e.g.
+ * "resolves every competition id in one batched call") is exercising the
+ * service's own call, not an echo of it.
  */
 function mockCompetitionLookup(
   lookup: MockProxy<ReferenceLookupService>,
   competitionIdsByBblId: Map<string, number>,
 ): void {
-  lookup.lookupMap.mockImplementation((kind, refs) => {
+  lookup.lookupMap.mockImplementation((kind) => {
     if (kind !== 'competition') {
       return Promise.resolve(new Map<string, number>());
     }
     return Promise.resolve(
       new Map(
-        refs
-          .filter((ref) => competitionIdsByBblId.has(ref.externalId))
-          .map((ref) => [
-            lookup.keyOf(ref),
-            competitionIdsByBblId.get(ref.externalId) as number,
-          ]),
+        [...competitionIdsByBblId].map(([bblId, id]) => [
+          lookup.keyOf({ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }),
+          id,
+        ]),
       ),
     );
   });
