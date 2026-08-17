@@ -43,7 +43,7 @@ async function run(): Promise<ImportResult> {
 
     const competitionOutcome = await app
       .get(TpCompetitionsImportService)
-      .importCompetitions(eraOutcome.eraIdsByName);
+      .importCompetitions();
 
     // Matches link to their competition only via the directory scan competitions
     // import already performed (match files carry no tournament id), so this
@@ -82,14 +82,13 @@ async function run(): Promise<ImportResult> {
 
     const raceOutcome = await app
       .get(TpRacesImportService)
-      .importRaces(rosters, eraOutcome.eraIdsByName);
+      .importRaces(rosters);
 
     const teamOutcome = await app
       .get(TpTeamsImportService)
       .importTeams(rosters, {
         raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
         coachIdsByTpId: coachOutcome.coachIdsByTpId,
-        eraIdsByName: eraOutcome.eraIdsByName,
       });
 
     const {
@@ -98,7 +97,6 @@ async function run(): Promise<ImportResult> {
       starPositionIds,
     } = await app.get(TpPositionsImportService).importPositions(rosters, {
       raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
-      eraIdsByName: eraOutcome.eraIdsByName,
       raceNamesById: raceOutcome.raceNamesById,
     });
 
@@ -237,7 +235,6 @@ async function run(): Promise<ImportResult> {
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
-      eraIdsByName: eraOutcome.eraIdsByName,
       positionIdsByTpPositionId,
       inducedStarPlayerHireGroups,
       matchEmbeddedPlayersByRosterId,
@@ -256,7 +253,6 @@ async function run(): Promise<ImportResult> {
       .syncStarPositionRaceEras({
         starPositionUsages,
         raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
-        eraIdsByName: eraOutcome.eraIdsByName,
       });
 
     // Team participation (match_teams + competition_teams) runs before match

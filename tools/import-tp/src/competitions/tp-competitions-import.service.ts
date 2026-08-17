@@ -5,6 +5,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   MatchDateRangeService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -13,6 +14,7 @@ import {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 
@@ -31,7 +33,7 @@ interface CompetitionGroup {
 
 interface ImportGroupOptions {
   group: CompetitionGroup;
-  eraIdsByName: Map<string, number>;
+  eraIds: Map<string, number>;
   systemIds: { tp: number };
   errors: ImportError[];
 }
@@ -54,6 +56,8 @@ export class TpCompetitionsImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly dateRange: MatchDateRangeService,
+    private readonly eraDataConfig: EraDataConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -61,10 +65,12 @@ export class TpCompetitionsImportService {
    * competition is one `<era>/<competition>` subdirectory: its base
    * `tournament_<slug>.json` gives its name and TP id; its `match_*.json`
    * files give the dates whose span classifies it (span <= 3 days => cup, else
-   * season). Its era is the directory's own era, looked up in `eraIdsByName`
-   * (produced by TpErasImportService) — no date-range matching is needed,
-   * unlike BBL. Each competition is keyed by its numeric TP id (stringified)
-   * under the TP external system.
+   * season). Its era is the directory's own era, resolved server-side, by
+   * external id, against whatever TpErasImportService upserted moments
+   * earlier in the same run (one batched lookup for the whole run, not one
+   * per competition) — no date-range matching is needed, unlike BBL. Each
+   * competition is keyed by its numeric TP id (stringified) under the TP
+   * external system.
    * Competitions with no base tournament file, an unparsable one, no dated
    * matches, or an era with no known id are skipped with a recorded error.
    * Idempotent.
@@ -82,7 +88,7 @@ export class TpCompetitionsImportService {
    * UpsertCompetition is needed in full because UpsertCompetitionSchema has no
    * partial update, and the directory strings match the competition's rosters.
    */
-  async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
+  async importCompetitions(): Promise<{
     result: ImportResult;
     competitionIdsByTpId: Map<number, number>;
     matchesByCompetitionId: Map<number, TpMatch[]>;
@@ -143,11 +149,38 @@ export class TpCompetitionsImportService {
     }
     const [tpSystemId] = bootstrap.ids;
 
+    let eraNames: string[];
+    try {
+      eraNames = [
+        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
+      ];
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { externalSystems: [tpSystemName] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+        competitionIdsByTpId,
+        matchesByCompetitionId,
+        competitionsByTpId,
+      };
+    }
+    const eraIds = await this.lookup.lookupMap(
+      'era',
+      eraNames.map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
+
     const groups = await this.collectGroups(errors);
     for (const group of groups.values()) {
       const upserted = await this.importGroup({
         group,
-        eraIdsByName,
+        eraIds,
         systemIds: { tp: tpSystemId },
         errors,
       });
@@ -259,7 +292,7 @@ export class TpCompetitionsImportService {
    */
   private async importGroup({
     group,
-    eraIdsByName,
+    eraIds,
     systemIds,
     errors,
   }: ImportGroupOptions): Promise<
@@ -313,15 +346,20 @@ export class TpCompetitionsImportService {
       return undefined;
     }
 
-    const eraId = eraIdsByName.get(group.era);
+    const eraId = eraIds.get(
+      this.lookup.keyOf({
+        externalSystemId: systemIds.tp,
+        externalId: group.era,
+      }),
+    );
     if (eraId === undefined) {
       errors.push(
         this.importResults.error({
           item: tournament,
           message:
             `Skipping competition "${tournament.name}" in "${location}": its ` +
-            `era "${group.era}" has no known database id — the era may have ` +
-            'failed to import.',
+            `era "${group.era}" has no known database id — the era may not ` +
+            'be imported yet.',
         }),
       );
       return undefined;

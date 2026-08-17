@@ -6,9 +6,11 @@ import {
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
@@ -30,7 +32,6 @@ interface StarPositionGroup {
 
 interface ImportPositionsOptions {
   raceIdsByTeamRaceCode: Map<string, number>;
-  eraIdsByName: Map<string, number>;
   raceNamesById: Map<number, string>;
 }
 
@@ -43,6 +44,8 @@ export class TpPositionsImportService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly rosterCollection: RosterCollectionService,
     private readonly importResults: ImportResultService,
+    private readonly eraDataConfig: EraDataConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -79,7 +82,7 @@ export class TpPositionsImportService {
     positionIdsByTpPositionId: Map<number, number>;
     starPositionIds: Set<number>;
   }> {
-    const { raceIdsByTeamRaceCode, eraIdsByName, raceNamesById } = options;
+    const { raceIdsByTeamRaceCode, raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
     const positionIdsByTpPositionId = new Map<number, number>();
@@ -100,6 +103,32 @@ export class TpPositionsImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
+    let eraNames: string[];
+    try {
+      eraNames = [
+        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
+      ];
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { externalSystems: [tpSystemName] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+        positionIdsByTpPositionId,
+        starPositionIds,
+      };
+    }
+    const eraIds = await this.lookup.lookupMap(
+      'era',
+      eraNames.map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
+
     const groups = new Map<string, PositionGroup>();
     for (const { roster, era } of rosters) {
       const raceId = raceIdsByTeamRaceCode.get(roster.teamRaceCode);
@@ -112,7 +141,9 @@ export class TpPositionsImportService {
         );
         continue;
       }
-      const eraId = eraIdsByName.get(era);
+      const eraId = eraIds.get(
+        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
+      );
       if (eraId === undefined) {
         errors.push(this.rosterCollection.unknownEraError(era, roster));
       }

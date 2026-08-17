@@ -5,6 +5,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   MatchDateRangeService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -15,20 +16,31 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import {
   asProviderMethod,
+  mockEraDataConfigService,
   mockImportResultService,
+  mockReferenceLookupService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { TpCompetitionsImportService } from './tp-competitions-import.service';
 
+/** The numeric id the mocked bootstrap assigns to the TP external system. */
+const TP_SYSTEM_ID = 1;
+
 interface MakeServiceOptions {
   files: () => AsyncIterable<TpSourceFile>;
   bootstrap: ReturnType<typeof vi.fn>;
   upsertCompetitionResult: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
+  /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
+  eraIdsByName?: Map<string, number>;
+  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
+  getEras?: () => EraDataConfig[];
 }
 
 /**
@@ -101,12 +113,15 @@ async function makeService({
   bootstrap,
   upsertCompetitionResult,
   getTpSystemName = () => 'TP',
+  eraIdsByName = new Map([['Fourth era', 600]]),
+  getEras,
 }: MakeServiceOptions): Promise<{
   service: TpCompetitionsImportService;
   importResults: MockProxy<ImportResultService>;
   tournamentParser: MockProxy<TournamentParserService>;
   matchParser: MockProxy<MatchParserService>;
   dateRange: MockProxy<MatchDateRangeService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }> {
   const sourceReader = mock<TpSourceReader>();
   sourceReader.files.mockImplementation(files);
@@ -135,6 +150,11 @@ async function makeService({
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
+  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
+  if (getEras) {
+    eraDataConfig.getEras.mockImplementation(getEras);
+  }
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -153,6 +173,8 @@ async function makeService({
       },
       { provide: ImportResultService, useValue: importResults },
       { provide: MatchDateRangeService, useValue: dateRange },
+      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
   return {
@@ -161,6 +183,7 @@ async function makeService({
     tournamentParser,
     matchParser,
     dateRange,
+    lookup,
   };
 }
 
@@ -256,8 +279,6 @@ function matchFile({
   };
 }
 
-const eraIdsByName = new Map<string, number>([['Fourth era', 600]]);
-
 /** A canned full-row `upsertCompetitionResult` response for a given id/group. */
 const upsertedCompetition = (id: number, competitionGroupId = 1) => ({
   id,
@@ -349,7 +370,7 @@ describe('TpCompetitionsImportService', () => {
       });
 
     const { competitionIdsByTpId, matchesByCompetitionId } =
-      await service.importCompetitions(eraIdsByName);
+      await service.importCompetitions();
 
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
@@ -425,7 +446,7 @@ describe('TpCompetitionsImportService', () => {
       spanDays: 0,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -470,7 +491,7 @@ describe('TpCompetitionsImportService', () => {
       .mockReturnValueOnce(match1.match)
       .mockReturnValueOnce(match2.match);
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -507,7 +528,7 @@ describe('TpCompetitionsImportService', () => {
       spanDays: 38,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     expect(upsertCompetitionResult).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -552,7 +573,7 @@ describe('TpCompetitionsImportService', () => {
       .mockReturnValueOnce({ ...CANNED_MATCH, id: 1, playedDate: first })
       .mockReturnValueOnce({ ...CANNED_MATCH, id: 2, playedDate: second });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     expect(dateRange.computeRange).toHaveBeenCalledWith([first, second]);
   });
@@ -571,7 +592,7 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
@@ -597,7 +618,7 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
@@ -636,7 +657,7 @@ describe('TpCompetitionsImportService', () => {
       throw new Error('Invalid TP tournament JSON: missing name');
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
@@ -670,7 +691,7 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
@@ -718,8 +739,7 @@ describe('TpCompetitionsImportService', () => {
       throw new Error('Invalid TP match JSON: missing playedDate');
     });
 
-    const { matchesByCompetitionId } =
-      await service.importCompetitions(eraIdsByName);
+    const { matchesByCompetitionId } = await service.importCompetitions();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -754,8 +774,7 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
 
-    const { matchesByCompetitionId } =
-      await service.importCompetitions(eraIdsByName);
+    const { matchesByCompetitionId } = await service.importCompetitions();
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
@@ -791,7 +810,7 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     // The competition collected before the throw is still imported.
     const { imported, errors } = resultArgs(importResults);
@@ -825,8 +844,7 @@ describe('TpCompetitionsImportService', () => {
     });
     tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
 
-    const { competitionIdsByTpId } =
-      await service.importCompetitions(eraIdsByName);
+    const { competitionIdsByTpId } = await service.importCompetitions();
 
     expect(competitionIdsByTpId.has(111)).toBe(false);
     expect(upsertCompetitionResult).toHaveBeenCalledTimes(1);
@@ -866,7 +884,7 @@ describe('TpCompetitionsImportService', () => {
     // variant file is filtered out by isBaseTournamentFile before that.
     tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
 
-    await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -902,9 +920,9 @@ describe('TpCompetitionsImportService', () => {
     };
 
     const first = await makeRunService();
-    await first.service.importCompetitions(eraIdsByName);
+    await first.service.importCompetitions();
     const second = await makeRunService();
-    await second.service.importCompetitions(eraIdsByName);
+    await second.service.importCompetitions();
 
     expect(resultArgs(first.importResults).imported).toBe(1);
     expect(resultArgs(second.importResults).imported).toBe(1);
@@ -950,8 +968,7 @@ describe('TpCompetitionsImportService', () => {
       .mockReturnValueOnce(match1.match)
       .mockReturnValueOnce(match2.match);
 
-    const { matchesByCompetitionId } =
-      await service.importCompetitions(eraIdsByName);
+    const { matchesByCompetitionId } = await service.importCompetitions();
 
     expect(
       matchesByCompetitionId
@@ -990,8 +1007,7 @@ describe('TpCompetitionsImportService', () => {
       spanDays: 1,
     });
 
-    const { competitionsByTpId } =
-      await service.importCompetitions(eraIdsByName);
+    const { competitionsByTpId } = await service.importCompetitions();
 
     const entry = competitionsByTpId.get(111);
     expect(entry?.era).toBe('Fourth era');
@@ -1031,8 +1047,7 @@ describe('TpCompetitionsImportService', () => {
     });
     tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
 
-    const { competitionsByTpId } =
-      await service.importCompetitions(eraIdsByName);
+    const { competitionsByTpId } = await service.importCompetitions();
 
     expect(competitionsByTpId.get(111)?.competitionGroupId).toBe(4);
   });
@@ -1064,8 +1079,7 @@ describe('TpCompetitionsImportService', () => {
       });
       tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
 
-      const { competitionsByTpId } =
-        await service.importCompetitions(eraIdsByName);
+      const { competitionsByTpId } = await service.importCompetitions();
 
       expect(competitionsByTpId.get(111)?.created).toBe(created);
     },
@@ -1082,8 +1096,47 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    const { result } = await service.importCompetitions();
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('resolves every configured era in one batched call', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
+    const upsertCompetitionResult = vi
+      .fn()
+      .mockResolvedValue(upsertedCompetition(42));
+    const { service, lookup } = await makeService({
+      files: makeFiles([]),
+      bootstrap,
+      upsertCompetitionResult,
+    });
+
+    await service.importCompetitions();
+
+    expect(lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
+    ]);
+  });
+
+  it('records one error and imports nothing when the era config cannot be read', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
+    const upsertCompetitionResult = vi.fn();
+    const { service, importResults } = await makeService({
+      files: makeFiles([]),
+      bootstrap,
+      upsertCompetitionResult,
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+    });
+
+    await service.importCompetitions();
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('TP_ERAS');
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
   });
 });

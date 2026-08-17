@@ -8,6 +8,7 @@ import {
   NameExternalIdService,
   PlayersImportService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type {
   TpCareerSppCounts,
@@ -16,6 +17,7 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
@@ -46,7 +48,6 @@ export interface StarPositionUsage {
 export interface ImportPlayersOptions {
   rosters: RosterEntry[];
   teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
-  eraIdsByName: Map<string, number>;
   positionIdsByTpPositionId: Map<number, number>;
   /**
    * Star players hired via an `inducements_roll` match event, grouped by
@@ -88,6 +89,8 @@ export class TpPlayersImportService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly rosterCollection: RosterCollectionService,
     private readonly importResults: ImportResultService,
+    private readonly eraDataConfig: EraDataConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -142,7 +145,6 @@ export class TpPlayersImportService {
   async importPlayers({
     rosters,
     teamErasByRosterId,
-    eraIdsByName,
     positionIdsByTpPositionId,
     inducedStarPlayerHireGroups,
     matchEmbeddedPlayersByRosterId,
@@ -165,9 +167,6 @@ export class TpPlayersImportService {
     // only a rosterId), so every emitted usage carries raw string references.
     const teamRaceCodeByRosterId = new Map<number, string>(
       rosters.map(({ roster }) => [roster.id, roster.teamRaceCode]),
-    );
-    const eraNameByEraId = new Map<number, string>(
-      [...eraIdsByName].map(([name, id]) => [id, name]),
     );
 
     // Star Player Points is a career total that only ever increases. The
@@ -263,10 +262,58 @@ export class TpPlayersImportService {
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
+
+    let eraNames: string[];
+    try {
+      eraNames = [
+        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
+      ];
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { externalSystems: [tpSystemName] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+        playerIdsByLineUpId,
+        starPlayerIdsByRosterAndMaster,
+        starPositionUsages,
+        careerSppCountsByPlayerId,
+      };
+    }
+    const eraIds = await this.lookup.lookupMap(
+      'era',
+      eraNames.map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
+    // Reverse lookup for the induced-star path (which knows numeric eraId /
+    // only a rosterId), so every emitted usage carries raw string references.
+    const eraNameByEraId = new Map<number, string>(
+      eraNames
+        .map(
+          (name) =>
+            [
+              eraIds.get(
+                this.lookup.keyOf({
+                  externalSystemId: tpSystemId,
+                  externalId: name,
+                }),
+              ),
+              name,
+            ] as const,
+        )
+        .filter((entry): entry is [number, string] => entry[0] !== undefined),
+    );
     const mercenaryPositionIdsByName = new Map<string, number>();
 
     for (const { roster, era } of rosters) {
-      const eraId = eraIdsByName.get(era);
+      const eraId = eraIds.get(
+        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
+      );
       if (eraId === undefined) {
         errors.push(this.rosterCollection.unknownEraError(era, roster));
       }

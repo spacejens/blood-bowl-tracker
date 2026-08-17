@@ -6,9 +6,11 @@ import {
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   RacesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
@@ -29,6 +31,8 @@ export class TpRacesImportService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly rosterCollection: RosterCollectionService,
     private readonly importResults: ImportResultService,
+    private readonly eraDataConfig: EraDataConfigService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -37,17 +41,17 @@ export class TpRacesImportService {
    * logical race can carry several rule-set-variant codes. Each group upserts
    * once, carrying every distinct code as a TP external id (all in one call, so
    * the merge semantics collapse them onto a single row), the display name as a
-   * Name external id, and every era any contributing roster was seen under.
-   * Returns `raceIdsByTeamRaceCode` keyed by CODE (not name), so a roster's
+   * Name external id, and every era any contributing roster was seen under
+   * -- each era resolved server-side, by external id, against whatever
+   * TpErasImportService upserted moments earlier in the same run (one batched
+   * lookup for the whole run, not one per roster). Returns
+   * `raceIdsByTeamRaceCode` keyed by CODE (not name), so a roster's
    * `teamRaceCode` resolves directly to the unified race DB id for the
    * downstream positions/teams import. `rosters` is the already-collected
    * roster list (via `RosterCollectionService`, run once for all three
    * imports); this service only groups and upserts. Idempotent.
    */
-  async importRaces(
-    rosters: RosterEntry[],
-    eraIdsByName: Map<string, number>,
-  ): Promise<{
+  async importRaces(rosters: RosterEntry[]): Promise<{
     result: ImportResult;
     raceIdsByTeamRaceCode: Map<string, number>;
     raceNamesById: Map<number, string>;
@@ -72,6 +76,32 @@ export class TpRacesImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
+    let eraNames: string[];
+    try {
+      eraNames = [
+        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
+      ];
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { externalSystems: [tpSystemName] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+        raceIdsByTeamRaceCode,
+        raceNamesById,
+      };
+    }
+    const eraIds = await this.lookup.lookupMap(
+      'era',
+      eraNames.map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
+
     const groups = new Map<string, RaceGroup>();
     for (const { roster, era } of rosters) {
       let group = groups.get(roster.raceName);
@@ -84,7 +114,9 @@ export class TpRacesImportService {
         groups.set(roster.raceName, group);
       }
       group.codes.add(roster.teamRaceCode);
-      const eraId = eraIdsByName.get(era);
+      const eraId = eraIds.get(
+        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
+      );
       if (eraId === undefined) {
         errors.push(this.rosterCollection.unknownEraError(era, roster));
       } else {

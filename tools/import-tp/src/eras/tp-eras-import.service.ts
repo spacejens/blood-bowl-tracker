@@ -54,11 +54,9 @@ export class TpErasImportService {
    */
   async importEras(): Promise<{
     result: ImportResult;
-    eraIdsByName: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const eraIdsByName = new Map<string, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
 
@@ -74,7 +72,6 @@ export class TpErasImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
 
@@ -86,7 +83,6 @@ export class TpErasImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -105,7 +101,6 @@ export class TpErasImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
     const leagueRef = { externalSystemId: tpSystemId, externalId: leagueName };
@@ -131,7 +126,6 @@ export class TpErasImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        eraIdsByName,
       };
     }
 
@@ -177,14 +171,12 @@ export class TpErasImportService {
         errors,
       );
       if (upsertedEra) {
-        eraIdsByName.set(era.name, upsertedEra.id);
         imported += 1;
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      eraIdsByName,
     };
   }
 

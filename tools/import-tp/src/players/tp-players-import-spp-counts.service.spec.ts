@@ -36,7 +36,6 @@ describe('TpPlayersImportService career counts', () => {
         casualties: 5,
       }),
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -66,7 +65,6 @@ describe('TpPlayersImportService career counts', () => {
     const outcome = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -124,7 +122,6 @@ describe('TpPlayersImportService career counts', () => {
     const outcome = await service.importPlayers({
       rosters: twoSnapshots,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 

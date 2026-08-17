@@ -256,9 +256,8 @@ describe('TpErasImportService', () => {
       lookupMap: () => Promise.resolve(new Map()),
     });
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
-    expect(eraIdsByName.size).toBe(0);
     const { errors } = resultArgs(importResults);
     expect(errors[0].message).toContain(
       'Cannot import eras: the league could not be resolved',
@@ -282,9 +281,8 @@ describe('TpErasImportService', () => {
       },
     });
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
-    expect(eraIdsByName.size).toBe(0);
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain(
@@ -311,7 +309,7 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
@@ -320,12 +318,6 @@ describe('TpErasImportService', () => {
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(2);
     expect(errors).toEqual([]);
-    expect(eraIdsByName).toEqual(
-      new Map([
-        ['Third era', 500],
-        ['Fourth era', 600],
-      ]),
-    );
     expect(upsertEra).toHaveBeenNthCalledWith(
       1,
       {
@@ -425,10 +417,9 @@ describe('TpErasImportService', () => {
       .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 20 })
       .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 21 });
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
     expect(upsertEra).toHaveBeenCalledTimes(1);
-    expect(eraIdsByName).toEqual(new Map([['Third era', 500]]));
     // Diagnostic error recorded, but the era still imported.
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -485,17 +476,11 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
 
-    const { eraIdsByName } = await service.importEras();
+    await service.importEras();
 
     // Both eras are still upserted from config even though the shared scan
     // aborted after the first era's files, since it errored on the second.
     expect(upsertEra).toHaveBeenCalledTimes(2);
-    expect(eraIdsByName).toEqual(
-      new Map([
-        ['Third era', 500],
-        ['Fourth era', 600],
-      ]),
-    );
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(2);
     expect(

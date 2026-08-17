@@ -5,20 +5,28 @@ import {
   ImportResultService,
   NameExternalIdService,
   PositionsImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import {
   asProviderMethod,
+  mockEraDataConfigService,
   mockImportResultService,
   mockNameExternalIdService,
+  mockReferenceLookupService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
 import { TpPositionsImportService } from './tp-positions-import.service';
+
+/** The numeric id the mocked bootstrap assigns to the TP external system. */
+const TP_SYSTEM_ID = 1;
 
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
@@ -46,6 +54,10 @@ interface MakeServiceOptions {
   upsertPosition: ReturnType<typeof vi.fn>;
   syncRaceEras: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
+  /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
+  eraIdsByName?: Map<string, number>;
+  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
+  getEras?: () => EraDataConfig[];
 }
 
 async function makeService({
@@ -53,10 +65,18 @@ async function makeService({
   upsertPosition,
   syncRaceEras,
   getTpSystemName = () => 'TP',
+  eraIdsByName = new Map([
+    ['Fourth era', 100],
+    ['Fifth era', 200],
+    ['Dwarf', 100],
+    ['Human', 100],
+  ]),
+  getEras,
 }: MakeServiceOptions): Promise<{
   service: TpPositionsImportService;
   importResults: MockProxy<ImportResultService>;
   nameExternalId: MockProxy<NameExternalIdService>;
+  lookup: MockProxy<ReferenceLookupService>;
 }> {
   const positionsImport = mock<PositionsImportService>();
   positionsImport.upsertPosition.mockImplementation(
@@ -83,6 +103,11 @@ async function makeService({
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
+  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
+  if (getEras) {
+    eraDataConfig.getEras.mockImplementation(getEras);
+  }
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -99,12 +124,15 @@ async function makeService({
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: RosterCollectionService, useValue: rosterCollection },
       { provide: ImportResultService, useValue: importResults },
+      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
   return {
     service: moduleRef.get(TpPositionsImportService),
     importResults,
     nameExternalId,
+    lookup,
   };
 }
 
@@ -179,7 +207,6 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
@@ -239,10 +266,6 @@ describe('TpPositionsImportService', () => {
         raceIdsByTeamRaceCode: new Map([
           ['Dwarf', 50],
           ['Dwarf_BB2025', 50],
-        ]),
-        eraIdsByName: new Map([
-          ['Fourth era', 100],
-          ['Fifth era', 200],
         ]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
@@ -305,10 +328,6 @@ describe('TpPositionsImportService', () => {
           ['Dwarf', 50],
           ['Dwarf_BB2025', 50],
         ]),
-        eraIdsByName: new Map([
-          ['Fourth era', 100],
-          ['Fifth era', 200],
-        ]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
@@ -337,7 +356,6 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map(),
-        eraIdsByName: new Map([['Fourth era', 100]]),
         raceNamesById: new Map(),
       },
     );
@@ -375,7 +393,6 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
@@ -408,7 +425,6 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
@@ -456,7 +472,6 @@ describe('TpPositionsImportService', () => {
             ['Dwarf', 50],
             ['Human', 60],
           ]),
-          eraIdsByName: new Map([['Dwarf', 100]]),
           raceNamesById: new Map([
             [50, 'Dwarf'],
             [60, 'Human'],
@@ -502,7 +517,6 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
-        eraIdsByName: new Map([['Dwarf', 100]]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
@@ -536,7 +550,6 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
-        eraIdsByName: new Map([['Dwarf', 100]]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
@@ -571,12 +584,10 @@ describe('TpPositionsImportService', () => {
       }),
     ];
     const raceIdsByTeamRaceCode = new Map([['HU-1', 7]]);
-    const eraIdsByName = new Map([['Fourth era', 100]]);
     const raceNamesById = new Map([[7, 'Human']]);
 
     await service.importPositions(rosters, {
       raceIdsByTeamRaceCode,
-      eraIdsByName,
       raceNamesById,
     });
     const data = upsertPosition.mock.calls[0][0] as UpsertPosition;
@@ -606,12 +617,10 @@ describe('TpPositionsImportService', () => {
       }),
     ];
     const raceIdsByTeamRaceCode = new Map([['HU-1', 7]]);
-    const eraIdsByName = new Map([['Fourth era', 100]]);
     const raceNamesById = new Map([[7, 'Human']]);
 
     await service.importPositions(rostersWithStar, {
       raceIdsByTeamRaceCode,
-      eraIdsByName,
       raceNamesById,
     });
     const starData = upsertPosition.mock.calls
@@ -643,12 +652,10 @@ describe('TpPositionsImportService', () => {
       }),
     ];
     const raceIdsByTeamRaceCode = new Map([['HU-1', 7]]);
-    const eraIdsByName = new Map([['Fourth era', 100]]);
 
     // raceNamesById intentionally missing the group's raceId
     await service.importPositions(rosters, {
       raceIdsByTeamRaceCode,
-      eraIdsByName,
       raceNamesById: new Map(),
     });
     expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
@@ -678,11 +685,79 @@ describe('TpPositionsImportService', () => {
       ],
       {
         raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
-        eraIdsByName: new Map([['Fourth era', 100]]),
         raceNamesById: new Map([[50, 'Dwarf']]),
       },
     );
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('resolves every configured era in one batched call', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
+    const { service, lookup } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+      ],
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
+    );
+
+    expect(lookup.lookupMap).toHaveBeenCalledWith(
+      'era',
+      expect.arrayContaining([
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fifth era' },
+      ]),
+    );
+  });
+
+  it('records one error and imports nothing when the era config cannot be read', async () => {
+    const upsertPosition = vi.fn();
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+    });
+
+    await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+      ],
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
+    );
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('TP_ERAS');
+    expect(upsertPosition).not.toHaveBeenCalled();
   });
 });

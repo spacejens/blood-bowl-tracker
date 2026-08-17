@@ -1,9 +1,13 @@
 import {
   ImportResultService,
   NameExternalIdService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
+
+import type { EraDataConfig } from './eras/era-data-config.service';
+import { EraDataConfigService } from './eras/era-data-config.service';
 
 /**
  * A `MockProxy<ImportResultService>` whose `error` returns the item/message it
@@ -44,6 +48,59 @@ export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
   nameExternalId.forRace.mockImplementation((name) => name);
   nameExternalId.forStarPosition.mockImplementation((name) => name);
   return nameExternalId;
+}
+
+/**
+ * A `MockProxy<EraDataConfigService>` whose `getEras()` returns one dummy
+ * `EraDataConfig` entry per name (only `name` matters to the services under
+ * test here -- they enumerate era *names* to build the reference-lookup
+ * batch; the other fields are never read). Consumed alongside
+ * `mockReferenceLookupService` below.
+ */
+export function mockEraDataConfigService(
+  names: string[],
+): MockProxy<EraDataConfigService> {
+  const eraDataConfig = mock<EraDataConfigService>();
+  const eras: EraDataConfig[] = names.map((name) => ({
+    name,
+    dataSubdir: name,
+    rulesSets: ['BB2020'],
+    startDate: '2020-01-01',
+  }));
+  eraDataConfig.getEras.mockReturnValue(eras);
+  return eraDataConfig;
+}
+
+/**
+ * A `MockProxy<ReferenceLookupService>` whose `keyOf` mirrors the real
+ * tab-joined key derivation (pure, no branching -- exempt from the
+ * canned-response rule, same as `tp-eras-import.service.spec.ts`'s own
+ * `lookup.keyOf` stub) and whose `lookupMap('era', ...)` resolves from a
+ * plain era-name -> id map, keyed under `tpSystemId`. Non-`'era'` kinds
+ * resolve to an empty map -- no consumer covered by this helper looks up
+ * anything else via the shared lookup mock. Each spec supplies its own
+ * name -> id map; a name the spec's `mockEraDataConfigService` didn't
+ * declare simply resolves to nothing, matching a real unresolved reference.
+ */
+export function mockReferenceLookupService(
+  eraIdsByName: Map<string, number>,
+  tpSystemId: number,
+): MockProxy<ReferenceLookupService> {
+  const lookup = mock<ReferenceLookupService>();
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  );
+  lookup.lookupMap.mockImplementation((kind) => {
+    if (kind !== 'era') {
+      return Promise.resolve(new Map<string, number>());
+    }
+    const map = new Map<string, number>();
+    for (const [name, id] of eraIdsByName) {
+      map.set(`${tpSystemId}\t${name}`, id);
+    }
+    return Promise.resolve(map);
+  });
+  return lookup;
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   makeService,
   resultArgs,
   rosters,
+  TP_SYSTEM_ID,
 } from './tp-players-import.test-helpers';
 
 describe('TpPlayersImportService', () => {
@@ -19,7 +20,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -46,7 +46,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
       matchEmbeddedPlayersByRosterId: new Map([
         [
@@ -85,7 +84,6 @@ describe('TpPlayersImportService', () => {
     await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
       matchEmbeddedPlayersByRosterId: new Map([
         [
@@ -120,12 +118,12 @@ describe('TpPlayersImportService', () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service, importResults } = await makeService({
       upsertPlayerResult,
+      eraIdsByName: new Map(),
     });
 
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map(),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -147,7 +145,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map(),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -165,7 +162,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
     });
 
@@ -187,7 +183,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -207,7 +202,6 @@ describe('TpPlayersImportService', () => {
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
       inducedStarPlayerHireGroups: [
         {
@@ -246,7 +240,6 @@ describe('TpPlayersImportService', () => {
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map(),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
       inducedStarPlayerHireGroups: [
         {
@@ -276,7 +269,6 @@ describe('TpPlayersImportService', () => {
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
       inducedStarPlayerHireGroups: [
         {
@@ -306,7 +298,6 @@ describe('TpPlayersImportService', () => {
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
       inducedStarPlayerHireGroups: [
         {
@@ -334,7 +325,6 @@ describe('TpPlayersImportService', () => {
     await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
       inducedStarPlayerHireGroups: [
         {
@@ -413,10 +403,6 @@ describe('TpPlayersImportService', () => {
           ],
         ],
       ]),
-      eraIdsByName: new Map([
-        ['Third Era', 500],
-        ['Fourth Era', 501],
-      ]),
       positionIdsByTpPositionId: new Map(),
       // The hiring match's competition resolved to eraId 501 (Fourth Era),
       // which must select the 6001 team-era, not the first candidate (6000).
@@ -477,7 +463,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters: starRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[5002, 700]]),
     });
 
@@ -504,7 +489,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([
         [952, 200], // regular position from the shared `rosters` fixture
         [5002, 700], // star catalog id
@@ -581,7 +565,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters: mercenaryRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       // 440 is deliberately absent -- neither a regular nor a star catalog id.
       positionIdsByTpPositionId: new Map(),
     });
@@ -663,7 +646,6 @@ describe('TpPlayersImportService', () => {
     await service.importPlayers({
       rosters: mercenaryRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
     });
 
@@ -710,7 +692,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters: mercenaryRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
     });
 
@@ -730,7 +711,6 @@ describe('TpPlayersImportService', () => {
     const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       // The shared `rosters` fixture's player has lineUpMasterId 952 and
       // isBigGuy: false; omit it from the map so resolution fails.
       positionIdsByTpPositionId: new Map(),
@@ -753,7 +733,6 @@ describe('TpPlayersImportService', () => {
     const { starPositionUsages } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
       // no starPositionIds -> position 200 is not a star position
     });
@@ -795,7 +774,6 @@ describe('TpPlayersImportService', () => {
     const { starPositionUsages } = await service.importPlayers({
       rosters: embeddedStarRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[5002, 800]]),
       starPositionIds: new Set([800]),
     });
@@ -843,7 +821,6 @@ describe('TpPlayersImportService', () => {
     const { starPositionUsages } = await service.importPlayers({
       rosters: mercRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(), // 9999 unresolved -> mercenary fallback
     });
 
@@ -863,7 +840,6 @@ describe('TpPlayersImportService', () => {
     const { starPositionUsages } = await service.importPlayers({
       rosters, // roster 123 -> teamRaceCode 'Dwarf', era 'Third Era'
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
       inducedStarPlayerHireGroups: [
         {
@@ -900,7 +876,6 @@ describe('TpPlayersImportService', () => {
     const options = (rosterEntries: RosterEntry[], embeddedTotal: number) => ({
       rosters: rosterEntries,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
       matchEmbeddedPlayersByRosterId: new Map([[123, embedded(embeddedTotal)]]),
     });
@@ -936,7 +911,6 @@ describe('TpPlayersImportService', () => {
     const { result } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
@@ -956,7 +930,6 @@ describe('TpPlayersImportService', () => {
     await service.importPlayers({
       rosters: [],
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
       inducedStarPlayerHireGroups: [
         {
@@ -973,5 +946,47 @@ describe('TpPlayersImportService', () => {
       sppTotal?: number;
     };
     expect('sppTotal' in payload).toBe(false);
+  });
+
+  it('resolves every configured era in one batched call', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, lookup } = await makeService({ upsertPlayerResult });
+
+    await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+    });
+
+    expect(lookup.lookupMap).toHaveBeenCalledWith(
+      'era',
+      expect.arrayContaining([
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Third Era' },
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth Era' },
+      ]),
+    );
+  });
+
+  it('records one error and imports nothing when the era config cannot be read', async () => {
+    const upsertPlayerResult = vi.fn();
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+    });
+
+    const { playerIdsByLineUpId } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+    });
+
+    expect(playerIdsByLineUpId.size).toBe(0);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('TP_ERAS');
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 });
