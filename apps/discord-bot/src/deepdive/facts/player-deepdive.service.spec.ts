@@ -11,8 +11,10 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   nullEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
@@ -23,6 +25,7 @@ import {
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -127,7 +130,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result).toMatchObject({
       embeds: [
         {
-          title: 'Griff Oberwald',
+          title: `${stubEntityEmoji(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
           description: [
             'Team: Reikland Reavers',
             'Era: Season 5',
@@ -158,7 +161,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result).toMatchObject({
       embeds: [
         {
-          title: 'Griff Oberwald',
+          title: `${stubEntityEmoji(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
           description: [
             'Team: Reikland Reavers',
             'Era: Season 5',
@@ -179,7 +182,7 @@ describe('PlayerDeepdiveService', () => {
   // (in that order, matching the header lines, with the right ids/labels) it
   // hands to buildEntityComponents.
   it('builds team, era, and race entries from the header, in header order', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     const cannedComponents = [
       {
         type: 1,

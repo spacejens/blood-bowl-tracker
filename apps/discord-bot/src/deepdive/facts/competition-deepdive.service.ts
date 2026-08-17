@@ -15,6 +15,7 @@ import {
 import { TeamContextService } from '../../insights/team-context.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -135,6 +136,14 @@ export class CompetitionDeepdiveService {
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
 
-    return { embeds: [{ title: competition.name, description }], components };
+    return {
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(COMPETITION_BUTTON_CUSTOM_ID_PREFIX)} ${competition.name}`,
+          description,
+        },
+      ],
+      components,
+    };
   }
 }

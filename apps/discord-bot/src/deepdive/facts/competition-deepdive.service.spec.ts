@@ -11,9 +11,11 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   nullEntityComponents,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
@@ -27,6 +29,7 @@ import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -127,7 +130,7 @@ describe('CompetitionDeepdiveService', () => {
   // entries take component priority over header entries, with the right
   // ids/labels) it hands to buildEntityComponents.
   it('renders the type, era line, and participating-teams list (with context suffix), with the team entries before the era entry', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     const cannedComponents = [
       {
         type: 1,
@@ -164,7 +167,7 @@ describe('CompetitionDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Major Season 24',
+          title: `${stubEntityEmoji(COMPETITION_BUTTON_CUSTOM_ID_PREFIX)} Major Season 24`,
           description: [
             'Type: season',
             'Era: BB2020',
@@ -313,7 +316,7 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('shows the no-teams message but still passes the era-only entry to buildEntityComponents', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: null,
@@ -362,7 +365,7 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('still labels the team buttons with the plain team name', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: null,

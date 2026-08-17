@@ -11,8 +11,10 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
@@ -28,6 +30,7 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { TeamDeepdiveService } from './team-deepdive.service';
 
 interface MakeServiceOptions {
@@ -131,7 +134,7 @@ describe('TeamDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: '40 grinders',
+          title: `${stubEntityEmoji(TEAM_BUTTON_CUSTOM_ID_PREFIX)} 40 grinders`,
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',
@@ -199,7 +202,7 @@ describe('TeamDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: '40 grinders',
+          title: `${stubEntityEmoji(TEAM_BUTTON_CUSTOM_ID_PREFIX)} 40 grinders`,
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',
@@ -287,7 +290,7 @@ describe('TeamDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: '40 grinders',
+          title: `${stubEntityEmoji(TEAM_BUTTON_CUSTOM_ID_PREFIX)} 40 grinders`,
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',
@@ -352,7 +355,7 @@ describe('TeamDeepdiveService', () => {
 
   it('appends the overflow note when components report entries without a link', async () => {
     const leaderboard = passthroughLeaderboard();
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 5 more without a link.',
@@ -383,7 +386,7 @@ describe('TeamDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: '40 grinders',
+          title: `${stubEntityEmoji(TEAM_BUTTON_CUSTOM_ID_PREFIX)} 40 grinders`,
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',
@@ -423,7 +426,7 @@ describe('TeamDeepdiveService', () => {
   // `overflowNote: null`, so this branch needs a per-test override to be
   // exercised with a note present.
   it('appends the overflow note on the no-matches path', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 4 more without a link.',
@@ -436,7 +439,7 @@ describe('TeamDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: '40 grinders',
+          title: `${stubEntityEmoji(TEAM_BUTTON_CUSTOM_ID_PREFIX)} 40 grinders`,
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',

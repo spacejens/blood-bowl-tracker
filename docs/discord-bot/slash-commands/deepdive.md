@@ -5,6 +5,16 @@ Today it supports eight targets — an era, a coach, a team, a player, a race, a
 competition, a competition group, and a trophy — and is designed to grow
 further optional, mutually exclusive targets in future work.
 
+Every deepdive embed's headline is the subject's name prefixed with its entity
+type's emoji — 🕰️ era, 📋 coach, 🛡️ team, 🎽 player, 🧬 race, 🏟️ competition,
+🔁 competition group, 🏆 trophy — so the title visually matches the button or
+dropdown entry that opened it. These are the same emoji the drill-down
+components carry, read from the single map in
+`apps/discord-bot/src/entity-components.service.ts`, so the two can never drift
+apart. Where a target's description below says "the `<x>` name as the title",
+that title carries this prefix too. The not-found and database-timeout replies
+are plain messages with no embed, so they have no headline to prefix.
+
 ## Arguments
 
 The command takes eight optional string arguments, `era`, `coach`, `team`, `player`,

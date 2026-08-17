@@ -12,9 +12,11 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   nullEntityComponents,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
@@ -30,6 +32,7 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -129,7 +132,7 @@ describe('CoachDeepdiveService', () => {
         ],
       },
     ];
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: cannedComponents,
       overflowNote: null,
@@ -151,7 +154,7 @@ describe('CoachDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Roze Madder',
+          title: `${stubEntityEmoji(COACH_BUTTON_CUSTOM_ID_PREFIX)} Roze Madder`,
           description: [
             'Eras: None recorded',
             'Career: 2021-09-01 – 2023-06-10',
@@ -185,7 +188,7 @@ describe('CoachDeepdiveService', () => {
       truncatedCount: 0,
       tieGroupOpenEnded: false,
     });
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: null,
@@ -249,7 +252,7 @@ describe('CoachDeepdiveService', () => {
       truncatedCount: 0,
       tieGroupOpenEnded: false,
     });
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 2 more without a link.',
@@ -311,7 +314,7 @@ describe('CoachDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Roze Madder',
+          title: `${stubEntityEmoji(COACH_BUTTON_CUSTOM_ID_PREFIX)} Roze Madder`,
           description: [
             'Eras: None recorded',
             DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -357,7 +360,7 @@ describe('CoachDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Roze Madder',
+          title: `${stubEntityEmoji(COACH_BUTTON_CUSTOM_ID_PREFIX)} Roze Madder`,
           description: [
             'Eras: BB2016, BB2020',
             'Career: 2021-09-01 – 2023-06-10',
@@ -435,7 +438,7 @@ describe('CoachDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Roze Madder',
+          title: `${stubEntityEmoji(COACH_BUTTON_CUSTOM_ID_PREFIX)} Roze Madder`,
           description: ['Eras: BB2020', DEEPDIVE_COACH_NO_MATCHES_MESSAGE].join(
             '\n',
           ),
@@ -464,7 +467,7 @@ describe('CoachDeepdiveService', () => {
   // `overflowNote: null`, so this branch needs a per-test override to be
   // exercised with a note present.
   it('appends the overflow note on the no-matches path', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 3 more without a link.',
@@ -481,7 +484,7 @@ describe('CoachDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Roze Madder',
+          title: `${stubEntityEmoji(COACH_BUTTON_CUSTOM_ID_PREFIX)} Roze Madder`,
           description: [
             'Eras: BB2020',
             DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -687,7 +690,7 @@ describe('CoachDeepdiveService', () => {
       truncatedCount: 0,
       tieGroupOpenEnded: false,
     });
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: null,

@@ -26,6 +26,7 @@ import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 
 /**
@@ -174,7 +175,12 @@ export class TrophyDeepdiveService {
     ].join('\n');
 
     return {
-      embeds: [{ title: trophy.name, description }],
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(TROPHY_BUTTON_CUSTOM_ID_PREFIX)} ${trophy.name}`,
+          description,
+        },
+      ],
       ...(components.length > 0 ? { components } : {}),
     };
   }

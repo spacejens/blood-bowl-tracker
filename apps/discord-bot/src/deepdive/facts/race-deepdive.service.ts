@@ -20,6 +20,7 @@ import {
 import { TeamContextService } from '../../insights/team-context.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 
@@ -139,7 +140,12 @@ export class RaceDeepdiveService {
     ].join('\n');
 
     return {
-      embeds: [{ title: race.name, description }],
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(RACE_BUTTON_CUSTOM_ID_PREFIX)} ${race.name}`,
+          description,
+        },
+      ],
       ...(components.length > 0 ? { components } : {}),
     };
   }

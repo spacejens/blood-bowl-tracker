@@ -12,6 +12,7 @@ import {
 } from '../../error-messages';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -111,7 +112,15 @@ export class PlayerDeepdiveService {
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
 
-    return { embeds: [{ title: player.name, description }], components };
+    return {
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} ${player.name}`,
+          description,
+        },
+      ],
+      components,
+    };
   }
 
   /**

@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
 import {
@@ -10,6 +9,7 @@ import {
 } from '../database-timeout-mock.test-helpers';
 import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../entity-components.service';
+import { entityComponentsMock } from '../entity-components-mock.test-helpers';
 import {
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
@@ -31,7 +31,7 @@ function service(): LeaderboardService {
  * returns an empty, non-overflowing result).
  */
 async function makeService(
-  components: MockProxy<EntityComponentsService> = mock<EntityComponentsService>(),
+  components: MockProxy<EntityComponentsService> = entityComponentsMock(),
 ): Promise<LeaderboardService> {
   entityComponents = components;
   const moduleRef = await Test.createTestingModule({
@@ -46,7 +46,7 @@ async function makeService(
 
 beforeEach(async () => {
   databaseTimeout = mockDatabaseTimeout();
-  entityComponents = mock<EntityComponentsService>();
+  entityComponents = entityComponentsMock();
   entityComponents.buildEntityComponents.mockReturnValue({
     components: [],
     overflowNote: null,
@@ -375,7 +375,7 @@ describe('formatLeaderboardEmbed', () => {
 
   it('hands one entry per ranked row to EntityComponentsService and returns its components', async () => {
     const cannedComponents = [{ type: 1, components: [] }];
-    const components = mock<EntityComponentsService>();
+    const components = entityComponentsMock();
     components.buildEntityComponents.mockReturnValue({
       components: cannedComponents,
       overflowNote: null,
@@ -417,7 +417,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('appends the overflow note to the description when entries did not fit', async () => {
-    const components = mock<EntityComponentsService>();
+    const components = entityComponentsMock();
     components.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 2 more without a link.',
