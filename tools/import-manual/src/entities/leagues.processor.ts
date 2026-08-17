@@ -25,7 +25,6 @@ export class LeaguesProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'league');
         imported += 1;
       }
     }

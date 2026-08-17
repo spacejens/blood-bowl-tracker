@@ -16,8 +16,7 @@ export class CompetitionGroupsProcessor {
 
   /**
    * Upsert every declared group, exactly like every other before-other-importers
-   * processor: resolve its cross-references, upsert, then register the result in
-   * the run's ExternalIdMap so later entries can reference it.
+   * processor: resolve its cross-references, then upsert.
    *
    * A group's own external id is not authored in the data file -- it is derived
    * in code from the group's name under the synthetic "Name" system, the same
@@ -27,9 +26,10 @@ export class CompetitionGroupsProcessor {
    * The catalog is curated once, in data/before-other-importers, alongside
    * the competitions that classify into it.
    *
-   * A group's `league` is a normal external-id cross-reference and is required
-   * (the column is NOT NULL), so an entry whose league cannot be resolved is
-   * skipped with the error resolveRef already recorded.
+   * A group's `league` is a normal external-id cross-reference, resolved
+   * against the database through the API's resolve procedure, and is
+   * required (the column is NOT NULL), so an entry whose league cannot be
+   * resolved is skipped with the error resolveRef already recorded.
    *
    * The "Name" system bootstrap check runs once, before the per-entry loop,
    * rather than per-entry after resolving `league`: it's the same answer on
@@ -50,9 +50,9 @@ export class CompetitionGroupsProcessor {
     }
     for (const entry of ctx.data.competitionGroups) {
       const label = `Cannot import competition group "${entry.name}"`;
-      const leagueId = this.refResolver.resolveRef({
+      const leagueId = await this.refResolver.resolveRef({
         ref: entry.league,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label,
@@ -74,7 +74,6 @@ export class CompetitionGroupsProcessor {
           ctx.errors,
         );
       if (upserted) {
-        ctx.idMap.add([ref], upserted.id, 'competitionGroup');
         imported += 1;
       }
     }

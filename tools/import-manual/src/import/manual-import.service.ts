@@ -15,7 +15,6 @@ import { RulesSetsProcessor } from '../entities/rules-sets.processor';
 import { SppAwardValuesProcessor } from '../entities/spp-award-values.processor';
 import { TeamsProcessor } from '../entities/teams.processor';
 import { TrophiesProcessor } from '../entities/trophies.processor';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 
 @Injectable()
@@ -44,20 +43,15 @@ export class ManualImportService {
    * competitionGroups, competitions, sppAwardValues, trophies — with
    * competitionGroups running after leagues (whose external ids its entries
    * reference) and before competitions and trophies (which resolve the groups
-   * it registers in the run's ExternalIdMap under the "Name" system), and
-   * sppAwardValues
+   * it upserts, by their "Name"-system external id), and sppAwardValues
    * running before trophies because it references both rulesSets and races,
    * and trophies running last because it references nothing, so its position
-   * in the order is free — sharing one ExternalIdMap and error collector
-   * so cross-references resolve and one bad entry never aborts the rest.
-   * Reference-resolution and upsert failures are collected; a missing
-   * directory, malformed file, or unreachable API throws out of here to be
-   * reported as an unexpected failure — as does a same-kind external-id
-   * collision (two different entities registering the same
-   * (kind, system, id) triple with different database ids, a curated-data
-   * authoring bug rather than a resolvable reference gap), which throws out
-   * of ExternalIdMap.add() and aborts the import instead of being collected
-   * as an ImportError.
+   * in the order is free — sharing one error collector so one bad entry
+   * never aborts the rest. Reference-resolution and upsert failures are
+   * collected; a missing directory, malformed file, or unreachable API
+   * throws out of here to be reported as an unexpected failure. A same-kind
+   * external-id collision is no longer detected client-side; the API's
+   * upsert reports it as a CONFLICT, collected like any other ImportError.
    */
   async run(dir: string): Promise<ImportResult> {
     const data = await this.reader.read(dir);
@@ -67,7 +61,6 @@ export class ManualImportService {
     const ctx: ProcessContext = {
       data,
       systemIds,
-      idMap: new ExternalIdMap(),
       errors,
     };
 

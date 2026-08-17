@@ -51,6 +51,29 @@ export interface UpsertByExternalIdsOptions<
     ownerId: number,
     pair: ExternalIdPair,
   ) => InferInsertModel<TExternalIdTable>;
+  /**
+   * Optional extra conflict check for the single-matched-owner case (the
+   * >1-owner case already throws on its own, below). Some entities encode a
+   * distinction — e.g. a position's `isStarPlayer` — that the external-id
+   * match alone cannot see: an id that legitimately names a star position can
+   * happen to collide with an already-upserted *regular* position's row (or
+   * vice versa), and applying the update would silently overwrite that row's
+   * identity rather than updating the entity the id actually names.
+   *
+   * Given the row the single matched owner id currently points at and the
+   * (already-`undefined`-stripped) incoming `values`, return `true` when
+   * applying `values` to that row would be such a silent corruption rather
+   * than a legitimate update. When it returns `true`,
+   * `ConflictErrorClass` is thrown instead of writing the update, exactly
+   * like the >1-owner case.
+   *
+   * Left undefined by every entity that has no such distinction to protect —
+   * the extra `select` this triggers only runs for entities that opt in.
+   */
+  detectSemanticConflict?: (
+    existingRow: InferSelectModel<TEntityTable>,
+    values: Partial<InferInsertModel<TEntityTable>>,
+  ) => boolean;
 }
 
 /**
@@ -226,6 +249,26 @@ async function runUpsertAttempt<
   const created = ownerIds.length === 0;
 
   const values = stripUndefined(opts.values);
+
+  if (!created && opts.detectSemanticConflict) {
+    const [existingRow] = (await handle
+      .select()
+      .from(asBaseTable(opts.entityTable))
+      .where(
+        eq(opts.entityIdColumn, ownerIds[0]),
+      )) as InferSelectModel<TEntityTable>[];
+    if (
+      existingRow &&
+      opts.detectSemanticConflict(
+        existingRow,
+        values as Partial<InferInsertModel<TEntityTable>>,
+      )
+    ) {
+      throw new opts.ConflictErrorClass(
+        `External id(s) matched an existing ${opts.entityLabelPlural} row (id ${ownerIds[0]}) whose stored data conflicts with the incoming values`,
+      );
+    }
+  }
 
   let rows: InferSelectModel<TEntityTable>[];
   if (created) {

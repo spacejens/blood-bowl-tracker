@@ -27,58 +27,47 @@ async function run(): Promise<ImportResult> {
   });
   try {
     // Bootstrap order: the league is foundational; rules sets and eras come
-    // from config and must exist before entities that reference them.
+    // from config and must exist before entities that reference them. The
+    // eras step resolves each era's league and rules sets server-side, by
+    // external id, so a league or rules set must be upserted here before an
+    // era referencing it can resolve.
     const leagueOutcome = await app
       .get(BblLeaguesImportService)
       .importLeagues();
     const rulesSetsOutcome = await app
       .get(BblRulesSetsImportService)
       .importRulesSets();
-    const eraOutcome = await app
-      .get(BblErasImportService)
-      .importEras(
-        leagueOutcome.leagueIdsByName,
-        rulesSetsOutcome.rulesSetIdsByName,
-      );
+    const eraOutcome = await app.get(BblErasImportService).importEras();
     const competitionOutcome = await app
       .get(BblCompetitionsImportService)
-      .importCompetitions(eraOutcome.eraIdsByName);
+      .importCompetitions();
     const matchOutcome = await app
       .get(BblMatchesImportService)
-      .importMatches(
-        competitionOutcome.competitionsByBblId,
-        competitionOutcome.competitionIdsByBblId,
-      );
+      .importMatches(competitionOutcome.competitionsByBblId);
+    // Races and coaches must be upserted before teams referencing them can be
+    // resolved server-side, by external id.
     const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
     const raceOutcome = await app.get(BblRacesImportService).importRaces();
-    const teamOutcome = await app
-      .get(BblTeamsImportService)
-      .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
+    const teamOutcome = await app.get(BblTeamsImportService).importTeams();
     const teamParticipationOutcome = await app
       .get(BblTeamParticipationImportService)
       .importTeamParticipation({
         competitionsByBblId: competitionOutcome.competitionsByBblId,
         teamsByCode: teamOutcome.teamsByCode,
         racesByRaceId: raceOutcome.racesByRaceId,
-        eraIdsByName: eraOutcome.eraIdsByName,
-        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
       });
     const positionOutcome = await app
       .get(BblPositionsImportService)
       .importPositions(raceOutcome.racesByBblId, teamOutcome.teamRaceIdsByCode);
     const playerOutcome = await app.get(BblPlayersImportService).importPlayers({
       teamsByCode: teamOutcome.teamsByCode,
-      positionIdsByBblId: positionOutcome.positionIdsByBblId,
       racesByBblId: raceOutcome.racesByBblId,
-      eraIdsByName: eraOutcome.eraIdsByName,
     });
     const positionRaceErasOutcome = await app
       .get(BblPositionRaceErasImportService)
       .syncPositionRaceEras({
         positionRaceCandidates: positionOutcome.positionRaceCandidates,
-        positionIdsByBblId: positionOutcome.positionIdsByBblId,
         racesByBblId: raceOutcome.racesByBblId,
-        eraIdsByName: eraOutcome.eraIdsByName,
         eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
         positionsUsedByEra: playerOutcome.positionsUsedByEra,
         racesActiveByEra: playerOutcome.racesActiveByEra,
@@ -108,7 +97,7 @@ async function run(): Promise<ImportResult> {
     const matchOutcomesOutcome = await app
       .get(BblMatchOutcomesImportService)
       .importMatchOutcomes({
-        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        competitionsByBblId: competitionOutcome.competitionsByBblId,
         matchIdsByBblId: matchOutcome.matchIdsByBblId,
         categoriesByBblId: matchOutcome.categoriesByBblId,
         teamEraIdsByCompetitionBblId:
@@ -122,7 +111,7 @@ async function run(): Promise<ImportResult> {
     const trophyAwardsOutcome = await app
       .get(BblTrophyAwardsImportService)
       .importTrophyAwards({
-        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        competitionsByBblId: competitionOutcome.competitionsByBblId,
         teamEraIdsByCompetitionBblId:
           teamParticipationOutcome.teamEraIdsByCompetitionBblId,
         playerIdsByPid: playerOutcome.playerIdsByPid,

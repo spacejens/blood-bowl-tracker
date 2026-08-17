@@ -16,9 +16,9 @@ import { gameData } from './pg-schema';
  *
  * It does carry external ids (competition_groups_external_ids), like every
  * other entity here. Although no source system names a group, tools/import-manual
- * runs its two data directories as two separate processes with independent
- * in-memory ExternalIdMaps, and every run starts from an empty one, so a
- * re-run has to re-resolve groups onto their existing rows. That is exactly what the
+ * runs its two data directories as two separate processes, so a re-run has to
+ * re-resolve groups onto their existing rows by something more stable than an
+ * id assigned by a run that no longer exists. That is exactly what the
  * synthetic "Name" external system exists for: the group's name becomes a
  * stable, deterministic external id (NameExternalIdService.forCompetitionGroup),
  * and `CompetitionGroupsService.upsert` matches on external ids like every

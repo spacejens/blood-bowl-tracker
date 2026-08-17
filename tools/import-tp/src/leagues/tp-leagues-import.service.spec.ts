@@ -108,12 +108,11 @@ describe('TpLeaguesImportService', () => {
       upsertLeague,
     });
 
-    const { leagueId } = await service.importLeague();
+    await service.importLeague();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
     expect(errors).toEqual([]);
-    expect(leagueId).toBe(10);
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -130,7 +129,7 @@ describe('TpLeaguesImportService', () => {
     );
   });
 
-  it('records one error and no leagueId when the league name is unset', async () => {
+  it('records one error and imports nothing when the league name is unset', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi.fn();
     const { service, importResults } = await makeService({
@@ -141,10 +140,9 @@ describe('TpLeaguesImportService', () => {
       upsertLeague,
     });
 
-    const { leagueId } = await service.importLeague();
+    await service.importLeague();
 
     expect(resultArgs(importResults).errors).toHaveLength(1);
-    expect(leagueId).toBeUndefined();
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 
@@ -186,12 +184,11 @@ describe('TpLeaguesImportService', () => {
       upsertLeague,
     });
 
-    const { leagueId } = await service.importLeague();
+    await service.importLeague();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
-    expect(leagueId).toBeUndefined();
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {

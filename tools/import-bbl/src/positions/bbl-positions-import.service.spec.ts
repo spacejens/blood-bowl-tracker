@@ -295,12 +295,12 @@ describe('BblPositionsImportService', () => {
       .mockReturnValueOnce('name-id-goblin')
       .mockReturnValueOnce('name-id-norse');
 
-    const { positionIdsByBblId, positionRaceCandidates } =
-      await service.importPositions(racesByBblId, teamRaceIdsByCode);
+    const { positionRaceCandidates } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
-    expect(positionIdsByBblId.get('60-7')).toBe(100);
-    expect(positionIdsByBblId.get('60-14')).toBe(100);
     expect(mocks.nameExternalId.forPosition).toHaveBeenNthCalledWith(
       1,
       'Goblin Team',
@@ -372,12 +372,12 @@ describe('BblPositionsImportService', () => {
       .mockReturnValueOnce('name-id-goblin')
       .mockReturnValueOnce('name-id-norse');
 
-    const { positionIdsByBblId, positionRaceCandidates } =
-      await service.importPositions(racesByBblId, teamRaceIdsByCode);
+    const { positionRaceCandidates } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
-    expect(positionIdsByBblId.get('60-7')).toBe(100);
-    expect(positionIdsByBblId.get('60-14')).toBe(100);
     expect(mocks.nameExternalId.forPosition).toHaveBeenNthCalledWith(
       1,
       'Goblin Team',
@@ -522,12 +522,12 @@ describe('BblPositionsImportService', () => {
       .mockReturnValueOnce('name-id-norse')
       .mockReturnValueOnce('name-id-shadow');
 
-    const { positionIdsByBblId, positionRaceCandidates } =
-      await service.importPositions(racesByBblId, teamRaceIdsByCode);
+    const { positionRaceCandidates } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(positionIdsByBblId.get('99-14')).toBe(100);
-    expect(positionIdsByBblId.get('99-48')).toBe(100);
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(1);
     expect(mocks.nameExternalId.forPosition).toHaveBeenNthCalledWith(
       1,
@@ -589,11 +589,12 @@ describe('BblPositionsImportService', () => {
     );
     mocks.nameExternalId.forPosition.mockReturnValueOnce('name-id-norse');
 
-    const { positionIdsByBblId, positionRaceCandidates } =
-      await service.importPositions(racesByBblId, teamRaceIdsByCode);
+    const { positionRaceCandidates } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(positionIdsByBblId.get('121-14')).toBe(100);
     expect(mocks.nameExternalId.forPosition).toHaveBeenNthCalledWith(
       1,
       'Norse Team',
@@ -782,33 +783,6 @@ describe('BblPositionsImportService', () => {
       ),
     ).toBe(true);
     expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
-  });
-
-  it('returns positionIdsByBblId keyed by `${typId}-${raceBblId}`', async () => {
-    // one pt page: position typId '10', listing race bblId '7' (in racesByBblId)
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({
-        pt: [
-          ptPage({
-            typId: '10',
-            name: 'Lineman',
-            isStarPlayer: false,
-            races: [{ bblId: '7', name: 'Goblin Team' }],
-          }),
-        ],
-      }),
-    );
-    mocks.positionsImport.upsertPosition.mockResolvedValue(
-      makePositionRecord(),
-    );
-
-    const { positionIdsByBblId } = await service.importPositions(
-      racesByBblId,
-      new Map<string, number>(),
-    );
-
-    expect(resultArgs(mocks.importResults).errors).toEqual([]);
-    expect(positionIdsByBblId.get('10-7')).toBe(100);
   });
 
   it('records an error when a scanned team code has no race in teamRaceIdsByCode', async () => {

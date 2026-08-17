@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { TrophiesProcessor } from './trophies.processor';
@@ -27,17 +26,13 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([
       ['Name', 2],
       ['tloeg.bbleague.se', 1],
     ]),
-    idMap,
     errors: [],
   };
 }
@@ -50,7 +45,10 @@ describe('TrophiesProcessor', () => {
   beforeEach(async () => {
     trophies = mock<TrophiesImportService>();
     refResolver = mock<ReferenceResolverService>();
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         TrophiesProcessor,
@@ -61,7 +59,7 @@ describe('TrophiesProcessor', () => {
     processor = moduleRef.get(TrophiesProcessor);
   });
 
-  it('upserts a trophy and records its id', async () => {
+  it('upserts a trophy', async () => {
     trophies.upsertTrophy.mockResolvedValue({
       id: 31,
       name: 'Chaos Cup',
@@ -84,7 +82,7 @@ describe('TrophiesProcessor', () => {
         externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -98,12 +96,6 @@ describe('TrophiesProcessor', () => {
       },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve(
-        { system: 'tloeg.bbleague.se', id: 'Chaos Cup' },
-        'trophy',
-      ),
-    ).toBe(31);
   });
 
   it('upserts a trophy that declares no external ids', async () => {
@@ -122,9 +114,7 @@ describe('TrophiesProcessor', () => {
       { name: 'Ogretoberfest', recipientKind: 'team', externalIds: [] },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
     expect(trophies.upsertTrophy.mock.calls[0][0]).toEqual({
@@ -135,10 +125,9 @@ describe('TrophiesProcessor', () => {
     });
   });
 
-  it('does not record an id when the upsert fails', async () => {
+  it('does not count when the upsert fails', async () => {
     trophies.upsertTrophy.mockResolvedValue(undefined);
     refResolver.toExternalIds.mockReturnValue([]);
-    const idMap = new ExternalIdMap();
     const data = emptyData();
     data.trophies = [
       {
@@ -148,12 +137,9 @@ describe('TrophiesProcessor', () => {
       },
     ];
 
-    const count = await processor.process(makeContext(data, idMap));
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(0);
-    expect(
-      idMap.resolve({ system: 'Name', id: 'name:broken' }, 'trophy'),
-    ).toBeUndefined();
   });
 
   it('imports every trophy in the section', async () => {
@@ -173,16 +159,14 @@ describe('TrophiesProcessor', () => {
       { name: 'Season MVP', recipientKind: 'player', externalIds: [] },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(2);
   });
 
   it('resolves the named competition group into the upsert payload', async () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 4 });
     trophies.upsertTrophy.mockResolvedValue({
       id: 8,
       name: 'Major Gold',
@@ -202,13 +186,13 @@ describe('TrophiesProcessor', () => {
         competitionGroup: groupRef,
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     expect(await processor.process(ctx)).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({
         ref: groupRef,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         kind: 'competitionGroup',
       }),
     );
@@ -234,9 +218,7 @@ describe('TrophiesProcessor', () => {
       { name: 'Ungrouped', recipientKind: 'team', externalIds: [] },
     ];
 
-    expect(
-      await processor.process(makeContext(data, new ExternalIdMap())),
-    ).toBe(1);
+    expect(await processor.process(makeContext(data))).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: undefined, kind: 'competitionGroup' }),
     );
@@ -247,7 +229,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('skips a trophy whose competition group cannot be resolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
     const data = emptyData();
     data.trophies = [
       {
@@ -258,9 +240,7 @@ describe('TrophiesProcessor', () => {
       },
     ];
 
-    expect(
-      await processor.process(makeContext(data, new ExternalIdMap())),
-    ).toBe(0);
+    expect(await processor.process(makeContext(data))).toBe(0);
     expect(trophies.upsertTrophy).not.toHaveBeenCalled();
   });
 });

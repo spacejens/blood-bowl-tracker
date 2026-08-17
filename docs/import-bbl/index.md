@@ -196,9 +196,11 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
 - **TeamsModule** — data-type extractor for teams. `TeamPageParser` reads a
   team's page id and `<h1>` name from a team page; `BblTeamsImportService`
   streams team pages (independently of the coaches/races walks), deduplicates
-  teams by page id, resolves each team's race and coach foreign keys from the
-  id maps returned by the races and coaches imports, and upserts each through
-  the API. Runs after races and coaches, since it depends on both.
+  teams by page id, resolves each team's race and coach foreign keys through
+  the API's `resolve` procedures (see
+  [RPC conventions](../api/rpc-conventions.md#reference-resolution)), and
+  upserts each through the API. Runs after races and coaches, since it depends
+  on both.
 - **MatchesModule** — data-type extractor for matches. `MatchListPageParser`
   reads each match's date and numeric BBL id (`m=<id>`, from the row's `onclick`
   link `default.asp?p=m&m=<id>`) off a competition's match-list page
@@ -260,6 +262,28 @@ still change the database. For example, another tool may have altered the
 underlying data since the last run, or import-bbl may have been improved to
 extract more than before — in which case existing records are updated.
 Re-running is always safe and fills any gaps left by transient failures.
+
+### Reference resolution
+
+Where an import step needs the database id of an entity it does not create
+itself — an era's league and rules sets, a competition's era, a team's race
+and coach, a player's position, a competition id — it asks the API to resolve
+that entity's external id (see
+[RPC conventions](../api/rpc-conventions.md#reference-resolution)) rather
+than consulting a map built earlier in the same run. Each step resolves
+everything it needs in one batched call and then looks the records up locally,
+so the network cost is one round trip per step, not per record.
+
+The ordering in `main.ts` still matters — a race has to be upserted before a
+team referencing it can be resolved — but no id map is threaded between the
+steps any more.
+
+Some maps deliberately remain, because no external-id resolve can answer
+them: payload carriers that get re-upserted later (`competitionsByBblId`,
+`teamsByCode`, `racesByRaceId`), a race's display name (`racesByBblId`), a
+team-to-race relationship (`teamRaceIdsByCode`), `team_eras` and `race_eras`
+rows (which have no external ids of their own), derived classification and
+evidence sets, and matches and players (which have no resolve procedure).
 
 ## Data types
 

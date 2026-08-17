@@ -11,6 +11,7 @@ import {
   CompetitionsImportService,
   ImportResultService,
   MatchesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -32,7 +33,6 @@ interface CompetitionEntry {
 
 export interface ImportTeamParticipationOptions {
   competitionsByTpId: Map<number, CompetitionEntry>;
-  competitionIdsByTpId: Map<number, number>;
   matchesByCompetitionId: Map<number, TpMatch[]>;
   teamErasByRosterId: Map<number, TeamEra[]>;
   rosters: RosterEntry[];
@@ -54,7 +54,7 @@ interface SyncCompetitionTeamsOptions {
 interface SyncMatchTeamsOptions {
   tpId: number;
   entry: CompetitionEntry;
-  competitionIdsByTpId: Map<number, number>;
+  competitionIds: Map<string, number>;
   matchesByCompetitionId: Map<number, TpMatch[]>;
   teamErasByRosterId: Map<number, TeamEra[]>;
   matchBatch: BatchBuffer<UpsertMatch>;
@@ -67,6 +67,7 @@ export class TpTeamParticipationImportService {
     private readonly competitionsImport: CompetitionsImportService,
     private readonly matchesImport: MatchesImportService,
     private readonly importResults: ImportResultService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -95,14 +96,15 @@ export class TpTeamParticipationImportService {
    * non-empty teamEraIds (match re-upserts do not increment it). The TP
    * external system id for a match's external id is read from the competition's
    * own `upsert.externalIds[0]` (as BBL's syncMatchTeams does) — no bootstrap.
-   * Idempotent.
+   * Each competition's DB id is resolved once, up front, server-side by
+   * external id (its TP id, stringified) via ReferenceLookupService — one
+   * batched call for the whole run, not one per competition. Idempotent.
    */
   async importTeamParticipation(
     options: ImportTeamParticipationOptions,
   ): Promise<{ result: ImportResult }> {
     const {
       competitionsByTpId,
-      competitionIdsByTpId,
       matchesByCompetitionId,
       teamErasByRosterId,
       rosters,
@@ -110,6 +112,14 @@ export class TpTeamParticipationImportService {
     let imported = 0;
     const errors: ImportError[] = [];
     const matchBatch = this.matchesImport.createBatch(errors);
+
+    const competitionIds = await this.lookup.lookupMap(
+      'competition',
+      [...competitionsByTpId].map(([tpId, entry]) => ({
+        externalSystemId: entry.upsert.externalIds[0].externalSystemId,
+        externalId: String(tpId),
+      })),
+    );
 
     try {
       for (const [tpId, entry] of competitionsByTpId) {
@@ -125,7 +135,7 @@ export class TpTeamParticipationImportService {
         await this.syncMatchTeams({
           tpId,
           entry,
-          competitionIdsByTpId,
+          competitionIds,
           matchesByCompetitionId,
           teamErasByRosterId,
           matchBatch,
@@ -223,14 +233,24 @@ export class TpTeamParticipationImportService {
     const {
       tpId,
       entry,
-      competitionIdsByTpId,
+      competitionIds,
       matchesByCompetitionId,
       teamErasByRosterId,
       matchBatch,
       errors,
     } = options;
     const { upsert } = entry;
-    const competitionId = competitionIdsByTpId.get(tpId);
+    // Read once here, from the same upsert this method already has in scope,
+    // and reused below for both the competition-id lookup key and each
+    // match's own external id -- rather than reaching into
+    // `upsert.externalIds[0]` a second time for the same entry.
+    const externalSystemId = upsert.externalIds[0].externalSystemId;
+    const competitionId = competitionIds.get(
+      this.lookup.keyOf({
+        externalSystemId,
+        externalId: String(tpId),
+      }),
+    );
     if (competitionId === undefined) {
       errors.push(
         this.importResults.error({
@@ -242,7 +262,6 @@ export class TpTeamParticipationImportService {
     }
 
     const matches = matchesByCompetitionId.get(competitionId) ?? [];
-    const externalSystemId = upsert.externalIds[0].externalSystemId;
     for (const match of matches) {
       const homeTeamEraId = this.resolveTeamEraId({
         teamErasByRosterId,

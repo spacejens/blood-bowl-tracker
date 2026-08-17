@@ -206,15 +206,15 @@ A trophy's `competitionGroup` field and a competition's `competitionGroup`
 field (see below) are both explicit external-id pairs in the group's `Name`
 system — a curator writes
 `competitionGroup: { system: 'Name', id: 'Major Season' }`, the same pair the
-group's own upsert registers. The processor resolves it against the run's
-`ExternalIdMap` like any other cross-reference, so the group must have been
-processed in the same run.
+group's own upsert registers. The processor resolves it against the database
+like any other cross-reference, so the group only has to have been imported
+at some point — not necessarily in this run.
 
-Each phase runs as its own process with its own empty `ExternalIdMap`, so a
-phase whose entries name a group must process the group catalog too. Only the
-before-other-importers phase does — it has both `competition-groups.json5`
-and `competitions.json5`. The after-other-importers phase references no group
-at all.
+Because references resolve against the database rather than a per-process map,
+a phase whose entries name a group no longer has to process the group catalog
+itself — the group only needs to have been imported by some earlier run or
+phase. The catalog is curated in `data/before-other-importers`, alongside the
+competitions that classify into it.
 
 A competition entry's own `name` is optional (unlike a trophy's, which is
 required): omitting it means "do not rename" — the upsert leaves the existing
@@ -403,15 +403,16 @@ See [Running import tools against production](../discord-bot/production-hosting.
   exposing the api-server base URL via `getApiBaseUrl()`.
 - **ManualDataReader** — reads every `.json5` file in the target directory,
   validates each against a Zod file-shape schema, and pools all sections.
-- **ExternalIdMap / resolve helpers** — map each entity's external-id pairs to
-  its database id, and resolve cross-references (recording an `ImportError` per
-  unresolved reference).
+- **ReferenceResolverService** — translates each data file's `{ system, id }`
+  pairs into the API's `{ externalSystemId, externalId }` shape and resolves
+  cross-references through the API's `resolve`/`resolveBatch` procedures
+  (see [RPC conventions](../api/rpc-conventions.md#reference-resolution)),
+  recording an `ImportError` per unresolved reference.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
 - **Entity processors** (rules sets, leagues, eras, races, positions, coaches,
-  teams, competitions) — each resolves its references, calls the shared
-  `*ImportService` from `packages/import`, and records the upserted record's
-  external ids for later references. The positions processor additionally calls
+  teams, competitions) — each resolves its references and calls the shared
+  `*ImportService` from `packages/import`. The positions processor additionally calls
   `syncRaceEras` to set race/era availability. The competitions processor runs
   last (it depends on eras) and always sends an empty `teamEraIds` list, which
   the API treats additively and so never detaches an imported competition's

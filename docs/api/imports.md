@@ -113,7 +113,10 @@ file that points at another entity — an era's `league` and `rulesSets`, a race
 or team's `eras`, a position's `raceEras`, a team's `race` and `coach` — is
 written as an external-id pair `{ system, id }` (the same `id:`/`name:` form
 described above), never a numeric ID. The importer resolves each pair against
-the records processed earlier in the same run, by any pair the target declared,
-and reports one error per unresolved reference. See
+the database, through the API's `resolve`/`resolveBatch` procedures (see
+[RPC conventions](rpc-conventions.md#reference-resolution)), by any pair the
+target declared — so a reference resolves whether the target was created
+earlier in this run, in the other import phase, or by a different import
+tool altogether. One error is reported per unresolved reference. See
 [docs/import-manual/index.md](../import-manual/index.md) for the full data-file
 format.

@@ -118,7 +118,7 @@ const eras: EraDataConfig[] = [
 ];
 
 describe('TpRulesSetsImportService', () => {
-  it('upserts each distinct rules-set name and returns a name->id map', async () => {
+  it('upserts each distinct rules-set name', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRulesSet = vi
       .fn()
@@ -130,7 +130,7 @@ describe('TpRulesSetsImportService', () => {
       upsertRulesSet,
     });
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(2);
@@ -152,12 +152,6 @@ describe('TpRulesSetsImportService', () => {
       },
       expect.any(Array),
     );
-    expect(rulesSetIdsByName).toEqual(
-      new Map([
-        ['LRB6', 100],
-        ['BB2020', 200],
-      ]),
-    );
   });
 
   it('records one error and imports nothing when getEras() throws', async () => {
@@ -171,13 +165,12 @@ describe('TpRulesSetsImportService', () => {
       upsertRulesSet,
     });
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('TP_ERAS is not set.');
     expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
-    expect(rulesSetIdsByName.size).toBe(0);
     expect(bootstrap).not.toHaveBeenCalled();
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
@@ -197,17 +190,16 @@ describe('TpRulesSetsImportService', () => {
       upsertRulesSet,
     });
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe('network timeout');
     expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
-    expect(rulesSetIdsByName.size).toBe(0);
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 
-  it('omits a rules set from the map when its upsert fails', async () => {
+  it('records one error but still imports the rest when one rules-set upsert fails', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRulesSet = vi
       .fn()
@@ -224,12 +216,11 @@ describe('TpRulesSetsImportService', () => {
       upsertRulesSet,
     });
 
-    const { rulesSetIdsByName } = await service.importRulesSets();
+    await service.importRulesSets();
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
     expect(errors).toHaveLength(1);
-    expect(rulesSetIdsByName).toEqual(new Map([['LRB6', 100]]));
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {

@@ -35,11 +35,9 @@ export class BblCoachesImportService {
    */
   async importCoaches(): Promise<{
     result: ImportResult;
-    coachIdsByName: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const coachIdsByName = new Map<string, number>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -50,7 +48,6 @@ export class BblCoachesImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        coachIdsByName,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -78,7 +75,6 @@ export class BblCoachesImportService {
           errors,
         );
         if (upsertedCoach) {
-          coachIdsByName.set(coach.name, upsertedCoach.id);
           imported += 1;
         }
       } catch (error) {
@@ -89,7 +85,6 @@ export class BblCoachesImportService {
 
     return {
       result: this.importResults.result({ imported, errors }),
-      coachIdsByName,
     };
   }
 }

@@ -21,6 +21,11 @@ import type { ExternalIdPair } from './sync-external-ids';
  * base) so the owner id, external system id and external id keep their real
  * (`number`/`string`) data types through `db.select()` instead of widening to
  * `unknown` — that widening is what would have forced a cast on the return.
+ *
+ * Each `existingRows` entry also carries the `ownerId` of the row it came
+ * from. `syncExternalIds` (the historical consumer) reads only the pair
+ * fields and is unaffected; `resolveByExternalIds` needs the per-pair owner
+ * to answer each requested pair without issuing a second query.
  */
 export interface ResolveExistingByExternalIdsOptions<
   TOwnerIdColumn extends PgColumn,
@@ -45,7 +50,10 @@ export async function resolveExistingByExternalIds<
     TExternalSystemIdColumn,
     TExternalIdColumn
   >,
-): Promise<{ ownerIds: number[]; existingRows: ExternalIdPair[] }> {
+): Promise<{
+  ownerIds: number[];
+  existingRows: (ExternalIdPair & { ownerId: number })[];
+}> {
   const {
     db,
     externalIdTable,
@@ -79,6 +87,7 @@ export async function resolveExistingByExternalIds<
   return {
     ownerIds: [...new Set(rows.map((r) => r.ownerId))],
     existingRows: rows.map((r) => ({
+      ownerId: r.ownerId,
       externalSystemId: r.externalSystemId,
       externalId: r.externalId,
     })),

@@ -11,6 +11,7 @@ import {
   CompetitionsImportService,
   ImportResultService,
   MatchesImportService,
+  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
@@ -20,9 +21,13 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import {
   asProviderMethod,
   mockImportResultService,
+  mockReferenceLookupService,
 } from '../import-package.test-helpers';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { TpTeamParticipationImportService } from './tp-team-participation-import.service';
+
+/** The TP external system id every fixture competition's externalIds[0] uses. */
+const TP_SYSTEM_ID = 1;
 
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
@@ -51,6 +56,8 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
 
 async function makeService(opts: {
   upsertCompetition: ReturnType<typeof vi.fn>;
+  /** TP competition id -> DB id, as if already resolved via ReferenceLookupService. */
+  competitionIdsByTpId?: Map<number, number>;
 }): Promise<{
   service: TpTeamParticipationImportService;
   importResults: MockProxy<ImportResultService>;
@@ -72,6 +79,14 @@ async function makeService(opts: {
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
+  const competitionIdsByExternalId = new Map(
+    [...(opts.competitionIdsByTpId ?? new Map([[111, 42]]))].map(
+      ([tpId, id]) => [String(tpId), id],
+    ),
+  );
+  const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
+    competitionIdsByExternalId,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -79,6 +94,7 @@ async function makeService(opts: {
       { provide: CompetitionsImportService, useValue: competitionsImport },
       { provide: MatchesImportService, useValue: matchesImport },
       { provide: ImportResultService, useValue: importResults },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
   return {
@@ -155,7 +171,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, []]]),
       teamErasByRosterId: new Map([
         [1, [{ id: 700, eraId: 100 }]],
@@ -178,7 +193,13 @@ describe('TpTeamParticipationImportService', () => {
 
   it('resolves each competition against the era its own eraId names (multi-competition roster reuse)', async () => {
     const upsertCompetition = vi.fn().mockResolvedValue(true);
-    const { service } = await makeService({ upsertCompetition });
+    const { service } = await makeService({
+      upsertCompetition,
+      competitionIdsByTpId: new Map([
+        [111, 42],
+        [222, 43],
+      ]),
+    });
 
     const compA = competition({
       name: 'Comp A',
@@ -195,10 +216,6 @@ describe('TpTeamParticipationImportService', () => {
       competitionsByTpId: new Map([
         [111, { upsert: compA, era: 'Fourth era', competition: 'comp-a' }],
         [222, { upsert: compB, era: 'Fifth era', competition: 'comp-b' }],
-      ]),
-      competitionIdsByTpId: new Map([
-        [111, 42],
-        [222, 43],
       ]),
       matchesByCompetitionId: new Map([
         [42, []],
@@ -246,7 +263,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, [tpMatch(500, 1, 2)]]]),
       teamErasByRosterId: new Map([
         [1, [{ id: 700, eraId: 100 }]],
@@ -291,7 +307,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, [tpMatch(500, 1, 2)]]]),
       teamErasByRosterId: new Map([
         [1, [{ id: 700, eraId: 100 }]],
@@ -330,7 +345,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, []]]),
       teamErasByRosterId: new Map([[1, [{ id: 700, eraId: 100 }]]]),
       rosters: [
@@ -366,7 +380,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, [tpMatch(500, 9, 2)]]]),
       teamErasByRosterId: new Map([[2, [{ id: 701, eraId: 100 }]]]),
       rosters: [roster('Fourth era', 'chaos-cup-8', 2)],
@@ -396,7 +409,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, [tpMatch(500, 1, 9)]]]),
       teamErasByRosterId: new Map([[1, [{ id: 700, eraId: 100 }]]]),
       rosters: [roster('Fourth era', 'chaos-cup-8', 1)],
@@ -422,7 +434,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       // No entry for competition 42 -> match resolution reads an empty list.
       matchesByCompetitionId: new Map(),
       teamErasByRosterId: new Map([[1, [{ id: 700, eraId: 100 }]]]),
@@ -438,6 +449,8 @@ describe('TpTeamParticipationImportService', () => {
   it('records an error and skips match teams for a competition with no imported db id', async () => {
     const { service, importResults, matchesImport } = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
+      // No resolvable competition id for 111.
+      competitionIdsByTpId: new Map(),
     });
 
     await service.importTeamParticipation({
@@ -451,8 +464,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      // No competitionIdsByTpId entry for 111.
-      competitionIdsByTpId: new Map(),
       matchesByCompetitionId: new Map([[42, [tpMatch(500, 1, 2)]]]),
       teamErasByRosterId: new Map([
         [1, [{ id: 700, eraId: 100 }]],
@@ -489,7 +500,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, []]]),
       teamErasByRosterId: new Map([[1, [{ id: 700, eraId: 100 }]]]),
       rosters: [roster('Fourth era', 'chaos-cup-8', 1)],
@@ -514,7 +524,6 @@ describe('TpTeamParticipationImportService', () => {
           },
         ],
       ]),
-      competitionIdsByTpId: new Map([[111, 42]]),
       matchesByCompetitionId: new Map([[42, []]]),
       teamErasByRosterId: new Map([[1, [{ id: 700, eraId: 100 }]]]),
       rosters: [roster('Fourth era', 'chaos-cup-8', 1)],

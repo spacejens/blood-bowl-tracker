@@ -1,7 +1,9 @@
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
+  ReferenceLookupService,
   TrophiesImportService,
   TrophyAwardsImportService,
 } from '@blood-bowl-tracker/import';
@@ -11,7 +13,7 @@ import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-tr
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface ImportBblTrophyAwardsOptions {
-  competitionIdsByBblId: Map<string, number>;
+  competitionsByBblId: Map<string, UpsertCompetition>;
   teamEraIdsByCompetitionBblId: Map<string, Map<string, number>>;
   playerIdsByPid: Map<string, number>;
   teamEraIdsByPid: Map<string, number>;
@@ -54,6 +56,7 @@ export class BblTrophyAwardsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -95,6 +98,17 @@ export class BblTrophyAwardsImportService {
     }
     const [bblSystemId] = bootstrap.ids;
 
+    // One round trip for the whole run: every competition referenced here was
+    // upserted moments ago by the preceding competitions step, so it is
+    // already in the database and resolvable by its BBL id.
+    const competitionIds = await this.lookup.lookupMap(
+      'competition',
+      [...options.competitionsByBblId].map(([bblId, competition]) => ({
+        externalSystemId: competition.externalIds[0].externalSystemId,
+        externalId: bblId,
+      })),
+    );
+
     const rowsByCompetitionId =
       await this.trophyReader.getRowsByCompetitionId(errors);
     const runContext: RunContext = {
@@ -104,7 +118,15 @@ export class BblTrophyAwardsImportService {
     };
 
     for (const [competitionBblId, rows] of rowsByCompetitionId) {
-      const competitionId = options.competitionIdsByBblId.get(competitionBblId);
+      const competition = options.competitionsByBblId.get(competitionBblId);
+      const competitionId = competition
+        ? competitionIds.get(
+            this.lookup.keyOf({
+              externalSystemId: competition.externalIds[0].externalSystemId,
+              externalId: competitionBblId,
+            }),
+          )
+        : undefined;
       if (competitionId === undefined) {
         errors.push(
           this.importResults.error({

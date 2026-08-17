@@ -9,6 +9,7 @@ import {
   CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
+  ReferenceLookupService,
   TrophiesImportService,
   TrophyAwardsImportService,
 } from '@blood-bowl-tracker/import';
@@ -17,7 +18,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { mockImportResultService } from '../import-package.test-helpers';
+import {
+  mockImportResultService,
+  mockReferenceLookupService,
+} from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpAwardsReaderService } from './tp-awards-reader.service';
 import {
@@ -37,6 +41,9 @@ const CANNED_RESULT: ImportResult = {
   imported: -1,
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
+
+/** The TP external system id every fixture competition's externalIds[0] uses. */
+const TP_SYSTEM_ID = 9;
 
 function resultArgs(importResults: MockProxy<ImportResultService>): {
   imported: number;
@@ -62,7 +69,11 @@ const DEFAULT_GROUPS: CompetitionGroup[] = [
 
 async function makeService(
   awardsByDirectory: Map<string, TpAward[]>,
-  overrides: { groups?: CompetitionGroup[] | undefined } = {},
+  overrides: {
+    groups?: CompetitionGroup[] | undefined;
+    /** TP competition id -> DB id, as if already resolved via ReferenceLookupService. */
+    competitionIdsByTpId?: Map<number, number>;
+  } = {},
 ): Promise<{ service: TpTrophyAwardsImportService; mocks: Mocks }> {
   const mocks: Mocks = {
     awardsReader: mock<TpAwardsReaderService>(),
@@ -75,7 +86,10 @@ async function makeService(
   };
   mocks.awardsReader.getAwardsByDirectory.mockResolvedValue(awardsByDirectory);
   mocks.nameConfig.getTpSystemName.mockReturnValue('tourplay.net');
-  mocks.bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [9] });
+  mocks.bootstrap.bootstrap.mockResolvedValue({
+    ok: true,
+    ids: [TP_SYSTEM_ID],
+  });
   mocks.competitionGroupsImport.listCompetitionGroups.mockResolvedValue(
     'groups' in overrides ? overrides.groups : DEFAULT_GROUPS,
   );
@@ -85,6 +99,14 @@ async function makeService(
   mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue(
     upsertedTrophyAward(500),
   );
+  const competitionIdsByExternalId = new Map(
+    [...(overrides.competitionIdsByTpId ?? new Map([[6543, 42]]))].map(
+      ([tpId, id]) => [String(tpId), id],
+    ),
+  );
+  const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
+    competitionIdsByExternalId,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -102,6 +124,7 @@ async function makeService(
       { provide: ExternalSystemBootstrapService, useValue: mocks.bootstrap },
       { provide: ExternalSystemNameConfigService, useValue: mocks.nameConfig },
       { provide: ImportResultService, useValue: mocks.importResults },
+      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
 
@@ -146,7 +169,10 @@ function upsertCompetition(
     type: 'season',
     eraId: 5,
     teamEraIds: [],
-    externalIds: [],
+    // Matches the tpId (6543) options()'s default competitionsByTpId entry
+    // is keyed under, so the service's own competition-id resolution finds
+    // it via the mocked ReferenceLookupService.
+    externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: '6543' }],
     ...overrides,
   };
 }
@@ -176,7 +202,6 @@ function options(
 ): ImportTpTrophyAwardsOptions {
   return {
     competitionsByTpId: new Map([[6543, competitionEntry()]]),
-    competitionIdsByTpId: new Map([[6543, 42]]),
     teamErasByRosterId: new Map([[7, [{ id: 70, eraId: 5 }]]]),
     ...overrides,
   };
@@ -273,11 +298,11 @@ describe('TpTrophyAwardsImportService', () => {
   );
 
   it('skips a competition whose tpId was not imported', async () => {
-    const { service, mocks } = await makeService(awards([award()]));
+    const { service, mocks } = await makeService(awards([award()]), {
+      competitionIdsByTpId: new Map(),
+    });
 
-    await service.importTrophyAwards(
-      options({ competitionIdsByTpId: new Map() }),
-    );
+    await service.importTrophyAwards(options());
 
     expect(mocks.trophiesImport.upsertTrophy).not.toHaveBeenCalled();
     const { errors, imported } = resultArgs(mocks.importResults);

@@ -28,9 +28,9 @@ export class SppAwardValuesProcessor {
 
     for (const entry of ctx.data.sppAwardValues) {
       const label = `Cannot import SPP award value for "${entry.actionType}"`;
-      const rulesSetId = this.refResolver.resolveRef({
+      const rulesSetId = await this.refResolver.resolveRef({
         ref: entry.rulesSet,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label,
@@ -39,9 +39,9 @@ export class SppAwardValuesProcessor {
       if (rulesSetId === undefined) {
         continue;
       }
-      const race = this.refResolver.resolveOptionalRef({
+      const race = await this.refResolver.resolveOptionalRef({
         ref: entry.race,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label,

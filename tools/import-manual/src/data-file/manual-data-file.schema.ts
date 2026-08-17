@@ -98,9 +98,9 @@ const CompetitionEntrySchema = z.object({
   endDate: IsoDate.nullable().optional(),
   // An explicit external-id pair naming the competition group, in the same
   // synthetic "Name" system a group's own upsert registers itself under (e.g.
-  // { system: 'Name', id: 'Major Season' }) -- resolved against the run's
-  // ExternalIdMap like any other cross-reference. Optional, so an entry that
-  // says nothing about a group leaves the stored classification alone.
+  // { system: 'Name', id: 'Major Season' }) -- resolved against the database
+  // like any other cross-reference. Optional, so an entry that says nothing
+  // about a group leaves the stored classification alone.
   competitionGroup: ExternalRefSchema.optional(),
   externalIds,
 });
@@ -133,9 +133,9 @@ const TrophyEntrySchema = z.object({
   description: z.string().min(1).optional(),
   // An explicit external-id pair naming the competition group, in the same
   // synthetic "Name" system a group's own upsert registers itself under (e.g.
-  // { system: 'Name', id: 'Major Season' }) -- resolved against the run's
-  // ExternalIdMap like any other cross-reference. Optional, so an entry that
-  // says nothing about a group leaves the stored classification alone.
+  // { system: 'Name', id: 'Major Season' }) -- resolved against the database
+  // like any other cross-reference. Optional, so an entry that says nothing
+  // about a group leaves the stored classification alone.
   competitionGroup: ExternalRefSchema.optional(),
   externalIds: z.array(ExternalRefSchema).default([]),
 });
@@ -143,9 +143,10 @@ const TrophyEntrySchema = z.object({
 /**
  * One curated competition group (issue #445) -- the recurring track a
  * competition instance belongs to. `league` is required and is a normal
- * external-id cross-reference, resolved against the run's ExternalIdMap, so
- * the file declaring groups must sit in the same directory as the one
- * declaring the leagues they name.
+ * external-id cross-reference, resolved against the database like any other
+ * cross-reference, so the group only has to have been imported at some
+ * point -- not necessarily by the same run or in the same directory as the
+ * one declaring the leagues they name.
  *
  * A group declares no `externalIds` of its own: its id under the synthetic
  * "Name" system is derived in code from `name` (see

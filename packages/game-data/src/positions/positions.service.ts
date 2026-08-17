@@ -1,4 +1,8 @@
-import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertPosition,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db, Position } from '@blood-bowl-tracker/db';
 import {
   competitionTeams,
@@ -15,6 +19,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, eq, inArray } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -48,9 +53,39 @@ export class PositionsService {
       ConflictErrorClass: PositionUpsertConflictError,
       entityLabelPlural: 'positions',
       buildExternalIdRow: (positionId, pair) => ({ positionId, ...pair }),
+      // A star position's external id can happen to collide with an
+      // already-upserted *regular* position's id (or vice versa): both are
+      // "one matched owner" as far as the external-id lookup is concerned,
+      // but applying the update would silently turn one kind of position
+      // into the other. Reject that as a conflict instead of applying it.
+      detectSemanticConflict: (existingRow, values) =>
+        values.isStarPlayer !== undefined &&
+        existingRow.isStarPlayer !== values.isStarPlayer,
     });
 
     return { position, created };
+  }
+
+  /**
+   * Resolve one external-id pair to the position that already declares it.
+   * The read-only half of what `upsert` does internally, exposed on its own
+   * so a caller can reference a position imported in an earlier run, phase
+   * or tool.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: positionExternalIds,
+      ownerIdColumn: positionExternalIds.positionId,
+      externalSystemIdColumn: positionExternalIds.externalSystemId,
+      externalIdColumn: positionExternalIds.externalId,
+      externalIds,
+    });
   }
 
   /**
