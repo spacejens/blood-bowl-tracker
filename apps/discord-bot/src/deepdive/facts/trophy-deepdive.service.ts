@@ -54,7 +54,9 @@ type RecipientContext = {
  * position/team/race/coach (player) context the toplist insights show, so
  * a reader can identify a recipient they do not know by name — see
  * `TeamContextService`/`PlayerContextService`.
- * Recipients are rendered in per-era sections, each headed `<era> recipients:`, most recent era first — so the era is named once per section instead of on every player row.
+ * Recipients are rendered in per-era sections, each headed
+ * `<era> recipients:`, most recent era first — so the era is named once per
+ * section instead of on every player row.
  */
 @Injectable()
 export class TrophyDeepdiveService {
