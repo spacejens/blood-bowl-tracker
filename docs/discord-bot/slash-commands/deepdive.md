@@ -180,10 +180,14 @@ is broader than the deepdive's own category list: the consequence-only toplists
 buttons, even though those "happened to the player" categories are never shown
 in the deepdive embed itself.
 
+`trophies.list` attaches one button per listed trophy, opening the same
+`/deepdive trophy:<trophy>` view.
+
 This is the intended pattern going forward: as `/deepdive` grows more lookup
 targets, most `/insights` views that list items of a supported target type are
 expected to gain a button per listed item, opening that item's deepdive the
-same way `eras.list`, the coach toplists, and the team toplists do today.
+same way `eras.list`, `trophies.list`, the coach toplists, and the team
+toplists do today.
 
 Drill-down links render as buttons while a view lists at most 25 items —
 Discord's per-message button ceiling. A longer list switches entirely to
