@@ -172,11 +172,14 @@ export class TrophyAwardsService {
    * competition belongs to exactly one era, so there is nothing to group by,
    * and one competition only ever awards a small, bounded number of trophies.
    *
-   * `trophies.id`, `teams.name` and `players.name` are appended as
-   * tiebreakers: neither `recipientKind` nor `trophies.name` is unique
-   * (a tie, or one trophy covering several podium places, means several
-   * award rows share both), so without them Postgres could return those
-   * rows in arbitrary order on every call.
+   * `trophies.id`, `teams.name`/`teams.id` and `players.name`/`players.id`
+   * are appended as tiebreakers: neither `recipientKind` nor `trophies.name`
+   * is unique (a tie, or one trophy covering several podium places, means
+   * several award rows share both), and team/player *names* are not unique
+   * either, so the trailing `teams.id`/`players.id` pair is what actually
+   * guarantees a fully deterministic order — without them, two same-named
+   * teams or players tied for one trophy could still return in arbitrary
+   * order on every call.
    */
   listForCompetition(competitionId: number): Promise<CompetitionTrophyAward[]> {
     return this.db
@@ -200,7 +203,9 @@ export class TrophyAwardsService {
         asc(trophies.name),
         asc(trophies.id),
         asc(teams.name),
+        asc(teams.id),
         asc(players.name),
+        asc(players.id),
       );
   }
 
