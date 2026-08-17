@@ -612,6 +612,7 @@ describe('TrophyDeepdiveService', () => {
       '',
       'Season 24 Era recipients:',
       'Major Season 24: Reikland Reavers',
+      '',
       'Season 23 Era recipients:',
       'Major Season 23: Gouged Eye',
     ]);

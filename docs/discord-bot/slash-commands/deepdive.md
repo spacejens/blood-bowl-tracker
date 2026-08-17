@@ -103,7 +103,9 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   oldest era first, each followed by that era's competition instances, oldest
   first, one line per competition formatted `<name>: <date range>` (or "This
   fixture has never actually been played." when the group has no instances at
-  all, in which case no era heading is shown). Competitions are rendered as
+  all, in which case no era heading is shown) — a blank line separates each
+  era section from the next, so a multi-era group doesn't read as one packed
+  block. Competitions are rendered as
   drill-down buttons before trophies (competitions take priority over trophies
   when the combined list is too long for buttons and switches to select
   menus).
@@ -118,7 +120,9 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   `<competition>: <player> (<position>, <team>, <race>, <coach>)` for a player
   trophy — the same race/coach and position/team/race/coach context the
   `team.toplist` and `player.toplist` insights append to their own rows (the
-  era is left off the row, since the section heading already names it).
+  era is left off the row, since the section heading already names it). A
+  blank line separates each era section from the next, so a long-running
+  trophy doesn't read as one packed block.
   At most 30 recipients are shown; when there are more, the list ends with an
   exact `…and N more not shown.` note computed from the trophy's true award
   count. A trophy with no recorded awards shows a short "nobody has got their

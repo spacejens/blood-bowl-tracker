@@ -138,7 +138,8 @@ export class TrophyDeepdiveService {
         ? [DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE]
         : this.eraSectionGrouper
             .group(shown)
-            .flatMap((section) => [
+            .flatMap((section, index) => [
+              ...(index === 0 ? [] : ['']),
               `${section.eraName} recipients:`,
               ...section.rows.map((recipient) =>
                 this.formatRecipient(recipient, context),

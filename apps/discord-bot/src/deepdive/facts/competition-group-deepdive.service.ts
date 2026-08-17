@@ -107,7 +107,8 @@ export class CompetitionGroupDeepdiveService {
       comps.length > 0
         ? this.eraSectionGrouper
             .group(comps)
-            .flatMap((section) => [
+            .flatMap((section, index) => [
+              ...(index === 0 ? [] : ['']),
               `${section.eraName} competitions:`,
               ...section.rows.map(
                 (comp) =>

@@ -307,10 +307,11 @@ describe('CompetitionGroupDeepdiveService', () => {
     expect(
       (result as { embeds: { description: string }[] }).embeds[0].description
         .split('\n')
-        .slice(-4),
+        .slice(-5),
     ).toEqual([
       'BB2020 competitions:',
       'Chaos Cup 23: dates',
+      '',
       'BB2020 v2 competitions:',
       'Chaos Cup 24: dates',
     ]);
