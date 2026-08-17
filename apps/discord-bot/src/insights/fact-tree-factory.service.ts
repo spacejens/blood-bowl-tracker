@@ -9,6 +9,7 @@ import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
+import { TrophiesListService } from './facts/trophies-list.service';
 
 /**
  * Wraps the pure `buildFactTree()` in a Nest provider so the assembled fact
@@ -26,6 +27,7 @@ export class FactTreeFactoryService {
     private readonly expensiveMistakes: ExpensiveMistakesToplistService,
     private readonly erasList: ErasListService,
     private readonly statsSummary: StatsSummaryFactsService,
+    private readonly trophiesList: TrophiesListService,
   ) {}
 
   build(): FactNode {
@@ -37,6 +39,7 @@ export class FactTreeFactoryService {
       expensiveMistakes: this.expensiveMistakes,
       erasList: this.erasList,
       statsSummary: this.statsSummary,
+      trophiesList: this.trophiesList,
     });
   }
 }
