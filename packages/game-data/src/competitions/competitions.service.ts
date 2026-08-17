@@ -2,6 +2,7 @@ import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { Competition, Db } from '@blood-bowl-tracker/db';
 import {
   competitionExternalIds,
+  competitionGroups,
   competitions,
   competitionTeams,
   DB,
@@ -156,6 +157,8 @@ export class CompetitionsService {
         type: 'season' | 'cup';
         eraId: number;
         eraName: string;
+        competitionGroupId: number;
+        competitionGroupName: string;
         startDate: string;
         endDate: string | null;
       }
@@ -168,11 +171,17 @@ export class CompetitionsService {
         type: competitions.type,
         eraId: competitions.eraId,
         eraName: eras.name,
+        competitionGroupId: competitions.competitionGroupId,
+        competitionGroupName: competitionGroups.name,
         startDate: competitions.startDate,
         endDate: competitions.endDate,
       })
       .from(competitions)
       .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .innerJoin(
+        competitionGroups,
+        eq(competitionGroups.id, competitions.competitionGroupId),
+      )
       .where(eq(competitions.id, id));
     return rows[0];
   }
@@ -216,6 +225,41 @@ export class CompetitionsService {
       .leftJoin(matches, eq(matches.competitionId, competitions.id))
       .where(eq(competitions.eraId, eraId))
       .groupBy(competitions.id)
+      .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
+  }
+
+  /**
+   * Every competition belonging to one recurring group, oldest first. Mirrors
+   * `listByEraChronological`: the left join on matches keeps competitions that
+   * have no matches yet, `groupBy` collapses that join back to one row per
+   * competition, and `min(playedAt) asc nulls last` sorts never-played
+   * competitions after every dated one. Each competition's era name comes
+   * along so the group deepdive can say which era an instance ran in.
+   */
+  listByCompetitionGroupChronological(competitionGroupId: number): Promise<
+    {
+      id: number;
+      name: string;
+      eraId: number;
+      eraName: string;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        eraId: competitions.eraId,
+        eraName: eras.name,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
+      })
+      .from(competitions)
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .leftJoin(matches, eq(matches.competitionId, competitions.id))
+      .where(eq(competitions.competitionGroupId, competitionGroupId))
+      .groupBy(competitions.id, eras.id)
       .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
   }
 

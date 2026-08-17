@@ -1,5 +1,6 @@
 import {
   CoachesService,
+  CompetitionGroupsService,
   CompetitionsService,
   ErasService,
   PlayersService,
@@ -27,6 +28,7 @@ export class DeepdiveAutocompleteService {
   constructor(
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
+    private readonly competitionGroups: CompetitionGroupsService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
@@ -94,6 +96,16 @@ export class DeepdiveAutocompleteService {
         MAX_AUTOCOMPLETE_CHOICES,
       );
       return competitions.map((row) => ({
+        name: `${row.name} (${row.leagueName})`,
+        value: String(row.id),
+      }));
+    }
+    if (focused.name === 'competition-group') {
+      const competitionGroups = await this.competitionGroups.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return competitionGroups.map((row) => ({
         name: `${row.name} (${row.leagueName})`,
         value: String(row.id),
       }));

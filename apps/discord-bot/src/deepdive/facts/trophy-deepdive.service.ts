@@ -22,6 +22,7 @@ import {
 import { PlayerContextService } from '../../insights/player-context.service';
 import { TeamContextService } from '../../insights/team-context.service';
 import {
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -135,9 +136,17 @@ export class TrophyDeepdiveService {
       recipientLines.push(`…and ${truncatedCount} more not shown.`);
     }
 
-    const entries: EntityComponentEntry[] = shown.map((recipient) =>
-      this.buildEntry(recipient),
-    );
+    // Recipient entries first: buildEntityComponents has no internal
+    // prioritisation (first-N / first-group wins), so the recipients keep
+    // button/select-menu priority over the drill-up to the competition group.
+    const entries: EntityComponentEntry[] = [
+      ...shown.map((recipient) => this.buildEntry(recipient)),
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(trophy.competitionGroupId),
+        label: trophy.competitionGroupName,
+      },
+    ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);
 

@@ -9,6 +9,7 @@ import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
+  extractFilterValues,
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
@@ -211,6 +212,7 @@ describe('TrophiesService', () => {
         id: 7,
         name: 'Chaos Cup',
         description: 'The team that wins after four matches.',
+        competitionGroupId: 4,
         competitionGroupName: 'Major',
       };
       const { chains } = await build([header]);
@@ -227,6 +229,43 @@ describe('TrophiesService', () => {
       await build([]);
 
       await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+
+    it('selects the competition group id so the deepdive can link to the group', async () => {
+      const { db } = await build([]);
+
+      await service.findById(1);
+      expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
+        'id',
+        'name',
+        'description',
+        'competitionGroupId',
+        'competitionGroupName',
+      ]);
+    });
+  });
+
+  describe('listByCompetitionGroup', () => {
+    it('returns the id and name of every trophy the group awards, ordered by name', async () => {
+      const rows = [
+        { id: 3, name: '1st place' },
+        { id: 4, name: 'Most casualties' },
+      ];
+      const { db, chains } = await build(rows);
+
+      await expect(service.listByCompetitionGroup(4)).resolves.toEqual(rows);
+      expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
+        'id',
+        'name',
+      ]);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(4);
+      expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns an empty array when the group awards no trophies', async () => {
+      await build([]);
+
+      await expect(service.listByCompetitionGroup(4)).resolves.toEqual([]);
     });
   });
 });
