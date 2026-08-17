@@ -73,7 +73,14 @@ export class TrophyAwardsService {
    * player at all; `team_eras` is only a stepping stone to the team's id and
    * name, since the deepdive links to the team, not the era. `eras` is joined
    * through the competition so each recipient row knows which era it belongs to,
-   * which is what lets the deepdive head one section per era.
+   * which is what lets the deepdive head one section per era. Ordering by
+   * `eras.startDate` before `competitions.startDate` (both descending) is what
+   * guarantees every recipient of one era stays adjacent in the result — the
+   * deepdive's era-section grouping relies on that adjacency, and while real
+   * eras never overlap in time (so ordering by competition date alone would
+   * already produce the same result), sorting on the era's own date first
+   * makes that guarantee explicit rather than incidental. Mirrors the same
+   * fix in `CompetitionsService.listByCompetitionGroupChronological`.
    */
   listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
     return this.db
@@ -94,7 +101,7 @@ export class TrophyAwardsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .leftJoin(players, eq(players.id, trophyAwards.playerId))
       .where(eq(trophyAwards.trophyId, trophyId))
-      .orderBy(desc(competitions.startDate))
+      .orderBy(desc(eras.startDate), desc(competitions.startDate))
       .limit(limit);
   }
 

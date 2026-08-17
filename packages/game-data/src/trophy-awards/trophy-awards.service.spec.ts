@@ -182,12 +182,19 @@ describe('TrophyAwardsService', () => {
       ]);
     });
 
-    it('orders by competition start date descending (most recent first)', async () => {
+    it('orders by era start date before competition start date, both descending (most recent first, era rows kept adjacent)', async () => {
       const { chains } = await build([teamRecipient, playerRecipient]);
 
       await service.listRecipients(1, 30);
 
-      expect(sqlText(firstCallArg(chains[0].orderBy))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 0))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['competitions.start_date'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 1))).toContain(' desc');
     });
 
     it('joins through competitions, eras, team eras and teams, and left-joins players', async () => {
