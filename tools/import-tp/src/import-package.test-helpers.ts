@@ -75,28 +75,35 @@ export function mockEraDataConfigService(
  * A `MockProxy<ReferenceLookupService>` whose `keyOf` mirrors the real
  * tab-joined key derivation (pure, no branching -- exempt from the
  * canned-response rule, same as `tp-eras-import.service.spec.ts`'s own
- * `lookup.keyOf` stub) and whose `lookupMap('era', ...)` resolves from a
- * plain era-name -> id map, keyed under `tpSystemId`. Non-`'era'` kinds
- * resolve to an empty map -- no consumer covered by this helper looks up
- * anything else via the shared lookup mock. Each spec supplies its own
- * name -> id map; a name the spec's `mockEraDataConfigService` didn't
- * declare simply resolves to nothing, matching a real unresolved reference.
+ * `lookup.keyOf` stub) and whose `lookupMap(kind, ...)` resolves from a
+ * plain external-id -> DB-id map per kind, keyed under `tpSystemId`. `era`
+ * always comes from `eraIdsByName`; `race`/`coach` come from `extra`'s
+ * matching map when supplied. A kind with no map (or an id the map doesn't
+ * declare) resolves to nothing, matching a real unresolved reference.
  */
 export function mockReferenceLookupService(
   eraIdsByName: Map<string, number>,
   tpSystemId: number,
+  extra?: {
+    raceIdsByCode?: Map<string, number>;
+    coachIdsByTpId?: Map<string, number>;
+  },
 ): MockProxy<ReferenceLookupService> {
   const lookup = mock<ReferenceLookupService>();
   lookup.keyOf.mockImplementation(
     (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
   );
+  const idsByExternalIdByKind: Record<string, Map<string, number>> = {
+    era: eraIdsByName,
+    race: extra?.raceIdsByCode ?? new Map<string, number>(),
+    coach: extra?.coachIdsByTpId ?? new Map<string, number>(),
+  };
   lookup.lookupMap.mockImplementation((kind) => {
-    if (kind !== 'era') {
-      return Promise.resolve(new Map<string, number>());
-    }
+    const idsByExternalId =
+      idsByExternalIdByKind[kind] ?? new Map<string, number>();
     const map = new Map<string, number>();
-    for (const [name, id] of eraIdsByName) {
-      map.set(`${tpSystemId}\t${name}`, id);
+    for (const [externalId, id] of idsByExternalId) {
+      map.set(`${tpSystemId}\t${externalId}`, id);
     }
     return Promise.resolve(map);
   });

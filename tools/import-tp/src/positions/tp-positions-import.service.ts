@@ -31,7 +31,6 @@ interface StarPositionGroup {
 }
 
 interface ImportPositionsOptions {
-  raceIdsByTeamRaceCode: Map<string, number>;
   raceNamesById: Map<number, string>;
 }
 
@@ -82,7 +81,7 @@ export class TpPositionsImportService {
     positionIdsByTpPositionId: Map<number, number>;
     starPositionIds: Set<number>;
   }> {
-    const { raceIdsByTeamRaceCode, raceNamesById } = options;
+    const { raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
     const positionIdsByTpPositionId = new Map<number, number>();
@@ -129,9 +128,21 @@ export class TpPositionsImportService {
       })),
     );
 
+    const raceIds = await this.lookup.lookupMap(
+      'race',
+      [...new Set(rosters.map(({ roster }) => roster.teamRaceCode))].map(
+        (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+      ),
+    );
+
     const groups = new Map<string, PositionGroup>();
     for (const { roster, era } of rosters) {
-      const raceId = raceIdsByTeamRaceCode.get(roster.teamRaceCode);
+      const raceId = raceIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: roster.teamRaceCode,
+        }),
+      );
       if (raceId === undefined) {
         errors.push(
           this.importResults.error({

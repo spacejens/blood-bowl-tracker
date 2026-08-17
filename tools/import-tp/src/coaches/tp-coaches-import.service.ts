@@ -44,17 +44,15 @@ export class TpCoachesImportService {
    * continues; a throw from files() is recorded and coaches found so far are
    * still imported. Idempotent.
    *
-   * Also returns `coachIdsByTpId`, mapping each imported coach's TP id to its
-   * DB id — unused by this sub-issue, but the hook #196's team import needs to
-   * resolve each team's coachId (mirroring competitionIdsByTpId).
+   * Each coach's DB id is not returned here — downstream consumers (e.g.
+   * TpTeamsImportService) resolve a coach server-side, by its TP `id` as the
+   * external id, via ReferenceLookupService.
    */
   async importCoaches(): Promise<{
     result: ImportResult;
-    coachIdsByTpId: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const coachIdsByTpId = new Map<string, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const systemNames = [
@@ -65,10 +63,7 @@ export class TpCoachesImportService {
     const bootstrap = await this.externalSystemBootstrap.bootstrap(systemNames);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return {
-        result: this.importResults.result({ imported, errors }),
-        coachIdsByTpId,
-      };
+      return { result: this.importResults.result({ imported, errors }) };
     }
     const [tp, name, naf] = bootstrap.ids;
     const systemIds: SystemIds = { tp, name, naf };
@@ -88,15 +83,11 @@ export class TpCoachesImportService {
         errors,
       );
       if (upserted) {
-        coachIdsByTpId.set(coach.id, upserted.id);
         imported += 1;
       }
     }
 
-    return {
-      result: this.importResults.result({ imported, errors }),
-      coachIdsByTpId,
-    };
+    return { result: this.importResults.result({ imported, errors }) };
   }
 
   /**

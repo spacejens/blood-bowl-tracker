@@ -86,17 +86,13 @@ async function run(): Promise<ImportResult> {
 
     const teamOutcome = await app
       .get(TpTeamsImportService)
-      .importTeams(rosters, {
-        raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
-        coachIdsByTpId: coachOutcome.coachIdsByTpId,
-      });
+      .importTeams(rosters);
 
     const {
       result: positionResult,
       positionIdsByTpPositionId,
       starPositionIds,
     } = await app.get(TpPositionsImportService).importPositions(rosters, {
-      raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
       raceNamesById: raceOutcome.raceNamesById,
     });
 
@@ -252,7 +248,6 @@ async function run(): Promise<ImportResult> {
       .get(TpPositionRaceErasImportService)
       .syncStarPositionRaceEras({
         starPositionUsages,
-        raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
       });
 
     // Team participation (match_teams + competition_teams) runs before match

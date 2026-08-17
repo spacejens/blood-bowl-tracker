@@ -30,12 +30,6 @@ interface TeamGroup {
   eraIds: Set<number>;
 }
 
-/** Cross-entity lookups needed to resolve each team's race and coach. */
-interface ImportTeamsLookups {
-  raceIdsByTeamRaceCode: Map<string, number>;
-  coachIdsByTpId: Map<string, number>;
-}
-
 @Injectable()
 export class TpTeamsImportService {
   constructor(
@@ -51,32 +45,26 @@ export class TpTeamsImportService {
 
   /**
    * Import every team from the TP roster files. A team is keyed by its roster
-   * `id` (TP external id) and its name (Name external id); its race resolves via
-   * `raceIdsByTeamRaceCode`, its coach via `coachIdsByTpId`, and its eras
-   * server-side, by external id, against whatever TpErasImportService upserted
-   * moments earlier in the same run (one batched lookup for the whole run, not
-   * one per roster). A team whose race or coach cannot be resolved is recorded
-   * as an error and skipped rather than upserted with an invalid foreign key
-   * (mirrors BblTeamsImportService). Teams are grouped by id so one seen under
-   * multiple eras unions its eras. `rosters` is the already-collected roster
-   * list (via `RosterCollectionService`, run once for all three imports); this
-   * service only groups and upserts.
+   * `id` (TP external id) and its name (Name external id); its race and coach
+   * resolve server-side, by external id, against whatever the races and
+   * coaches imports upserted moments earlier in the same run (one batched
+   * lookup per kind for the whole run, not one per team), and its eras the
+   * same way against whatever TpErasImportService upserted. A team whose race
+   * or coach cannot be resolved is recorded as an error and skipped rather
+   * than upserted with an invalid foreign key (mirrors BblTeamsImportService).
+   * Teams are grouped by id so one seen under multiple eras unions its eras.
+   * `rosters` is the already-collected roster list (via
+   * `RosterCollectionService`, run once for all three imports); this service
+   * only groups and upserts.
    * Also returns `teamErasByRosterId`, mapping each imported team's roster id to
    * the resolved `{ id, eraId }[]` eras from its upsert response — consumed by
    * TpTeamParticipationImportService to resolve a roster id + era id to a
-   * team_eras id.
-   * `lookups` bundles the cross-entity maps needed to resolve a team's race
-   * and coach (kept as one options object to stay within the repo's
-   * 3-parameter limit). Idempotent.
+   * team_eras id. Idempotent.
    */
-  async importTeams(
-    rosters: RosterEntry[],
-    lookups: ImportTeamsLookups,
-  ): Promise<{
+  async importTeams(rosters: RosterEntry[]): Promise<{
     result: ImportResult;
     teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
   }> {
-    const { raceIdsByTeamRaceCode, coachIdsByTpId } = lookups;
     let imported = 0;
     const errors: ImportError[] = [];
     const teamErasByRosterId = new Map<
@@ -146,8 +134,27 @@ export class TpTeamsImportService {
       }
     }
 
+    const raceIds = await this.lookup.lookupMap(
+      'race',
+      [...new Set([...groups.values()].map((g) => g.teamRaceCode))].map(
+        (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+      ),
+    );
+    const coachIds = await this.lookup.lookupMap(
+      'coach',
+      [...new Set([...groups.values()].map((g) => g.coachTpId))].map((id) => ({
+        externalSystemId: tpSystemId,
+        externalId: id,
+      })),
+    );
+
     for (const group of groups.values()) {
-      const raceId = raceIdsByTeamRaceCode.get(group.teamRaceCode);
+      const raceId = raceIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: group.teamRaceCode,
+        }),
+      );
       if (raceId === undefined) {
         errors.push(
           this.importResults.error({
@@ -157,7 +164,12 @@ export class TpTeamsImportService {
         );
         continue;
       }
-      const coachId = coachIdsByTpId.get(group.coachTpId);
+      const coachId = coachIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: group.coachTpId,
+        }),
+      );
       if (coachId === undefined) {
         errors.push(
           this.importResults.error({

@@ -50,6 +50,8 @@ interface MakeServiceOptions {
   bootstrap?: ReturnType<typeof vi.fn>;
   /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
   eraIdsByName?: Map<string, number>;
+  /** Team race code -> DB race id, as if already resolved via ReferenceLookupService. */
+  raceIdsByCode?: Map<string, number>;
   /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
   getEras?: () => EraDataConfig[];
 }
@@ -60,6 +62,10 @@ async function makeService({
   eraIdsByName = new Map([
     ['Third Era', 500],
     ['Fourth era', 600],
+  ]),
+  raceIdsByCode = new Map([
+    ['Dwarf', 50],
+    ['Human', 60],
   ]),
   getEras,
 }: MakeServiceOptions): Promise<{
@@ -87,7 +93,9 @@ async function makeService({
   if (getEras) {
     eraDataConfig.getEras.mockImplementation(getEras);
   }
-  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID);
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
+    raceIdsByCode,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -113,11 +121,6 @@ async function makeService({
   };
 }
 
-const raceIdsByTeamRaceCode = new Map<string, number>([
-  ['Dwarf', 50],
-  ['Human', 60],
-]);
-
 describe('TpPositionRaceErasImportService', () => {
   it('syncs one star position with every distinct (race, era) pair it was fielded on', async () => {
     const syncRaceEras = vi
@@ -131,7 +134,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     await service.syncStarPositionRaceEras({
       starPositionUsages,
-      raceIdsByTeamRaceCode,
     });
 
     expect(syncRaceEras).toHaveBeenCalledTimes(1);
@@ -162,7 +164,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     await service.syncStarPositionRaceEras({
       starPositionUsages,
-      raceIdsByTeamRaceCode,
     });
 
     expect(syncRaceEras).toHaveBeenCalledWith(
@@ -177,7 +178,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     await service.syncStarPositionRaceEras({
       starPositionUsages: [],
-      raceIdsByTeamRaceCode,
     });
 
     expect(syncRaceEras).not.toHaveBeenCalled();
@@ -198,7 +198,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     await service.syncStarPositionRaceEras({
       starPositionUsages,
-      raceIdsByTeamRaceCode,
     });
 
     expect(syncRaceEras).toHaveBeenCalledTimes(2);
@@ -225,7 +224,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     await service.syncStarPositionRaceEras({
       starPositionUsages,
-      raceIdsByTeamRaceCode,
     });
 
     const { errors } = resultArgs(importResults);
@@ -246,7 +244,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     await service.syncStarPositionRaceEras({
       starPositionUsages,
-      raceIdsByTeamRaceCode,
     });
 
     const { errors } = resultArgs(importResults);
@@ -267,7 +264,6 @@ describe('TpPositionRaceErasImportService', () => {
 
     const { result } = await service.syncStarPositionRaceEras({
       starPositionUsages,
-      raceIdsByTeamRaceCode,
     });
 
     expect(result).toBe(CANNED_RESULT);
@@ -283,7 +279,6 @@ describe('TpPositionRaceErasImportService', () => {
       starPositionUsages: [
         { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       ],
-      raceIdsByTeamRaceCode,
     });
 
     expect(lookup.lookupMap).toHaveBeenCalledWith(
@@ -309,7 +304,6 @@ describe('TpPositionRaceErasImportService', () => {
       starPositionUsages: [
         { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       ],
-      raceIdsByTeamRaceCode,
     });
 
     const { imported, errors } = resultArgs(importResults);
@@ -332,7 +326,6 @@ describe('TpPositionRaceErasImportService', () => {
       starPositionUsages: [
         { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       ],
-      raceIdsByTeamRaceCode,
     });
 
     const { imported, errors } = resultArgs(importResults);

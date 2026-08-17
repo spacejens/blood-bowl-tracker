@@ -13,7 +13,6 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 
 export interface SyncStarPositionRaceErasOptions {
   starPositionUsages: StarPositionUsage[];
-  raceIdsByTeamRaceCode: Map<string, number>;
 }
 
 @Injectable()
@@ -46,7 +45,6 @@ export class TpPositionRaceErasImportService {
    */
   async syncStarPositionRaceEras({
     starPositionUsages,
-    raceIdsByTeamRaceCode,
   }: SyncStarPositionRaceErasOptions): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -83,6 +81,13 @@ export class TpPositionRaceErasImportService {
       })),
     );
 
+    const raceIds = await this.lookup.lookupMap(
+      'race',
+      [...new Set(starPositionUsages.map((u) => u.teamRaceCode))].map(
+        (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+      ),
+    );
+
     // positionId -> ("raceId:eraId" -> { raceId, eraId }) for per-position dedup.
     const pairsByPosition = new Map<
       number,
@@ -90,7 +95,12 @@ export class TpPositionRaceErasImportService {
     >();
 
     for (const usage of starPositionUsages) {
-      const raceId = raceIdsByTeamRaceCode.get(usage.teamRaceCode);
+      const raceId = raceIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: usage.teamRaceCode,
+        }),
+      );
       const eraId = eraIds.get(
         this.lookup.keyOf({
           externalSystemId: tpSystemId,

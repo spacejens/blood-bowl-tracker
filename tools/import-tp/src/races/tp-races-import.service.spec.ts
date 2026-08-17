@@ -167,7 +167,7 @@ describe('TpRacesImportService', () => {
       upsertRace,
     });
 
-    const { raceIdsByTeamRaceCode } = await service.importRaces([
+    await service.importRaces([
       rosterEntry('Fourth era', {
         id: 1,
         teamRace: 'Dwarf_BB2025',
@@ -194,7 +194,6 @@ describe('TpRacesImportService', () => {
       },
       expect.any(Array),
     );
-    expect(raceIdsByTeamRaceCode.get('Dwarf_BB2025')).toBe(50);
   });
 
   it('returns raceNamesById mapping each upserted race DB id to its display name', async () => {
@@ -222,7 +221,7 @@ describe('TpRacesImportService', () => {
       upsertRace,
     });
 
-    const { raceIdsByTeamRaceCode } = await service.importRaces([
+    await service.importRaces([
       rosterEntry('Fourth era', {
         id: 1,
         teamRace: 'Dwarf',
@@ -244,8 +243,6 @@ describe('TpRacesImportService', () => {
       { externalSystemId: 2, externalId: 'Dwarf' },
     ]);
     expect(data.eras).toEqual([100, 200]);
-    expect(raceIdsByTeamRaceCode.get('Dwarf')).toBe(50);
-    expect(raceIdsByTeamRaceCode.get('Dwarf_BB2025')).toBe(50);
   });
 
   it('accumulates eras when one code appears under multiple eras', async () => {

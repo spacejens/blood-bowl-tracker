@@ -44,21 +44,21 @@ export class TpRacesImportService {
    * Name external id, and every era any contributing roster was seen under
    * -- each era resolved server-side, by external id, against whatever
    * TpErasImportService upserted moments earlier in the same run (one batched
-   * lookup for the whole run, not one per roster). Returns
-   * `raceIdsByTeamRaceCode` keyed by CODE (not name), so a roster's
-   * `teamRaceCode` resolves directly to the unified race DB id for the
-   * downstream positions/teams import. `rosters` is the already-collected
-   * roster list (via `RosterCollectionService`, run once for all three
-   * imports); this service only groups and upserts. Idempotent.
+   * lookup for the whole run, not one per roster). `rosters` is the
+   * already-collected roster list (via `RosterCollectionService`, run once
+   * for all three imports); this service only groups and upserts.
+   * Returns `raceNamesById` (DB race id -> display name), used by the
+   * downstream positions import to build a Name external id; each race's own
+   * DB id is not otherwise returned — downstream consumers (teams,
+   * positions, star position race-eras) resolve a race server-side, by its
+   * `teamRaceCode` as the external id, via ReferenceLookupService. Idempotent.
    */
   async importRaces(rosters: RosterEntry[]): Promise<{
     result: ImportResult;
-    raceIdsByTeamRaceCode: Map<string, number>;
     raceNamesById: Map<number, string>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const raceIdsByTeamRaceCode = new Map<string, number>();
     const raceNamesById = new Map<number, string>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
@@ -70,7 +70,6 @@ export class TpRacesImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        raceIdsByTeamRaceCode,
         raceNamesById,
       };
     }
@@ -90,7 +89,6 @@ export class TpRacesImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        raceIdsByTeamRaceCode,
         raceNamesById,
       };
     }
@@ -143,15 +141,11 @@ export class TpRacesImportService {
       if (upserted) {
         imported += 1;
         raceNamesById.set(upserted.id, group.raceName);
-        for (const code of group.codes) {
-          raceIdsByTeamRaceCode.set(code, upserted.id);
-        }
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      raceIdsByTeamRaceCode,
       raceNamesById,
     };
   }
