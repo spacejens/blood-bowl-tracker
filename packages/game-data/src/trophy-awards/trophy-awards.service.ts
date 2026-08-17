@@ -3,6 +3,7 @@ import type { Db, TrophyAward } from '@blood-bowl-tracker/db';
 import {
   competitions,
   DB,
+  eras,
   players,
   teamEras,
   teams,
@@ -39,12 +40,17 @@ export class TrophyAwardRecipientMismatchError extends Error {}
 
 /**
  * One award of a trophy, as the trophy deepdive renders it: which competition
- * it was won in, which team won it, and — for a player trophy — which player.
- * `playerId`/`playerName` are `null` for a team trophy.
+ * it was won in, which era that competition belongs to, which team won it,
+ * and — for a player trophy — which player. `playerId`/`playerName` are
+ * `null` for a team trophy. The era comes along so the deepdive can head each
+ * run of same-era recipients with the era's name instead of repeating it on
+ * every row.
  */
 export type TrophyRecipient = {
   competitionName: string;
   competitionStartDate: string;
+  eraId: number;
+  eraName: string;
   teamId: number;
   teamName: string;
   playerId: number | null;
@@ -65,13 +71,17 @@ export class TrophyAwardsService {
    *
    * `players` is left-joined because a team trophy's award row carries no
    * player at all; `team_eras` is only a stepping stone to the team's id and
-   * name, since the deepdive links to the team, not the era.
+   * name, since the deepdive links to the team, not the era. `eras` is joined
+   * through the competition so each recipient row knows which era it belongs to,
+   * which is what lets the deepdive head one section per era.
    */
   listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
     return this.db
       .select({
         competitionName: competitions.name,
         competitionStartDate: competitions.startDate,
+        eraId: eras.id,
+        eraName: eras.name,
         teamId: teams.id,
         teamName: teams.name,
         playerId: players.id,
@@ -79,6 +89,7 @@ export class TrophyAwardsService {
       })
       .from(trophyAwards)
       .innerJoin(competitions, eq(competitions.id, trophyAwards.competitionId))
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
       .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .leftJoin(players, eq(players.id, trophyAwards.playerId))

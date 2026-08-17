@@ -145,6 +145,8 @@ describe('TrophyAwardsService', () => {
     const teamRecipient = {
       competitionName: 'Major Season 24',
       competitionStartDate: '2024-01-15',
+      eraId: 20,
+      eraName: 'BB2020',
       teamId: 30,
       teamName: 'Reikland Reavers',
       playerId: null,
@@ -153,6 +155,8 @@ describe('TrophyAwardsService', () => {
     const playerRecipient = {
       competitionName: 'Minor Season 23',
       competitionStartDate: '2023-01-15',
+      eraId: 19,
+      eraName: 'BB2016',
       teamId: 31,
       teamName: 'Gouged Eye',
       playerId: 40,
@@ -186,7 +190,7 @@ describe('TrophyAwardsService', () => {
       expect(sqlText(firstCallArg(chains[0].orderBy))).toContain(' desc');
     });
 
-    it('joins through competitions, team eras and teams, and left-joins players', async () => {
+    it('joins through competitions, eras, team eras and teams, and left-joins players', async () => {
       const { chains } = await build([]);
 
       await service.listRecipients(1, 30);
@@ -196,13 +200,25 @@ describe('TrophyAwardsService', () => {
       ).toEqual(['competitions.id', 'trophy_awards.competition_id']);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
-      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      ).toEqual(['eras.id', 'competitions.era_id']);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 3, 1)),
       ).toEqual(['teams.id', 'team_eras.team_id']);
       expect(
         extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['players.id', 'trophy_awards.player_id']);
+    });
+
+    it('returns the era each award was won in', async () => {
+      await build([teamRecipient]);
+
+      const [recipient] = await service.listRecipients(1, 30);
+
+      expect(recipient.eraId).toBe(20);
+      expect(recipient.eraName).toBe('BB2020');
     });
 
     it('returns an empty list when the trophy has never been awarded', async () => {
