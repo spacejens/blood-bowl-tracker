@@ -240,9 +240,14 @@ export class TpTeamParticipationImportService {
       errors,
     } = options;
     const { upsert } = entry;
+    // Read once here, from the same upsert this method already has in scope,
+    // and reused below for both the competition-id lookup key and each
+    // match's own external id -- rather than reaching into
+    // `upsert.externalIds[0]` a second time for the same entry.
+    const externalSystemId = upsert.externalIds[0].externalSystemId;
     const competitionId = competitionIds.get(
       this.lookup.keyOf({
-        externalSystemId: upsert.externalIds[0].externalSystemId,
+        externalSystemId,
         externalId: String(tpId),
       }),
     );
@@ -257,7 +262,6 @@ export class TpTeamParticipationImportService {
     }
 
     const matches = matchesByCompetitionId.get(competitionId) ?? [];
-    const externalSystemId = upsert.externalIds[0].externalSystemId;
     for (const match of matches) {
       const homeTeamEraId = this.resolveTeamEraId({
         teamErasByRosterId,

@@ -21,7 +21,14 @@ export interface ResolveCompetitionIdsOptions {
 
 export interface ResolveCompetitionIdsResult {
   result: ImportResult;
-  /** Each competition's TP id to its resolved database id. */
+  /**
+   * Each competition's TP id to its resolved database id. `main.ts` doesn't
+   * currently read this field itself -- it only needs the two derived maps
+   * below -- but it is this resolver's own raw intermediate result (the
+   * per-TP-id id lookup both derived maps are built from), so it stays on
+   * the return shape for any future caller that needs the raw id map rather
+   * than one of the two derived views.
+   */
   competitionIdsByTpId: Map<number, number>;
   /** Each competition's database id to its cup/season type. */
   competitionTypesByCompetitionId: Map<number, 'season' | 'cup'>;
@@ -61,21 +68,26 @@ export class TpCompetitionIdResolverService {
     const competitionTypesByCompetitionId = new Map<number, 'season' | 'cup'>();
     const eraIdByCompetitionId = new Map<number, number>();
 
-    const resolved = await this.lookup.lookupMap(
-      'competition',
-      [...competitionsByTpId].map(([tpId, entry]) => ({
+    // Each entry's TP external system id is read out of its own upsert once
+    // here, into `ref`, and reused below for both the batched lookup and the
+    // per-entry key -- rather than reaching into `entry.upsert.externalIds[0]`
+    // a second time for the same entry.
+    const entries = [...competitionsByTpId].map(([tpId, entry]) => ({
+      tpId,
+      entry,
+      ref: {
         externalSystemId: entry.upsert.externalIds[0].externalSystemId,
         externalId: String(tpId),
-      })),
+      },
+    }));
+
+    const resolved = await this.lookup.lookupMap(
+      'competition',
+      entries.map(({ ref }) => ref),
     );
 
-    for (const [tpId, entry] of competitionsByTpId) {
-      const competitionId = resolved.get(
-        this.lookup.keyOf({
-          externalSystemId: entry.upsert.externalIds[0].externalSystemId,
-          externalId: String(tpId),
-        }),
-      );
+    for (const { tpId, entry, ref } of entries) {
+      const competitionId = resolved.get(this.lookup.keyOf(ref));
       if (competitionId === undefined) {
         errors.push(
           this.importResults.error({
