@@ -251,28 +251,27 @@ export class TeamDeepdiveService {
       playerLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    // No placeholder when the team has no trophies — the section is simply
+    // absent, rather than reported empty. This also covers the case where the
+    // list query raced a deletion and came back empty against a stale
+    // nonzero total: there is nothing to head a section with either way.
     const honorLines =
       honors.length === 0
-        ? ['Honors: None recorded']
-        : [
-            'Honors:',
-            ...this.eraSectionGrouper
-              .group(honors)
-              .flatMap((section, index) => [
-                ...(index === 0 ? [] : ['']),
-                `${section.eraName} recipients:`,
-                ...section.rows.map((honor) =>
-                  this.formatHonor(honor, team.name, honorSuffixes),
-                ),
-              ]),
-          ];
+        ? []
+        : this.eraSectionGrouper
+            .group(honors)
+            .flatMap((section, index) => [
+              ...(index === 0 ? [] : ['']),
+              `${section.eraName} trophies:`,
+              ...section.rows.map((honor) =>
+                this.formatHonor(honor, honorSuffixes),
+              ),
+            ]);
     // `honorsTotal` is the real number of honors, so this remainder is exact
     // rather than "at least one more". Using `honors.length` (rather than
     // `MAX_TEAM_HONORS`) keeps it self-maintaining if the query's returned row
-    // count ever changes. Gated on `honors.length > 0` too: if the list query
-    // raced a deletion and came back empty against a stale nonzero total, the
-    // empty state above already said there is nothing to show, and an
-    // overflow note alongside it would contradict that.
+    // count ever changes. Gated on `honors.length > 0` too: with no section
+    // to append it to, an overflow note would have nothing to attach to.
     const honorsTruncatedCount = honorsTotal - honors.length;
     if (honors.length > 0 && honorsTruncatedCount > 0) {
       honorLines.push(`…and ${honorsTruncatedCount} more not shown.`);
@@ -295,8 +294,7 @@ export class TeamDeepdiveService {
     const description = [
       ...header,
       `Career: ${span.start} – ${span.end}`,
-      '',
-      ...honorLines,
+      ...(honorLines.length === 0 ? [] : ['', ...honorLines]),
       '',
       'Top players by match events:',
       ...playerLines,
@@ -315,20 +313,19 @@ export class TeamDeepdiveService {
   }
 
   /**
-   * A team honor names the team that holds it; a player honor names the
-   * player, with their position appended. Inverted from
-   * `TrophyDeepdiveService.formatRecipient`, where the competition names the
-   * recipient: here the trophy is the varying part, since one team can hold
-   * many different trophies.
+   * Leads with the competition, mirroring `TrophyDeepdiveService.formatRecipient`,
+   * with the trophy named alongside it in parentheses since — unlike that
+   * service, where the trophy is fixed for the whole embed — one team can
+   * hold many different trophies. The team itself is never named: every row
+   * is already scoped to the one team this embed is about. A team honor is
+   * therefore just `<competition> (<trophy>)`; a player honor adds `: <player>`
+   * with their position appended, since the player is the one thing that
+   * varies row to row within this team.
    */
-  private formatHonor(
-    honor: TeamHonor,
-    teamName: string,
-    suffixes: Map<number, string>,
-  ): string {
+  private formatHonor(honor: TeamHonor, suffixes: Map<number, string>): string {
     return this.isPlayerHonor(honor)
-      ? `${honor.trophyName}: ${honor.playerName}${suffixes.get(honor.playerId) ?? ''}`
-      : `${honor.trophyName}: ${teamName}`;
+      ? `${honor.competitionName} (${honor.trophyName}): ${honor.playerName}${suffixes.get(honor.playerId) ?? ''}`
+      : `${honor.competitionName} (${honor.trophyName})`;
   }
 
   /**

@@ -49,9 +49,9 @@ import { TeamDeepdiveService } from './team-deepdive.service';
 
 /**
  * A `TrophyAwardsService` mock. Defaults to a team with no honors, so tests
- * about other parts of the embed are unaffected by the honors section beyond
- * its "None recorded" placeholder line. `count` defaults to the row count, so
- * a test only supplies it when exercising the overflow remainder.
+ * about other parts of the embed are unaffected by the trophies section,
+ * which is omitted entirely in that case. `count` defaults to the row count,
+ * so a test only supplies it when exercising the overflow remainder.
  */
 function makeTrophyAwards(
   honors: TeamHonor[] = [],
@@ -179,8 +179,6 @@ describe('TeamDeepdiveService', () => {
             'Eras: None recorded',
             'Career: 2021-09-01 – 2023-06-10',
             '',
-            'Honors: None recorded',
-            '',
             'Top players by match events:',
             '1. Griff — 20',
             '1. Morg — 11',
@@ -248,8 +246,6 @@ describe('TeamDeepdiveService', () => {
             'Coach: Roze Madder',
             'Eras: BB2016, BB2020',
             'Career: 2021-09-01 – 2023-06-10',
-            '',
-            'Honors: None recorded',
             '',
             'Top players by match events:',
             '1. Griff — 20',
@@ -694,7 +690,7 @@ describe('TeamDeepdiveService', () => {
     playerName: 'Grombrindal',
   };
 
-  it('renders a team honor as "<trophy>: <team>" under its era heading', async () => {
+  it('renders a team honor as "<competition> (<trophy>)" under its era heading', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -714,16 +710,15 @@ describe('TeamDeepdiveService', () => {
       'Eras: None recorded',
       'Career: 2021-09-01 – 2023-06-10',
       '',
-      'Honors:',
-      'Season 4 recipients:',
-      'Spike! Cup: 40 grinders',
+      'Season 4 trophies:',
+      'Season 4 Major (Spike! Cup)',
       '',
       'Top players by match events:',
       '1. Griff — 20',
     ]);
   });
 
-  it('renders a player honor as "<trophy>: <player><position suffix>"', async () => {
+  it('renders a player honor as "<competition> (<trophy>): <player><position suffix>"', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -738,7 +733,7 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     expect(result.embeds[0].description.split('\n')).toContain(
-      'MVP: Grombrindal (Blitzer)',
+      'Season 4 Minor (MVP): Grombrindal (Blitzer)',
     );
   });
 
@@ -781,12 +776,11 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Honors:');
-    expect(lines.slice(start, start + 4)).toEqual([
-      'Honors:',
-      'Season 4 recipients:',
-      'Spike! Cup: 40 grinders',
-      'MVP: Grombrindal',
+    const start = lines.indexOf('Season 4 trophies:');
+    expect(lines.slice(start, start + 3)).toEqual([
+      'Season 4 trophies:',
+      'Season 4 Major (Spike! Cup)',
+      'Season 4 Minor (MVP): Grombrindal',
     ]);
   });
 
@@ -814,18 +808,17 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Honors:');
-    expect(lines.slice(start, start + 6)).toEqual([
-      'Honors:',
-      'Season 4 recipients:',
-      'Spike! Cup: 40 grinders',
+    const start = lines.indexOf('Season 4 trophies:');
+    expect(lines.slice(start, start + 5)).toEqual([
+      'Season 4 trophies:',
+      'Season 4 Major (Spike! Cup)',
       '',
-      'Season 2 recipients:',
-      'Spike! Cup: 40 grinders',
+      'Season 2 trophies:',
+      'Season 2 Major (Spike! Cup)',
     ]);
   });
 
-  it('shows "Honors: None recorded" when the team has won nothing', async () => {
+  it('omits the trophies section entirely when the team has won nothing', async () => {
     const { service, trophyAwards } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -837,18 +830,23 @@ describe('TeamDeepdiveService', () => {
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
-    expect(result.embeds[0].description.split('\n')).toContain(
-      'Honors: None recorded',
-    );
+    expect(result.embeds[0].description.split('\n')).toEqual([
+      'Race: Dwarf',
+      'Coach: Roze Madder',
+      'Eras: None recorded',
+      'Career: 2021-09-01 – 2023-06-10',
+      '',
+      'Top players by match events:',
+    ]);
     // A confirmed zero total means there is nothing left to list, so the list
     // query is never issued.
     expect(trophyAwards.listByTeam).not.toHaveBeenCalled();
   });
 
-  it('shows "Honors: None recorded" when the count is stale but the list comes back empty', async () => {
+  it('omits the trophies section when the count is stale but the list comes back empty', async () => {
     // A nonzero countByTeam paired with a zero-row listByTeam can happen if an
-    // award is deleted between the two queries; the empty state must key off
-    // the rows actually returned, not the (now stale) total.
+    // award is deleted between the two queries; the section must key off the
+    // rows actually returned, not the (now stale) total.
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -861,10 +859,10 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('Honors: None recorded');
-    // The empty state already says there is nothing to show; an overflow
-    // note alongside it would contradict that, even though `honorsTotal`
-    // is still (stalely) nonzero.
+    expect(lines.some((line) => line.includes('trophies:'))).toBe(false);
+    // The section is skipped entirely; an overflow note alongside no section
+    // would contradict that, even though `honorsTotal` is still (stalely)
+    // nonzero.
     expect(lines.some((line) => line.includes('more not shown.'))).toBe(false);
   });
 

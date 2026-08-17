@@ -56,30 +56,32 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
 - **A coach that matches nothing** — the bot replies with a not-found message.
 - **`team:<team>`** — the bot replies with an embed for that team: the team
   name as the title, then its race, its coach, its era list, its career span
-  (the first and last dates across every match it has played), a blank line,
-  `Honors:` followed by one `<era> recipients:` heading per era, newest era
-  first, each followed by that era's awards newest-first, one line per award
-  formatted `<trophy>: <team>` for a trophy won by the team itself or
-  `<trophy>: <player> (<position>)` for a trophy won by one of its players —
-  the two kinds are interleaved within an era rather than split, since both
-  are that era's honors, and the race, coach and era are left off the rows
-  because the header and the section heading already name them. A blank line
-  separates each era section from the next. At most 30 honors are shown; when
-  there are more, the list ends with an exact `…and N more not shown.` note
-  computed from the team's true award count. A team with no recorded honors
-  shows a single `Honors: None recorded` line instead. Then a blank line and
+  (the first and last dates across every match it has played), then — only
+  when the team has recorded trophies, with the whole section omitted
+  otherwise rather than a placeholder line — a blank line and one
+  `<era> trophies:` heading per era, newest era first, each followed by that
+  era's awards newest-first, one line per award formatted
+  `<competition> (<trophy>)` for a trophy won by the team itself or
+  `<competition> (<trophy>): <player> (<position>)` for a trophy won by one
+  of its players — the two kinds are interleaved within an era rather than
+  split, since both are that era's trophies, and the team, race, coach and
+  era are left off the rows because the header, the embed's own subject and
+  the section heading already name them. A blank line separates each era
+  section from the next. At most 30 trophies are shown; when there are more,
+  the list ends with an exact `…and N more not shown.` note computed from the
+  team's true award count. Then a blank line and
   `Top players by match events:` followed by its top five players by total
   match events — every recorded event a player took part in, of any type,
   counted together — one line per player formatted
   `<rank>. <player> — <events>`. Ties at the fifth-place cutoff are all shown,
   up to ten players (the same convention `/insights` toplists use, though at
   most ten players are fetched, so the "…and N more tied." note never actually
-  appears here). Each honor is rendered as a drill-down button to the trophy,
+  appears here). Each trophy is rendered as a drill-down button to the trophy,
   plus a button to the player for a player award; those come before the
   top-players buttons, which in turn come before the race/coach/era header
   buttons, so the most specific content keeps button priority. A team that
   exists but has recorded no matches shows a short "hasn't played yet" message
-  in place of the career span, honors and player list, but still shows its
+  in place of the career span, trophies and player list, but still shows its
   race and coach.
 - **A team that matches nothing** — the bot replies with a not-found message.
 - **`player:<player>`** — the bot replies with an embed for that player: the
