@@ -271,7 +271,7 @@ and coach, a player's position, a competition id — it asks the API to resolve
 that entity's external id (see
 [RPC conventions](../api/rpc-conventions.md#reference-resolution)) rather
 than consulting a map built earlier in the same run. Each step resolves
-everything it needs in one batched call and then looks records up locally,
+everything it needs in one batched call and then looks the records up locally,
 so the network cost is one round trip per step, not per record.
 
 The ordering in `main.ts` still matters — a race has to be upserted before a
