@@ -319,7 +319,7 @@ describe('TrophyAwardsService', () => {
       ]);
     });
 
-    it('orders by recipient kind (team before player, per the enum declaration order) then trophy name, both ascending', async () => {
+    it('orders by recipient kind (team before player, per the enum declaration order) then trophy name, then trophy id, team name and player name as tiebreakers, all ascending', async () => {
       const { chains } = await build([teamAwardRecipient]);
 
       await service.listForCompetition(7);
@@ -332,6 +332,18 @@ describe('TrophyAwardsService', () => {
         ['trophies.name'],
       );
       expect(sqlText(firstCallArg(chains[0].orderBy, 0, 1))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['trophies.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 3))).toEqual(
+        ['teams.name'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 3))).toContain(' asc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 4))).toEqual(
+        ['players.name'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 4))).toContain(' asc');
     });
 
     it('joins through trophies, team eras and teams, and left-joins players', async () => {

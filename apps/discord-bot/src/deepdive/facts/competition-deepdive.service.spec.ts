@@ -655,18 +655,8 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('decorates team awards and player awards with the right context options', async () => {
-    const teamContext = mock<TeamContextService>();
-    teamContext.attachSuffixes.mockImplementation((rows: unknown[]) =>
-      Promise.resolve(
-        rows.map((row) => ({ ...(row as object), contextSuffix: '' })),
-      ),
-    );
-    const playerContext = mock<PlayerContextService>();
-    playerContext.attachSuffixes.mockImplementation((rows: unknown[]) =>
-      Promise.resolve(
-        rows.map((row) => ({ ...(row as object), contextSuffix: '' })),
-      ),
-    );
+    const teamContext = passthroughTeamContext();
+    const playerContext = passthroughPlayerContext();
     const awards = [teamAward(), playerAward()];
     const { service } = await makeService({
       competitions: makeCompetitions({

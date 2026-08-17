@@ -148,6 +148,12 @@ export class TrophyAwardsService {
    * deliberately no `limit` and no era grouping (unlike `listRecipients`): a
    * competition belongs to exactly one era, so there is nothing to group by,
    * and one competition only ever awards a small, bounded number of trophies.
+   *
+   * `trophies.id`, `teams.name` and `players.name` are appended as
+   * tiebreakers: neither `recipientKind` nor `trophies.name` is unique
+   * (a tie, or one trophy covering several podium places, means several
+   * award rows share both), so without them Postgres could return those
+   * rows in arbitrary order on every call.
    */
   listForCompetition(competitionId: number): Promise<CompetitionTrophyAward[]> {
     return this.db
@@ -166,7 +172,13 @@ export class TrophyAwardsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .leftJoin(players, eq(players.id, trophyAwards.playerId))
       .where(eq(trophyAwards.competitionId, competitionId))
-      .orderBy(asc(trophies.recipientKind), asc(trophies.name));
+      .orderBy(
+        asc(trophies.recipientKind),
+        asc(trophies.name),
+        asc(trophies.id),
+        asc(teams.name),
+        asc(players.name),
+      );
   }
 
   /**

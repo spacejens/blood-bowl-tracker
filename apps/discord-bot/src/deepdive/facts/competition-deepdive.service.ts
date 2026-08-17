@@ -56,8 +56,9 @@ type AwardContext = {
 
 /**
  * Composes the competition header (type), its era line, its recurring group,
- * its duration, and its participating-teams list into a single embed. Shared
- * by `/deepdive competition:<id>` and the competition deepdive buttons. Each
+ * its duration, its participating-teams list, and its trophies/awards section
+ * into a single embed. Shared by `/deepdive competition:<id>` and the
+ * competition deepdive buttons. Each
  * DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
  * timeout is distinguishable from a genuine "not found" (`undefined`). The
  * era (always present) and each participating team are rendered as drill-down
@@ -71,7 +72,9 @@ type AwardContext = {
  * trophy deepdive shows, so a reader can identify a winner they do not know
  * by name. Each recipient and each distinct trophy becomes a drill-down
  * entry; a team that both participated and won is collapsed to one button by
- * `buildEntityComponents`' own dedup, so this service adds none of its own.
+ * `buildEntityComponents`' own dedup, so this service adds no team/player
+ * dedup of its own (trophy entries are still locally deduped by id — see
+ * `buildTrophyEntries`).
  */
 @Injectable()
 export class CompetitionDeepdiveService {
@@ -229,8 +232,8 @@ export class CompetitionDeepdiveService {
   private async buildAwardContext(
     awards: CompetitionTrophyAward[],
   ): Promise<AwardContext> {
-    const teamRows = awards.filter((row) => row.recipientKind === 'team');
-    const playerRows = awards.filter((row) => row.recipientKind === 'player');
+    const teamRows = awards.filter((row) => this.isTeamAward(row));
+    const playerRows = awards.filter((row) => !this.isTeamAward(row));
     const [decoratedTeams, decoratedPlayers] = await Promise.all([
       this.teamContext.attachSuffixes(teamRows, (row) => row.teamId, {
         includeRace: true,
@@ -264,23 +267,22 @@ export class CompetitionDeepdiveService {
   /**
    * A team award names the team with its race/coach context; a player award
    * names the player with their position/team/race/coach context. The
-   * `playerId`/`playerName` casts are safe on the player branch: the row's own
-   * `recipientKind` guarantees both are set (enforced by
-   * `TrophyAwardsService.upsert`). Mirrors
-   * `TrophyDeepdiveService.formatRecipient`.
+   * `playerId`/`playerName` casts are safe on the player branch: `isTeamAward`
+   * guarantees both are set there, regardless of what `recipientKind` claims.
+   * Mirrors `TrophyDeepdiveService.formatRecipient`.
    */
   private formatAward(
     award: CompetitionTrophyAward,
     context: AwardContext,
   ): string {
-    return award.recipientKind === 'team'
+    return this.isTeamAward(award)
       ? `${award.trophyName}: ${award.teamName}${context.teamSuffixes.get(award.teamId) ?? ''}`
       : `${award.trophyName}: ${award.playerName}${context.playerSuffixes.get(award.playerId as number) ?? ''}`;
   }
 
   /** Drill down to whoever actually received the award. */
   private buildAwardEntry(award: CompetitionTrophyAward): EntityComponentEntry {
-    return award.recipientKind === 'team'
+    return this.isTeamAward(award)
       ? {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(award.teamId),
@@ -291,6 +293,21 @@ export class CompetitionDeepdiveService {
           entityId: String(award.playerId),
           label: award.playerName as string,
         };
+  }
+
+  /**
+   * A plain boolean (rather than a type guard) so it can gate both the
+   * filters in `buildAwardContext` and the ternaries above with one shared
+   * predicate. Checks `playerId` rather than trusting `recipientKind` alone:
+   * `trophy_awards` carries no database constraint preventing a `player`-kind
+   * row from having a null `playerId` (see
+   * `packages/db/src/schema/trophy-awards.ts`), so a row like that is treated
+   * as a team award — using `teamName`/`teamId`, which are never null —
+   * rather than rendering a `null` label or a broken button. Mirrors
+   * `TrophyDeepdiveService.isTeamRecipient`.
+   */
+  private isTeamAward(award: CompetitionTrophyAward): boolean {
+    return award.recipientKind === 'team' || award.playerId === null;
   }
 
   /**
