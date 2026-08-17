@@ -10,6 +10,7 @@ import {
   RacesModule,
   RulesSetsModule,
   TeamsModule,
+  TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
@@ -29,6 +30,7 @@ import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
+import { TrophiesListService } from './facts/trophies-list.service';
 import { LeaderboardService } from './leaderboard.service';
 import { PlayerContextService } from './player-context.service';
 import { RandomInsightsScopeService } from './random-insights-scope.service';
@@ -47,6 +49,7 @@ const GAME_DATA_MODULES = [
   PositionsModule,
   RacesModule,
   ExternalSystemsModule,
+  TrophiesModule,
 ];
 
 @Module({
@@ -72,6 +75,7 @@ const GAME_DATA_MODULES = [
     ExpensiveMistakesToplistService,
     ErasListService,
     StatsSummaryFactsService,
+    TrophiesListService,
     {
       provide: FACT_TREE,
       useFactory: (factory: FactTreeFactoryService) => factory.build(),
@@ -99,6 +103,7 @@ const GAME_DATA_MODULES = [
     ExpensiveMistakesToplistService,
     ErasListService,
     StatsSummaryFactsService,
+    TrophiesListService,
     FACT_TREE,
   ],
 })

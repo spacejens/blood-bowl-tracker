@@ -454,6 +454,19 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         resolve: (scope) => deps.erasList.resolve(scope),
       },
     },
+    trophies: {
+      list: {
+        // A trophy belongs to a competition group, which belongs to a league,
+        // so the catalog can be narrowed to one league. It is not itself an
+        // era-, competition- or category-scoped listing, exactly like
+        // eras.list.
+        supportsLeague: true,
+        supportsEra: false,
+        supportsCompetition: false,
+        supportsMatchCategory: false,
+        resolve: (scope) => deps.trophiesList.resolve(scope),
+      },
+    },
     stats: {
       supportsLeague: true,
       supportsEra: true,
