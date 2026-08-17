@@ -15,6 +15,7 @@ import {
 import { TeamContextService } from '../../insights/team-context.service';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -25,20 +26,23 @@ type CompetitionHeader = {
   type: 'season' | 'cup';
   eraId: number;
   eraName: string;
+  competitionGroupId: number;
+  competitionGroupName: string;
   startDate: string;
   endDate: string | null;
 };
 type ParticipatingTeam = { id: number; name: string };
 
 /**
- * Composes the competition header (type), its era line, its duration, and its
- * participating-teams list into a single embed. Shared by
- * `/deepdive competition:<id>` and the competition deepdive buttons. Each DB
- * call is wrapped in `databaseTimeout.run` with a `null` sentinel so a timeout
- * is distinguishable from a genuine "not found" (`undefined`). The era (always
- * present) and each participating team are rendered as drill-down buttons in
- * one combined pool, teams first so they take component priority over the era
- * header entry.
+ * Composes the competition header (type), its era line, its recurring group,
+ * its duration, and its participating-teams list into a single embed. Shared
+ * by `/deepdive competition:<id>` and the competition deepdive buttons. Each
+ * DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
+ * timeout is distinguishable from a genuine "not found" (`undefined`). The
+ * era (always present) and each participating team are rendered as drill-down
+ * buttons in one combined pool, teams first so they take component priority
+ * over the era header entry; the recurring group gets its own drill-up
+ * button, labelled with the group's own name (not the competition's).
  */
 @Injectable()
 export class CompetitionDeepdiveService {
@@ -96,6 +100,7 @@ export class CompetitionDeepdiveService {
     const descriptionLines = [
       `Type: ${competition.type}`,
       `Era: ${competition.eraName}`,
+      `Group: ${competition.competitionGroupName}`,
       `Duration: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,
       '',
       'Participating teams:',
@@ -104,7 +109,8 @@ export class CompetitionDeepdiveService {
 
     // Team-list entries first: buildEntityComponents has no internal
     // prioritisation (first-N / first-group wins), so the participating-teams
-    // list gets drill-down controls before the era header entry does.
+    // list gets drill-down controls before the era header entry does, and the
+    // drill-up to the recurring competition group comes last of all.
     const entries: EntityComponentEntry[] = [
       ...teams.map((team): EntityComponentEntry => ({
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -115,6 +121,11 @@ export class CompetitionDeepdiveService {
         customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
         entityId: String(competition.eraId),
         label: competition.eraName,
+      },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(competition.competitionGroupId),
+        label: competition.competitionGroupName,
       },
     ];
     const { components, overflowNote } =

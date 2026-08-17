@@ -16,11 +16,12 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class TrophyUpsertConflictError extends UpsertConflictError {}
 
-/** A single trophy's display header, with its competition group's name resolved. */
+/** A single trophy's display header, with its competition group resolved. */
 export type TrophyHeader = {
   id: number;
   name: string;
   description: string | null;
+  competitionGroupId: number;
   competitionGroupName: string;
 };
 
@@ -63,6 +64,7 @@ export class TrophiesService {
         id: trophies.id,
         name: trophies.name,
         description: trophies.description,
+        competitionGroupId: trophies.competitionGroupId,
         competitionGroupName: competitionGroups.name,
       })
       .from(trophies)
@@ -72,6 +74,21 @@ export class TrophiesService {
       )
       .where(eq(trophies.id, trophyId));
     return rows[0];
+  }
+
+  /**
+   * Every trophy a competition group awards, ordered by name. The competition
+   * group deepdive (#455) lists these and offers a drill-down button each; it
+   * needs no more than the id and label.
+   */
+  listByCompetitionGroup(
+    competitionGroupId: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: trophies.id, name: trophies.name })
+      .from(trophies)
+      .where(eq(trophies.competitionGroupId, competitionGroupId))
+      .orderBy(trophies.name);
   }
 
   async upsert(

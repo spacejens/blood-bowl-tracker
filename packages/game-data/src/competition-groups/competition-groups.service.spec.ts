@@ -1,8 +1,15 @@
 import { competitionGroups, DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { mockDb } from '../shared/db-mock.test-helpers';
+import { LikePatternService } from '../shared/like-pattern.service';
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import {
   CompetitionGroupsService,
   CompetitionGroupUpsertConflictError,
@@ -12,10 +19,20 @@ const externalIds = [{ externalSystemId: 2, externalId: 'Chaos Cup' }];
 
 async function makeService(...rowsPerQuery: unknown[][]) {
   const db = mockDb(...rowsPerQuery);
+  const likePattern = mock<LikePatternService>();
+  likePattern.escape.mockImplementation((value: string) => value);
   const moduleRef = await Test.createTestingModule({
-    providers: [CompetitionGroupsService, { provide: DB, useValue: db.db }],
+    providers: [
+      CompetitionGroupsService,
+      { provide: DB, useValue: db.db },
+      { provide: LikePatternService, useValue: likePattern },
+    ],
   }).compile();
-  return { service: moduleRef.get(CompetitionGroupsService), db };
+  return {
+    service: moduleRef.get(CompetitionGroupsService),
+    db,
+    likePattern,
+  };
 }
 
 describe('CompetitionGroupsService', () => {
@@ -82,13 +99,80 @@ describe('CompetitionGroupsService', () => {
         createdAt: new Date('2026-01-02'),
       },
     ];
-    const { db, chains } = mockDb(rows);
-    const moduleRef = await Test.createTestingModule({
-      providers: [CompetitionGroupsService, { provide: DB, useValue: db }],
-    }).compile();
-    const service = moduleRef.get(CompetitionGroupsService);
+    const { service, db } = await makeService(rows);
 
     await expect(service.listAll()).resolves.toEqual(rows);
-    expect(chains[0].from).toHaveBeenCalledWith(competitionGroups);
+    expect(db.chains[0].from).toHaveBeenCalledWith(competitionGroups);
+  });
+
+  describe('findByIdWithLeague', () => {
+    it('returns the group joined with its league name', async () => {
+      const row = {
+        id: 7,
+        name: 'Chaos Cup',
+        leagueId: 2,
+        leagueName: 'The Major',
+      };
+      const { service, db } = await makeService([row]);
+
+      await expect(service.findByIdWithLeague(7)).resolves.toEqual(row);
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 0, 1)),
+      ).toEqual(['leagues.id', 'competition_groups.league_id']);
+      expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(7);
+    });
+
+    it('selects the league id so callers can scope from it', async () => {
+      const { service, db } = await makeService([]);
+
+      await service.findByIdWithLeague(7);
+      expect(Object.keys(firstCallArg(db.db.select) as object)).toEqual([
+        'id',
+        'name',
+        'leagueId',
+        'leagueName',
+      ]);
+    });
+
+    it('returns undefined when no group matches', async () => {
+      const { service } = await makeService([]);
+
+      await expect(service.findByIdWithLeague(999)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('returns groups joined to their league name, capped at the limit', async () => {
+      const rows = [{ id: 7, name: 'Chaos Cup', leagueName: 'The Major' }];
+      const { service, db } = await makeService(rows);
+
+      await expect(service.searchByNamePrefix('Cha', 25)).resolves.toEqual(
+        rows,
+      );
+      expect(db.chains[0].limit).toHaveBeenCalledWith(25);
+      expect(db.chains[0].orderBy).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 0, 1)),
+      ).toEqual(['leagues.id', 'competition_groups.league_id']);
+    });
+
+    it('escapes LIKE metacharacters in the prefix', async () => {
+      const { service, db, likePattern } = await makeService([]);
+      likePattern.escape.mockReturnValue('50\\%\\_x');
+
+      await service.searchByNamePrefix('50%_x', 10);
+
+      expect(likePattern.escape).toHaveBeenCalledWith('50%_x');
+      // ilike() embeds its pattern as a raw string chunk rather than a Param,
+      // so extractFilterValues (which only reads Param chunks) can't reach it;
+      // read the raw string chunk directly.
+      const condition = firstCallArg(db.chains[0].where) as {
+        queryChunks: unknown[];
+      };
+      const pattern = condition.queryChunks.find(
+        (chunk): chunk is string => typeof chunk === 'string',
+      );
+      expect(pattern).toBe('50\\%\\_x%');
+    });
   });
 });

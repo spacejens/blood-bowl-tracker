@@ -11,6 +11,7 @@ import { ApplicationCommandOptionType } from 'discord.js';
 
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
+import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
@@ -18,6 +19,7 @@ import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
@@ -33,6 +35,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
 export {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -43,6 +46,7 @@ export {
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -62,6 +66,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     private readonly playerDeepdive: PlayerDeepdiveService,
     private readonly raceDeepdive: RaceDeepdiveService,
     private readonly competitionDeepdive: CompetitionDeepdiveService,
+    private readonly competitionGroupDeepdive: CompetitionGroupDeepdiveService,
     private readonly trophyDeepdive: TrophyDeepdiveService,
   ) {}
 
@@ -94,6 +99,10 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       TROPHY_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleTrophyButton(interaction),
+    );
+    this.discordClient.registerButtonHandler(
+      COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handleCompetitionGroupButton(interaction),
     );
     this.discordClient.registerSelectMenuHandler(
       ERA_BUTTON_CUSTOM_ID_PREFIX,
@@ -129,6 +138,11 @@ export class DeepdiveCommandService implements OnModuleInit {
       TROPHY_BUTTON_CUSTOM_ID_PREFIX,
       (interaction: StringSelectMenuInteraction) =>
         this.handleTrophySelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleCompetitionGroupSelect(interaction),
     );
   }
 
@@ -180,6 +194,13 @@ export class DeepdiveCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'competition-group',
+          description:
+            'Show the detail view for a single competition group (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) =>
@@ -197,6 +218,8 @@ export class DeepdiveCommandService implements OnModuleInit {
     const raceOption = interaction.options.getString('race');
     const competitionOption = interaction.options.getString('competition');
     const trophyOption = interaction.options.getString('trophy');
+    const competitionGroupOption =
+      interaction.options.getString('competition-group');
     const supplied = [
       eraOption,
       coachOption,
@@ -205,6 +228,7 @@ export class DeepdiveCommandService implements OnModuleInit {
       raceOption,
       competitionOption,
       trophyOption,
+      competitionGroupOption,
     ].filter((value) => value !== null);
     if (supplied.length > 1) {
       return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
@@ -229,6 +253,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (trophyOption !== null) {
       return this.resolveTrophy(trophyOption);
+    }
+    if (competitionGroupOption !== null) {
+      return this.resolveCompetitionGroup(competitionGroupOption);
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -294,6 +321,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       TROPHY_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.resolveTrophy(idPart);
+  }
+
+  async handleCompetitionGroupButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.resolveCompetitionGroup(idPart);
   }
 
   async handleEraSelect(
@@ -364,6 +400,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE;
     }
     return this.resolveTrophy(value);
+  }
+
+  async handleCompetitionGroupSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveCompetitionGroup(value);
   }
 
   /**
@@ -468,5 +514,20 @@ export class DeepdiveCommandService implements OnModuleInit {
       return Promise.resolve(DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE);
     }
     return this.trophyDeepdive.resolve(id);
+  }
+
+  /**
+   * Parses a competition group id (from a slash option or a button customId)
+   * and renders the deepdive. Non-integer values are rejected up front with
+   * the not-found message, mirroring the other resolvers.
+   */
+  private resolveCompetitionGroup(
+    value: string,
+  ): Promise<string | InteractionReplyOptions> {
+    const id = Number(value);
+    if (!Number.isInteger(id)) {
+      return Promise.resolve(DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE);
+    }
+    return this.competitionGroupDeepdive.resolve(id);
   }
 }

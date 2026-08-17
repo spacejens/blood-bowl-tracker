@@ -1,19 +1,20 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports seven targets — an era, a coach, a team, a player, a race, a
-competition, and a trophy — and is designed to grow further optional, mutually
-exclusive targets in future work.
+Today it supports eight targets — an era, a coach, a team, a player, a race, a
+competition, a competition group, and a trophy — and is designed to grow
+further optional, mutually exclusive targets in future work.
 
 ## Arguments
 
-The command takes seven optional string arguments, `era`, `coach`, `team`, `player`,
-`race`, `competition`, and `trophy`, each autocompleted by name (`era` suggestions
-are labelled `<era> (<league>)`; `coach` and `team` suggestions are labelled
+The command takes eight optional string arguments, `era`, `coach`, `team`, `player`,
+`race`, `competition`, `competition-group`, and `trophy`, each autocompleted by name
+(`era` suggestions are labelled `<era> (<league>)`; `coach` and `team` suggestions are labelled
 `<name> (#<id>)`; `player` suggestions are labelled `<name> (<team>)`
 because player names are not unique across teams; `race` suggestions are a bare
 name with no parenthetical; `competition` suggestions are
-labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
+labelled `<competition> (<league>)`; `competition-group` suggestions are
+labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
 (<competition group>)`):
 
 - **No argument** — the bot replies with a short usage prompt, because a
@@ -82,16 +83,31 @@ labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
 - **A race that matches nothing** — the bot replies with a not-found message.
 - **`competition:<competition>`** — the bot replies with an embed for that
   competition: the competition name as the title, then `Type: <type>` (`season`
-  or `cup`), `Era: <era>`, `Duration: <range>` (an ongoing competition shows
-  `present`), a blank line, and `Participating teams:` followed by every
-  participating team, one line per team formatted `<team>` with its race and
-  coach appended as a suffix. A competition with no participating teams shows a
-  short "nobody has signed up yet" message instead of a list. Every
-  participating team and the era are each rendered as a drill-down button
-  (teams take priority over the era entry when the combined list is too long
-  for buttons and switches to select menus).
+  or `cup`), `Era: <era>`, `Group: <competition group>`, `Duration: <range>`
+  (an ongoing competition shows `present`), a blank line, and
+  `Participating teams:` followed by every participating team, one line per
+  team formatted `<team>` with its race and coach appended as a suffix. A
+  competition with no participating teams shows a short "nobody has signed up
+  yet" message instead of a list. Every participating team and the era are
+  each rendered as a drill-down button (teams take priority over the era entry
+  when the combined list is too long for buttons and switches to select
+  menus), and the embed also offers a drill-up button to the competition's
+  recurring group, last of all.
 - **A competition that matches nothing** — the bot replies with a not-found
   message.
+- **`competition-group:<group>`** — the bot replies with an embed for that
+  recurring group: the group name as the title, then `League: <league>`, a
+  blank line, `Trophies:` followed by every trophy the group awards, one line
+  per trophy (or "Not one piece of silverware rides on this one." when it
+  awards none), a blank line, and `Competitions:` followed by every
+  competition instance in the group, oldest first, one line per competition
+  formatted `<name> (<era>): <date range>` (or "This fixture has never
+  actually been played." when it has none). Competitions are rendered as
+  drill-down buttons before trophies (competitions take priority over trophies
+  when the combined list is too long for buttons and switches to select
+  menus).
+- **A competition group that matches nothing** — the bot replies with a
+  not-found message.
 - **`trophy:<trophy>`** — the bot replies with an embed for that trophy: the
   trophy name as the title, then `Awarded for: <competition group>` and, only
   when the trophy has one, `Description: <description>`, a blank line, and
@@ -106,7 +122,8 @@ labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
   hands on this one yet" message instead of a list. Each shown recipient is
   rendered as a drill-down button to whoever actually received the trophy —
   the team for a team trophy, the player for a player trophy — with no button
-  for the competition it was awarded at.
+  for the competition it was awarded at; the embed also offers a drill-up
+  button to the trophy's competition group, last of all.
 - **A trophy that matches nothing** — the bot replies with a not-found
   message.
 
@@ -167,5 +184,6 @@ and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.service.t
 `apps/discord-bot/src/deepdive/facts/team-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/player-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/race-deepdive.service.ts`,
-`apps/discord-bot/src/deepdive/facts/competition-deepdive.service.ts`, and
+`apps/discord-bot/src/deepdive/facts/competition-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/competition-group-deepdive.service.ts`, and
 `apps/discord-bot/src/deepdive/facts/trophy-deepdive.service.ts`.

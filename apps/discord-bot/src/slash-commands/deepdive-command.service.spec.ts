@@ -12,6 +12,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
+import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
@@ -19,6 +20,7 @@ import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
@@ -32,6 +34,7 @@ import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   DeepdiveCommandService,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -52,6 +55,7 @@ interface MadeService {
   playerDeepdive: MockProxy<PlayerDeepdiveService>;
   raceDeepdive: MockProxy<RaceDeepdiveService>;
   competitionDeepdive: MockProxy<CompetitionDeepdiveService>;
+  competitionGroupDeepdive: MockProxy<CompetitionGroupDeepdiveService>;
   trophyDeepdive: MockProxy<TrophyDeepdiveService>;
 }
 
@@ -65,6 +69,7 @@ async function makeService(): Promise<MadeService> {
   const playerDeepdive = mock<PlayerDeepdiveService>();
   const raceDeepdive = mock<RaceDeepdiveService>();
   const competitionDeepdive = mock<CompetitionDeepdiveService>();
+  const competitionGroupDeepdive = mock<CompetitionGroupDeepdiveService>();
   const trophyDeepdive = mock<TrophyDeepdiveService>();
 
   const moduleRef = await Test.createTestingModule({
@@ -79,6 +84,10 @@ async function makeService(): Promise<MadeService> {
       { provide: PlayerDeepdiveService, useValue: playerDeepdive },
       { provide: RaceDeepdiveService, useValue: raceDeepdive },
       { provide: CompetitionDeepdiveService, useValue: competitionDeepdive },
+      {
+        provide: CompetitionGroupDeepdiveService,
+        useValue: competitionGroupDeepdive,
+      },
       { provide: TrophyDeepdiveService, useValue: trophyDeepdive },
     ],
   }).compile();
@@ -94,6 +103,7 @@ async function makeService(): Promise<MadeService> {
     playerDeepdive,
     raceDeepdive,
     competitionDeepdive,
+    competitionGroupDeepdive,
     trophyDeepdive,
   };
 }
@@ -106,6 +116,7 @@ function chatInput(options: {
   race?: string | null;
   competition?: string | null;
   trophy?: string | null;
+  competitionGroup?: string | null;
 }): ChatInputCommandInteraction {
   return {
     options: {
@@ -116,7 +127,8 @@ function chatInput(options: {
         if (name === 'player') return options.player ?? null;
         if (name === 'race') return options.race ?? null;
         if (name === 'competition') return options.competition ?? null;
-        return options.trophy ?? null;
+        if (name === 'trophy') return options.trophy ?? null;
+        return options.competitionGroup ?? null;
       }),
     },
   } as unknown as ChatInputCommandInteraction;
@@ -176,6 +188,13 @@ describe('DeepdiveCommandService', () => {
       {
         name: 'trophy',
         description: 'Show the detail view for a single trophy (optional)',
+        type: 3,
+        autocomplete: true,
+      },
+      {
+        name: 'competition-group',
+        description:
+          'Show the detail view for a single competition group (optional)',
         type: 3,
         autocomplete: true,
       },
@@ -275,6 +294,14 @@ describe('DeepdiveCommandService', () => {
     );
     expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
       TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
+      COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
   });
@@ -580,6 +607,46 @@ describe('DeepdiveCommandService', () => {
     );
     expect(trophyDeepdive.resolve).toHaveBeenCalledWith(7);
   });
+
+  it('resolves the competition group deepdive for a numeric option', async () => {
+    const { service, competitionGroupDeepdive } = await makeService();
+    competitionGroupDeepdive.resolve.mockResolvedValue('group embed');
+
+    await expect(
+      service.execute(chatInput({ competitionGroup: '4' })),
+    ).resolves.toBe('group embed');
+    expect(competitionGroupDeepdive.resolve).toHaveBeenCalledWith(4);
+  });
+
+  it('rejects a non-numeric competition group option without hitting the database', async () => {
+    const { service, competitionGroupDeepdive } = await makeService();
+
+    await expect(
+      service.execute(chatInput({ competitionGroup: 'nope' })),
+    ).resolves.toBe(DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE);
+    expect(competitionGroupDeepdive.resolve).not.toHaveBeenCalled();
+  });
+
+  it('rejects a competition group option combined with another target', async () => {
+    const { service } = await makeService();
+
+    await expect(
+      service.execute(chatInput({ competitionGroup: '4', era: '3' })),
+    ).resolves.toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+  });
+
+  it('resolves the competition group deepdive from a competition group button', async () => {
+    const { service, competitionGroupDeepdive } = await makeService();
+    competitionGroupDeepdive.resolve.mockResolvedValue('group embed');
+    const interaction = {
+      customId: `${COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX}4`,
+    } as unknown as ButtonInteraction;
+
+    await expect(
+      service.handleCompetitionGroupButton(interaction),
+    ).resolves.toBe('group embed');
+    expect(competitionGroupDeepdive.resolve).toHaveBeenCalledWith(4);
+  });
 });
 
 interface SelectCase {
@@ -639,6 +706,13 @@ const selectCases: SelectCase[] = [
     invoke: (service, interaction) => service.handleTrophySelect(interaction),
     deepdive: (made) => made.trophyDeepdive,
     notFoundMessage: DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'competitionGroup',
+    invoke: (service, interaction) =>
+      service.handleCompetitionGroupSelect(interaction),
+    deepdive: (made) => made.competitionGroupDeepdive,
+    notFoundMessage: DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
   },
 ];
 
