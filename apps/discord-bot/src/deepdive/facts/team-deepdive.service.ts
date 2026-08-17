@@ -214,7 +214,7 @@ export class TeamDeepdiveService {
     // the team, its race and its coach are the embed's own header, and the era
     // is named by the section heading this row sits under. Skipped entirely
     // when no honor is a player award, for the same reason the list query is.
-    const playerHonors = honors.filter(isPlayerHonor);
+    const playerHonors = honors.filter((honor) => this.isPlayerHonor(honor));
     let honorSuffixes = new Map<number, string>();
     if (playerHonors.length > 0) {
       const decoratedHonors = await this.databaseTimeout.run(
@@ -323,7 +323,7 @@ export class TeamDeepdiveService {
     teamName: string,
     suffixes: Map<number, string>,
   ): string {
-    return isPlayerHonor(honor)
+    return this.isPlayerHonor(honor)
       ? `${honor.trophyName}: ${honor.playerName}${suffixes.get(honor.playerId) ?? ''}`
       : `${honor.trophyName}: ${teamName}`;
   }
@@ -338,7 +338,7 @@ export class TeamDeepdiveService {
       entityId: String(honor.trophyId),
       label: honor.trophyName,
     };
-    return isPlayerHonor(honor)
+    return this.isPlayerHonor(honor)
       ? [
           trophyEntry,
           {
@@ -349,18 +349,19 @@ export class TeamDeepdiveService {
         ]
       : [trophyEntry];
   }
-}
 
-/**
- * Narrows a `TeamHonor` to its player-award shape. Checks both `playerId` and
- * `playerName` (rather than either alone) so the filter, the suffix lookup,
- * and the two formatters below all agree on what counts as a player honor —
- * `players.name` is `NOT NULL` in the schema, so the two fields can never
- * actually disagree, but a single shared predicate keeps that invariant
- * enforced in one place instead of asserted at each call site.
- */
-function isPlayerHonor(
-  honor: TeamHonor,
-): honor is TeamHonor & { playerId: number; playerName: string } {
-  return honor.playerId !== null && honor.playerName !== null;
+  /**
+   * Narrows a `TeamHonor` to its player-award shape. Checks both `playerId`
+   * and `playerName` (rather than either alone) so the filter, the suffix
+   * lookup, and the two formatters above all agree on what counts as a
+   * player honor — `players.name` is `NOT NULL` in the schema, so the two
+   * fields can never actually disagree, but a single shared predicate keeps
+   * that invariant enforced in one place instead of asserted at each call
+   * site.
+   */
+  private isPlayerHonor(
+    honor: TeamHonor,
+  ): honor is TeamHonor & { playerId: number; playerName: string } {
+    return honor.playerId !== null && honor.playerName !== null;
+  }
 }
