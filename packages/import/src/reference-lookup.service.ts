@@ -63,11 +63,14 @@ export class ReferenceLookupService {
     try {
       resolved = await this.resolver.resolveBatch(kind, unique);
     } catch (error) {
-      // This ImportError is a diagnostic of the *batch-level* cause,
-      // recorded (not thrown) the same way ImportRunnerService's
-      // recordUpsert/recordUpsertResult record a caught upsert failure --
-      // it is logged here, since lookupMap has no errors[] of its own to
-      // append to, rather than duplicated into each caller's per-ref errors.
+      // This ImportError is a diagnostic of the *batch-level* cause. It is
+      // logged to the console only, not recorded in a structured errors[]
+      // array -- lookupMap has no errors[] parameter of its own to append
+      // to (deliberately: threading one through its ~30 call sites would
+      // outweigh the benefit). The structured, per-caller ImportError
+      // entries that end up in a run's results come from each consumer's
+      // own not-found handling once lookupMap returns an empty map here,
+      // not from this method.
       const message = error instanceof Error ? error.message : String(error);
       const importError = this.importResults.error({
         item: { kind, refCount: unique.length },

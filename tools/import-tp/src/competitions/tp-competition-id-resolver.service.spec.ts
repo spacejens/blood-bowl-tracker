@@ -66,7 +66,7 @@ describe('TpCompetitionIdResolverService', () => {
     expect(outcome.competitionIdsByTpId.get(100)).toBe(42);
     expect(outcome.competitionTypesByCompetitionId.get(42)).toBe('cup');
     expect(outcome.eraIdByCompetitionId.get(42)).toBe(5);
-    expect(outcome.result).toEqual({ success: true, imported: 1, errors: [] });
+    expect(outcome.result).toEqual({ success: true, imported: 0, errors: [] });
   });
 
   it('records an ImportError and omits the competition when it fails to resolve', async () => {

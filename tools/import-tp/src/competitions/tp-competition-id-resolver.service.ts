@@ -69,7 +69,6 @@ export class TpCompetitionIdResolverService {
       })),
     );
 
-    let imported = 0;
     for (const [tpId, entry] of competitionsByTpId) {
       const competitionId = resolved.get(
         this.lookup.keyOf({
@@ -90,7 +89,6 @@ export class TpCompetitionIdResolverService {
         continue;
       }
       competitionIdsByTpId.set(tpId, competitionId);
-      imported += 1;
 
       if (entry.upsert.type !== undefined) {
         competitionTypesByCompetitionId.set(competitionId, entry.upsert.type);
@@ -111,7 +109,12 @@ export class TpCompetitionIdResolverService {
     }
 
     return {
-      result: this.importResults.result({ imported, errors }),
+      // imported: 0 -- this service resolves already-imported competitions'
+      // ids for downstream use; it does not import anything new itself, so
+      // it must not add to the run's "imported" total (TpCompetitionsImportService
+      // already counted these competitions as imported when it upserted
+      // them). Mirrors the rosterCollectionResult precedent in main.ts.
+      result: this.importResults.result({ imported: 0, errors }),
       competitionIdsByTpId,
       competitionTypesByCompetitionId,
       eraIdByCompetitionId,
