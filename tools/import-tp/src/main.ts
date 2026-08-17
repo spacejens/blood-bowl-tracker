@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import {
-  ImportResultService,
-  ReferenceLookupService,
-} from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import type {
   TpInducedStarPlayer,
   TpRosterPlayer,
@@ -13,6 +10,7 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
+import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
@@ -52,41 +50,25 @@ async function run(): Promise<ImportResult> {
     // external id (its TP id, stringified), rather than threaded through as
     // a client-side id map: one batched lookup for the whole run, reused
     // below both for match category classification and for the hired-star
-    // era resolution.
-    const lookup = app.get(ReferenceLookupService);
-    const competitionIdsByTpId = new Map<number, number>();
-    const resolvedCompetitionIds = await lookup.lookupMap(
-      'competition',
-      [...competitionOutcome.competitionsByTpId].map(([tpId, entry]) => ({
-        externalSystemId: entry.upsert.externalIds[0].externalSystemId,
-        externalId: String(tpId),
-      })),
-    );
-    for (const [tpId, entry] of competitionOutcome.competitionsByTpId) {
-      const id = resolvedCompetitionIds.get(
-        lookup.keyOf({
-          externalSystemId: entry.upsert.externalIds[0].externalSystemId,
-          externalId: String(tpId),
-        }),
-      );
-      if (id !== undefined) {
-        competitionIdsByTpId.set(tpId, id);
-      }
-    }
+    // era resolution. A resolve miss is recorded as an ImportError by the
+    // service itself (see TpCompetitionIdResolverService), not silently
+    // dropped.
+    const {
+      result: competitionIdResolutionResult,
+      competitionTypesByCompetitionId,
+      eraIdByCompetitionId,
+    } = await app.get(TpCompetitionIdResolverService).resolveCompetitionIds({
+      competitionsByTpId: competitionOutcome.competitionsByTpId,
+    });
 
     // Matches link to their competition only via the directory scan competitions
     // import already performed (match files carry no tournament id), so this
     // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
     // Each competition's type (for match category classification) comes from
     // the same competitions import's upsert payloads, keyed by DB competition
-    // id via the locally resolved competitionIdsByTpId above.
-    const competitionTypesByCompetitionId = new Map<number, 'season' | 'cup'>();
-    for (const [tpId, entry] of competitionOutcome.competitionsByTpId) {
-      const competitionId = competitionIdsByTpId.get(tpId);
-      if (competitionId !== undefined && entry.upsert.type !== undefined) {
-        competitionTypesByCompetitionId.set(competitionId, entry.upsert.type);
-      }
-    }
+    // id via the locally resolved competitionIdsByTpId
+    // (TpCompetitionIdResolverService's own internal map, folded directly into
+    // this response).
 
     const { result: matchResult, matchIdsByTpId } = await app
       .get(TpMatchesImportService)
@@ -126,29 +108,10 @@ async function run(): Promise<ImportResult> {
     // A roster id can appear under more than one era (TpTeamsImportService's
     // era-union grouping), so resolving a hired star player's team era later
     // needs the real eraId the inducements_roll event came from -- not a
-    // guess. The DB competition id (matchesByCompetitionId's key) maps to its
-    // real eraId via the locally resolved competitionIdsByTpId above +
-    // competitionsByTpId's upsert.eraId, the same value
-    // TpTeamParticipationImportService already resolves roster ids against.
-    const eraIdByCompetitionId = new Map<number, number>();
-    for (const [tpCompetitionId, dbCompetitionId] of competitionIdsByTpId) {
-      const competitionEntry =
-        competitionOutcome.competitionsByTpId.get(tpCompetitionId);
-      if (competitionEntry) {
-        // UpsertCompetitionSchema.eraId is optional to support
-        // partial-upsert payloads from other callers, but
-        // TpCompetitionsImportService always resolves eraId from the era
-        // name before building this upsert -- skipping and recording an
-        // error otherwise -- so every entry reaching this map has one.
-        const { eraId } = competitionEntry.upsert;
-        if (eraId === undefined) {
-          throw new Error(
-            `Competition "${competitionEntry.upsert.name}" has no eraId; import-tp always resolves eraId before building its upsert.`,
-          );
-        }
-        eraIdByCompetitionId.set(dbCompetitionId, eraId);
-      }
-    }
+    // guess. eraIdByCompetitionId (each DB competition id's real eraId) was
+    // already resolved above by TpCompetitionIdResolverService, the same
+    // value TpTeamParticipationImportService already resolves roster ids
+    // against.
 
     // Star players hired via an inducements_roll event aren't part of any
     // roster's lineUps[], so they're gathered from the already-parsed match
@@ -363,6 +326,7 @@ async function run(): Promise<ImportResult> {
       rulesSetsOutcome.result,
       eraOutcome.result,
       competitionOutcome.result,
+      competitionIdResolutionResult,
       matchResult,
       coachOutcome.result,
       rosterCollectionResult,
