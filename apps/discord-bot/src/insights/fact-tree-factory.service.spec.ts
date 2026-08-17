@@ -12,6 +12,7 @@ import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
+import { TrophiesListService } from './facts/trophies-list.service';
 
 describe('FactTreeFactoryService', () => {
   let factory: FactTreeFactoryService;
@@ -23,6 +24,7 @@ describe('FactTreeFactoryService', () => {
   let expensiveMistakes: MockProxy<ExpensiveMistakesToplistService>;
   let erasList: MockProxy<ErasListService>;
   let statsSummary: MockProxy<StatsSummaryFactsService>;
+  let trophiesList: MockProxy<TrophiesListService>;
 
   beforeEach(async () => {
     coachToplist = mock<CoachToplistService>();
@@ -32,6 +34,7 @@ describe('FactTreeFactoryService', () => {
     expensiveMistakes = mock<ExpensiveMistakesToplistService>();
     erasList = mock<ErasListService>();
     statsSummary = mock<StatsSummaryFactsService>();
+    trophiesList = mock<TrophiesListService>();
 
     coachToplist.resolveMatchesPlayed.mockResolvedValue(
       'coach matches played toplist',
@@ -58,6 +61,7 @@ describe('FactTreeFactoryService', () => {
         },
         { provide: ErasListService, useValue: erasList },
         { provide: StatsSummaryFactsService, useValue: statsSummary },
+        { provide: TrophiesListService, useValue: trophiesList },
       ],
     }).compile();
     factory = moduleRef.get(FactTreeFactoryService);
@@ -66,8 +70,8 @@ describe('FactTreeFactoryService', () => {
 
   it('build() returns the fully assembled fact tree', () => {
     const tree = factory.build();
-    // buildFactTree currently produces 53 leaves (see fact-tree.spec.ts).
-    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(53);
+    // buildFactTree currently produces 54 leaves (see fact-tree.spec.ts).
+    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(54);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {

@@ -8,6 +8,7 @@ import type { PlayerToplistService } from './facts/player-toplist.service';
 import type { RaceToplistService } from './facts/race-toplist.service';
 import type { StatsSummaryFactsService } from './facts/stats-summary.service';
 import type { TeamToplistService } from './facts/team-toplist.service';
+import type { TrophiesListService } from './facts/trophies-list.service';
 
 /** `buildFactTree`'s dependency bag: the fact services it wires into leaves. */
 export interface FactTreeDeps {
@@ -18,6 +19,7 @@ export interface FactTreeDeps {
   expensiveMistakes: ExpensiveMistakesToplistService;
   erasList: ErasListService;
   statsSummary: StatsSummaryFactsService;
+  trophiesList: TrophiesListService;
 }
 
 export interface FactLeaf {

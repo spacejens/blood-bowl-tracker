@@ -379,4 +379,146 @@ describe('TrophyAwardsService', () => {
       await expect(service.listForCompetition(7)).resolves.toEqual([]);
     });
   });
+
+  describe('listByTeam', () => {
+    const teamHonor = {
+      trophyId: 1,
+      trophyName: 'Spike! Cup',
+      competitionName: 'Major Season 24',
+      competitionStartDate: '2024-01-15',
+      eraId: 20,
+      eraName: 'Season 4',
+      playerId: null,
+      playerName: null,
+    };
+    const playerHonor = {
+      trophyId: 2,
+      trophyName: 'MVP',
+      competitionName: 'Minor Season 23',
+      competitionStartDate: '2023-01-15',
+      eraId: 19,
+      eraName: 'Season 2',
+      playerId: 40,
+      playerName: 'Grombrindal',
+    };
+
+    it('returns the team-kind honors of the requested team, capped at the limit', async () => {
+      const { chains } = await build([teamHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([teamHonor]);
+
+      expect(chains[0].limit).toHaveBeenCalledWith(30);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(30);
+    });
+
+    it('returns player-kind honors, carrying the player id and name', async () => {
+      await build([playerHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([playerHonor]);
+    });
+
+    it('returns team-kind and player-kind honors interleaved in one list', async () => {
+      await build([teamHonor, playerHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([
+        teamHonor,
+        playerHonor,
+      ]);
+    });
+
+    it('filters on the team behind the award, not on the award itself', async () => {
+      const { chains } = await build([]);
+
+      await service.listByTeam(30, 30);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'team_eras.team_id',
+      ]);
+    });
+
+    it('joins through team eras, trophies, competitions and eras, and left-joins players', async () => {
+      const { chains } = await build([]);
+
+      await service.listByTeam(30, 30);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['trophies.id', 'trophy_awards.trophy_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['competitions.id', 'trophy_awards.competition_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 3, 1)),
+      ).toEqual(['eras.id', 'competitions.era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
+      ).toEqual(['players.id', 'trophy_awards.player_id']);
+    });
+
+    it('orders by era start date, then era id as a tiebreaker, then competition start date, all descending', async () => {
+      const { chains } = await build([teamHonor, playerHonor]);
+
+      await service.listByTeam(30, 30);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 0))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['eras.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 1))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['competitions.start_date'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' desc');
+    });
+
+    it('passes the caller-supplied limit through unchanged', async () => {
+      const { chains } = await build([]);
+
+      await service.listByTeam(30, 5);
+
+      expect(chains[0].limit).toHaveBeenCalledWith(5);
+    });
+
+    it('returns an empty list when the team has won nothing', async () => {
+      await build([]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([]);
+    });
+  });
+
+  describe('countByTeam', () => {
+    it('returns the total number of honors the team has', async () => {
+      const { db, chains } = await build([{ count: 7 }]);
+
+      await expect(service.countByTeam(30)).resolves.toBe(7);
+
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(30);
+    });
+
+    it('counts through team eras, so player awards of the team count too', async () => {
+      const { chains } = await build([{ count: 7 }]);
+
+      await service.countByTeam(30);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'team_eras.team_id',
+      ]);
+    });
+
+    it('returns zero when the team has won nothing', async () => {
+      await build([{ count: 0 }]);
+
+      await expect(service.countByTeam(30)).resolves.toBe(0);
+    });
+  });
 });

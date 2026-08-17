@@ -37,13 +37,14 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but six facts support
+replies with a per-scope refusal message. All but seven facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
-`race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`
-and `eras.list` — which count teams or eras rather than matches — and `stats`,
-which is excluded deliberately: only two of the dozen counts it reports
-(matches and match events) have a category at all, so a category-scoped
-`stats` would show two scoped numbers beside ten all-time ones.
+`race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`,
+`eras.list` and `trophies.list` — which list or count teams, eras or trophies
+rather than matches — and `stats`, which is excluded deliberately: only two of
+the dozen counts it reports (matches and match events) have a category at
+all, so a category-scoped `stats` would show two scoped numbers beside ten
+all-time ones.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
@@ -260,6 +261,18 @@ button, in the same order as the list, that opens that player's
   note counting the eras left without a link. Does not support the `era`
   filter option (it exists to list all eras), so it is excluded from
   era-filtered runs.
+- `trophies.list` — a single embed listing every trophy in the curated
+  catalog (title "Trophies"), ordered by the competition group that awards it
+  and then by trophy name. Each line reads `<trophy> (<competition group>)`.
+  Each listed trophy also gets a button that opens that trophy's
+  [`/deepdive`](deepdive.md) detail view, where its criteria and its list of
+  recipients live. Up to 25 trophies get one button each; past that the links
+  switch to dropdown menus (see [`/deepdive`](deepdive.md)), and past 125 the
+  description ends with a note counting the trophies left without a link.
+  Supports league filtering — a trophy has no league of its own, so the filter
+  goes through its competition group's league. Does not support the `era`,
+  `competition` or `match-category` filter options (it exists to list the whole
+  catalog), so it is excluded from runs scoped by those.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.

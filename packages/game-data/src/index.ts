@@ -84,6 +84,7 @@ export {
 export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 export type {
   CompetitionTrophyAward,
+  TeamHonor,
   TrophyRecipient,
 } from './trophy-awards/trophy-awards.service';
 export {

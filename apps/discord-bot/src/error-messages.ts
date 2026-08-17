@@ -12,6 +12,11 @@ export const ERAS_LIST_TIMEOUT_MESSAGE =
   'The historian is still leafing through the record books.';
 export const ERAS_LIST_NO_DATA_MESSAGE = 'The commentators are clearly drunk.';
 
+// --- Trophies list (insights/facts/trophies-list.service.ts) ---
+export const TROPHIES_LIST_TIMEOUT_MESSAGE =
+  'The curator is still cataloguing every cup in the cabinet.';
+export const TROPHIES_LIST_NO_DATA_MESSAGE = 'The trophy cabinet is bare.';
+
 // --- Stats summary (insights/facts/stats-summary.ts) ---
 export const STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE =
   'The statistician fainted before finishing the tally.';
@@ -106,6 +111,8 @@ export const DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE =
   'The team scout is still checking which positions those players line up in.';
 export const DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE =
   'The league registrar is still digging out which eras this team signed up for.';
+export const DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE =
+  'The trophy cabinet is still being unlocked to see what this lot have won.';
 export const DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE =
   'No such player has ever pulled on a jersey in this league.';
 export const DEEPDIVE_PLAYER_TIMEOUT_MESSAGE =
