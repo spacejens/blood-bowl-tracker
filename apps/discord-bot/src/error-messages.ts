@@ -12,6 +12,11 @@ export const ERAS_LIST_TIMEOUT_MESSAGE =
   'The historian is still leafing through the record books.';
 export const ERAS_LIST_NO_DATA_MESSAGE = 'The commentators are clearly drunk.';
 
+// --- Trophies list (insights/facts/trophies-list.service.ts) ---
+export const TROPHIES_LIST_TIMEOUT_MESSAGE =
+  'The curator is still cataloguing every cup in the cabinet.';
+export const TROPHIES_LIST_NO_DATA_MESSAGE = 'The trophy cabinet is bare.';
+
 // --- Stats summary (insights/facts/stats-summary.ts) ---
 export const STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE =
   'The statistician fainted before finishing the tally.';
