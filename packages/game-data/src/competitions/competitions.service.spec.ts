@@ -484,6 +484,19 @@ describe('CompetitionsService', () => {
       );
       expect((eraOrderColumn as Column).name).toBe('start_date');
     });
+
+    it('breaks ties on equal era start dates by era id, so two eras sharing a start date cannot interleave', async () => {
+      const { chains } = await build([]);
+
+      await service.listByCompetitionGroupChronological(4);
+
+      const tiebreakerColumn = firstCallArg(chains[0].orderBy, 0, 1);
+      expect(is(tiebreakerColumn, Column)).toBe(true);
+      expect(getTableName(getColumnTable(tiebreakerColumn as Column))).toBe(
+        'eras',
+      );
+      expect((tiebreakerColumn as Column).name).toBe('id');
+    });
   });
 
   describe('findByIdWithEra', () => {

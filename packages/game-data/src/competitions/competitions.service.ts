@@ -239,7 +239,10 @@ export class CompetitionsService {
    * aggregate, is what the deepdive's era-section grouping relies on: it
    * guarantees every row of one era is adjacent in the result, even an
    * unplayed competition that would otherwise sort to the very end and split
-   * its era's section in two.
+   * its era's section in two. `eras.id` is a tiebreaker right after it:
+   * `startDate` carries no uniqueness constraint, so two distinct eras
+   * sharing a start date would otherwise sort arbitrarily relative to each
+   * other and could interleave, splitting one of them into two sections.
    */
   listByCompetitionGroupChronological(competitionGroupId: number): Promise<
     {
@@ -265,7 +268,11 @@ export class CompetitionsService {
       .leftJoin(matches, eq(matches.competitionId, competitions.id))
       .where(eq(competitions.competitionGroupId, competitionGroupId))
       .groupBy(competitions.id, eras.id)
-      .orderBy(eras.startDate, sql`min(${matches.playedAt}) asc nulls last`);
+      .orderBy(
+        eras.startDate,
+        eras.id,
+        sql`min(${matches.playedAt}) asc nulls last`,
+      );
   }
 
   /**

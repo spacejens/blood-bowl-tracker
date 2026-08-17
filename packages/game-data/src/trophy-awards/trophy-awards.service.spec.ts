@@ -182,7 +182,7 @@ describe('TrophyAwardsService', () => {
       ]);
     });
 
-    it('orders by era start date before competition start date, both descending (most recent first, era rows kept adjacent)', async () => {
+    it('orders by era start date, then era id as a tiebreaker, then competition start date, all descending (most recent first, era rows kept adjacent even on a tied era start date)', async () => {
       const { chains } = await build([teamRecipient, playerRecipient]);
 
       await service.listRecipients(1, 30);
@@ -192,9 +192,13 @@ describe('TrophyAwardsService', () => {
       );
       expect(sqlText(firstCallArg(chains[0].orderBy, 0, 0))).toContain(' desc');
       expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
-        ['competitions.start_date'],
+        ['eras.id'],
       );
       expect(sqlText(firstCallArg(chains[0].orderBy, 0, 1))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['competitions.start_date'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' desc');
     });
 
     it('joins through competitions, eras, team eras and teams, and left-joins players', async () => {

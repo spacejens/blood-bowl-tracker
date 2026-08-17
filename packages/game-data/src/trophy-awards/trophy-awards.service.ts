@@ -79,8 +79,11 @@ export class TrophyAwardsService {
    * deepdive's era-section grouping relies on that adjacency, and while real
    * eras never overlap in time (so ordering by competition date alone would
    * already produce the same result), sorting on the era's own date first
-   * makes that guarantee explicit rather than incidental. Mirrors the same
-   * fix in `CompetitionsService.listByCompetitionGroupChronological`.
+   * makes that guarantee explicit rather than incidental. `eras.id` sits
+   * between them as a tiebreaker: `startDate` carries no uniqueness
+   * constraint, so two distinct eras sharing a start date would otherwise
+   * sort arbitrarily relative to each other and could interleave. Mirrors
+   * the same fix in `CompetitionsService.listByCompetitionGroupChronological`.
    */
   listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
     return this.db
@@ -101,7 +104,11 @@ export class TrophyAwardsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .leftJoin(players, eq(players.id, trophyAwards.playerId))
       .where(eq(trophyAwards.trophyId, trophyId))
-      .orderBy(desc(eras.startDate), desc(competitions.startDate))
+      .orderBy(
+        desc(eras.startDate),
+        desc(eras.id),
+        desc(competitions.startDate),
+      )
       .limit(limit);
   }
 
