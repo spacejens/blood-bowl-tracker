@@ -860,9 +860,12 @@ describe('TeamDeepdiveService', () => {
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
-    expect(result.embeds[0].description.split('\n')).toContain(
-      'Honors: None recorded',
-    );
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('Honors: None recorded');
+    // The empty state already says there is nothing to show; an overflow
+    // note alongside it would contradict that, even though `honorsTotal`
+    // is still (stalely) nonzero.
+    expect(lines.some((line) => line.includes('more not shown.'))).toBe(false);
   });
 
   it('caps the honors list and appends an exact remainder note when there are more', async () => {

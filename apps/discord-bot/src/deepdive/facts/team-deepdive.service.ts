@@ -269,9 +269,12 @@ export class TeamDeepdiveService {
     // `honorsTotal` is the real number of honors, so this remainder is exact
     // rather than "at least one more". Using `honors.length` (rather than
     // `MAX_TEAM_HONORS`) keeps it self-maintaining if the query's returned row
-    // count ever changes.
+    // count ever changes. Gated on `honors.length > 0` too: if the list query
+    // raced a deletion and came back empty against a stale nonzero total, the
+    // empty state above already said there is nothing to show, and an
+    // overflow note alongside it would contradict that.
     const honorsTruncatedCount = honorsTotal - honors.length;
-    if (honorsTruncatedCount > 0) {
+    if (honors.length > 0 && honorsTruncatedCount > 0) {
       honorLines.push(`…and ${honorsTruncatedCount} more not shown.`);
     }
 
