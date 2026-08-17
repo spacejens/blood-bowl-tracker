@@ -86,6 +86,18 @@ const systemIds = new Map([['BBL', 7]]);
 const ref = { system: 'BBL', id: 'id:47' };
 const other = { system: 'BBL', id: 'id:48' };
 
+/**
+ * The canned ImportError the mocked ImportResultService.error returns.
+ * ImportResultService's own message-formatting is covered by
+ * packages/import/src/import-result.service.spec.ts; these tests assert what
+ * ReferenceResolverService passes to error() (via `toHaveBeenCalledWith`) and
+ * that it pushes error()'s return value onto the errors array.
+ */
+const CANNED_ERROR: ImportError = {
+  item: { canned: true },
+  message: 'canned import error',
+};
+
 describe('ReferenceResolverService resolution', () => {
   let service: ReferenceResolverService;
   let resolver: MockProxy<ExternalIdResolverService>;
@@ -95,10 +107,7 @@ describe('ReferenceResolverService resolution', () => {
   beforeEach(async () => {
     resolver = mock<ExternalIdResolverService>();
     importResults = mock<ImportResultService>();
-    importResults.error.mockImplementation((args) => ({
-      item: args.item,
-      message: args.message,
-    }));
+    importResults.error.mockReturnValue(CANNED_ERROR);
     errors = [];
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -147,9 +156,11 @@ describe('ReferenceResolverService resolution', () => {
         kind: 'race',
       }),
     ).resolves.toBeUndefined();
-    expect(errors).toEqual([
-      { item: { a: 1 }, message: 'L: could not resolve reference BBL|id:47.' },
-    ]);
+    expect(importResults.error).toHaveBeenCalledWith({
+      item: { a: 1 },
+      message: 'L: could not resolve reference BBL|id:47.',
+    });
+    expect(errors).toEqual([CANNED_ERROR]);
   });
 
   it('throws on an unknown external system name rather than resolving', async () => {
@@ -197,10 +208,15 @@ describe('ReferenceResolverService resolution', () => {
         kind: 'era',
       }),
     ).resolves.toBeUndefined();
-    expect(errors).toEqual([
-      { item: {}, message: 'L: could not resolve reference BBL|id:47.' },
-      { item: {}, message: 'L: could not resolve reference BBL|id:48.' },
-    ]);
+    expect(importResults.error).toHaveBeenNthCalledWith(1, {
+      item: {},
+      message: 'L: could not resolve reference BBL|id:47.',
+    });
+    expect(importResults.error).toHaveBeenNthCalledWith(2, {
+      item: {},
+      message: 'L: could not resolve reference BBL|id:48.',
+    });
+    expect(errors).toEqual([CANNED_ERROR, CANNED_ERROR]);
   });
 
   it('resolves an empty list to an empty array without calling the api', async () => {
