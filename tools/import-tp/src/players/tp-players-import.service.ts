@@ -48,7 +48,6 @@ export interface StarPositionUsage {
 export interface ImportPlayersOptions {
   rosters: RosterEntry[];
   teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
-  positionIdsByTpPositionId: Map<number, number>;
   /**
    * Star players hired via an `inducements_roll` match event, grouped by
    * hiring roster id AND real era id (pre-scanned by `main.ts` from
@@ -97,8 +96,9 @@ export class TpPlayersImportService {
    * Import every player instance from the TP roster files' `lineUps[]`. Each
    * player resolves to a team era (via its roster's `teamErasByRosterId`
    * entry whose `eraId` matches the roster's era) and a position (via its
-   * `lineUpMasterId` looked up in `positionIdsByTpPositionId`, the map
-   * TpPositionsImportService returns from its own upserts). A player whose
+   * `lineUpMasterId`, resolved server-side, by external id, against whatever
+   * TpPositionsImportService upserted moments earlier in the same run --
+   * one batched lookup for the whole run, not one per player). A player whose
    * team era or position cannot be resolved is recorded as a non-fatal error
    * and skipped rather than upserted with an invalid foreign key (mirrors
    * BblPlayersImportService). Players get NO Name external id -- only the TP
@@ -145,7 +145,6 @@ export class TpPlayersImportService {
   async importPlayers({
     rosters,
     teamErasByRosterId,
-    positionIdsByTpPositionId,
     inducedStarPlayerHireGroups,
     matchEmbeddedPlayersByRosterId,
     starPositionIds,
@@ -310,6 +309,31 @@ export class TpPlayersImportService {
     );
     const mercenaryPositionIdsByName = new Map<string, number>();
 
+    // One batched lookup for the whole run, not one per player: collect
+    // every distinct lineUpMasterId across the merged roster players (the
+    // standalone roster file's own players plus any match-embedded ones) up
+    // front, then resolve them all in a single lookupMap call.
+    const lineUpMasterIds = new Set<number>();
+    for (const { roster } of rosters) {
+      for (const player of roster.players) {
+        lineUpMasterIds.add(player.lineUpMasterId);
+      }
+    }
+    if (matchEmbeddedPlayersByRosterId) {
+      for (const players of matchEmbeddedPlayersByRosterId.values()) {
+        for (const player of players) {
+          lineUpMasterIds.add(player.lineUpMasterId);
+        }
+      }
+    }
+    const positionIds = await this.lookup.lookupMap(
+      'position',
+      [...lineUpMasterIds].map((lineUpMasterId) => ({
+        externalSystemId: tpSystemId,
+        externalId: String(lineUpMasterId),
+      })),
+    );
+
     for (const { roster, era } of rosters) {
       const eraId = eraIds.get(
         this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
@@ -346,7 +370,12 @@ export class TpPlayersImportService {
           continue;
         }
 
-        let positionId = positionIdsByTpPositionId.get(player.lineUpMasterId);
+        let positionId = positionIds.get(
+          this.lookup.keyOf({
+            externalSystemId: tpSystemId,
+            externalId: String(player.lineUpMasterId),
+          }),
+        );
         let fromMercenary = false;
         if (positionId === undefined && player.isBigGuy) {
           positionId = await this.resolveMercenaryPositionId({

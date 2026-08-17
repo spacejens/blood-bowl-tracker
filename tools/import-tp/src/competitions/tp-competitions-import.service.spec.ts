@@ -369,8 +369,7 @@ describe('TpCompetitionsImportService', () => {
         spanDays: 212,
       });
 
-    const { competitionIdsByTpId, matchesByCompetitionId } =
-      await service.importCompetitions();
+    const { matchesByCompetitionId } = await service.importCompetitions();
 
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
@@ -385,12 +384,6 @@ describe('TpCompetitionsImportService', () => {
     ]);
     expect(matchesByCompetitionId.get(42)).toHaveLength(2);
     expect(matchesByCompetitionId.get(43)).toHaveLength(2);
-    expect(competitionIdsByTpId).toEqual(
-      new Map([
-        [111, 42],
-        [222, 43],
-      ]),
-    );
     expect(upsertCompetitionResult).toHaveBeenNthCalledWith(
       1,
       {
@@ -844,9 +837,9 @@ describe('TpCompetitionsImportService', () => {
     });
     tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
 
-    const { competitionIdsByTpId } = await service.importCompetitions();
+    const { competitionsByTpId } = await service.importCompetitions();
 
-    expect(competitionIdsByTpId.has(111)).toBe(false);
+    expect(competitionsByTpId.has(111)).toBe(false);
     expect(upsertCompetitionResult).toHaveBeenCalledTimes(1);
     expect(resultArgs(importResults).imported).toBe(0);
   });

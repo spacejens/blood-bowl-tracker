@@ -66,9 +66,11 @@ export class TpPositionsImportService {
    * TP-system bare-name external id (`group.name`, preserving TP's own
    * catalog-independent star id) AND a Name-system bare-name external id
    * (deduping onto the same row the inducement-hire path and the BBL
-   * importer's star positions use), and merged into the same
-   * `positionIdsByTpPositionId` map keyed by their TP catalog id; a catalog id
-   * colliding with an already-mapped id is skipped with a non-fatal error.
+   * importer's star positions use). A star external id colliding with an
+   * already-upserted regular position's external id is now caught
+   * server-side by the position upsert itself (which finds the same external
+   * id and either updates that row or reports a CONFLICT), so no client-side
+   * collision guard is needed here any more.
    * `rosters` is the already-collected roster list (via
    * `RosterCollectionService`, run once for all three imports); this service
    * only groups and upserts. Idempotent.
@@ -78,13 +80,11 @@ export class TpPositionsImportService {
     options: ImportPositionsOptions,
   ): Promise<{
     result: ImportResult;
-    positionIdsByTpPositionId: Map<number, number>;
     starPositionIds: Set<number>;
   }> {
     const { raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
-    const positionIdsByTpPositionId = new Map<number, number>();
     const starPositionIds = new Set<number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
@@ -96,7 +96,6 @@ export class TpPositionsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        positionIdsByTpPositionId,
         starPositionIds,
       };
     }
@@ -116,7 +115,6 @@ export class TpPositionsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        positionIdsByTpPositionId,
         starPositionIds,
       };
     }
@@ -206,9 +204,6 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
-      for (const tpPositionId of group.tpPositionIds) {
-        positionIdsByTpPositionId.set(tpPositionId, upserted.id);
-      }
       await this.positionsImport.syncRaceEras(
         {
           positionId: upserted.id,
@@ -226,9 +221,7 @@ export class TpPositionsImportService {
     // bare-name external ids: a TP-system one (preserving TP's own
     // catalog-independent star id) and a Name-system one so they dedupe onto
     // the SAME Position row the inducement-hire path (#198) and the BBL
-    // importer create. No syncRaceEras
-    // (not race-scoped). Ids merge into the same positionIdsByTpPositionId map,
-    // keyed by the star catalog's own tpPositionId.
+    // importer create. No syncRaceEras (not race-scoped).
     const starGroups = new Map<string, StarPositionGroup>();
     for (const { roster } of rosters) {
       for (const starPosition of roster.starPositions) {
@@ -259,24 +252,10 @@ export class TpPositionsImportService {
       }
       imported += 1;
       starPositionIds.add(upserted.id);
-      for (const tpPositionId of group.tpPositionIds) {
-        const existing = positionIdsByTpPositionId.get(tpPositionId);
-        if (existing !== undefined) {
-          errors.push(
-            this.importResults.error({
-              item: { starPosition: group.name, tpPositionId },
-              message: `Skipping star position "${group.name}" TP id ${tpPositionId}: id already mapped to position ${existing} (catalog id collision).`,
-            }),
-          );
-          continue;
-        }
-        positionIdsByTpPositionId.set(tpPositionId, upserted.id);
-      }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
-      positionIdsByTpPositionId,
       starPositionIds,
     };
   }

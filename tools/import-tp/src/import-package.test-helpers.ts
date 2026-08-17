@@ -77,9 +77,10 @@ export function mockEraDataConfigService(
  * canned-response rule, same as `tp-eras-import.service.spec.ts`'s own
  * `lookup.keyOf` stub) and whose `lookupMap(kind, ...)` resolves from a
  * plain external-id -> DB-id map per kind, keyed under `tpSystemId`. `era`
- * always comes from `eraIdsByName`; `race`/`coach` come from `extra`'s
- * matching map when supplied. A kind with no map (or an id the map doesn't
- * declare) resolves to nothing, matching a real unresolved reference.
+ * always comes from `eraIdsByName`; `race`/`coach`/`position`/`competition`
+ * come from `extra`'s matching map when supplied. A kind with no map (or an
+ * id the map doesn't declare) resolves to nothing, matching a real
+ * unresolved reference.
  */
 export function mockReferenceLookupService(
   eraIdsByName: Map<string, number>,
@@ -87,6 +88,8 @@ export function mockReferenceLookupService(
   extra?: {
     raceIdsByCode?: Map<string, number>;
     coachIdsByTpId?: Map<string, number>;
+    positionIdsByExternalId?: Map<string, number>;
+    competitionIdsByExternalId?: Map<string, number>;
   },
 ): MockProxy<ReferenceLookupService> {
   const lookup = mock<ReferenceLookupService>();
@@ -97,6 +100,8 @@ export function mockReferenceLookupService(
     era: eraIdsByName,
     race: extra?.raceIdsByCode ?? new Map<string, number>(),
     coach: extra?.coachIdsByTpId ?? new Map<string, number>(),
+    position: extra?.positionIdsByExternalId ?? new Map<string, number>(),
+    competition: extra?.competitionIdsByExternalId ?? new Map<string, number>(),
   };
   lookup.lookupMap.mockImplementation((kind) => {
     const idsByExternalId =

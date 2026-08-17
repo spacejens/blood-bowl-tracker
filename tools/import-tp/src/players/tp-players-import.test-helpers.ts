@@ -35,6 +35,11 @@ export interface MakeServiceOptions {
   upsertPosition?: ReturnType<typeof vi.fn>;
   /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
   eraIdsByName?: Map<string, number>;
+  /**
+   * lineUpMasterId (stringified) -> DB position id, as if already resolved
+   * via ReferenceLookupService's 'position' kind.
+   */
+  positionIdsByExternalId?: Map<string, number>;
   /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
   getEras?: () => EraDataConfig[];
 }
@@ -75,6 +80,7 @@ export async function makeService({
     ['Third Era', 500],
     ['Fourth Era', 501],
   ]),
+  positionIdsByExternalId = new Map([['952', 200]]),
   getEras,
 }: MakeServiceOptions): Promise<{
   service: TpPlayersImportService;
@@ -108,7 +114,9 @@ export async function makeService({
   if (getEras) {
     eraDataConfig.getEras.mockImplementation(getEras);
   }
-  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID);
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
+    positionIdsByExternalId,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [

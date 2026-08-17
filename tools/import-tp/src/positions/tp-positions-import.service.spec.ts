@@ -200,7 +200,7 @@ describe('TpPositionsImportService', () => {
     });
     nameExternalId.forPosition.mockReturnValueOnce('name-id-blocker');
 
-    const { positionIdsByTpPositionId } = await service.importPositions(
+    await service.importPositions(
       [
         rosterEntry('Fourth era', {
           teamRace: 'Dwarf',
@@ -239,7 +239,6 @@ describe('TpPositionsImportService', () => {
       'Dwarf',
       'Dwarf Blocker Lineman',
     );
-    expect(positionIdsByTpPositionId.get(280)).toBe(70);
   });
 
   it('merges the same position name across rule-set codes of one race into one row', async () => {
@@ -254,7 +253,7 @@ describe('TpPositionsImportService', () => {
     });
     nameExternalId.forPosition.mockReturnValueOnce('name-id-runner');
 
-    const { positionIdsByTpPositionId } = await service.importPositions(
+    await service.importPositions(
       [
         rosterEntry('Fourth era', {
           teamRace: 'Dwarf',
@@ -273,8 +272,6 @@ describe('TpPositionsImportService', () => {
     );
 
     expect(upsertPosition).toHaveBeenCalledTimes(1);
-    expect(positionIdsByTpPositionId.get(281)).toBe(70);
-    expect(positionIdsByTpPositionId.get(954)).toBe(70);
     expect(
       (upsertPosition.mock.calls[0][0] as UpsertPosition).externalIds,
     ).toEqual([
@@ -436,31 +433,30 @@ describe('TpPositionsImportService', () => {
       syncRaceEras,
     });
 
-    const { positionIdsByTpPositionId, starPositionIds } =
-      await service.importPositions(
-        [
-          rosterEntry('Dwarf', {
-            teamRace: 'Dwarf',
-            raceName: 'Dwarf',
-            positions: [],
-            starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
-            id: 1,
-          }),
-          rosterEntry('Human', {
-            teamRace: 'Human',
-            raceName: 'Human',
-            positions: [],
-            starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
-            id: 2,
-          }),
-        ],
-        {
-          raceNamesById: new Map([
-            [50, 'Dwarf'],
-            [60, 'Human'],
-          ]),
-        },
-      );
+    const { starPositionIds } = await service.importPositions(
+      [
+        rosterEntry('Dwarf', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          id: 1,
+        }),
+        rosterEntry('Human', {
+          teamRace: 'Human',
+          raceName: 'Human',
+          positions: [],
+          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          id: 2,
+        }),
+      ],
+      {
+        raceNamesById: new Map([
+          [50, 'Dwarf'],
+          [60, 'Human'],
+        ]),
+      },
+    );
 
     expect(resultArgs(importResults).imported).toBe(1);
     expect(upsertPosition).toHaveBeenCalledWith(
@@ -474,7 +470,6 @@ describe('TpPositionsImportService', () => {
       },
       expect.any(Array),
     );
-    expect(positionIdsByTpPositionId.get(5002)).toBe(800);
     expect(syncRaceEras).not.toHaveBeenCalled();
     expect(starPositionIds).toEqual(new Set([800]));
   });
@@ -502,42 +497,6 @@ describe('TpPositionsImportService', () => {
     );
 
     expect(starPositionIds).toEqual(new Set([800]));
-  });
-
-  it('records a non-fatal error and does not overwrite when a star id collides with a regular position id', async () => {
-    const upsertPosition = vi
-      .fn()
-      .mockResolvedValueOnce(positionRecord(70)) // regular position upsert
-      .mockResolvedValueOnce(positionRecord(800)); // star position upsert
-    const syncRaceEras = vi
-      .fn()
-      .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
-    const { service, importResults } = await makeService({
-      bootstrap: oneSystemUpsertMock(),
-      upsertPosition,
-      syncRaceEras,
-    });
-
-    const { positionIdsByTpPositionId } = await service.importPositions(
-      [
-        rosterEntry('Dwarf', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          starPositions: [{ tpPositionId: 280, name: 'Colliding Star' }],
-          id: 1,
-        }),
-      ],
-      { raceNamesById: new Map([[50, 'Dwarf']]) },
-    );
-
-    // The regular position keeps id 280 -> 70; the star does NOT overwrite it.
-    expect(positionIdsByTpPositionId.get(280)).toBe(70);
-    expect(
-      resultArgs(importResults).errors.some((e) =>
-        e.message.toLowerCase().includes('collision'),
-      ),
-    ).toBe(true);
   });
 
   it('attaches the Name external id NameExternalIdService.forPosition returns to regular positions', async () => {

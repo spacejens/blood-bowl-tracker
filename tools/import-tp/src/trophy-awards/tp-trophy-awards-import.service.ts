@@ -4,6 +4,7 @@ import {
   CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
+  ReferenceLookupService,
   TrophiesImportService,
   TrophyAwardsImportService,
 } from '@blood-bowl-tracker/import';
@@ -36,19 +37,20 @@ interface CompetitionEntry {
 
 export interface ImportTpTrophyAwardsOptions {
   competitionsByTpId: Map<number, CompetitionEntry>;
-  competitionIdsByTpId: Map<number, number>;
   teamErasByRosterId: Map<number, TeamEra[]>;
 }
 
 /**
  * State for the whole run, shared across competitions: the trophy-key
  * memoization cache, the TP external system id keys resolve against, the
- * curated group names by id, and the per-key dropped-row counts.
+ * curated group names by id, the batch-resolved competition DB ids and the
+ * per-key dropped-row counts.
  */
 interface RunContext {
   trophyIdsByKey: Map<string, number | undefined>;
   tpSystemId: number;
   groupNamesById: Map<number, string>;
+  competitionIds: Map<string, number>;
   /**
    * Count, per key already known to be unresolvable, of further award rows
    * that referenced it and were dropped without their own error (since
@@ -77,6 +79,7 @@ export class TpTrophyAwardsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
+    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
@@ -133,10 +136,21 @@ export class TpTrophyAwardsImportService {
 
     const awardsByDirectory =
       await this.awardsReader.getAwardsByDirectory(errors);
+    // One batched lookup for the whole run, not one per competition: each
+    // competition's DB id is resolved server-side by external id (its TP id,
+    // stringified, under its own upsert's external system id).
+    const competitionIds = await this.lookup.lookupMap(
+      'competition',
+      [...options.competitionsByTpId].map(([tpId, entry]) => ({
+        externalSystemId: entry.upsert.externalIds[0].externalSystemId,
+        externalId: String(tpId),
+      })),
+    );
     const run: RunContext = {
       trophyIdsByKey: new Map<string, number | undefined>(),
       tpSystemId,
       groupNamesById: new Map(groups.map((group) => [group.id, group.name])),
+      competitionIds,
       droppedRowCountsByKey: new Map<string, number>(),
     };
 
@@ -153,7 +167,7 @@ export class TpTrophyAwardsImportService {
       if (awards === undefined || awards.length === 0) {
         continue;
       }
-      const context = this.buildContext({ tpId, entry, options, run }, errors);
+      const context = this.buildContext({ tpId, entry, run }, errors);
       if (context === undefined) {
         continue;
       }
@@ -206,13 +220,17 @@ export class TpTrophyAwardsImportService {
     options: {
       tpId: number;
       entry: CompetitionEntry;
-      options: ImportTpTrophyAwardsOptions;
       run: RunContext;
     },
     errors: ImportError[],
   ): CompetitionContext | undefined {
     const { tpId, entry, run } = options;
-    const competitionId = options.options.competitionIdsByTpId.get(tpId);
+    const competitionId = run.competitionIds.get(
+      this.lookup.keyOf({
+        externalSystemId: entry.upsert.externalIds[0].externalSystemId,
+        externalId: String(tpId),
+      }),
+    );
     if (competitionId === undefined) {
       errors.push(
         this.importResults.error({

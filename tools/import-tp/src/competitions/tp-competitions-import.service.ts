@@ -75,9 +75,8 @@ export class TpCompetitionsImportService {
    * matches, or an era with no known id are skipped with a recorded error.
    * Idempotent.
    *
-   * Also returns `competitionIdsByTpId` (each imported competition's TP id to
-   * its DB id), `matchesByCompetitionId` (each imported competition's DB id to
-   * every TpMatch parsed for it during this scan) and `competitionsByTpId`
+   * Also returns `matchesByCompetitionId` (each imported competition's DB id
+   * to every TpMatch parsed for it during this scan) and `competitionsByTpId`
    * (each imported competition's TP id to the exact UpsertCompetition object
    * built for it, plus its era/competition directory strings). Match files
    * carry no tournament id, so matchesByCompetitionId is the only association
@@ -87,10 +86,12 @@ export class TpCompetitionsImportService {
    * re-upsert each competition with its teamEraIds (competition_teams) — the
    * UpsertCompetition is needed in full because UpsertCompetitionSchema has no
    * partial update, and the directory strings match the competition's rosters.
+   * A caller that needs a competition's DB id resolves it itself, server-side,
+   * by external id (its TP id, stringified, under `competitionsByTpId`'s own
+   * `upsert.externalIds[0].externalSystemId`) via `ReferenceLookupService`.
    */
   async importCompetitions(): Promise<{
     result: ImportResult;
-    competitionIdsByTpId: Map<number, number>;
     matchesByCompetitionId: Map<number, TpMatch[]>;
     competitionsByTpId: Map<
       number,
@@ -121,7 +122,6 @@ export class TpCompetitionsImportService {
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const competitionIdsByTpId = new Map<number, number>();
     const matchesByCompetitionId = new Map<number, TpMatch[]>();
     const competitionsByTpId = new Map<
       number,
@@ -142,7 +142,6 @@ export class TpCompetitionsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        competitionIdsByTpId,
         matchesByCompetitionId,
         competitionsByTpId,
       };
@@ -163,7 +162,6 @@ export class TpCompetitionsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        competitionIdsByTpId,
         matchesByCompetitionId,
         competitionsByTpId,
       };
@@ -185,7 +183,6 @@ export class TpCompetitionsImportService {
         errors,
       });
       if (upserted !== undefined) {
-        competitionIdsByTpId.set(upserted.tpId, upserted.id);
         competitionsByTpId.set(upserted.tpId, {
           upsert: upserted.upsert,
           era: group.era,
@@ -207,7 +204,6 @@ export class TpCompetitionsImportService {
 
     return {
       result: this.importResults.result({ imported, errors }),
-      competitionIdsByTpId,
       matchesByCompetitionId,
       competitionsByTpId,
     };
@@ -288,7 +284,7 @@ export class TpCompetitionsImportService {
   /**
    * Validate one group into an UpsertCompetition and upsert it, or record a
    * skip error and return undefined. Returns the competition's TP id and DB id
-   * on success (for competitionIdsByTpId).
+   * on success (for competitionsByTpId).
    */
   private async importGroup({
     group,
