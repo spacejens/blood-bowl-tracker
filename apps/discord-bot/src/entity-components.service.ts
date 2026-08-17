@@ -181,6 +181,17 @@ export class EntityComponentsService {
     };
   }
 
+  /**
+   * The emoji for a destination type, so a consumer that is *not* rendering a
+   * component can still show the same type icon — the deepdive fact services
+   * prefix their embed headline with it, so the headline matches the button
+   * that opened it. Reads the same exhaustive `ENTITY_EMOJI_BY_PREFIX` map the
+   * buttons and select-menu options use, so the two can never drift apart.
+   */
+  getEmojiForPrefix(prefix: ButtonCustomIdPrefix): string {
+    return ENTITY_EMOJI_BY_PREFIX[prefix];
+  }
+
   /** Trims a label, substituting `BLANK_LABEL` when nothing is left. */
   private resolveLabel(label: string): string {
     const trimmed = label.trim();

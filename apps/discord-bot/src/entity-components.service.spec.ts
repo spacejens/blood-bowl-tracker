@@ -136,6 +136,26 @@ describe('EntityComponentsService', () => {
     );
   });
 
+  it('returns each destination type its own emoji for a prefix', () => {
+    // One case per destination type, in the design's mapping-table order.
+    const cases: [ButtonCustomIdPrefix, string][] = [
+      [ERA_BUTTON_CUSTOM_ID_PREFIX, '🕰️'],
+      [COACH_BUTTON_CUSTOM_ID_PREFIX, '📋'],
+      [TEAM_BUTTON_CUSTOM_ID_PREFIX, '🛡️'],
+      [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
+      [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
+      [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
+      [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX, '🔁'],
+      [TROPHY_BUTTON_CUSTOM_ID_PREFIX, '🏆'],
+    ];
+    expect(
+      cases.map(([customIdPrefix]) => [
+        customIdPrefix,
+        service.getEmojiForPrefix(customIdPrefix),
+      ]),
+    ).toEqual(cases);
+  });
+
   it('drops duplicate entries, keeping the first occurrence', () => {
     const { components } = service.buildEntityComponents([
       {
