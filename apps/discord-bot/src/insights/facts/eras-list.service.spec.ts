@@ -17,6 +17,7 @@ import {
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
 } from '../../entity-components-mock.test-helpers';
@@ -352,7 +353,7 @@ describe('ErasListService.resolve', () => {
   // ErasListService hands EntityComponentsService one entry per era, in the
   // same chronological order used for the embed text.
   it('hands one entry per era to EntityComponentsService, in chronological order', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: null,
@@ -392,7 +393,7 @@ describe('ErasListService.resolve', () => {
   });
 
   it('appends the overflow note when some eras got no link', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 3 more without a link.',
