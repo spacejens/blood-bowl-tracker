@@ -13,8 +13,8 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, ilike } from 'drizzle-orm';
 
-import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
