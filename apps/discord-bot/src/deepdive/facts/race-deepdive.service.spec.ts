@@ -11,8 +11,10 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
@@ -27,6 +29,7 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
+import { RACE_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
 interface MakeServiceOptions {
@@ -114,7 +117,7 @@ describe('RaceDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Orc',
+          title: `${stubEntityEmoji(RACE_BUTTON_CUSTOM_ID_PREFIX)} Orc`,
           description: [
             'Eras: BB2016, BB2020',
             '',
@@ -192,7 +195,7 @@ describe('RaceDeepdiveService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Orc',
+          title: `${stubEntityEmoji(RACE_BUTTON_CUSTOM_ID_PREFIX)} Orc`,
           description: [
             'Eras: BB2020',
             '',
@@ -243,7 +246,7 @@ describe('RaceDeepdiveService', () => {
 
   it('appends the overflow note when components report entries without a link', async () => {
     const leaderboard = passthroughLeaderboard();
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 6 more without a link.',
