@@ -141,8 +141,8 @@ export class TpTrophyAwardsImportService {
     // stringified, under its own upsert's external system id).
     const competitionIds = await this.lookup.lookupMap(
       'competition',
-      [...options.competitionsByTpId].map(([tpId, entry]) => ({
-        externalSystemId: entry.upsert.externalIds[0].externalSystemId,
+      [...options.competitionsByTpId].map(([tpId]) => ({
+        externalSystemId: tpSystemId,
         externalId: String(tpId),
       })),
     );
@@ -227,7 +227,7 @@ export class TpTrophyAwardsImportService {
     const { tpId, entry, run } = options;
     const competitionId = run.competitionIds.get(
       this.lookup.keyOf({
-        externalSystemId: entry.upsert.externalIds[0].externalSystemId,
+        externalSystemId: run.tpSystemId,
         externalId: String(tpId),
       }),
     );

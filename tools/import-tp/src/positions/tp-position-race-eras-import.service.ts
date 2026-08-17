@@ -73,20 +73,21 @@ export class TpPositionRaceErasImportService {
       );
       return { result: this.importResults.result({ imported, errors }) };
     }
-    const eraIds = await this.lookup.lookupMap(
-      'era',
-      eraNames.map((name) => ({
-        externalSystemId: tpSystemId,
-        externalId: name,
-      })),
-    );
-
-    const raceIds = await this.lookup.lookupMap(
-      'race',
-      [...new Set(starPositionUsages.map((u) => u.teamRaceCode))].map(
-        (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+    const [eraIds, raceIds] = await Promise.all([
+      this.lookup.lookupMap(
+        'era',
+        eraNames.map((name) => ({
+          externalSystemId: tpSystemId,
+          externalId: name,
+        })),
       ),
-    );
+      this.lookup.lookupMap(
+        'race',
+        [...new Set(starPositionUsages.map((u) => u.teamRaceCode))].map(
+          (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+        ),
+      ),
+    ]);
 
     // positionId -> ("raceId:eraId" -> { raceId, eraId }) for per-position dedup.
     const pairsByPosition = new Map<

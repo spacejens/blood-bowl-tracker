@@ -120,8 +120,10 @@ export class BblTeamsImportService {
           .filter((name): name is string => name !== undefined),
       ),
     ].map((name) => ({ externalSystemId: bblSystemId, externalId: name }));
-    const raceIds = await this.lookup.lookupMap('race', raceRefs);
-    const coachIds = await this.lookup.lookupMap('coach', coachRefs);
+    const [raceIds, coachIds] = await Promise.all([
+      this.lookup.lookupMap('race', raceRefs),
+      this.lookup.lookupMap('coach', coachRefs),
+    ]);
 
     for (const team of pending) {
       const raceId =

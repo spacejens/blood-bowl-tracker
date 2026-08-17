@@ -326,15 +326,18 @@ everything it needs in one batched call and then looks the records up locally,
 so the network cost is one round trip per step, not per record.
 
 The ordering in `main.ts` still matters — a race has to be upserted before a
-team referencing it can be resolved — but no id map is threaded between the
-steps any more.
+team referencing it can be resolved — and resolution itself no longer needs a
+client-side id map built earlier in the same run.
 
 Some maps deliberately remain, because no external-id resolve can answer
 them: the competition payload carrier `competitionsByTpId` and the two maps
-`main.ts` derives from it, parsed match data, a race's display name
-(`raceNamesById`), `team_eras` rows (which have no external ids of their
-own), classification and evidence sets, and matches and players (which have
-no resolve procedure).
+`TpCompetitionIdResolverService` derives from it
+(`competitionTypesByCompetitionId` and `eraIdByCompetitionId`, both keyed by
+the already-resolved database competition id — not client-side substitutes
+for resolution, just its readily available byproducts), parsed match data, a
+race's display name (`raceNamesById`), `team_eras` rows (which have no
+external ids of their own), classification and evidence sets, and matches and
+players (which have no resolve procedure).
 
 ## Related documentation
 

@@ -134,19 +134,23 @@ export class TpTeamsImportService {
       }
     }
 
-    const raceIds = await this.lookup.lookupMap(
-      'race',
-      [...new Set([...groups.values()].map((g) => g.teamRaceCode))].map(
-        (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+    const [raceIds, coachIds] = await Promise.all([
+      this.lookup.lookupMap(
+        'race',
+        [...new Set([...groups.values()].map((g) => g.teamRaceCode))].map(
+          (code) => ({ externalSystemId: tpSystemId, externalId: code }),
+        ),
       ),
-    );
-    const coachIds = await this.lookup.lookupMap(
-      'coach',
-      [...new Set([...groups.values()].map((g) => g.coachTpId))].map((id) => ({
-        externalSystemId: tpSystemId,
-        externalId: id,
-      })),
-    );
+      this.lookup.lookupMap(
+        'coach',
+        [...new Set([...groups.values()].map((g) => g.coachTpId))].map(
+          (id) => ({
+            externalSystemId: tpSystemId,
+            externalId: id,
+          }),
+        ),
+      ),
+    ]);
 
     for (const group of groups.values()) {
       const raceId = raceIds.get(
