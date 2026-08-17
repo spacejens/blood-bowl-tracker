@@ -51,28 +51,38 @@ const BBL_SYSTEM_ID = 1;
 /** The default era name -> DB id resolution the mocked lookup answers with. */
 const eraIdsByName = new Map<string, number>([['Living rulebook', 500]]);
 
+/** The default position `typId-raceBblId` -> DB id resolution the mocked lookup answers with. */
+const positionIdsByExternalId = new Map<string, number>([['10-7', 100]]);
+
 /**
- * Configures `lookup.lookupMap` to resolve any era ref whose name appears in
- * `idsByName`, keyed via the mocked (deterministic) `keyOf`. Mirrors what
- * ReferenceLookupService itself does, without reimplementing its resolution
- * algorithm (idsByName is supplied by the caller, not derived here).
+ * Configures `lookup.lookupMap` to resolve any ref whose external id appears
+ * in the map registered for that call's `kind`, keyed via the mocked
+ * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
+ * without reimplementing its resolution algorithm (each kind's map is
+ * supplied by the caller, not derived here).
  */
-function mockEraLookup(
+function mockLookup(
   lookup: MockProxy<ReferenceLookupService>,
-  idsByName: Map<string, number>,
+  idsByKind: { era: Map<string, number>; position: Map<string, number> },
 ): void {
-  lookup.lookupMap.mockImplementation((_kind, refs) =>
-    Promise.resolve(
+  lookup.lookupMap.mockImplementation((kind, refs) => {
+    const idsByExternalId =
+      kind === 'era'
+        ? idsByKind.era
+        : kind === 'position'
+          ? idsByKind.position
+          : new Map<string, number>();
+    return Promise.resolve(
       new Map(
         refs
-          .filter((ref) => idsByName.has(ref.externalId))
+          .filter((ref) => idsByExternalId.has(ref.externalId))
           .map((ref) => [
             lookup.keyOf(ref),
-            idsByName.get(ref.externalId) as number,
+            idsByExternalId.get(ref.externalId) as number,
           ]),
       ),
-    ),
-  );
+    );
+  });
 }
 
 interface Mocks {
@@ -123,7 +133,7 @@ async function makeService(
   lookup.keyOf.mockImplementation(
     (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
   );
-  mockEraLookup(lookup, idsByName);
+  mockLookup(lookup, { era: idsByName, position: positionIdsByExternalId });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -144,12 +154,11 @@ async function makeService(
 }
 
 describe('BblPositionRaceErasImportService', () => {
-  const positionIdsByBblId = new Map<string, number>([['10-7', 100]]);
   const racesByBblId = new Map<string, { id: number; name: string }>([
     ['7', { id: 7, name: 'Orcs' }],
   ]);
 
-  it('resolves configured eras through the api once for the whole run', async () => {
+  it('resolves configured eras and position overrides through the api once for the whole run', async () => {
     const { service, mocks } = await makeService([makeEra()]);
     const positionRaceCandidates = new Map([
       [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
@@ -158,17 +167,48 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
     });
 
-    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
     expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
       { externalSystemId: BBL_SYSTEM_ID, externalId: 'Living rulebook' },
     ]);
+    // makeEra() carries no `positions` overrides, so the batched call still
+    // happens (one round trip per run, regardless of whether it finds
+    // anything to resolve) but with an empty ref list.
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('position', []);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(2);
+  });
+
+  it('resolves position overrides by their typId-raceBblId external id', async () => {
+    const eras = [
+      makeEra({
+        positions: [{ positionId: '10', raceId: '7', available: false }],
+      }),
+    ];
+    const { service, mocks } = await makeService(eras);
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+
+    await service.syncPositionRaceEras({
+      positionRaceCandidates,
+      racesByBblId,
+      eraIdsByRaceId,
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith(
+      'position',
+      expect.arrayContaining([
+        { externalSystemId: BBL_SYSTEM_ID, externalId: '10-7' },
+      ]),
+    );
   });
 
   it('includes all race_eras of a star player position regardless of usage', async () => {
@@ -187,7 +227,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
@@ -224,7 +263,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra,
@@ -252,7 +290,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra,
@@ -280,7 +317,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra,
@@ -308,7 +344,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra,
@@ -341,7 +376,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra,
@@ -374,7 +408,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra,
@@ -405,7 +438,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
@@ -437,7 +469,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
@@ -468,7 +499,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
@@ -496,7 +526,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
@@ -522,7 +551,6 @@ describe('BblPositionRaceErasImportService', () => {
 
     const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
-      positionIdsByBblId,
       racesByBblId,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),

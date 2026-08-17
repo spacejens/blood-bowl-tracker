@@ -65,14 +65,12 @@ async function run(): Promise<ImportResult> {
       .importPositions(raceOutcome.racesByBblId, teamOutcome.teamRaceIdsByCode);
     const playerOutcome = await app.get(BblPlayersImportService).importPlayers({
       teamsByCode: teamOutcome.teamsByCode,
-      positionIdsByBblId: positionOutcome.positionIdsByBblId,
       racesByBblId: raceOutcome.racesByBblId,
     });
     const positionRaceErasOutcome = await app
       .get(BblPositionRaceErasImportService)
       .syncPositionRaceEras({
         positionRaceCandidates: positionOutcome.positionRaceCandidates,
-        positionIdsByBblId: positionOutcome.positionIdsByBblId,
         racesByBblId: raceOutcome.racesByBblId,
         eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
         positionsUsedByEra: playerOutcome.positionsUsedByEra,

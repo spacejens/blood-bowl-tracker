@@ -20,7 +20,6 @@ const PLAYER_PAGE_TYPE = 'pl';
 
 interface ImportPlayersOptions {
   teamsByCode: Map<string, UpsertTeam>;
-  positionIdsByBblId: Map<string, number>;
   racesByBblId: Map<string, { id: number; name: string }>;
 }
 
@@ -52,7 +51,6 @@ export class BblPlayersImportService {
    */
   async importPlayers({
     teamsByCode,
-    positionIdsByBblId,
     racesByBblId,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
@@ -124,6 +122,40 @@ export class BblPlayersImportService {
     for (const [bblId, info] of racesByBblId) {
       raceBblIdByDbId.set(info.id, bblId);
     }
+
+    // One round trip for the whole run: every position referenced here was
+    // upserted moments ago by the positions step, so it is already in the
+    // database and resolvable by its composite typId-raceBblId external id.
+    // A first pass over the player pages (this service cannot know which
+    // positions it needs until it has seen every player's typId and team)
+    // collects the distinct refs; the per-player loop below then resolves
+    // each player's position from the one batched result.
+    const positionRefs = new Set<string>();
+    for await (const page of this.sourceReader.pages(PLAYER_PAGE_TYPE)) {
+      const player = this.playerPageParser.extractPlayer(page);
+      if (!player) {
+        continue;
+      }
+      const team = teamsByCode.get(player.teamCode);
+      if (!team) {
+        continue;
+      }
+      const raceBblId = raceBblIdByDbId.get(
+        this.upsertFieldNarrowing.resolveDefiniteRaceId(team),
+      );
+      if (raceBblId === undefined) {
+        continue;
+      }
+      positionRefs.add(`${player.typId}-${raceBblId}`);
+    }
+    const positionIds = await this.lookup.lookupMap(
+      'position',
+      [...positionRefs].map((externalId) => ({
+        externalSystemId: bblSystemId,
+        externalId,
+      })),
+    );
+
     const eraByOverriddenPid = new Map<number, (typeof eras)[number]>();
     for (const era of eras) {
       for (const pid of era.players.playerIdOverrides ?? []) {
@@ -217,7 +249,12 @@ export class BblPlayersImportService {
         );
         const positionId =
           raceBblId !== undefined
-            ? positionIdsByBblId.get(`${player.typId}-${raceBblId}`)
+            ? positionIds.get(
+                this.lookup.keyOf({
+                  externalSystemId: bblSystemId,
+                  externalId: `${player.typId}-${raceBblId}`,
+                }),
+              )
             : undefined;
         if (positionId === undefined) {
           errors.push(

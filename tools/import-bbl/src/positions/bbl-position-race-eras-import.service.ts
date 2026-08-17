@@ -15,7 +15,6 @@ export interface SyncPositionRaceErasOptions {
     number,
     { isStarPlayer: boolean; raceDbIds: Set<number> }
   >;
-  positionIdsByBblId: Map<string, number>;
   racesByBblId: Map<string, { id: number; name: string }>;
   eraIdsByRaceId: Map<number, Set<number>>;
   positionsUsedByEra: Set<string>;
@@ -56,7 +55,6 @@ export class BblPositionRaceErasImportService {
    */
   async syncPositionRaceEras({
     positionRaceCandidates,
-    positionIdsByBblId,
     racesByBblId,
     eraIdsByRaceId,
     positionsUsedByEra,
@@ -99,14 +97,35 @@ export class BblPositionRaceErasImportService {
       }
     }
 
+    // One round trip for the whole run: every position override here
+    // references a position the positions step upserted moments ago, so it
+    // is already in the database and resolvable by its composite
+    // typId-raceBblId external id. Resolved once into a ref-keyed map so the
+    // override loop below can keep looking positions up locally.
+    const overridePositionRefs = [
+      ...new Set(
+        eras.flatMap(
+          (era) =>
+            era.positions?.map((o) => `${o.positionId}-${o.raceId}`) ?? [],
+        ),
+      ),
+    ].map((externalId) => ({ externalSystemId: bblSystemId, externalId }));
+    const positionIds = await this.lookup.lookupMap(
+      'position',
+      overridePositionRefs,
+    );
+
     // Resolve config overrides to DB ids, grouped by positionId.
     // overridesByPositionId: positionId -> ("${raceId}:${eraId}" -> available)
     const overridesByPositionId = new Map<number, Map<string, boolean>>();
     for (const era of eras) {
       const eraId = eraIdsByName.get(era.identity.name);
       for (const o of era.positions ?? []) {
-        const positionId = positionIdsByBblId.get(
-          `${o.positionId}-${o.raceId}`,
+        const positionId = positionIds.get(
+          this.lookup.keyOf({
+            externalSystemId: bblSystemId,
+            externalId: `${o.positionId}-${o.raceId}`,
+          }),
         );
         const race = racesByBblId.get(o.raceId);
         if (

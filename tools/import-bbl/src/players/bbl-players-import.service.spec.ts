@@ -71,27 +71,34 @@ function plPage(player: BblPlayer | null, pid = '388'): BblPage {
 const BBL_SYSTEM_ID = 1;
 
 /**
- * Configures `lookup.lookupMap` to resolve any era ref whose name appears in
- * `idsByName`, keyed via the mocked (deterministic) `keyOf`. Mirrors what
- * ReferenceLookupService itself does, without reimplementing its resolution
- * algorithm (idsByName is supplied by the caller, not derived here).
+ * Configures `lookup.lookupMap` to resolve any ref whose external id appears
+ * in the map registered for that call's `kind`, keyed via the mocked
+ * (deterministic) `keyOf`. Mirrors what ReferenceLookupService itself does,
+ * without reimplementing its resolution algorithm (each kind's map is
+ * supplied by the caller, not derived here).
  */
-function mockEraLookup(
+function mockLookup(
   lookup: MockProxy<ReferenceLookupService>,
-  idsByName: Map<string, number>,
+  idsByKind: { era: Map<string, number>; position: Map<string, number> },
 ): void {
-  lookup.lookupMap.mockImplementation((_kind, refs) =>
-    Promise.resolve(
+  lookup.lookupMap.mockImplementation((kind, refs) => {
+    const idsByExternalId =
+      kind === 'era'
+        ? idsByKind.era
+        : kind === 'position'
+          ? idsByKind.position
+          : new Map<string, number>();
+    return Promise.resolve(
       new Map(
         refs
-          .filter((ref) => idsByName.has(ref.externalId))
+          .filter((ref) => idsByExternalId.has(ref.externalId))
           .map((ref) => [
             lookup.keyOf(ref),
-            idsByName.get(ref.externalId) as number,
+            idsByExternalId.get(ref.externalId) as number,
           ]),
       ),
-    ),
-  );
+    );
+  });
 }
 
 const team: UpsertTeam = {
@@ -105,10 +112,17 @@ const teamsByCode = new Map<string, UpsertTeam>([['knu', team]]);
 const racesByBblId = new Map<string, { id: number; name: string }>([
   ['7', { id: 70, name: 'Goblin Team' }],
 ]);
-const positionIdsByBblId = new Map<string, number>([['33-7', 200]]);
 
 /** The default era name -> DB id resolution the mocked lookup answers with. */
 const eraIdsByName = new Map<string, number>([['LRB', 500]]);
+
+/**
+ * The default position `typId-raceBblId` -> DB id resolution the mocked
+ * lookup answers with. goodPlayer's typId is '33'; its team (Knights, DB
+ * race id 70) maps to BBL race id '7' via racesByBblId, so '33-7' is the
+ * composite external id.
+ */
+const positionIdsByExternalId = new Map<string, number>([['33-7', 200]]);
 
 const defaultEras: EraConfig[] = [
   {
@@ -159,7 +173,8 @@ function makeTeamRecord(eras: { id: number; eraId: number }[]) {
  * `eras` seeds the EraConfigService mock since every test needs its own era
  * set. `idsByName` seeds the mocked lookup's era resolution (defaulting to
  * `eraIdsByName`); a test wanting different resolution results passes its own
- * map.
+ * map. Position resolution always defaults to `positionIdsByExternalId`; no
+ * test in this file needs a different one.
  */
 async function makeService(
   reader: BblSourceReader,
@@ -216,7 +231,7 @@ async function makeService(
   lookup.keyOf.mockImplementation(
     (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
   );
-  mockEraLookup(lookup, idsByName);
+  mockLookup(lookup, { era: idsByName, position: positionIdsByExternalId });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -263,21 +278,42 @@ const goodPlayer: BblPlayer = {
 };
 
 describe('BblPlayersImportService', () => {
-  it('resolves configured eras through the api once for the whole run', async () => {
+  it('resolves configured eras and referenced positions through the api once for the whole run', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [] }),
     );
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
-    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
     expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
       { externalSystemId: BBL_SYSTEM_ID, externalId: 'LRB' },
     ]);
+    // No player pages, so the batched position call still happens (one round
+    // trip per run, regardless of whether it finds anything to resolve) but
+    // with an empty ref list.
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('position', []);
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(2);
+  });
+
+  it('resolves positions by their typId-raceBblId external id', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+    );
+
+    await service.importPlayers({
+      teamsByCode,
+      racesByBblId,
+    });
+
+    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith(
+      'position',
+      expect.arrayContaining([
+        { externalSystemId: BBL_SYSTEM_ID, externalId: '33-7' },
+      ]),
+    );
   });
 
   it('imports a resolvable player and maps its pid to the DB id', async () => {
@@ -288,7 +324,6 @@ describe('BblPlayersImportService', () => {
     const { playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
       await service.importPlayers({
         teamsByCode,
-        positionIdsByBblId,
         racesByBblId,
       });
 
@@ -323,7 +358,6 @@ describe('BblPlayersImportService', () => {
 
     const { teamEraIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -342,7 +376,6 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid, teamEraIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -378,7 +411,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -426,7 +458,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -476,7 +507,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -529,7 +559,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -582,7 +611,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -632,7 +660,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -685,7 +712,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -723,7 +749,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -748,7 +773,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -774,7 +798,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -793,7 +816,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -812,7 +834,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -835,7 +856,6 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -860,7 +880,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -886,7 +905,6 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -921,7 +939,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -940,7 +957,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -958,7 +974,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -979,7 +994,6 @@ describe('BblPlayersImportService', () => {
 
     await service.importPlayers({
       teamsByCode: localTeamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -998,7 +1012,6 @@ describe('BblPlayersImportService', () => {
 
     const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -1017,7 +1030,6 @@ describe('BblPlayersImportService', () => {
     const { positionsUsedByEra, racesActiveByEra } =
       await service.importPlayers({
         teamsByCode,
-        positionIdsByBblId,
         racesByBblId,
       });
 
@@ -1032,7 +1044,6 @@ describe('BblPlayersImportService', () => {
 
     const { result } = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -1061,7 +1072,6 @@ describe('BblPlayersImportService', () => {
 
     const outcome = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
@@ -1081,7 +1091,6 @@ describe('BblPlayersImportService', () => {
 
     const outcome = await service.importPlayers({
       teamsByCode,
-      positionIdsByBblId,
       racesByBblId,
     });
 
