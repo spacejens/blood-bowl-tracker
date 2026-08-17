@@ -47,11 +47,11 @@ async function run(): Promise<ImportResult> {
         competitionOutcome.competitionsByBblId,
         competitionOutcome.competitionIdsByBblId,
       );
+    // Races and coaches must be upserted before teams referencing them can be
+    // resolved server-side, by external id.
     const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
     const raceOutcome = await app.get(BblRacesImportService).importRaces();
-    const teamOutcome = await app
-      .get(BblTeamsImportService)
-      .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
+    const teamOutcome = await app.get(BblTeamsImportService).importTeams();
     const teamParticipationOutcome = await app
       .get(BblTeamParticipationImportService)
       .importTeamParticipation({

@@ -24,7 +24,6 @@ interface UpsertParsedRaceOptions {
   seen: Set<string>;
   bblSystemId: number;
   nameSystemId: number;
-  raceIdsByBblId: Map<string, number>;
   racesByBblId: Map<string, { id: number; name: string }>;
   racesByRaceId: Map<number, UpsertRace>;
   errors: ImportError[];
@@ -55,13 +54,11 @@ export class BblRacesImportService {
    */
   async importRaces(): Promise<{
     result: ImportResult;
-    raceIdsByBblId: Map<string, number>;
     racesByBblId: Map<string, { id: number; name: string }>;
     racesByRaceId: Map<number, UpsertRace>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const raceIdsByBblId = new Map<string, number>();
     const racesByBblId = new Map<string, { id: number; name: string }>();
     const racesByRaceId = new Map<number, UpsertRace>();
 
@@ -74,7 +71,6 @@ export class BblRacesImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        raceIdsByBblId,
         racesByBblId,
         racesByRaceId,
       };
@@ -94,7 +90,6 @@ export class BblRacesImportService {
             seen,
             bblSystemId,
             nameSystemId,
-            raceIdsByBblId,
             racesByBblId,
             racesByRaceId,
             errors,
@@ -117,7 +112,6 @@ export class BblRacesImportService {
               seen,
               bblSystemId,
               nameSystemId,
-              raceIdsByBblId,
               racesByBblId,
               racesByRaceId,
               errors,
@@ -134,7 +128,6 @@ export class BblRacesImportService {
 
     return {
       result: this.importResults.result({ imported, errors }),
-      raceIdsByBblId,
       racesByBblId,
       racesByRaceId,
     };
@@ -157,7 +150,6 @@ export class BblRacesImportService {
       seen,
       bblSystemId,
       nameSystemId,
-      raceIdsByBblId,
       racesByBblId,
       racesByRaceId,
       errors,
@@ -183,7 +175,6 @@ export class BblRacesImportService {
       return false;
     }
 
-    raceIdsByBblId.set(parsedRace.id, upsertedRace.id);
     racesByBblId.set(parsedRace.id, {
       id: upsertedRace.id,
       name: parsedRace.name,
