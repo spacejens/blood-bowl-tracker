@@ -221,11 +221,19 @@ export class TpPositionsImportService {
     }
 
     // Star positions: grouped by name only (not race — the same named star
-    // player is the same entity regardless of team/race), upserted with two
-    // bare-name external ids: a TP-system one (preserving TP's own
-    // catalog-independent star id) and a Name-system one so they dedupe onto
+    // player is the same entity regardless of team/race), upserted with a
+    // TP-system bare-name external id (preserving TP's own catalog-independent
+    // star id), one TP-system external id per distinct numeric tpPositionId
+    // seen for that star, and a Name-system bare-name id so they dedupe onto
     // the SAME Position row the inducement-hire path (#198) and the BBL
-    // importer create. No syncRaceEras (not race-scoped).
+    // importer create. The numeric ids are what makes a roster-embedded star
+    // resolvable: TpPlayersImportService looks a position up by
+    // String(lineUpMasterId), which is exactly this number, so without them
+    // every roster-embedded star is skipped (#245). A numeric id colliding
+    // with a regular position's TP id is caught server-side by
+    // PositionsService's detectSemanticConflict hook (isStarPlayer mismatch →
+    // PositionUpsertConflictError, reported as a CONFLICT), never silently
+    // overwritten. No syncRaceEras (not race-scoped).
     const starGroups = new Map<string, StarPositionGroup>();
     for (const { roster } of rosters) {
       for (const starPosition of roster.starPositions) {
@@ -244,6 +252,10 @@ export class TpPositionsImportService {
         isStarPlayer: true,
         externalIds: [
           { externalSystemId: tpSystemId, externalId: group.name },
+          ...[...group.tpPositionIds].map((tpPositionId) => ({
+            externalSystemId: tpSystemId,
+            externalId: String(tpPositionId),
+          })),
           {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forStarPosition(group.name),
