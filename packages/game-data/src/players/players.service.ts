@@ -93,6 +93,14 @@ export class PlayersService {
     return rows[0];
   }
 
+  /**
+   * Name-prefix search backing `/deepdive`'s player autocomplete. Star
+   * players are excluded (#245): a star's identity is their position, and
+   * each hire is its own `players` row, so a popular star would otherwise
+   * appear once per hiring team. Excluding them here also means the deepdive
+   * never resolves a star player id, so `PlayerDeepdiveService`'s
+   * one-team-era-per-career assumption never has to hold for a star.
+   */
   searchByNamePrefix(
     prefix: string,
     limit: number,
@@ -102,7 +110,13 @@ export class PlayersService {
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(ilike(players.name, `${this.likePattern.escape(prefix)}%`))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(
+        and(
+          ilike(players.name, `${this.likePattern.escape(prefix)}%`),
+          eq(positions.isStarPlayer, false),
+        ),
+      )
       .limit(limit);
   }
 

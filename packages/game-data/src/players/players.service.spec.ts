@@ -268,8 +268,24 @@ describe('PlayersService', () => {
       await expect(service.searchByNamePrefix('Gri', 25)).resolves.toEqual(
         rows,
       );
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
       expect(chains[0].limit).toHaveBeenCalledWith(25);
+    });
+
+    it('excludes star players from the results', async () => {
+      likePattern.escape.mockReturnValue('Mor');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefix('Mor', 25);
+
+      // players -> teamEras -> teams -> positions
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
+      // The where clause includes both the name pattern and isStarPlayer=false filter
+      const filterValues = extractAllFilterValues(firstCallArg(chains[0].where));
+      expect(filterValues).toContain(false);
     });
   });
 
