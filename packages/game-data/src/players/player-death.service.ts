@@ -81,6 +81,7 @@ export class PlayerDeathService {
           eq(matchEvents.consequenceType, 'death'),
         ),
       )
+      .orderBy(matchEvents.id)
       .limit(1);
     const event = events[0];
     if (event === undefined) {
@@ -88,9 +89,36 @@ export class PlayerDeathService {
     }
 
     const sides = await this.findMatchSides(event.matchId);
-    // One selection rule covers both branches of the design: an explicitly
-    // recorded acting side narrows to exactly that row, and an unrecorded one
-    // leaves every side except the victim's own as a candidate.
+
+    // A named killer takes priority over any team-candidate ambiguity: the
+    // data directly identifies who did it, regardless of whether the acting
+    // side was also recorded, and regardless of how many other teams shared
+    // the match. Resolve the killer's own team from their player row (rather
+    // than from `actingMatchTeamId`, which can be null) and match it against
+    // the sides already fetched above.
+    if (event.actingPlayerId !== null) {
+      const killer = await this.findKiller(event.actingPlayerId);
+      const killerSide = sides.find((side) => side.teamId === killer?.teamId);
+      if (killer !== undefined && killerSide !== undefined) {
+        return {
+          kind: 'player',
+          playerId: event.actingPlayerId,
+          playerName: killer.playerName,
+          positionName: killer.positionName,
+          ...this.toKillerTeam(killerSide),
+        };
+      }
+      // Defensive fallback: the event names an acting player, but either no
+      // such player row exists or their team could not be matched against
+      // this match's sides. Not expected from any known importer behaviour —
+      // fall through to the acting-team-based resolution below, same as an
+      // event with no named killer at all.
+    }
+
+    // One selection rule covers both remaining branches of the design: an
+    // explicitly recorded acting side narrows to exactly that row, and an
+    // unrecorded one leaves every side except the victim's own as a
+    // candidate.
     const candidates =
       event.actingMatchTeamId === null
         ? sides.filter(
@@ -108,21 +136,7 @@ export class PlayerDeathService {
       };
     }
 
-    const team = this.toKillerTeam(candidates[0]);
-    if (event.actingPlayerId === null) {
-      return { kind: 'team', ...team };
-    }
-    const killer = await this.findKiller(event.actingPlayerId);
-    if (killer === undefined) {
-      return { kind: 'team', ...team };
-    }
-    return {
-      kind: 'player',
-      playerId: event.actingPlayerId,
-      playerName: killer.playerName,
-      positionName: killer.positionName,
-      ...team,
-    };
+    return { kind: 'team', ...this.toKillerTeam(candidates[0]) };
   }
 
   /**
@@ -151,14 +165,25 @@ export class PlayerDeathService {
       .orderBy(teams.name);
   }
 
-  /** The killer's own name and position. */
-  private async findKiller(
-    killerPlayerId: number,
-  ): Promise<{ playerName: string; positionName: string } | undefined> {
+  /** The killer's own name, position, and team id. */
+  private async findKiller(killerPlayerId: number): Promise<
+    | {
+        playerName: string;
+        positionName: string;
+        teamId: number;
+      }
+    | undefined
+  > {
     const rows = await this.db
-      .select({ playerName: players.name, positionName: positions.name })
+      .select({
+        playerName: players.name,
+        positionName: positions.name,
+        teamId: teams.id,
+      })
       .from(players)
       .innerJoin(positions, eq(positions.id, players.positionId))
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(eq(players.id, killerPlayerId));
     return rows[0];
   }

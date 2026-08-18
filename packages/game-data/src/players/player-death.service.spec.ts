@@ -102,7 +102,13 @@ describe('PlayerDeathService', () => {
           }),
         ],
         [victimSide, orcSide],
-        [{ playerName: 'Varag Ghoul-Chewer', positionName: 'Blitzer' }],
+        [
+          {
+            playerName: 'Varag Ghoul-Chewer',
+            positionName: 'Blitzer',
+            teamId: orcSide.teamId,
+          },
+        ],
       );
 
       await expect(service.getKillerInfo(1)).resolves.toEqual({
@@ -130,6 +136,67 @@ describe('PlayerDeathService', () => {
       ).toEqual(['positions.id', 'players.position_id']);
     });
 
+    it('gives a known killer player priority over team ambiguity in a merged multi-team match', async () => {
+      // actingMatchTeamId is null (not recorded) and the match has more than
+      // one non-victim side, which would make the team-based fallback
+      // ambiguous — but the killer's own player row names their team
+      // directly, so the result must still be a precise `player` kind, not
+      // `ambiguousTeams`.
+      const { service, chains } = await build(
+        [deathEvent({ actingPlayerId: 77 })],
+        [victimSide, orcSide, undeadSide],
+        [
+          {
+            playerName: 'Bloodspite Ripfang',
+            positionName: 'Werewolf',
+            teamId: undeadSide.teamId,
+          },
+        ],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toEqual({
+        kind: 'player',
+        playerId: 77,
+        playerName: 'Bloodspite Ripfang',
+        positionName: 'Werewolf',
+        teamId: 13,
+        teamName: 'Champions of Death',
+        raceId: 6,
+        raceName: 'Undead',
+        coachId: 23,
+        coachName: 'Mortis',
+      });
+      // Exactly 3 queries: death event, match sides, killer-with-team.
+      expect(chains).toHaveLength(3);
+    });
+
+    it('falls back to team-based resolution when the killer player lookup finds no match', async () => {
+      // Defensive branch: actingPlayerId is set (so the data claims to know
+      // the killer), but the players lookup returns no row. This should not
+      // happen from any known importer behaviour, but the code must not
+      // throw — it falls through to the existing team-based resolution.
+      const { service } = await build(
+        [
+          deathEvent({
+            actingPlayerId: 77,
+            actingMatchTeamId: orcSide.matchTeamId,
+          }),
+        ],
+        [victimSide, orcSide],
+        [],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toEqual({
+        kind: 'team',
+        teamId: 12,
+        teamName: 'Gouged Eye',
+        raceId: 5,
+        raceName: 'Orc',
+        coachId: 22,
+        coachName: 'Grimly',
+      });
+    });
+
     it('resolves the acting team when the specific player is unidentified', async () => {
       const { service, chains } = await build(
         [deathEvent({ actingMatchTeamId: orcSide.matchTeamId })],
@@ -147,6 +214,15 @@ describe('PlayerDeathService', () => {
       });
       // No third query: with no acting player there is nobody to name.
       expect(chains).toHaveLength(2);
+      // Guards against e.g. a transposed team_eras/teams join that would
+      // otherwise pass silently, since mockDb returns canned rows regardless
+      // of actual join correctness.
+      expect(
+        extractJoinColumns(firstCallArg(chains[1].innerJoin, 0, 1)),
+      ).toEqual(['team_eras.id', 'match_teams.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[1].innerJoin, 1, 1)),
+      ).toEqual(['teams.id', 'team_eras.team_id']);
     });
 
     it('infers the single opposing team when the event names no acting side', async () => {
