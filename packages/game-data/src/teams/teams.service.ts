@@ -317,6 +317,13 @@ export class TeamsService {
     return this.statistics.countTimesSentOffByTeam(scope, limit);
   }
 
+  countTrophiesByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.statistics.countTrophiesByTeam(scope, limit);
+  }
+
   countCasualtiesSufferedByTeam(
     scope: FactScope,
     limit: number,
