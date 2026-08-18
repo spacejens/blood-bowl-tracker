@@ -197,8 +197,8 @@ export class TeamsStatisticsService {
    * Hand-written rather than routed through `countMatchEventsByTeam`: trophy
    * awards are not match events, so there is no match-category dimension and
    * `scope.category` is deliberately ignored (the fact-tree leaf correspondingly
-   * omits `supportsMatchCategory`). League and era are read off the winning
-   * team era; competition is read straight off the award row.
+   * declares `supportsMatchCategory: false`). League and era are read off the
+   * winning team era; competition is read straight off the award row.
    */
   countTrophiesByTeam(
     scope: FactScope,

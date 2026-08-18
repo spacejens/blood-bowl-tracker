@@ -131,10 +131,10 @@ button, in the same order as the list, that opens that coach's
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
 - `team.toplist.trophies.won` — teams ranked by number of trophies won. Counts
   every recorded trophy award tied to the team, including player awards (MVP,
-  most casualties, ...) won by one of its players, so it matches the trophy
-  count on that team's own `/deepdive`. Supports league, era and competition
-  filtering, but not match-category filtering: a trophy award is not a match
-  event, so it has no category.
+  most casualties, ...) won by one of its players, so an unfiltered listing
+  matches the trophy count on that team's own `/deepdive`. Supports league,
+  era and competition filtering, but not match-category filtering: a trophy
+  award is not a match event, so it has no category.
 - `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
   scored. Counts raw `touchdown` match events credited to the team. Supports
   era and competition filtering.
