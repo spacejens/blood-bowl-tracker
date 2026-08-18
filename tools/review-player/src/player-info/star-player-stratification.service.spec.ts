@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, players as playersTable } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -153,6 +153,9 @@ describe('StarPlayerStratificationService', () => {
     // The representative query groups by the star's position, so two hires of
     // the same star can never both be sampled.
     expect(dbResult.chains[0].groupBy).toHaveBeenCalledTimes(1);
+    expect(dbResult.chains[0].groupBy).toHaveBeenCalledWith(
+      playersTable.positionId,
+    );
   });
 
   it('drops a duplicate projection row for a player with two external ids in one system', async () => {
