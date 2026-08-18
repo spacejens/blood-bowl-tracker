@@ -6,10 +6,11 @@ import {
   matchEvents,
   matchTeams,
   players,
+  positions,
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq, inArray, ne, sql, sum } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne, sql, sum } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import { matchScopeFilter } from '../shared/match-event-counts';
@@ -97,6 +98,10 @@ export class SppTotalsService {
    * "positive" costs nothing and doesn't silently hide a negative sum if that
    * assumption is ever wrong), mirroring the null-`spp_total` exclusion on
    * the stored-total path.
+   *
+   * Star players are excluded (#245), matching every other cross-player
+   * ranking: a star has one `players` row per hire, so they would occupy
+   * several slots, and stars dominate SPP rankings by nature.
    */
   topPlayersBySppSum(
     scope: FactScope,
@@ -111,7 +116,8 @@ export class SppTotalsService {
       .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .where(matchScopeFilter(scope))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(and(matchScopeFilter(scope), eq(positions.isStarPlayer, false)))
       .groupBy(players.id, players.name)
       .having(ne(total, 0))
       .orderBy(desc(total))
