@@ -88,6 +88,21 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   player name as the title, then `Team: <team>`, `Era: <era>`, `Race: <race>`,
   and `Position: <position>` (every player always has all four — a player
   belongs to exactly one team-era, and therefore to exactly one era), then —
+  only for a player who died — a `Status:` line naming whoever was
+  responsible, at the best precision the recorded match event supports:
+  `Status: Killed by <player> (<position>, <team>, <race>, <coach>)` when the
+  killer is a specific indexed player;
+  `Status: Killed by <team> (<race>, <coach>)` when only the killing side is
+  known (the source named a journeyman or mercenary rather than linking a
+  player row), or when the event recorded no acting side but the match had
+  exactly one other team;
+  `Status: Killed by <team A> (…), <team B> (…), or <team C> (…)` — an
+  "or"-joined list, with a plain `X or Y` for exactly two and an Oxford comma
+  before the `or` for three or more — when a multi-team match leaves several
+  possible killers; and `Status: Killed in mysterious circumstances` as a
+  fallback when nothing can be attributed at all. Only the `death` consequence
+  produces this line; a player who has not died shows no `Status:` line at
+  all, rather than a placeholder. Then —
   only when the player has recorded trophies, with the whole section omitted
   otherwise rather than a placeholder line — a blank line, a `Trophies:`
   heading, and that player's own awards newest-competition-first, one line per
@@ -106,10 +121,14 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   match MVPs, not an end-of-competition MVP trophy. Zero categories are
   omitted; a player with nothing in any category shows a short
   nothing-memorable-yet-style message instead of an empty list. Each trophy is
-  rendered as a drill-down button to the trophy; those come before the team,
-  era and race buttons — which follow the order of the header lines — so the
-  most specific content keeps button priority. Position has no deepdive
-  target, so it has no button.
+  rendered as a drill-down button to the trophy; those come first, then — for
+  a player who died — a button to the killer (the killer player for a named
+  killer, the killer team for a team-only killer, or one button per candidate
+  team when the killer is ambiguous; no button at all in the mysterious-
+  circumstances case), then the team, era and race buttons — which follow the
+  order of the header lines — so the most specific content keeps button
+  priority. Position has no deepdive target, so it has no button, and neither
+  does the killer's own position, race or coach.
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,
