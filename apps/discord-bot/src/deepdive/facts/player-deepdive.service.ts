@@ -91,7 +91,10 @@ const OVERFLOW_NOTE_BUDGET = 80;
  * competition and trophy names carry no length ceiling tight enough to
  * guarantee `MAX_PLAYER_HONORS` rows always fit Discord's own embed
  * description limit, the honors actually rendered may be a further-trimmed
- * prefix of the fetched rows — see `buildHonorLines`.
+ * prefix of the fetched rows — see `buildHonorLines`. `enforceDescriptionLimit`
+ * is a final, independent safety net on the fully-assembled string, so the
+ * limit holds even if that budgeting ever falls out of sync with the rest of
+ * the description's actual size.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -229,11 +232,28 @@ export class PlayerDeepdiveService {
       embeds: [
         {
           title: `${this.entityComponents.getEmojiForPrefix(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} ${player.name}`,
-          description,
+          description: this.enforceDescriptionLimit(description),
         },
       ],
       components,
     };
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit. The budget
+   * `buildHonorLines` reserves keeps every currently-reachable input
+   * comfortably under `MAX_DESCRIPTION_LENGTH`, but that accounting assumes
+   * the rest of the description (header, category counts, totals) stays
+   * within a realistic size — an assumption this method does not rely on.
+   * It measures the actual assembled string and truncates as a last resort
+   * if it somehow still overflows, so a future change to any other section
+   * can never cause Discord to reject the whole response.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
   }
 
   /**

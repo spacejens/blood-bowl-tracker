@@ -434,6 +434,20 @@ describe('PlayerDeepdiveService', () => {
     expect(lines.some((line) => line.startsWith('X'))).toBe(false);
   });
 
+  it('never exceeds the description limit even when the non-honor content alone is already near it', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Z'.repeat(4090), count: 1 }],
+      }),
+      trophyAwards: makeTrophyAwards([mvp], 5),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.length).toBeLessThanOrEqual(4096);
+  });
+
   it('offers one trophy button per honor, before the header buttons', async () => {
     const { service } = await makeService({
       players: makePlayers({
