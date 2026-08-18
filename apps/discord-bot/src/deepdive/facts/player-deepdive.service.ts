@@ -1,5 +1,10 @@
-import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
+import type {
+  PlayerHonor,
+  PlayerKillerInfo,
+  PlayerKillerTeam,
+} from '@blood-bowl-tracker/game-data';
 import {
+  PlayerDeathService,
   PlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
@@ -11,6 +16,7 @@ import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
+  DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
@@ -78,6 +84,13 @@ const OVERFLOW_NOTE_BUDGET = 80;
  * a short placeholder instead of an empty list. Team, era and race each get a
  * drill-down button, in the same order as the header lines; position has no
  * deepdive target, so it gets none.
+ * When the player suffered a `death` consequence, a trailing `Status:` header
+ * line names whoever was responsible — a specific player, a single team, an
+ * "or"-joined list of candidate teams from a multi-team match, or a
+ * mysterious-circumstances fallback — and the killer player or team(s) each
+ * get a drill-down button, placed after the honors buttons and before the
+ * team/era/race header buttons. A player who did not die gets no Status line
+ * and no extra buttons.
  * When the player has a computed `sppTotal`, a trailing section shows any
  * manual adjustment and the total.
  * Between the header and the category counts sits an Honors section listing
@@ -103,6 +116,7 @@ export class PlayerDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly trophyAwards: TrophyAwardsService,
+    private readonly playerDeath: PlayerDeathService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -116,13 +130,6 @@ export class PlayerDeepdiveService {
     if (player === undefined) {
       return DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE;
     }
-
-    const header = [
-      `Team: ${player.teamName}`,
-      `Era: ${player.eraName}`,
-      `Race: ${player.raceName}`,
-      `Position: ${player.positionName}`,
-    ];
 
     // Both honors queries share one timeout message: they are two halves of
     // the same "what has this player won?" answer, and telling the reader
@@ -157,6 +164,26 @@ export class PlayerDeepdiveService {
     if (counts === null) {
       return DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE;
     }
+
+    // `null` is `getKillerInfo`'s real "this player is still alive" answer, so
+    // the timeout sentinel has to be `undefined` rather than the `null` the
+    // other queries here use.
+    const killer: PlayerKillerInfo | null | undefined =
+      await this.databaseTimeout.run(
+        this.playerDeath.getKillerInfo(playerId),
+        undefined,
+      );
+    if (killer === undefined) {
+      return DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE;
+    }
+
+    const header = [
+      `Team: ${player.teamName}`,
+      `Era: ${player.eraName}`,
+      `Race: ${player.raceName}`,
+      `Position: ${player.positionName}`,
+      ...(killer === null ? [] : [this.buildStatusLine(killer)]),
+    ];
 
     const nonZero = counts.filter((category) => category.count > 0);
     const categoryLines =
@@ -202,6 +229,7 @@ export class PlayerDeepdiveService {
           entityId: String(honor.trophyId),
           label: honor.trophyName,
         })),
+        ...this.buildKillerEntries(killer),
         {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(player.teamId),
@@ -344,5 +372,81 @@ export class PlayerDeepdiveService {
       ...adjustmentLines,
       `Total star player points: ${player.sppTotal}`,
     ];
+  }
+
+  /**
+   * The `Status:` line for a player who died, at whatever precision the data
+   * supports. Only rendered when the player actually died — there is no
+   * always-present placeholder line for living players.
+   */
+  private buildStatusLine(killer: PlayerKillerInfo): string {
+    switch (killer.kind) {
+      case 'player':
+        return `Status: Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
+      case 'team':
+        return `Status: Killed by ${this.formatKillerTeam(killer)}`;
+      case 'ambiguousTeams':
+        return `Status: Killed by ${this.joinWithOr(
+          killer.teams.map((team) => this.formatKillerTeam(team)),
+        )}`;
+      case 'unknown':
+        return 'Status: Killed in mysterious circumstances';
+    }
+  }
+
+  /** A killer team with the same `(race, coach)` context toplist rows use. */
+  private formatKillerTeam(team: PlayerKillerTeam): string {
+    return `${team.teamName} (${team.raceName}, ${team.coachName})`;
+  }
+
+  /**
+   * A natural "or"-joined list: `X or Y` for two, and an Oxford comma before
+   * the final `or` for three or more.
+   */
+  private joinWithOr(parts: string[]): string {
+    if (parts.length <= 2) {
+      return parts.join(' or ');
+    }
+    return `${parts.slice(0, -1).join(', ')}, or ${parts[parts.length - 1]}`;
+  }
+
+  /**
+   * Drill-down entries for the killer: the killer player, the killer team, or
+   * one entry per candidate team when the killer is ambiguous. Only the killer
+   * entity itself is offered — never its position, race or coach — matching how
+   * the player toplist insights button only the player.
+   */
+  private buildKillerEntries(
+    killer: PlayerKillerInfo | null,
+  ): EntityComponentEntry[] {
+    if (killer === null) {
+      return [];
+    }
+    switch (killer.kind) {
+      case 'player':
+        return [
+          {
+            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(killer.playerId),
+            label: killer.playerName,
+          },
+        ];
+      case 'team':
+        return [
+          {
+            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(killer.teamId),
+            label: killer.teamName,
+          },
+        ];
+      case 'ambiguousTeams':
+        return killer.teams.map((team) => ({
+          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(team.teamId),
+          label: team.teamName,
+        }));
+      case 'unknown':
+        return [];
+    }
   }
 }
