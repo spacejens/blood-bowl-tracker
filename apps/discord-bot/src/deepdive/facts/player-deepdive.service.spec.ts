@@ -888,12 +888,15 @@ describe('PlayerDeepdiveService', () => {
     });
     // The player, honors-count and category-count queries pass through; only the
     // death lookup resolves with its caller's own fallback, exactly as the real
-    // `run` does when the timeout wins.
+    // `run` does when the timeout wins. Griff has no honors (the default
+    // `makeTrophyAwards()` count is 0), so the honors-list query is never
+    // issued, leaving exactly these four `run` calls: player, honors count,
+    // category counts, then the death lookup.
     databaseTimeout.run
-      .mockImplementationOnce(async (work) => await work)
-      .mockImplementationOnce(async (work) => await work)
-      .mockImplementationOnce(async (work) => await work)
-      .mockImplementationOnce(async (_work, fallback) => fallback);
+      .mockResolvedValueOnce(griff)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(undefined);
 
     await expect(service.resolve(1)).resolves.toBe(
       DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
