@@ -1,5 +1,5 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, matchEvents } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -90,6 +90,7 @@ describe('PlayerDeathService', () => {
         1,
         'death',
       ]);
+      expect(chains[0].orderBy).toHaveBeenCalledWith(matchEvents.id);
       expect(chains[0].limit).toHaveBeenCalledWith(1);
     });
 
