@@ -194,7 +194,7 @@ identical. Likewise, each of the eleven coach toplists
 coach, opening the same `/deepdive coach:<coach>` view. See
 [`/insights`](insights.md).
 
-Each of the twenty-one `team.toplist.*` facts attaches one button per listed team,
+Each of the twenty-two `team.toplist.*` facts attaches one button per listed team,
 opening the same `/deepdive team:<team>` view.
 
 All five race toplists (`race.toplist.teams`, `race.toplist.matches.played`,

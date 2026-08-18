@@ -81,6 +81,7 @@ function deps(): FactTreeDeps {
   teamToplist.resolveDeathsSuffered.mockResolvedValue('team deaths suffered');
   teamToplist.resolveFoulsCommitted.mockResolvedValue('team fouls committed');
   teamToplist.resolveTimesSentOff.mockResolvedValue('team times sent off');
+  teamToplist.resolveTrophiesWon.mockResolvedValue('team trophies won');
 
   const playerToplist = mock<PlayerToplistService>();
   playerToplist.resolveMvps.mockResolvedValue('player mvps');
@@ -151,8 +152,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly fifty-five leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(55);
+  it('exposes exactly fifty-six leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(56);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -284,6 +285,31 @@ describe('buildFactTree', () => {
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.teamToplist.resolveErasActive).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.trophies.won to TeamToplistService.resolveTrophiesWon', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'team.toplist.trophies.won',
+    );
+    await (leaf as FactLeaf).resolve({ competitionId: 30 });
+    expect(d.teamToplist.resolveTrophiesWon).toHaveBeenCalledWith({
+      competitionId: 30,
+    });
+  });
+
+  it('declares league, era and competition scope but no match category for team.toplist.trophies.won', () => {
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(deps()),
+      'team.toplist.trophies.won',
+    ) as FactLeaf;
+    expect(leaf.supportsLeague).toBe(true);
+    expect(leaf.supportsEra).toBe(true);
+    expect(leaf.supportsCompetition).toBe(true);
+    // Trophy awards are not match events, so a match category has no meaning
+    // here - the leaf deliberately declares it unsupported.
+    expect(leaf.supportsMatchCategory).toBe(false);
   });
 
   it('wires team.toplist.touchdowns.scored to TeamToplistService.resolveTouchdownsScored', async () => {
@@ -678,6 +704,7 @@ describe('buildFactTree competition capabilities', () => {
       .filter((leaf) => leaf.supportsCompetition);
     expect(supported).toEqual(
       expect.arrayContaining([
+        factTreeUtils.resolvePath(tree, 'team.toplist.trophies.won'),
         factTreeUtils.resolvePath(tree, 'team.toplist.touchdowns.scored'),
         factTreeUtils.resolvePath(tree, 'team.toplist.completions'),
         factTreeUtils.resolvePath(tree, 'team.toplist.interceptions'),
@@ -728,7 +755,7 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'stats'),
       ]),
     );
-    expect(supported).toHaveLength(30);
+    expect(supported).toHaveLength(31);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -794,7 +821,7 @@ describe('buildFactTree competition capabilities', () => {
 });
 
 describe('buildFactTree match category capabilities', () => {
-  it('excludes exactly the eight leaves that are not scoped to matches', () => {
+  it('excludes exactly the nine leaves that are not scoped to matches', () => {
     const tree = buildFactTree(deps());
     const unsupported = factTreeUtils
       .collectLeaves(tree)
@@ -804,6 +831,7 @@ describe('buildFactTree match category capabilities', () => {
         factTreeUtils.resolvePath(tree, 'coach.toplist.teams'),
         factTreeUtils.resolvePath(tree, 'coach.toplist.eras.active'),
         factTreeUtils.resolvePath(tree, 'team.toplist.eras.active'),
+        factTreeUtils.resolvePath(tree, 'team.toplist.trophies.won'),
         factTreeUtils.resolvePath(tree, 'race.toplist.teams'),
         factTreeUtils.resolvePath(tree, 'eras.list'),
         factTreeUtils.resolvePath(tree, 'trophies.list'),
@@ -811,7 +839,7 @@ describe('buildFactTree match category capabilities', () => {
         factTreeUtils.resolvePath(tree, 'stats'),
       ]),
     );
-    expect(unsupported).toHaveLength(8);
+    expect(unsupported).toHaveLength(9);
   });
 
   it('supports the match category on every other leaf', () => {

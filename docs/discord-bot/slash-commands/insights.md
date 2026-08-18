@@ -37,15 +37,15 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but eight facts support
+replies with a per-scope refusal message. All but nine facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`,
-`eras.list`, `trophies.list` and `competitionGroups.list` — which list or
-count teams, eras, trophies or competition groups rather than matches — and
-`stats`, which is excluded deliberately: only two of the dozen counts it
-reports (matches and match events) have a category at all, so a
-category-scoped `stats` would show two scoped numbers beside ten all-time
-ones.
+`team.toplist.trophies.won`, `eras.list`, `trophies.list` and
+`competitionGroups.list` — which list or count teams, eras, trophies, trophy
+awards or competition groups rather than matches — and `stats`, which is
+excluded deliberately: only two of the dozen counts it reports (matches and
+match events) have a category at all, so a category-scoped `stats` would show
+two scoped numbers beside ten all-time ones.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
@@ -129,6 +129,12 @@ button, in the same order as the list, that opens that coach's
 - `team.toplist.eras.active` — teams ranked by number of distinct eras they
   have existed across. Does not support era filtering (scoping to a single
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
+- `team.toplist.trophies.won` — teams ranked by number of trophies won. Counts
+  every recorded trophy award tied to the team, including player awards (MVP,
+  most casualties, ...) won by one of its players, so it matches the trophy
+  count on that team's own `/deepdive`. Supports league, era and competition
+  filtering, but not match-category filtering: a trophy award is not a match
+  event, so it has no category.
 - `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
   scored. Counts raw `touchdown` match events credited to the team. Supports
   era and competition filtering.
@@ -182,7 +188,7 @@ button, in the same order as the list, that opens that coach's
   date of the match it occurred in. A team can appear more than once. Supports
   era and competition filtering.
 
-Each team listed by the twenty-one `team.toplist.*` facts above also gets a
+Each team listed by the twenty-two `team.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that team's
 [`/deepdive`](deepdive.md) detail view. For the biggest-events fact, buttons are
 deduplicated so a team that appears on multiple rows gets a single button.
