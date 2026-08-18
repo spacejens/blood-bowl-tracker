@@ -1,5 +1,4 @@
 import {
-  CompetitionGroupsModule,
   TrophiesModule,
   TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
@@ -21,14 +20,11 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 @Module({
   // InsightsModule re-exports the game-data modules the other deepdives need;
-  // trophies, trophy awards and competition groups are used only here, so they
-  // are imported directly rather than widening the insights surface.
-  imports: [
-    InsightsModule,
-    TrophiesModule,
-    TrophyAwardsModule,
-    CompetitionGroupsModule,
-  ],
+  // trophies and trophy awards are used only here, so they are imported
+  // directly rather than widening the insights surface. Competition groups
+  // now arrive transitively through InsightsModule (it needs
+  // CompetitionGroupsService itself, for the competitionGroups.list fact).
+  imports: [InsightsModule, TrophiesModule, TrophyAwardsModule],
   providers: [
     InsightsCommandService,
     DeepdiveAutocompleteService,
