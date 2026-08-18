@@ -87,16 +87,29 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
 - **`player:<player>`** — the bot replies with an embed for that player: the
   player name as the title, then `Team: <team>`, `Era: <era>`, `Race: <race>`,
   and `Position: <position>` (every player always has all four — a player
-  belongs to exactly one team-era, and therefore to exactly one era), a blank
-  line, and one line per non-zero event category the player caused, formatted
-  `<label>: <count>`. The categories are the nine acting-role tallies: MVP
-  awards, touchdowns scored, completions, interceptions, deflections,
-  casualties inflicted, serious injuries inflicted, opponents killed, and fouls
-  committed — things the player did, never things done to them. Zero categories
-  are omitted; a player with nothing in any category shows a short
-  nothing-memorable-yet-style message instead of an empty list. The team, era
-  and race are each rendered as a drill-down button, in the same order as the
-  header lines; position has no deepdive target, so it has no button.
+  belongs to exactly one team-era, and therefore to exactly one era), then —
+  only when the player has recorded trophies, with the whole section omitted
+  otherwise rather than a placeholder line — a blank line, an `Honors:`
+  heading, and that player's own awards newest-competition-first, one line per
+  award formatted `<competition> (<trophy>)`. Neither the team nor the era is
+  repeated on those rows, and there is no per-era grouping as on the team
+  deepdive: a player belongs to exactly one team-era for their whole career,
+  so the header already names both. At most 30 trophies are shown; when there
+  are more, the list ends with an exact `…and N more not shown.` note computed
+  from the player's true award count. Then a blank line, and one line per
+  non-zero event category the player caused, formatted `<label>: <count>`. The
+  categories are the nine acting-role tallies: MVP awards, touchdowns scored,
+  completions, interceptions, deflections, casualties inflicted, serious
+  injuries inflicted, opponents killed, and fouls committed — things the player
+  did, never things done to them. These per-match-event tallies are a separate
+  concept from the competition-level trophies above: the "MVP awards" count is
+  match MVPs, not an end-of-competition MVP trophy. Zero categories are
+  omitted; a player with nothing in any category shows a short
+  nothing-memorable-yet-style message instead of an empty list. Each trophy is
+  rendered as a drill-down button to the trophy; those come before the team,
+  era and race buttons — which follow the order of the header lines — so the
+  most specific content keeps button priority. Position has no deepdive
+  target, so it has no button.
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,
