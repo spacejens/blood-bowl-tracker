@@ -99,9 +99,9 @@ export class SppTotalsService {
    * assumption is ever wrong), mirroring the null-`spp_total` exclusion on
    * the stored-total path.
    *
-   * Star players are excluded (#245), matching every other cross-player
-   * ranking: a star has one `players` row per hire, so they would occupy
-   * several slots, and stars dominate SPP rankings by nature.
+   * Star players are excluded, matching every other cross-player ranking: a
+   * star has one `players` row per hire, so they would occupy several slots,
+   * and stars dominate SPP rankings by nature.
    */
   topPlayersBySppSum(
     scope: FactScope,

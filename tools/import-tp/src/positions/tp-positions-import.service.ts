@@ -232,7 +232,7 @@ export class TpPositionsImportService {
     // importer create. The numeric ids are what makes a roster-embedded star
     // resolvable: TpPlayersImportService looks a position up by
     // String(lineUpMasterId), which is exactly this number, so without them
-    // every roster-embedded star is skipped (#245). A numeric id colliding
+    // every roster-embedded star is skipped. A numeric id colliding
     // with a regular position's TP id is caught server-side by
     // PositionsService's detectSemanticConflict hook (isStarPlayer mismatch →
     // PositionUpsertConflictError, reported as a CONFLICT), never silently

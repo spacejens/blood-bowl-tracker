@@ -95,12 +95,12 @@ export class PlayersService {
 
   /**
    * Name-prefix search backing `/deepdive`'s player autocomplete. Star
-   * players are excluded (#245): a star's identity is their position, and
-   * each hire is its own `players` row, so a popular star would otherwise
-   * appear once per hiring team. Excluding them here only means no star id is
-   * *offered* by autocomplete; a star deepdive remains reachable via
-   * drill-down buttons elsewhere and renders that one hire, which is the
-   * intended per-team-era presentation — see #245.
+   * players are excluded: a star's identity is their position, and each hire
+   * is its own `players` row, so a popular star would otherwise appear once
+   * per hiring team. Excluding them here only means no star id is *offered*
+   * by autocomplete; a star deepdive remains reachable via drill-down buttons
+   * elsewhere and renders that one hire, which is the intended per-team-era
+   * presentation.
    */
   searchByNamePrefix(
     prefix: string,
@@ -425,9 +425,9 @@ export class PlayersService {
    *   an adjustment cannot be attributed to one, so the per-event sum is used
    *   instead — see SppTotalsService.topPlayersBySppSum.
    *
-   * Star players are excluded from both branches (#245): each hire of a star
-   * is its own `players` row, so one star would otherwise occupy several
-   * slots — and stars are typically the strongest players in the game.
+   * Star players are excluded from both branches: each hire of a star is its
+   * own `players` row, so one star would otherwise occupy several slots —
+   * and stars are typically the strongest players in the game.
    */
   topPlayersByTotalSpp(
     scope: FactScope,

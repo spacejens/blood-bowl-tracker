@@ -95,7 +95,7 @@ export class PlayerInfoDbRendererService {
 
   /**
    * Every OTHER team era that hired the same star player, one row per team
-   * era. A star's identity is its position (#245): each hire is its own
+   * era. A star's identity is its position: each hire is its own
    * `players` row, so a star's full history is every row sharing this
    * `position_id`. A single team era can itself hold many of those rows —
    * TP assigns a fresh lineup id to a star's inducement on every match hire,

@@ -28,7 +28,7 @@ const STAR_PLAYER_STRATUM = 'star-players';
  * no stored total; this is the only stratum such a player appears in, and —
  * unlike the discrepancy stratum — this one obeys `limit`, since an
  * uncapped star-player stratum would reintroduce the same overrepresentation
- * it exists to avoid. Since #245 the sample is also deduped to one representative
+ * it exists to avoid. The sample is also deduped to one representative
  * players row per distinct positions.id — a star's identity — so one named star
  * can never occupy several slots of one run.
  */
@@ -62,7 +62,7 @@ export class StarPlayerStratificationService implements PlayerStratifier {
     // One representative hire per named star: group by the star's identity
     // (players.position_id), pick the lowest player id the requested source
     // actually knows about, and randomise across stars — not across hires,
-    // which is what let one star fill several slots before #245. This makes
+    // which is what let one star fill several slots before this dedup. This makes
     // the representative hire itself deterministic (always the lowest player
     // id for that star) even though which stars appear is randomised — a
     // reviewer sees the same hire for a given star across runs.
