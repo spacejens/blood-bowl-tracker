@@ -31,6 +31,10 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  OVERFLOW_NOTE_BUDGET,
+} from './description-limits';
 
 type Player = {
   id: number;
@@ -53,27 +57,6 @@ type Player = {
  * reports an exact remainder.
  */
 const MAX_PLAYER_HONORS = 30;
-
-/**
- * Discord's hard cap on one embed's `description` field. `MAX_PLAYER_HONORS`
- * bounds the honors *count*, but competition and trophy names are
- * user-imported data with no length ceiling tight enough to guarantee 30 rows
- * always fit — a handful of long names can still overflow this limit even
- * within the 30-row cap. `buildHonorLines` enforces this length limit on top
- * of the row cap, trimming further when needed.
- */
-const MAX_DESCRIPTION_LENGTH = 4096;
-
-/**
- * Reserved out of `MAX_DESCRIPTION_LENGTH` for two trailing notes that are
- * not known until after `buildHonorLines` runs: its own "…and N more not
- * shown." remainder, and `EntityComponentsService`'s unrelated "…and N more
- * without a link." button-overflow note (appended separately in `resolve`
- * once the drill-down button list — honors plus the three header entries —
- * is known). Both notes are short and bounded by a small digit count, so one
- * shared margin comfortably covers either appearing, or both.
- */
-const OVERFLOW_NOTE_BUDGET = 80;
 
 /**
  * Composes the player header (team, era, race, position) and per-category event
