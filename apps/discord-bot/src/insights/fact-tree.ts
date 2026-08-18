@@ -155,6 +155,20 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: () => deps.teamToplist.resolveErasActive(),
           },
         },
+        trophies: {
+          won: {
+            // Counts every trophy_awards row tied to the team - team-level
+            // awards and player-level awards its players won alike - matching
+            // the team deepdive's own trophy count.
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: true,
+            // Deliberately no match-category support: a trophy award is not a
+            // match event, so there is no category dimension to scope by.
+            supportsMatchCategory: false,
+            resolve: (scope) => deps.teamToplist.resolveTrophiesWon(scope),
+          },
+        },
         touchdowns: {
           scored: {
             supportsLeague: true,

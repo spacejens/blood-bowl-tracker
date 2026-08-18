@@ -189,6 +189,63 @@ describe('TeamsStatisticsService', () => {
       expect(chains[0].where).not.toHaveBeenCalled();
     });
 
+    it('countTrophiesByTeam returns the rows the query resolves to', async () => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 5 },
+        { teamId: 2, name: 'Reikland Reavers', count: 2 },
+      ];
+      const { db, chains } = await build(rows);
+      await expect(
+        service.countTrophiesByTeam(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      // Counts every trophy_awards row tied to the team via its team era —
+      // the same aggregation TrophyAwardsService.countByTeam does for one
+      // team, so player-kind awards are included.
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('countTrophiesByTeam filters by league when a leagueId is given', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByTeam({ leagueId: 9 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        9,
+      ]);
+    });
+
+    it('countTrophiesByTeam filters by era when an eraId is given', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByTeam({ eraId: 20 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
+    });
+
+    it('countTrophiesByTeam filters by competition when a competitionId is given', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByTeam({ competitionId: 30 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(30);
+    });
+
+    it('countTrophiesByTeam ignores a match category, which trophy awards have no dimension for', async () => {
+      const { chains } = await build([]);
+      await service.countTrophiesByTeam({ category: 'cup_final' }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
+    });
+
+    it('countTrophiesByTeam returns an empty list when no team has won anything', async () => {
+      const { chains } = await build([]);
+      await expect(
+        service.countTrophiesByTeam(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual([]);
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
     it('countTouchdownsScoredByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 15 }];
       const { db } = await build(rows);

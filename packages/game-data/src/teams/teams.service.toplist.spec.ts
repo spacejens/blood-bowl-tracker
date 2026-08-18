@@ -47,6 +47,7 @@ describe('TeamsService toplist delegation', () => {
     'countDeathsCausedByTeam',
     'countFoulsCommittedByTeam',
     'countTimesSentOffByTeam',
+    'countTrophiesByTeam',
   ] as const)(
     '%s delegates to TeamsStatisticsService and returns its result',
     async (method) => {

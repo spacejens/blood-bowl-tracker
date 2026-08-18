@@ -19,7 +19,7 @@ import { makeToplistResolvers } from './toplist-factory';
  * take fewer parameters than the (eraId?, competitionId?) shape the factory
  * binds to, but a function accepting fewer optional parameters is still
  * assignable to one expecting more, so `ScopedCountMethods<TeamsService>`
- * would otherwise include them too. Naming the 13 uniform methods explicitly
+ * would otherwise include them too. Naming the 14 uniform methods explicitly
  * keeps those three out and still gets checked against `ScopedCountMethods`
  * via `satisfies` below, so a genuinely mismatched entry still fails to
  * compile.
@@ -38,6 +38,7 @@ const _teamToplistMethods = [
   'countSeriousInjuriesSufferedByTeam',
   'countLastingInjuriesSufferedByTeam',
   'countDeathsSufferedByTeam',
+  'countTrophiesByTeam',
 ] as const satisfies readonly ScopedCountMethods<TeamsService>[];
 type TeamToplistMethod = (typeof _teamToplistMethods)[number];
 
@@ -91,6 +92,7 @@ export class TeamToplistService {
         countLastingInjuriesSufferedByTeam:
           'Teams by lasting injuries suffered',
         countDeathsSufferedByTeam: 'Teams by deaths suffered',
+        countTrophiesByTeam: 'Teams by trophies won',
       },
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
@@ -168,6 +170,10 @@ export class TeamToplistService {
 
   resolveDeathsSuffered(scope: FactScope) {
     return this.resolvers.countDeathsSufferedByTeam(this.teams, scope);
+  }
+
+  resolveTrophiesWon(scope: FactScope) {
+    return this.resolvers.countTrophiesByTeam(this.teams, scope);
   }
 
   /**

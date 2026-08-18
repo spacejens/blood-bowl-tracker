@@ -63,7 +63,8 @@ type TeamCountMethod =
   | 'countCasualtiesSufferedByTeam'
   | 'countSeriousInjuriesSufferedByTeam'
   | 'countLastingInjuriesSufferedByTeam'
-  | 'countDeathsSufferedByTeam';
+  | 'countDeathsSufferedByTeam'
+  | 'countTrophiesByTeam';
 
 interface TeamCase {
   describeName: string;
@@ -265,6 +266,18 @@ const cases: TeamCase[] = [
     eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
     competitionRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
     expectedTitle: 'Teams by deaths suffered',
+  },
+  {
+    describeName: 'resolveTrophiesWon',
+    method: 'countTrophiesByTeam',
+    resolve: (service, scope) => service.resolveTrophiesWon(scope as FactScope),
+    rows: [
+      { teamId: 1, name: '40 grinders', count: 5 },
+      { teamId: 2, name: 'Reikland Reavers', count: 2 },
+    ],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
+    competitionRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
+    expectedTitle: 'Teams by trophies won',
   },
 ];
 

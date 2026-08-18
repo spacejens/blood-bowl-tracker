@@ -255,6 +255,9 @@ function makeFactTreeMocks(): FactTreeMocks {
   teamToplist.resolveTimesSentOff.mockResolvedValue(
     sampleEmbedReply('Teams by times sent off', '1. 40 grinders — 8'),
   );
+  teamToplist.resolveTrophiesWon.mockResolvedValue(
+    sampleEmbedReply('Teams by trophies won', '1. 40 grinders — 3'),
+  );
 
   const playerToplist = mock<PlayerToplistService>();
   playerToplist.resolveMvps.mockResolvedValue(
