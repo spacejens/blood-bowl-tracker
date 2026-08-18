@@ -529,4 +529,119 @@ describe('TrophyAwardsService', () => {
       await expect(service.countByTeam(30)).resolves.toBe(0);
     });
   });
+
+  describe('listByPlayer', () => {
+    const mvp = {
+      trophyId: 2,
+      trophyName: 'MVP',
+      competitionId: 50,
+      competitionName: 'Major Season 24',
+      competitionStartDate: '2024-01-15',
+    };
+    const mostViolent = {
+      trophyId: 3,
+      trophyName: 'Most Violent Player',
+      competitionId: 49,
+      competitionName: 'Minor Season 23',
+      competitionStartDate: '2023-01-15',
+    };
+
+    it('returns the honors of the requested player, capped at the limit', async () => {
+      const { chains } = await build([mvp, mostViolent]);
+
+      await expect(service.listByPlayer(40, 30)).resolves.toEqual([
+        mvp,
+        mostViolent,
+      ]);
+
+      expect(chains[0].limit).toHaveBeenCalledWith(30);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(40);
+    });
+
+    it('filters on the award row own player, with no join through team eras', async () => {
+      const { chains } = await build([]);
+
+      await service.listByPlayer(40, 30);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'trophy_awards.player_id',
+      ]);
+      expect(chains[0].leftJoin).not.toHaveBeenCalled();
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
+    });
+
+    it('joins trophies and competitions only', async () => {
+      const { chains } = await build([]);
+
+      await service.listByPlayer(40, 30);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['trophies.id', 'trophy_awards.trophy_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['competitions.id', 'trophy_awards.competition_id']);
+    });
+
+    it('orders by competition start date, then competition id and trophy id as tiebreakers, all descending', async () => {
+      const { chains } = await build([mvp, mostViolent]);
+
+      await service.listByPlayer(40, 30);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['competitions.start_date'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 0))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['competitions.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 1))).toContain(' desc');
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['trophies.id'],
+      );
+      expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' desc');
+    });
+
+    it('passes the caller-supplied limit through unchanged', async () => {
+      const { chains } = await build([]);
+
+      await service.listByPlayer(40, 5);
+
+      expect(chains[0].limit).toHaveBeenCalledWith(5);
+    });
+
+    it('returns an empty list when the player has won nothing', async () => {
+      await build([]);
+
+      await expect(service.listByPlayer(40, 30)).resolves.toEqual([]);
+    });
+  });
+
+  describe('countByPlayer', () => {
+    it('returns the total number of honors the player has', async () => {
+      const { db, chains } = await build([{ count: 4 }]);
+
+      await expect(service.countByPlayer(40)).resolves.toBe(4);
+
+      expect(db.select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(40);
+    });
+
+    it('counts award rows directly, without joining team eras', async () => {
+      const { chains } = await build([{ count: 4 }]);
+
+      await service.countByPlayer(40);
+
+      expect(chains[0].innerJoin).not.toHaveBeenCalled();
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'trophy_awards.player_id',
+      ]);
+    });
+
+    it('returns zero when the player has won nothing', async () => {
+      await build([{ count: 0 }]);
+
+      await expect(service.countByPlayer(40)).resolves.toBe(0);
+    });
+  });
 });

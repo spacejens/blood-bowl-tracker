@@ -1,4 +1,8 @@
-import { PlayersService } from '@blood-bowl-tracker/game-data';
+import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
+import {
+  PlayersService,
+  TrophyAwardsService,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -13,11 +17,13 @@ import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
   nullEntityComponents,
+  passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
   stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
+  DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
@@ -28,6 +34,7 @@ import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { PlayerDeepdiveService } from './player-deepdive.service';
 
@@ -44,14 +51,53 @@ const griff = {
   sppTotal: null as number | null,
   sppAdjustment: null as number | null,
 };
+const mvp: PlayerHonor = {
+  trophyId: 7,
+  trophyName: 'MVP',
+  competitionId: 50,
+  competitionName: 'Major Season 24',
+  competitionStartDate: '2024-01-15',
+};
+const mostViolent: PlayerHonor = {
+  trophyId: 9,
+  trophyName: 'Most Violent Player',
+  competitionId: 49,
+  competitionName: 'Minor Season 23',
+  competitionStartDate: '2023-01-15',
+};
 
-async function makeService(
-  players: PlayersService,
-  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
-  entityComponents: MockProxy<EntityComponentsService> = nullEntityComponents(),
-): Promise<{
+/**
+ * A `TrophyAwardsService` mock. Defaults to a player with no honors, so tests
+ * about other parts of the embed are unaffected by the Honors section, which
+ * is omitted entirely in that case. `count` defaults to the row count, so a
+ * test only supplies it when exercising the overflow remainder.
+ */
+function makeTrophyAwards(
+  honors: PlayerHonor[] = [],
+  count = honors.length,
+): MockProxy<TrophyAwardsService> {
+  const trophyAwards = mock<TrophyAwardsService>();
+  trophyAwards.countByPlayer.mockResolvedValue(count);
+  trophyAwards.listByPlayer.mockResolvedValue(honors);
+  return trophyAwards;
+}
+
+interface MakeServiceOptions {
+  players: PlayersService;
+  databaseTimeout?: MockProxy<DatabaseTimeoutService>;
+  entityComponents?: MockProxy<EntityComponentsService>;
+  trophyAwards?: MockProxy<TrophyAwardsService>;
+}
+
+async function makeService({
+  players,
+  databaseTimeout = mockDatabaseTimeout(),
+  entityComponents = nullEntityComponents(),
+  trophyAwards = makeTrophyAwards(),
+}: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
+  trophyAwards: MockProxy<TrophyAwardsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -59,9 +105,14 @@ async function makeService(
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: TrophyAwardsService, useValue: trophyAwards },
     ],
   }).compile();
-  return { service: moduleRef.get(PlayerDeepdiveService), entityComponents };
+  return {
+    service: moduleRef.get(PlayerDeepdiveService),
+    entityComponents,
+    trophyAwards,
+  };
 }
 
 function makePlayers(options: {
@@ -90,12 +141,12 @@ async function describeFor(spp: {
   sppTotal: number | null;
   sppAdjustment: number | null;
 }): Promise<string> {
-  const { service } = await makeService(
-    makePlayers({
+  const { service } = await makeService({
+    players: makePlayers({
       player: { ...griff, ...spp },
       counts: [{ label: 'Touchdowns scored', count: 3 }],
     }),
-  );
+  });
   const result = (await service.resolve(1)) as {
     embeds: { description: string }[];
   };
@@ -104,14 +155,16 @@ async function describeFor(spp: {
 
 describe('PlayerDeepdiveService', () => {
   it('returns the not-found message when the player does not exist', async () => {
-    const { service } = await makeService(makePlayers({ player: undefined }));
+    const { service } = await makeService({
+      players: makePlayers({ player: undefined }),
+    });
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
   });
 
   it('renders the header and only the non-zero categories', async () => {
-    const { service } = await makeService(
-      makePlayers({
+    const { service } = await makeService({
+      players: makePlayers({
         player: griff,
         counts: [
           { label: 'MVP awards', count: 2 },
@@ -125,7 +178,7 @@ describe('PlayerDeepdiveService', () => {
           { label: 'Fouls committed', count: 1 },
         ],
       }),
-    );
+    });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
@@ -148,15 +201,15 @@ describe('PlayerDeepdiveService', () => {
   });
 
   it('shows the no-events placeholder when every category is zero', async () => {
-    const { service } = await makeService(
-      makePlayers({
+    const { service } = await makeService({
+      players: makePlayers({
         player: griff,
         counts: [
           { label: 'MVP awards', count: 0 },
           { label: 'Touchdowns scored', count: 0 },
         ],
       }),
-    );
+    });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
@@ -201,14 +254,13 @@ describe('PlayerDeepdiveService', () => {
       components: cannedComponents,
       overflowNote: null,
     });
-    const { service } = await makeService(
-      makePlayers({
+    const { service } = await makeService({
+      players: makePlayers({
         player: griff,
         counts: [{ label: 'Touchdowns', count: 3 }],
       }),
-      undefined,
       entityComponents,
-    );
+    });
     const result = (await service.resolve(1)) as unknown as {
       components: unknown;
     };
@@ -233,12 +285,245 @@ describe('PlayerDeepdiveService', () => {
     ]);
   });
 
+  it('renders the honors section between the header and the category counts', async () => {
+    const { service, trophyAwards } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards([mvp, mostViolent]),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(trophyAwards.countByPlayer).toHaveBeenCalledWith(1);
+    expect(trophyAwards.listByPlayer).toHaveBeenCalledWith(1, 30);
+    expect(result.embeds[0].description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        'Trophies:',
+        'Major Season 24 (MVP)',
+        'Minor Season 23 (Most Violent Player)',
+        '',
+        'Touchdowns scored: 3',
+      ].join('\n'),
+    );
+  });
+
+  it('omits the honors section entirely when the player has won nothing', async () => {
+    const { service, trophyAwards } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards([]),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    // The count is zero, so the list query is never issued at all — a timeout
+    // there must not be able to turn a known "no honors" answer into a
+    // spurious timeout message.
+    expect(trophyAwards.listByPlayer).not.toHaveBeenCalled();
+    expect(result.embeds[0].description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        'Touchdowns scored: 3',
+      ].join('\n'),
+    );
+  });
+
+  it('omits the section and the overflow note when the list comes back empty against a stale nonzero count', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards([], 4),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).not.toContain('Trophies:');
+    expect(lines.some((line) => line.includes('more not shown.'))).toBe(false);
+  });
+
+  it('appends an exact remainder note when there are more honors than shown', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards([mvp], 34),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      '…and 33 more not shown.',
+    );
+  });
+
+  it("keeps the description within Discord's 4096-character embed limit even with many long honor names", async () => {
+    const longHonors: PlayerHonor[] = Array.from(
+      { length: 30 },
+      (_, index) => ({
+        trophyId: index + 1,
+        trophyName: 'T'.repeat(70),
+        competitionId: 100 + index,
+        competitionName: 'C'.repeat(70),
+        competitionStartDate: '2024-01-15',
+      }),
+    );
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards(longHonors, 30),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const description = result.embeds[0].description;
+    expect(description.length).toBeLessThanOrEqual(4096);
+
+    const lines = description.split('\n');
+    const shownHonorCount = lines.filter((line) =>
+      line.startsWith('C'.repeat(70)),
+    ).length;
+    const overflowLine = lines.find((line) => line.includes('more not shown.'));
+    expect(overflowLine).toBeDefined();
+    const remainder = Number(
+      overflowLine?.match(/…and (\d+) more not shown\./)?.[1],
+    );
+    expect(shownHonorCount + remainder).toBe(30);
+    expect(shownHonorCount).toBeGreaterThan(0);
+  });
+
+  it('still shows an exact remainder note when even the first fetched honor cannot fit', async () => {
+    const hugeHonor: PlayerHonor = {
+      trophyId: 1,
+      trophyName: 'Y'.repeat(2000),
+      competitionId: 1,
+      competitionName: 'X'.repeat(2000),
+      competitionStartDate: '2024-01-15',
+    };
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards([hugeHonor], 5),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('Trophies:');
+    expect(lines).toContain('…and 5 more not shown.');
+    expect(lines.some((line) => line.startsWith('X'))).toBe(false);
+  });
+
+  it('never exceeds the description limit even when the non-honor content alone is already near it', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Z'.repeat(4090), count: 1 }],
+      }),
+      trophyAwards: makeTrophyAwards([mvp], 5),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.length).toBeLessThanOrEqual(4096);
+  });
+
+  it('offers one trophy button per honor, before the header buttons', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      entityComponents: passthroughEntityComponents(),
+      trophyAwards: makeTrophyAwards([mvp, mostViolent]),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons.map((button) => button.custom_id)).toEqual([
+      `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}7`,
+      `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}9`,
+      `${TEAM_BUTTON_CUSTOM_ID_PREFIX}11`,
+      `${ERA_BUTTON_CUSTOM_ID_PREFIX}7`,
+      `${RACE_BUTTON_CUSTOM_ID_PREFIX}4`,
+    ]);
+    expect(buttons.map((button) => button.label)).toEqual([
+      'MVP',
+      'Most Violent Player',
+      'Reikland Reavers',
+      'Season 5',
+      'Human',
+    ]);
+  });
+
+  it('falls back to the honors timeout message when the honors count times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          players: makePlayers({ player: griff }),
+          trophyAwards: makeTrophyAwards([mvp]),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the honors timeout message when the honors list times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          players: makePlayers({ player: griff }),
+          trophyAwards: makeTrophyAwards([mvp]),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
+    );
+  });
+
   it('falls back to the player timeout message when the lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(makePlayers({}), databaseTimeout);
+        const { service } = await makeService({
+          players: makePlayers({}),
+          databaseTimeout,
+        });
         return service.resolve(1);
       },
       () => undefined,
@@ -250,12 +535,14 @@ describe('PlayerDeepdiveService', () => {
     await expectTimeoutFallback(
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
-        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(
-          makePlayers({ player: griff }),
+        const { service } = await makeService({
+          players: makePlayers({ player: griff }),
           databaseTimeout,
-        );
+        });
         return service.resolve(1);
       },
       () => undefined,
@@ -347,12 +634,12 @@ describe('PlayerDeepdiveService', () => {
   });
 
   it('appends the total after the no-events placeholder', async () => {
-    const { service } = await makeService(
-      makePlayers({
+    const { service } = await makeService({
+      players: makePlayers({
         player: { ...griff, sppTotal: 4, sppAdjustment: null },
         counts: [{ label: 'Touchdowns scored', count: 0 }],
       }),
-    );
+    });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };

@@ -1,11 +1,17 @@
-import { PlayersService } from '@blood-bowl-tracker/game-data';
+import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
+import {
+  PlayersService,
+  TrophyAwardsService,
+} from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
+  DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
@@ -15,6 +21,7 @@ import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 
 type Player = {
@@ -33,6 +40,36 @@ type Player = {
 type CategoryCount = { label: string; count: number };
 
 /**
+ * Most honors listed in one player embed. Deliberately its own constant rather
+ * than a shared import of `MAX_TEAM_HONORS`: the two facts start at the same
+ * value but are free to drift apart. The list query fetches exactly this many
+ * rows; the true total comes from `countByPlayer`, so the overflow note
+ * reports an exact remainder.
+ */
+const MAX_PLAYER_HONORS = 30;
+
+/**
+ * Discord's hard cap on one embed's `description` field. `MAX_PLAYER_HONORS`
+ * bounds the honors *count*, but competition and trophy names are
+ * user-imported data with no length ceiling tight enough to guarantee 30 rows
+ * always fit — a handful of long names can still overflow this limit even
+ * within the 30-row cap. `buildHonorLines` enforces this length limit on top
+ * of the row cap, trimming further when needed.
+ */
+const MAX_DESCRIPTION_LENGTH = 4096;
+
+/**
+ * Reserved out of `MAX_DESCRIPTION_LENGTH` for two trailing notes that are
+ * not known until after `buildHonorLines` runs: its own "…and N more not
+ * shown." remainder, and `EntityComponentsService`'s unrelated "…and N more
+ * without a link." button-overflow note (appended separately in `resolve`
+ * once the drill-down button list — honors plus the three header entries —
+ * is known). Both notes are short and bounded by a small digit count, so one
+ * shared margin comfortably covers either appearing, or both.
+ */
+const OVERFLOW_NOTE_BUDGET = 80;
+
+/**
  * Composes the player header (team, era, race, position) and per-category event
  * counts into a single embed. Shared by `/deepdive player:<id>` and the player
  * deepdive buttons. Each DB call is wrapped in `databaseTimeout.run` with a
@@ -43,6 +80,21 @@ type CategoryCount = { label: string; count: number };
  * deepdive target, so it gets none.
  * When the player has a computed `sppTotal`, a trailing section shows any
  * manual adjustment and the total.
+ * Between the header and the category counts sits an Honors section listing
+ * the trophies this player has personally won, newest competition first,
+ * capped at `MAX_PLAYER_HONORS` with an exact "…and N more not shown."
+ * remainder. Unlike the team deepdive's equivalent it needs neither era
+ * grouping nor a per-row team name — a player belongs to exactly one team-era
+ * for their whole career, so the header already names both. The section is
+ * omitted entirely when the player has won nothing. Each honor adds a
+ * drill-down button to its trophy, ahead of the header buttons. Because
+ * competition and trophy names carry no length ceiling tight enough to
+ * guarantee `MAX_PLAYER_HONORS` rows always fit Discord's own embed
+ * description limit, the honors actually rendered may be a further-trimmed
+ * prefix of the fetched rows — see `buildHonorLines`. `enforceDescriptionLimit`
+ * is a final, independent safety net on the fully-assembled string, so the
+ * limit holds even if that budgeting ever falls out of sync with the rest of
+ * the description's actual size.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -50,6 +102,7 @@ export class PlayerDeepdiveService {
     private readonly players: PlayersService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly trophyAwards: TrophyAwardsService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -71,6 +124,32 @@ export class PlayerDeepdiveService {
       `Position: ${player.positionName}`,
     ];
 
+    // Both honors queries share one timeout message: they are two halves of
+    // the same "what has this player won?" answer, and telling the reader
+    // which of them was slow would not help them.
+    const honorsTotal: number | null = await this.databaseTimeout.run(
+      this.trophyAwards.countByPlayer(playerId),
+      null,
+    );
+    if (honorsTotal === null) {
+      return DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE;
+    }
+
+    // A player confirmed to have won nothing has nothing left to list, so skip
+    // the list query rather than let an unnecessary timeout there turn a known
+    // "no honors" answer into a spurious timeout message.
+    let honors: PlayerHonor[] = [];
+    if (honorsTotal > 0) {
+      const rows: PlayerHonor[] | null = await this.databaseTimeout.run(
+        this.trophyAwards.listByPlayer(playerId, MAX_PLAYER_HONORS),
+        null,
+      );
+      if (rows === null) {
+        return DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE;
+      }
+      honors = rows;
+    }
+
     const counts: CategoryCount[] | null = await this.databaseTimeout.run(
       this.players.getDeepdiveCategoryCounts(playerId),
       null,
@@ -85,8 +164,44 @@ export class PlayerDeepdiveService {
         ? [DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE]
         : nonZero.map((category) => `${category.label}: ${category.count}`);
 
+    // No placeholder when the player has no trophies — the section is simply
+    // absent, rather than reported empty. This also covers the case where the
+    // list query raced a deletion and came back empty against a stale nonzero
+    // total: there is no section for an overflow note to attach to either way.
+    // Unlike the team deepdive there is no era grouping and no team on the
+    // row: a player belongs to exactly one team-era for their whole career,
+    // so the embed's own `Team:`/`Era:` header already names both.
+    //
+    // Competition and trophy names are user-imported data with no length
+    // ceiling tight enough to guarantee `MAX_PLAYER_HONORS` rows always fit
+    // Discord's embed description limit, so the honors actually shown are
+    // further trimmed to fit within that limit — see `buildHonorLines`.
+    const otherLines = [
+      ...header,
+      '',
+      ...categoryLines,
+      ...this.buildTotalLines(player),
+    ];
+    const { shown: shownHonors, lines: honorLines } = this.buildHonorLines(
+      honors,
+      honorsTotal,
+      otherLines,
+    );
+
+    // Honors entries first, then the header entries: buildEntityComponents has
+    // no internal prioritisation (first-N / first-group wins), and the honors
+    // are the most specific content on the embed. Only the trophy is offered
+    // per honor: the player is the embed's own subject, and the team already
+    // has a header entry. Only honors that made it into the text get a
+    // button, so a text-length-truncated honor never offers a drill-down
+    // button with nothing to explain what it links to.
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents([
+        ...shownHonors.map((honor): EntityComponentEntry => ({
+          customIdPrefix: TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(honor.trophyId),
+          label: honor.trophyName,
+        })),
         {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(player.teamId),
@@ -106,6 +221,7 @@ export class PlayerDeepdiveService {
 
     const description = [
       ...header,
+      ...(honorLines.length === 0 ? [] : ['', 'Trophies:', ...honorLines]),
       '',
       ...categoryLines,
       ...this.buildTotalLines(player),
@@ -116,11 +232,87 @@ export class PlayerDeepdiveService {
       embeds: [
         {
           title: `${this.entityComponents.getEmojiForPrefix(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} ${player.name}`,
-          description,
+          description: this.enforceDescriptionLimit(description),
         },
       ],
       components,
     };
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit. The budget
+   * `buildHonorLines` reserves keeps every currently-reachable input
+   * comfortably under `MAX_DESCRIPTION_LENGTH`, but that accounting assumes
+   * the rest of the description (header, category counts, totals) stays
+   * within a realistic size — an assumption this method does not rely on.
+   * It measures the actual assembled string and truncates as a last resort
+   * if it somehow still overflows, so a future change to any other section
+   * can never cause Discord to reject the whole response.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
+  }
+
+  /**
+   * Selects a prefix of `honors` that keeps the whole description within
+   * Discord's `MAX_DESCRIPTION_LENGTH`, and renders it into lines (plus an
+   * exact overflow note when anything — whether beyond `MAX_PLAYER_HONORS`
+   * or beyond what fits by length — was left out). `otherLines` is every
+   * other part of the description (header, category counts, totals); its
+   * length is reserved before greedily adding honor rows one at a time,
+   * stopping as soon as the next row would no longer fit within the budget
+   * reserved for `OVERFLOW_NOTE_BUDGET`. Honors are already ordered
+   * newest-first, so trimming from the end drops the oldest shown honors,
+   * not the most recent ones.
+   */
+  private buildHonorLines(
+    honors: PlayerHonor[],
+    honorsTotal: number,
+    otherLines: string[],
+  ): { shown: PlayerHonor[]; lines: string[] } {
+    if (honors.length === 0) {
+      return { shown: [], lines: [] };
+    }
+
+    const heading = ['', 'Trophies:'];
+    let budget =
+      MAX_DESCRIPTION_LENGTH -
+      otherLines.join('\n').length -
+      heading.join('\n').length -
+      1 - // the newline joining "Trophies:" to the first honor row
+      OVERFLOW_NOTE_BUDGET;
+
+    const shown: PlayerHonor[] = [];
+    for (const honor of honors) {
+      const cost = this.formatHonor(honor).length + 1;
+      if (cost > budget) {
+        break;
+      }
+      budget -= cost;
+      shown.push(honor);
+    }
+
+    const lines = shown.map((honor) => this.formatHonor(honor));
+    // `honorsTotal` is the real number of honors, so this remainder is exact
+    // rather than "at least one more" — it accounts for both rows never
+    // fetched (beyond `MAX_PLAYER_HONORS`) and fetched rows dropped here for
+    // length. Not gated on `shown.length > 0`: even a single honor whose own
+    // line is too long to fit still leaves the player with `honorsTotal`
+    // honors, and the note is the only way that stays visible rather than
+    // reading identically to "has won nothing".
+    const truncatedCount = honorsTotal - shown.length;
+    if (truncatedCount > 0) {
+      lines.push(`…and ${truncatedCount} more not shown.`);
+    }
+    return { shown, lines };
+  }
+
+  /** One honor's description line: `<competition> (<trophy>)`. */
+  private formatHonor(honor: PlayerHonor): string {
+    return `${honor.competitionName} (${honor.trophyName})`;
   }
 
   /**
