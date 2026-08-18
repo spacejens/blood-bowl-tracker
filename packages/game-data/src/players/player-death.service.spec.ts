@@ -45,6 +45,7 @@ const undeadSide = {
 function deathEvent(
   overrides: Partial<{
     matchId: number;
+    actionType: string;
     actingPlayerId: number | null;
     actingMatchTeamId: number | null;
     consequenceMatchTeamId: number | null;
@@ -52,6 +53,7 @@ function deathEvent(
 ) {
   return {
     matchId: 500,
+    actionType: 'death',
     actingPlayerId: null,
     actingMatchTeamId: null,
     consequenceMatchTeamId: victimSide.matchTeamId,
@@ -123,6 +125,7 @@ describe('PlayerDeathService', () => {
         raceName: 'Orc',
         coachId: 22,
         coachName: 'Grimly',
+        viaFoul: false,
       });
       // The match's teams are looked up by match id, and the killer by
       // acting_player_id.
@@ -166,6 +169,7 @@ describe('PlayerDeathService', () => {
         raceName: 'Undead',
         coachId: 23,
         coachName: 'Mortis',
+        viaFoul: false,
       });
       // Exactly 3 queries: death event, match sides, killer-with-team.
       expect(chains).toHaveLength(3);
@@ -195,6 +199,7 @@ describe('PlayerDeathService', () => {
         raceName: 'Orc',
         coachId: 22,
         coachName: 'Grimly',
+        viaFoul: false,
       });
     });
 
@@ -230,6 +235,7 @@ describe('PlayerDeathService', () => {
         raceName: 'Orc',
         coachId: 22,
         coachName: 'Grimly',
+        viaFoul: false,
       });
     });
 
@@ -247,6 +253,7 @@ describe('PlayerDeathService', () => {
         raceName: 'Orc',
         coachId: 22,
         coachName: 'Grimly',
+        viaFoul: false,
       });
       // No third query: with no acting player there is nobody to name.
       expect(chains).toHaveLength(2);
@@ -272,6 +279,7 @@ describe('PlayerDeathService', () => {
         raceName: 'Orc',
         coachId: 22,
         coachName: 'Grimly',
+        viaFoul: false,
       });
     });
 
@@ -301,6 +309,7 @@ describe('PlayerDeathService', () => {
             coachName: 'Mortis',
           },
         ],
+        viaFoul: false,
       });
     });
 
@@ -309,6 +318,7 @@ describe('PlayerDeathService', () => {
 
       await expect(service.getKillerInfo(1)).resolves.toEqual({
         kind: 'unknown',
+        viaFoul: false,
       });
     });
 
@@ -320,6 +330,42 @@ describe('PlayerDeathService', () => {
 
       await expect(service.getKillerInfo(1)).resolves.toEqual({
         kind: 'unknown',
+        viaFoul: false,
+      });
+    });
+
+    it('flags a death caused by a foul', async () => {
+      const { service } = await build(
+        [
+          deathEvent({
+            actionType: 'foul',
+            actingMatchTeamId: orcSide.matchTeamId,
+          }),
+        ],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toEqual({
+        kind: 'team',
+        teamId: 12,
+        teamName: 'Gouged Eye',
+        raceId: 5,
+        raceName: 'Orc',
+        coachId: 22,
+        coachName: 'Grimly',
+        viaFoul: true,
+      });
+    });
+
+    it('flags a non-foul death as not via a foul on every kind', async () => {
+      const { service } = await build(
+        [deathEvent()],
+        [victimSide, orcSide, undeadSide],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toMatchObject({
+        kind: 'ambiguousTeams',
+        viaFoul: false,
       });
     });
   });

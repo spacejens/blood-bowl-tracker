@@ -557,6 +557,7 @@ describe('PlayerDeepdiveService', () => {
         raceName: 'Orc',
         coachId: 22,
         coachName: 'Grimly',
+        viaFoul: false,
       }),
       entityComponents: passthroughEntityComponents(),
     });
@@ -779,7 +780,11 @@ describe('PlayerDeepdiveService', () => {
   });
 
   it('names the killing team when the individual is unidentified', async () => {
-    const description = await describeKilledBy({ kind: 'team', ...gougedEye });
+    const description = await describeKilledBy({
+      kind: 'team',
+      ...gougedEye,
+      viaFoul: false,
+    });
 
     expect(description).toContain('Status: Killed by Gouged Eye (Orc, Grimly)');
   });
@@ -787,7 +792,11 @@ describe('PlayerDeepdiveService', () => {
   it('offers a team drill-down for a team killer', async () => {
     const { service } = await makeService({
       players: makePlayers({ player: griff }),
-      playerDeath: makePlayerDeath({ kind: 'team', ...gougedEye }),
+      playerDeath: makePlayerDeath({
+        kind: 'team',
+        ...gougedEye,
+        viaFoul: false,
+      }),
       entityComponents: passthroughEntityComponents(),
     });
 
@@ -805,6 +814,7 @@ describe('PlayerDeepdiveService', () => {
     const description = await describeKilledBy({
       kind: 'ambiguousTeams',
       teams: [gougedEye, championsOfDeath],
+      viaFoul: false,
     });
 
     expect(description).toContain(
@@ -816,6 +826,7 @@ describe('PlayerDeepdiveService', () => {
     const description = await describeKilledBy({
       kind: 'ambiguousTeams',
       teams: [gougedEye, championsOfDeath, chaosAllStars],
+      viaFoul: false,
     });
 
     expect(description).toContain(
@@ -829,6 +840,7 @@ describe('PlayerDeepdiveService', () => {
       playerDeath: makePlayerDeath({
         kind: 'ambiguousTeams',
         teams: [gougedEye, championsOfDeath],
+        viaFoul: false,
       }),
       entityComponents: passthroughEntityComponents(),
     });
@@ -849,7 +861,7 @@ describe('PlayerDeepdiveService', () => {
   it('falls back to mysterious circumstances with no killer button', async () => {
     const { service, entityComponents } = await makeService({
       players: makePlayers({ player: griff }),
-      playerDeath: makePlayerDeath({ kind: 'unknown' }),
+      playerDeath: makePlayerDeath({ kind: 'unknown', viaFoul: false }),
       entityComponents: passthroughEntityComponents(),
     });
 
@@ -878,6 +890,18 @@ describe('PlayerDeepdiveService', () => {
         label: 'Human',
       },
     ]);
+  });
+
+  it('notes when the killing blow came from a foul', async () => {
+    const description = await describeKilledBy({
+      kind: 'team',
+      ...gougedEye,
+      viaFoul: true,
+    });
+
+    expect(description).toContain(
+      'Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)',
+    );
   });
 
   it('falls back to a themed message when the death query times out', async () => {

@@ -100,8 +100,12 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   "or"-joined list, with a plain `X or Y` for exactly two and an Oxford comma
   before the `or` for three or more — when a multi-team match leaves several
   possible killers; and `Status: Killed in mysterious circumstances` as a
-  fallback when nothing can be attributed at all. Only the `death` consequence
-  produces this line; a player who has not died shows no `Status:` line at
+  fallback when nothing can be attributed at all.
+  When the fatal event was recorded as a foul rather than a regular blocking
+  action, the line ends with ` (via a foul)` — e.g.
+  `Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
+  those forms.
+  Only the `death` consequence produces this line; a player who has not died shows no `Status:` line at
   all, rather than a placeholder. Then —
   only when the player has recorded trophies, with the whole section omitted
   otherwise rather than a placeholder line — a blank line, a `Trophies:`

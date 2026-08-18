@@ -36,8 +36,13 @@ export interface PlayerKillerTeam {
  * - `unknown` — a defensive fallback: a death event with no attributable acting
  *   side and no other team in the match to infer from. Not expected from any
  *   known importer behaviour.
+ *
+ * `viaFoul` is orthogonal to the killer's precision: it reports that the fatal
+ * event was recorded as a foul (`actionType = 'foul'`) rather than a regular
+ * blocking action, which Blood Bowl treats differently — no casualty credit is
+ * awarded for a foul.
  */
-export type PlayerKillerInfo =
+export type PlayerKillerInfo = (
   | (PlayerKillerTeam & {
       kind: 'player';
       playerId: number;
@@ -46,7 +51,8 @@ export type PlayerKillerInfo =
     })
   | (PlayerKillerTeam & { kind: 'team' })
   | { kind: 'ambiguousTeams'; teams: PlayerKillerTeam[] }
-  | { kind: 'unknown' };
+  | { kind: 'unknown' }
+) & { viaFoul: boolean };
 
 /** One `match_teams` row of the death's match, resolved to display names. */
 type MatchSide = PlayerKillerTeam & { matchTeamId: number };
@@ -70,6 +76,7 @@ export class PlayerDeathService {
     const events = await this.db
       .select({
         matchId: matchEvents.matchId,
+        actionType: matchEvents.actionType,
         actingPlayerId: matchEvents.actingPlayerId,
         actingMatchTeamId: matchEvents.actingMatchTeamId,
         consequenceMatchTeamId: matchEvents.consequenceMatchTeamId,
@@ -87,6 +94,8 @@ export class PlayerDeathService {
     if (event === undefined) {
       return null;
     }
+
+    const viaFoul = event.actionType === 'foul';
 
     const sides = await this.findMatchSides(event.matchId);
 
@@ -106,6 +115,7 @@ export class PlayerDeathService {
           playerName: killer.playerName,
           positionName: killer.positionName,
           ...this.toKillerTeam(killerSide),
+          viaFoul,
         };
       }
       // Defensive fallback: the event names an acting player, but either no
@@ -127,16 +137,17 @@ export class PlayerDeathService {
         : sides.filter((side) => side.matchTeamId === event.actingMatchTeamId);
 
     if (candidates.length === 0) {
-      return { kind: 'unknown' };
+      return { kind: 'unknown', viaFoul };
     }
     if (candidates.length > 1) {
       return {
         kind: 'ambiguousTeams',
         teams: candidates.map((side) => this.toKillerTeam(side)),
+        viaFoul,
       };
     }
 
-    return { kind: 'team', ...this.toKillerTeam(candidates[0]) };
+    return { kind: 'team', ...this.toKillerTeam(candidates[0]), viaFoul };
   }
 
   /**

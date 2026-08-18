@@ -376,21 +376,28 @@ export class PlayerDeepdiveService {
 
   /**
    * The `Status:` line for a player who died, at whatever precision the data
-   * supports. Only rendered when the player actually died — there is no
-   * always-present placeholder line for living players.
+   * supports, with a trailing note when the fatal blow was a foul. Only
+   * rendered when the player actually died — there is no always-present
+   * placeholder line for living players.
    */
   private buildStatusLine(killer: PlayerKillerInfo): string {
+    const note = killer.viaFoul ? ' (via a foul)' : '';
+    return `Status: ${this.formatKiller(killer)}${note}`;
+  }
+
+  /** The killer clause of the `Status:` line, without the foul note. */
+  private formatKiller(killer: PlayerKillerInfo): string {
     switch (killer.kind) {
       case 'player':
-        return `Status: Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
+        return `Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
       case 'team':
-        return `Status: Killed by ${this.formatKillerTeam(killer)}`;
+        return `Killed by ${this.formatKillerTeam(killer)}`;
       case 'ambiguousTeams':
-        return `Status: Killed by ${this.joinWithOr(
+        return `Killed by ${this.joinWithOr(
           killer.teams.map((team) => this.formatKillerTeam(team)),
         )}`;
       case 'unknown':
-        return 'Status: Killed in mysterious circumstances';
+        return 'Killed in mysterious circumstances';
     }
   }
 
