@@ -153,6 +153,35 @@ describe('PlayerInfoDbRendererService', () => {
     );
   });
 
+  it("dedupes a star's other hires by team+era, since one team era can have many players rows for the same star", async () => {
+    const service = await makeService(
+      mockDb(
+        [
+          {
+            playerId: 42,
+            playerName: "Morg 'n' Thorg",
+            teamName: 'Brunnsbo Rams',
+            positionName: "Morg 'n' Thorg",
+            isStarPlayer: true,
+            positionId: 900,
+            eraName: 'Third Era',
+          },
+        ],
+        [],
+        [
+          { teamName: 'Bockar', eraName: 'Third Era' },
+          { teamName: 'Bockar', eraName: 'Third Era' },
+        ],
+      ),
+    );
+
+    const html = await service.render(player);
+
+    expect(
+      html.split('<td>Other hire</td><td>Bockar (Third Era)</td>').length - 1,
+    ).toBe(1);
+  });
+
   it('says so when a star player has no other hires', async () => {
     const service = await makeService(
       mockDb(
