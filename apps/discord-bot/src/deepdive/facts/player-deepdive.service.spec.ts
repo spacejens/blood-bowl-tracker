@@ -1,5 +1,9 @@
-import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
+import type {
+  PlayerHonor,
+  PlayerKillerInfo,
+} from '@blood-bowl-tracker/game-data';
 import {
+  PlayerDeathService,
   PlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
@@ -82,11 +86,24 @@ function makeTrophyAwards(
   return trophyAwards;
 }
 
+/**
+ * A `PlayerDeathService` mock. Defaults to a living player (`null`), so tests
+ * about other parts of the embed never see a Status line.
+ */
+function makePlayerDeath(
+  killer: PlayerKillerInfo | null = null,
+): MockProxy<PlayerDeathService> {
+  const playerDeath = mock<PlayerDeathService>();
+  playerDeath.getKillerInfo.mockResolvedValue(killer);
+  return playerDeath;
+}
+
 interface MakeServiceOptions {
   players: PlayersService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   trophyAwards?: MockProxy<TrophyAwardsService>;
+  playerDeath?: MockProxy<PlayerDeathService>;
 }
 
 async function makeService({
@@ -94,6 +111,7 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   trophyAwards = makeTrophyAwards(),
+  playerDeath = makePlayerDeath(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -106,6 +124,7 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TrophyAwardsService, useValue: trophyAwards },
+      { provide: PlayerDeathService, useValue: playerDeath },
     ],
   }).compile();
   return {
@@ -475,6 +494,49 @@ describe('PlayerDeepdiveService', () => {
       'Season 5',
       'Human',
     ]);
+  });
+
+  it('shows who killed the player and offers a drill-down to them', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      playerDeath: makePlayerDeath({
+        kind: 'player',
+        playerId: 77,
+        playerName: 'Varag Ghoul-Chewer',
+        positionName: 'Blitzer',
+        teamId: 12,
+        teamName: 'Gouged Eye',
+        raceId: 5,
+        raceName: 'Orc',
+        coachId: 22,
+        coachName: 'Grimly',
+      }),
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+      components: { components: { custom_id: string; label: string }[] }[];
+    };
+
+    expect(result.embeds[0].description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        'Status: Killed by Varag Ghoul-Chewer (Blitzer, Gouged Eye, Orc, Grimly)',
+        '',
+        'Touchdowns scored: 3',
+      ].join('\n'),
+    );
+    expect(result.components[0].components[0]).toMatchObject({
+      custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}77`,
+      label: 'Varag Ghoul-Chewer',
+    });
   });
 
   it('falls back to the honors timeout message when the honors count times out', async () => {
