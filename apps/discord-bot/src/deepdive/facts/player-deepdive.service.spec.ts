@@ -410,6 +410,30 @@ describe('PlayerDeepdiveService', () => {
     expect(shownHonorCount).toBeGreaterThan(0);
   });
 
+  it('still shows an exact remainder note when even the first fetched honor cannot fit', async () => {
+    const hugeHonor: PlayerHonor = {
+      trophyId: 1,
+      trophyName: 'Y'.repeat(2000),
+      competitionId: 1,
+      competitionName: 'X'.repeat(2000),
+      competitionStartDate: '2024-01-15',
+    };
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards([hugeHonor], 5),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('Honors:');
+    expect(lines).toContain('…and 5 more not shown.');
+    expect(lines.some((line) => line.startsWith('X'))).toBe(false);
+  });
+
   it('offers one trophy button per honor, before the header buttons', async () => {
     const { service } = await makeService({
       players: makePlayers({

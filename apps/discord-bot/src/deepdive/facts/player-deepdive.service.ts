@@ -53,17 +53,21 @@ const MAX_PLAYER_HONORS = 30;
  * bounds the honors *count*, but competition and trophy names are
  * user-imported data with no length ceiling tight enough to guarantee 30 rows
  * always fit — a handful of long names can still overflow this limit even
- * within the 30-row cap. `selectHonorsWithinBudget` enforces this length
- * limit on top of the row cap, trimming further when needed.
+ * within the 30-row cap. `buildHonorLines` enforces this length limit on top
+ * of the row cap, trimming further when needed.
  */
 const MAX_DESCRIPTION_LENGTH = 4096;
 
 /**
- * Reserved for the trailing "…and N more not shown." note, so the greedy fit
- * below never needs to backtrack after discovering the note itself doesn't
- * fit: the largest plausible remainder is comfortably covered.
+ * Reserved out of `MAX_DESCRIPTION_LENGTH` for two trailing notes that are
+ * not known until after `buildHonorLines` runs: its own "…and N more not
+ * shown." remainder, and `EntityComponentsService`'s unrelated "…and N more
+ * without a link." button-overflow note (appended separately in `resolve`
+ * once the drill-down button list — honors plus the three header entries —
+ * is known). Both notes are short and bounded by a small digit count, so one
+ * shared margin comfortably covers either appearing, or both.
  */
-const OVERFLOW_NOTE_BUDGET = 40;
+const OVERFLOW_NOTE_BUDGET = 80;
 
 /**
  * Composes the player header (team, era, race, position) and per-category event
@@ -263,7 +267,7 @@ export class PlayerDeepdiveService {
 
     const shown: PlayerHonor[] = [];
     for (const honor of honors) {
-      const cost = `${honor.competitionName} (${honor.trophyName})`.length + 1;
+      const cost = this.formatHonor(honor).length + 1;
       if (cost > budget) {
         break;
       }
@@ -271,18 +275,24 @@ export class PlayerDeepdiveService {
       shown.push(honor);
     }
 
-    const lines = shown.map(
-      (honor) => `${honor.competitionName} (${honor.trophyName})`,
-    );
+    const lines = shown.map((honor) => this.formatHonor(honor));
     // `honorsTotal` is the real number of honors, so this remainder is exact
     // rather than "at least one more" — it accounts for both rows never
     // fetched (beyond `MAX_PLAYER_HONORS`) and fetched rows dropped here for
-    // length.
+    // length. Not gated on `shown.length > 0`: even a single honor whose own
+    // line is too long to fit still leaves the player with `honorsTotal`
+    // honors, and the note is the only way that stays visible rather than
+    // reading identically to "has won nothing".
     const truncatedCount = honorsTotal - shown.length;
-    if (shown.length > 0 && truncatedCount > 0) {
+    if (truncatedCount > 0) {
       lines.push(`…and ${truncatedCount} more not shown.`);
     }
     return { shown, lines };
+  }
+
+  /** One honor's description line: `<competition> (<trophy>)`. */
+  private formatHonor(honor: PlayerHonor): string {
+    return `${honor.competitionName} (${honor.trophyName})`;
   }
 
   /**
