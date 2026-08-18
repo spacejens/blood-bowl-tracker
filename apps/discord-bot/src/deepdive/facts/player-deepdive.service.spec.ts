@@ -1,5 +1,9 @@
-import type { PlayerHonor } from '@blood-bowl-tracker/game-data';
+import type {
+  PlayerHonor,
+  PlayerKillerInfo,
+} from '@blood-bowl-tracker/game-data';
 import {
+  PlayerDeathService,
   PlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
@@ -23,6 +27,7 @@ import {
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
+  DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
@@ -65,6 +70,49 @@ const mostViolent: PlayerHonor = {
   competitionName: 'Minor Season 23',
   competitionStartDate: '2023-01-15',
 };
+const gougedEye = {
+  teamId: 12,
+  teamName: 'Gouged Eye',
+  raceId: 5,
+  raceName: 'Orc',
+  coachId: 22,
+  coachName: 'Grimly',
+};
+const championsOfDeath = {
+  teamId: 13,
+  teamName: 'Champions of Death',
+  raceId: 6,
+  raceName: 'Undead',
+  coachId: 23,
+  coachName: 'Mortis',
+};
+const chaosAllStars = {
+  teamId: 14,
+  teamName: 'Chaos All-Stars',
+  raceId: 7,
+  raceName: 'Chaos',
+  coachId: 24,
+  coachName: 'Nurgle',
+};
+
+/**
+ * The description a player with the given killer renders, with one non-zero
+ * category so the embed has a body. Keeps each per-kind line assertion to a
+ * single expectation.
+ */
+async function describeKilledBy(killer: PlayerKillerInfo): Promise<string> {
+  const { service } = await makeService({
+    players: makePlayers({
+      player: griff,
+      counts: [{ label: 'Touchdowns scored', count: 3 }],
+    }),
+    playerDeath: makePlayerDeath(killer),
+  });
+  const result = (await service.resolve(1)) as {
+    embeds: { description: string }[];
+  };
+  return result.embeds[0].description;
+}
 
 /**
  * A `TrophyAwardsService` mock. Defaults to a player with no honors, so tests
@@ -82,11 +130,24 @@ function makeTrophyAwards(
   return trophyAwards;
 }
 
+/**
+ * A `PlayerDeathService` mock. Defaults to a living player (`null`), so tests
+ * about other parts of the embed never see a Status line.
+ */
+function makePlayerDeath(
+  killer: PlayerKillerInfo | null = null,
+): MockProxy<PlayerDeathService> {
+  const playerDeath = mock<PlayerDeathService>();
+  playerDeath.getKillerInfo.mockResolvedValue(killer);
+  return playerDeath;
+}
+
 interface MakeServiceOptions {
   players: PlayersService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   trophyAwards?: MockProxy<TrophyAwardsService>;
+  playerDeath?: MockProxy<PlayerDeathService>;
 }
 
 async function makeService({
@@ -94,6 +155,7 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   trophyAwards = makeTrophyAwards(),
+  playerDeath = makePlayerDeath(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -106,6 +168,7 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TrophyAwardsService, useValue: trophyAwards },
+      { provide: PlayerDeathService, useValue: playerDeath },
     ],
   }).compile();
   return {
@@ -477,6 +540,49 @@ describe('PlayerDeepdiveService', () => {
     ]);
   });
 
+  it('shows who killed the player and offers a drill-down to them', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      playerDeath: makePlayerDeath({
+        kind: 'player',
+        playerId: 77,
+        playerName: 'Varag Ghoul-Chewer',
+        positionName: 'Blitzer',
+        teamId: 12,
+        teamName: 'Gouged Eye',
+        raceId: 5,
+        raceName: 'Orc',
+        coachId: 22,
+        coachName: 'Grimly',
+      }),
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+      components: { components: { custom_id: string; label: string }[] }[];
+    };
+
+    expect(result.embeds[0].description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        'Status: Killed by Varag Ghoul-Chewer (Blitzer, Gouged Eye, Orc, Grimly)',
+        '',
+        'Touchdowns scored: 3',
+      ].join('\n'),
+    );
+    expect(result.components[0].components[0]).toMatchObject({
+      custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}77`,
+      label: 'Varag Ghoul-Chewer',
+    });
+  });
+
   it('falls back to the honors timeout message when the honors count times out', async () => {
     await expectTimeoutFallback(
       async () => {
@@ -654,6 +760,146 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Total star player points: 4',
       ].join('\n'),
+    );
+  });
+
+  it('shows no Status line for a player who has not died', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+    });
+
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+
+    expect(result.embeds[0].description).not.toContain('Status:');
+  });
+
+  it('names the killing team when the individual is unidentified', async () => {
+    const description = await describeKilledBy({ kind: 'team', ...gougedEye });
+
+    expect(description).toContain('Status: Killed by Gouged Eye (Orc, Grimly)');
+  });
+
+  it('offers a team drill-down for a team killer', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: griff }),
+      playerDeath: makePlayerDeath({ kind: 'team', ...gougedEye }),
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: { custom_id: string; label: string }[] }[];
+    };
+
+    expect(result.components[0].components[0]).toMatchObject({
+      custom_id: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}12`,
+      label: 'Gouged Eye',
+    });
+  });
+
+  it('joins exactly two candidate teams with a bare "or"', async () => {
+    const description = await describeKilledBy({
+      kind: 'ambiguousTeams',
+      teams: [gougedEye, championsOfDeath],
+    });
+
+    expect(description).toContain(
+      'Status: Killed by Gouged Eye (Orc, Grimly) or Champions of Death (Undead, Mortis)',
+    );
+  });
+
+  it('joins three or more candidate teams with an Oxford comma before "or"', async () => {
+    const description = await describeKilledBy({
+      kind: 'ambiguousTeams',
+      teams: [gougedEye, championsOfDeath, chaosAllStars],
+    });
+
+    expect(description).toContain(
+      'Status: Killed by Gouged Eye (Orc, Grimly), Champions of Death (Undead, Mortis), or Chaos All-Stars (Chaos, Nurgle)',
+    );
+  });
+
+  it('offers one team drill-down per candidate team', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: griff }),
+      playerDeath: makePlayerDeath({
+        kind: 'ambiguousTeams',
+        teams: [gougedEye, championsOfDeath],
+      }),
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: { custom_id: string; label: string }[] }[];
+    };
+
+    expect(result.components[0].components.slice(0, 2)).toMatchObject([
+      { custom_id: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}12`, label: 'Gouged Eye' },
+      {
+        custom_id: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}13`,
+        label: 'Champions of Death',
+      },
+    ]);
+  });
+
+  it('falls back to mysterious circumstances with no killer button', async () => {
+    const { service, entityComponents } = await makeService({
+      players: makePlayers({ player: griff }),
+      playerDeath: makePlayerDeath({ kind: 'unknown' }),
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+
+    expect(result.embeds[0].description).toContain(
+      'Status: Killed in mysterious circumstances',
+    );
+    // Only the player's own team, era and race entries — no killer entry.
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '11',
+        label: 'Reikland Reavers',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '7',
+        label: 'Season 5',
+      },
+      {
+        customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Human',
+      },
+    ]);
+  });
+
+  it('falls back to a themed message when the death query times out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    const { service } = await makeService({
+      players: makePlayers({ player: griff }),
+      databaseTimeout,
+    });
+    // The player, honors-count and category-count queries pass through; only the
+    // death lookup resolves with its caller's own fallback, exactly as the real
+    // `run` does when the timeout wins. Griff has no honors (the default
+    // `makeTrophyAwards()` count is 0), so the honors-list query is never
+    // issued, leaving exactly these four `run` calls: player, honors count,
+    // category counts, then the death lookup.
+    databaseTimeout.run
+      .mockResolvedValueOnce(griff)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(undefined);
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
     );
   });
 });
