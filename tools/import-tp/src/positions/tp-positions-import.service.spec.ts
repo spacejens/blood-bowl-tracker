@@ -463,6 +463,7 @@ describe('TpPositionsImportService', () => {
         isStarPlayer: true,
         externalIds: [
           { externalSystemId: 1, externalId: "Morg 'n' Thorg" },
+          { externalSystemId: 1, externalId: '5002' },
           { externalSystemId: 2, externalId: "Morg 'n' Thorg" },
         ],
       },
@@ -554,7 +555,53 @@ describe('TpPositionsImportService', () => {
       .find((d) => d.isStarPlayer);
     expect(starData?.externalIds).toEqual([
       { externalSystemId: 1, externalId: 'Griff Oberwald' },
+      { externalSystemId: 1, externalId: '5001' },
       { externalSystemId: 2, externalId: 'Griff Oberwald' },
+    ]);
+  });
+
+  it('registers every numeric TP position id seen for a star as an extra TP external id', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
+    const syncRaceEras = vi.fn();
+    const { service } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [{ tpPositionId: 388, name: "Morg 'n' Thorg" }],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Human',
+          raceName: 'Human',
+          positions: [],
+          starPositions: [{ tpPositionId: 512, name: "Morg 'n' Thorg" }],
+          id: 2,
+        }),
+      ],
+      {
+        raceNamesById: new Map([
+          [50, 'Dwarf'],
+          [60, 'Human'],
+        ]),
+      },
+    );
+
+    const starData = upsertPosition.mock.calls
+      .map((c) => c[0] as UpsertPosition)
+      .find((d) => d.isStarPlayer);
+    expect(starData?.externalIds).toEqual([
+      { externalSystemId: 1, externalId: "Morg 'n' Thorg" },
+      { externalSystemId: 1, externalId: '388' },
+      { externalSystemId: 1, externalId: '512' },
+      { externalSystemId: 2, externalId: "Morg 'n' Thorg" },
     ]);
   });
 

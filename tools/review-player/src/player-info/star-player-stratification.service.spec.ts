@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, players as playersTable } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
@@ -45,16 +45,19 @@ describe('StarPlayerStratificationService', () => {
 
   it('returns the sampled star players tagged with the requested source', async () => {
     const service = await makeService(
-      mockDb([
-        {
-          playerId: 7,
-          externalId: '2000',
-          playerName: "Morg 'n' Thorg",
-          teamName: 'Bockar',
-          positionName: 'Star Player',
-          eraName: 'Third Era',
-        },
-      ]),
+      mockDb(
+        [{ playerId: 7 }],
+        [
+          {
+            playerId: 7,
+            externalId: '2000',
+            playerName: "Morg 'n' Thorg",
+            teamName: 'Bockar',
+            positionName: 'Star Player',
+            eraName: 'Third Era',
+          },
+        ],
+      ),
     );
 
     const players = await service.sampleStratum({
@@ -114,5 +117,82 @@ describe('StarPlayerStratificationService', () => {
     await expect(
       service.sampleStratum({ source: 'bbl', stratumId: 'nope', limit: 3 }),
     ).rejects.toThrow(/Unknown player stratum "nope"/);
+  });
+
+  it('samples one representative player row per distinct star position', async () => {
+    const dbResult = mockDb(
+      [{ playerId: 7 }, { playerId: 9 }],
+      [
+        {
+          playerId: 7,
+          externalId: '2000',
+          playerName: "Morg 'n' Thorg",
+          teamName: 'Bockar',
+          positionName: "Morg 'n' Thorg",
+          eraName: 'Third Era',
+        },
+        {
+          playerId: 9,
+          externalId: '2001',
+          playerName: 'Griff Oberwald',
+          teamName: 'Reikland Reavers',
+          positionName: 'Griff Oberwald',
+          eraName: 'Third Era',
+        },
+      ],
+    );
+    const service = await makeService(dbResult);
+
+    const players = await service.sampleStratum({
+      source: 'bbl',
+      stratumId: 'star-players',
+      limit: 3,
+    });
+
+    expect(players.map((p) => p.playerId)).toEqual([7, 9]);
+    // The representative query groups by the star's position, so two hires of
+    // the same star can never both be sampled.
+    expect(dbResult.chains[0].groupBy).toHaveBeenCalledTimes(1);
+    expect(dbResult.chains[0].groupBy).toHaveBeenCalledWith(
+      playersTable.positionId,
+    );
+  });
+
+  it('drops a duplicate projection row for a player with two external ids in one system', async () => {
+    const projected = {
+      playerId: 7,
+      externalId: '2000',
+      playerName: "Morg 'n' Thorg",
+      teamName: 'Bockar',
+      positionName: "Morg 'n' Thorg",
+      eraName: 'Third Era',
+    };
+    const dbResult = mockDb(
+      [{ playerId: 7 }],
+      [projected, { ...projected, externalId: 'star-1-388' }],
+    );
+    const service = await makeService(dbResult);
+
+    const players = await service.sampleStratum({
+      source: 'tp',
+      stratumId: 'star-players',
+      limit: 3,
+    });
+
+    expect(players).toEqual([{ source: 'tp', ...projected }]);
+  });
+
+  it('issues no projection query when no star player matched', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await expect(
+      service.sampleStratum({
+        source: 'bbl',
+        stratumId: 'star-players',
+        limit: 3,
+      }),
+    ).resolves.toEqual([]);
+    expect(dbResult.chains).toHaveLength(1);
   });
 });

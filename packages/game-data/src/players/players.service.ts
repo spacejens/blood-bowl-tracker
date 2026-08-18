@@ -93,6 +93,15 @@ export class PlayersService {
     return rows[0];
   }
 
+  /**
+   * Name-prefix search backing `/deepdive`'s player autocomplete. Star
+   * players are excluded: a star's identity is their position, and each hire
+   * is its own `players` row, so a popular star would otherwise appear once
+   * per hiring team. Excluding them here only means no star id is *offered*
+   * by autocomplete; a star deepdive remains reachable via drill-down buttons
+   * elsewhere and renders that one hire, which is the intended per-team-era
+   * presentation.
+   */
   searchByNamePrefix(
     prefix: string,
     limit: number,
@@ -102,7 +111,13 @@ export class PlayersService {
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(ilike(players.name, `${this.likePattern.escape(prefix)}%`))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(
+        and(
+          ilike(players.name, `${this.likePattern.escape(prefix)}%`),
+          eq(positions.isStarPlayer, false),
+        ),
+      )
       .limit(limit);
   }
 
@@ -409,6 +424,10 @@ export class PlayersService {
    * - Competition or match category: those scopes are narrower than an era and
    *   an adjustment cannot be attributed to one, so the per-event sum is used
    *   instead — see SppTotalsService.topPlayersBySppSum.
+   *
+   * Star players are excluded from both branches: each hire of a star is its
+   * own `players` row, so one star would otherwise occupy several slots —
+   * and stars are typically the strongest players in the game.
    */
   topPlayersByTotalSpp(
     scope: FactScope,
@@ -425,6 +444,7 @@ export class PlayersService {
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .innerJoin(positions, eq(positions.id, players.positionId))
       .where(
         and(
           isNotNull(players.sppTotal),
@@ -434,6 +454,7 @@ export class PlayersService {
           scope.eraId === undefined
             ? undefined
             : eq(teamEras.eraId, scope.eraId),
+          eq(positions.isStarPlayer, false),
         ),
       )
       .orderBy(desc(players.sppTotal))

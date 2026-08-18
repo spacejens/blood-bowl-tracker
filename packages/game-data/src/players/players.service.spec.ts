@@ -268,8 +268,30 @@ describe('PlayersService', () => {
       await expect(service.searchByNamePrefix('Gri', 25)).resolves.toEqual(
         rows,
       );
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
       expect(chains[0].limit).toHaveBeenCalledWith(25);
+    });
+
+    it('excludes star players from the results', async () => {
+      likePattern.escape.mockReturnValue('Mor');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefix('Mor', 25);
+
+      // players -> teamEras -> teams -> positions
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
+      // isStarPlayer=false is the only filter value extractAllFilterValues can see
+      // here; ilike()'s pattern argument isn't wrapped in a drizzle Param, so it's
+      // invisible to this helper (see the innerJoin/join-column assertions above
+      // for the positions join, which independently confirm the star filter is
+      // wired).
+      const filterValues = extractAllFilterValues(
+        firstCallArg(chains[0].where),
+      );
+      expect(filterValues).toContain(false);
     });
   });
 

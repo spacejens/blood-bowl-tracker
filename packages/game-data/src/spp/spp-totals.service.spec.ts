@@ -126,6 +126,7 @@ describe('SppTotalsService.topPlayersBySppSum', () => {
     // so unlike every count* query there is no inArray(actionType, ...) here.
     expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
       30,
+      false,
     ]);
   });
 
@@ -137,6 +138,7 @@ describe('SppTotalsService.topPlayersBySppSum', () => {
 
     expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
       'season_final',
+      false,
     ]);
   });
 
@@ -174,12 +176,28 @@ describe('SppTotalsService.topPlayersBySppSum', () => {
 
     await service.topPlayersBySppSum({ competitionId: 30 }, 21);
 
-    expect(db.chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(db.chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(
       extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 0, 1)),
     ).toEqual(['players.id', 'match_events.acting_player_id']);
     expect(
       extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 1, 1)),
     ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
+  });
+
+  it('excludes star players from the scoped ranking', async () => {
+    const db = mockDb([]);
+    const service = await makeService(db);
+
+    await service.topPlayersBySppSum({ competitionId: 30 }, 21);
+
+    expect(db.chains[0].innerJoin).toHaveBeenCalledTimes(6);
+    expect(
+      extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 5, 1)),
+    ).toEqual(['positions.id', 'players.position_id']);
+    expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+      30,
+      false,
+    ]);
   });
 });
