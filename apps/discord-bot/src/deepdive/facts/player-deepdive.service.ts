@@ -49,6 +49,23 @@ type CategoryCount = { label: string; count: number };
 const MAX_PLAYER_HONORS = 30;
 
 /**
+ * Discord's hard cap on one embed's `description` field. `MAX_PLAYER_HONORS`
+ * bounds the honors *count*, but competition and trophy names are
+ * user-imported data with no length ceiling tight enough to guarantee 30 rows
+ * always fit — a handful of long names can still overflow this limit even
+ * within the 30-row cap. `selectHonorsWithinBudget` enforces this length
+ * limit on top of the row cap, trimming further when needed.
+ */
+const MAX_DESCRIPTION_LENGTH = 4096;
+
+/**
+ * Reserved for the trailing "…and N more not shown." note, so the greedy fit
+ * below never needs to backtrack after discovering the note itself doesn't
+ * fit: the largest plausible remainder is comfortably covered.
+ */
+const OVERFLOW_NOTE_BUDGET = 40;
+
+/**
  * Composes the player header (team, era, race, position) and per-category event
  * counts into a single embed. Shared by `/deepdive player:<id>` and the player
  * deepdive buttons. Each DB call is wrapped in `databaseTimeout.run` with a
@@ -66,7 +83,11 @@ const MAX_PLAYER_HONORS = 30;
  * grouping nor a per-row team name — a player belongs to exactly one team-era
  * for their whole career, so the header already names both. The section is
  * omitted entirely when the player has won nothing. Each honor adds a
- * drill-down button to its trophy, ahead of the header buttons.
+ * drill-down button to its trophy, ahead of the header buttons. Because
+ * competition and trophy names carry no length ceiling tight enough to
+ * guarantee `MAX_PLAYER_HONORS` rows always fit Discord's own embed
+ * description limit, the honors actually rendered may be a further-trimmed
+ * prefix of the fetched rows — see `buildHonorLines`.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -143,26 +164,33 @@ export class PlayerDeepdiveService {
     // Unlike the team deepdive there is no era grouping and no team on the
     // row: a player belongs to exactly one team-era for their whole career,
     // so the embed's own `Team:`/`Era:` header already names both.
-    const honorLines = honors.map(
-      (honor) => `${honor.competitionName} (${honor.trophyName})`,
+    //
+    // Competition and trophy names are user-imported data with no length
+    // ceiling tight enough to guarantee `MAX_PLAYER_HONORS` rows always fit
+    // Discord's embed description limit, so the honors actually shown are
+    // further trimmed to fit within that limit — see `buildHonorLines`.
+    const otherLines = [
+      ...header,
+      '',
+      ...categoryLines,
+      ...this.buildTotalLines(player),
+    ];
+    const { shown: shownHonors, lines: honorLines } = this.buildHonorLines(
+      honors,
+      honorsTotal,
+      otherLines,
     );
-    // `honorsTotal` is the real number of honors, so this remainder is exact
-    // rather than "at least one more". Using `honors.length` (rather than
-    // `MAX_PLAYER_HONORS`) keeps it self-maintaining if the query's returned
-    // row count ever changes.
-    const honorsTruncatedCount = honorsTotal - honors.length;
-    if (honors.length > 0 && honorsTruncatedCount > 0) {
-      honorLines.push(`…and ${honorsTruncatedCount} more not shown.`);
-    }
 
     // Honors entries first, then the header entries: buildEntityComponents has
     // no internal prioritisation (first-N / first-group wins), and the honors
     // are the most specific content on the embed. Only the trophy is offered
     // per honor: the player is the embed's own subject, and the team already
-    // has a header entry.
+    // has a header entry. Only honors that made it into the text get a
+    // button, so a text-length-truncated honor never offers a drill-down
+    // button with nothing to explain what it links to.
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents([
-        ...honors.map((honor): EntityComponentEntry => ({
+        ...shownHonors.map((honor): EntityComponentEntry => ({
           customIdPrefix: TROPHY_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(honor.trophyId),
           label: honor.trophyName,
@@ -202,6 +230,59 @@ export class PlayerDeepdiveService {
       ],
       components,
     };
+  }
+
+  /**
+   * Selects a prefix of `honors` that keeps the whole description within
+   * Discord's `MAX_DESCRIPTION_LENGTH`, and renders it into lines (plus an
+   * exact overflow note when anything — whether beyond `MAX_PLAYER_HONORS`
+   * or beyond what fits by length — was left out). `otherLines` is every
+   * other part of the description (header, category counts, totals); its
+   * length is reserved before greedily adding honor rows one at a time,
+   * stopping as soon as the next row would no longer fit within the budget
+   * reserved for `OVERFLOW_NOTE_BUDGET`. Honors are already ordered
+   * newest-first, so trimming from the end drops the oldest shown honors,
+   * not the most recent ones.
+   */
+  private buildHonorLines(
+    honors: PlayerHonor[],
+    honorsTotal: number,
+    otherLines: string[],
+  ): { shown: PlayerHonor[]; lines: string[] } {
+    if (honors.length === 0) {
+      return { shown: [], lines: [] };
+    }
+
+    const heading = ['', 'Honors:'];
+    let budget =
+      MAX_DESCRIPTION_LENGTH -
+      otherLines.join('\n').length -
+      heading.join('\n').length -
+      1 - // the newline joining "Honors:" to the first honor row
+      OVERFLOW_NOTE_BUDGET;
+
+    const shown: PlayerHonor[] = [];
+    for (const honor of honors) {
+      const cost = `${honor.competitionName} (${honor.trophyName})`.length + 1;
+      if (cost > budget) {
+        break;
+      }
+      budget -= cost;
+      shown.push(honor);
+    }
+
+    const lines = shown.map(
+      (honor) => `${honor.competitionName} (${honor.trophyName})`,
+    );
+    // `honorsTotal` is the real number of honors, so this remainder is exact
+    // rather than "at least one more" — it accounts for both rows never
+    // fetched (beyond `MAX_PLAYER_HONORS`) and fetched rows dropped here for
+    // length.
+    const truncatedCount = honorsTotal - shown.length;
+    if (shown.length > 0 && truncatedCount > 0) {
+      lines.push(`…and ${truncatedCount} more not shown.`);
+    }
+    return { shown, lines };
   }
 
   /**

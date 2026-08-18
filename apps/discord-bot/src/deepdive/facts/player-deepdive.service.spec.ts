@@ -373,6 +373,43 @@ describe('PlayerDeepdiveService', () => {
     );
   });
 
+  it("keeps the description within Discord's 4096-character embed limit even with many long honor names", async () => {
+    const longHonors: PlayerHonor[] = Array.from(
+      { length: 30 },
+      (_, index) => ({
+        trophyId: index + 1,
+        trophyName: 'T'.repeat(70),
+        competitionId: 100 + index,
+        competitionName: 'C'.repeat(70),
+        competitionStartDate: '2024-01-15',
+      }),
+    );
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: [{ label: 'Touchdowns scored', count: 3 }],
+      }),
+      trophyAwards: makeTrophyAwards(longHonors, 30),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const description = result.embeds[0].description;
+    expect(description.length).toBeLessThanOrEqual(4096);
+
+    const lines = description.split('\n');
+    const shownHonorCount = lines.filter((line) =>
+      line.startsWith('C'.repeat(70)),
+    ).length;
+    const overflowLine = lines.find((line) => line.includes('more not shown.'));
+    expect(overflowLine).toBeDefined();
+    const remainder = Number(
+      overflowLine?.match(/…and (\d+) more not shown\./)?.[1],
+    );
+    expect(shownHonorCount + remainder).toBe(30);
+    expect(shownHonorCount).toBeGreaterThan(0);
+  });
+
   it('offers one trophy button per honor, before the header buttons', async () => {
     const { service } = await makeService({
       players: makePlayers({
