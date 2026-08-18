@@ -7,6 +7,7 @@ import {
   matchEvents,
   matchTeams,
   players,
+  positions,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
@@ -83,6 +84,15 @@ export interface CountMatchEventsOptions {
 /**
  * Match events matching the given selector, counted per player and ordered
  * most-first. Ties keep the query's natural order — the caller ranks them.
+ *
+ * Star players are excluded (#245): a star's identity is their position and
+ * each hire is its own `players` row, so a popular star would occupy several
+ * slots of one global ranking — and stars, being the strongest players in the
+ * game, tend to dominate these rankings outright. The filter lives here rather
+ * than in the shared `matchEventFilter` because the per-team and per-coach
+ * counters do not join `players` at all, and `countMatchEventsForPlayer` /
+ * `countAllMatchEventsByPlayerForTeam` deliberately keep stars (see the design
+ * spec's "Deliberately left unchanged").
  */
 export async function countMatchEventsByPlayer(
   options: CountMatchEventsOptions,
@@ -116,7 +126,10 @@ export async function countMatchEventsByPlayer(
     .innerJoin(matches, eq(matches.id, matchTeams.matchId))
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(eras, eq(eras.id, teamEras.eraId))
-    .where(matchEventFilter(selector, scope))
+    .innerJoin(positions, eq(positions.id, players.positionId))
+    .where(
+      and(matchEventFilter(selector, scope), eq(positions.isStarPlayer, false)),
+    )
     .groupBy(players.id, players.name)
     .orderBy(desc(count(matchEvents.id)))
     .limit(limit);

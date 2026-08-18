@@ -88,13 +88,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'mvp_award',
       20,
+      false,
     ]);
   });
 
   it('countMvpAwardsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countMvpAwardsByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -102,6 +103,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'mvp_award',
       30,
+      false,
     ]);
   });
 
@@ -122,13 +124,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'touchdown',
       20,
+      false,
     ]);
   });
 
   it('countTouchdownsScoredByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countTouchdownsScoredByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -136,6 +139,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'touchdown',
       30,
+      false,
     ]);
   });
 
@@ -155,13 +159,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'completion',
       20,
+      false,
     ]);
   });
 
   it('countCompletionsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countCompletionsByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -169,6 +174,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'completion',
       30,
+      false,
     ]);
   });
 
@@ -188,13 +194,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'interception',
       20,
+      false,
     ]);
   });
 
   it('countInterceptionsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countInterceptionsByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -202,6 +209,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'interception',
       30,
+      false,
     ]);
   });
 
@@ -221,13 +229,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'deflection',
       20,
+      false,
     ]);
   });
 
   it('countDeflectionsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countDeflectionsByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -235,6 +244,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'deflection',
       30,
+      false,
     ]);
   });
 
@@ -261,13 +271,14 @@ describe('PlayersService toplist queries', () => {
       'serious_injury',
       'death',
       20,
+      false,
     ]);
   });
 
   it('countCasualtiesCausedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countCasualtiesCausedByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -278,6 +289,7 @@ describe('PlayersService toplist queries', () => {
       'serious_injury',
       'death',
       30,
+      false,
     ]);
   });
 
@@ -297,13 +309,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'serious_injury',
       20,
+      false,
     ]);
   });
 
   it('countSeriousInjuriesCausedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countSeriousInjuriesCausedByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -311,6 +324,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'serious_injury',
       30,
+      false,
     ]);
   });
 
@@ -330,13 +344,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'death',
       20,
+      false,
     ]);
   });
 
   it('countDeathsCausedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countDeathsCausedByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -344,6 +359,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'death',
       30,
+      false,
     ]);
   });
 
@@ -363,13 +379,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'foul',
       20,
+      false,
     ]);
   });
 
   it('countFoulsCommittedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countFoulsCommittedByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.acting_player_id'],
     );
@@ -377,6 +394,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'foul',
       30,
+      false,
     ]);
   });
 
@@ -396,13 +414,14 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'sent_off',
       20,
+      false,
     ]);
   });
 
   it('countTimesSentOffByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countTimesSentOffByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.consequence_player_id'],
     );
@@ -410,6 +429,7 @@ describe('PlayersService toplist queries', () => {
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'sent_off',
       30,
+      false,
     ]);
   });
 
@@ -443,6 +463,7 @@ describe('PlayersService toplist queries', () => {
       'stat_reduction_av',
       'stat_reduction_pa',
       20,
+      false,
     ]);
   });
 
@@ -468,7 +489,7 @@ describe('PlayersService toplist queries', () => {
   it('countCasualtiesSufferedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
     const { chains } = await build([]);
     await service.countCasualtiesSufferedByPlayer({ competitionId: 30 }, 21);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.consequence_player_id'],
     );
@@ -486,6 +507,7 @@ describe('PlayersService toplist queries', () => {
       'stat_reduction_av',
       'stat_reduction_pa',
       30,
+      false,
     ]);
   });
 
@@ -512,6 +534,7 @@ describe('PlayersService toplist queries', () => {
       'stat_reduction_av',
       'stat_reduction_pa',
       20,
+      false,
     ]);
   });
 
@@ -537,7 +560,7 @@ describe('PlayersService toplist queries', () => {
       { competitionId: 30 },
       21,
     );
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.consequence_player_id'],
     );
@@ -552,6 +575,7 @@ describe('PlayersService toplist queries', () => {
       'stat_reduction_av',
       'stat_reduction_pa',
       30,
+      false,
     ]);
   });
 
@@ -576,6 +600,7 @@ describe('PlayersService toplist queries', () => {
       'stat_reduction_av',
       'stat_reduction_pa',
       20,
+      false,
     ]);
   });
 
@@ -599,7 +624,7 @@ describe('PlayersService toplist queries', () => {
       { competitionId: 30 },
       21,
     );
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['players.id', 'match_events.consequence_player_id'],
     );
@@ -612,6 +637,7 @@ describe('PlayersService toplist queries', () => {
       'stat_reduction_av',
       'stat_reduction_pa',
       30,
+      false,
     ]);
   });
 
@@ -619,10 +645,24 @@ describe('PlayersService toplist queries', () => {
     const { chains } = await build([]);
     await service.countTouchdownsScoredByPlayer({ leagueId: 9 }, 21);
     expect(chains[0].where).toHaveBeenCalledTimes(1);
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
       'touchdown',
       9,
+      false,
+    ]);
+  });
+
+  it('countTouchdownsScoredByPlayer joins positions and excludes star players', async () => {
+    const { chains } = await build([]);
+    await service.countTouchdownsScoredByPlayer(FACT_SCOPE_ALL_TIME, 21);
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
+    expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 5, 1))).toEqual(
+      ['positions.id', 'players.position_id'],
+    );
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      'touchdown',
+      false,
     ]);
   });
 

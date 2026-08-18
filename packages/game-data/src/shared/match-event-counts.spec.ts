@@ -47,7 +47,7 @@ describe('countMatchEventsByPlayer', () => {
     expect(select).toHaveBeenCalledTimes(1);
   });
 
-  it('joins five tables for the acting role', async () => {
+  it('joins six tables for the acting role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByPlayer({
@@ -55,7 +55,7 @@ describe('countMatchEventsByPlayer', () => {
       selector: { role: 'acting', types: ['touchdown'] },
       limit: 21,
     });
-    expect(builder.innerJoin).toHaveBeenCalledTimes(5);
+    expect(builder.innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'players.id',
       'match_events.acting_player_id',
@@ -63,6 +63,7 @@ describe('countMatchEventsByPlayer', () => {
     expect(builder.where).toHaveBeenCalledTimes(1);
     expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
       'touchdown',
+      false,
     ]);
   });
 
@@ -77,7 +78,7 @@ describe('countMatchEventsByPlayer', () => {
     expect(builder.limit).toHaveBeenCalledWith(21);
   });
 
-  it('joins five tables for the consequence role', async () => {
+  it('joins six tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByPlayer({
@@ -85,7 +86,7 @@ describe('countMatchEventsByPlayer', () => {
       selector: { role: 'consequence', types: ['sent_off'] },
       limit: 21,
     });
-    expect(builder.innerJoin).toHaveBeenCalledTimes(5);
+    expect(builder.innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'players.id',
       'match_events.consequence_player_id',
@@ -93,6 +94,28 @@ describe('countMatchEventsByPlayer', () => {
     expect(builder.where).toHaveBeenCalledTimes(1);
     expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
       'sent_off',
+      false,
+    ]);
+  });
+
+  it('excludes star players from the ranking', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByPlayer({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
+      scope: { leagueId: 9 },
+      limit: 21,
+    });
+    expect(builder.innerJoin).toHaveBeenCalledTimes(6);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 5, 1))).toEqual([
+      'positions.id',
+      'players.position_id',
+    ]);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'touchdown',
+      9,
+      false,
     ]);
   });
 });
