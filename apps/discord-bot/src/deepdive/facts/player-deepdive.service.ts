@@ -143,12 +143,9 @@ export class PlayerDeepdiveService {
     // Unlike the team deepdive there is no era grouping and no team on the
     // row: a player belongs to exactly one team-era for their whole career,
     // so the embed's own `Team:`/`Era:` header already names both.
-    const honorLines =
-      honors.length === 0
-        ? []
-        : honors.map(
-            (honor) => `${honor.competitionName} (${honor.trophyName})`,
-          );
+    const honorLines = honors.map(
+      (honor) => `${honor.competitionName} (${honor.trophyName})`,
+    );
     // `honorsTotal` is the real number of honors, so this remainder is exact
     // rather than "at least one more". Using `honors.length` (rather than
     // `MAX_PLAYER_HONORS`) keeps it self-maintaining if the query's returned
