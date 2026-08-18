@@ -1,6 +1,12 @@
-import { positions } from '@blood-bowl-tracker/db';
-import { Injectable } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
+import type { Db } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  playerExternalIds,
+  players,
+  positions,
+} from '@blood-bowl-tracker/db';
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
@@ -22,7 +28,9 @@ const STAR_PLAYER_STRATUM = 'star-players';
  * no stored total; this is the only stratum such a player appears in, and —
  * unlike the discrepancy stratum — this one obeys `limit`, since an
  * uncapped star-player stratum would reintroduce the same overrepresentation
- * it exists to avoid.
+ * it exists to avoid. Since #245 the sample is also deduped to one representative
+ * players row per distinct positions.id — a star's identity — so one named star
+ * can never occupy several slots of one run.
  */
 @Injectable()
 export class StarPlayerStratificationService implements PlayerStratifier {
@@ -31,6 +39,7 @@ export class StarPlayerStratificationService implements PlayerStratifier {
   ];
 
   constructor(
+    @Inject(DB) private readonly db: Db,
     private readonly externalSystems: ExternalSystemLookupService,
     private readonly query: PlayerProjectionQueryService,
   ) {}
@@ -50,11 +59,46 @@ export class StarPlayerStratificationService implements PlayerStratifier {
       );
     }
     const externalSystemId = await this.externalSystems.getSystemId(source);
-    const rows = await this.query
-      .base(externalSystemId)
+    // One representative hire per named star: group by the star's identity
+    // (players.position_id), pick the lowest player id the requested source
+    // actually knows about, and randomise across stars — not across hires,
+    // which is what let one star fill several slots before #245.
+    const representatives = await this.db
+      .select({ playerId: sql<number>`min(${players.id})::int` })
+      .from(players)
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .innerJoin(
+        playerExternalIds,
+        and(
+          eq(playerExternalIds.playerId, players.id),
+          eq(playerExternalIds.externalSystemId, externalSystemId),
+        ),
+      )
       .where(eq(positions.isStarPlayer, true))
+      .groupBy(players.positionId)
       .orderBy(sql`random()`)
       .limit(limit);
-    return rows.map((row) => ({ source, ...row }));
+
+    const playerIds = representatives.map((row) => row.playerId);
+    if (playerIds.length === 0) {
+      return [];
+    }
+
+    const rows = await this.query
+      .base(externalSystemId)
+      .where(inArray(players.id, playerIds));
+    // The projection joins players_external_ids, so a player carrying two ids
+    // in the same system (an induced star has both its TP player id and a
+    // star-<roster>-<lineUpMaster> id) comes back twice.
+    const seen = new Set<number>();
+    return rows
+      .filter((row) => {
+        if (seen.has(row.playerId)) {
+          return false;
+        }
+        seen.add(row.playerId);
+        return true;
+      })
+      .map((row) => ({ source, ...row }));
   }
 }
