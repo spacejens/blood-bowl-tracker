@@ -89,7 +89,7 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   and `Position: <position>` (every player always has all four — a player
   belongs to exactly one team-era, and therefore to exactly one era), then —
   only when the player has recorded trophies, with the whole section omitted
-  otherwise rather than a placeholder line — a blank line, an `Honors:`
+  otherwise rather than a placeholder line — a blank line, a `Trophies:`
   heading, and that player's own awards newest-competition-first, one line per
   award formatted `<competition> (<trophy>)`. Neither the team nor the era is
   repeated on those rows, and there is no per-era grouping as on the team

@@ -305,7 +305,7 @@ describe('PlayerDeepdiveService', () => {
         'Race: Human',
         'Position: Blitzer',
         '',
-        'Honors:',
+        'Trophies:',
         'Major Season 24 (MVP)',
         'Minor Season 23 (Most Violent Player)',
         '',
@@ -353,7 +353,7 @@ describe('PlayerDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).not.toContain('Honors:');
+    expect(lines).not.toContain('Trophies:');
     expect(lines.some((line) => line.includes('more not shown.'))).toBe(false);
   });
 
@@ -429,7 +429,7 @@ describe('PlayerDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('Honors:');
+    expect(lines).toContain('Trophies:');
     expect(lines).toContain('…and 5 more not shown.');
     expect(lines.some((line) => line.startsWith('X'))).toBe(false);
   });

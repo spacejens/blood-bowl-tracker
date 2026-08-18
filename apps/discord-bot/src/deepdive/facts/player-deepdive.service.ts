@@ -221,7 +221,7 @@ export class PlayerDeepdiveService {
 
     const description = [
       ...header,
-      ...(honorLines.length === 0 ? [] : ['', 'Honors:', ...honorLines]),
+      ...(honorLines.length === 0 ? [] : ['', 'Trophies:', ...honorLines]),
       '',
       ...categoryLines,
       ...this.buildTotalLines(player),
@@ -277,12 +277,12 @@ export class PlayerDeepdiveService {
       return { shown: [], lines: [] };
     }
 
-    const heading = ['', 'Honors:'];
+    const heading = ['', 'Trophies:'];
     let budget =
       MAX_DESCRIPTION_LENGTH -
       otherLines.join('\n').length -
       heading.join('\n').length -
-      1 - // the newline joining "Honors:" to the first honor row
+      1 - // the newline joining "Trophies:" to the first honor row
       OVERFLOW_NOTE_BUDGET;
 
     const shown: PlayerHonor[] = [];
