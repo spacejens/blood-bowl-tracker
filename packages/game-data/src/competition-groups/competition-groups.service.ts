@@ -7,12 +7,14 @@ import type { CompetitionGroup, Db } from '@blood-bowl-tracker/db';
 import {
   competitionGroupExternalIds,
   competitionGroups,
+  competitions,
   DB,
   leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, ilike } from 'drizzle-orm';
+import { count, eq, ilike } from 'drizzle-orm';
 
+import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
@@ -60,6 +62,43 @@ export class CompetitionGroupsService {
       .innerJoin(leagues, eq(leagues.id, competitionGroups.leagueId))
       .where(eq(competitionGroups.id, id));
     return rows[0];
+  }
+
+  /**
+   * Every competition group with its league name and how many competitions
+   * belong to it, for the `/insights competitionGroups.list` fact. Left-joins
+   * competitions so a group with zero competitions still appears with a
+   * `competitionCount` of `0` rather than being dropped. Optionally narrowed
+   * to one league, mirroring `TrophiesService.listAllWithLeague` and
+   * `ErasService.listErasWithLeague`.
+   */
+  listAllWithLeagueAndCount(scope: FactScope): Promise<
+    {
+      id: number;
+      name: string;
+      leagueName: string;
+      competitionCount: number;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: competitionGroups.id,
+        name: competitionGroups.name,
+        leagueName: leagues.name,
+        competitionCount: count(competitions.id),
+      })
+      .from(competitionGroups)
+      .innerJoin(leagues, eq(leagues.id, competitionGroups.leagueId))
+      .leftJoin(
+        competitions,
+        eq(competitions.competitionGroupId, competitionGroups.id),
+      )
+      .where(
+        scope.leagueId === undefined
+          ? undefined
+          : eq(competitionGroups.leagueId, scope.leagueId),
+      )
+      .groupBy(competitionGroups.id, leagues.name);
   }
 
   /**
