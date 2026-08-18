@@ -283,7 +283,11 @@ describe('PlayersService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
       ).toEqual(['positions.id', 'players.position_id']);
-      // The where clause includes both the name pattern and isStarPlayer=false filter
+      // isStarPlayer=false is the only filter value extractAllFilterValues can see
+      // here; ilike()'s pattern argument isn't wrapped in a drizzle Param, so it's
+      // invisible to this helper (see the innerJoin/join-column assertions above
+      // for the positions join, which independently confirm the star filter is
+      // wired).
       const filterValues = extractAllFilterValues(
         firstCallArg(chains[0].where),
       );

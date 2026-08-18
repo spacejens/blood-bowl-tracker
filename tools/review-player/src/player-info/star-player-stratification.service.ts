@@ -62,9 +62,12 @@ export class StarPlayerStratificationService implements PlayerStratifier {
     // One representative hire per named star: group by the star's identity
     // (players.position_id), pick the lowest player id the requested source
     // actually knows about, and randomise across stars — not across hires,
-    // which is what let one star fill several slots before #245.
+    // which is what let one star fill several slots before #245. This makes
+    // the representative hire itself deterministic (always the lowest player
+    // id for that star) even though which stars appear is randomised — a
+    // reviewer sees the same hire for a given star across runs.
     const representatives = await this.db
-      .select({ playerId: sql<number>`min(${players.id})::int` })
+      .select({ playerId: sql<number>`min(${players.id})` })
       .from(players)
       .innerJoin(positions, eq(positions.id, players.positionId))
       .innerJoin(
