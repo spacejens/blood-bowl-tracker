@@ -284,7 +284,9 @@ describe('PlayersService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
       ).toEqual(['positions.id', 'players.position_id']);
       // The where clause includes both the name pattern and isStarPlayer=false filter
-      const filterValues = extractAllFilterValues(firstCallArg(chains[0].where));
+      const filterValues = extractAllFilterValues(
+        firstCallArg(chains[0].where),
+      );
       expect(filterValues).toContain(false);
     });
   });
