@@ -9,9 +9,10 @@ import {
   matchTeams,
   teamEras,
   teams,
+  trophyAwards,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, desc, eq } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import {
@@ -182,6 +183,52 @@ export class TeamsStatisticsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(teamEras.eraId)))
+      .limit(limit);
+  }
+
+  /**
+   * Teams ranked by how many trophies they have won. Counts every
+   * `trophy_awards` row tied to the team through its team era — including
+   * player-kind awards (MVP, most casualties, ...), since `team_era_id` is
+   * populated even for those. This is deliberately the same aggregation as
+   * `TrophyAwardsService.countByTeam`, grouped by team instead of filtered to
+   * one, so the toplist and a team's own deepdive trophy count agree.
+   *
+   * Hand-written rather than routed through `countMatchEventsByTeam`: trophy
+   * awards are not match events, so there is no match-category dimension and
+   * `scope.category` is deliberately ignored (the fact-tree leaf correspondingly
+   * omits `supportsMatchCategory`). League and era are read off the winning
+   * team era; competition is read straight off the award row.
+   */
+  countTrophiesByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(trophyAwards.id),
+      })
+      .from(trophyAwards)
+      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(
+        and(
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+          scope.competitionId === undefined
+            ? undefined
+            : eq(trophyAwards.competitionId, scope.competitionId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(trophyAwards.id)))
       .limit(limit);
   }
 
