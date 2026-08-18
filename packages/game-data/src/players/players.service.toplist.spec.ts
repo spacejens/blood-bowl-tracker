@@ -679,8 +679,8 @@ describe('PlayersService toplist queries', () => {
     expect(db.select).toHaveBeenCalledTimes(1);
     expect(sppTotals.topPlayersBySppSum).not.toHaveBeenCalled();
     expect(chains[0].limit).toHaveBeenCalledWith(21);
-    // players -> teamEras -> eras, so a league scope can filter on eras.
-    expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
+    // players -> teamEras -> eras -> positions, so a league scope can filter on eras.
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['team_eras.id', 'players.team_era_id'],
     );
@@ -696,10 +696,28 @@ describe('PlayersService toplist queries', () => {
     await service.topPlayersByTotalSpp(FACT_SCOPE_ALL_TIME, 21);
 
     expect(chains[0].where).toHaveBeenCalledTimes(1);
-    // The only clause is the IS NOT NULL guard, which binds no value.
-    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
+    // The IS NOT NULL guard binds no value; the star-player exclusion binds false.
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      false,
+    ]);
     expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
       'players.spp_total',
+      'positions.is_star_player',
+    ]);
+  });
+
+  it('topPlayersByTotalSpp excludes star players from the stored-total ranking', async () => {
+    const { chains } = await build([]);
+
+    await service.topPlayersByTotalSpp(FACT_SCOPE_ALL_TIME, 21);
+
+    // players -> teamEras -> eras -> positions
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+    expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1))).toEqual(
+      ['positions.id', 'players.position_id'],
+    );
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      false,
     ]);
   });
 
@@ -708,7 +726,10 @@ describe('PlayersService toplist queries', () => {
 
     await service.topPlayersByTotalSpp({ eraId: 20 }, 21);
 
-    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([20]);
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      20,
+      false,
+    ]);
   });
 
   it('topPlayersByTotalSpp filters by league through the player era', async () => {
@@ -716,7 +737,10 @@ describe('PlayersService toplist queries', () => {
 
     await service.topPlayersByTotalSpp({ leagueId: 9 }, 21);
 
-    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([9]);
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      9,
+      false,
+    ]);
   });
 
   it('topPlayersByTotalSpp sums match events instead when a competition is scoped', async () => {

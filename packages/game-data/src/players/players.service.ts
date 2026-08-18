@@ -423,6 +423,10 @@ export class PlayersService {
    * - Competition or match category: those scopes are narrower than an era and
    *   an adjustment cannot be attributed to one, so the per-event sum is used
    *   instead — see SppTotalsService.topPlayersBySppSum.
+   *
+   * Star players are excluded from both branches (#245): each hire of a star
+   * is its own `players` row, so one star would otherwise occupy several
+   * slots — and stars are typically the strongest players in the game.
    */
   topPlayersByTotalSpp(
     scope: FactScope,
@@ -439,6 +443,7 @@ export class PlayersService {
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .innerJoin(positions, eq(positions.id, players.positionId))
       .where(
         and(
           isNotNull(players.sppTotal),
@@ -448,6 +453,7 @@ export class PlayersService {
           scope.eraId === undefined
             ? undefined
             : eq(teamEras.eraId, scope.eraId),
+          eq(positions.isStarPlayer, false),
         ),
       )
       .orderBy(desc(players.sppTotal))
