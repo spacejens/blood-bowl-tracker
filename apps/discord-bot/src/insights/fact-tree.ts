@@ -467,6 +467,18 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         resolve: (scope) => deps.trophiesList.resolve(scope),
       },
     },
+    competitionGroups: {
+      list: {
+        // A competition group belongs directly to a league. It is not itself
+        // era-, competition- or category-scoped, exactly like eras.list and
+        // trophies.list.
+        supportsLeague: true,
+        supportsEra: false,
+        supportsCompetition: false,
+        supportsMatchCategory: false,
+        resolve: (scope) => deps.competitionGroupsList.resolve(scope),
+      },
+    },
     stats: {
       supportsLeague: true,
       supportsEra: true,
