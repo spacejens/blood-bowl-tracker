@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matchEvents } from '@blood-bowl-tracker/db';
+import { DB, matches, matchEvents } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { desc } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
 import type { QueryChain } from '../shared/db-mock.test-helpers';
@@ -60,6 +61,37 @@ function deathEvent(
     ...overrides,
   };
 }
+
+/** A `match_events` kill row caused by player 1, with per-test overrides. */
+function killEvent(
+  overrides: Partial<{
+    matchId: number;
+    actionType: string;
+    actingMatchTeamId: number | null;
+    consequencePlayerId: number | null;
+    consequenceMatchTeamId: number | null;
+  }> = {},
+) {
+  return {
+    matchId: 500,
+    actionType: 'death',
+    actingMatchTeamId: orcSide.matchTeamId,
+    consequencePlayerId: null,
+    consequenceMatchTeamId: victimSide.matchTeamId,
+    ...overrides,
+  };
+}
+
+/** The perpetrator's own player row, as `findPlayerSummary` resolves it. */
+const perpetrator = {
+  playerName: 'Varag Ghoul-Chewer',
+  positionName: 'Blitzer',
+  teamId: orcSide.teamId,
+};
+
+/** The display-only forms of the sides, without the internal matchTeamId. */
+const { matchTeamId: _victimMatchTeamId, ...victimTeam } = victimSide;
+const { matchTeamId: _undeadMatchTeamId, ...undeadTeam } = undeadSide;
 
 async function build(...rowsPerQuery: unknown[][]): Promise<{
   service: PlayerDeathService;
@@ -367,6 +399,165 @@ describe('PlayerDeathService', () => {
         kind: 'ambiguousTeams',
         viaFoul: false,
       });
+    });
+  });
+
+  describe('countKillsInflicted', () => {
+    it('counts the death consequences this player caused', async () => {
+      const { service, chains } = await build([{ count: 3 }]);
+
+      await expect(service.countKillsInflicted(1)).resolves.toBe(3);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        1,
+        'death',
+      ]);
+    });
+  });
+
+  describe('getKillsInflicted', () => {
+    it('returns nothing and asks nothing else when the player has killed nobody', async () => {
+      const { service, chains } = await build([]);
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([]);
+      expect(chains).toHaveLength(1);
+    });
+
+    it('orders newest match first and honours the limit', async () => {
+      const { service, chains } = await build([], []);
+
+      await service.getKillsInflicted(1, 7);
+
+      expect(chains[0].orderBy).toHaveBeenCalledWith(desc(matches.playedAt));
+      expect(chains[0].limit).toHaveBeenCalledWith(7);
+    });
+
+    it('resolves an identified victim with their position, team, race and coach', async () => {
+      const { service } = await build(
+        [killEvent({ consequencePlayerId: 88 })],
+        [perpetrator],
+        [victimSide, orcSide],
+        [
+          {
+            playerName: 'Griff Oberwald',
+            positionName: 'Blitzer',
+            teamId: victimSide.teamId,
+          },
+        ],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'player',
+          playerId: 88,
+          playerName: 'Griff Oberwald',
+          positionName: 'Blitzer',
+          ...victimTeam,
+          viaFoul: false,
+        },
+      ]);
+    });
+
+    it('falls back to the victim team when the victim player row is missing', async () => {
+      const { service } = await build(
+        [killEvent({ consequencePlayerId: 88 })],
+        [perpetrator],
+        [victimSide, orcSide],
+        [],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: false },
+      ]);
+    });
+
+    it('resolves the victim team when no victim player is named', async () => {
+      const { service } = await build(
+        [killEvent()],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: false },
+      ]);
+    });
+
+    it('infers the single opposing side when the victim side was not recorded', async () => {
+      const { service } = await build(
+        [killEvent({ consequenceMatchTeamId: null })],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: false },
+      ]);
+    });
+
+    it('reports every possible victim side in a merged multi-team match', async () => {
+      const { service } = await build(
+        [killEvent({ consequenceMatchTeamId: null })],
+        [perpetrator],
+        [victimSide, orcSide, undeadSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'ambiguousTeams',
+          teams: [victimTeam, undeadTeam],
+          viaFoul: false,
+        },
+      ]);
+    });
+
+    it("excludes the perpetrator's own side via their player row when no acting side was recorded", async () => {
+      const { service } = await build(
+        [killEvent({ actingMatchTeamId: null, consequenceMatchTeamId: null })],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: false },
+      ]);
+    });
+
+    it('falls back to unknown when no candidate side remains', async () => {
+      const { service } = await build(
+        [killEvent({ consequenceMatchTeamId: null })],
+        [perpetrator],
+        [orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'unknown', viaFoul: false },
+      ]);
+    });
+
+    it('flags a kill inflicted by a foul', async () => {
+      const { service } = await build(
+        [killEvent({ actionType: 'foul' })],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: true },
+      ]);
+    });
+
+    it('looks a match up once even when it holds several kills', async () => {
+      const { service, chains } = await build(
+        [killEvent(), killEvent()],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      const kills = await service.getKillsInflicted(1, 30);
+
+      expect(kills).toHaveLength(2);
+      // Kill events, perpetrator row, one match-sides lookup — not two.
+      expect(chains).toHaveLength(3);
     });
   });
 });

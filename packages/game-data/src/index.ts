@@ -37,6 +37,7 @@ export {
   MatchUpsertConflictError,
 } from './matches/matches.service';
 export type {
+  PlayerKillEntry,
   PlayerKillerInfo,
   PlayerKillerTeam,
 } from './players/player-death.service';
