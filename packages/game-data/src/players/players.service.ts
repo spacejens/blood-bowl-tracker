@@ -4,6 +4,7 @@ import {
   competitionTeams,
   DB,
   eras,
+  matchEvents,
   playerExternalIds,
   players,
   positions,
@@ -22,6 +23,7 @@ import {
   countMatchEventsByPlayer,
   countMatchEventsForPlayer,
 } from '../shared/match-event-counts';
+import type { ConsequenceType } from '../shared/match-event-types';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -44,6 +46,32 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
 
 export class PlayerUpsertConflictError extends UpsertConflictError {}
+
+/**
+ * One counter that carries its own severity breakdown: a total plus the
+ * subset that inflicted a serious injury or a death. Used for both the
+ * casualty and the foul counters, which report the same three numbers over
+ * different event populations.
+ */
+export interface PlayerDeepdiveEventGroup {
+  total: number;
+  seriousInjuries: number;
+  killed: number;
+}
+
+/**
+ * The player deepdive's event counters. The five `simple` categories are
+ * plain label/count rows; casualties and fouls each carry a severity
+ * breakdown so the embed can render them as one line apiece. `fouls.killed`
+ * plus `casualties.killed` is exactly the number of kills the deepdive's
+ * Kills section lists, because an event with `consequenceType = 'death'`
+ * always has an `actionType` of either `'death'` or `'foul'`.
+ */
+export interface PlayerDeepdiveCategoryCounts {
+  simple: { label: string; count: number }[];
+  casualties: PlayerDeepdiveEventGroup;
+  fouls: PlayerDeepdiveEventGroup;
+}
 
 @Injectable()
 export class PlayersService {
@@ -121,60 +149,115 @@ export class PlayersService {
       .limit(limit);
   }
 
+  /**
+   * Every counter the player deepdive shows, in one round trip. Issued as a
+   * single `Promise.all` so the caller's one timeout message covers the whole
+   * group.
+   */
   async getDeepdiveCategoryCounts(
     playerId: number,
-  ): Promise<{ label: string; count: number }[]> {
-    const categories: { label: string; selector: MatchEventSelector }[] = [
-      {
-        label: 'MVP awards',
-        selector: { role: 'acting', types: MVP_AWARD_TYPES },
-      },
-      {
-        label: 'Touchdowns scored',
-        selector: { role: 'acting', types: TOUCHDOWN_TYPES },
-      },
-      {
-        label: 'Completions',
-        selector: { role: 'acting', types: COMPLETION_TYPES },
-      },
-      {
-        label: 'Interceptions',
-        selector: { role: 'acting', types: INTERCEPTION_TYPES },
-      },
-      {
-        label: 'Deflections',
-        selector: { role: 'acting', types: DEFLECTION_TYPES },
-      },
-      {
-        label: 'Casualties inflicted',
-        selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
-      },
-      {
-        label: 'Serious injuries inflicted',
-        selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
-      },
-      {
-        label: 'Opponents killed',
-        selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
-      },
-      {
-        label: 'Fouls committed',
-        selector: { role: 'acting', types: FOUL_TYPES },
-      },
-    ];
-    const counts = await Promise.all(
-      categories.map((category) =>
-        countMatchEventsForPlayer({
-          db: this.db,
-          playerId,
-          selector: category.selector,
-        }),
+  ): Promise<PlayerDeepdiveCategoryCounts> {
+    const simpleCategories: { label: string; selector: MatchEventSelector }[] =
+      [
+        {
+          label: 'MVP awards',
+          selector: { role: 'acting', types: MVP_AWARD_TYPES },
+        },
+        {
+          label: 'Touchdowns scored',
+          selector: { role: 'acting', types: TOUCHDOWN_TYPES },
+        },
+        {
+          label: 'Completions',
+          selector: { role: 'acting', types: COMPLETION_TYPES },
+        },
+        {
+          label: 'Interceptions',
+          selector: { role: 'acting', types: INTERCEPTION_TYPES },
+        },
+        {
+          label: 'Deflections',
+          selector: { role: 'acting', types: DEFLECTION_TYPES },
+        },
+      ];
+    const [
+      simpleCounts,
+      casualtyTotal,
+      casualtySeriousInjuries,
+      casualtyKilled,
+      foulTotal,
+      foulSeriousInjuries,
+      foulKilled,
+    ] = await Promise.all([
+      Promise.all(
+        simpleCategories.map((category) =>
+          this.countDeepdiveEvents(playerId, category.selector),
+        ),
       ),
-    );
-    return categories.map((category, index) => ({
-      label: category.label,
-      count: counts[index],
-    }));
+      this.countDeepdiveEvents(playerId, {
+        role: 'acting',
+        types: CASUALTY_CAUSED_TYPES,
+      }),
+      this.countDeepdiveEvents(playerId, {
+        role: 'acting',
+        types: SERIOUS_INJURY_CAUSED_TYPES,
+      }),
+      this.countDeepdiveEvents(playerId, {
+        role: 'acting',
+        types: DEATH_CAUSED_TYPES,
+      }),
+      this.countDeepdiveEvents(playerId, { role: 'acting', types: FOUL_TYPES }),
+      this.countFoulConsequences(playerId, 'serious_injury'),
+      this.countFoulConsequences(playerId, 'death'),
+    ]);
+    return {
+      simple: simpleCategories.map((category, index) => ({
+        label: category.label,
+        count: simpleCounts[index],
+      })),
+      casualties: {
+        total: casualtyTotal,
+        seriousInjuries: casualtySeriousInjuries,
+        killed: casualtyKilled,
+      },
+      fouls: {
+        total: foulTotal,
+        seriousInjuries: foulSeriousInjuries,
+        killed: foulKilled,
+      },
+    };
+  }
+
+  /** One deepdive counter: unscoped, single-role, for this player alone. */
+  private countDeepdiveEvents(
+    playerId: number,
+    selector: MatchEventSelector,
+  ): Promise<number> {
+    return countMatchEventsForPlayer({ db: this.db, playerId, selector });
+  }
+
+  /**
+   * Events this player committed as a foul that inflicted the given
+   * consequence. `MatchEventSelector` is single-role by design, so a combined
+   * acting-and-consequence filter needs its own query — a direct
+   * `match_events` filter, with none of the join graph the scoped counters
+   * carry, because deepdive counters apply no scope narrowing.
+   */
+  private async countFoulConsequences(
+    playerId: number,
+    consequenceType: ConsequenceType,
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(matchEvents.id) })
+      .from(matchEvents)
+      .where(
+        and(
+          eq(matchEvents.actingPlayerId, playerId),
+          eq(matchEvents.actionType, 'foul'),
+          eq(matchEvents.consequenceType, consequenceType),
+        ),
+      );
+    return row.count;
   }
 
   /**

@@ -117,10 +117,18 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   are more, the list ends with an exact `…and N more not shown.` note computed
   from the player's true award count. Then a blank line, and one line per
   non-zero event category the player caused, formatted `<label>: <count>`. The
-  categories are the nine acting-role tallies: MVP awards, touchdowns scored,
-  completions, interceptions, deflections, casualties inflicted, serious
-  injuries inflicted, opponents killed, and fouls committed — things the player
-  did, never things done to them. These per-match-event tallies are a separate
+  categories are the acting-role tallies — things the player did, never
+  things done to them: MVP awards, touchdowns scored, completions,
+  interceptions and deflections as plain `<label>: <count>` lines, followed by
+  two lines that carry their own severity breakdown,
+  `Casualties inflicted: <total> (<N> serious injuries, <N> killed)` and
+  `Fouls committed: <total> (<N> serious injuries, <N> killed)`. A zero
+  sub-count is dropped from the parenthetical along with its comma, the
+  parenthetical disappears when both sub-counts are zero, and the whole line
+  disappears when the total is zero. Fouls carry their own breakdown rather
+  than folding into the casualty one because Blood Bowl awards no casualty
+  credit for a foul, so a foul-caused injury is deliberately not counted as a
+  casualty inflicted. These per-match-event tallies are a separate
   concept from the competition-level trophies above: the "MVP awards" count is
   match MVPs, not an end-of-competition MVP trophy. Zero categories are
   omitted; a player with nothing in any category shows a short

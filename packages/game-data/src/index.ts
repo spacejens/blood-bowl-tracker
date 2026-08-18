@@ -42,6 +42,10 @@ export type {
 } from './players/player-death.service';
 export { PlayerDeathService } from './players/player-death.service';
 export { PlayersModule } from './players/players.module';
+export type {
+  PlayerDeepdiveCategoryCounts,
+  PlayerDeepdiveEventGroup,
+} from './players/players.service';
 export {
   PlayersService,
   PlayerUpsertConflictError,

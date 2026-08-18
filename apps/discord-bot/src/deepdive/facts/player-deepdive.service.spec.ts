@@ -1,4 +1,5 @@
 import type {
+  PlayerDeepdiveCategoryCounts,
   PlayerHonor,
   PlayerKillerInfo,
 } from '@blood-bowl-tracker/game-data';
@@ -23,7 +24,6 @@ import {
   nullEntityComponents,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
-  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
@@ -104,7 +104,7 @@ async function describeKilledBy(killer: PlayerKillerInfo): Promise<string> {
   const { service } = await makeService({
     players: makePlayers({
       player: griff,
-      counts: [{ label: 'Touchdowns scored', count: 3 }],
+      counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
     }),
     playerDeath: makePlayerDeath(killer),
   });
@@ -192,11 +192,16 @@ function makePlayers(options: {
     sppTotal: number | null;
     sppAdjustment: number | null;
   };
-  counts?: { label: string; count: number }[];
+  counts?: Partial<PlayerDeepdiveCategoryCounts>;
 }): PlayersService {
   const players = mock<PlayersService>();
   players.findById.mockResolvedValue(options.player);
-  players.getDeepdiveCategoryCounts.mockResolvedValue(options.counts ?? []);
+  players.getDeepdiveCategoryCounts.mockResolvedValue({
+    simple: [],
+    casualties: { total: 0, seriousInjuries: 0, killed: 0 },
+    fouls: { total: 0, seriousInjuries: 0, killed: 0 },
+    ...options.counts,
+  });
   return players;
 }
 
@@ -207,7 +212,7 @@ async function describeFor(spp: {
   const { service } = await makeService({
     players: makePlayers({
       player: { ...griff, ...spp },
-      counts: [{ label: 'Touchdowns scored', count: 3 }],
+      counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
     }),
   });
   const result = (await service.resolve(1)) as {
@@ -225,70 +230,93 @@ describe('PlayerDeepdiveService', () => {
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
   });
 
-  it('renders the header and only the non-zero categories', async () => {
+  /** The description for a player with the given counters and nothing else. */
+  async function describeCounts(
+    counts: Partial<PlayerDeepdiveCategoryCounts>,
+  ): Promise<string> {
     const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: [
-          { label: 'MVP awards', count: 2 },
-          { label: 'Touchdowns scored', count: 5 },
-          { label: 'Completions', count: 0 },
-          { label: 'Interceptions', count: 0 },
-          { label: 'Deflections', count: 0 },
-          { label: 'Casualties inflicted', count: 3 },
-          { label: 'Serious injuries inflicted', count: 0 },
-          { label: 'Opponents killed', count: 0 },
-          { label: 'Fouls committed', count: 1 },
-        ],
-      }),
+      players: makePlayers({ player: griff, counts }),
     });
-    const result = await service.resolve(1);
-    expect(result).toMatchObject({
-      embeds: [
-        {
-          title: `${stubEntityEmoji(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
-          description: [
-            'Team: Reikland Reavers',
-            'Era: Season 5',
-            'Race: Human',
-            'Position: Blitzer',
-            '',
-            'MVP awards: 2',
-            'Touchdowns scored: 5',
-            'Casualties inflicted: 3',
-            'Fouls committed: 1',
-          ].join('\n'),
-        },
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    return result.embeds[0].description;
+  }
+
+  it('renders the simple categories, skipping the zero ones', async () => {
+    const description = await describeCounts({
+      simple: [
+        { label: 'MVP awards', count: 2 },
+        { label: 'Touchdowns scored', count: 5 },
+        { label: 'Completions', count: 0 },
       ],
     });
+
+    expect(description).toContain('MVP awards: 2');
+    expect(description).toContain('Touchdowns scored: 5');
+    expect(description).not.toContain('Completions');
   });
 
-  it('shows the no-events placeholder when every category is zero', async () => {
-    const { service } = await makeService({
-      players: makePlayers({
-        player: griff,
-        counts: [
-          { label: 'MVP awards', count: 0 },
-          { label: 'Touchdowns scored', count: 0 },
-        ],
-      }),
+  it('renders both sub-counts in the casualty breakdown', async () => {
+    const description = await describeCounts({
+      casualties: { total: 6, seriousInjuries: 2, killed: 1 },
     });
-    const result = await service.resolve(1);
-    expect(result).toMatchObject({
-      embeds: [
-        {
-          title: `${stubEntityEmoji(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
-          description: [
-            'Team: Reikland Reavers',
-            'Era: Season 5',
-            'Race: Human',
-            'Position: Blitzer',
-            '',
-            DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
-          ].join('\n'),
-        },
-      ],
+
+    expect(description).toContain(
+      'Casualties inflicted: 6 (2 serious injuries, 1 killed)',
+    );
+  });
+
+  it('omits a zero serious-injury sub-count and its comma', async () => {
+    const description = await describeCounts({
+      casualties: { total: 6, seriousInjuries: 0, killed: 1 },
     });
+
+    expect(description).toContain('Casualties inflicted: 6 (1 killed)');
+  });
+
+  it('omits a zero killed sub-count and its comma', async () => {
+    const description = await describeCounts({
+      casualties: { total: 6, seriousInjuries: 2, killed: 0 },
+    });
+
+    expect(description).toContain(
+      'Casualties inflicted: 6 (2 serious injuries)',
+    );
+  });
+
+  it('omits the parenthetical entirely when both sub-counts are zero', async () => {
+    const description = await describeCounts({
+      casualties: { total: 6, seriousInjuries: 0, killed: 0 },
+    });
+
+    expect(description).toContain('Casualties inflicted: 6');
+    expect(description).not.toContain('Casualties inflicted: 6 (');
+  });
+
+  it('renders the foul breakdown the same way', async () => {
+    const description = await describeCounts({
+      fouls: { total: 7, seriousInjuries: 3, killed: 2 },
+    });
+
+    expect(description).toContain(
+      'Fouls committed: 7 (3 serious injuries, 2 killed)',
+    );
+  });
+
+  it('omits a whole group whose total is zero', async () => {
+    const description = await describeCounts({
+      simple: [{ label: 'MVP awards', count: 1 }],
+    });
+
+    expect(description).not.toContain('Casualties inflicted');
+    expect(description).not.toContain('Fouls committed');
+  });
+
+  it('shows the nothing-memorable message when every counter is zero', async () => {
+    const description = await describeCounts({});
+
+    expect(description).toContain(DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE);
   });
 
   // EntityComponentsService's own dedupe/cap/chunk/select logic is covered
@@ -320,7 +348,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns', count: 3 }] },
       }),
       entityComponents,
     });
@@ -352,7 +380,7 @@ describe('PlayerDeepdiveService', () => {
     const { service, trophyAwards } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards([mvp, mostViolent]),
     });
@@ -381,7 +409,7 @@ describe('PlayerDeepdiveService', () => {
     const { service, trophyAwards } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards([]),
     });
@@ -408,7 +436,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards([], 4),
     });
@@ -424,7 +452,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards([mvp], 34),
     });
@@ -450,7 +478,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards(longHonors, 30),
     });
@@ -484,7 +512,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards([hugeHonor], 5),
     });
@@ -501,7 +529,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Z'.repeat(4090), count: 1 }],
+        counts: { simple: [{ label: 'Z'.repeat(4090), count: 1 }] },
       }),
       trophyAwards: makeTrophyAwards([mvp], 5),
     });
@@ -515,7 +543,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       entityComponents: passthroughEntityComponents(),
       trophyAwards: makeTrophyAwards([mvp, mostViolent]),
@@ -544,7 +572,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       playerDeath: makePlayerDeath({
         kind: 'player',
@@ -744,7 +772,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: { ...griff, sppTotal: 4, sppAdjustment: null },
-        counts: [{ label: 'Touchdowns scored', count: 0 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 0 }] },
       }),
     });
     const result = (await service.resolve(1)) as {
@@ -768,7 +796,7 @@ describe('PlayerDeepdiveService', () => {
     const { service } = await makeService({
       players: makePlayers({
         player: griff,
-        counts: [{ label: 'Touchdowns scored', count: 3 }],
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
     });
 
