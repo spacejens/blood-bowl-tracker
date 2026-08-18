@@ -791,7 +791,7 @@ describe('PlayerDeepdiveService', () => {
       entityComponents: passthroughEntityComponents(),
     });
 
-    const result = (await service.resolve(1)) as {
+    const result = (await service.resolve(1)) as unknown as {
       components: { components: { custom_id: string; label: string }[] }[];
     };
 
@@ -833,7 +833,7 @@ describe('PlayerDeepdiveService', () => {
       entityComponents: passthroughEntityComponents(),
     });
 
-    const result = (await service.resolve(1)) as {
+    const result = (await service.resolve(1)) as unknown as {
       components: { components: { custom_id: string; label: string }[] }[];
     };
 
