@@ -99,9 +99,11 @@ describe('PlayerInfoDbRendererService', () => {
             teamName: 'Bockar',
             positionName: 'Star player',
             isStarPlayer: true,
+            positionId: 900,
             eraName: 'Third Era',
           },
         ],
+        [],
         [],
       ),
     );
@@ -117,5 +119,84 @@ describe('PlayerInfoDbRendererService', () => {
     expect(await service.render(player)).toBe(
       '<p class="note">No player row with id 42 in the database.</p>',
     );
+  });
+
+  it("lists a star player's other hires, one row per team era", async () => {
+    const service = await makeService(
+      mockDb(
+        [
+          {
+            playerId: 42,
+            playerName: "Morg 'n' Thorg",
+            teamName: 'Bockar',
+            positionName: "Morg 'n' Thorg",
+            isStarPlayer: true,
+            positionId: 900,
+            eraName: 'Third Era',
+          },
+        ],
+        [],
+        [
+          { teamName: '40 Thieves', eraName: 'Third Era' },
+          { teamName: 'Reikland Reavers', eraName: 'Fourth Era' },
+        ],
+      ),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain(
+      '<td>Other hire</td><td>40 Thieves (Third Era)</td>',
+    );
+    expect(html).toContain(
+      '<td>Other hire</td><td>Reikland Reavers (Fourth Era)</td>',
+    );
+  });
+
+  it('says so when a star player has no other hires', async () => {
+    const service = await makeService(
+      mockDb(
+        [
+          {
+            playerId: 42,
+            playerName: "Morg 'n' Thorg",
+            teamName: 'Bockar',
+            positionName: "Morg 'n' Thorg",
+            isStarPlayer: true,
+            positionId: 900,
+            eraName: 'Third Era',
+          },
+        ],
+        [],
+        [],
+      ),
+    );
+
+    expect(await service.render(player)).toContain(
+      '<td>Other hires</td><td>none</td>',
+    );
+  });
+
+  it('issues no other-hires query for a regular player', async () => {
+    const dbResult = mockDb(
+      [
+        {
+          playerId: 42,
+          playerName: 'Janhorgh',
+          teamName: 'Bockar',
+          positionName: 'Lineman',
+          isStarPlayer: false,
+          positionId: 12,
+          eraName: 'Third Era',
+        },
+      ],
+      [],
+    );
+    const service = await makeService(dbResult);
+
+    const html = await service.render(player);
+
+    expect(dbResult.chains).toHaveLength(2);
+    expect(html).not.toContain('Other hire');
   });
 });
