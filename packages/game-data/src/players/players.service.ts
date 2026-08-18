@@ -97,9 +97,10 @@ export class PlayersService {
    * Name-prefix search backing `/deepdive`'s player autocomplete. Star
    * players are excluded (#245): a star's identity is their position, and
    * each hire is its own `players` row, so a popular star would otherwise
-   * appear once per hiring team. Excluding them here also means the deepdive
-   * never resolves a star player id, so `PlayerDeepdiveService`'s
-   * one-team-era-per-career assumption never has to hold for a star.
+   * appear once per hiring team. Excluding them here only means no star id is
+   * *offered* by autocomplete; a star deepdive remains reachable via
+   * drill-down buttons elsewhere and renders that one hire, which is the
+   * intended per-team-era presentation — see #245.
    */
   searchByNamePrefix(
     prefix: string,

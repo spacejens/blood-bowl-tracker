@@ -62,13 +62,16 @@ export class TpPositionsImportService {
    * syncRaceEras. A roster whose race cannot be resolved is recorded as an
    * error and its positions skipped. Regular positions import with
    * `isStarPlayer: false`. Star positions (from `roster.starPositions`) are
-   * grouped by name only, upserted with `isStarPlayer: true` and BOTH a
+   * grouped by name only, upserted with `isStarPlayer: true` and a
    * TP-system bare-name external id (`group.name`, preserving TP's own
-   * catalog-independent star id) AND a Name-system bare-name external id
+   * catalog-independent star id), a Name-system bare-name external id
    * (deduping onto the same row the inducement-hire path and the BBL
-   * importer's star positions use). A star external id colliding with an
-   * already-upserted regular position's external id (or vice versa) is
-   * caught server-side by the position upsert itself: `PositionsService`
+   * importer's star positions use), AND one TP-system external id per
+   * distinct numeric `tpPositionId` seen for that star across roster files
+   * (resolving roster-embedded stars, e.g. Mighty Zug, that would otherwise
+   * be skipped as "could not resolve position"). A star external id
+   * colliding with an already-upserted regular position's external id (or
+   * vice versa) is caught server-side by the position upsert itself: `PositionsService`
    * passes `upsertByExternalIds` a `detectSemanticConflict` hook that
    * compares the matched row's `isStarPlayer` against the incoming value and
    * throws `PositionUpsertConflictError` (reported as a CONFLICT) when they
