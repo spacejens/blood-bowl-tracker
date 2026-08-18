@@ -198,6 +198,41 @@ describe('PlayerDeathService', () => {
       });
     });
 
+    it("falls back to team-based resolution when the killer's team is not among this match's sides", async () => {
+      // Defensive branch: actingPlayerId is set and the players lookup finds a
+      // row, but that row's teamId does not match any of this match's sides
+      // (e.g. undeadSide, which is not part of this match at all). This
+      // should not happen from any known importer behaviour, but the code
+      // must not throw — it falls through to the existing team-based
+      // resolution, same as when the killer lookup finds no row at all.
+      const { service } = await build(
+        [
+          deathEvent({
+            actingPlayerId: 77,
+            actingMatchTeamId: orcSide.matchTeamId,
+          }),
+        ],
+        [victimSide, orcSide],
+        [
+          {
+            playerName: 'Bloodspite Ripfang',
+            positionName: 'Werewolf',
+            teamId: undeadSide.teamId,
+          },
+        ],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toEqual({
+        kind: 'team',
+        teamId: 12,
+        teamName: 'Gouged Eye',
+        raceId: 5,
+        raceName: 'Orc',
+        coachId: 22,
+        coachName: 'Grimly',
+      });
+    });
+
     it('resolves the acting team when the specific player is unidentified', async () => {
       const { service, chains } = await build(
         [deathEvent({ actingMatchTeamId: orcSide.matchTeamId })],
