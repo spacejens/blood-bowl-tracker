@@ -37,14 +37,15 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but seven facts support
+replies with a per-scope refusal message. All but eight facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`,
-`eras.list` and `trophies.list` — which list or count teams, eras or trophies
-rather than matches — and `stats`, which is excluded deliberately: only two of
-the dozen counts it reports (matches and match events) have a category at
-all, so a category-scoped `stats` would show two scoped numbers beside ten
-all-time ones.
+`eras.list`, `trophies.list` and `competitionGroups.list` — which list or
+count teams, eras, trophies or competition groups rather than matches — and
+`stats`, which is excluded deliberately: only two of the dozen counts it
+reports (matches and match events) have a category at all, so a
+category-scoped `stats` would show two scoped numbers beside ten all-time
+ones.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
@@ -273,6 +274,20 @@ button, in the same order as the list, that opens that player's
   goes through its competition group's league. Does not support the `era`,
   `competition` or `match-category` filter options (it exists to list the whole
   catalog), so it is excluded from runs scoped by those.
+- `competitionGroups.list` — a single embed listing every recurring
+  competition group in the catalog (title "Competition groups"), ordered by
+  league and then by group name. Each line reads
+  `<group> (<league>): <N> competition(s)`, where the count is how many
+  competitions belong to that group (a group with none yet shows `0
+  competitions`). Each listed group also gets a button that opens that
+  group's [`/deepdive`](deepdive.md) detail view, where its trophies and
+  every instance of the competition live. Up to 25 groups get one button
+  each; past that the links switch to dropdown menus (see
+  [`/deepdive`](deepdive.md)), and past 125 the description ends with a note
+  counting the groups left without a link. Supports league filtering. Does
+  not support the `era`, `competition` or `match-category` filter options (it
+  exists to list the whole catalog), so it is excluded from runs scoped by
+  those.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.

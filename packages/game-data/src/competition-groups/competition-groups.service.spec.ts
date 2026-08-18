@@ -141,6 +141,53 @@ describe('CompetitionGroupsService', () => {
     });
   });
 
+  describe('listAllWithLeagueAndCount', () => {
+    const rows = [
+      {
+        id: 1,
+        name: 'Major Season',
+        leagueName: 'Premier',
+        competitionCount: 3,
+      },
+    ];
+
+    it('returns the rows the query resolves to, joining to leagues and competitions', async () => {
+      const { service, db } = await makeService(rows);
+      await expect(service.listAllWithLeagueAndCount({})).resolves.toEqual(
+        rows,
+      );
+      expect(db.db.select).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 0, 1)),
+      ).toEqual(['leagues.id', 'competition_groups.league_id']);
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].leftJoin, 0, 1)),
+      ).toEqual(['competitions.competition_group_id', 'competition_groups.id']);
+    });
+
+    it('groups by competition group id and league name', async () => {
+      const { service, db } = await makeService(rows);
+      await service.listAllWithLeagueAndCount({});
+      expect(db.chains[0].groupBy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('filters by league id when the scope carries a leagueId', async () => {
+      const { service, db } = await makeService(rows);
+      await service.listAllWithLeagueAndCount({ leagueId: 42 });
+      expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(42);
+    });
+
+    it('applies no league filter when the scope has no leagueId', async () => {
+      const { service, db } = await makeService(rows);
+      await service.listAllWithLeagueAndCount({});
+      expect(db.chains[0].where).toHaveBeenCalledTimes(1);
+      expect(firstCallArg(db.chains[0].where)).toBeUndefined();
+    });
+  });
+
   describe('searchByNamePrefix', () => {
     it('returns groups joined to their league name, capped at the limit', async () => {
       const rows = [{ id: 7, name: 'Chaos Cup', leagueName: 'The Major' }];

@@ -17,6 +17,12 @@ export const TROPHIES_LIST_TIMEOUT_MESSAGE =
   'The curator is still cataloguing every cup in the cabinet.';
 export const TROPHIES_LIST_NO_DATA_MESSAGE = 'The trophy cabinet is bare.';
 
+// --- Competition groups list (insights/facts/competition-groups-list.service.ts) ---
+export const COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE =
+  'The fixture secretary is still leafing through every calendar in the cabinet.';
+export const COMPETITION_GROUPS_LIST_NO_DATA_MESSAGE =
+  'Not a single recurring fixture has been pencilled in yet.';
+
 // --- Stats summary (insights/facts/stats-summary.ts) ---
 export const STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE =
   'The statistician fainted before finishing the tally.';

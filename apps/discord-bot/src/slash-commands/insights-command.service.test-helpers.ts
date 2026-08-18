@@ -22,6 +22,7 @@ import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { CoachToplistService } from '../insights/facts/coach-toplist.service';
+import { CompetitionGroupsListService } from '../insights/facts/competition-groups-list.service';
 import { ErasListService } from '../insights/facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from '../insights/facts/expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
@@ -130,12 +131,13 @@ export interface FactTreeMocks {
   raceToplist: MockProxy<RaceToplistService>;
   expensiveMistakes: MockProxy<ExpensiveMistakesToplistService>;
   erasList: MockProxy<ErasListService>;
+  competitionGroupsList: MockProxy<CompetitionGroupsListService>;
   statsSummary: MockProxy<StatsSummaryFactsService>;
   trophiesList: MockProxy<TrophiesListService>;
 }
 
 /**
- * The eight fact services `buildFactTree` wires into leaves, each a
+ * The nine fact services `buildFactTree` wires into leaves, each a
  * `MockProxy` with a default resolved reply — the same title/description
  * content the pre-migration game-data-fake-driven tree produced via real
  * computation, now canned directly since that computation belongs to these
@@ -340,6 +342,11 @@ function makeFactTreeMocks(): FactTreeMocks {
     embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
   });
 
+  const competitionGroupsList = mock<CompetitionGroupsListService>();
+  competitionGroupsList.resolve.mockResolvedValue(
+    sampleEmbedReply('Competition groups', 'sample competition groups'),
+  );
+
   const statsSummary = mock<StatsSummaryFactsService>();
   statsSummary.resolve.mockResolvedValue(
     sampleEmbedReply('Stats summary', 'sample stats'),
@@ -357,6 +364,7 @@ function makeFactTreeMocks(): FactTreeMocks {
     raceToplist,
     expensiveMistakes,
     erasList,
+    competitionGroupsList,
     statsSummary,
     trophiesList,
   };

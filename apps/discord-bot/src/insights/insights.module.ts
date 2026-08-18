@@ -1,5 +1,6 @@
 import {
   CoachesModule,
+  CompetitionGroupsModule,
   CompetitionsModule,
   ErasModule,
   ExternalSystemsModule,
@@ -23,6 +24,7 @@ import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
+import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from './facts/match-category-label.service';
@@ -39,6 +41,7 @@ import { TeamContextService } from './team-context.service';
 
 const GAME_DATA_MODULES = [
   CoachesModule,
+  CompetitionGroupsModule,
   TeamsModule,
   MatchesModule,
   CompetitionsModule,
@@ -74,6 +77,7 @@ const GAME_DATA_MODULES = [
     MatchCategoryLabelService,
     ExpensiveMistakesToplistService,
     ErasListService,
+    CompetitionGroupsListService,
     StatsSummaryFactsService,
     TrophiesListService,
     {
@@ -102,6 +106,7 @@ const GAME_DATA_MODULES = [
     MatchCategoryLabelService,
     ExpensiveMistakesToplistService,
     ErasListService,
+    CompetitionGroupsListService,
     StatsSummaryFactsService,
     TrophiesListService,
     FACT_TREE,
