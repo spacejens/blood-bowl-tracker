@@ -15,6 +15,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -26,6 +27,7 @@ import {
   ERAS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { ListDescriptionService } from '../../shared/list-description.service';
 import { ErasListService } from './eras-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -49,6 +51,13 @@ beforeEach(() => {
   // covered by date-range-formatter.service.spec.ts.
 });
 
+async function realListDescription(): Promise<ListDescriptionService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [ListDescriptionService],
+  }).compile();
+  return moduleRef.get(ListDescriptionService);
+}
+
 async function makeServiceFromEras(
   eras: ErasService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
@@ -60,6 +69,12 @@ async function makeServiceFromEras(
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
+      {
+        provide: ListDescriptionService,
+        // Pure, dependency-free formatter — its own truncation rules are
+        // covered by list-description.service.spec.ts.
+        useValue: await realListDescription(),
+      },
     ],
   }).compile();
   return moduleRef.get(ErasListService);
@@ -426,5 +441,54 @@ describe('ErasListService.resolve', () => {
     const scope: FactScope = { leagueId: 7 };
     await service.resolve(scope);
     expect(eras.listErasWithLeague).toHaveBeenCalledWith(scope);
+  });
+
+  it('truncates the description to the Discord embed cap when the era catalog is large', async () => {
+    // Discord rejects the whole interaction when an embed description passes
+    // MAX_DESCRIPTION_LENGTH, so the description must be capped independently
+    // of EntityComponentsService's row-count-based overflow note.
+    const rows: EraRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      id: index,
+      name: `Season Number ${index} With A Fairly Long Name`,
+      leagueName: 'The Rather Long League Name',
+      startDate: '2020-01-01',
+      endDate: '2020-12-31',
+    }));
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2020-12-31');
+    const service = await makeService(rows);
+
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
+  });
+
+  it('keeps the overflow note in full when the era list must be truncated to fit', async () => {
+    const entityComponents = entityComponentsMock();
+    const overflowNote = '…and 12345 more without a link.';
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote,
+    });
+    const rows: EraRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      id: index,
+      name: `Season Number ${index} With A Fairly Long Name`,
+      leagueName: 'The Rather Long League Name',
+      startDate: '2020-01-01',
+      endDate: '2020-12-31',
+    }));
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2020-12-31');
+    const service = await makeService(rows, entityComponents);
+
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.endsWith(`\n${overflowNote}`)).toBe(true);
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
   });
 });

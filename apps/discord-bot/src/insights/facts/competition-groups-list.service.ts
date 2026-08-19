@@ -10,6 +10,7 @@ import {
   COMPETITION_GROUPS_LIST_NO_DATA_MESSAGE,
   COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ListDescriptionService } from '../../shared/list-description.service';
 
 interface CompetitionGroupEntry {
   id: number;
@@ -24,6 +25,7 @@ export class CompetitionGroupsListService {
     private readonly competitionGroups: CompetitionGroupsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly listDescription: ListDescriptionService,
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -68,12 +70,14 @@ export class CompetitionGroupsListService {
           label: group.name,
         })),
       );
-    if (overflowNote !== null) {
-      lines.push(overflowNote);
-    }
 
     return {
-      embeds: [{ title: 'Competition groups', description: lines.join('\n') }],
+      embeds: [
+        {
+          title: 'Competition groups',
+          description: this.listDescription.build(lines, overflowNote),
+        },
+      ],
       components,
     };
   }

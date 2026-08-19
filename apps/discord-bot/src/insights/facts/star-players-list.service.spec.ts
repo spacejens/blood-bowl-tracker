@@ -22,6 +22,7 @@ import {
   STAR_PLAYERS_LIST_NO_DATA_MESSAGE,
   STAR_PLAYERS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ListDescriptionService } from '../../shared/list-description.service';
 import { StarPlayersListService } from './star-players-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -34,9 +35,21 @@ beforeEach(() => {
   databaseTimeout = mockDatabaseTimeout();
 });
 
+async function realListDescription(): Promise<ListDescriptionService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [ListDescriptionService],
+  }).compile();
+  return moduleRef.get(ListDescriptionService);
+}
+
 async function makeServiceFromStarPlayers(
   starPlayers: StarPlayersService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
+  // Defaults to the real formatter: it is pure and dependency-free (the
+  // exception CLAUDE.md carves out), so the description assertions below stay
+  // honest. Its own truncation rules are covered by
+  // list-description.service.spec.ts.
+  listDescription?: MockProxy<ListDescriptionService>,
 ): Promise<StarPlayersListService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -44,6 +57,10 @@ async function makeServiceFromStarPlayers(
       { provide: StarPlayersService, useValue: starPlayers },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      {
+        provide: ListDescriptionService,
+        useValue: listDescription ?? (await realListDescription()),
+      },
     ],
   }).compile();
   return moduleRef.get(StarPlayersListService);
@@ -52,11 +69,16 @@ async function makeServiceFromStarPlayers(
 async function makeService(
   rows: StarRow[],
   entityComponents?: MockProxy<EntityComponentsService>,
+  listDescription?: MockProxy<ListDescriptionService>,
 ): Promise<StarPlayersListService> {
   const starPlayers = mock<StarPlayersService>();
 
   starPlayers.listAll.mockResolvedValue(rows);
-  return makeServiceFromStarPlayers(starPlayers, entityComponents);
+  return makeServiceFromStarPlayers(
+    starPlayers,
+    entityComponents,
+    listDescription,
+  );
 }
 
 describe('StarPlayersListService.resolve', () => {
@@ -228,11 +250,11 @@ describe('StarPlayersListService.resolve', () => {
   });
 
   it('truncates the description to the Discord embed cap when the star catalog is large', async () => {
-    // starPlayers.list can never be narrowed by a league scope (see
-    // fact-tree.ts's comment on the starPlayers.list leaf), so it is the
-    // list fact most exposed to Discord's per-field description cap as the
-    // star catalog grows. One name here is long enough that 200 of them
-    // comfortably exceed the 4096-char MAX_DESCRIPTION_LENGTH.
+    // starPlayers.list has no row cap of its own and can never be narrowed by
+    // a league scope, so it is the fact most exposed to Discord's 4096-char
+    // description cap. This exercises the real ListDescriptionService (the
+    // makeService default), not a mock, so the cap is genuinely enforced
+    // end-to-end rather than only within list-description.service.spec.ts.
     const rows: StarRow[] = Array.from({ length: 200 }, (_unused, index) => ({
       positionId: index,
       name: `Star Player Number ${index} With A Fairly Long Name`,
@@ -248,29 +270,34 @@ describe('StarPlayersListService.resolve', () => {
     expect(description.endsWith('…')).toBe(true);
   });
 
-  it('preserves the overflow note in full when the name list must be truncated to fit', async () => {
-    // A hard end-of-string truncation would risk cutting the overflow note
-    // itself off — exactly the case where it matters most, since it only
-    // appears once the catalog is already long enough to need one.
+  it('delegates description assembly to ListDescriptionService', async () => {
     const entityComponents = entityComponentsMock();
-    const overflowNote = '…and 12345 more without a link.';
+    const overflowNote = '…and 3 more without a link.';
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote,
     });
-    const rows: StarRow[] = Array.from({ length: 200 }, (_unused, index) => ({
-      positionId: index,
-      name: `Star Player Number ${index} With A Fairly Long Name`,
-    }));
-    const service = await makeService(rows, entityComponents);
+    const listDescription = mock<ListDescriptionService>();
+    listDescription.build.mockReturnValue('assembled description');
+    const service = await makeService(
+      [
+        { positionId: 2, name: 'Second Star' },
+        { positionId: 1, name: 'First Star' },
+      ],
+      entityComponents,
+      listDescription,
+    );
 
     const result = (await service.resolve()) as {
       embeds: { description: string }[];
     };
 
-    const description = result.embeds[0].description;
-    expect(description.endsWith(overflowNote)).toBe(true);
-    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    // Display order, not query order — the same names that back the buttons.
+    expect(listDescription.build).toHaveBeenCalledWith(
+      ['First Star', 'Second Star'],
+      overflowNote,
+    );
+    expect(result.embeds[0].description).toBe('assembled description');
   });
 
   it('queries the full global catalog with no scope argument', async () => {
