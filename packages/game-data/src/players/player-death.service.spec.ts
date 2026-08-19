@@ -688,6 +688,39 @@ describe('PlayerDeathService', () => {
       ]);
     });
 
+    it('names a star player victim with their position id and star flag', async () => {
+      // Row sets, in query order: the kill event, the perpetrator's summary,
+      // the match sides, the victim's summary. Mirror the killer-path star test
+      // to catch any copy-paste mistakes between the two call sites.
+      const { service } = await build(
+        [killEvent({ consequencePlayerId: 88 })],
+        [perpetrator],
+        [victimSide, orcSide],
+        [
+          {
+            playerName: 'Morg N Thorg',
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+            teamId: victimSide.teamId,
+          },
+        ],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'player',
+          playerId: 88,
+          playerName: 'Morg N Thorg',
+          positionId: 61,
+          positionName: 'Morg N Thorg',
+          isStarPlayer: true,
+          ...victimTeam,
+          viaFoul: false,
+        },
+      ]);
+    });
+
     it('falls back to the victim team when the victim player row is missing', async () => {
       const { service } = await build(
         [killEvent({ consequencePlayerId: 88 })],
