@@ -269,7 +269,7 @@ describe('TeamDeepdiveService buttons', () => {
     const playerRowButton = makePlayerRowButton();
     playerRowButton.buildPlayerRowButton.mockReturnValue({
       customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-      entityId: '40',
+      entityId: '61',
       label: 'Morg N Thorg',
     });
     const { service, entityComponents } = await makeService({
@@ -302,7 +302,7 @@ describe('TeamDeepdiveService buttons', () => {
       entityComponents.buildEntityComponents.mock.calls[0][0],
     ).toContainEqual({
       customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-      entityId: '40',
+      entityId: '61',
       label: 'Morg N Thorg',
     });
   });
