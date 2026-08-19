@@ -37,6 +37,7 @@ import {
   gougedEye,
   griff,
   makePlayerDeath,
+  makePlayerRowButton,
   makePlayers,
   makeService,
   makeTrophyAwards,
@@ -490,6 +491,65 @@ describe('PlayerDeepdiveService', () => {
     expect(result.components[0].components[0]).toMatchObject({
       custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}77`,
       label: 'Varag Ghoul-Chewer',
+    });
+  });
+
+  it('asks PlayerRowButtonService for a named killer entry', async () => {
+    const { service, playerRowButton } = await makeService({
+      players: makePlayers({ player: griff }),
+      playerDeath: makePlayerDeath({
+        kind: 'player',
+        playerId: 88,
+        playerName: 'Morg N Thorg',
+        positionId: 61,
+        positionName: 'Morg N Thorg',
+        isStarPlayer: true,
+        ...gougedEye,
+        viaFoul: false,
+      }),
+    });
+
+    await service.resolve(1);
+
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 88,
+      playerName: 'Morg N Thorg',
+      positionId: 61,
+      positionName: 'Morg N Thorg',
+      isStarPlayer: true,
+    });
+  });
+
+  it('offers the star player deepdive for a star killer', async () => {
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '61',
+      label: 'Morg N Thorg',
+    });
+    const { service, entityComponents } = await makeService({
+      players: makePlayers({ player: griff }),
+      playerDeath: makePlayerDeath({
+        kind: 'player',
+        playerId: 88,
+        playerName: 'Morg N Thorg',
+        positionId: 61,
+        positionName: 'Morg N Thorg',
+        isStarPlayer: true,
+        ...gougedEye,
+        viaFoul: false,
+      }),
+      playerRowButton,
+    });
+
+    await service.resolve(1);
+
+    expect(
+      entityComponents.buildEntityComponents.mock.calls[0][0],
+    ).toContainEqual({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '61',
+      label: 'Morg N Thorg',
     });
   });
 

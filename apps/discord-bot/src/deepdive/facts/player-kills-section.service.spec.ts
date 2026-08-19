@@ -1,11 +1,15 @@
 import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 
 const gougedEye = {
@@ -46,10 +50,20 @@ const namedVictim: PlayerKillEntry = {
 
 describe('PlayerKillsSectionService', () => {
   let service: PlayerKillsSectionService;
+  let playerRowButton: MockProxy<PlayerRowButtonService>;
 
   beforeEach(async () => {
+    playerRowButton = mock<PlayerRowButtonService>();
+    playerRowButton.buildPlayerRowButton.mockImplementation((row) => ({
+      customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: String(row.playerId),
+      label: row.playerName,
+    }));
     const moduleRef = await Test.createTestingModule({
-      providers: [PlayerKillsSectionService],
+      providers: [
+        PlayerKillsSectionService,
+        { provide: PlayerRowButtonService, useValue: playerRowButton },
+      ],
     }).compile();
     service = moduleRef.get(PlayerKillsSectionService);
   });
@@ -168,6 +182,50 @@ describe('PlayerKillsSectionService', () => {
         label: 'Griff Oberwald',
       },
     ]);
+  });
+
+  it('asks PlayerRowButtonService for a named victim entry', () => {
+    build([namedVictim]);
+
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 88,
+      playerName: 'Griff Oberwald',
+      positionId: 60,
+      positionName: 'Blitzer',
+      isStarPlayer: false,
+    });
+  });
+
+  it('offers the star player deepdive for a star victim', () => {
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '61',
+      label: 'Morg N Thorg',
+    });
+    const starVictim: PlayerKillEntry = {
+      kind: 'player',
+      playerId: 99,
+      playerName: 'Morg N Thorg',
+      positionId: 61,
+      positionName: 'Morg N Thorg',
+      isStarPlayer: true,
+      ...gougedEye,
+      viaFoul: false,
+    };
+
+    expect(build([starVictim]).entries).toEqual([
+      {
+        customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '61',
+        label: 'Morg N Thorg',
+      },
+    ]);
+  });
+
+  it('never asks for a player button when the victim is only a team', () => {
+    build([{ kind: 'team', ...gougedEye, viaFoul: false }]);
+
+    expect(playerRowButton.buildPlayerRowButton).not.toHaveBeenCalled();
   });
 
   it('offers a team button when only the victim side is known', () => {

@@ -40,6 +40,7 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 
 type Player = {
@@ -131,6 +132,7 @@ export class PlayerDeepdiveService {
     private readonly playerDeath: PlayerDeathService,
     private readonly playerKills: PlayerKillsSectionService,
     private readonly stars: StarPlayersService,
+    private readonly playerRowButton: PlayerRowButtonService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -533,11 +535,13 @@ export class PlayerDeepdiveService {
     switch (killer.kind) {
       case 'player':
         return [
-          {
-            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(killer.playerId),
-            label: killer.playerName,
-          },
+          this.playerRowButton.buildPlayerRowButton({
+            playerId: killer.playerId,
+            playerName: killer.playerName,
+            positionId: killer.positionId,
+            positionName: killer.positionName,
+            isStarPlayer: killer.isStarPlayer,
+          }),
         ];
       case 'team':
         return [
