@@ -21,6 +21,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  isNull,
   or,
   sql,
 } from 'drizzle-orm';
@@ -79,12 +80,14 @@ export interface PlayerDeepdiveEventGroup {
  * attempt alongside a confirmed one, and, for `casualties.killed` only, a
  * `'death'`-actioned row with no consequence recorded at all.
  *
- * `casualties.killed` counts every `actionType = 'death'` row unconditionally
- * (via `countActingEvents`): `actionType = 'death'` alone already certifies
- * the severity of what the player did, so this includes a confirmed death, a
- * death prevented by an apothecary or regeneration, and a death attempt with
- * no consequence linked at all. `fouls.killed` and `fouls.seriousInjuries`
- * count via `countFoulOutcome`, which matches a confirmed outcome
+ * `casualties.killed` counts via `countDeathOutcome`, which matches a
+ * confirmed death (`consequenceType = 'death'`), a prevented one
+ * (`consequenceType = 'casualty_avoided'` with `consequenceAvoidedSeverity =
+ * 'death'`), or a `'death'`-actioned row with no consequence recorded at all
+ * — `actionType = 'death'` alone already certifies the severity of what the
+ * player did, so the unpaired case belongs here too. `fouls.killed` and
+ * `fouls.seriousInjuries` count via `countFoulOutcome`, which matches a
+ * confirmed outcome
  * (`consequenceType` in the target severity set) OR a prevented one
  * (`consequenceType = 'casualty_avoided'` with `consequenceAvoidedSeverity`
  * in that set) — `actionType = 'foul'` carries no severity of its own, unlike
@@ -236,7 +239,7 @@ export class PlayersService {
       ),
       this.countActingEvents(playerId, CASUALTY_CAUSED_TYPES),
       this.countActingEvents(playerId, SERIOUS_INJURY_CAUSED_TYPES),
-      this.countActingEvents(playerId, DEATH_CAUSED_TYPES),
+      this.countDeathOutcome(playerId),
       this.countActingEvents(playerId, FOUL_TYPES),
       this.countFoulOutcome(playerId, SERIOUS_INJURY_SUFFERED_TYPES),
       this.countFoulOutcome(playerId, ['death']),
@@ -337,6 +340,34 @@ export class PlayersService {
               eq(matchEvents.consequenceType, 'casualty_avoided'),
               inArray(matchEvents.consequenceAvoidedSeverity, severities),
             ),
+          ),
+        ),
+      );
+    return row.count;
+  }
+
+  /**
+   * Death-severity events this player caused, whether confirmed, prevented, or
+   * unrecorded — structurally identical to `PlayerDeathService`'s `killFilter`
+   * for its own `actionType = 'death'` branch, so this count and the Kills
+   * list's death-side rows are guaranteed to agree by construction, not by
+   * importer convention.
+   */
+  private async countDeathOutcome(playerId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(matchEvents.id) })
+      .from(matchEvents)
+      .where(
+        and(
+          eq(matchEvents.actingPlayerId, playerId),
+          eq(matchEvents.actionType, 'death'),
+          or(
+            eq(matchEvents.consequenceType, 'death'),
+            and(
+              eq(matchEvents.consequenceType, 'casualty_avoided'),
+              eq(matchEvents.consequenceAvoidedSeverity, 'death'),
+            ),
+            isNull(matchEvents.consequenceType),
           ),
         ),
       );

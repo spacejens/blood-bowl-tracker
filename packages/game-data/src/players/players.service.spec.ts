@@ -11,7 +11,6 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import {
   CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
-  DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
@@ -356,12 +355,12 @@ describe('PlayersService', () => {
       });
     });
 
-    it('counts casualty totals/serious-injuries and casualties.killed and fouls.total as direct acting-type filters, unjoined', async () => {
-      // These four go through `countActingEvents`: a direct `match_events`
+    it('counts casualty total/serious-injuries and fouls.total as direct acting-type filters, unjoined', async () => {
+      // These three go through `countActingEvents`: a direct `match_events`
       // filter with playerId first, then the type list — no join, unlike the
-      // simple-category queries above. `casualties.killed` now goes through
-      // this same unconditional `actionType = 'death'` filter rather than a
-      // combined acting+consequence one.
+      // simple-category queries above. `casualties.killed` (chains[7]) no
+      // longer goes through this path — see the `countDeathOutcome` test
+      // below.
       const { chains } = await build(
         ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
       );
@@ -376,18 +375,33 @@ describe('PlayersService', () => {
         1,
         ...SERIOUS_INJURY_CAUSED_TYPES,
       ]);
-      expect(extractAllFilterValues(firstCallArg(chains[7].where))).toEqual([
-        1,
-        ...DEATH_CAUSED_TYPES,
-      ]);
       expect(extractAllFilterValues(firstCallArg(chains[8].where))).toEqual([
         1,
         ...FOUL_TYPES,
       ]);
       expect(chains[5].innerJoin).not.toHaveBeenCalled();
       expect(chains[6].innerJoin).not.toHaveBeenCalled();
-      expect(chains[7].innerJoin).not.toHaveBeenCalled();
       expect(chains[8].innerJoin).not.toHaveBeenCalled();
+    });
+
+    it('counts casualties.killed via countDeathOutcome: a confirmed death, a prevented death, or an unpaired death action, unjoined', async () => {
+      // Mirrors killFilter's own death branch exactly, so this count and the
+      // Kills list's death-side rows agree by construction (see
+      // PlayerDeepdiveCategoryCounts's doc comment).
+      const { chains } = await build(
+        ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
+      );
+
+      await service.getDeepdiveCategoryCounts(1);
+
+      expect(extractAllFilterValues(firstCallArg(chains[7].where))).toEqual([
+        1,
+        'death',
+        'death',
+        'casualty_avoided',
+        'death',
+      ]);
+      expect(chains[7].innerJoin).not.toHaveBeenCalled();
     });
 
     it('counts fouls.seriousInjuries and fouls.killed via countFoulOutcome, matching a confirmed or prevented outcome, unjoined', async () => {
