@@ -19,7 +19,7 @@ export const TROPHIES_LIST_NO_DATA_MESSAGE = 'The trophy cabinet is bare.';
 
 // --- Star players list (insights/facts/star-players-list.service.ts) ---
 export const STAR_PLAYERS_LIST_TIMEOUT_MESSAGE =
-  'The agent is still working the phones for star player contacts.';
+  'The seer is still scrying for star player rumors.';
 export const STAR_PLAYERS_LIST_NO_DATA_MESSAGE =
   'No star players have made a name for themselves yet.';
 
