@@ -10,6 +10,7 @@ import {
   TROPHIES_LIST_NO_DATA_MESSAGE,
   TROPHIES_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ListDescriptionService } from '../shared/list-description.service';
 
 interface TrophyEntry {
   id: number;
@@ -24,6 +25,7 @@ export class TrophiesListService {
     private readonly trophies: TrophiesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly listDescription: ListDescriptionService,
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -64,12 +66,14 @@ export class TrophiesListService {
           label: trophy.name,
         })),
       );
-    if (overflowNote !== null) {
-      lines.push(overflowNote);
-    }
 
     return {
-      embeds: [{ title: 'Trophies', description: lines.join('\n') }],
+      embeds: [
+        {
+          title: 'Trophies',
+          description: this.listDescription.build(lines, overflowNote),
+        },
+      ],
       components,
     };
   }
