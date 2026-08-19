@@ -12,6 +12,7 @@ import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
+import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
@@ -136,6 +137,11 @@ function deps(): FactTreeDeps {
   const statsSummary = mock<StatsSummaryFactsService>();
   statsSummary.resolve.mockResolvedValue('stats summary');
 
+  const starPlayerToplist = mock<StarPlayerToplistService>();
+  starPlayerToplist.resolveTotalHires.mockResolvedValue(
+    'star players by times hired',
+  );
+
   const starPlayersList = mock<StarPlayersListService>();
   starPlayersList.resolve.mockResolvedValue('star players list');
 
@@ -151,14 +157,15 @@ function deps(): FactTreeDeps {
     erasList,
     competitionGroupsList,
     statsSummary,
+    starPlayerToplist,
     starPlayersList,
     trophiesList,
   };
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly fifty-seven leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(57);
+  it('exposes exactly fifty-eight leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(58);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -678,6 +685,27 @@ describe('buildFactTree', () => {
     expect(leaf.supportsCompetition).toBe(false);
     expect(leaf.supportsMatchCategory).toBe(false);
   });
+
+  it('wires starPlayers.toplist.hires.total to StarPlayerToplistService.resolveTotalHires', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'starPlayers.toplist.hires.total',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.starPlayerToplist.resolveTotalHires).toHaveBeenCalled();
+  });
+
+  it('starPlayers.toplist.hires.total supports no scoping at all', () => {
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(deps()),
+      'starPlayers.toplist.hires.total',
+    ) as FactLeaf;
+    expect(leaf.supportsLeague).toBe(false);
+    expect(leaf.supportsEra).toBe(false);
+    expect(leaf.supportsCompetition).toBe(false);
+    expect(leaf.supportsMatchCategory).toBe(false);
+  });
 });
 
 describe('buildFactTree leaf capabilities', () => {
@@ -694,9 +722,10 @@ describe('buildFactTree leaf capabilities', () => {
         factTreeUtils.resolvePath(tree, 'team.toplist.eras.active'),
         factTreeUtils.resolvePath(tree, 'coach.toplist.eras.active'),
         factTreeUtils.resolvePath(tree, 'starPlayers.list'),
+        factTreeUtils.resolvePath(tree, 'starPlayers.toplist.hires.total'),
       ]),
     );
-    expect(unsupported).toHaveLength(6);
+    expect(unsupported).toHaveLength(7);
   });
 });
 
@@ -707,8 +736,9 @@ describe('buildFactTree league capabilities', () => {
     // eras.list, trophies.list and competitionGroups.list are league-scopable
     // listings that are not themselves era-scopable, so they are the leaves
     // that break the otherwise-universal "league iff era" correspondence.
-    // starPlayers.list is deliberately NOT in this group: it supports neither,
-    // so it satisfies the correspondence trivially.
+    // starPlayers.list and starPlayers.toplist.hires.total are deliberately
+    // NOT in this group: they support neither, so they satisfy the
+    // correspondence trivially.
     const listLeaves = [
       factTreeUtils.resolvePath(tree, 'eras.list'),
       factTreeUtils.resolvePath(tree, 'trophies.list'),
@@ -850,7 +880,7 @@ describe('buildFactTree competition capabilities', () => {
 });
 
 describe('buildFactTree match category capabilities', () => {
-  it('excludes exactly the ten leaves that are not scoped to matches', () => {
+  it('excludes exactly the eleven leaves that are not scoped to matches', () => {
     const tree = buildFactTree(deps());
     const unsupported = factTreeUtils
       .collectLeaves(tree)
@@ -867,9 +897,10 @@ describe('buildFactTree match category capabilities', () => {
         factTreeUtils.resolvePath(tree, 'competitionGroups.list'),
         factTreeUtils.resolvePath(tree, 'starPlayers.list'),
         factTreeUtils.resolvePath(tree, 'stats'),
+        factTreeUtils.resolvePath(tree, 'starPlayers.toplist.hires.total'),
       ]),
     );
-    expect(unsupported).toHaveLength(10);
+    expect(unsupported).toHaveLength(11);
   });
 
   it('supports the match category on every other leaf', () => {

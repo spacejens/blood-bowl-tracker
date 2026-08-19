@@ -37,15 +37,17 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but nine facts support
+replies with a per-scope refusal message. All but eleven facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`,
-`team.toplist.trophies.won`, `eras.list`, `trophies.list` and
-`competitionGroups.list` — which list or count teams, eras, trophies, trophy
-awards or competition groups rather than matches — and `stats`, which is
-excluded deliberately: only two of the dozen counts it reports (matches and
-match events) have a category at all, so a category-scoped `stats` would show
-two scoped numbers beside ten all-time ones.
+`team.toplist.trophies.won`, `eras.list`, `trophies.list`,
+`competitionGroups.list`, `starPlayers.list` and
+`starPlayers.toplist.hires.total` — which list or count teams, eras, trophies,
+trophy awards, competition groups or star player hires rather than matches —
+and `stats`, which is excluded deliberately: only two of the dozen counts it
+reports (matches and match events) have a category at all, so a
+category-scoped `stats` would show two scoped numbers beside ten all-time
+ones.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
@@ -257,6 +259,25 @@ button, in the same order as the list, that opens that player's
   played by teams of that race. A drawn match between two teams of the same
   race adds 2 to that race's total, matching how `race.toplist.matches.played`
   counts.
+- `starPlayers.list` — a single embed listing every star player that has been
+  hired at least once (title "Star Players"), name-ascending. A star position
+  that has never been hired has nothing to show and is excluded. Each listed
+  star also gets a button that opens that star's [`/deepdive`](deepdive.md)
+  detail view. Supports none of the `league`, `era`, `competition` or
+  `match-category` filter options, for the same "star player exception"
+  reason as `starPlayers.toplist.hires.total` below, so it is excluded from
+  every filtered run.
+- `starPlayers.toplist.hires.total` — star players ranked by the total number
+  of times they have been hired, across every team and every era (title "Star
+  players by times hired"). Each hire is a separate signing, so a team that
+  brings the same star back season after season adds one to that star's total
+  each time. Each listed star also gets a button that opens that star's
+  [`/deepdive`](deepdive.md) detail view, where the per-team breakdown of
+  those hires lives. Supports none of the `league`, `era`, `competition` or
+  `match-category` filter options: the "star player exception" makes every
+  star available in essentially every era, so a scoped hire count would not
+  meaningfully narrow anything. It is therefore excluded from every filtered
+  run.
 - `eras.list` — a single embed listing every recorded era in chronological
   order by start date, regardless of league (ties broken by league, then era
   name). Each line reads `<era> (<league>): <start> – <end>`
@@ -285,7 +306,7 @@ button, in the same order as the list, that opens that player's
   league and then by group name. Each line reads
   `<group> (<league>): <N> competition(s)`, where the count is how many
   competitions belong to that group (a group with none yet shows `0
-  competitions`). Each listed group also gets a button that opens that
+competitions`). Each listed group also gets a button that opens that
   group's [`/deepdive`](deepdive.md) detail view, where its trophies and
   every instance of the competition live. Up to 25 groups get one button
   each; past that the links switch to dropdown menus (see
