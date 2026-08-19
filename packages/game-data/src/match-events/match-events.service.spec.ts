@@ -353,4 +353,73 @@ describe('MatchEventsService', () => {
     const call = updateCalls.find((c) => c.table === matchEvents);
     expect(call?.set).toMatchObject({ sppValue: null });
   });
+
+  describe('death/foul action-type invariant', () => {
+    it('throws when a death consequence is paired with an unrelated action type', async () => {
+      await expect(
+        service.upsert({
+          matchId: 10,
+          consequenceTeamEraId: 500,
+          consequencePlayerId: 9,
+          actionType: 'casualty',
+          consequenceType: 'death',
+          externalIds: [{ externalSystemId: 1, externalId: 'bbl-death-1' }],
+        }),
+      ).rejects.toThrow(MatchEventUpsertConflictError);
+      expect(insertCalls).toHaveLength(0);
+    });
+
+    it("accepts a death consequence paired with actionType 'death'", async () => {
+      await expect(
+        service.upsert({
+          matchId: 10,
+          consequenceTeamEraId: 500,
+          consequencePlayerId: 9,
+          actionType: 'death',
+          consequenceType: 'death',
+          externalIds: [{ externalSystemId: 1, externalId: 'bbl-death-2' }],
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it("accepts a death consequence paired with actionType 'foul'", async () => {
+      await expect(
+        service.upsert({
+          matchId: 10,
+          consequenceTeamEraId: 500,
+          consequencePlayerId: 9,
+          actionType: 'foul',
+          consequenceType: 'death',
+          externalIds: [{ externalSystemId: 1, externalId: 'bbl-death-3' }],
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('does not validate a non-death consequenceType regardless of actionType', async () => {
+      await expect(
+        service.upsert({
+          matchId: 10,
+          consequenceTeamEraId: 500,
+          consequencePlayerId: 9,
+          actionType: 'casualty',
+          consequenceType: 'casualty',
+          externalIds: [{ externalSystemId: 1, externalId: 'bbl-cas-1' }],
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('does not validate when actionType is left unsupplied on an update', async () => {
+      externalIdRows = [{ ownerId: 1 }];
+
+      await expect(
+        service.upsert({
+          matchId: 10,
+          consequenceTeamEraId: 500,
+          consequencePlayerId: 9,
+          consequenceType: 'death',
+          externalIds: [{ externalSystemId: 1, externalId: 'bbl-death-4' }],
+        }),
+      ).resolves.toBeDefined();
+    });
+  });
 });

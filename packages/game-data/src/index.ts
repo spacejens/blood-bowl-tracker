@@ -37,11 +37,16 @@ export {
   MatchUpsertConflictError,
 } from './matches/matches.service';
 export type {
+  PlayerKillEntry,
   PlayerKillerInfo,
   PlayerKillerTeam,
 } from './players/player-death.service';
 export { PlayerDeathService } from './players/player-death.service';
 export { PlayersModule } from './players/players.module';
+export type {
+  PlayerDeepdiveCategoryCounts,
+  PlayerDeepdiveEventGroup,
+} from './players/players.service';
 export {
   PlayersService,
   PlayerUpsertConflictError,

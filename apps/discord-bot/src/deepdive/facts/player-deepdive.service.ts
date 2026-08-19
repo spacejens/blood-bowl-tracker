@@ -1,7 +1,9 @@
 import type {
+  PlayerDeepdiveCategoryCounts,
+  PlayerDeepdiveEventGroup,
   PlayerHonor,
+  PlayerKillEntry,
   PlayerKillerInfo,
-  PlayerKillerTeam,
 } from '@blood-bowl-tracker/game-data';
 import {
   PlayerDeathService,
@@ -18,6 +20,7 @@ import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
+  DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
@@ -29,6 +32,11 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  OVERFLOW_NOTE_BUDGET,
+} from './description-limits';
+import { PlayerKillsSectionService } from './player-kills-section.service';
 
 type Player = {
   id: number;
@@ -43,8 +51,6 @@ type Player = {
   sppTotal: number | null;
   sppAdjustment: number | null;
 };
-type CategoryCount = { label: string; count: number };
-
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
  * than a shared import of `MAX_TEAM_HONORS`: the two facts start at the same
@@ -55,25 +61,12 @@ type CategoryCount = { label: string; count: number };
 const MAX_PLAYER_HONORS = 30;
 
 /**
- * Discord's hard cap on one embed's `description` field. `MAX_PLAYER_HONORS`
- * bounds the honors *count*, but competition and trophy names are
- * user-imported data with no length ceiling tight enough to guarantee 30 rows
- * always fit — a handful of long names can still overflow this limit even
- * within the 30-row cap. `buildHonorLines` enforces this length limit on top
- * of the row cap, trimming further when needed.
+ * Most kills listed in one player embed. Its own constant rather than a shared
+ * `MAX_PLAYER_HONORS`: the two start at the same value but are free to drift
+ * apart. The list query fetches exactly this many rows; the true total comes
+ * from `countKillsInflicted`, so the overflow note reports an exact remainder.
  */
-const MAX_DESCRIPTION_LENGTH = 4096;
-
-/**
- * Reserved out of `MAX_DESCRIPTION_LENGTH` for two trailing notes that are
- * not known until after `buildHonorLines` runs: its own "…and N more not
- * shown." remainder, and `EntityComponentsService`'s unrelated "…and N more
- * without a link." button-overflow note (appended separately in `resolve`
- * once the drill-down button list — honors plus the three header entries —
- * is known). Both notes are short and bounded by a small digit count, so one
- * shared margin comfortably covers either appearing, or both.
- */
-const OVERFLOW_NOTE_BUDGET = 80;
+const MAX_PLAYER_KILLS = 30;
 
 /**
  * Composes the player header (team, era, race, position) and per-category event
@@ -108,6 +101,18 @@ const OVERFLOW_NOTE_BUDGET = 80;
  * is a final, independent safety net on the fully-assembled string, so the
  * limit holds even if that budgeting ever falls out of sync with the rest of
  * the description's actual size.
+ * After the SPP totals sits a `Kills:` section listing the matches this
+ * player killed an opponent in, newest match first, capped at
+ * `MAX_PLAYER_KILLS` with an exact "…and N more not shown." note — built by
+ * the injected `PlayerKillsSectionService` (extracted purely for this file's
+ * size). It is omitted entirely when the player has killed nobody.
+ * Because the kills section sits below the honors budget's other content, it
+ * is built first and its own lines are folded into `buildHonorLines`'s
+ * `otherLines`, so a long kill list is what gets trimmed against, not the
+ * other way around — this holds regardless of the kills section's own print
+ * position in the final description. Each listed victim adds a drill-down
+ * button, placed after the killer entries (if any) and before the
+ * team/era/race header buttons.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -117,6 +122,7 @@ export class PlayerDeepdiveService {
     private readonly entityComponents: EntityComponentsService,
     private readonly trophyAwards: TrophyAwardsService,
     private readonly playerDeath: PlayerDeathService,
+    private readonly playerKills: PlayerKillsSectionService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -157,10 +163,11 @@ export class PlayerDeepdiveService {
       honors = rows;
     }
 
-    const counts: CategoryCount[] | null = await this.databaseTimeout.run(
-      this.players.getDeepdiveCategoryCounts(playerId),
-      null,
-    );
+    const counts: PlayerDeepdiveCategoryCounts | null =
+      await this.databaseTimeout.run(
+        this.players.getDeepdiveCategoryCounts(playerId),
+        null,
+      );
     if (counts === null) {
       return DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE;
     }
@@ -177,6 +184,33 @@ export class PlayerDeepdiveService {
       return DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE;
     }
 
+    // Both kills queries share one timeout message, the same way the two
+    // honors queries do. The sentinel is `undefined` rather than `null`
+    // because an empty list is a real answer here, same reasoning as `killer`.
+    const killsTotal: number | undefined = await this.databaseTimeout.run(
+      this.playerDeath.countKillsInflicted(playerId),
+      undefined,
+    );
+    if (killsTotal === undefined) {
+      return DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE;
+    }
+
+    // A player confirmed to have killed nobody has nothing left to list, so
+    // skip the list query rather than let an unnecessary timeout there turn a
+    // known "no kills" answer into a spurious timeout message.
+    let kills: PlayerKillEntry[] = [];
+    if (killsTotal > 0) {
+      const rows: PlayerKillEntry[] | undefined =
+        await this.databaseTimeout.run(
+          this.playerDeath.getKillsInflicted(playerId, MAX_PLAYER_KILLS),
+          undefined,
+        );
+      if (rows === undefined) {
+        return DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE;
+      }
+      kills = rows;
+    }
+
     const header = [
       `Team: ${player.teamName}`,
       `Era: ${player.eraName}`,
@@ -185,11 +219,7 @@ export class PlayerDeepdiveService {
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),
     ];
 
-    const nonZero = counts.filter((category) => category.count > 0);
-    const categoryLines =
-      nonZero.length === 0
-        ? [DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE]
-        : nonZero.map((category) => `${category.label}: ${category.count}`);
+    const categoryLines = this.buildCategoryLines(counts);
 
     // No placeholder when the player has no trophies — the section is simply
     // absent, rather than reported empty. This also covers the case where the
@@ -203,12 +233,18 @@ export class PlayerDeepdiveService {
     // ceiling tight enough to guarantee `MAX_PLAYER_HONORS` rows always fit
     // Discord's embed description limit, so the honors actually shown are
     // further trimmed to fit within that limit — see `buildHonorLines`.
-    const otherLines = [
-      ...header,
-      '',
-      ...categoryLines,
-      ...this.buildTotalLines(player),
-    ];
+    // The kills section is budgeted first and its lines then counted as part
+    // of the honors budget: honors sit above the counters, kills below them,
+    // and only one of the two can be trimmed against a stale view of the
+    // other. Trimming honors — the older, less specific content — is the
+    // better trade.
+    const countLines = [...categoryLines, ...this.buildTotalLines(player)];
+    const killsSection = this.playerKills.build({
+      kills,
+      killsTotal,
+      otherLines: [...header, '', ...countLines],
+    });
+    const otherLines = [...header, '', ...countLines, ...killsSection.lines];
     const { shown: shownHonors, lines: honorLines } = this.buildHonorLines(
       honors,
       honorsTotal,
@@ -230,6 +266,7 @@ export class PlayerDeepdiveService {
           label: honor.trophyName,
         })),
         ...this.buildKillerEntries(killer),
+        ...killsSection.entries,
         {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(player.teamId),
@@ -253,6 +290,7 @@ export class PlayerDeepdiveService {
       '',
       ...categoryLines,
       ...this.buildTotalLines(player),
+      ...killsSection.lines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
 
@@ -265,6 +303,47 @@ export class PlayerDeepdiveService {
       ],
       components,
     };
+  }
+
+  /**
+   * The counter block: the five simple categories in their fixed order (zero
+   * ones omitted), then the casualty and foul lines, each carrying its own
+   * severity breakdown. A player with nothing at all in any counter gets a
+   * short placeholder rather than an empty block.
+   */
+  private buildCategoryLines(counts: PlayerDeepdiveCategoryCounts): string[] {
+    const lines = [
+      ...counts.simple
+        .filter((category) => category.count > 0)
+        .map((category) => `${category.label}: ${category.count}`),
+      ...this.buildGroupLine('Casualties inflicted', counts.casualties),
+      ...this.buildGroupLine('Fouls committed', counts.fouls),
+    ];
+    return lines.length === 0 ? [DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE] : lines;
+  }
+
+  /**
+   * One counter line with a severity breakdown, e.g.
+   * `Fouls committed: 7 (3 serious injuries, 2 killed)`. A zero sub-count is
+   * dropped from the parenthetical along with its comma, the parenthetical
+   * disappears when both are zero, and a zero total drops the line entirely —
+   * matching this embed's "no placeholder for zero" convention throughout.
+   */
+  private buildGroupLine(
+    label: string,
+    group: PlayerDeepdiveEventGroup,
+  ): string[] {
+    if (group.total === 0) {
+      return [];
+    }
+    const parts = [
+      ...(group.seriousInjuries === 0
+        ? []
+        : [`${group.seriousInjuries} serious injuries`]),
+      ...(group.killed === 0 ? [] : [`${group.killed} killed`]),
+    ];
+    const breakdown = parts.length === 0 ? '' : ` (${parts.join(', ')})`;
+    return [`${label}: ${group.total}${breakdown}`];
   }
 
   /**
@@ -311,6 +390,11 @@ export class PlayerDeepdiveService {
       otherLines.join('\n').length -
       heading.join('\n').length -
       1 - // the newline joining "Trophies:" to the first honor row
+      // Also reserved separately inside `PlayerKillsSectionService.build`
+      // for its own overflow note. When both sections render on the same
+      // embed this budget is reserved twice — deliberately: it's a safe,
+      // conservative overlap, not a bug to collapse into one shared
+      // reservation.
       OVERFLOW_NOTE_BUDGET;
 
     const shown: PlayerHonor[] = [];
@@ -376,38 +460,29 @@ export class PlayerDeepdiveService {
 
   /**
    * The `Status:` line for a player who died, at whatever precision the data
-   * supports. Only rendered when the player actually died — there is no
-   * always-present placeholder line for living players.
+   * supports, with a trailing note when the fatal blow was a foul. Only
+   * rendered when the player actually died — there is no always-present
+   * placeholder line for living players.
    */
   private buildStatusLine(killer: PlayerKillerInfo): string {
+    const note = killer.viaFoul ? ' (via a foul)' : '';
+    return `Status: ${this.formatKiller(killer)}${note}`;
+  }
+
+  /** The killer clause of the `Status:` line, without the foul note. */
+  private formatKiller(killer: PlayerKillerInfo): string {
     switch (killer.kind) {
       case 'player':
-        return `Status: Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
+        return `Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
       case 'team':
-        return `Status: Killed by ${this.formatKillerTeam(killer)}`;
+        return `Killed by ${this.playerKills.formatTeam(killer)}`;
       case 'ambiguousTeams':
-        return `Status: Killed by ${this.joinWithOr(
-          killer.teams.map((team) => this.formatKillerTeam(team)),
+        return `Killed by ${this.playerKills.joinWithOr(
+          killer.teams.map((team) => this.playerKills.formatTeam(team)),
         )}`;
       case 'unknown':
-        return 'Status: Killed in mysterious circumstances';
+        return 'Killed in mysterious circumstances';
     }
-  }
-
-  /** A killer team with the same `(race, coach)` context toplist rows use. */
-  private formatKillerTeam(team: PlayerKillerTeam): string {
-    return `${team.teamName} (${team.raceName}, ${team.coachName})`;
-  }
-
-  /**
-   * A natural "or"-joined list: `X or Y` for two, and an Oxford comma before
-   * the final `or` for three or more.
-   */
-  private joinWithOr(parts: string[]): string {
-    if (parts.length <= 2) {
-      return parts.join(' or ');
-    }
-    return `${parts.slice(0, -1).join(', ')}, or ${parts[parts.length - 1]}`;
   }
 
   /**

@@ -46,7 +46,7 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
 - **`coach:<coach>`** — the bot replies with an embed for that coach: the coach
   name as the title, then their career span (the first and last dates across
   every match they have played), a blank line, and `Top teams by matches
-  played:` followed by their top five teams by matches played, one line per
+played:` followed by their top five teams by matches played, one line per
   team formatted `<rank>. <team> — <matches>`. Ties at the fifth-place cutoff
   are all shown, up to ten teams — the same convention `/insights` toplists
   use, though at most ten teams are fetched for a deepdive, so the toplists'
@@ -100,9 +100,13 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   "or"-joined list, with a plain `X or Y` for exactly two and an Oxford comma
   before the `or` for three or more — when a multi-team match leaves several
   possible killers; and `Status: Killed in mysterious circumstances` as a
-  fallback when nothing can be attributed at all. Only the `death` consequence
-  produces this line; a player who has not died shows no `Status:` line at
-  all, rather than a placeholder. Then —
+  fallback when nothing can be attributed at all.
+  When the fatal event was recorded as a foul rather than a regular blocking
+  action, the line ends with `(via a foul)` — e.g.
+  `Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
+  those forms.
+  Only the `death` consequence produces this line; a player who has not died
+  shows no `Status:` line at all, rather than a placeholder. Then —
   only when the player has recorded trophies, with the whole section omitted
   otherwise rather than a placeholder line — a blank line, a `Trophies:`
   heading, and that player's own awards newest-competition-first, one line per
@@ -113,22 +117,81 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   are more, the list ends with an exact `…and N more not shown.` note computed
   from the player's true award count. Then a blank line, and one line per
   non-zero event category the player caused, formatted `<label>: <count>`. The
-  categories are the nine acting-role tallies: MVP awards, touchdowns scored,
-  completions, interceptions, deflections, casualties inflicted, serious
-  injuries inflicted, opponents killed, and fouls committed — things the player
-  did, never things done to them. These per-match-event tallies are a separate
+  categories are the acting-role tallies — things the player did, never
+  things done to them: MVP awards, touchdowns scored, completions,
+  interceptions and deflections as plain `<label>: <count>` lines, followed by
+  two lines that carry their own severity breakdown,
+  `Casualties inflicted: <total> (<N> serious injuries, <N> killed)` and
+  `Fouls committed: <total> (<N> serious injuries, <N> killed)`. A zero
+  sub-count is dropped from the parenthetical along with its comma, the
+  parenthetical disappears when both sub-counts are zero, and the whole line
+  disappears when the total is zero. Fouls carry their own breakdown rather
+  than folding into the casualty one because Blood Bowl awards no casualty
+  credit for a foul, so a foul-caused injury is deliberately not counted as a
+  casualty inflicted. The `killed` sub-counts (on both lines) and the fouls
+  `seriousInjuries` sub-count mean "attempted", not just "confirmed": they
+  fold in an attempt that was saved by an apothecary or by regeneration, and
+  — for casualties' `killed` only — a death attempt with no recorded outcome
+  at all. The fouls `seriousInjuries` sub-count includes every foul-caused
+  serious injury, whichever form the injury takes. These per-match-event
+  tallies are a separate
   concept from the competition-level trophies above: the "MVP awards" count is
   match MVPs, not an end-of-competition MVP trophy. Zero categories are
   omitted; a player with nothing in any category shows a short
-  nothing-memorable-yet-style message instead of an empty list. Each trophy is
+  nothing-memorable-yet-style message instead of an empty list.
+  Then — only when the player has a computed star player point total, with no
+  line at all otherwise — a blank line, an optional
+  `Star player points adjustment: <+N|-N> (included)` line shown only when a
+  nonzero manual adjustment has been applied (the total already includes it;
+  the line is just calling that out), and `Total star player points: <total>`.
+  Then — only when the player has killed someone, with the whole section
+  omitted otherwise rather than a placeholder line — a blank line, a `Kills:`
+  heading, and one line per kill, newest match first. A kill whose victim is a
+  specific indexed player reads
+  `<player> (<position>, <team>, <race>, <coach>)`; one where only the victim's
+  side is known reads `An unidentified player from <team> (<race>, <coach>)`;
+  one where a multi-team match leaves the side ambiguous reads
+  `An unidentified player from <team A> (…) or <team B> (…)`, "or"-joined with
+  an Oxford comma for three or more; and one with nothing attributable at all
+  reads `An opponent, in mysterious circumstances`. A death this player
+  caused but that was saved by an apothecary or by regeneration reads
+  `An unidentified player from <team> (<race>, <coach>), saved by an apothecary` or
+  `...saved by regeneration` — the team is known and the victim player is
+  never named, in the normal case; a defensive fallback (not expected from any
+  known importer behaviour) can instead render a prevented kill through the
+  generic resolution logic like any other unresolvable kill, when the
+  recorded team can't be matched or the save reason is missing. Any of them
+  ends with `(via a foul)` when
+  the fatal (or prevented) event was a foul, the same note the `Status:` line
+  uses — including the prevented row. The list also includes a death attempt
+  with no recorded outcome at all; its victim's team is resolved the same way
+  an event with an ambiguous or unattributed killer team already is resolved
+  elsewhere in this document. One line is shown per kill event, so a victim
+  killed more than once by this player appears once per kill. At most 30
+  kills are shown; when
+  there are more, the list ends with an exact `…and N more not shown.` note
+  computed from the player's true kill count. The same note can also appear
+  with 30 or fewer total kills: long team, player, race or coach names can
+  exhaust the embed's description-length budget before all of the fetched
+  rows fit, in which case the rows that do not fit are dropped the same way
+  and the note reports them too. Either way the note's count is always exact
+  — it is computed from the player's true kill total, not from how many rows
+  happened to be fetched or rendered — regardless of which of the two
+  overflow reasons caused rows to be dropped. The player's true kill count
+  always equals the killed sub-counts of the casualty and foul lines added
+  together, exactly — not merely typically.
+  Each trophy is
   rendered as a drill-down button to the trophy; those come first, then — for
   a player who died — a button to the killer (the killer player for a named
   killer, the killer team for a team-only killer, or one button per candidate
   team when the killer is ambiguous; no button at all in the mysterious-
-  circumstances case), then the team, era and race buttons — which follow the
-  order of the header lines — so the most specific content keeps button
-  priority. Position has no deepdive target, so it has no button, and neither
-  does the killer's own position, race or coach.
+  circumstances case), then one button per listed victim (the victim player
+  when identified, one button per candidate team when the side is ambiguous,
+  none in the mysterious-circumstances case), then the team, era and race
+  buttons — which follow the order of the header lines — so the most specific
+  content keeps button priority. Position has no deepdive target, so it has no
+  button, and neither does the killer's own position, race or coach, nor a
+  victim's.
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,

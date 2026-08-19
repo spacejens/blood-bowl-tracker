@@ -2,6 +2,7 @@ import type { Db } from '@blood-bowl-tracker/db';
 import {
   coaches,
   DB,
+  matches,
   matchEvents,
   matchTeams,
   players,
@@ -11,7 +12,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, count, desc, eq, isNull, or, type SQL } from 'drizzle-orm';
 
 /** The team a killer belongs to, with the race and coach shown alongside it. */
 export interface PlayerKillerTeam {
@@ -36,8 +37,13 @@ export interface PlayerKillerTeam {
  * - `unknown` — a defensive fallback: a death event with no attributable acting
  *   side and no other team in the match to infer from. Not expected from any
  *   known importer behaviour.
+ *
+ * `viaFoul` is orthogonal to the killer's precision: it reports that the fatal
+ * event was recorded as a foul (`actionType = 'foul'`) rather than a regular
+ * blocking action, which Blood Bowl treats differently — no casualty credit is
+ * awarded for a foul.
  */
-export type PlayerKillerInfo =
+export type PlayerKillerInfo = (
   | (PlayerKillerTeam & {
       kind: 'player';
       playerId: number;
@@ -46,7 +52,42 @@ export type PlayerKillerInfo =
     })
   | (PlayerKillerTeam & { kind: 'team' })
   | { kind: 'ambiguousTeams'; teams: PlayerKillerTeam[] }
-  | { kind: 'unknown' };
+  | { kind: 'unknown' }
+) & { viaFoul: boolean };
+
+/**
+ * One kill this player inflicted, describing the *victim* side at the best
+ * precision the data supports. Mostly the same shape as `PlayerKillerInfo`
+ * with the role swapped — `player` names the victim, `team` knows only their
+ * side, `ambiguousTeams` lists every side the victim could have belonged to,
+ * `unknown` is the defensive fallback — plus one kind `PlayerKillerInfo`
+ * doesn't need: `prevented`, when the killing blow was recorded but the
+ * victim was saved (`consequenceType = 'casualty_avoided'`). The deepdive's
+ * Kills section still lists these as an attempted kill rather than silently
+ * dropping them. There is no equivalent on the killer side: `getKillerInfo`
+ * only ever fires once its own query confirms `consequenceType = 'death'`,
+ * so a save on THIS player's own death is not something it can observe by
+ * construction. `viaFoul` reports that the fatal (or prevented) event was
+ * recorded as a foul.
+ */
+export type PlayerKillEntry =
+  | PlayerKillerInfo
+  | (PlayerKillerTeam & {
+      kind: 'prevented';
+      avoidedBy: 'apothecary' | 'regeneration';
+      viaFoul: boolean;
+    });
+
+/** One `match_events` row where this player caused (or attempted) a death. */
+interface KillEvent {
+  matchId: number;
+  actionType: string | null;
+  actingMatchTeamId: number | null;
+  consequenceType: string | null;
+  consequencePlayerId: number | null;
+  consequenceMatchTeamId: number | null;
+  consequenceAvoidedBy: 'apothecary' | 'regeneration' | null;
+}
 
 /** One `match_teams` row of the death's match, resolved to display names. */
 type MatchSide = PlayerKillerTeam & { matchTeamId: number };
@@ -70,6 +111,7 @@ export class PlayerDeathService {
     const events = await this.db
       .select({
         matchId: matchEvents.matchId,
+        actionType: matchEvents.actionType,
         actingPlayerId: matchEvents.actingPlayerId,
         actingMatchTeamId: matchEvents.actingMatchTeamId,
         consequenceMatchTeamId: matchEvents.consequenceMatchTeamId,
@@ -88,6 +130,8 @@ export class PlayerDeathService {
       return null;
     }
 
+    const viaFoul = event.actionType === 'foul';
+
     const sides = await this.findMatchSides(event.matchId);
 
     // A named killer takes priority over any team-candidate ambiguity: the
@@ -97,7 +141,7 @@ export class PlayerDeathService {
     // than from `actingMatchTeamId`, which can be null) and match it against
     // the sides already fetched above.
     if (event.actingPlayerId !== null) {
-      const killer = await this.findKiller(event.actingPlayerId);
+      const killer = await this.findPlayerSummary(event.actingPlayerId);
       const killerSide = sides.find((side) => side.teamId === killer?.teamId);
       if (killer !== undefined && killerSide !== undefined) {
         return {
@@ -106,6 +150,7 @@ export class PlayerDeathService {
           playerName: killer.playerName,
           positionName: killer.positionName,
           ...this.toKillerTeam(killerSide),
+          viaFoul,
         };
       }
       // Defensive fallback: the event names an acting player, but either no
@@ -121,22 +166,25 @@ export class PlayerDeathService {
     // candidate.
     const candidates =
       event.actingMatchTeamId === null
-        ? sides.filter(
-            (side) => side.matchTeamId !== event.consequenceMatchTeamId,
+        ? await this.candidatesExcludingVictim(
+            playerId,
+            sides,
+            event.consequenceMatchTeamId,
           )
         : sides.filter((side) => side.matchTeamId === event.actingMatchTeamId);
 
     if (candidates.length === 0) {
-      return { kind: 'unknown' };
+      return { kind: 'unknown', viaFoul };
     }
     if (candidates.length > 1) {
       return {
         kind: 'ambiguousTeams',
         teams: candidates.map((side) => this.toKillerTeam(side)),
+        viaFoul,
       };
     }
 
-    return { kind: 'team', ...this.toKillerTeam(candidates[0]) };
+    return { kind: 'team', ...this.toKillerTeam(candidates[0]), viaFoul };
   }
 
   /**
@@ -165,8 +213,8 @@ export class PlayerDeathService {
       .orderBy(teams.name);
   }
 
-  /** The killer's own name, position, and team id. */
-  private async findKiller(killerPlayerId: number): Promise<
+  /** One player's own name, position, and team id. */
+  private async findPlayerSummary(playerId: number): Promise<
     | {
         playerName: string;
         positionName: string;
@@ -184,13 +232,237 @@ export class PlayerDeathService {
       .innerJoin(positions, eq(positions.id, players.positionId))
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(eq(players.id, killerPlayerId));
+      .where(eq(players.id, playerId));
     return rows[0];
+  }
+
+  /**
+   * Every side except the victim's own, for the "no acting side recorded"
+   * branch of `getKillerInfo`. Excludes the victim's side by
+   * `consequenceMatchTeamId` when it was recorded AND matches one of this
+   * match's sides, and — mirroring `resolveKillEntry`'s symmetric fallback
+   * for the perpetrator's own side — by resolving the victim's own team via
+   * their player row otherwise (when it was not recorded, or was recorded
+   * but doesn't match any side — stale or invalid data). `playerId` is
+   * `getKillerInfo`'s own parameter, so it always names the victim here.
+   * Without this fallback, an event with an unresolvable
+   * `consequenceMatchTeamId` would leave every side a candidate, including
+   * the victim's own team, which can never be its own killer.
+   */
+  private async candidatesExcludingVictim(
+    playerId: number,
+    sides: MatchSide[],
+    consequenceMatchTeamId: number | null,
+  ): Promise<MatchSide[]> {
+    let victimMatchTeamId =
+      consequenceMatchTeamId !== null &&
+      sides.some((side) => side.matchTeamId === consequenceMatchTeamId)
+        ? consequenceMatchTeamId
+        : undefined;
+    if (victimMatchTeamId === undefined) {
+      const victim = await this.findPlayerSummary(playerId);
+      victimMatchTeamId = sides.find(
+        (side) => side.teamId === victim?.teamId,
+      )?.matchTeamId;
+    }
+    return sides.filter((side) => side.matchTeamId !== victimMatchTeamId);
   }
 
   /** Drop the internal `matchTeamId` before the row leaves this service. */
   private toKillerTeam(side: MatchSide): PlayerKillerTeam {
     const { matchTeamId: _matchTeamId, ...team } = side;
     return team;
+  }
+
+  /**
+   * How many kills this player has inflicted, counted exactly as `killFilter`
+   * defines a kill: a confirmed death, a prevented one, or an unpaired
+   * `'death'` action, foul-caused ones included. This is the true total
+   * behind the deepdive's capped kills list, so its overflow note can report
+   * an exact remainder.
+   */
+  async countKillsInflicted(playerId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(matchEvents.id) })
+      .from(matchEvents)
+      .where(this.killFilter(playerId));
+    return row.count;
+  }
+
+  /**
+   * Every match_events row counted as a kill this player inflicted: a
+   * confirmed death (`consequenceType = 'death'`), a prevented death
+   * (`consequenceType = 'casualty_avoided'` with the avoided severity being
+   * `'death'`), or — for a `'death'`-severity action specifically — one with
+   * no consequence side recorded at all, since `actionType = 'death'` alone
+   * already certifies the severity of what this player did. A `'foul'`
+   * carries no severity of its own, so an unpaired foul (no consequence
+   * recorded at all) is deliberately NOT included here — there is no way to
+   * know it was a kill attempt at all, let alone a fatal one.
+   */
+  private killFilter(playerId: number): SQL | undefined {
+    return and(
+      eq(matchEvents.actingPlayerId, playerId),
+      or(
+        and(
+          eq(matchEvents.actionType, 'death'),
+          or(
+            eq(matchEvents.consequenceType, 'death'),
+            and(
+              eq(matchEvents.consequenceType, 'casualty_avoided'),
+              eq(matchEvents.consequenceAvoidedSeverity, 'death'),
+            ),
+            isNull(matchEvents.consequenceType),
+          ),
+        ),
+        and(
+          eq(matchEvents.actionType, 'foul'),
+          or(
+            eq(matchEvents.consequenceType, 'death'),
+            and(
+              eq(matchEvents.consequenceType, 'casualty_avoided'),
+              eq(matchEvents.consequenceAvoidedSeverity, 'death'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /**
+   * This player's kills, newest match first, capped at `limit`. One entry per
+   * kill event — a victim killed twice appears twice, since each is its own
+   * event. Match sides are fetched once per match, so a bloodbath in a single
+   * match costs one lookup rather than one per kill.
+   */
+  async getKillsInflicted(
+    playerId: number,
+    limit: number,
+  ): Promise<PlayerKillEntry[]> {
+    const events = await this.findKillEvents(playerId, limit);
+    if (events.length === 0) {
+      return [];
+    }
+    // The perpetrator's own team, used to exclude their side from the
+    // candidates when neither the victim's side nor the acting side was
+    // recorded. Fetched once up front rather than lazily, so the query order
+    // stays the same for every input.
+    const killerTeamId = (await this.findPlayerSummary(playerId))?.teamId;
+
+    const entries: PlayerKillEntry[] = [];
+    const sidesByMatch = new Map<number, MatchSide[]>();
+    for (const event of events) {
+      let sides = sidesByMatch.get(event.matchId);
+      if (sides === undefined) {
+        sides = await this.findMatchSides(event.matchId);
+        sidesByMatch.set(event.matchId, sides);
+      }
+      entries.push(await this.resolveKillEntry(event, { sides, killerTeamId }));
+    }
+    return entries;
+  }
+
+  /**
+   * The capped, newest-first kill events, joined to `matches` for ordering.
+   * Ordered secondarily by `matchEvents.id`, matching `getKillerInfo`'s
+   * convention, so multiple kills within the same match (a bloodbath) come
+   * back in a stable order rather than an arbitrary one.
+   */
+  private findKillEvents(
+    playerId: number,
+    limit: number,
+  ): Promise<KillEvent[]> {
+    return this.db
+      .select({
+        matchId: matchEvents.matchId,
+        actionType: matchEvents.actionType,
+        actingMatchTeamId: matchEvents.actingMatchTeamId,
+        consequenceType: matchEvents.consequenceType,
+        consequencePlayerId: matchEvents.consequencePlayerId,
+        consequenceMatchTeamId: matchEvents.consequenceMatchTeamId,
+        consequenceAvoidedBy: matchEvents.consequenceAvoidedBy,
+      })
+      .from(matchEvents)
+      .innerJoin(matches, eq(matches.id, matchEvents.matchId))
+      .where(this.killFilter(playerId))
+      .orderBy(desc(matches.playedAt), desc(matchEvents.id))
+      .limit(limit);
+  }
+
+  /**
+   * One kill event's victim, mirroring `getKillerInfo`'s resolution with the
+   * acting and consequence roles swapped: a named victim wins outright, then a
+   * recorded victim side, then every side except the perpetrator's own.
+   */
+  private async resolveKillEntry(
+    event: KillEvent,
+    context: { sides: MatchSide[]; killerTeamId: number | undefined },
+  ): Promise<PlayerKillEntry> {
+    const { sides, killerTeamId } = context;
+    const viaFoul = event.actionType === 'foul';
+
+    if (event.consequenceType === 'casualty_avoided') {
+      const preventedSide = sides.find(
+        (side) => side.matchTeamId === event.consequenceMatchTeamId,
+      );
+      if (preventedSide !== undefined && event.consequenceAvoidedBy !== null) {
+        return {
+          kind: 'prevented',
+          ...this.toKillerTeam(preventedSide),
+          avoidedBy: event.consequenceAvoidedBy,
+          viaFoul,
+        };
+      }
+      // Defensive: a recorded save with no matching side or no avoidedBy
+      // reason. Not expected from any known importer behaviour — fall
+      // through to the generic candidate resolution below, same treatment as
+      // any other unresolvable case in this method.
+    }
+
+    if (
+      event.consequencePlayerId !== null &&
+      event.consequenceType !== 'casualty_avoided'
+    ) {
+      const victim = await this.findPlayerSummary(event.consequencePlayerId);
+      const victimSide = sides.find((side) => side.teamId === victim?.teamId);
+      if (victim !== undefined && victimSide !== undefined) {
+        return {
+          kind: 'player',
+          playerId: event.consequencePlayerId,
+          playerName: victim.playerName,
+          positionName: victim.positionName,
+          ...this.toKillerTeam(victimSide),
+          viaFoul,
+        };
+      }
+      // Defensive fallback, same as `getKillerInfo`'s: the event names a
+      // victim, but either no such player row exists or their team is not one
+      // of this match's sides. Fall through to side-based resolution.
+    }
+
+    // With no recorded victim side, every side except the perpetrator's own is
+    // a candidate — identified by the acting side when recorded, and otherwise
+    // by the perpetrator's own player row.
+    const killerMatchTeamId =
+      event.actingMatchTeamId ??
+      sides.find((side) => side.teamId === killerTeamId)?.matchTeamId;
+    const candidates =
+      event.consequenceMatchTeamId === null
+        ? sides.filter((side) => side.matchTeamId !== killerMatchTeamId)
+        : sides.filter(
+            (side) => side.matchTeamId === event.consequenceMatchTeamId,
+          );
+
+    if (candidates.length === 0) {
+      return { kind: 'unknown', viaFoul };
+    }
+    if (candidates.length > 1) {
+      return {
+        kind: 'ambiguousTeams',
+        teams: candidates.map((side) => this.toKillerTeam(side)),
+        viaFoul,
+      };
+    }
+    return { kind: 'team', ...this.toKillerTeam(candidates[0]), viaFoul };
   }
 }

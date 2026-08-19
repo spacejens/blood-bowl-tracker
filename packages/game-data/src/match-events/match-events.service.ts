@@ -36,6 +36,8 @@ export class MatchEventsService {
       data.consequenceTeamEraId,
     );
 
+    this.assertDeathActionTypeInvariant(data);
+
     const sppValue = await this.resolveSppValue(data);
 
     // Every field is passed through exactly as supplied: `undefined` means the
@@ -135,6 +137,30 @@ export class MatchEventsService {
       .from(matchTeams)
       .where(eq(matchTeams.matchId, matchId));
     return new Map(rows.map((r) => [r.teamEraId, r.id]));
+  }
+
+  /**
+   * The counters `PlayersService` builds for the kills feature rely on every
+   * `death`-consequence row also carrying `actionType` of either `'death'` or
+   * `'foul'` — that's what makes `casualties.killed + fouls.killed` exactly
+   * equal the deepdive kills list length. Only checked when this call's
+   * payload supplies both fields together: `undefined` means "leave the
+   * existing column alone on an update", and resolving what an update's
+   * final value would be would require reading the row back before writing
+   * it, which is not worth adding on every upsert just to cover this one
+   * combination. The BBL and TP importers always assert both fields together
+   * for a death/foul event, so this still catches the cases those importers
+   * (or a future one, or a manual edit) could actually get wrong.
+   */
+  private assertDeathActionTypeInvariant(data: UpsertMatchEvent): void {
+    if (data.consequenceType !== 'death' || data.actionType === undefined) {
+      return;
+    }
+    if (data.actionType !== 'death' && data.actionType !== 'foul') {
+      throw new MatchEventUpsertConflictError(
+        `A death consequence requires actionType 'death' or 'foul', got '${data.actionType}'`,
+      );
+    }
   }
 
   private resolveMatchTeam(
