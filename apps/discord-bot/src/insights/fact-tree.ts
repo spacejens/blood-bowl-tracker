@@ -512,9 +512,9 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
       },
       toplist: {
         // Grouped under `hires` rather than hanging `total` straight off
-        // `toplist` so issue #504's "distinct teams that hired this star" can
-        // land beside it as `starPlayers.toplist.hires.distinctTeams`: both
-        // are hire-derived measures of the same star's popularity.
+        // `toplist` because two hire-derived measures of the same star's
+        // popularity live here: `total` (how often a star is hired) and
+        // `distinctTeams` (how many different teams have hired them).
         hires: {
           // Unscoped for exactly the reason starPlayers.list is (see the
           // comment on that leaf): the star player exception makes every star
@@ -527,6 +527,17 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             supportsCompetition: false,
             supportsMatchCategory: false,
             resolve: () => deps.starPlayerToplist.resolveTotalHires(),
+          },
+          // Breadth rather than frequency: how many *different* teams have
+          // ever hired this star, so a team re-hiring the same star season
+          // after season counts once. Unscoped for the same star player
+          // exception reason as `total` above.
+          distinctTeams: {
+            supportsLeague: false,
+            supportsEra: false,
+            supportsCompetition: false,
+            supportsMatchCategory: false,
+            resolve: () => deps.starPlayerToplist.resolveDistinctTeamsHired(),
           },
         },
       },
