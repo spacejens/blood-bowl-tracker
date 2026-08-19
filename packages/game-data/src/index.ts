@@ -51,6 +51,11 @@ export {
   PlayersService,
   PlayerUpsertConflictError,
 } from './players/players.service';
+export type {
+  StarPlayerHire,
+  StarPlayerIdentity,
+} from './players/star-players.service';
+export { StarPlayersService } from './players/star-players.service';
 export { PositionsModule } from './positions/positions.module';
 export type { SyncPositionRaceErasData } from './positions/positions.service';
 export {
