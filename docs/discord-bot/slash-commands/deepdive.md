@@ -46,7 +46,7 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
 - **`coach:<coach>`** — the bot replies with an embed for that coach: the coach
   name as the title, then their career span (the first and last dates across
   every match they have played), a blank line, and `Top teams by matches
-  played:` followed by their top five teams by matches played, one line per
+played:` followed by their top five teams by matches played, one line per
   team formatted `<rank>. <team> — <matches>`. Ties at the fifth-place cutoff
   are all shown, up to ten teams — the same convention `/insights` toplists
   use, though at most ten teams are fetched for a deepdive, so the toplists'
@@ -159,8 +159,12 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   reads `An opponent, in mysterious circumstances`. A death this player
   caused but that was saved by an apothecary or by regeneration reads
   `Someone in <team> (<race>, <coach>), saved by an apothecary` or
-  `...saved by regeneration` — the team is always known for these, but the
-  victim player is never named. Any of them ends with ` (via a foul)` when
+  `...saved by regeneration` — the team is known and the victim player is
+  never named, in the normal case; a defensive fallback (not expected from any
+  known importer behaviour) can instead render a prevented kill through the
+  generic resolution logic like any other unresolvable kill, when the
+  recorded team can't be matched or the save reason is missing. Any of them
+  ends with ` (via a foul)` when
   the fatal (or prevented) event was a foul, the same note the `Status:` line
   uses — including the prevented row. The list also includes a death attempt
   with no recorded outcome at all; its victim's team is resolved the same way
