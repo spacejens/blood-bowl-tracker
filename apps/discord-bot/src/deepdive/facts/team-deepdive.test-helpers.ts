@@ -85,19 +85,22 @@ export function makeTrophyAwards(
 }
 
 /**
- * A `PlayerRowButtonService` mock. Returns a canned regular-player entry by
- * default so tests about other parts of the embed are unaffected; a star test
- * stubs a star entry for the one row it cares about. The mock deliberately
- * does NOT reimplement the real star-vs-regular rule — that rule is tested in
- * `player-row-button.service.spec.ts`.
+ * A `PlayerRowButtonService` mock. Returns a fixed canned regular-player
+ * entry by default so tests about other parts of the embed are unaffected; a
+ * star test stubs a star entry for the one row it cares about. The mock
+ * deliberately does NOT reimplement the real star-vs-regular rule, nor derive
+ * its return value from the row it's called with — that rule is tested in
+ * `player-row-button.service.spec.ts`. A test that cares which row the
+ * button was built from asserts on the call args (`toHaveBeenCalledWith`),
+ * not on the mock's return value.
  */
 export function makePlayerRowButton(): MockProxy<PlayerRowButtonService> {
   const playerRowButton = mock<PlayerRowButtonService>();
-  playerRowButton.buildPlayerRowButton.mockImplementation((row) => ({
+  playerRowButton.buildPlayerRowButton.mockReturnValue({
     customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-    entityId: String(row.playerId),
-    label: row.playerName,
-  }));
+    entityId: '1',
+    label: 'Griff Oberwald',
+  });
   return playerRowButton;
 }
 

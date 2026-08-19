@@ -665,19 +665,11 @@ describe('CompetitionDeepdiveService', () => {
 
   it('routes a star-player award to the star player deepdive instead of the per-team player deepdive', async () => {
     const playerRowButton = makePlayerRowButton();
-    playerRowButton.buildPlayerRowButton.mockImplementation((row) =>
-      row.isStarPlayer
-        ? {
-            customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(row.positionId),
-            label: row.positionName,
-          }
-        : {
-            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(row.playerId),
-            label: row.playerName,
-          },
-    );
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '61',
+      label: 'Morg N Thorg',
+    });
     const { service } = await makeService({
       competitions: makeCompetitions({
         competition: competitionHeader(),
@@ -834,8 +826,13 @@ describe('CompetitionDeepdiveService', () => {
         label: 'Reikland Reavers',
       },
       {
+        // The exact row->button mapping (playerId 40 -> "Griff Oberwald") is
+        // covered elsewhere ("routes a star-player award..." and the honors
+        // decoration assertions above); this test only cares about where the
+        // player-award entry lands among the rest, so it uses the default
+        // canned mock from `makePlayerRowButton()`.
         customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: '40',
+        entityId: '1',
         label: 'Griff Oberwald',
       },
       {

@@ -28,6 +28,23 @@ import {
 
 describe('TeamDeepdiveService buttons', () => {
   it('offers a trophy button for a team honor and trophy + player buttons for a player honor, before the header buttons', async () => {
+    // Two distinguishable canned responses, one per expected
+    // buildPlayerRowButton call: the mvp honor's player entry first, then the
+    // top-players row's entry, matching the production call order. The exact
+    // row->button mapping is covered elsewhere (e.g. "asks PlayerRowButtonService
+    // for each top player row"); this test only cares about button ordering.
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton
+      .mockReturnValueOnce({
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '55',
+        label: 'Grombrindal',
+      })
+      .mockReturnValueOnce({
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Griff',
+      });
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -45,6 +62,7 @@ describe('TeamDeepdiveService buttons', () => {
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, mvp]),
+      playerRowButton,
     });
     const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];

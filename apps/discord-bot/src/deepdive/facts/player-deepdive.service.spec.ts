@@ -488,9 +488,13 @@ describe('PlayerDeepdiveService', () => {
         'Touchdowns scored: 3',
       ].join('\n'),
     );
+    // The exact row->button mapping (playerId 77 -> "Varag Ghoul-Chewer") is
+    // covered by "asks PlayerRowButtonService for a named killer entry"
+    // below; here we only need to see that a drill-down button was offered
+    // at all, so the canned default from `makePlayerRowButton()` is enough.
     expect(result.components[0].components[0]).toMatchObject({
-      custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}77`,
-      label: 'Varag Ghoul-Chewer',
+      custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}1`,
+      label: 'Griff Oberwald',
     });
   });
 

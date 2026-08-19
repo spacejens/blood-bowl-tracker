@@ -29,9 +29,13 @@ import {
   cannedEraSectionGrouper,
   singleEraSectionGrouper,
 } from '../../shared/era-section-grouper-mock.test-helpers';
-import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import {
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 import {
   grinders,
+  makePlayerRowButton,
   makeService,
   makeTeams,
   makeTrophyAwards,
@@ -57,6 +61,23 @@ describe('TeamDeepdiveService', () => {
   // (in that order — leaderboard entries take component priority over header
   // entries) that it hands to buildEntityComponents.
   it('renders the race, coach, career span and top-players list, with player components before header components', async () => {
+    // Two distinguishable canned responses, one per expected
+    // buildPlayerRowButton call (one per top-players row, in row order). The
+    // exact row->button mapping is covered elsewhere (e.g. "asks
+    // PlayerRowButtonService for each top player row"); this test only cares
+    // about button content/ordering alongside the rest of the embed.
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton
+      .mockReturnValueOnce({
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Griff',
+      })
+      .mockReturnValueOnce({
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '8',
+        label: 'Morg',
+      });
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -81,6 +102,7 @@ describe('TeamDeepdiveService', () => {
         ],
       }),
       leaderboard: passthroughLeaderboard(),
+      playerRowButton,
     });
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -138,6 +160,15 @@ describe('TeamDeepdiveService', () => {
   });
 
   it('renders the eras line after the coach line, with era buttons after the player buttons', async () => {
+    // Matches the single top-players row's identity — see the comment on the
+    // previous test for why this is stubbed explicitly rather than relying
+    // on the default canned mock.
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockReturnValueOnce({
+      customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '5',
+      label: 'Griff',
+    });
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -158,6 +189,7 @@ describe('TeamDeepdiveService', () => {
         ],
       }),
       leaderboard: passthroughLeaderboard(),
+      playerRowButton,
     });
     const result = await service.resolve(1);
     expect(result).toEqual({

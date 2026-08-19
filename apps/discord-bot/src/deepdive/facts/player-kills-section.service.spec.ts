@@ -54,11 +54,11 @@ describe('PlayerKillsSectionService', () => {
 
   beforeEach(async () => {
     playerRowButton = mock<PlayerRowButtonService>();
-    playerRowButton.buildPlayerRowButton.mockImplementation((row) => ({
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
       customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-      entityId: String(row.playerId),
-      label: row.playerName,
-    }));
+      entityId: '88',
+      label: 'Griff Oberwald',
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerKillsSectionService,

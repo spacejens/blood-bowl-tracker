@@ -538,10 +538,17 @@ describe('TrophyDeepdiveService', () => {
   });
 
   it('builds a player drill-down button per player-trophy recipient', async () => {
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '40',
+      label: 'Griff Oberwald',
+    });
     const { service } = await makeService({
       trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([playerRecipient()]),
       entityComponents: passthroughEntityComponents(),
+      playerRowButton,
     });
 
     const result = (await service.resolve(1)) as unknown as {
@@ -564,23 +571,22 @@ describe('TrophyDeepdiveService', () => {
         emoji: STUB_BUTTON_EMOJI,
       },
     ]);
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 40,
+      playerName: 'Griff Oberwald',
+      positionId: 60,
+      positionName: 'Blitzer',
+      isStarPlayer: false,
+    });
   });
 
   it('routes a star-player recipient to the star player deepdive instead of the per-team player deepdive', async () => {
     const playerRowButton = makePlayerRowButton();
-    playerRowButton.buildPlayerRowButton.mockImplementation((row) =>
-      row.isStarPlayer
-        ? {
-            customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(row.positionId),
-            label: row.positionName,
-          }
-        : {
-            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(row.playerId),
-            label: row.playerName,
-          },
-    );
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '61',
+      label: 'Morg N Thorg',
+    });
     const { service } = await makeService({
       trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([starRecipient()]),
