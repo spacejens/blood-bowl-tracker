@@ -1,10 +1,15 @@
-import type { StarPlayerHireCount } from '@blood-bowl-tracker/game-data';
+import type {
+  StarPlayerDistinctTeamsHiredCount,
+  StarPlayerHireCount,
+} from '@blood-bowl-tracker/game-data';
 import { StarPlayersService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import {
+  STAR_PLAYER_DISTINCT_TEAMS_TOPLIST_NO_DATA_MESSAGE,
+  STAR_PLAYER_DISTINCT_TEAMS_TOPLIST_TIMEOUT_MESSAGE,
   STAR_PLAYER_TOPLIST_NO_DATA_MESSAGE,
   STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -44,6 +49,20 @@ export class StarPlayerToplistService {
       fetchRows: (limit) => this.starPlayers.countTotalHires(limit),
       timeoutMessage: STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: STAR_PLAYER_TOPLIST_NO_DATA_MESSAGE,
+      entityLink: this.starPlayerLink,
+    });
+  }
+
+  /**
+   * Stars ranked by how many distinct teams have ever hired them, across
+   * every era. No `formatRow`, same reasoning as `resolveTotalHires`.
+   */
+  resolveDistinctTeamsHired(): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<StarPlayerDistinctTeamsHiredCount>({
+      title: 'Star players by distinct teams hired',
+      fetchRows: (limit) => this.starPlayers.countDistinctTeamsHired(limit),
+      timeoutMessage: STAR_PLAYER_DISTINCT_TEAMS_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: STAR_PLAYER_DISTINCT_TEAMS_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.starPlayerLink,
     });
   }

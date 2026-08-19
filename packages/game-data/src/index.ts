@@ -52,6 +52,7 @@ export {
   PlayerUpsertConflictError,
 } from './players/players.service';
 export type {
+  StarPlayerDistinctTeamsHiredCount,
   StarPlayerHire,
   StarPlayerHireCount,
   StarPlayerIdentity,

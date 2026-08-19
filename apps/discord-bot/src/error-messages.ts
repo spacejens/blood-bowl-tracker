@@ -28,6 +28,10 @@ export const STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE =
   'The agents are still arguing over whose star has signed the most contracts.';
 export const STAR_PLAYER_TOPLIST_NO_DATA_MESSAGE =
   'Not one star has been talked into taking the field for anybody yet.';
+export const STAR_PLAYER_DISTINCT_TEAMS_TOPLIST_TIMEOUT_MESSAGE =
+  'The agents are still counting how many front offices have taken a chance on the biggest names.';
+export const STAR_PLAYER_DISTINCT_TEAMS_TOPLIST_NO_DATA_MESSAGE =
+  'Not one star has convinced a second team to give them a contract yet.';
 
 // --- Competition groups list (insights/facts/competition-groups-list.service.ts) ---
 export const COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE =
