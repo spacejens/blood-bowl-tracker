@@ -43,9 +43,11 @@ import {
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 import { TrophyDeepdiveService } from './trophy-deepdive.service';
 
 interface MakeServiceOptions {
@@ -56,6 +58,25 @@ interface MakeServiceOptions {
   teamContext?: MockProxy<TeamContextService>;
   playerContext?: MockProxy<PlayerContextService>;
   eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
+  playerRowButton?: MockProxy<PlayerRowButtonService>;
+}
+
+/**
+ * A `PlayerRowButtonService` mock. Returns a canned regular-player entry by
+ * default so tests about other parts of the embed are unaffected; a star
+ * test stubs a star entry for the one row it cares about. The mock
+ * deliberately does NOT reimplement the real star-vs-regular rule — that
+ * rule is tested in `player-row-button.service.spec.ts`. Mirrors
+ * `team-deepdive.test-helpers.ts`'s `makePlayerRowButton()`.
+ */
+function makePlayerRowButton(): MockProxy<PlayerRowButtonService> {
+  const playerRowButton = mock<PlayerRowButtonService>();
+  playerRowButton.buildPlayerRowButton.mockImplementation((row) => ({
+    customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+    entityId: String(row.playerId),
+    label: row.playerName,
+  }));
+  return playerRowButton;
 }
 
 async function makeService({
@@ -66,6 +87,7 @@ async function makeService({
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
   eraSectionGrouper = singleEraSectionGrouper('Season 24 Era'),
+  playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
   service: TrophyDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
@@ -74,6 +96,7 @@ async function makeService({
   teamContext: MockProxy<TeamContextService>;
   playerContext: MockProxy<PlayerContextService>;
   eraSectionGrouper: MockProxy<EraSectionGrouperService>;
+  playerRowButton: MockProxy<PlayerRowButtonService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -85,6 +108,7 @@ async function makeService({
       { provide: TeamContextService, useValue: teamContext },
       { provide: PlayerContextService, useValue: playerContext },
       { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
+      { provide: PlayerRowButtonService, useValue: playerRowButton },
     ],
   }).compile();
   return {
@@ -95,6 +119,7 @@ async function makeService({
     teamContext,
     playerContext,
     eraSectionGrouper,
+    playerRowButton,
   };
 }
 
@@ -121,6 +146,9 @@ function teamRecipient(
     teamName: 'Reikland Reavers',
     playerId: null,
     playerName: null,
+    playerPositionId: null,
+    playerPositionName: null,
+    playerIsStarPlayer: null,
     ...overrides,
   };
 }
@@ -132,8 +160,24 @@ function playerRecipient(
     ...teamRecipient(),
     playerId: 40,
     playerName: 'Griff Oberwald',
+    playerPositionId: 60,
+    playerPositionName: 'Blitzer',
+    playerIsStarPlayer: false,
     ...overrides,
   };
+}
+
+function starRecipient(
+  overrides: Partial<TrophyRecipient> = {},
+): TrophyRecipient {
+  return playerRecipient({
+    playerId: 41,
+    playerName: 'Morg N Thorg',
+    playerPositionId: 61,
+    playerPositionName: 'Morg N Thorg',
+    playerIsStarPlayer: true,
+    ...overrides,
+  });
 }
 
 function makeTrophies(
@@ -537,6 +581,48 @@ describe('TrophyDeepdiveService', () => {
         emoji: STUB_BUTTON_EMOJI,
       },
     ]);
+  });
+
+  it('routes a star-player recipient to the star player deepdive instead of the per-team player deepdive', async () => {
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockImplementation((row) =>
+      row.isStarPlayer
+        ? {
+            customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(row.positionId),
+            label: row.positionName,
+          }
+        : {
+            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(row.playerId),
+            label: row.playerName,
+          },
+    );
+    const { service } = await makeService({
+      trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
+      trophyAwards: makeAwards([starRecipient()]),
+      entityComponents: passthroughEntityComponents(),
+      playerRowButton,
+    });
+
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: unknown[] }[];
+    };
+
+    expect(result.components[0].components).toContainEqual({
+      type: 2,
+      style: expect.any(Number) as number,
+      label: 'Morg N Thorg',
+      custom_id: `${STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX}61`,
+      emoji: STUB_BUTTON_EMOJI,
+    });
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 41,
+      playerName: 'Morg N Thorg',
+      positionId: 61,
+      positionName: 'Morg N Thorg',
+      isStarPlayer: true,
+    });
   });
 
   it('offers a drill-up button to the competition group after the recipients', async () => {

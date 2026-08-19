@@ -24,10 +24,10 @@ import { TeamContextService } from '../../insights/team-context.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
-  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 
 /**
  * Most recipients listed in one trophy embed. The list query fetches exactly
@@ -69,6 +69,7 @@ export class TrophyDeepdiveService {
     private readonly teamContext: TeamContextService,
     private readonly playerContext: PlayerContextService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
+    private readonly playerRowButton: PlayerRowButtonService,
   ) {}
 
   async resolve(trophyId: number): Promise<string | InteractionReplyOptions> {
@@ -243,16 +244,18 @@ export class TrophyDeepdiveService {
 
   /** Drill down to whoever actually received the trophy. */
   private buildEntry(recipient: TrophyRecipient): EntityComponentEntry {
-    return this.isTeamRecipient(recipient)
-      ? {
+    return this.isPlayerRecipient(recipient)
+      ? this.playerRowButton.buildPlayerRowButton({
+          playerId: recipient.playerId,
+          playerName: recipient.playerName,
+          positionId: recipient.playerPositionId,
+          positionName: recipient.playerPositionName,
+          isStarPlayer: recipient.playerIsStarPlayer,
+        })
+      : {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(recipient.teamId),
           label: recipient.teamName,
-        }
-      : {
-          customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(recipient.playerId),
-          label: recipient.playerName as string,
         };
   }
 
@@ -266,5 +269,33 @@ export class TrophyDeepdiveService {
    */
   private isTeamRecipient(recipient: TrophyRecipient): boolean {
     return recipient.playerId === null || recipient.playerName === null;
+  }
+
+  /**
+   * Narrows a `TrophyRecipient` to its player-award shape. Checks `playerId`,
+   * `playerName`, `playerPositionId`, `playerPositionName` and
+   * `playerIsStarPlayer` together (rather than any one alone), mirroring
+   * `TeamDeepdiveService.isPlayerHonor` — `players.name` and
+   * `players.position_id` are both `NOT NULL` in the schema, so a present
+   * player always has a present name and position and these fields can never
+   * actually disagree, but a single shared predicate keeps that invariant
+   * enforced in one place instead of asserted at each call site.
+   */
+  private isPlayerRecipient(
+    recipient: TrophyRecipient,
+  ): recipient is TrophyRecipient & {
+    playerId: number;
+    playerName: string;
+    playerPositionId: number;
+    playerPositionName: string;
+    playerIsStarPlayer: boolean;
+  } {
+    return (
+      recipient.playerId !== null &&
+      recipient.playerName !== null &&
+      recipient.playerPositionId !== null &&
+      recipient.playerPositionName !== null &&
+      recipient.playerIsStarPlayer !== null
+    );
   }
 }
