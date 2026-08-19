@@ -413,7 +413,15 @@ describe('PlayersService', () => {
 
       // fouls.seriousInjuries: actingPlayerId, actionType = 'foul', then the
       // OR of (consequenceType IN severities) and (consequenceType =
-      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities).
+      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities). This
+      // is also the regression proof for the pre-existing bug where
+      // fouls.seriousInjuries filtered on the literal consequenceType
+      // 'serious_injury', which the imported data never actually uses for a
+      // foul-caused injury — real foul-caused serious injuries are recorded
+      // via niggling_injury, miss_next_game, or a stat_reduction_*
+      // consequence, so the count was always 0. Asserting on
+      // SERIOUS_INJURY_SUFFERED_TYPES here (rather than the literal value)
+      // is what proves the bug is fixed.
       expect(extractAllFilterValues(firstCallArg(chains[9].where))).toEqual([
         1,
         'foul',
@@ -430,22 +438,6 @@ describe('PlayersService', () => {
       ]);
       expect(chains[9].innerJoin).not.toHaveBeenCalled();
       expect(chains[10].innerJoin).not.toHaveBeenCalled();
-    });
-
-    it('fouls.seriousInjuries counts a foul-caused niggling_injury/miss_next_game/stat_reduction consequence, not just the literal serious_injury value', async () => {
-      // Regression test for the pre-existing bug: fouls.seriousInjuries used
-      // to filter on the literal consequenceType 'serious_injury', which the
-      // imported data never actually uses for a foul-caused injury — real
-      // foul-caused serious injuries are recorded via niggling_injury,
-      // miss_next_game, or a stat_reduction_* consequence, so the count was
-      // always 0. With countFoulOutcome(SERIOUS_INJURY_SUFFERED_TYPES), a
-      // niggling_injury row is now counted.
-      const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0];
-      await build(...counts.map((n) => [{ count: n }]));
-
-      const result = await service.getDeepdiveCategoryCounts(1);
-
-      expect(result.fouls.seriousInjuries).toBe(4);
     });
   });
 

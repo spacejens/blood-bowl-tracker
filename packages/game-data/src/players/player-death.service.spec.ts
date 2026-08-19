@@ -10,6 +10,7 @@ import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { PlayerDeathService } from './player-death.service';
 
@@ -459,6 +460,25 @@ describe('PlayerDeathService', () => {
         'casualty_avoided',
         'death',
       ]);
+    });
+
+    it('has an IS NULL check on consequence_type in the death branch but not the foul branch', async () => {
+      // `extractAllFilterValues` only surfaces bound parameter values, so it
+      // cannot see the presence/absence of an `isNull(...)` clause — an
+      // accidental addition to the foul branch (which would wrongly fold
+      // unpaired fouls into the count) or removal from the death branch
+      // (which would wrongly drop unpaired death attempts) would pass every
+      // other test in this file. `killFilter` has exactly one `IS NULL`
+      // clause in its whole tree — on the death branch's `consequenceType`
+      // — so asserting there is exactly one proves both halves of that
+      // claim at once: the death branch has it, and the foul branch does
+      // not (a second occurrence there would push the count to two).
+      const { service, chains } = await build([{ count: 3 }]);
+
+      await service.countKillsInflicted(1);
+
+      const rendered = sqlText(firstCallArg(chains[0].where));
+      expect(rendered.match(/is null/g)).toHaveLength(1);
     });
   });
 
