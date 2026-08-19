@@ -736,8 +736,9 @@ describe('buildFactTree league capabilities', () => {
     // eras.list, trophies.list and competitionGroups.list are league-scopable
     // listings that are not themselves era-scopable, so they are the leaves
     // that break the otherwise-universal "league iff era" correspondence.
-    // starPlayers.list is deliberately NOT in this group: it supports neither,
-    // so it satisfies the correspondence trivially.
+    // starPlayers.list and starPlayers.toplist.hires.total are deliberately
+    // NOT in this group: they support neither, so they satisfy the
+    // correspondence trivially.
     const listLeaves = [
       factTreeUtils.resolvePath(tree, 'eras.list'),
       factTreeUtils.resolvePath(tree, 'trophies.list'),

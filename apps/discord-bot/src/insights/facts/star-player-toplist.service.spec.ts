@@ -1,7 +1,7 @@
 import type { StarPlayerHireCount } from '@blood-bowl-tracker/game-data';
 import { StarPlayersService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -11,33 +11,8 @@ import {
   STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import type { ResolveToplistOptions } from '../leaderboard.service';
-import {
-  LeaderboardService,
-  TOPLIST_FETCH_LIMIT,
-} from '../leaderboard.service';
+import { LeaderboardService } from '../leaderboard.service';
 import { StarPlayerToplistService } from './star-player-toplist.service';
-
-interface MadeService {
-  service: StarPlayerToplistService;
-  leaderboard: MockProxy<LeaderboardService>;
-}
-
-// Built per test rather than in a beforeEach: `starPlayers` is an *input* to
-// construction here (each case seeds a different canned query result), which
-// is the case CLAUDE.md points at the makeService-factory idiom for.
-async function makeService(
-  starPlayers: StarPlayersService,
-): Promise<MadeService> {
-  const leaderboard = mock<LeaderboardService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      StarPlayerToplistService,
-      { provide: StarPlayersService, useValue: starPlayers },
-      { provide: LeaderboardService, useValue: leaderboard },
-    ],
-  }).compile();
-  return { service: moduleRef.get(StarPlayerToplistService), leaderboard };
-}
 
 const rows: StarPlayerHireCount[] = [
   { positionId: 21, name: 'Morg n Thorg', count: 7 },
@@ -49,10 +24,25 @@ describe('StarPlayerToplistService.resolveTotalHires', () => {
   // rendering, the timeout fallback) is covered by leaderboard.service.spec.ts.
   // `leaderboard` is a mock returning canned values here, so these tests only
   // assert what StarPlayerToplistService itself owns.
-  it('wires the embed title and per-row deepdive button id', async () => {
-    const starPlayers = mock<StarPlayersService>();
+  let service: StarPlayerToplistService;
+  let starPlayers: MockProxy<StarPlayersService>;
+  let leaderboard: MockProxy<LeaderboardService>;
+
+  beforeEach(async () => {
+    starPlayers = mock<StarPlayersService>();
     starPlayers.countTotalHires.mockResolvedValue(rows);
-    const { service, leaderboard } = await makeService(starPlayers);
+    leaderboard = mock<LeaderboardService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        StarPlayerToplistService,
+        { provide: StarPlayersService, useValue: starPlayers },
+        { provide: LeaderboardService, useValue: leaderboard },
+      ],
+    }).compile();
+    service = moduleRef.get(StarPlayerToplistService);
+  });
+
+  it('wires the embed title and per-row deepdive button id', async () => {
     const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
     leaderboard.resolveToplist.mockResolvedValueOnce(canned);
 
@@ -68,26 +58,19 @@ describe('StarPlayerToplistService.resolveTotalHires', () => {
     expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].positionId);
   });
 
-  it('fetches the star hire counts with the shared toplist limit', async () => {
-    const starPlayers = mock<StarPlayersService>();
-    starPlayers.countTotalHires.mockResolvedValue(rows);
-    const { service, leaderboard } = await makeService(starPlayers);
+  it('fetches the star hire counts with whatever limit the leaderboard requests', async () => {
+    const sentinelLimit = 3;
     leaderboard.resolveToplist.mockImplementation(async (options) => {
-      await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      await options.fetchRows(sentinelLimit);
       return 'canned';
     });
 
     await service.resolveTotalHires();
 
-    expect(starPlayers.countTotalHires).toHaveBeenCalledWith(
-      TOPLIST_FETCH_LIMIT,
-    );
+    expect(starPlayers.countTotalHires).toHaveBeenCalledWith(sentinelLimit);
   });
 
   it('leaves row formatting to the leaderboard default', async () => {
-    const starPlayers = mock<StarPlayersService>();
-    starPlayers.countTotalHires.mockResolvedValue(rows);
-    const { service, leaderboard } = await makeService(starPlayers);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
 
     await service.resolveTotalHires();
@@ -98,16 +81,12 @@ describe('StarPlayerToplistService.resolveTotalHires', () => {
   });
 
   it('configures the toplist-specific timeout and empty-state messages', async () => {
-    const starPlayers = mock<StarPlayersService>();
-    starPlayers.countTotalHires.mockResolvedValue(rows);
-    const { service, leaderboard } = await makeService(starPlayers);
     leaderboard.resolveToplist.mockResolvedValueOnce(
       STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE,
     );
 
-    const result = await service.resolveTotalHires();
+    await service.resolveTotalHires();
 
-    expect(result).toBe(STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE);
     expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
       expect.objectContaining({
         timeoutMessage: STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE,

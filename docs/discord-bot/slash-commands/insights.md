@@ -44,10 +44,10 @@ replies with a per-scope refusal message. All but eleven facts support
 `competitionGroups.list`, `starPlayers.list` and
 `starPlayers.toplist.hires.total` — which list or count teams, eras, trophies,
 trophy awards, competition groups or star player hires rather than matches —
-and `stats`, which is
-excluded deliberately: only two of the dozen counts it reports (matches and
-match events) have a category at all, so a category-scoped `stats` would show
-two scoped numbers beside ten all-time ones.
+and `stats`, which is excluded deliberately: only two of the dozen counts it
+reports (matches and match events) have a category at all, so a
+category-scoped `stats` would show two scoped numbers beside ten all-time
+ones.
 
 Note that `coach.toplist.competitions.played` and
 `team.toplist.competitions.played` change meaning under a match category: they
@@ -259,6 +259,14 @@ button, in the same order as the list, that opens that player's
   played by teams of that race. A drawn match between two teams of the same
   race adds 2 to that race's total, matching how `race.toplist.matches.played`
   counts.
+- `starPlayers.list` — a single embed listing every star player that has been
+  hired at least once (title "Star Players"), name-ascending. A star position
+  that has never been hired has nothing to show and is excluded. Each listed
+  star also gets a button that opens that star's [`/deepdive`](deepdive.md)
+  detail view. Supports none of the `league`, `era`, `competition` or
+  `match-category` filter options, for the same "star player exception"
+  reason as `starPlayers.toplist.hires.total` below, so it is excluded from
+  every filtered run.
 - `starPlayers.toplist.hires.total` — star players ranked by the total number
   of times they have been hired, across every team and every era (title "Star
   players by times hired"). Each hire is a separate signing, so a team that
@@ -298,7 +306,7 @@ button, in the same order as the list, that opens that player's
   league and then by group name. Each line reads
   `<group> (<league>): <N> competition(s)`, where the count is how many
   competitions belong to that group (a group with none yet shows `0
-  competitions`). Each listed group also gets a button that opens that
+competitions`). Each listed group also gets a button that opens that
   group's [`/deepdive`](deepdive.md) detail view, where its trophies and
   every instance of the competition live. Up to 25 groups get one button
   each; past that the links switch to dropdown menus (see
