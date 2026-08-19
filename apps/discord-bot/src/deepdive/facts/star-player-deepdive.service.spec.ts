@@ -26,6 +26,7 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 import { StarPlayerDeepdiveService } from './star-player-deepdive.service';
 
 interface MakeServiceOptions {
@@ -207,6 +208,34 @@ describe('StarPlayerDeepdiveService', () => {
         '…and 3 more without a link.',
       ].join('\n'),
     );
+  });
+
+  it('truncates the description to the Discord embed cap when a star has been hired by an unbounded number of teams', async () => {
+    // listHiresByTeam carries no row limit, so a heavily-hired star (exactly
+    // the case this feature's select-menu overflow exists for — see
+    // `EntityComponentsService`) can produce a description longer than
+    // Discord's MAX_DESCRIPTION_LENGTH. One line here is ~55 chars; 100 rows
+    // comfortably exceeds the 4096-char cap.
+    const manyHires: StarPlayerHire[] = Array.from(
+      { length: 100 },
+      (_unused, index) => ({
+        teamId: index,
+        teamName: `Team ${index}`,
+        raceName: 'Human',
+        coachName: 'Coach',
+        hireCount: 1,
+      }),
+    );
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires: manyHires }),
+    });
+
+    const result = await service.resolve(20);
+
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 
   it('omits the components key when nothing got a component', async () => {

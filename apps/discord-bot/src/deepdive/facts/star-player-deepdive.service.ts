@@ -17,6 +17,7 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 
 /**
  * Composes a star player's hire history into a single embed: one line per
@@ -91,7 +92,7 @@ export class StarPlayerDeepdiveService {
       embeds: [
         {
           title: `${this.entityComponents.getEmojiForPrefix(STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX)} ${star.name}`,
-          description,
+          description: this.enforceDescriptionLimit(description),
         },
       ],
       ...(components.length > 0 ? { components } : {}),
@@ -102,5 +103,21 @@ export class StarPlayerDeepdiveService {
   private formatHire(hire: StarPlayerHire): string {
     const plural = hire.hireCount === 1 ? 'hire' : 'hires';
     return `${hire.teamName} (${hire.raceName}, coached by ${hire.coachName}) — ${hire.hireCount} ${plural}`;
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit.
+   * `listHiresByTeam` carries no row limit, so a star hired by enough teams
+   * — exactly the scenario the select-menu button overflow in
+   * `EntityComponentsService` exists for — can produce a description longer
+   * than `MAX_DESCRIPTION_LENGTH`, which would cause Discord to reject the
+   * whole interaction. Mirrors `PlayerDeepdiveService.enforceDescriptionLimit`
+   * verbatim in shape.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
   }
 }
