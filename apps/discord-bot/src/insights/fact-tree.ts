@@ -493,6 +493,24 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         resolve: (scope) => deps.competitionGroupsList.resolve(scope),
       },
     },
+    starPlayers: {
+      list: {
+        // Star positions have a schema path to a league (via
+        // positions_race_eras -> race_eras -> eras.league_id), but the "star
+        // player exception" links every star as available in essentially
+        // every era, so that path would not meaningfully narrow a
+        // league/era-scoped query (unlike a trophy -> competition group ->
+        // league, or an era -> league directly). So unlike eras.list and
+        // trophies.list this is never scoped — it is always the full global
+        // catalog of known (hired) star players. The leaf's resolve function
+        // simply takes no scope parameter at all.
+        supportsLeague: false,
+        supportsEra: false,
+        supportsCompetition: false,
+        supportsMatchCategory: false,
+        resolve: () => deps.starPlayersList.resolve(),
+      },
+    },
     stats: {
       supportsLeague: true,
       supportsEra: true,

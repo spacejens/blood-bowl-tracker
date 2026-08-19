@@ -10,6 +10,7 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -26,7 +27,6 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 import { StarPlayerDeepdiveService } from './star-player-deepdive.service';
 
 interface MakeServiceOptions {

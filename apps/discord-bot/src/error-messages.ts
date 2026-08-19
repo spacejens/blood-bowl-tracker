@@ -17,6 +17,12 @@ export const TROPHIES_LIST_TIMEOUT_MESSAGE =
   'The curator is still cataloguing every cup in the cabinet.';
 export const TROPHIES_LIST_NO_DATA_MESSAGE = 'The trophy cabinet is bare.';
 
+// --- Star players list (insights/facts/star-players-list.service.ts) ---
+export const STAR_PLAYERS_LIST_TIMEOUT_MESSAGE =
+  'The seer is still scrying for star player rumors.';
+export const STAR_PLAYERS_LIST_NO_DATA_MESSAGE =
+  'No star players have made a name for themselves yet.';
+
 // --- Competition groups list (insights/facts/competition-groups-list.service.ts) ---
 export const COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE =
   'The fixture secretary is still leafing through every calendar in the cabinet.';

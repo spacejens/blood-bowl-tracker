@@ -4,15 +4,15 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
+import {
+  MAX_DESCRIPTION_LENGTH,
+  OVERFLOW_NOTE_BUDGET,
+} from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import {
-  MAX_DESCRIPTION_LENGTH,
-  OVERFLOW_NOTE_BUDGET,
-} from './description-limits';
 
 export interface PlayerKillsSectionOptions {
   /** The fetched kills, newest match first, already capped by the caller. */

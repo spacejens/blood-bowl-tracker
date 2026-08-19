@@ -11,6 +11,7 @@ import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
+import { StarPlayersListService } from './facts/star-players-list.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 import { TrophiesListService } from './facts/trophies-list.service';
@@ -26,6 +27,7 @@ describe('FactTreeFactoryService', () => {
   let erasList: MockProxy<ErasListService>;
   let competitionGroupsList: MockProxy<CompetitionGroupsListService>;
   let statsSummary: MockProxy<StatsSummaryFactsService>;
+  let starPlayersList: MockProxy<StarPlayersListService>;
   let trophiesList: MockProxy<TrophiesListService>;
 
   beforeEach(async () => {
@@ -37,6 +39,7 @@ describe('FactTreeFactoryService', () => {
     erasList = mock<ErasListService>();
     competitionGroupsList = mock<CompetitionGroupsListService>();
     statsSummary = mock<StatsSummaryFactsService>();
+    starPlayersList = mock<StarPlayersListService>();
     trophiesList = mock<TrophiesListService>();
 
     coachToplist.resolveMatchesPlayed.mockResolvedValue(
@@ -68,6 +71,7 @@ describe('FactTreeFactoryService', () => {
           useValue: competitionGroupsList,
         },
         { provide: StatsSummaryFactsService, useValue: statsSummary },
+        { provide: StarPlayersListService, useValue: starPlayersList },
         { provide: TrophiesListService, useValue: trophiesList },
       ],
     }).compile();
@@ -77,8 +81,8 @@ describe('FactTreeFactoryService', () => {
 
   it('build() returns the fully assembled fact tree', () => {
     const tree = factory.build();
-    // buildFactTree currently produces 56 leaves (see fact-tree.spec.ts).
-    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(56);
+    // buildFactTree currently produces 57 leaves (see fact-tree.spec.ts).
+    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(57);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
@@ -92,5 +96,14 @@ describe('FactTreeFactoryService', () => {
       leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
     ).resolve();
     expect(coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
+  });
+
+  it('threads StarPlayersListService into the tree so starPlayers.list calls it', async () => {
+    const leaf = factTreeUtils.resolvePath(factory.build(), 'starPlayers.list');
+    expect(leaf).toBeDefined();
+    await (
+      leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
+    ).resolve();
+    expect(starPlayersList.resolve).toHaveBeenCalled();
   });
 });
