@@ -68,16 +68,20 @@ function killEvent(
     matchId: number;
     actionType: string;
     actingMatchTeamId: number | null;
+    consequenceType: string | null;
     consequencePlayerId: number | null;
     consequenceMatchTeamId: number | null;
+    consequenceAvoidedBy: 'apothecary' | 'regeneration' | null;
   }> = {},
 ) {
   return {
     matchId: 500,
     actionType: 'death',
     actingMatchTeamId: orcSide.matchTeamId,
+    consequenceType: 'death',
     consequencePlayerId: null,
     consequenceMatchTeamId: victimSide.matchTeamId,
+    consequenceAvoidedBy: null,
     ...overrides,
   };
 }
@@ -447,6 +451,13 @@ describe('PlayerDeathService', () => {
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
         1,
         'death',
+        'death',
+        'casualty_avoided',
+        'death',
+        'foul',
+        'death',
+        'casualty_avoided',
+        'death',
       ]);
     });
   });
@@ -583,6 +594,155 @@ describe('PlayerDeathService', () => {
 
       await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
         { kind: 'team', ...victimTeam, viaFoul: true },
+      ]);
+    });
+
+    it('resolves a prevented death saved by an apothecary', async () => {
+      const { service } = await build(
+        [
+          killEvent({
+            consequenceType: 'casualty_avoided',
+            consequenceAvoidedBy: 'apothecary',
+          }),
+        ],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'prevented',
+          ...victimTeam,
+          avoidedBy: 'apothecary',
+          viaFoul: false,
+        },
+      ]);
+    });
+
+    it('resolves a prevented death saved by regeneration', async () => {
+      const { service } = await build(
+        [
+          killEvent({
+            consequenceType: 'casualty_avoided',
+            consequenceAvoidedBy: 'regeneration',
+          }),
+        ],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'prevented',
+          ...victimTeam,
+          avoidedBy: 'regeneration',
+          viaFoul: false,
+        },
+      ]);
+    });
+
+    it('resolves a foul-caused prevented death', async () => {
+      const { service } = await build(
+        [
+          killEvent({
+            actionType: 'foul',
+            consequenceType: 'casualty_avoided',
+            consequenceAvoidedBy: 'apothecary',
+          }),
+        ],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'prevented',
+          ...victimTeam,
+          avoidedBy: 'apothecary',
+          viaFoul: true,
+        },
+      ]);
+    });
+
+    it('falls back to generic candidate resolution when a prevented death names no matching side', async () => {
+      // Defensive branch: consequenceType is 'casualty_avoided' but
+      // consequenceMatchTeamId does not match any of this match's sides. Not
+      // expected from any known importer behaviour, but must not throw — it
+      // falls through to the same candidate resolution a confirmed kill uses.
+      const { service } = await build(
+        [
+          killEvent({
+            consequenceType: 'casualty_avoided',
+            consequenceAvoidedBy: 'apothecary',
+            consequenceMatchTeamId: 999,
+          }),
+        ],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'unknown', viaFoul: false },
+      ]);
+    });
+
+    it('falls back to generic candidate resolution when a prevented death names no avoidedBy reason', async () => {
+      // Defensive branch: the side resolves but consequenceAvoidedBy is null.
+      // Not expected from any known importer behaviour (every casualty_avoided
+      // row always carries this), but must not throw.
+      const { service } = await build(
+        [
+          killEvent({
+            consequenceType: 'casualty_avoided',
+            consequenceAvoidedBy: null,
+          }),
+        ],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: false },
+      ]);
+    });
+
+    it('resolves an unpaired death attempt (no consequence recorded) via generic candidate resolution', async () => {
+      const { service } = await build(
+        [killEvent({ consequenceType: null, consequenceMatchTeamId: null })],
+        [perpetrator],
+        [victimSide, orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'team', ...victimTeam, viaFoul: false },
+      ]);
+    });
+
+    it('resolves an unpaired death attempt to ambiguousTeams in a merged multi-team match', async () => {
+      const { service } = await build(
+        [killEvent({ consequenceType: null, consequenceMatchTeamId: null })],
+        [perpetrator],
+        [victimSide, orcSide, undeadSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'ambiguousTeams',
+          teams: [victimTeam, undeadTeam],
+          viaFoul: false,
+        },
+      ]);
+    });
+
+    it('resolves an unpaired death attempt to unknown when no candidate side remains', async () => {
+      const { service } = await build(
+        [killEvent({ consequenceType: null, consequenceMatchTeamId: null })],
+        [perpetrator],
+        [orcSide],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'unknown', viaFoul: false },
       ]);
     });
 

@@ -11,11 +11,13 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import {
   CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
   MVP_AWARD_TYPES,
   SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
 import {
@@ -354,10 +356,12 @@ describe('PlayersService', () => {
       });
     });
 
-    it('counts casualty and foul totals/serious-injuries as direct acting-type filters, unjoined', async () => {
-      // These three go through `countActingEvents`: a direct `match_events`
+    it('counts casualty totals/serious-injuries and casualties.killed and fouls.total as direct acting-type filters, unjoined', async () => {
+      // These four go through `countActingEvents`: a direct `match_events`
       // filter with playerId first, then the type list — no join, unlike the
-      // simple-category queries above.
+      // simple-category queries above. `casualties.killed` now goes through
+      // this same unconditional `actionType = 'death'` filter rather than a
+      // combined acting+consequence one.
       const { chains } = await build(
         ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
       );
@@ -372,41 +376,62 @@ describe('PlayersService', () => {
         1,
         ...SERIOUS_INJURY_CAUSED_TYPES,
       ]);
+      expect(extractAllFilterValues(firstCallArg(chains[7].where))).toEqual([
+        1,
+        ...DEATH_CAUSED_TYPES,
+      ]);
       expect(extractAllFilterValues(firstCallArg(chains[8].where))).toEqual([
         1,
         ...FOUL_TYPES,
       ]);
       expect(chains[5].innerJoin).not.toHaveBeenCalled();
       expect(chains[6].innerJoin).not.toHaveBeenCalled();
+      expect(chains[7].innerJoin).not.toHaveBeenCalled();
       expect(chains[8].innerJoin).not.toHaveBeenCalled();
     });
 
-    it('counts casualty-killed and foul serious-injuries/deaths with a combined acting+consequence filter, unjoined', async () => {
+    it('counts fouls.seriousInjuries and fouls.killed via countFoulOutcome, matching a confirmed or prevented outcome, unjoined', async () => {
       const { chains } = await build(
         ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
       );
 
       await service.getDeepdiveCategoryCounts(1);
 
-      // casualties.killed: actionType = 'death' AND consequenceType = 'death'
-      expect(extractAllFilterValues(firstCallArg(chains[7].where))).toEqual([
-        1,
-        'death',
-        'death',
-      ]);
+      // fouls.seriousInjuries: actingPlayerId, actionType = 'foul', then the
+      // OR of (consequenceType IN severities) and (consequenceType =
+      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities).
       expect(extractAllFilterValues(firstCallArg(chains[9].where))).toEqual([
         1,
         'foul',
-        'serious_injury',
+        ...SERIOUS_INJURY_SUFFERED_TYPES,
+        'casualty_avoided',
+        ...SERIOUS_INJURY_SUFFERED_TYPES,
       ]);
       expect(extractAllFilterValues(firstCallArg(chains[10].where))).toEqual([
         1,
         'foul',
         'death',
+        'casualty_avoided',
+        'death',
       ]);
-      expect(chains[7].innerJoin).not.toHaveBeenCalled();
       expect(chains[9].innerJoin).not.toHaveBeenCalled();
       expect(chains[10].innerJoin).not.toHaveBeenCalled();
+    });
+
+    it('fouls.seriousInjuries counts a foul-caused niggling_injury/miss_next_game/stat_reduction consequence, not just the literal serious_injury value', async () => {
+      // Regression test for the pre-existing bug: fouls.seriousInjuries used
+      // to filter on the literal consequenceType 'serious_injury', which the
+      // imported data never actually uses for a foul-caused injury — real
+      // foul-caused serious injuries are recorded via niggling_injury,
+      // miss_next_game, or a stat_reduction_* consequence, so the count was
+      // always 0. With countFoulOutcome(SERIOUS_INJURY_SUFFERED_TYPES), a
+      // niggling_injury row is now counted.
+      const counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0];
+      await build(...counts.map((n) => [{ count: n }]));
+
+      const result = await service.getDeepdiveCategoryCounts(1);
+
+      expect(result.fouls.seriousInjuries).toBe(4);
     });
   });
 

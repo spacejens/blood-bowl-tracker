@@ -21,6 +21,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  or,
   sql,
 } from 'drizzle-orm';
 
@@ -73,23 +74,31 @@ export interface PlayerDeepdiveEventGroup {
  * plain label/count rows; casualties and fouls each carry a severity
  * breakdown so the embed can render them as one line apiece.
  *
- * `casualties.killed` counts `actionType = 'death' AND consequenceType =
- * 'death'` rows, and `fouls.killed` counts `actionType = 'foul' AND
- * consequenceType = 'death'` rows — the same combined-filter shape
- * `seriousInjuries` already used for fouls. Since every event with
- * `consequenceType = 'death'` has an `actionType` of either `'death'` or
- * `'foul'`, `fouls.killed` plus `casualties.killed` is exactly the number of
- * kills the deepdive's Kills section lists. This is true by construction, not
- * merely typical: `casualties.killed` deliberately does NOT count a
- * `'death'`-actioned row whose consequence was `'casualty_avoided'` (the
- * victim survived) or unrecorded, unlike the plain `actionType = 'death'`
- * count `countDeathsCausedByPlayer` reports elsewhere.
+ * `casualties.killed` and `fouls.killed`/`fouls.seriousInjuries` now mean
+ * "attempted", not merely "confirmed" — they fold in a prevented (saved)
+ * attempt alongside a confirmed one, and, for `casualties.killed` only, a
+ * `'death'`-actioned row with no consequence recorded at all.
  *
- * This invariant also depends on the importers confining `actionType` to
- * `'death'` or `'foul'` for any row with `consequenceType = 'death'`; it is
- * not a schema-level guarantee. See `MatchEventsService`'s note on upsert for
- * why a re-imported row could in principle retain a stale `actionType` if the
- * source data changed category between imports.
+ * `casualties.killed` counts every `actionType = 'death'` row unconditionally
+ * (via `countActingEvents`): `actionType = 'death'` alone already certifies
+ * the severity of what the player did, so this includes a confirmed death, a
+ * death prevented by an apothecary or regeneration, and a death attempt with
+ * no consequence linked at all. `fouls.killed` and `fouls.seriousInjuries`
+ * count via `countFoulOutcome`, which matches a confirmed outcome
+ * (`consequenceType` in the target severity set) OR a prevented one
+ * (`consequenceType = 'casualty_avoided'` with `consequenceAvoidedSeverity`
+ * in that set) — `actionType = 'foul'` carries no severity of its own, unlike
+ * `'death'`, so there is no unpaired/no-consequence case to fold in for
+ * fouls.
+ *
+ * Since every event with `actionType = 'death'` or `actionType = 'foul'` AND
+ * `consequenceType = 'death'` OR (`consequenceType = 'casualty_avoided'` AND
+ * `consequenceAvoidedSeverity = 'death'`) OR (`actionType = 'death'` AND
+ * `consequenceType IS NULL`) is exactly what `fouls.killed` plus
+ * `casualties.killed` counts, and `PlayerDeathService`'s `killFilter` is
+ * built from literally these same conditions ORed together, the two totals
+ * are exactly the number of kills the deepdive's Kills section lists. This is
+ * true by construction, not merely typical.
  *
  * `casualties.total` (via `countActingEvents` below) can also disagree with
  * the toplist's `countCasualtiesCausedByPlayer` (which goes through the
@@ -227,10 +236,10 @@ export class PlayersService {
       ),
       this.countActingEvents(playerId, CASUALTY_CAUSED_TYPES),
       this.countActingEvents(playerId, SERIOUS_INJURY_CAUSED_TYPES),
-      this.countCombinedEvents(playerId, 'death', 'death'),
+      this.countActingEvents(playerId, DEATH_CAUSED_TYPES),
       this.countActingEvents(playerId, FOUL_TYPES),
-      this.countCombinedEvents(playerId, 'foul', 'serious_injury'),
-      this.countCombinedEvents(playerId, 'foul', 'death'),
+      this.countFoulOutcome(playerId, SERIOUS_INJURY_SUFFERED_TYPES),
+      this.countFoulOutcome(playerId, ['death']),
     ]);
     return {
       simple: simpleCategories.map((category, index) => ({
@@ -301,16 +310,19 @@ export class PlayersService {
   }
 
   /**
-   * Events this player committed with the given action type that inflicted
-   * the given consequence. `MatchEventSelector` is single-role by design, so
-   * a combined acting-and-consequence filter needs its own query — a direct
-   * `match_events` filter, matching `countActingEvents`'s no-join shape so the
-   * two stay comparable on the same rendered line (see that method's doc).
+   * Foul-caused events (or prevented foul-caused events) whose confirmed or
+   * would-have-been severity falls in `severities`. Covers both "it happened"
+   * (`consequenceType` is one of `severities`) and "it was prevented"
+   * (`consequenceType = 'casualty_avoided'` and `consequenceAvoidedSeverity`
+   * is one of `severities`), so a foul that would have caused a serious
+   * injury but was saved by an apothecary still counts. `actionType = 'foul'`
+   * carries no severity of its own — unlike `actionType = 'death'`, which
+   * certifies severity by itself — so there is no unpaired/no-consequence
+   * case to fold in here the way there is for deaths.
    */
-  private async countCombinedEvents(
+  private async countFoulOutcome(
     playerId: number,
-    actionType: ActionType,
-    consequenceType: ConsequenceType,
+    severities: readonly ConsequenceType[],
   ): Promise<number> {
     const [row] = await this.db
       .select({ count: count(matchEvents.id) })
@@ -318,8 +330,14 @@ export class PlayersService {
       .where(
         and(
           eq(matchEvents.actingPlayerId, playerId),
-          eq(matchEvents.actionType, actionType),
-          eq(matchEvents.consequenceType, consequenceType),
+          eq(matchEvents.actionType, 'foul'),
+          or(
+            inArray(matchEvents.consequenceType, severities),
+            and(
+              eq(matchEvents.consequenceType, 'casualty_avoided'),
+              inArray(matchEvents.consequenceAvoidedSeverity, severities),
+            ),
+          ),
         ),
       );
     return row.count;
