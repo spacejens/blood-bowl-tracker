@@ -10,6 +10,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from './deepdive/button-custom-ids';
@@ -84,6 +85,7 @@ describe('EntityComponentsService', () => {
       [COACH_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
       [TEAM_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
       [PLAYER_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Primary],
+      [STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Danger],
       [RACE_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
     ];
     const { components } = service.buildEntityComponents(
@@ -111,6 +113,7 @@ describe('EntityComponentsService', () => {
       [COACH_BUTTON_CUSTOM_ID_PREFIX, '📋'],
       [TEAM_BUTTON_CUSTOM_ID_PREFIX, '🛡️'],
       [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
+      [STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX, '⭐'],
       [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
       [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
       [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX, '🔁'],
@@ -143,6 +146,7 @@ describe('EntityComponentsService', () => {
       [COACH_BUTTON_CUSTOM_ID_PREFIX, '📋'],
       [TEAM_BUTTON_CUSTOM_ID_PREFIX, '🛡️'],
       [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
+      [STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX, '⭐'],
       [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
       [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
       [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX, '🔁'],
