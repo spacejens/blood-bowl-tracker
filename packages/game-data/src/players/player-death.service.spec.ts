@@ -387,6 +387,41 @@ describe('PlayerDeathService', () => {
       });
     });
 
+    it("excludes the victim's own team when a recorded consequenceMatchTeamId matches no side", async () => {
+      // consequenceMatchTeamId is set but doesn't match any of this match's
+      // sides (stale or invalid data). Without falling back to the victim's
+      // own player row, the candidate filter would exclude nothing, leaving
+      // every side — including the victim's own — as a candidate.
+      const { service } = await build(
+        [deathEvent({ actingMatchTeamId: null, consequenceMatchTeamId: 999 })],
+        [victimSide, orcSide, undeadSide],
+        [{ playerName: 'Griff Oberwald', positionName: 'Blitzer', teamId: 11 }],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toEqual({
+        kind: 'ambiguousTeams',
+        teams: [
+          {
+            teamId: 12,
+            teamName: 'Gouged Eye',
+            raceId: 5,
+            raceName: 'Orc',
+            coachId: 22,
+            coachName: 'Grimly',
+          },
+          {
+            teamId: 13,
+            teamName: 'Champions of Death',
+            raceId: 6,
+            raceName: 'Undead',
+            coachId: 23,
+            coachName: 'Mortis',
+          },
+        ],
+        viaFoul: false,
+      });
+    });
+
     it('falls back to unknown when no other team can be found', async () => {
       const { service } = await build([deathEvent()], [victimSide]);
 

@@ -239,20 +239,26 @@ export class PlayerDeathService {
   /**
    * Every side except the victim's own, for the "no acting side recorded"
    * branch of `getKillerInfo`. Excludes the victim's side by
-   * `consequenceMatchTeamId` when it was recorded, and — mirroring
-   * `resolveKillEntry`'s symmetric fallback for the perpetrator's own side —
-   * by resolving the victim's own team via their player row when it was not.
-   * `playerId` is `getKillerInfo`'s own parameter, so it always names the
-   * victim here. Without this second fallback, an event with neither side
-   * recorded would leave every side a candidate, including the victim's own
-   * team, which can never be its own killer.
+   * `consequenceMatchTeamId` when it was recorded AND matches one of this
+   * match's sides, and — mirroring `resolveKillEntry`'s symmetric fallback
+   * for the perpetrator's own side — by resolving the victim's own team via
+   * their player row otherwise (when it was not recorded, or was recorded
+   * but doesn't match any side — stale or invalid data). `playerId` is
+   * `getKillerInfo`'s own parameter, so it always names the victim here.
+   * Without this fallback, an event with an unresolvable
+   * `consequenceMatchTeamId` would leave every side a candidate, including
+   * the victim's own team, which can never be its own killer.
    */
   private async candidatesExcludingVictim(
     playerId: number,
     sides: MatchSide[],
     consequenceMatchTeamId: number | null,
   ): Promise<MatchSide[]> {
-    let victimMatchTeamId = consequenceMatchTeamId ?? undefined;
+    let victimMatchTeamId =
+      consequenceMatchTeamId !== null &&
+      sides.some((side) => side.matchTeamId === consequenceMatchTeamId)
+        ? consequenceMatchTeamId
+        : undefined;
     if (victimMatchTeamId === undefined) {
       const victim = await this.findPlayerSummary(playerId);
       victimMatchTeamId = sides.find(
