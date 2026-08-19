@@ -227,17 +227,25 @@ each `tools/import-*/src/app.module.spec.ts`) compile the *real* module with its
 wires together, which mocking would defeat.
 
 **A pure, dependency-free formatting service is the other.** A service whose
-only job is deterministic text/markup assembly — no injected collaborators of
-its own, no I/O, no branching on external state — may be passed as a real
-provider to a spec that asserts on its *output* (e.g.
-`packages/review-harness/src/html.service.ts`, which reaches the renderer
-specs that build HTML fragments via the shared package rather than being
-tool-local). Mocking it would leave the actual
-generated markup unasserted, which defeats the point of those tests; passing
-the real thing carries none of the coupling risk the "never pass a real
-collaborator" rule guards against, since there is no concrete *behavior* to
-drift from — only pure formatting. This does not extend to any service with
-its own dependencies or side effects, which must still be mocked as normal.
+only job is deterministic text/markup assembly — no I/O, no branching on
+external state — may be passed as a real provider to a spec that asserts on
+its *output* (e.g. `packages/review-harness/src/html.service.ts`, which
+reaches the renderer specs that build HTML fragments via the shared package
+rather than being tool-local). Mocking it would leave the actual generated
+markup unasserted, which defeats the point of those tests; passing the real
+thing carries none of the coupling risk the "never pass a real collaborator"
+rule guards against, since there is no concrete *behavior* to drift from —
+only pure formatting.
+
+This extends to a formatting service whose only injected collaborator is
+itself another pure, dependency-free formatting/decision service — e.g.
+`PlayerKillsSectionService` (`apps/discord-bot/src/deepdive/facts/`), whose
+sole dependency is `PlayerRowButtonService`, a pure decision service with no
+collaborators of its own. Passing both real still carries no coupling risk:
+neither has I/O or external state to drift from, so the chain is still pure
+end to end. It does not extend to a service with any dependency that has I/O,
+external state, or its own further real dependencies — those chains must
+still be mocked as normal, at the first link that isn't pure.
 
 ## Function parameter limit
 
