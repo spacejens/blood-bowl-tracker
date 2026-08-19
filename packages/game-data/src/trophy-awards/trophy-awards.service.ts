@@ -56,6 +56,20 @@ export type TrophyRecipient = {
   teamName: string;
   playerId: number | null;
   playerName: string | null;
+  /**
+   * The winning player's position, and whether that position is a star
+   * player. All three are null on a team-won trophy, exactly like `playerId`
+   * and `playerName` — `players` is left-joined, and `positions` is
+   * left-joined off it. They can never disagree with `playerId`, because
+   * `players.positionId` is `NOT NULL` in the schema, so a present player
+   * always has a present position. The trophy deepdive uses
+   * `playerIsStarPlayer` to route the recipient's drill-down button to the
+   * star player deepdive (keyed by `playerPositionId`) instead of the
+   * per-team player one. Mirrors `TeamHonor`.
+   */
+  playerPositionId: number | null;
+  playerPositionName: string | null;
+  playerIsStarPlayer: boolean | null;
 };
 
 /**
@@ -75,6 +89,17 @@ export type CompetitionTrophyAward = {
   teamName: string;
   playerId: number | null;
   playerName: string | null;
+  /**
+   * The winning player's position, and whether that position is a star
+   * player. All three are null for a team award, for the same reason and
+   * with the same left-join shape as `TrophyRecipient.playerPositionId`. The
+   * competition deepdive uses `playerIsStarPlayer` to route the award's
+   * drill-down button to the star player deepdive (keyed by
+   * `playerPositionId`) instead of the per-team player one.
+   */
+  playerPositionId: number | null;
+  playerPositionName: string | null;
+  playerIsStarPlayer: boolean | null;
 };
 
 /**
@@ -162,30 +187,41 @@ export class TrophyAwardsService {
    * the same fix in `CompetitionsService.listByCompetitionGroupChronological`.
    */
   listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
-    return this.db
-      .select({
-        competitionName: competitions.name,
-        competitionStartDate: competitions.startDate,
-        eraId: eras.id,
-        eraName: eras.name,
-        teamId: teams.id,
-        teamName: teams.name,
-        playerId: players.id,
-        playerName: players.name,
-      })
-      .from(trophyAwards)
-      .innerJoin(competitions, eq(competitions.id, trophyAwards.competitionId))
-      .innerJoin(eras, eq(eras.id, competitions.eraId))
-      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .leftJoin(players, eq(players.id, trophyAwards.playerId))
-      .where(eq(trophyAwards.trophyId, trophyId))
-      .orderBy(
-        desc(eras.startDate),
-        desc(eras.id),
-        desc(competitions.startDate),
-      )
-      .limit(limit);
+    return (
+      this.db
+        .select({
+          competitionName: competitions.name,
+          competitionStartDate: competitions.startDate,
+          eraId: eras.id,
+          eraName: eras.name,
+          teamId: teams.id,
+          teamName: teams.name,
+          playerId: players.id,
+          playerName: players.name,
+          playerPositionId: positions.id,
+          playerPositionName: positions.name,
+          playerIsStarPlayer: positions.isStarPlayer,
+        })
+        .from(trophyAwards)
+        .innerJoin(
+          competitions,
+          eq(competitions.id, trophyAwards.competitionId),
+        )
+        .innerJoin(eras, eq(eras.id, competitions.eraId))
+        .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+        .innerJoin(teams, eq(teams.id, teamEras.teamId))
+        .leftJoin(players, eq(players.id, trophyAwards.playerId))
+        // Left, not inner: `players` is itself left-joined, so an inner join
+        // here would drop every team-won trophy from the list.
+        .leftJoin(positions, eq(positions.id, players.positionId))
+        .where(eq(trophyAwards.trophyId, trophyId))
+        .orderBy(
+          desc(eras.startDate),
+          desc(eras.id),
+          desc(competitions.startDate),
+        )
+        .limit(limit)
+    );
   }
 
   /**
@@ -216,31 +252,39 @@ export class TrophyAwardsService {
    * order on every call.
    */
   listForCompetition(competitionId: number): Promise<CompetitionTrophyAward[]> {
-    return this.db
-      .select({
-        trophyId: trophies.id,
-        trophyName: trophies.name,
-        recipientKind: trophies.recipientKind,
-        teamId: teams.id,
-        teamName: teams.name,
-        playerId: players.id,
-        playerName: players.name,
-      })
-      .from(trophyAwards)
-      .innerJoin(trophies, eq(trophies.id, trophyAwards.trophyId))
-      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .leftJoin(players, eq(players.id, trophyAwards.playerId))
-      .where(eq(trophyAwards.competitionId, competitionId))
-      .orderBy(
-        asc(trophies.recipientKind),
-        asc(trophies.name),
-        asc(trophies.id),
-        asc(teams.name),
-        asc(teams.id),
-        asc(players.name),
-        asc(players.id),
-      );
+    return (
+      this.db
+        .select({
+          trophyId: trophies.id,
+          trophyName: trophies.name,
+          recipientKind: trophies.recipientKind,
+          teamId: teams.id,
+          teamName: teams.name,
+          playerId: players.id,
+          playerName: players.name,
+          playerPositionId: positions.id,
+          playerPositionName: positions.name,
+          playerIsStarPlayer: positions.isStarPlayer,
+        })
+        .from(trophyAwards)
+        .innerJoin(trophies, eq(trophies.id, trophyAwards.trophyId))
+        .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+        .innerJoin(teams, eq(teams.id, teamEras.teamId))
+        .leftJoin(players, eq(players.id, trophyAwards.playerId))
+        // Left, not inner: `players` is itself left-joined, so an inner join
+        // here would drop every team-won award from the list.
+        .leftJoin(positions, eq(positions.id, players.positionId))
+        .where(eq(trophyAwards.competitionId, competitionId))
+        .orderBy(
+          asc(trophies.recipientKind),
+          asc(trophies.name),
+          asc(trophies.id),
+          asc(teams.name),
+          asc(teams.id),
+          asc(players.name),
+          asc(players.id),
+        )
+    );
   }
 
   /**
