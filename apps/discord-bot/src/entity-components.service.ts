@@ -41,11 +41,11 @@ const BLANK_LABEL = '\u200b';
  * The button colour each destination type gets, so a coach can tell coach
  * buttons from team buttons from player buttons at a glance without reading
  * every label. Discord offers only four usable styles (Link navigates to a
- * URL and Premium is for purchases), so nine destination types share colours:
+ * URL and Premium is for purchases), so some of the nine destination types share colours:
  * the four "container" types (era, competition, competition group, trophy)
  * share Secondary, and the three "who played" types (coach, team, race) share
  * Success — race used to be Danger, but red read as a destructive-action
- * colour for what is just normal navigation. Player is one user of Primary.
+ * colour for what is just normal navigation. Player is the sole user of Primary.
  * Star player takes Danger, the last unused style — red reads as
  * "special/headline" for the one destination type that is a marquee hired
  * mercenary rather than ordinary navigation.
