@@ -153,4 +153,20 @@ export class StarPlayersService {
       .where(and(eq(players.id, playerId), eq(positions.isStarPlayer, true)));
     return rows[0];
   }
+
+  /**
+   * Every known star player, name-ascending. The full global catalog: star
+   * positions carry no league/era/competition FK at all, so unlike
+   * `ErasService.listErasWithLeague` or `TrophiesService.listAllWithLeague`
+   * this takes no `FactScope`. The only link between a star and a league is
+   * indirect, through hire history (`players` -> `teamEras` -> `teams`), which
+   * is deliberately out of scope here.
+   */
+  listAll(): Promise<StarPlayerIdentity[]> {
+    return this.db
+      .select({ positionId: positions.id, name: positions.name })
+      .from(positions)
+      .where(eq(positions.isStarPlayer, true))
+      .orderBy(asc(positions.name));
+  }
 }

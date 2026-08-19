@@ -216,4 +216,44 @@ describe('StarPlayersService', () => {
       expect(await service.findByPlayerId(77)).toBeUndefined();
     });
   });
+
+  describe('listAll', () => {
+    it('returns an empty catalog when there are no star positions', async () => {
+      await build([]);
+
+      expect(await service.listAll()).toEqual([]);
+    });
+
+    it('returns every star position identity', async () => {
+      await build([
+        { positionId: 20, name: 'Griff Oberwald' },
+        { positionId: 21, name: 'Morg n Thorg' },
+      ]);
+
+      expect(await service.listAll()).toEqual([
+        { positionId: 20, name: 'Griff Oberwald' },
+        { positionId: 21, name: 'Morg n Thorg' },
+      ]);
+    });
+
+    it('filters on is_star_player', async () => {
+      const { chains } = await build([]);
+
+      await service.listAll();
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        true,
+      ]);
+    });
+
+    it('orders by position name ascending', async () => {
+      const { chains } = await build([]);
+
+      await service.listAll();
+
+      const orderBy = sqlText(firstCallArg(chains[0].orderBy));
+      expect(orderBy).toContain(' asc');
+      expect(orderBy).not.toContain(' desc');
+    });
+  });
 });
