@@ -11,6 +11,7 @@ import {
   ERAS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { ListDescriptionService } from '../../shared/list-description.service';
 
 interface EraEntry {
   id: number;
@@ -27,6 +28,7 @@ export class ErasListService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly listDescription: ListDescriptionService,
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -65,12 +67,14 @@ export class ErasListService {
           label: era.name,
         })),
       );
-    if (overflowNote !== null) {
-      lines.push(overflowNote);
-    }
 
     return {
-      embeds: [{ title: 'Eras', description: lines.join('\n') }],
+      embeds: [
+        {
+          title: 'Eras',
+          description: this.listDescription.build(lines, overflowNote),
+        },
+      ],
       components,
     };
   }

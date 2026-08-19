@@ -19,6 +19,7 @@ import { DatabaseTimeoutService } from '../database-timeout.service';
 import { EntityComponentsService } from '../entity-components.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../shared/era-section-grouper.service';
+import { ListDescriptionService } from '../shared/list-description.service';
 import { DayCountFormatterService } from './day-count-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
@@ -68,6 +69,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     DateRangeFormatterService,
     EraSectionGrouperService,
+    ListDescriptionService,
     FactTreeFactoryService,
     FactTreeUtilsService,
     RandomSourceService,
@@ -100,6 +102,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     DateRangeFormatterService,
     EraSectionGrouperService,
+    ListDescriptionService,
     FactTreeUtilsService,
     RandomSourceService,
     RandomInsightsScopeService,

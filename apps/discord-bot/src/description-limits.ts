@@ -6,9 +6,15 @@
  * length ceiling tight enough to guarantee a row cap always fits within this
  * character cap — a handful of long names can still overflow it. Consumers
  * enforce this length limit on top of any row cap, trimming further when
- * needed: see e.g. the player deepdive's honors/kills builders, and
- * `StarPlayersListService`, which has no row cap at all and relies on this
- * entirely.
+ * needed, in one of two ways: by selecting which individual rows to keep,
+ * each tied to a per-row drill-down entry (the player deepdive's honors and
+ * kills builders — see `PlayerKillsSectionService`), or by truncating the
+ * assembled text outright (e.g. `StarPlayerDeepdiveService.enforceDescriptionLimit`,
+ * and `PlayerDeepdiveService`'s own final safety net on top of its row
+ * selection). For the list-style insights facts — star players, eras,
+ * trophies and competition groups, which have no row cap at all and rely on
+ * this entirely — that truncation is centralised in `ListDescriptionService`
+ * (`shared/`); the deepdive fact services keep their own equivalent.
  */
 export const MAX_DESCRIPTION_LENGTH = 4096;
 

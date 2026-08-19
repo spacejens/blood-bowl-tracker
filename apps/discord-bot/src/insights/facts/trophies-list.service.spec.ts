@@ -15,6 +15,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { TROPHY_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -25,6 +26,7 @@ import {
   TROPHIES_LIST_NO_DATA_MESSAGE,
   TROPHIES_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ListDescriptionService } from '../../shared/list-description.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 import { TrophiesListService } from './trophies-list.service';
 
@@ -42,6 +44,13 @@ beforeEach(() => {
   // Tests that need the timeout branch override this per-call.
 });
 
+async function realListDescription(): Promise<ListDescriptionService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [ListDescriptionService],
+  }).compile();
+  return moduleRef.get(ListDescriptionService);
+}
+
 async function makeServiceFromTrophies(
   trophies: TrophiesService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
@@ -52,6 +61,12 @@ async function makeServiceFromTrophies(
       { provide: TrophiesService, useValue: trophies },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      {
+        provide: ListDescriptionService,
+        // Pure, dependency-free formatter — its own truncation rules are
+        // covered by list-description.service.spec.ts.
+        useValue: await realListDescription(),
+      },
     ],
   }).compile();
   return moduleRef.get(TrophiesListService);
@@ -310,5 +325,50 @@ describe('TrophiesListService.resolve', () => {
     const scope: FactScope = { leagueId: 7 };
     await service.resolve(scope);
     expect(trophies.listAllWithLeague).toHaveBeenCalledWith(scope);
+  });
+
+  it('truncates the description to the Discord embed cap when the trophy catalog is large', async () => {
+    // trophies.list renders "<trophy> (<competition group>)" per row and grows
+    // one row per group's placement set, so it can reach Discord's 4096-char
+    // description cap well before the component overflow note kicks in.
+    const rows: TrophyRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      id: index,
+      name: `Trophy Number ${index} With A Fairly Long Name`,
+      competitionGroupId: index,
+      competitionGroupName: 'The Rather Long Competition Group Name',
+    }));
+    const service = await makeService(rows);
+
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
+  });
+
+  it('keeps the overflow note in full when the trophy list must be truncated to fit', async () => {
+    const entityComponents = entityComponentsMock();
+    const overflowNote = '…and 12345 more without a link.';
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote,
+    });
+    const rows: TrophyRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      id: index,
+      name: `Trophy Number ${index} With A Fairly Long Name`,
+      competitionGroupId: index,
+      competitionGroupName: 'The Rather Long Competition Group Name',
+    }));
+    const service = await makeService(rows, entityComponents);
+
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.endsWith(`\n${overflowNote}`)).toBe(true);
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
   });
 });
