@@ -133,6 +133,11 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   match MVPs, not an end-of-competition MVP trophy. Zero categories are
   omitted; a player with nothing in any category shows a short
   nothing-memorable-yet-style message instead of an empty list.
+  Then — only when the player has a computed star player point total, with no
+  line at all otherwise — a blank line, an optional
+  `Star player points adjustment: <+N|-N> (included)` line shown only when a
+  nonzero manual adjustment has been applied (the total already includes it;
+  the line is just calling that out), and `Total star player points: <total>`.
   Then — only when the player has killed someone, with the whole section
   omitted otherwise rather than a placeholder line — a blank line, a `Kills:`
   heading, and one line per kill, newest match first. A kill whose victim is a

@@ -101,16 +101,18 @@ const MAX_PLAYER_KILLS = 30;
  * is a final, independent safety net on the fully-assembled string, so the
  * limit holds even if that budgeting ever falls out of sync with the rest of
  * the description's actual size.
- * Between the category counts and the SPP totals sits a `Kills:` section
- * listing the matches this player killed an opponent in, newest match first,
- * capped at `MAX_PLAYER_KILLS` with an exact "…and N more not shown." note —
- * built by the injected `PlayerKillsSectionService` (extracted purely for this
- * file's size). It is omitted entirely when the player has killed nobody.
+ * After the SPP totals sits a `Kills:` section listing the matches this
+ * player killed an opponent in, newest match first, capped at
+ * `MAX_PLAYER_KILLS` with an exact "…and N more not shown." note — built by
+ * the injected `PlayerKillsSectionService` (extracted purely for this file's
+ * size). It is omitted entirely when the player has killed nobody.
  * Because the kills section sits below the honors budget's other content, it
  * is built first and its own lines are folded into `buildHonorLines`'s
  * `otherLines`, so a long kill list is what gets trimmed against, not the
- * other way around. Each listed victim adds a drill-down button, placed after
- * the killer entries (if any) and before the team/era/race header buttons.
+ * other way around — this holds regardless of the kills section's own print
+ * position in the final description. Each listed victim adds a drill-down
+ * button, placed after the killer entries (if any) and before the
+ * team/era/race header buttons.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -287,8 +289,8 @@ export class PlayerDeepdiveService {
       ...(honorLines.length === 0 ? [] : ['', 'Trophies:', ...honorLines]),
       '',
       ...categoryLines,
-      ...killsSection.lines,
       ...this.buildTotalLines(player),
+      ...killsSection.lines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
 

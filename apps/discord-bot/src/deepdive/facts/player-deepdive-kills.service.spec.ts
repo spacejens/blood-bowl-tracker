@@ -59,7 +59,7 @@ describe('PlayerDeepdiveService kills section', () => {
     expect(await describeKills([])).not.toContain('Kills:');
   });
 
-  it('lists the kills after the category counts and before the totals', async () => {
+  it('lists the kills after the SPP totals', async () => {
     const { service } = await makeService({
       players: makePlayers({
         player: { ...griff, sppTotal: 42 },
@@ -76,10 +76,10 @@ describe('PlayerDeepdiveService kills section', () => {
       'Kills:\nGriff Oberwald (Blitzer, Gouged Eye, Orc, Grimly)',
     );
     expect(description.indexOf('Touchdowns scored')).toBeLessThan(
-      description.indexOf('Kills:'),
-    );
-    expect(description.indexOf('Kills:')).toBeLessThan(
       description.indexOf('Total star player points'),
+    );
+    expect(description.indexOf('Total star player points')).toBeLessThan(
+      description.indexOf('Kills:'),
     );
   });
 
