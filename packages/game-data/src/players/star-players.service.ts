@@ -9,7 +9,16 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, exists, ilike } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  exists,
+  ilike,
+} from 'drizzle-orm';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 
@@ -48,6 +57,19 @@ export interface StarPlayerHire {
  * count of those rows.
  */
 export interface StarPlayerHireCount {
+  positionId: number;
+  name: string;
+  count: number;
+}
+
+/**
+ * One star position and how many distinct teams have ever hired it, across
+ * every era. A team that re-hires the same star across multiple eras (or
+ * multiple times within one era) counts once — this measures how widely a
+ * star gets used, not how often, mirroring `listHiresByTeam`'s "one row per
+ * team, not per team era" grouping.
+ */
+export interface StarPlayerDistinctTeamsHiredCount {
   positionId: number;
   name: string;
   count: number;
@@ -223,6 +245,35 @@ export class StarPlayersService {
       .where(eq(positions.isStarPlayer, true))
       .groupBy(positions.id, positions.name)
       .orderBy(desc(count(players.id)), asc(positions.name))
+      .limit(limit);
+  }
+
+  /**
+   * The star players hired by the most distinct teams, most teams first, ties
+   * broken by star name so the order is stable across calls. One row per star
+   * position; `count` is the number of distinct teams that have ever hired
+   * that star, not the number of hires (see
+   * `StarPlayerDistinctTeamsHiredCount`).
+   *
+   * Needs no `EXISTS` filter, unscoped, for the same reasons as
+   * `countTotalHires` — see this class's doc comment.
+   */
+  countDistinctTeamsHired(
+    limit: number,
+  ): Promise<StarPlayerDistinctTeamsHiredCount[]> {
+    return this.db
+      .select({
+        positionId: positions.id,
+        name: positions.name,
+        count: countDistinct(teams.id),
+      })
+      .from(players)
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(positions.isStarPlayer, true))
+      .groupBy(positions.id, positions.name)
+      .orderBy(desc(countDistinct(teams.id)), asc(positions.name))
       .limit(limit);
   }
 }

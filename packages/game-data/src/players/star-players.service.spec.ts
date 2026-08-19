@@ -347,4 +347,95 @@ describe('StarPlayersService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
   });
+
+  describe('countDistinctTeamsHired', () => {
+    it('returns one row per star position with its distinct-team count', async () => {
+      const rows = [
+        { positionId: 21, name: 'Morg n Thorg', count: 5 },
+        { positionId: 20, name: 'Griff Oberwald', count: 2 },
+      ];
+      await build(rows);
+
+      expect(await service.countDistinctTeamsHired(21)).toEqual(rows);
+    });
+
+    it('returns an empty toplist when no star has ever been hired', async () => {
+      await build([]);
+
+      expect(await service.countDistinctTeamsHired(21)).toEqual([]);
+    });
+
+    it('filters on is_star_player, so regular positions are excluded', async () => {
+      const { chains } = await build([]);
+
+      await service.countDistinctTeamsHired(21);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        true,
+      ]);
+    });
+
+    it('joins hires through their team era up to the owning team, so eras of one team fold together', async () => {
+      const { chains } = await build([]);
+
+      await service.countDistinctTeamsHired(21);
+
+      const joins = chains[0].innerJoin.mock.calls.map((call) =>
+        extractJoinColumns(call[1]),
+      );
+      expect(joins).toEqual([
+        ['positions.id', 'players.position_id'],
+        ['team_eras.id', 'players.team_era_id'],
+        ['teams.id', 'team_eras.team_id'],
+      ]);
+    });
+
+    it('counts distinct teams, not hires, so a team re-hiring the same star counts once', async () => {
+      const { db } = await build([]);
+
+      await service.countDistinctTeamsHired(21);
+
+      const selection = firstCallArg(
+        (db as unknown as Record<string, unknown>).select,
+      ) as { count: unknown };
+      expect(sqlText(selection.count)).toContain('count(distinct');
+      expect(extractJoinColumns(selection.count)).toEqual(['teams.id']);
+    });
+
+    it('groups the hires per star position in one query', async () => {
+      const { chains } = await build([]);
+
+      await service.countDistinctTeamsHired(21);
+
+      expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(chains[0].groupBy.mock.calls[0])).toEqual([
+        'positions.id',
+        'positions.name',
+      ]);
+      expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+    });
+
+    it('orders by distinct team count descending, then star name ascending — the toplist relies on this order and does not re-sort', async () => {
+      const { chains } = await build([]);
+
+      await service.countDistinctTeamsHired(21);
+
+      const teamCountOrder = firstCallArg(chains[0].orderBy, 0, 0);
+      expect(extractJoinColumns(teamCountOrder)).toEqual(['teams.id']);
+      expect(sqlText(teamCountOrder)).toContain('count(distinct');
+      expect(sqlText(teamCountOrder)).toContain(' desc');
+
+      const nameOrder = firstCallArg(chains[0].orderBy, 0, 1);
+      expect(extractJoinColumns(nameOrder)).toEqual(['positions.name']);
+      expect(sqlText(nameOrder)).toContain(' asc');
+    });
+
+    it('applies the caller-supplied limit', async () => {
+      const { chains } = await build([]);
+
+      await service.countDistinctTeamsHired(21);
+
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+  });
 });
