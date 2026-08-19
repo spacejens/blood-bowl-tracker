@@ -265,6 +265,48 @@ describe('TeamDeepdiveService buttons', () => {
     });
   });
 
+  it('shows the star player button for a star hire who won an honor', async () => {
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '40',
+      label: 'Morg N Thorg',
+    });
+    const { service, entityComponents } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2020', end: '2021' },
+      }),
+      trophyAwards: makeTrophyAwards([
+        {
+          trophyId: 2,
+          trophyName: 'MVP',
+          competitionName: 'Minor Season 23',
+          competitionStartDate: '2023-01-15',
+          eraId: 19,
+          eraName: 'Season 2',
+          playerId: 40,
+          playerName: 'Morg N Thorg',
+          playerPositionId: 61,
+          playerPositionName: 'Morg N Thorg',
+          playerIsStarPlayer: true,
+        },
+      ]),
+      leaderboard: passthroughLeaderboard(),
+      playerRowButton,
+    });
+
+    await service.resolve(1);
+
+    expect(
+      entityComponents.buildEntityComponents.mock.calls[0][0],
+    ).toContainEqual({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '40',
+      label: 'Morg N Thorg',
+    });
+  });
+
   it('asks PlayerRowButtonService for the player who won an honor', async () => {
     const { service, playerRowButton } = await makeService({
       teams: makeTeams({

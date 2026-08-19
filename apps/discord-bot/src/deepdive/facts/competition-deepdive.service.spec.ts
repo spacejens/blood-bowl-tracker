@@ -47,8 +47,8 @@ import {
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
-import { makePlayerRowButton } from './team-deepdive.test-helpers';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
+import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 interface MakeServiceOptions {
   competitions: CompetitionsService;

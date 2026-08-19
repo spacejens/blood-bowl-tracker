@@ -18,10 +18,10 @@ import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
-import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 /**
  * Test-only helper. Do not import from production code.
@@ -116,23 +116,6 @@ export interface MakeServiceOptions {
 }
 
 /**
- * A `PlayerRowButtonService` mock. Returns a canned regular-player entry by
- * default so tests about other parts of the embed are unaffected; a star test
- * stubs a star entry for the one row it cares about. The mock deliberately
- * does NOT reimplement the real star-vs-regular rule — that rule is tested in
- * `player-row-button.service.spec.ts`.
- */
-export function makePlayerRowButton(): MockProxy<PlayerRowButtonService> {
-  const playerRowButton = mock<PlayerRowButtonService>();
-  playerRowButton.buildPlayerRowButton.mockImplementation((row) => ({
-    customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-    entityId: String(row.playerId),
-    label: row.playerName,
-  }));
-  return playerRowButton;
-}
-
-/**
  * A `StarPlayersService` mock. Defaults to `undefined` — "not a star hire" —
  * so tests about other parts of the embed never see the star drill-down
  * button.
@@ -142,6 +125,9 @@ export function makeStars(): MockProxy<StarPlayersService> {
   stars.findByPlayerId.mockResolvedValue(undefined);
   return stars;
 }
+
+// Re-export makePlayerRowButton from team-deepdive.test-helpers to avoid duplication.
+export { makePlayerRowButton };
 
 export async function makeService({
   players,
