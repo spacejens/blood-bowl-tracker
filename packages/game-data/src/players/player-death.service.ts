@@ -70,21 +70,13 @@ export type PlayerKillerInfo = (
  * construction. `viaFoul` reports that the fatal (or prevented) event was
  * recorded as a foul.
  */
-export type PlayerKillEntry = (
-  | (PlayerKillerTeam & {
-      kind: 'player';
-      playerId: number;
-      playerName: string;
-      positionName: string;
-    })
-  | (PlayerKillerTeam & { kind: 'team' })
-  | { kind: 'ambiguousTeams'; teams: PlayerKillerTeam[] }
-  | { kind: 'unknown' }
+export type PlayerKillEntry =
+  | PlayerKillerInfo
   | (PlayerKillerTeam & {
       kind: 'prevented';
       avoidedBy: 'apothecary' | 'regeneration';
-    })
-) & { viaFoul: boolean };
+      viaFoul: boolean;
+    });
 
 /** One `match_events` row where this player caused (or attempted) a death. */
 interface KillEvent {

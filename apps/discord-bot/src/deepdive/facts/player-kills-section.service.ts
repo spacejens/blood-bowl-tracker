@@ -151,6 +151,7 @@ export class PlayerKillsSectionService {
           },
         ];
       case 'team':
+      case 'prevented':
         return [
           {
             customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -166,14 +167,6 @@ export class PlayerKillsSectionService {
         }));
       case 'unknown':
         return [];
-      case 'prevented':
-        return [
-          {
-            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(kill.teamId),
-            label: kill.teamName,
-          },
-        ];
     }
   }
 }
