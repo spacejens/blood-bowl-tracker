@@ -129,7 +129,7 @@ export class PlayerKillsSectionService {
       case 'unknown':
         return 'An opponent, in mysterious circumstances';
       case 'prevented':
-        return `Someone in ${this.formatTeam(kill)}, saved by ${
+        return `An unidentified player from ${this.formatTeam(kill)}, saved by ${
           kill.avoidedBy === 'apothecary' ? 'an apothecary' : 'regeneration'
         }`;
     }

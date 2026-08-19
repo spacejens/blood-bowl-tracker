@@ -128,7 +128,7 @@ describe('PlayerKillsSectionService', () => {
     };
 
     expect(build([kill]).lines[2]).toBe(
-      'Someone in Gouged Eye (Orc, Grimly), saved by an apothecary',
+      'An unidentified player from Gouged Eye (Orc, Grimly), saved by an apothecary',
     );
   });
 
@@ -141,7 +141,7 @@ describe('PlayerKillsSectionService', () => {
     };
 
     expect(build([kill]).lines[2]).toBe(
-      'Someone in Gouged Eye (Orc, Grimly), saved by regeneration',
+      'An unidentified player from Gouged Eye (Orc, Grimly), saved by regeneration',
     );
   });
 
@@ -154,7 +154,7 @@ describe('PlayerKillsSectionService', () => {
     };
 
     expect(build([kill]).lines[2]).toBe(
-      'Someone in Gouged Eye (Orc, Grimly), saved by an apothecary (via a foul)',
+      'An unidentified player from Gouged Eye (Orc, Grimly), saved by an apothecary (via a foul)',
     );
   });
 

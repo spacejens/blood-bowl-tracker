@@ -158,7 +158,7 @@ played:` followed by their top five teams by matches played, one line per
   an Oxford comma for three or more; and one with nothing attributable at all
   reads `An opponent, in mysterious circumstances`. A death this player
   caused but that was saved by an apothecary or by regeneration reads
-  `Someone in <team> (<race>, <coach>), saved by an apothecary` or
+  `An unidentified player from <team> (<race>, <coach>), saved by an apothecary` or
   `...saved by regeneration` — the team is known and the victim player is
   never named, in the normal case; a defensive fallback (not expected from any
   known importer behaviour) can instead render a prevented kill through the
