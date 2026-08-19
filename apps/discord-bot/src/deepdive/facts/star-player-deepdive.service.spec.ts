@@ -214,8 +214,8 @@ describe('StarPlayerDeepdiveService', () => {
     // listHiresByTeam carries no row limit, so a heavily-hired star (exactly
     // the case this feature's select-menu overflow exists for — see
     // `EntityComponentsService`) can produce a description longer than
-    // Discord's MAX_DESCRIPTION_LENGTH. One line here is ~55 chars; 100 rows
-    // comfortably exceeds the 4096-char cap.
+    // Discord's MAX_DESCRIPTION_LENGTH. One line here is ~42 chars; 100 rows
+    // (~4.2k chars plus newlines) comfortably exceeds the 4096-char cap.
     const manyHires: StarPlayerHire[] = Array.from(
       { length: 100 },
       (_unused, index) => ({

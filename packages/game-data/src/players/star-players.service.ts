@@ -9,7 +9,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike } from 'drizzle-orm';
+import { and, asc, count, desc, eq, exists, ilike } from 'drizzle-orm';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 
@@ -107,6 +107,12 @@ export class StarPlayersService {
    * excludes stars (a popular star would otherwise appear once per hiring
    * team). Searching `positions` directly gives exactly one choice per star
    * identity with no grouping needed.
+   *
+   * Only positions with at least one hire (a `players` row referencing this
+   * `positionId`) are returned: this feature's whole purpose is showing which
+   * teams have hired a star, so a star position that has never been hired has
+   * nothing to show, and offering it in autocomplete would just lead straight
+   * to `StarPlayerDeepdiveService`'s not-found message.
    */
   searchByNamePrefix(
     prefix: string,
@@ -119,6 +125,12 @@ export class StarPlayersService {
         and(
           eq(positions.isStarPlayer, true),
           ilike(positions.name, `${this.likePattern.escape(prefix)}%`),
+          exists(
+            this.db
+              .select({ id: players.id })
+              .from(players)
+              .where(eq(players.positionId, positions.id)),
+          ),
         ),
       )
       .orderBy(asc(positions.name))

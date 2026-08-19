@@ -12,6 +12,7 @@ import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { StarPlayersService } from './star-players.service';
 
@@ -124,6 +125,21 @@ describe('StarPlayersService', () => {
       expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
       expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
     });
+
+    it('orders by hire count descending, then team name ascending — the deepdive service relies on this order and does not re-sort', async () => {
+      const { chains } = await build([]);
+
+      await service.listHiresByTeam(20);
+
+      const hireCountOrder = firstCallArg(chains[0].orderBy, 0, 0);
+      expect(extractJoinColumns(hireCountOrder)).toEqual(['players.id']);
+      expect(sqlText(hireCountOrder)).toContain('count');
+      expect(sqlText(hireCountOrder)).toContain(' desc');
+
+      const teamNameOrder = firstCallArg(chains[0].orderBy, 0, 1);
+      expect(extractJoinColumns(teamNameOrder)).toEqual(['teams.name']);
+      expect(sqlText(teamNameOrder)).toContain(' asc');
+    });
   });
 
   describe('searchByNamePrefix', () => {
@@ -154,6 +170,30 @@ describe('StarPlayersService', () => {
       await service.searchByNamePrefix('G', 25);
 
       expect(chains[0].limit).toHaveBeenCalledWith(25);
+    });
+
+    it('requires an EXISTS match against players on position id, so a never-hired star is excluded', async () => {
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefix('Gri', 25);
+
+      expect(sqlText(firstCallArg(chains[0].where))).toContain('exists');
+      // The EXISTS subquery is itself a separate db.select(...) call, issued
+      // while building the outer where() argument, so it shows up as its own
+      // captured query chain.
+      const subquery = chains[1];
+      expect(extractJoinColumns(firstCallArg(subquery.where))).toEqual([
+        'players.position_id',
+        'positions.id',
+      ]);
+    });
+
+    it('includes a star position that has at least one hire', async () => {
+      await build([{ positionId: 20, name: 'Griff Oberwald' }]);
+
+      expect(await service.searchByNamePrefix('Gri', 25)).toEqual([
+        { positionId: 20, name: 'Griff Oberwald' },
+      ]);
     });
   });
 
