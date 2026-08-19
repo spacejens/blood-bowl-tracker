@@ -398,6 +398,9 @@ describe('TrophyAwardsService', () => {
       eraName: 'Season 4',
       playerId: null,
       playerName: null,
+      playerPositionId: null,
+      playerPositionName: null,
+      playerIsStarPlayer: null,
     };
     const playerHonor = {
       trophyId: 2,
@@ -408,6 +411,18 @@ describe('TrophyAwardsService', () => {
       eraName: 'Season 2',
       playerId: 40,
       playerName: 'Grombrindal',
+      playerPositionId: 60,
+      playerPositionName: 'Blitzer',
+      playerIsStarPlayer: false,
+    };
+    const starHonor = {
+      ...playerHonor,
+      trophyId: 3,
+      playerId: 41,
+      playerName: 'Morg N Thorg',
+      playerPositionId: 61,
+      playerPositionName: 'Morg N Thorg',
+      playerIsStarPlayer: true,
     };
 
     it('returns the team-kind honors of the requested team, capped at the limit', async () => {
@@ -423,6 +438,18 @@ describe('TrophyAwardsService', () => {
       await build([playerHonor]);
 
       await expect(service.listByTeam(30, 30)).resolves.toEqual([playerHonor]);
+    });
+
+    it('carries the position and star flag of a star hire that won a trophy', async () => {
+      await build([starHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([starHonor]);
+    });
+
+    it('still returns a team-only honor, whose position fields are all null', async () => {
+      await build([teamHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([teamHonor]);
     });
 
     it('returns team-kind and player-kind honors interleaved in one list', async () => {
@@ -464,6 +491,9 @@ describe('TrophyAwardsService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['players.id', 'trophy_awards.player_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 1, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
     });
 
     it('orders by era start date, then era id as a tiebreaker, then competition start date, all descending', async () => {

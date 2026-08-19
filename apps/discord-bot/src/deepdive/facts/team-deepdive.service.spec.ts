@@ -118,7 +118,14 @@ function makeTeams(options: {
   };
   eras?: { id: number; name: string }[];
   span?: { start: string; end: string };
-  topPlayers?: { playerId: number; name: string; count: number }[];
+  topPlayers?: {
+    playerId: number;
+    name: string;
+    count: number;
+    positionId: number;
+    positionName: string;
+    isStarPlayer: boolean;
+  }[];
 }): TeamsService {
   const teams = mock<TeamsService>();
   teams.findById.mockResolvedValue(options.team);
@@ -162,8 +169,22 @@ describe('TeamDeepdiveService', () => {
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
         topPlayers: [
-          { playerId: 5, name: 'Griff', count: 20 },
-          { playerId: 8, name: 'Morg', count: 11 },
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+          {
+            playerId: 8,
+            name: 'Morg',
+            count: 11,
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+          },
         ],
       }),
       leaderboard: passthroughLeaderboard(),
@@ -232,7 +253,16 @@ describe('TeamDeepdiveService', () => {
           { id: 4, name: 'BB2020' },
         ],
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
     });
@@ -303,7 +333,16 @@ describe('TeamDeepdiveService', () => {
         team: grinders,
         eras: [],
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
     });
@@ -380,7 +419,16 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
+        topPlayers: [
+          {
+            playerId: 1,
+            name: 'P0',
+            count: 9,
+            positionId: 61,
+            positionName: 'Catcher',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard,
     });
@@ -402,7 +450,16 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
+        topPlayers: [
+          {
+            playerId: 1,
+            name: 'P0',
+            count: 9,
+            positionId: 61,
+            positionName: 'Catcher',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard,
       entityComponents,
@@ -618,8 +675,22 @@ describe('TeamDeepdiveService', () => {
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
         topPlayers: [
-          { playerId: 5, name: 'Griff', count: 20 },
-          { playerId: 8, name: 'Morg', count: 11 },
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+          {
+            playerId: 8,
+            name: 'Morg',
+            count: 11,
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+          },
         ],
       }),
       leaderboard: passthroughLeaderboard(),
@@ -657,7 +728,16 @@ describe('TeamDeepdiveService', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+            topPlayers: [
+              {
+                playerId: 5,
+                name: 'Griff',
+                count: 20,
+                positionId: 60,
+                positionName: 'Blitzer',
+                isStarPlayer: false,
+              },
+            ],
           }),
           leaderboard: passthroughLeaderboard(),
           databaseTimeout,
@@ -678,6 +758,9 @@ describe('TeamDeepdiveService', () => {
     eraName: 'Season 4',
     playerId: null,
     playerName: null,
+    playerPositionId: null,
+    playerPositionName: null,
+    playerIsStarPlayer: null,
   };
   const mvp: TeamHonor = {
     trophyId: 9,
@@ -688,6 +771,9 @@ describe('TeamDeepdiveService', () => {
     eraName: 'Season 4',
     playerId: 55,
     playerName: 'Grombrindal',
+    playerPositionId: 60,
+    playerPositionName: 'Blitzer',
+    playerIsStarPlayer: false,
   };
 
   it('renders a team honor as "<competition> (<trophy>)" under its era heading', async () => {
@@ -695,7 +781,16 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup]),
@@ -889,7 +984,16 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, mvp]),
@@ -931,7 +1035,16 @@ describe('TeamDeepdiveService', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+            topPlayers: [
+              {
+                playerId: 5,
+                name: 'Griff',
+                count: 20,
+                positionId: 60,
+                positionName: 'Blitzer',
+                isStarPlayer: false,
+              },
+            ],
           }),
           leaderboard: passthroughLeaderboard(),
           trophyAwards: makeTrophyAwards([spikeCup]),
@@ -960,7 +1073,16 @@ describe('TeamDeepdiveService', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+            topPlayers: [
+              {
+                playerId: 5,
+                name: 'Griff',
+                count: 20,
+                positionId: 60,
+                positionName: 'Blitzer',
+                isStarPlayer: false,
+              },
+            ],
           }),
           leaderboard: passthroughLeaderboard(),
           trophyAwards: makeTrophyAwards([spikeCup]),
@@ -990,7 +1112,16 @@ describe('TeamDeepdiveService', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+            topPlayers: [
+              {
+                playerId: 5,
+                name: 'Griff',
+                count: 20,
+                positionId: 60,
+                positionName: 'Blitzer',
+                isStarPlayer: false,
+              },
+            ],
           }),
           leaderboard: passthroughLeaderboard(),
           trophyAwards: makeTrophyAwards([mvp]),
