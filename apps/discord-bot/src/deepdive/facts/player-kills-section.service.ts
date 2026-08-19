@@ -62,6 +62,11 @@ export class PlayerKillsSectionService {
       otherLines.join('\n').length -
       heading.join('\n').length -
       1 - // the newline joining "Kills:" to the first kill row
+      // Also reserved separately inside `buildHonorLines`
+      // (player-deepdive.service.ts) for its own overflow note. When both
+      // sections render on the same embed this budget is reserved twice —
+      // deliberately: it's a safe, conservative overlap, not a bug to
+      // collapse into one shared reservation.
       OVERFLOW_NOTE_BUDGET;
 
     const shown: PlayerKillEntry[] = [];

@@ -57,24 +57,16 @@ export type PlayerKillerInfo = (
 
 /**
  * One kill this player inflicted, describing the *victim* side at the best
- * precision the data supports. Structurally the same shape as
- * `PlayerKillerInfo` with the roles swapped: `player` names the victim,
- * `team` knows only their side, `ambiguousTeams` lists every side the victim
- * could have belonged to in a merged multi-team match, and `unknown` is the
- * defensive fallback. `viaFoul` reports that the fatal event was recorded as a
- * foul.
+ * precision the data supports. Same shape as `PlayerKillerInfo` with the role
+ * swapped: `player` names the victim, `team` knows only their side,
+ * `ambiguousTeams` lists every side the victim could have belonged to in a
+ * merged multi-team match, and `unknown` is the defensive fallback. `viaFoul`
+ * reports that the fatal event was recorded as a foul. There is nothing
+ * distinguishing the two types beyond intent — a `PlayerKillEntry` names a
+ * victim where a `PlayerKillerInfo` names a killer — so this is a type alias
+ * rather than a second, structurally identical declaration.
  */
-export type PlayerKillEntry = (
-  | (PlayerKillerTeam & {
-      kind: 'player';
-      playerId: number;
-      playerName: string;
-      positionName: string;
-    })
-  | (PlayerKillerTeam & { kind: 'team' })
-  | { kind: 'ambiguousTeams'; teams: PlayerKillerTeam[] }
-  | { kind: 'unknown' }
-) & { viaFoul: boolean };
+export type PlayerKillEntry = PlayerKillerInfo;
 
 /** One `match_events` row where this player caused a death. */
 interface KillEvent {
@@ -316,7 +308,12 @@ export class PlayerDeathService {
     return entries;
   }
 
-  /** The capped, newest-first kill events, joined to `matches` for ordering. */
+  /**
+   * The capped, newest-first kill events, joined to `matches` for ordering.
+   * Ordered secondarily by `matchEvents.id`, matching `getKillerInfo`'s
+   * convention, so multiple kills within the same match (a bloodbath) come
+   * back in a stable order rather than an arbitrary one.
+   */
   private findKillEvents(
     playerId: number,
     limit: number,
@@ -337,7 +334,7 @@ export class PlayerDeathService {
           eq(matchEvents.consequenceType, 'death'),
         ),
       )
-      .orderBy(desc(matches.playedAt))
+      .orderBy(desc(matches.playedAt), desc(matchEvents.id))
       .limit(limit);
   }
 

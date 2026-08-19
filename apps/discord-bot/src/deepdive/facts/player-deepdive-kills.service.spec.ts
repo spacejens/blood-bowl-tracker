@@ -135,21 +135,25 @@ describe('PlayerDeepdiveService kills section', () => {
     ]);
   });
 
-  it('trims honors, not kills, when both a long honors list and a long kills list would overflow the description together', async () => {
+  it('trims honors, not kills, when adding the kills section is what pushes the description over the limit', async () => {
     // The kills section is budgeted before honors (see the class doc
     // comment): kills reserve their space against only the header/counts,
     // while honors reserve theirs against header/counts *plus* the
-    // already-built kills section. So when both lists are individually large
-    // enough to threaten the 4096-char limit together, the honors list — the
-    // older, less specific content — is what gets trimmed, and the kills list
-    // survives intact.
+    // already-built kills section. `longHonors` alone (with these 30 kills
+    // absent) comfortably fits within the 4096-char limit in full — see the
+    // sibling honors-only test in `player-deepdive.service.spec.ts`, which
+    // uses a longer honor fixture that overflows even without any kills.
+    // Adding the 30-row kills section below is what pushes the combined
+    // description over budget, so it's specifically the kills section — not
+    // an honors list that would have overflowed regardless — that causes the
+    // honors truncation this test asserts on.
     const longHonors: PlayerHonor[] = Array.from(
       { length: 30 },
       (_, index) => ({
         trophyId: index + 1,
-        trophyName: 'T'.repeat(70),
+        trophyName: 'T'.repeat(60),
         competitionId: 100 + index,
-        competitionName: 'C'.repeat(70),
+        competitionName: 'C'.repeat(60),
         competitionStartDate: '2024-01-15',
       }),
     );
@@ -192,7 +196,7 @@ describe('PlayerDeepdiveService kills section', () => {
     // fit in full.
     const lines = description.split('\n');
     const shownHonorCount = lines.filter((line) =>
-      line.startsWith('C'.repeat(70)),
+      line.startsWith('C'.repeat(60)),
     ).length;
     expect(shownHonorCount).toBeGreaterThan(0);
     expect(shownHonorCount).toBeLessThan(30);

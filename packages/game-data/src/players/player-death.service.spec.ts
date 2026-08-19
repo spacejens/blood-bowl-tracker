@@ -459,12 +459,15 @@ describe('PlayerDeathService', () => {
       expect(chains).toHaveLength(1);
     });
 
-    it('orders newest match first and honours the limit', async () => {
+    it('orders newest match first, then by event id, and honours the limit', async () => {
       const { service, chains } = await build([], []);
 
       await service.getKillsInflicted(1, 7);
 
-      expect(chains[0].orderBy).toHaveBeenCalledWith(desc(matches.playedAt));
+      expect(chains[0].orderBy).toHaveBeenCalledWith(
+        desc(matches.playedAt),
+        desc(matchEvents.id),
+      );
       expect(chains[0].limit).toHaveBeenCalledWith(7);
     });
 

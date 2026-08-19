@@ -105,8 +105,8 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   action, the line ends with ` (via a foul)` — e.g.
   `Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
   those forms.
-  Only the `death` consequence produces this line; a player who has not died shows no `Status:` line at
-  all, rather than a placeholder. Then —
+  Only the `death` consequence produces this line; a player who has not died
+  shows no `Status:` line at all, rather than a placeholder. Then —
   only when the player has recorded trophies, with the whole section omitted
   otherwise rather than a placeholder line — a blank line, a `Trophies:`
   heading, and that player's own awards newest-competition-first, one line per

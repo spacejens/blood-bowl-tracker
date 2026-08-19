@@ -388,6 +388,11 @@ export class PlayerDeepdiveService {
       otherLines.join('\n').length -
       heading.join('\n').length -
       1 - // the newline joining "Trophies:" to the first honor row
+      // Also reserved separately inside `PlayerKillsSectionService.build`
+      // for its own overflow note. When both sections render on the same
+      // embed this budget is reserved twice — deliberately: it's a safe,
+      // conservative overlap, not a bug to collapse into one shared
+      // reservation.
       OVERFLOW_NOTE_BUDGET;
 
     const shown: PlayerHonor[] = [];

@@ -84,6 +84,19 @@ export interface PlayerDeepdiveEventGroup {
  * `'death'`-actioned row whose consequence was `'casualty_avoided'` (the
  * victim survived) or unrecorded, unlike the plain `actionType = 'death'`
  * count `countDeathsCausedByPlayer` reports elsewhere.
+ *
+ * This invariant also depends on the importers confining `actionType` to
+ * `'death'` or `'foul'` for any row with `consequenceType = 'death'`; it is
+ * not a schema-level guarantee. See `MatchEventsService`'s note on upsert for
+ * why a re-imported row could in principle retain a stale `actionType` if the
+ * source data changed category between imports.
+ *
+ * `casualties.total` (via `countActingEvents` below) can also disagree with
+ * the toplist's `countCasualtiesCausedByPlayer` (which goes through the
+ * joined `countMatchEventsByPlayer`) for a player with a casualty event whose
+ * `actingMatchTeamId` is null — the deepdive number can come out higher than
+ * the leaderboard number for that same player. This divergence is
+ * intentional: see `countActingEvents`'s doc comment for why.
  */
 export interface PlayerDeepdiveCategoryCounts {
   simple: { label: string; count: number }[];
@@ -261,6 +274,15 @@ export class PlayersService {
    * differing join shapes on lines that share one "total" would let a
    * sub-count exceed its own total. Deepdive counters apply no scope
    * narrowing, so the join graph earns nothing here anyway.
+   *
+   * This can make a deepdive counter disagree with its toplist counterpart
+   * (e.g. `countCasualtiesCausedByPlayer`, which still goes through the
+   * joined `countMatchEventsByPlayer`) for a player with a null
+   * `actingMatchTeamId` event. That's an accepted tradeoff, not an oversight:
+   * a single deepdive's own lines staying internally consistent with each
+   * other matters more than that deepdive agreeing with a cross-player
+   * leaderboard, and the toplist genuinely needs the join to narrow its scope
+   * (era/league/competition), which a single-player deepdive has no use for.
    */
   private async countActingEvents(
     playerId: number,
