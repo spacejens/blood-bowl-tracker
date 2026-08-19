@@ -5,6 +5,7 @@ import {
   ErasService,
   PlayersService,
   RacesService,
+  StarPlayersService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
@@ -33,6 +34,7 @@ export class DeepdiveAutocompleteService {
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
     private readonly races: RacesService,
+    private readonly stars: StarPlayersService,
     private readonly trophies: TrophiesService,
   ) {}
 
@@ -78,6 +80,21 @@ export class DeepdiveAutocompleteService {
       return players.map((row) => ({
         name: `${row.name} (${row.teamName})`,
         value: String(row.id),
+      }));
+    }
+    if (focused.name === 'star-player') {
+      // Cannot reuse the `player` branch: `PlayersService.searchByNamePrefix`
+      // deliberately excludes stars (issue #245), and a star's autocomplete
+      // value is its `positions.id`, not a `players.id`. No team name in the
+      // label — a star has no single team, which is the whole point of this
+      // target.
+      const stars = await this.stars.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return stars.map((row) => ({
+        name: row.name,
+        value: String(row.positionId),
       }));
     }
     if (focused.name === 'race') {

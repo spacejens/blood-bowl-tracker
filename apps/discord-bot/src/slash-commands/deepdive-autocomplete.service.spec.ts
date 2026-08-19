@@ -5,6 +5,7 @@ import {
   ErasService,
   PlayersService,
   RacesService,
+  StarPlayersService,
   TeamsService,
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
@@ -25,6 +26,7 @@ interface MadeService {
   teams: MockProxy<TeamsService>;
   players: MockProxy<PlayersService>;
   races: MockProxy<RacesService>;
+  stars: MockProxy<StarPlayersService>;
   trophies: MockProxy<TrophiesService>;
 }
 
@@ -36,6 +38,7 @@ async function makeService(): Promise<MadeService> {
   const teams = mock<TeamsService>();
   const players = mock<PlayersService>();
   const races = mock<RacesService>();
+  const stars = mock<StarPlayersService>();
   const trophies = mock<TrophiesService>();
 
   const moduleRef = await Test.createTestingModule({
@@ -48,6 +51,7 @@ async function makeService(): Promise<MadeService> {
       { provide: TeamsService, useValue: teams },
       { provide: PlayersService, useValue: players },
       { provide: RacesService, useValue: races },
+      { provide: StarPlayersService, useValue: stars },
       { provide: TrophiesService, useValue: trophies },
     ],
   }).compile();
@@ -61,6 +65,7 @@ async function makeService(): Promise<MadeService> {
     teams,
     players,
     races,
+    stars,
     trophies,
   };
 }
@@ -75,6 +80,7 @@ function autocompleteInteraction(
     | 'race'
     | 'competition'
     | 'competition-group'
+    | 'star-player'
     | 'trophy' = 'era',
 ): AutocompleteInteraction {
   return {
@@ -175,6 +181,24 @@ describe('DeepdiveAutocompleteService', () => {
       'cha',
       25,
     );
+  });
+
+  it('offers star player choices by name for the star-player option', async () => {
+    const { service, stars } = await makeService();
+    stars.searchByNamePrefix.mockResolvedValue([
+      { positionId: 20, name: 'Griff Oberwald' },
+      { positionId: 21, name: 'Grim Ironjaw' },
+    ]);
+
+    const result = await service.resolve(
+      autocompleteInteraction('Gri', 'star-player'),
+    );
+
+    expect(stars.searchByNamePrefix).toHaveBeenCalledWith('Gri', 25);
+    expect(result).toEqual([
+      { name: 'Griff Oberwald', value: '20' },
+      { name: 'Grim Ironjaw', value: '21' },
+    ]);
   });
 
   it('returns no choices for an option it does not handle', async () => {
