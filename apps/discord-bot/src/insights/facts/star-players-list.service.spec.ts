@@ -29,9 +29,9 @@ type StarRow = { positionId: number; name: string };
 
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
 
+// Tests that need the timeout branch call stubDatabaseTimeoutOnce per-case.
 beforeEach(() => {
   databaseTimeout = mockDatabaseTimeout();
-  // Tests that need the timeout branch override this per-call.
 });
 
 async function makeServiceFromStarPlayers(
