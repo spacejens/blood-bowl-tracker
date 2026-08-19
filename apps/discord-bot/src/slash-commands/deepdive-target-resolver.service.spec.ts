@@ -9,6 +9,7 @@ import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-g
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
+import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
@@ -18,6 +19,7 @@ import {
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
 } from '../error-messages';
@@ -33,6 +35,7 @@ interface MadeService {
   competitionDeepdive: MockProxy<CompetitionDeepdiveService>;
   competitionGroupDeepdive: MockProxy<CompetitionGroupDeepdiveService>;
   trophyDeepdive: MockProxy<TrophyDeepdiveService>;
+  starPlayerDeepdive: MockProxy<StarPlayerDeepdiveService>;
 }
 
 async function makeService(): Promise<MadeService> {
@@ -44,6 +47,7 @@ async function makeService(): Promise<MadeService> {
   const competitionDeepdive = mock<CompetitionDeepdiveService>();
   const competitionGroupDeepdive = mock<CompetitionGroupDeepdiveService>();
   const trophyDeepdive = mock<TrophyDeepdiveService>();
+  const starPlayerDeepdive = mock<StarPlayerDeepdiveService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       DeepdiveTargetResolverService,
@@ -58,6 +62,7 @@ async function makeService(): Promise<MadeService> {
         useValue: competitionGroupDeepdive,
       },
       { provide: TrophyDeepdiveService, useValue: trophyDeepdive },
+      { provide: StarPlayerDeepdiveService, useValue: starPlayerDeepdive },
     ],
   }).compile();
   return {
@@ -70,6 +75,7 @@ async function makeService(): Promise<MadeService> {
     competitionDeepdive,
     competitionGroupDeepdive,
     trophyDeepdive,
+    starPlayerDeepdive,
   };
 }
 
@@ -194,5 +200,20 @@ describe('DeepdiveTargetResolverService', () => {
       DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
     );
     expect(competitionGroupDeepdive.resolve).not.toHaveBeenCalled();
+  });
+
+  it('forwards a parsed integer position id to the star player deepdive', async () => {
+    const { service, starPlayerDeepdive } = await makeService();
+    starPlayerDeepdive.resolve.mockResolvedValue(embed);
+    expect(await service.resolveStarPlayer('20')).toBe(embed);
+    expect(starPlayerDeepdive.resolve).toHaveBeenCalledWith(20);
+  });
+
+  it('rejects a non-integer star player id without hitting the deepdive', async () => {
+    const { service, starPlayerDeepdive } = await makeService();
+    expect(await service.resolveStarPlayer('Griff')).toBe(
+      DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
+    );
+    expect(starPlayerDeepdive.resolve).not.toHaveBeenCalled();
   });
 });

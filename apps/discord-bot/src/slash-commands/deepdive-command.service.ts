@@ -17,6 +17,7 @@ import {
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
@@ -32,6 +33,7 @@ export {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../deepdive/button-custom-ids';
@@ -43,6 +45,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../deepdive/button-custom-ids';
@@ -73,6 +76,10 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handlePlayerButton(interaction),
+    );
+    this.discordClient.registerButtonHandler(
+      STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handleStarPlayerButton(interaction),
     );
     this.discordClient.registerButtonHandler(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -109,6 +116,11 @@ export class DeepdiveCommandService implements OnModuleInit {
       PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       (interaction: StringSelectMenuInteraction) =>
         this.handlePlayerSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleStarPlayerSelect(interaction),
     );
     this.discordClient.registerSelectMenuHandler(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -162,6 +174,13 @@ export class DeepdiveCommandService implements OnModuleInit {
           autocomplete: true,
         },
         {
+          name: 'star-player',
+          description:
+            'Show the detail view for a single star player (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
+        {
           name: 'race',
           description: 'Show the detail view for a single race (optional)',
           type: ApplicationCommandOptionType.String,
@@ -201,6 +220,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const coachOption = interaction.options.getString('coach');
     const teamOption = interaction.options.getString('team');
     const playerOption = interaction.options.getString('player');
+    const starPlayerOption = interaction.options.getString('star-player');
     const raceOption = interaction.options.getString('race');
     const competitionOption = interaction.options.getString('competition');
     const trophyOption = interaction.options.getString('trophy');
@@ -211,6 +231,7 @@ export class DeepdiveCommandService implements OnModuleInit {
       coachOption,
       teamOption,
       playerOption,
+      starPlayerOption,
       raceOption,
       competitionOption,
       trophyOption,
@@ -230,6 +251,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (playerOption !== null) {
       return this.targetResolver.resolvePlayer(playerOption);
+    }
+    if (starPlayerOption !== null) {
+      return this.targetResolver.resolveStarPlayer(starPlayerOption);
     }
     if (raceOption !== null) {
       return this.targetResolver.resolveRace(raceOption);
@@ -282,6 +306,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       PLAYER_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.targetResolver.resolvePlayer(idPart);
+  }
+
+  async handleStarPlayerButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.targetResolver.resolveStarPlayer(idPart);
   }
 
   async handleRaceButton(
@@ -358,6 +391,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE;
     }
     return this.targetResolver.resolvePlayer(value);
+  }
+
+  async handleStarPlayerSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE;
+    }
+    return this.targetResolver.resolveStarPlayer(value);
   }
 
   async handleRaceSelect(

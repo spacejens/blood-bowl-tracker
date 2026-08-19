@@ -7,6 +7,7 @@ import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-g
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
+import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
@@ -16,6 +17,7 @@ import {
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
 } from '../error-messages';
@@ -46,6 +48,7 @@ export class DeepdiveTargetResolverService {
     private readonly competitionDeepdive: CompetitionDeepdiveService,
     private readonly competitionGroupDeepdive: CompetitionGroupDeepdiveService,
     private readonly trophyDeepdive: TrophyDeepdiveService,
+    private readonly starPlayerDeepdive: StarPlayerDeepdiveService,
   ) {}
 
   resolveEra(value: string): Promise<string | InteractionReplyOptions> {
@@ -69,6 +72,18 @@ export class DeepdiveTargetResolverService {
   resolvePlayer(value: string): Promise<string | InteractionReplyOptions> {
     return this.resolveTarget(value, DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE, (id) =>
       this.playerDeepdive.resolve(id),
+    );
+  }
+
+  /**
+   * The id here is a `positions.id` — a star's identity — not a `players.id`,
+   * which is why it has its own resolver rather than sharing `resolvePlayer`.
+   */
+  resolveStarPlayer(value: string): Promise<string | InteractionReplyOptions> {
+    return this.resolveTarget(
+      value,
+      DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
+      (id) => this.starPlayerDeepdive.resolve(id),
     );
   }
 

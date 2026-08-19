@@ -19,6 +19,7 @@ import {
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
@@ -32,6 +33,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from './deepdive-command.service';
@@ -75,6 +77,7 @@ function chatInput(options: {
   coach?: string | null;
   team?: string | null;
   player?: string | null;
+  starPlayer?: string | null;
   race?: string | null;
   competition?: string | null;
   trophy?: string | null;
@@ -87,6 +90,7 @@ function chatInput(options: {
         if (name === 'coach') return options.coach ?? null;
         if (name === 'team') return options.team ?? null;
         if (name === 'player') return options.player ?? null;
+        if (name === 'star-player') return options.starPlayer ?? null;
         if (name === 'race') return options.race ?? null;
         if (name === 'competition') return options.competition ?? null;
         if (name === 'trophy') return options.trophy ?? null;
@@ -132,6 +136,12 @@ describe('DeepdiveCommandService', () => {
       {
         name: 'player',
         description: 'Show the detail view for a single player (optional)',
+        type: 3,
+        autocomplete: true,
+      },
+      {
+        name: 'star-player',
+        description: 'Show the detail view for a single star player (optional)',
         type: 3,
         autocomplete: true,
       },
@@ -223,6 +233,10 @@ describe('DeepdiveCommandService', () => {
       expect.any(Function),
     );
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
+      STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
@@ -240,6 +254,10 @@ describe('DeepdiveCommandService', () => {
     );
     expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
       PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
     expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
@@ -424,6 +442,48 @@ describe('DeepdiveCommandService', () => {
       buttonInteraction(`${PLAYER_BUTTON_CUSTOM_ID_PREFIX}999`),
     );
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
+  });
+
+  it('forwards the rendered embed from the star player deepdive for a resolved id', async () => {
+    const { service, targetResolver } = await makeService();
+    targetResolver.resolveStarPlayer.mockResolvedValue(SAMPLE_EMBED);
+    const result = await service.execute(chatInput({ starPlayer: '20' }));
+    expect(result).toBe(SAMPLE_EMBED);
+    expect(targetResolver.resolveStarPlayer).toHaveBeenCalledWith('20');
+  });
+
+  it('rejects supplying both a star player and another target', async () => {
+    const { service } = await makeService();
+    const result = await service.execute(
+      chatInput({ starPlayer: '20', team: '1' }),
+    );
+    expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+  });
+
+  it('handles a star player button by resolving the id from its customId', async () => {
+    const { service, targetResolver } = await makeService();
+    targetResolver.resolveStarPlayer.mockResolvedValue(SAMPLE_EMBED);
+    const result = await service.handleStarPlayerButton(
+      buttonInteraction(`${STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX}20`),
+    );
+    expect(result).toBe(SAMPLE_EMBED);
+    expect(targetResolver.resolveStarPlayer).toHaveBeenCalledWith('20');
+  });
+
+  it('handles a star player select by resolving the chosen value', async () => {
+    const { service, targetResolver } = await makeService();
+    targetResolver.resolveStarPlayer.mockResolvedValue(SAMPLE_EMBED);
+    const result = await service.handleStarPlayerSelect(
+      selectInteraction(['20']),
+    );
+    expect(result).toBe(SAMPLE_EMBED);
+    expect(targetResolver.resolveStarPlayer).toHaveBeenCalledWith('20');
+  });
+
+  it('returns the star player not-found message for an empty select', async () => {
+    const { service } = await makeService();
+    const result = await service.handleStarPlayerSelect(selectInteraction([]));
+    expect(result).toBe(DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE);
   });
 
   it('returns the not-found message for a race id that resolves to nothing', async () => {
