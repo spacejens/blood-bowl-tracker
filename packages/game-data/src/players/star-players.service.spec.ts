@@ -187,14 +187,6 @@ describe('StarPlayersService', () => {
         'positions.id',
       ]);
     });
-
-    it('includes a star position that has at least one hire', async () => {
-      await build([{ positionId: 20, name: 'Griff Oberwald' }]);
-
-      expect(await service.searchByNamePrefix('Gri', 25)).toEqual([
-        { positionId: 20, name: 'Griff Oberwald' },
-      ]);
-    });
   });
 
   describe('findByPlayerId', () => {

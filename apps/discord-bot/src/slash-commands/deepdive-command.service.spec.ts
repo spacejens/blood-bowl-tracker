@@ -453,11 +453,12 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects supplying both a star player and another target', async () => {
-    const { service } = await makeService();
+    const { service, targetResolver } = await makeService();
     const result = await service.execute(
       chatInput({ starPlayer: '20', team: '1' }),
     );
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+    expect(targetResolver.resolveStarPlayer).not.toHaveBeenCalled();
   });
 
   it('handles a star player button by resolving the id from its customId', async () => {
