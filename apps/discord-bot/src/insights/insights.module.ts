@@ -39,6 +39,7 @@ import { LeaderboardService } from './leaderboard.service';
 import { PlayerContextService } from './player-context.service';
 import { RandomInsightsScopeService } from './random-insights-scope.service';
 import { RandomSourceService } from './random-source.service';
+import { ListDescriptionService } from './shared/list-description.service';
 import { TeamContextService } from './team-context.service';
 
 const GAME_DATA_MODULES = [
@@ -68,6 +69,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     DateRangeFormatterService,
     EraSectionGrouperService,
+    ListDescriptionService,
     FactTreeFactoryService,
     FactTreeUtilsService,
     RandomSourceService,
@@ -100,6 +102,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     DateRangeFormatterService,
     EraSectionGrouperService,
+    ListDescriptionService,
     FactTreeUtilsService,
     RandomSourceService,
     RandomInsightsScopeService,
