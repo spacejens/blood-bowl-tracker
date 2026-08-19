@@ -640,7 +640,7 @@ interface SelectCase {
   ) => Promise<string | InteractionReplyOptions>;
   resolver: (
     made: MadeService,
-  ) => Mock<[string], Promise<string | InteractionReplyOptions>>;
+  ) => Mock<(value: string) => Promise<string | InteractionReplyOptions>>;
   notFoundMessage: string;
 }
 
@@ -706,8 +706,7 @@ describe.each(selectCases)(
   ({ invoke, resolver, notFoundMessage }) => {
     it('resolves the deepdive for the selected value', async () => {
       const made = await makeService();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const resolverMethod = resolver(made); // eslint-disable-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const resolverMethod = resolver(made);
       resolverMethod.mockResolvedValue('the deepdive');
       const result = await invoke(made.service, selectInteraction(['42']));
       expect(resolverMethod).toHaveBeenCalledWith('42');
@@ -722,8 +721,7 @@ describe.each(selectCases)(
 
     it('returns the not-found message for a non-integer value', async () => {
       const made = await makeService();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const resolverMethod = resolver(made); // eslint-disable-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const resolverMethod = resolver(made);
       resolverMethod.mockResolvedValue(notFoundMessage);
       const result = await invoke(made.service, selectInteraction(['nope']));
       expect(resolverMethod).toHaveBeenCalledWith('nope');
