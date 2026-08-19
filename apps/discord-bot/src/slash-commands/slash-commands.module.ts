@@ -16,6 +16,7 @@ import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service
 import { InsightsModule } from '../insights/insights.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
+import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -30,6 +31,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     InsightsCommandService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
+    DeepdiveTargetResolverService,
     SlashCommandRegistryService,
     CoachDeepdiveService,
     TeamDeepdiveService,

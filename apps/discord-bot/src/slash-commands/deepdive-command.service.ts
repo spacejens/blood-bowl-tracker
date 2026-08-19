@@ -9,14 +9,6 @@ import type {
 } from 'discord.js';
 import { ApplicationCommandOptionType } from 'discord.js';
 
-import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
-import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
-import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
-import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
-import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
-import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
-import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
-import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
@@ -30,6 +22,7 @@ import {
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
+import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 export {
@@ -60,14 +53,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     private readonly autocompleteService: DeepdiveAutocompleteService,
     private readonly discordClient: DiscordClientService,
     private readonly registry: SlashCommandRegistryService,
-    private readonly eraDeepdive: EraDeepdiveService,
-    private readonly coachDeepdive: CoachDeepdiveService,
-    private readonly teamDeepdive: TeamDeepdiveService,
-    private readonly playerDeepdive: PlayerDeepdiveService,
-    private readonly raceDeepdive: RaceDeepdiveService,
-    private readonly competitionDeepdive: CompetitionDeepdiveService,
-    private readonly competitionGroupDeepdive: CompetitionGroupDeepdiveService,
-    private readonly trophyDeepdive: TrophyDeepdiveService,
+    private readonly targetResolver: DeepdiveTargetResolverService,
   ) {}
 
   onModuleInit(): void {
@@ -234,28 +220,30 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
     }
     if (eraOption !== null) {
-      return this.resolveEra(eraOption);
+      return this.targetResolver.resolveEra(eraOption);
     }
     if (coachOption !== null) {
-      return this.resolveCoach(coachOption);
+      return this.targetResolver.resolveCoach(coachOption);
     }
     if (teamOption !== null) {
-      return this.resolveTeam(teamOption);
+      return this.targetResolver.resolveTeam(teamOption);
     }
     if (playerOption !== null) {
-      return this.resolvePlayer(playerOption);
+      return this.targetResolver.resolvePlayer(playerOption);
     }
     if (raceOption !== null) {
-      return this.resolveRace(raceOption);
+      return this.targetResolver.resolveRace(raceOption);
     }
     if (competitionOption !== null) {
-      return this.resolveCompetition(competitionOption);
+      return this.targetResolver.resolveCompetition(competitionOption);
     }
     if (trophyOption !== null) {
-      return this.resolveTrophy(trophyOption);
+      return this.targetResolver.resolveTrophy(trophyOption);
     }
     if (competitionGroupOption !== null) {
-      return this.resolveCompetitionGroup(competitionGroupOption);
+      return this.targetResolver.resolveCompetitionGroup(
+        competitionGroupOption,
+      );
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -266,7 +254,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       ERA_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveEra(idPart);
+    return this.targetResolver.resolveEra(idPart);
   }
 
   async handleCoachButton(
@@ -275,7 +263,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       COACH_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveCoach(idPart);
+    return this.targetResolver.resolveCoach(idPart);
   }
 
   async handleTeamButton(
@@ -284,7 +272,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       TEAM_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveTeam(idPart);
+    return this.targetResolver.resolveTeam(idPart);
   }
 
   async handlePlayerButton(
@@ -293,7 +281,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       PLAYER_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolvePlayer(idPart);
+    return this.targetResolver.resolvePlayer(idPart);
   }
 
   async handleRaceButton(
@@ -302,7 +290,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       RACE_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveRace(idPart);
+    return this.targetResolver.resolveRace(idPart);
   }
 
   async handleCompetitionButton(
@@ -311,7 +299,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveCompetition(idPart);
+    return this.targetResolver.resolveCompetition(idPart);
   }
 
   async handleTrophyButton(
@@ -320,7 +308,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       TROPHY_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveTrophy(idPart);
+    return this.targetResolver.resolveTrophy(idPart);
   }
 
   async handleCompetitionGroupButton(
@@ -329,7 +317,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const idPart = interaction.customId.slice(
       COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX.length,
     );
-    return this.resolveCompetitionGroup(idPart);
+    return this.targetResolver.resolveCompetitionGroup(idPart);
   }
 
   async handleEraSelect(
@@ -339,7 +327,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_ERA_NOT_FOUND_MESSAGE;
     }
-    return this.resolveEra(value);
+    return this.targetResolver.resolveEra(value);
   }
 
   async handleCoachSelect(
@@ -349,7 +337,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_COACH_NOT_FOUND_MESSAGE;
     }
-    return this.resolveCoach(value);
+    return this.targetResolver.resolveCoach(value);
   }
 
   async handleTeamSelect(
@@ -359,7 +347,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_TEAM_NOT_FOUND_MESSAGE;
     }
-    return this.resolveTeam(value);
+    return this.targetResolver.resolveTeam(value);
   }
 
   async handlePlayerSelect(
@@ -369,7 +357,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE;
     }
-    return this.resolvePlayer(value);
+    return this.targetResolver.resolvePlayer(value);
   }
 
   async handleRaceSelect(
@@ -379,7 +367,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_RACE_NOT_FOUND_MESSAGE;
     }
-    return this.resolveRace(value);
+    return this.targetResolver.resolveRace(value);
   }
 
   async handleCompetitionSelect(
@@ -389,7 +377,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE;
     }
-    return this.resolveCompetition(value);
+    return this.targetResolver.resolveCompetition(value);
   }
 
   async handleTrophySelect(
@@ -399,7 +387,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE;
     }
-    return this.resolveTrophy(value);
+    return this.targetResolver.resolveTrophy(value);
   }
 
   async handleCompetitionGroupSelect(
@@ -409,125 +397,6 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (value === undefined) {
       return DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE;
     }
-    return this.resolveCompetitionGroup(value);
-  }
-
-  /**
-   * Parses an era id (from a slash option or a button customId) and renders
-   * the deepdive. A non-integer value is rejected up front with the not-found
-   * message, before any database lookup, since an unguarded `NaN` would reach
-   * `eras.findByIdWithLeague` and make Postgres reject the query.
-   */
-  private resolveEra(value: string): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    }
-    return this.eraDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a coach id (from a slash option or a button customId) and renders
-   * the deepdive. Non-integer values are rejected up front with the not-found
-   * message, mirroring `resolveEra`.
-   */
-  private resolveCoach(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
-    }
-    return this.coachDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a team id (from a slash option or a button customId) and renders
-   * the deepdive. Non-integer values are rejected up front with the not-found
-   * message, mirroring `resolveEra`/`resolveCoach`.
-   */
-  private resolveTeam(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
-    }
-    return this.teamDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a player id (from a slash option or a button customId) and renders
-   * the deepdive. Non-integer values are rejected up front with the not-found
-   * message, mirroring `resolveEra`/`resolveCoach`/`resolveTeam`.
-   */
-  private resolvePlayer(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
-    }
-    return this.playerDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a race id (from a slash option or a button customId) and renders the
-   * deepdive. Non-integer values are rejected up front with the not-found
-   * message, mirroring `resolveEra`/`resolveCoach`/`resolveTeam`/`resolvePlayer`.
-   */
-  private resolveRace(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
-    }
-    return this.raceDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a competition id (from a slash option or a button customId) and
-   * renders the deepdive. Non-integer values are rejected up front with the
-   * not-found message, mirroring the other resolvers.
-   */
-  private resolveCompetition(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
-    }
-    return this.competitionDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a trophy id (from a slash option or a button customId) and renders
-   * the deepdive. Non-integer values are rejected up front with the not-found
-   * message, mirroring the other resolvers.
-   */
-  private resolveTrophy(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE);
-    }
-    return this.trophyDeepdive.resolve(id);
-  }
-
-  /**
-   * Parses a competition group id (from a slash option or a button customId)
-   * and renders the deepdive. Non-integer values are rejected up front with
-   * the not-found message, mirroring the other resolvers.
-   */
-  private resolveCompetitionGroup(
-    value: string,
-  ): Promise<string | InteractionReplyOptions> {
-    const id = Number(value);
-    if (!Number.isInteger(id)) {
-      return Promise.resolve(DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE);
-    }
-    return this.competitionGroupDeepdive.resolve(id);
+    return this.targetResolver.resolveCompetitionGroup(value);
   }
 }
