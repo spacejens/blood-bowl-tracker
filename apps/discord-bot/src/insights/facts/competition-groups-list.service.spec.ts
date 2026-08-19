@@ -15,6 +15,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -25,6 +26,7 @@ import {
   COMPETITION_GROUPS_LIST_NO_DATA_MESSAGE,
   COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ListDescriptionService } from '../shared/list-description.service';
 import { CompetitionGroupsListService } from './competition-groups-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -42,6 +44,13 @@ beforeEach(() => {
   // Tests that need the timeout branch override this per-call.
 });
 
+async function realListDescription(): Promise<ListDescriptionService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [ListDescriptionService],
+  }).compile();
+  return moduleRef.get(ListDescriptionService);
+}
+
 async function makeServiceFromCompetitionGroups(
   competitionGroups: CompetitionGroupsService,
   entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
@@ -52,6 +61,12 @@ async function makeServiceFromCompetitionGroups(
       { provide: CompetitionGroupsService, useValue: competitionGroups },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      {
+        provide: ListDescriptionService,
+        // Pure, dependency-free formatter — its own truncation rules are
+        // covered by list-description.service.spec.ts.
+        useValue: await realListDescription(),
+      },
     ],
   }).compile();
   return moduleRef.get(CompetitionGroupsListService);
@@ -249,5 +264,56 @@ describe('CompetitionGroupsListService.resolve', () => {
     expect(competitionGroups.listAllWithLeagueAndCount).toHaveBeenCalledWith(
       scope,
     );
+  });
+
+  it('truncates the description to the Discord embed cap when the group catalog is large', async () => {
+    // Same bug shape as eras.list and trophies.list: an unbounded join of
+    // every catalog row can pass Discord's 4096-char description cap, which
+    // rejects the whole interaction rather than just the field.
+    const rows: CompetitionGroupRow[] = Array.from(
+      { length: 200 },
+      (_unused, index) => ({
+        id: index,
+        name: `Competition Group Number ${index} With A Fairly Long Name`,
+        leagueName: 'The Rather Long League Name',
+        competitionCount: 3,
+      }),
+    );
+    const service = await makeService(rows);
+
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
+  });
+
+  it('keeps the overflow note in full when the group list must be truncated to fit', async () => {
+    const entityComponents = entityComponentsMock();
+    const overflowNote = '…and 12345 more without a link.';
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote,
+    });
+    const rows: CompetitionGroupRow[] = Array.from(
+      { length: 200 },
+      (_unused, index) => ({
+        id: index,
+        name: `Competition Group Number ${index} With A Fairly Long Name`,
+        leagueName: 'The Rather Long League Name',
+        competitionCount: 3,
+      }),
+    );
+    const service = await makeService(rows, entityComponents);
+
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.endsWith(`\n${overflowNote}`)).toBe(true);
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
   });
 });
