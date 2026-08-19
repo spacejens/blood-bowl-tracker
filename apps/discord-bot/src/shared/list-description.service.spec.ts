@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
+import { MAX_DESCRIPTION_LENGTH } from '../description-limits';
 import { ListDescriptionService } from './list-description.service';
 
 describe('ListDescriptionService.build', () => {
@@ -36,6 +36,16 @@ describe('ListDescriptionService.build', () => {
     expect(
       service.build(['first', 'second'], '…and 3 more without a link.'),
     ).toBe('first\nsecond\n…and 3 more without a link.');
+  });
+
+  it('leads with a blank line before the overflow note when there are no lines', () => {
+    // Unreachable by any current caller (each returns its own no-data message
+    // before calling build, and overflowNote is only non-null past ~125
+    // entries), but pinning the behavior documents it now that this is a
+    // general-purpose shared service rather than one caller's private method.
+    expect(service.build([], '…and 3 more without a link.')).toBe(
+      '\n…and 3 more without a link.',
+    );
   });
 
   it('truncates to the Discord embed cap with an ellipsis when there is no overflow note', () => {

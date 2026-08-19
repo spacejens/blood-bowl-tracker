@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
+import { MAX_DESCRIPTION_LENGTH } from '../description-limits';
 
 /**
  * Builds the embed `description` for the list-style insights facts (star

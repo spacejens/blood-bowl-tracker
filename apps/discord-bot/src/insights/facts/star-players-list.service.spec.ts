@@ -11,6 +11,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -21,7 +22,7 @@ import {
   STAR_PLAYERS_LIST_NO_DATA_MESSAGE,
   STAR_PLAYERS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { ListDescriptionService } from '../shared/list-description.service';
+import { ListDescriptionService } from '../../shared/list-description.service';
 import { StarPlayersListService } from './star-players-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -246,6 +247,27 @@ describe('StarPlayersListService.resolve', () => {
     expect(result.embeds[0].description).toBe(
       'Griff Oberwald\n…and 3 more without a link.',
     );
+  });
+
+  it('truncates the description to the Discord embed cap when the star catalog is large', async () => {
+    // starPlayers.list has no row cap of its own and can never be narrowed by
+    // a league scope, so it is the fact most exposed to Discord's 4096-char
+    // description cap. This exercises the real ListDescriptionService (the
+    // makeService default), not a mock, so the cap is genuinely enforced
+    // end-to-end rather than only within list-description.service.spec.ts.
+    const rows: StarRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      positionId: index,
+      name: `Star Player Number ${index} With A Fairly Long Name`,
+    }));
+    const service = await makeService(rows);
+
+    const result = (await service.resolve()) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 
   it('delegates description assembly to ListDescriptionService', async () => {

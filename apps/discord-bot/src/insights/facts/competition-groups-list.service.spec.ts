@@ -26,7 +26,7 @@ import {
   COMPETITION_GROUPS_LIST_NO_DATA_MESSAGE,
   COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { ListDescriptionService } from '../shared/list-description.service';
+import { ListDescriptionService } from '../../shared/list-description.service';
 import { CompetitionGroupsListService } from './competition-groups-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 

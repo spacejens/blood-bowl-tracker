@@ -10,7 +10,7 @@ import {
   TROPHIES_LIST_NO_DATA_MESSAGE,
   TROPHIES_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { ListDescriptionService } from '../shared/list-description.service';
+import { ListDescriptionService } from '../../shared/list-description.service';
 
 interface TrophyEntry {
   id: number;

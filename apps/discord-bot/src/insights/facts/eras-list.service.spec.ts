@@ -27,7 +27,7 @@ import {
   ERAS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
-import { ListDescriptionService } from '../shared/list-description.service';
+import { ListDescriptionService } from '../../shared/list-description.service';
 import { ErasListService } from './eras-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
