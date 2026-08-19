@@ -269,10 +269,11 @@ export class PlayerDeathService {
   }
 
   /**
-   * How many deaths this player has caused, foul-caused ones included: any
-   * event where they were the actor and the consequence was a death. This is
-   * the true total behind the deepdive's capped kills list, so its overflow
-   * note can report an exact remainder.
+   * How many kills this player has inflicted, counted exactly as `killFilter`
+   * defines a kill: a confirmed death, a prevented one, or an unpaired
+   * `'death'` action, foul-caused ones included. This is the true total
+   * behind the deepdive's capped kills list, so its overflow note can report
+   * an exact remainder.
    */
   async countKillsInflicted(playerId: number): Promise<number> {
     const [row] = await this.db
@@ -412,7 +413,10 @@ export class PlayerDeathService {
       // any other unresolvable case in this method.
     }
 
-    if (event.consequencePlayerId !== null) {
+    if (
+      event.consequencePlayerId !== null &&
+      event.consequenceType !== 'casualty_avoided'
+    ) {
       const victim = await this.findPlayerSummary(event.consequencePlayerId);
       const victimSide = sides.find((side) => side.teamId === victim?.teamId);
       if (victim !== undefined && victimSide !== undefined) {

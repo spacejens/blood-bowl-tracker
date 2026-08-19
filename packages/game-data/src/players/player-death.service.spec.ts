@@ -706,6 +706,37 @@ describe('PlayerDeathService', () => {
       ]);
     });
 
+    it('never reports a prevented death as a confirmed kill, even when the row also names a victim player', async () => {
+      // A `casualty_avoided` row can carry a `consequencePlayerId` in
+      // principle, even though no known importer sets one. If the prevented
+      // branch's own defensive fallback (unresolvable side) fell through to
+      // the named-victim branch below, it would name that player as killed —
+      // asserting an outcome the row's own `consequenceType` contradicts.
+      const { service } = await build(
+        [
+          killEvent({
+            consequenceType: 'casualty_avoided',
+            consequenceAvoidedBy: 'apothecary',
+            consequenceMatchTeamId: 999,
+            consequencePlayerId: 88,
+          }),
+        ],
+        [perpetrator],
+        [victimSide, orcSide],
+        [
+          {
+            playerName: 'Griff Oberwald',
+            positionName: 'Blitzer',
+            teamId: victimSide.teamId,
+          },
+        ],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        { kind: 'unknown', viaFoul: false },
+      ]);
+    });
+
     it('falls back to generic candidate resolution when a prevented death names no avoidedBy reason', async () => {
       // Defensive branch: the side resolves but consequenceAvoidedBy is null.
       // Not expected from any known importer behaviour (every casualty_avoided
