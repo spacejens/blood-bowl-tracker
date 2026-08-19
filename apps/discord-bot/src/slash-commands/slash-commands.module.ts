@@ -11,6 +11,7 @@ import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
+import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
@@ -37,6 +38,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     TeamDeepdiveService,
     RaceDeepdiveService,
     PlayerDeepdiveService,
+    StarPlayerDeepdiveService,
     PlayerKillsSectionService,
     CompetitionDeepdiveService,
     CompetitionGroupDeepdiveService,
