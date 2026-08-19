@@ -11,11 +11,13 @@ import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
+import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
+import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -30,11 +32,13 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     InsightsCommandService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
+    DeepdiveTargetResolverService,
     SlashCommandRegistryService,
     CoachDeepdiveService,
     TeamDeepdiveService,
     RaceDeepdiveService,
     PlayerDeepdiveService,
+    StarPlayerDeepdiveService,
     PlayerKillsSectionService,
     CompetitionDeepdiveService,
     CompetitionGroupDeepdiveService,

@@ -133,6 +133,14 @@ export const DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE =
   'The apothecary is still filling in the paperwork on how this one went down.';
 export const DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE =
   'The undertaker is still counting the bodies this one left behind.';
+export const DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE =
+  'No star of that name has ever taken an inducement fee around here.';
+export const DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE =
+  "The star's agent is still haggling over the appearance fee.";
+export const DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE =
+  'The bookkeeper is still adding up every contract this one has signed.';
+export const DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE =
+  'The scout is still checking whether this one signs autographs.';
 export const DEEPDIVE_RACE_NOT_FOUND_MESSAGE =
   'No such race has ever fielded a team in these parts.';
 export const DEEPDIVE_RACE_TIMEOUT_MESSAGE =

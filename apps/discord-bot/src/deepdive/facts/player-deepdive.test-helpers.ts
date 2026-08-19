@@ -7,6 +7,7 @@ import type {
 import {
   PlayerDeathService,
   PlayersService,
+  StarPlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -101,6 +102,18 @@ export interface MakeServiceOptions {
   entityComponents?: MockProxy<EntityComponentsService>;
   trophyAwards?: MockProxy<TrophyAwardsService>;
   playerDeath?: MockProxy<PlayerDeathService>;
+  stars?: MockProxy<StarPlayersService>;
+}
+
+/**
+ * A `StarPlayersService` mock. Defaults to `undefined` — "not a star hire" —
+ * so tests about other parts of the embed never see the star drill-down
+ * button.
+ */
+export function makeStars(): MockProxy<StarPlayersService> {
+  const stars = mock<StarPlayersService>();
+  stars.findByPlayerId.mockResolvedValue(undefined);
+  return stars;
 }
 
 export async function makeService({
@@ -109,11 +122,13 @@ export async function makeService({
   entityComponents = nullEntityComponents(),
   trophyAwards = makeTrophyAwards(),
   playerDeath = makePlayerDeath(),
+  stars = makeStars(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
   trophyAwards: MockProxy<TrophyAwardsService>;
   playerDeath: MockProxy<PlayerDeathService>;
+  stars: MockProxy<StarPlayersService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -124,6 +139,7 @@ export async function makeService({
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: PlayerDeathService, useValue: playerDeath },
+      { provide: StarPlayersService, useValue: stars },
     ],
   }).compile();
   return {
@@ -131,6 +147,7 @@ export async function makeService({
     entityComponents,
     trophyAwards,
     playerDeath,
+    stars,
   };
 }
 

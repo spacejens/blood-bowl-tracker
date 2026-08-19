@@ -20,6 +20,7 @@ import {
   DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
@@ -27,6 +28,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -835,4 +837,81 @@ describe('PlayerDeepdiveService', () => {
   // The Kills section has its own spec file — see
   // `player-deepdive-kills.service.spec.ts` — split out purely for this
   // file's size (see `player-deepdive.test-helpers.ts`).
+
+  it('adds a star player drill-down button, last, for a star hire', async () => {
+    const { service, stars } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      entityComponents: passthroughEntityComponents(),
+    });
+    stars.findByPlayerId.mockResolvedValue({
+      positionId: 20,
+      name: 'Griff Oberwald',
+    });
+
+    const result = await service.resolve(1);
+
+    const buttons = (
+      result as unknown as {
+        components: { components: { custom_id: string; label: string }[] }[];
+      }
+    ).components.flatMap((row) => row.components);
+    expect(buttons[buttons.length - 1]).toMatchObject({
+      custom_id: `${STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX}20`,
+      label: 'Griff Oberwald',
+    });
+  });
+
+  it('adds no star player button for a regular player', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const result = await service.resolve(1);
+
+    const buttons = (
+      result as unknown as {
+        components: { components: { custom_id: string }[] }[];
+      }
+    ).components.flatMap((row) => row.components);
+    expect(
+      buttons.some((button) =>
+        button.custom_id.startsWith(STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX),
+      ),
+    ).toBe(false);
+  });
+
+  it('returns the star timeout message when the star lookup times out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    const { service } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+      databaseTimeout,
+    });
+    // Griff has no honors (the default `makeTrophyAwards()` count is 0) and
+    // no kills (the default `makePlayerDeath()` count is 0), so the two
+    // conditional list queries are skipped. Let every earlier `run()` call
+    // pass through: player, honors count, category counts, death lookup,
+    // kills count — then make the star lookup (the last query `resolve`
+    // issues) fall back.
+    databaseTimeout.run
+      .mockImplementationOnce(async (work) => work) // findById
+      .mockImplementationOnce(async (work) => work) // countByPlayer (honors)
+      .mockImplementationOnce(async (work) => work) // getDeepdiveCategoryCounts
+      .mockImplementationOnce(async (work) => work) // getKillerInfo
+      .mockImplementationOnce(async (work) => work) // countKillsInflicted
+      .mockImplementationOnce(async (_work, fallback) => fallback); // star
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
+    );
+  });
 });

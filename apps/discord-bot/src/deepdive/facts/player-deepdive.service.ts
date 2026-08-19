@@ -4,10 +4,12 @@ import type {
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
+  StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
   PlayerDeathService,
   PlayersService,
+  StarPlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -23,12 +25,14 @@ import {
   DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -113,6 +117,9 @@ const MAX_PLAYER_KILLS = 30;
  * position in the final description. Each listed victim adds a drill-down
  * button, placed after the killer entries (if any) and before the
  * team/era/race header buttons.
+ * When the player is a hire of a star player, one further drill-down button
+ * — labelled with the star's name — opens the star-player deepdive showing
+ * every team that has hired them; a regular player gets none.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -123,6 +130,7 @@ export class PlayerDeepdiveService {
     private readonly trophyAwards: TrophyAwardsService,
     private readonly playerDeath: PlayerDeathService,
     private readonly playerKills: PlayerKillsSectionService,
+    private readonly stars: StarPlayersService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -211,6 +219,15 @@ export class PlayerDeepdiveService {
       kills = rows;
     }
 
+    // `undefined` is the real "this is a regular player" answer, so the
+    // timeout sentinel is `null` — the opposite way round from the killer and
+    // kills queries above, whose real answers can themselves be null.
+    const star: StarPlayerIdentity | undefined | null =
+      await this.databaseTimeout.run(this.stars.findByPlayerId(playerId), null);
+    if (star === null) {
+      return DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE;
+    }
+
     const header = [
       `Team: ${player.teamName}`,
       `Era: ${player.eraName}`,
@@ -282,6 +299,22 @@ export class PlayerDeepdiveService {
           entityId: String(player.raceId),
           label: player.raceName,
         },
+        // A star's identity is its position, so this one hire's embed can only
+        // ever show one team. The star-player deepdive shows every team that
+        // has hired them — always-available context about the subject, like
+        // the team/era/race entries it sits with, so it goes in the same
+        // header-derived group rather than ahead of the honors/kills entries.
+        // Labelled with the star's name, matching every other drill-down
+        // button in this codebase (entity name, never an action phrase).
+        ...(star === undefined
+          ? []
+          : [
+              {
+                customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+                entityId: String(star.positionId),
+                label: star.name,
+              } satisfies EntityComponentEntry,
+            ]),
       ]);
 
     const description = [
