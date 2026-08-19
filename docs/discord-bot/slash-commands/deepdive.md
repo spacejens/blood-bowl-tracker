@@ -128,7 +128,16 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   disappears when the total is zero. Fouls carry their own breakdown rather
   than folding into the casualty one because Blood Bowl awards no casualty
   credit for a foul, so a foul-caused injury is deliberately not counted as a
-  casualty inflicted. These per-match-event tallies are a separate
+  casualty inflicted. The `killed` sub-counts (on both lines) and the fouls
+  `seriousInjuries` sub-count mean "attempted", not just "confirmed": they
+  fold in an attempt that was saved by an apothecary or by regeneration, and
+  — for casualties' `killed` only — a death attempt with no recorded outcome
+  at all. (The fouls `seriousInjuries` sub-count was previously always 0, a
+  pre-existing bug fixed alongside this: it checked for a literal
+  `serious_injury` consequence, which the imported data never actually uses
+  for a foul-caused injury — real foul-caused serious injuries are recorded
+  via `niggling_injury`, `miss_next_game`, or a `stat_reduction_*`
+  consequence.) These per-match-event tallies are a separate
   concept from the competition-level trophies above: the "MVP awards" count is
   match MVPs, not an end-of-competition MVP trophy. Zero categories are
   omitted; a player with nothing in any category shows a short
@@ -147,10 +156,18 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   one where a multi-team match leaves the side ambiguous reads
   `An unidentified player from <team A> (…) or <team B> (…)`, "or"-joined with
   an Oxford comma for three or more; and one with nothing attributable at all
-  reads `An opponent, in mysterious circumstances`. Any of them ends with
-  ` (via a foul)` when the fatal event was a foul, the same note the `Status:`
-  line uses. One line is shown per kill event, so a victim killed more than
-  once by this player appears once per kill. At most 30 kills are shown; when
+  reads `An opponent, in mysterious circumstances`. A death this player
+  caused but that was saved by an apothecary or by regeneration reads
+  `Someone in <team> (<race>, <coach>), saved by an apothecary` or
+  `...saved by regeneration` — the team is always known for these, but the
+  victim player is never named. Any of them ends with ` (via a foul)` when
+  the fatal (or prevented) event was a foul, the same note the `Status:` line
+  uses — including the prevented row. The list also includes a death attempt
+  with no recorded outcome at all; its victim's team is resolved the same way
+  an event with an ambiguous or unattributed killer team already is resolved
+  elsewhere in this document. One line is shown per kill event, so a victim
+  killed more than once by this player appears once per kill. At most 30
+  kills are shown; when
   there are more, the list ends with an exact `…and N more not shown.` note
   computed from the player's true kill count. The same note can also appear
   with 30 or fewer total kills: long team, player, race or coach names can

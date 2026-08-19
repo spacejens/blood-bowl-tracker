@@ -128,6 +128,10 @@ export class PlayerKillsSectionService {
         )}`;
       case 'unknown':
         return 'An opponent, in mysterious circumstances';
+      case 'prevented':
+        return `Someone in ${this.formatTeam(kill)}, saved by ${
+          kill.avoidedBy === 'apothecary' ? 'an apothecary' : 'regeneration'
+        }`;
     }
   }
 
@@ -162,6 +166,14 @@ export class PlayerKillsSectionService {
         }));
       case 'unknown':
         return [];
+      case 'prevented':
+        return [
+          {
+            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(kill.teamId),
+            label: kill.teamName,
+          },
+        ];
     }
   }
 }

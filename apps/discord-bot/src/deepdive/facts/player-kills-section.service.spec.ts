@@ -119,6 +119,45 @@ describe('PlayerKillsSectionService', () => {
     );
   });
 
+  it('describes a death prevented by an apothecary', () => {
+    const kill: PlayerKillEntry = {
+      kind: 'prevented',
+      ...gougedEye,
+      avoidedBy: 'apothecary',
+      viaFoul: false,
+    };
+
+    expect(build([kill]).lines[2]).toBe(
+      'Someone in Gouged Eye (Orc, Grimly), saved by an apothecary',
+    );
+  });
+
+  it('describes a death prevented by regeneration', () => {
+    const kill: PlayerKillEntry = {
+      kind: 'prevented',
+      ...gougedEye,
+      avoidedBy: 'regeneration',
+      viaFoul: false,
+    };
+
+    expect(build([kill]).lines[2]).toBe(
+      'Someone in Gouged Eye (Orc, Grimly), saved by regeneration',
+    );
+  });
+
+  it('notes a foul-caused prevented death', () => {
+    const kill: PlayerKillEntry = {
+      kind: 'prevented',
+      ...gougedEye,
+      avoidedBy: 'apothecary',
+      viaFoul: true,
+    };
+
+    expect(build([kill]).lines[2]).toBe(
+      'Someone in Gouged Eye (Orc, Grimly), saved by an apothecary (via a foul)',
+    );
+  });
+
   it('offers a player button for an identified victim', () => {
     expect(build([namedVictim]).entries).toEqual([
       {
@@ -157,6 +196,23 @@ describe('PlayerKillsSectionService', () => {
 
   it('offers no button at all for a fully unknown victim', () => {
     expect(build([{ kind: 'unknown', viaFoul: false }]).entries).toEqual([]);
+  });
+
+  it('offers a team button for a prevented death', () => {
+    const kill: PlayerKillEntry = {
+      kind: 'prevented',
+      ...gougedEye,
+      avoidedBy: 'apothecary',
+      viaFoul: false,
+    };
+
+    expect(build([kill]).entries).toEqual([
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '12',
+        label: 'Gouged Eye',
+      },
+    ]);
   });
 
   it('adds an exact overflow note for kills beyond the fetched rows', () => {
