@@ -55,7 +55,7 @@ export class StarPlayersListService {
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const lines = ordered.map((star) => star.name);
+    const names = ordered.map((star) => star.name);
 
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(
@@ -65,15 +65,12 @@ export class StarPlayersListService {
           label: star.name,
         })),
       );
-    if (overflowNote !== null) {
-      lines.push(overflowNote);
-    }
 
     return {
       embeds: [
         {
           title: 'Star Players',
-          description: this.enforceDescriptionLimit(lines.join('\n')),
+          description: this.buildDescription(names, overflowNote),
         },
       ],
       components,
@@ -81,17 +78,31 @@ export class StarPlayersListService {
   }
 
   /**
-   * Truncates the embed description to Discord's `MAX_DESCRIPTION_LENGTH`
-   * (a hard per-field cap; exceeding it rejects the whole interaction, not
-   * just this field). Unlike the sibling list facts, starPlayers.list can
-   * never be narrowed by a league scope, so it is the one most exposed to
-   * this limit as the star catalog grows. Mirrors
-   * `StarPlayerDeepdiveService.enforceDescriptionLimit`.
+   * Joins the star names into the embed description, truncating within
+   * Discord's `MAX_DESCRIPTION_LENGTH` (a hard per-field cap; exceeding it
+   * rejects the whole interaction, not just this field) while always
+   * preserving the overflow note in full. A plain end-of-string truncation
+   * would risk cutting the note itself off exactly when it matters most: a
+   * catalog long enough to need one. Unlike the sibling list facts,
+   * starPlayers.list can never be narrowed by a league scope, so it is the
+   * one most exposed to this limit as the star catalog grows.
    */
-  private enforceDescriptionLimit(description: string): string {
-    if (description.length <= MAX_DESCRIPTION_LENGTH) {
-      return description;
+  private buildDescription(
+    names: string[],
+    overflowNote: string | null,
+  ): string {
+    if (overflowNote === null) {
+      return this.truncate(names.join('\n'), MAX_DESCRIPTION_LENGTH);
     }
-    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
+    const namesBudget = MAX_DESCRIPTION_LENGTH - overflowNote.length - 1;
+    return `${this.truncate(names.join('\n'), namesBudget)}\n${overflowNote}`;
+  }
+
+  /** Mirrors `StarPlayerDeepdiveService.enforceDescriptionLimit`. */
+  private truncate(text: string, maxLength: number): string {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return `${text.slice(0, maxLength - 1)}…`;
   }
 }

@@ -1,11 +1,14 @@
 /**
- * Discord's hard cap on one embed's `description` field. The player deepdive's
- * row caps bound how many honors and kills are *fetched*, but competition,
- * trophy, player and team names are user-imported data with no length ceiling
- * tight enough to guarantee those rows always fit — a handful of long names
- * can still overflow this limit within the row cap. The honors and kills
- * builders enforce this length limit on top of their row caps, trimming
- * further when needed.
+ * Discord's hard cap on one embed's `description` field; exceeding it rejects
+ * the whole interaction, not just the field. Shared across `deepdive/` and
+ * `insights/` fact services. Row caps (where a service has one) bound how
+ * many entries are *fetched*, but names and other user-imported data have no
+ * length ceiling tight enough to guarantee a row cap always fits within this
+ * character cap — a handful of long names can still overflow it. Consumers
+ * enforce this length limit on top of any row cap, trimming further when
+ * needed: see e.g. the player deepdive's honors/kills builders, and
+ * `StarPlayersListService`, which has no row cap at all and relies on this
+ * entirely.
  */
 export const MAX_DESCRIPTION_LENGTH = 4096;
 

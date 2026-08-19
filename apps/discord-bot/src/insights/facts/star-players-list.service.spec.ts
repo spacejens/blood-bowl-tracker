@@ -248,6 +248,31 @@ describe('StarPlayersListService.resolve', () => {
     expect(description.endsWith('…')).toBe(true);
   });
 
+  it('preserves the overflow note in full when the name list must be truncated to fit', async () => {
+    // A hard end-of-string truncation would risk cutting the overflow note
+    // itself off — exactly the case where it matters most, since it only
+    // appears once the catalog is already long enough to need one.
+    const entityComponents = entityComponentsMock();
+    const overflowNote = '…and 12345 more without a link.';
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote,
+    });
+    const rows: StarRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      positionId: index,
+      name: `Star Player Number ${index} With A Fairly Long Name`,
+    }));
+    const service = await makeService(rows, entityComponents);
+
+    const result = (await service.resolve()) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.endsWith(overflowNote)).toBe(true);
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+  });
+
   it('queries the full global catalog with no scope argument', async () => {
     const starPlayers = mock<StarPlayersService>();
 
