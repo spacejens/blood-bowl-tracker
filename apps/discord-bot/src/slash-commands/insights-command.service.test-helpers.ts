@@ -41,7 +41,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
  *
  * `InsightsCommandService`'s FACT_TREE dependency is built with the real,
  * pure `buildFactTree` (a loose function, not a service — CLAUDE.md case 2
- * exemption) wired to nine MOCKED fact services. This keeps the real tree
+ * exemption) wired to ten MOCKED fact services. This keeps the real tree
  * topology (paths, supportsLeague/Era/Competition flags per leaf — already
  * verified against production by `fact-tree.spec.ts`) while every leaf's
  * actual computation is a controlled mock, so these specs never construct
