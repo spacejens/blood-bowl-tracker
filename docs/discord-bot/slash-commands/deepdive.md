@@ -132,12 +132,9 @@ played:` followed by their top five teams by matches played, one line per
   `seriousInjuries` sub-count mean "attempted", not just "confirmed": they
   fold in an attempt that was saved by an apothecary or by regeneration, and
   — for casualties' `killed` only — a death attempt with no recorded outcome
-  at all. (The fouls `seriousInjuries` sub-count was previously always 0, a
-  pre-existing bug fixed alongside this: it checked for a literal
-  `serious_injury` consequence, which the imported data never actually uses
-  for a foul-caused injury — real foul-caused serious injuries are recorded
-  via `niggling_injury`, `miss_next_game`, or a `stat_reduction_*`
-  consequence.) These per-match-event tallies are a separate
+  at all. The fouls `seriousInjuries` sub-count includes every foul-caused
+  serious injury, whichever form the injury takes. These per-match-event
+  tallies are a separate
   concept from the competition-level trophies above: the "MVP awards" count is
   match MVPs, not an end-of-competition MVP trophy. Zero categories are
   omitted; a player with nothing in any category shows a short
@@ -164,7 +161,7 @@ played:` followed by their top five teams by matches played, one line per
   known importer behaviour) can instead render a prevented kill through the
   generic resolution logic like any other unresolvable kill, when the
   recorded team can't be matched or the save reason is missing. Any of them
-  ends with ` (via a foul)` when
+  ends with `` ` (via a foul)` `` when
   the fatal (or prevented) event was a foul, the same note the `Status:` line
   uses — including the prevented row. The list also includes a death attempt
   with no recorded outcome at all; its victim's team is resolved the same way
