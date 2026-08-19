@@ -263,6 +263,13 @@ describe('TeamDeepdiveService buttons', () => {
       entityId: '61',
       label: 'Morg N Thorg',
     });
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 7,
+      playerName: 'Morg N Thorg',
+      positionId: 61,
+      positionName: 'Morg N Thorg',
+      isStarPlayer: true,
+    });
   });
 
   it('shows the star player button for a star hire who won an honor', async () => {

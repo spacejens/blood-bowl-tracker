@@ -220,6 +220,13 @@ describe('PlayerKillsSectionService', () => {
         label: 'Morg N Thorg',
       },
     ]);
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 99,
+      playerName: 'Morg N Thorg',
+      positionId: 61,
+      positionName: 'Morg N Thorg',
+      isStarPlayer: true,
+    });
   });
 
   it('never asks for a player button when the victim is only a team', () => {
