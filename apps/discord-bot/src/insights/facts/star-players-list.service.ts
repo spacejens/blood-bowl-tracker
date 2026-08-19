@@ -26,11 +26,10 @@ export class StarPlayersListService {
    * unscoped precedent.
    */
   async resolve(): Promise<string | InteractionReplyOptions> {
-    const rows = (await this.databaseTimeout.run(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
+    const rows = await this.databaseTimeout.run(
       this.starPlayers.listAll(),
       null,
-    )) as StarPlayerIdentity[] | null;
+    );
     if (rows === null) {
       return STAR_PLAYERS_LIST_TIMEOUT_MESSAGE;
     }

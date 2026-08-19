@@ -54,7 +54,6 @@ async function makeService(
 ): Promise<StarPlayersListService> {
   const starPlayers = mock<StarPlayersService>();
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   starPlayers.listAll.mockResolvedValue(rows);
   return makeServiceFromStarPlayers(starPlayers, entityComponents);
 }
@@ -170,7 +169,6 @@ describe('StarPlayersListService.resolve', () => {
       () => {
         const starPlayers = mock<StarPlayersService>();
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         starPlayers.listAll.mockReturnValue(new Promise(() => {}));
         return starPlayers;
       },
@@ -231,7 +229,6 @@ describe('StarPlayersListService.resolve', () => {
   it('queries the full global catalog with no scope argument', async () => {
     const starPlayers = mock<StarPlayersService>();
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     starPlayers.listAll.mockResolvedValue([]);
     const service = await makeServiceFromStarPlayers(starPlayers);
     await service.resolve();
