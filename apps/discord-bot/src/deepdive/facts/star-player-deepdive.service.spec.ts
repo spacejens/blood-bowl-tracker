@@ -145,8 +145,8 @@ describe('StarPlayerDeepdiveService', () => {
         {
           title: `${stubEntityEmoji(STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
           description: [
-            'Reikland Reavers (Human, coached by Rita) — 3 hires',
-            'Gouged Eye (Orc, coached by Bob) — 1 hire',
+            'Reikland Reavers (Human, Rita) — 3 hires',
+            'Gouged Eye (Orc, Bob) — 1 hire',
           ].join('\n'),
         },
       ],
@@ -203,8 +203,8 @@ describe('StarPlayerDeepdiveService', () => {
       (result as { embeds: { description: string }[] }).embeds[0].description,
     ).toBe(
       [
-        'Reikland Reavers (Human, coached by Rita) — 3 hires',
-        'Gouged Eye (Orc, coached by Bob) — 1 hire',
+        'Reikland Reavers (Human, Rita) — 3 hires',
+        'Gouged Eye (Orc, Bob) — 1 hire',
         '…and 3 more without a link.',
       ].join('\n'),
     );
@@ -214,10 +214,10 @@ describe('StarPlayerDeepdiveService', () => {
     // listHiresByTeam carries no row limit, so a heavily-hired star (exactly
     // the case this feature's select-menu overflow exists for — see
     // `EntityComponentsService`) can produce a description longer than
-    // Discord's MAX_DESCRIPTION_LENGTH. One line here is ~42 chars; 100 rows
-    // (~4.2k chars plus newlines) comfortably exceeds the 4096-char cap.
+    // Discord's MAX_DESCRIPTION_LENGTH. One line here is ~32 chars; 200 rows
+    // (~6.4k chars plus newlines) comfortably exceeds the 4096-char cap.
     const manyHires: StarPlayerHire[] = Array.from(
-      { length: 100 },
+      { length: 200 },
       (_unused, index) => ({
         teamId: index,
         teamName: `Team ${index}`,

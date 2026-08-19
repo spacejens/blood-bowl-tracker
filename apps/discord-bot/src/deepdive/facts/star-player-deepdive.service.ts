@@ -99,10 +99,10 @@ export class StarPlayerDeepdiveService {
     };
   }
 
-  /** `Reikland Reavers (Human, coached by Rita) — 3 hires`. */
+  /** `Reikland Reavers (Human, Rita) — 3 hires`. */
   private formatHire(hire: StarPlayerHire): string {
     const plural = hire.hireCount === 1 ? 'hire' : 'hires';
-    return `${hire.teamName} (${hire.raceName}, coached by ${hire.coachName}) — ${hire.hireCount} ${plural}`;
+    return `${hire.teamName} (${hire.raceName}, ${hire.coachName}) — ${hire.hireCount} ${plural}`;
   }
 
   /**
