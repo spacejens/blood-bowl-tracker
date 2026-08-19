@@ -48,7 +48,15 @@ export type PlayerKillerInfo = (
       kind: 'player';
       playerId: number;
       playerName: string;
+      /**
+       * The player's position, and whether that position is a star player.
+       * Carried so the deepdive can route this row's drill-down button to
+       * the star player deepdive (keyed by `positionId`) rather than the
+       * per-team player one, without a second lookup per row.
+       */
+      positionId: number;
       positionName: string;
+      isStarPlayer: boolean;
     })
   | (PlayerKillerTeam & { kind: 'team' })
   | { kind: 'ambiguousTeams'; teams: PlayerKillerTeam[] }
@@ -148,7 +156,9 @@ export class PlayerDeathService {
           kind: 'player',
           playerId: event.actingPlayerId,
           playerName: killer.playerName,
+          positionId: killer.positionId,
           positionName: killer.positionName,
+          isStarPlayer: killer.isStarPlayer,
           ...this.toKillerTeam(killerSide),
           viaFoul,
         };
@@ -213,11 +223,13 @@ export class PlayerDeathService {
       .orderBy(teams.name);
   }
 
-  /** One player's own name, position, and team id. */
+  /** One player's own name, position (with its star flag), and team id. */
   private async findPlayerSummary(playerId: number): Promise<
     | {
         playerName: string;
+        positionId: number;
         positionName: string;
+        isStarPlayer: boolean;
         teamId: number;
       }
     | undefined
@@ -225,7 +237,9 @@ export class PlayerDeathService {
     const rows = await this.db
       .select({
         playerName: players.name,
+        positionId: positions.id,
         positionName: positions.name,
+        isStarPlayer: positions.isStarPlayer,
         teamId: teams.id,
       })
       .from(players)
@@ -430,7 +444,9 @@ export class PlayerDeathService {
           kind: 'player',
           playerId: event.consequencePlayerId,
           playerName: victim.playerName,
+          positionId: victim.positionId,
           positionName: victim.positionName,
+          isStarPlayer: victim.isStarPlayer,
           ...this.toKillerTeam(victimSide),
           viaFoul,
         };

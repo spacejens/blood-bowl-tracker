@@ -37,7 +37,9 @@ const namedVictim: PlayerKillEntry = {
   kind: 'player',
   playerId: 88,
   playerName: 'Griff Oberwald',
+  positionId: 60,
   positionName: 'Blitzer',
+  isStarPlayer: false,
   ...gougedEye,
   viaFoul: false,
 };
