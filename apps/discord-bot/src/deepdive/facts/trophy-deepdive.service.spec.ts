@@ -48,6 +48,7 @@ import {
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
+import { makePlayerRowButton } from './team-deepdive.test-helpers';
 import { TrophyDeepdiveService } from './trophy-deepdive.service';
 
 interface MakeServiceOptions {
@@ -59,24 +60,6 @@ interface MakeServiceOptions {
   playerContext?: MockProxy<PlayerContextService>;
   eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
   playerRowButton?: MockProxy<PlayerRowButtonService>;
-}
-
-/**
- * A `PlayerRowButtonService` mock. Returns a canned regular-player entry by
- * default so tests about other parts of the embed are unaffected; a star
- * test stubs a star entry for the one row it cares about. The mock
- * deliberately does NOT reimplement the real star-vs-regular rule — that
- * rule is tested in `player-row-button.service.spec.ts`. Mirrors
- * `team-deepdive.test-helpers.ts`'s `makePlayerRowButton()`.
- */
-function makePlayerRowButton(): MockProxy<PlayerRowButtonService> {
-  const playerRowButton = mock<PlayerRowButtonService>();
-  playerRowButton.buildPlayerRowButton.mockImplementation((row) => ({
-    customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-    entityId: String(row.playerId),
-    label: row.playerName,
-  }));
-  return playerRowButton;
 }
 
 async function makeService({
