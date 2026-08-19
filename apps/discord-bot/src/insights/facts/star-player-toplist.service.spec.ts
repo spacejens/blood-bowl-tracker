@@ -30,7 +30,6 @@ describe('StarPlayerToplistService.resolveTotalHires', () => {
 
   beforeEach(async () => {
     starPlayers = mock<StarPlayersService>();
-    starPlayers.countTotalHires.mockResolvedValue(rows);
     leaderboard = mock<LeaderboardService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
