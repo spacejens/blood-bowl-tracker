@@ -4,6 +4,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
+import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
 import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
@@ -34,6 +35,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
     SlashCommandRegistryService,
+    PlayerRowButtonService,
     CoachDeepdiveService,
     TeamDeepdiveService,
     RaceDeepdiveService,
