@@ -30,6 +30,7 @@ import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-topl
 import { MatchCategoryLabelService } from './facts/match-category-label.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
+import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
@@ -80,6 +81,7 @@ const GAME_DATA_MODULES = [
     ErasListService,
     CompetitionGroupsListService,
     StatsSummaryFactsService,
+    StarPlayerToplistService,
     StarPlayersListService,
     TrophiesListService,
     {
@@ -110,6 +112,7 @@ const GAME_DATA_MODULES = [
     ErasListService,
     CompetitionGroupsListService,
     StatsSummaryFactsService,
+    StarPlayerToplistService,
     StarPlayersListService,
     TrophiesListService,
     FACT_TREE,

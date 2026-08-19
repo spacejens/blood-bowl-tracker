@@ -7,6 +7,7 @@ import type { ErasListService } from './facts/eras-list.service';
 import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import type { PlayerToplistService } from './facts/player-toplist.service';
 import type { RaceToplistService } from './facts/race-toplist.service';
+import type { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import type { StarPlayersListService } from './facts/star-players-list.service';
 import type { StatsSummaryFactsService } from './facts/stats-summary.service';
 import type { TeamToplistService } from './facts/team-toplist.service';
@@ -22,6 +23,7 @@ export interface FactTreeDeps {
   expensiveMistakes: ExpensiveMistakesToplistService;
   erasList: ErasListService;
   statsSummary: StatsSummaryFactsService;
+  starPlayerToplist: StarPlayerToplistService;
   starPlayersList: StarPlayersListService;
   trophiesList: TrophiesListService;
 }

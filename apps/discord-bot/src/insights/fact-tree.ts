@@ -510,6 +510,26 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         supportsMatchCategory: false,
         resolve: () => deps.starPlayersList.resolve(),
       },
+      toplist: {
+        // Grouped under `hires` rather than hanging `total` straight off
+        // `toplist` so issue #504's "distinct teams that hired this star" can
+        // land beside it as `starPlayers.toplist.hires.distinctTeams`: both
+        // are hire-derived measures of the same star's popularity.
+        hires: {
+          // Unscoped for exactly the reason starPlayers.list is (see the
+          // comment on that leaf): the star player exception makes every star
+          // available in essentially every era, so a league/era-scoped hire
+          // count would not meaningfully narrow anything. The leaf's resolve
+          // function therefore takes no scope parameter at all.
+          total: {
+            supportsLeague: false,
+            supportsEra: false,
+            supportsCompetition: false,
+            supportsMatchCategory: false,
+            resolve: () => deps.starPlayerToplist.resolveTotalHires(),
+          },
+        },
+      },
     },
     stats: {
       supportsLeague: true,

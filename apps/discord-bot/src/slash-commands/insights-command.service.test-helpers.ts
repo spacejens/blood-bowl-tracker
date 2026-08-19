@@ -28,6 +28,7 @@ import { ExpensiveMistakesToplistService } from '../insights/facts/expensive-mis
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import { PlayerToplistService } from '../insights/facts/player-toplist.service';
 import { RaceToplistService } from '../insights/facts/race-toplist.service';
+import { StarPlayerToplistService } from '../insights/facts/star-player-toplist.service';
 import { StarPlayersListService } from '../insights/facts/star-players-list.service';
 import { StatsSummaryFactsService } from '../insights/facts/stats-summary.service';
 import { TeamToplistService } from '../insights/facts/team-toplist.service';
@@ -41,7 +42,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
  *
  * `InsightsCommandService`'s FACT_TREE dependency is built with the real,
  * pure `buildFactTree` (a loose function, not a service — CLAUDE.md case 2
- * exemption) wired to ten MOCKED fact services. This keeps the real tree
+ * exemption) wired to eleven MOCKED fact services. This keeps the real tree
  * topology (paths, supportsLeague/Era/Competition flags per leaf — already
  * verified against production by `fact-tree.spec.ts`) while every leaf's
  * actual computation is a controlled mock, so these specs never construct
@@ -134,12 +135,13 @@ export interface FactTreeMocks {
   erasList: MockProxy<ErasListService>;
   competitionGroupsList: MockProxy<CompetitionGroupsListService>;
   statsSummary: MockProxy<StatsSummaryFactsService>;
+  starPlayerToplist: MockProxy<StarPlayerToplistService>;
   starPlayersList: MockProxy<StarPlayersListService>;
   trophiesList: MockProxy<TrophiesListService>;
 }
 
 /**
- * The ten fact services `buildFactTree` wires into leaves, each a
+ * The eleven fact services `buildFactTree` wires into leaves, each a
  * `MockProxy` with a default resolved reply — the same title/description
  * content the pre-migration game-data-fake-driven tree produced via real
  * computation, now canned directly since that computation belongs to these
@@ -357,6 +359,11 @@ function makeFactTreeMocks(): FactTreeMocks {
     sampleEmbedReply('Stats summary', 'sample stats'),
   );
 
+  const starPlayerToplist = mock<StarPlayerToplistService>();
+  starPlayerToplist.resolveTotalHires.mockResolvedValue(
+    sampleEmbedReply('Star players by times hired', '1. Morg n Thorg — 7'),
+  );
+
   const starPlayersList = mock<StarPlayersListService>();
   starPlayersList.resolve.mockResolvedValue(
     sampleEmbedReply('Star Players', 'sample star players'),
@@ -376,6 +383,7 @@ function makeFactTreeMocks(): FactTreeMocks {
     erasList,
     competitionGroupsList,
     statsSummary,
+    starPlayerToplist,
     starPlayersList,
     trophiesList,
   };
