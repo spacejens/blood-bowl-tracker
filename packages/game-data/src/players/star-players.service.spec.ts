@@ -317,6 +317,10 @@ describe('StarPlayersService', () => {
       await service.countTotalHires(21);
 
       expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(chains[0].groupBy.mock.calls[0])).toEqual([
+        'positions.id',
+        'positions.name',
+      ]);
       expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
     });
 
