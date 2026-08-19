@@ -23,6 +23,12 @@ export const STAR_PLAYERS_LIST_TIMEOUT_MESSAGE =
 export const STAR_PLAYERS_LIST_NO_DATA_MESSAGE =
   'No star players have made a name for themselves yet.';
 
+// --- Star player toplist (insights/facts/star-player-toplist.service.ts) ---
+export const STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE =
+  'The agents are still arguing over whose star has signed the most contracts.';
+export const STAR_PLAYER_TOPLIST_NO_DATA_MESSAGE =
+  'Not one star has been talked into taking the field for anybody yet.';
+
 // --- Competition groups list (insights/facts/competition-groups-list.service.ts) ---
 export const COMPETITION_GROUPS_LIST_TIMEOUT_MESSAGE =
   'The fixture secretary is still leafing through every calendar in the cabinet.';
