@@ -53,6 +53,7 @@ export {
 } from './players/players.service';
 export type {
   StarPlayerHire,
+  StarPlayerHireCount,
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';

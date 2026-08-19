@@ -272,4 +272,75 @@ describe('StarPlayersService', () => {
       ]);
     });
   });
+
+  describe('countTotalHires', () => {
+    it('returns one row per star position with its total hire count', async () => {
+      const rows = [
+        { positionId: 21, name: 'Morg n Thorg', count: 7 },
+        { positionId: 20, name: 'Griff Oberwald', count: 3 },
+      ];
+      await build(rows);
+
+      expect(await service.countTotalHires(21)).toEqual(rows);
+    });
+
+    it('returns an empty toplist when no star has ever been hired', async () => {
+      await build([]);
+
+      expect(await service.countTotalHires(21)).toEqual([]);
+    });
+
+    it('filters on is_star_player, so regular positions are excluded', async () => {
+      const { chains } = await build([]);
+
+      await service.countTotalHires(21);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        true,
+      ]);
+    });
+
+    it('joins players to their position, so only hired stars can appear', async () => {
+      const { chains } = await build([]);
+
+      await service.countTotalHires(21);
+
+      const joins = chains[0].innerJoin.mock.calls.map((call) =>
+        extractJoinColumns(call[1]),
+      );
+      expect(joins).toEqual([['positions.id', 'players.position_id']]);
+    });
+
+    it('groups the hires per star position in one query', async () => {
+      const { chains } = await build([]);
+
+      await service.countTotalHires(21);
+
+      expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
+      expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+    });
+
+    it('orders by hire count descending, then star name ascending — the toplist relies on this order and does not re-sort', async () => {
+      const { chains } = await build([]);
+
+      await service.countTotalHires(21);
+
+      const hireCountOrder = firstCallArg(chains[0].orderBy, 0, 0);
+      expect(extractJoinColumns(hireCountOrder)).toEqual(['players.id']);
+      expect(sqlText(hireCountOrder)).toContain('count');
+      expect(sqlText(hireCountOrder)).toContain(' desc');
+
+      const nameOrder = firstCallArg(chains[0].orderBy, 0, 1);
+      expect(extractJoinColumns(nameOrder)).toEqual(['positions.name']);
+      expect(sqlText(nameOrder)).toContain(' asc');
+    });
+
+    it('applies the caller-supplied limit', async () => {
+      const { chains } = await build([]);
+
+      await service.countTotalHires(21);
+
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+  });
 });

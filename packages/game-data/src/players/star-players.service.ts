@@ -42,6 +42,18 @@ export interface StarPlayerHire {
 }
 
 /**
+ * One star position and how many times it has been hired in total, across
+ * every team and every era. Each hire is its own `players` row pointing at the
+ * star's `positions` row (see `StarPlayerIdentity`), so the total is simply a
+ * count of those rows.
+ */
+export interface StarPlayerHireCount {
+  positionId: number;
+  name: string;
+  count: number;
+}
+
+/**
  * Read-only queries about star player identities, as opposed to
  * `PlayersService`'s queries about individual `players` rows. Its own service
  * both because that is the honest boundary and because `players.service.ts`
@@ -187,5 +199,30 @@ export class StarPlayersService {
         ),
       )
       .orderBy(asc(positions.name));
+  }
+
+  /**
+   * The most-hired star players, most hires first, ties broken by star name so
+   * the order is stable across calls. One row per star position, counting every
+   * hire by every team in every era.
+   *
+   * Needs no `EXISTS` filter (unlike `listAll`/`searchByNamePrefix`): the inner
+   * join to `players` already requires at least one hire, so a never-hired star
+   * cannot appear. Unscoped for the same reason `listAll` is — see this class's
+   * doc comment.
+   */
+  countTotalHires(limit: number): Promise<StarPlayerHireCount[]> {
+    return this.db
+      .select({
+        positionId: positions.id,
+        name: positions.name,
+        count: count(players.id),
+      })
+      .from(players)
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(eq(positions.isStarPlayer, true))
+      .groupBy(positions.id, positions.name)
+      .orderBy(desc(count(players.id)), asc(positions.name))
+      .limit(limit);
   }
 }
