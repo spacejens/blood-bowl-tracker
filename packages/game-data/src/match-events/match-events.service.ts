@@ -158,9 +158,7 @@ export class MatchEventsService {
     }
     if (data.actionType !== 'death' && data.actionType !== 'foul') {
       throw new MatchEventUpsertConflictError(
-        `A death consequence requires actionType 'death' or 'foul', got '${String(
-          data.actionType,
-        )}'`,
+        `A death consequence requires actionType 'death' or 'foul', got '${data.actionType}'`,
       );
     }
   }
