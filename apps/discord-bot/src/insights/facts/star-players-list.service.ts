@@ -5,12 +5,12 @@ import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
-import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   STAR_PLAYERS_LIST_NO_DATA_MESSAGE,
   STAR_PLAYERS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ListDescriptionService } from '../shared/list-description.service';
 
 @Injectable()
 export class StarPlayersListService {
@@ -18,6 +18,7 @@ export class StarPlayersListService {
     private readonly starPlayers: StarPlayersService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly listDescription: ListDescriptionService,
   ) {}
 
   /**
@@ -70,39 +71,10 @@ export class StarPlayersListService {
       embeds: [
         {
           title: 'Star Players',
-          description: this.buildDescription(names, overflowNote),
+          description: this.listDescription.build(names, overflowNote),
         },
       ],
       components,
     };
-  }
-
-  /**
-   * Joins the star names into the embed description, truncating within
-   * Discord's `MAX_DESCRIPTION_LENGTH` (a hard per-field cap; exceeding it
-   * rejects the whole interaction, not just this field) while always
-   * preserving the overflow note in full. A plain end-of-string truncation
-   * would risk cutting the note itself off exactly when it matters most: a
-   * catalog long enough to need one. Unlike the sibling list facts,
-   * starPlayers.list can never be narrowed by a league scope, so it is the
-   * one most exposed to this limit as the star catalog grows.
-   */
-  private buildDescription(
-    names: string[],
-    overflowNote: string | null,
-  ): string {
-    if (overflowNote === null) {
-      return this.truncate(names.join('\n'), MAX_DESCRIPTION_LENGTH);
-    }
-    const namesBudget = MAX_DESCRIPTION_LENGTH - overflowNote.length - 1;
-    return `${this.truncate(names.join('\n'), namesBudget)}\n${overflowNote}`;
-  }
-
-  /** Mirrors `StarPlayerDeepdiveService.enforceDescriptionLimit`. */
-  private truncate(text: string, maxLength: number): string {
-    if (text.length <= maxLength) {
-      return text;
-    }
-    return `${text.slice(0, maxLength - 1)}…`;
   }
 }
