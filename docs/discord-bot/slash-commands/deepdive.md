@@ -152,7 +152,14 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   line uses. One line is shown per kill event, so a victim killed more than
   once by this player appears once per kill. At most 30 kills are shown; when
   there are more, the list ends with an exact `…and N more not shown.` note
-  computed from the player's true kill count. The player's true kill count
+  computed from the player's true kill count. The same note can also appear
+  with 30 or fewer total kills: long team, player, race or coach names can
+  exhaust the embed's description-length budget before all of the fetched
+  rows fit, in which case the rows that do not fit are dropped the same way
+  and the note reports them too. Either way the note's count is always exact
+  — it is computed from the player's true kill total, not from how many rows
+  happened to be fetched or rendered — regardless of which of the two
+  overflow reasons caused rows to be dropped. The player's true kill count
   always equals the killed sub-counts of the casualty and foul lines added
   together, exactly — not merely typically.
   Each trophy is
