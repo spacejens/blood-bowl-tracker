@@ -102,7 +102,7 @@ played:` followed by their top five teams by matches played, one line per
   possible killers; and `Status: Killed in mysterious circumstances` as a
   fallback when nothing can be attributed at all.
   When the fatal event was recorded as a foul rather than a regular blocking
-  action, the line ends with ` (via a foul)` — e.g.
+  action, the line ends with `(via a foul)` — e.g.
   `Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
   those forms.
   Only the `death` consequence produces this line; a player who has not died
@@ -161,7 +161,7 @@ played:` followed by their top five teams by matches played, one line per
   known importer behaviour) can instead render a prevented kill through the
   generic resolution logic like any other unresolvable kill, when the
   recorded team can't be matched or the save reason is missing. Any of them
-  ends with `` ` (via a foul)` `` when
+  ends with `(via a foul)` when
   the fatal (or prevented) event was a foul, the same note the `Status:` line
   uses — including the prevented row. The list also includes a death attempt
   with no recorded outcome at all; its victim's team is resolved the same way
