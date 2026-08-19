@@ -15,6 +15,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
+import type { TeamTopPlayer } from '../shared/match-event-counts';
 import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByTeam,
@@ -45,7 +46,7 @@ export class TeamsStatisticsService {
   getTopPlayersByMatchEventCount(
     teamId: number,
     limit: number,
-  ): Promise<{ playerId: number; name: string; count: number }[]> {
+  ): Promise<TeamTopPlayer[]> {
     return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
   }
 

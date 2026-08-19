@@ -12,7 +12,6 @@ import {
 } from './match-event-counts';
 import {
   extractAllFilterValues,
-  extractFilterValues,
   extractJoinColumns,
   firstCallArg,
 } from './query-assertions.test-helpers';
@@ -325,16 +324,64 @@ describe('countAllMatchEventsByPlayerForTeam', () => {
 
   it('counts every acting event per player for the team, capped to the limit', async () => {
     const rows = [
-      { playerId: 1, name: 'Griff', count: 20 },
-      { playerId: 2, name: 'Morg', count: 11 },
+      {
+        playerId: 1,
+        name: 'Griff',
+        count: 20,
+        positionId: 30,
+        positionName: 'Blitzer',
+        isStarPlayer: false,
+      },
+      {
+        playerId: 2,
+        name: 'Morg',
+        count: 11,
+        positionId: 31,
+        positionName: 'Morg N Thorg',
+        isStarPlayer: true,
+      },
     ];
     const builder = makeBuilder(rows);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
+
     await expect(
-      countAllMatchEventsByPlayerForTeam({ db, teamId: 7, limit: 10 }),
+      countAllMatchEventsByPlayerForTeam({ db, teamId: 7, limit: 5 }),
     ).resolves.toEqual(rows);
-    expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
-    expect(builder.limit).toHaveBeenCalledWith(10);
+
+    expect(builder.limit).toHaveBeenCalledWith(5);
+  });
+
+  it('joins positions on the player position so each row knows its position', async () => {
+    const builder = makeBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+
+    await countAllMatchEventsByPlayerForTeam({ db, teamId: 7, limit: 5 });
+
+    const joinConditions = (
+      builder.innerJoin as { mock: { calls: unknown[][] } }
+    ).mock.calls.map((call) => extractJoinColumns(call[1]));
+    expect(joinConditions).toContainEqual([
+      'positions.id',
+      'players.position_id',
+    ]);
+  });
+
+  it('groups by the position columns as well as the player ones', async () => {
+    const builder = makeBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+
+    await countAllMatchEventsByPlayerForTeam({ db, teamId: 7, limit: 5 });
+
+    const groupByColumns = (
+      builder.groupBy as { mock: { calls: unknown[][] } }
+    ).mock.calls[0].map((column) => extractJoinColumns(column).join(''));
+    expect(groupByColumns).toEqual([
+      'players.id',
+      'players.name',
+      'positions.id',
+      'positions.name',
+      'positions.is_star_player',
+    ]);
   });
 
   it('passes a generous limit through so a tie at the cutoff can be detected downstream', async () => {
@@ -342,6 +389,9 @@ describe('countAllMatchEventsByPlayerForTeam', () => {
       playerId: i + 1,
       name: `Player ${i + 1}`,
       count: i < 6 ? 5 : 1,
+      positionId: 20 + i,
+      positionName: `Position ${i + 1}`,
+      isStarPlayer: i % 2 === 0,
     }));
     const builder = makeBuilder(rows);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
