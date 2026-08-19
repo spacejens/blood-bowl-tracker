@@ -162,8 +162,10 @@ export class PlayerDeathService {
     // candidate.
     const candidates =
       event.actingMatchTeamId === null
-        ? sides.filter(
-            (side) => side.matchTeamId !== event.consequenceMatchTeamId,
+        ? await this.candidatesExcludingVictim(
+            playerId,
+            sides,
+            event.consequenceMatchTeamId,
           )
         : sides.filter((side) => side.matchTeamId === event.actingMatchTeamId);
 
@@ -228,6 +230,32 @@ export class PlayerDeathService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(eq(players.id, playerId));
     return rows[0];
+  }
+
+  /**
+   * Every side except the victim's own, for the "no acting side recorded"
+   * branch of `getKillerInfo`. Excludes the victim's side by
+   * `consequenceMatchTeamId` when it was recorded, and — mirroring
+   * `resolveKillEntry`'s symmetric fallback for the perpetrator's own side —
+   * by resolving the victim's own team via their player row when it was not.
+   * `playerId` is `getKillerInfo`'s own parameter, so it always names the
+   * victim here. Without this second fallback, an event with neither side
+   * recorded would leave every side a candidate, including the victim's own
+   * team, which can never be its own killer.
+   */
+  private async candidatesExcludingVictim(
+    playerId: number,
+    sides: MatchSide[],
+    consequenceMatchTeamId: number | null,
+  ): Promise<MatchSide[]> {
+    let victimMatchTeamId = consequenceMatchTeamId ?? undefined;
+    if (victimMatchTeamId === undefined) {
+      const victim = await this.findPlayerSummary(playerId);
+      victimMatchTeamId = sides.find(
+        (side) => side.teamId === victim?.teamId,
+      )?.matchTeamId;
+    }
+    return sides.filter((side) => side.matchTeamId !== victimMatchTeamId);
   }
 
   /** Drop the internal `matchTeamId` before the row leaves this service. */

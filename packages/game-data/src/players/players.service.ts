@@ -13,7 +13,16 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, ilike, isNotNull, sql } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  sql,
+} from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
@@ -23,7 +32,7 @@ import {
   countMatchEventsByPlayer,
   countMatchEventsForPlayer,
 } from '../shared/match-event-counts';
-import type { ConsequenceType } from '../shared/match-event-types';
+import type { ActionType, ConsequenceType } from '../shared/match-event-types';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -62,10 +71,19 @@ export interface PlayerDeepdiveEventGroup {
 /**
  * The player deepdive's event counters. The five `simple` categories are
  * plain label/count rows; casualties and fouls each carry a severity
- * breakdown so the embed can render them as one line apiece. `fouls.killed`
- * plus `casualties.killed` is exactly the number of kills the deepdive's
- * Kills section lists, because an event with `consequenceType = 'death'`
- * always has an `actionType` of either `'death'` or `'foul'`.
+ * breakdown so the embed can render them as one line apiece.
+ *
+ * `casualties.killed` counts `actionType = 'death' AND consequenceType =
+ * 'death'` rows, and `fouls.killed` counts `actionType = 'foul' AND
+ * consequenceType = 'death'` rows — the same combined-filter shape
+ * `seriousInjuries` already used for fouls. Since every event with
+ * `consequenceType = 'death'` has an `actionType` of either `'death'` or
+ * `'foul'`, `fouls.killed` plus `casualties.killed` is exactly the number of
+ * kills the deepdive's Kills section lists. This is true by construction, not
+ * merely typical: `casualties.killed` deliberately does NOT count a
+ * `'death'`-actioned row whose consequence was `'casualty_avoided'` (the
+ * victim survived) or unrecorded, unlike the plain `actionType = 'death'`
+ * count `countDeathsCausedByPlayer` reports elsewhere.
  */
 export interface PlayerDeepdiveCategoryCounts {
   simple: { label: string; count: number }[];
@@ -194,21 +212,12 @@ export class PlayersService {
           this.countDeepdiveEvents(playerId, category.selector),
         ),
       ),
-      this.countDeepdiveEvents(playerId, {
-        role: 'acting',
-        types: CASUALTY_CAUSED_TYPES,
-      }),
-      this.countDeepdiveEvents(playerId, {
-        role: 'acting',
-        types: SERIOUS_INJURY_CAUSED_TYPES,
-      }),
-      this.countDeepdiveEvents(playerId, {
-        role: 'acting',
-        types: DEATH_CAUSED_TYPES,
-      }),
-      this.countDeepdiveEvents(playerId, { role: 'acting', types: FOUL_TYPES }),
-      this.countFoulConsequences(playerId, 'serious_injury'),
-      this.countFoulConsequences(playerId, 'death'),
+      this.countActingEvents(playerId, CASUALTY_CAUSED_TYPES),
+      this.countActingEvents(playerId, SERIOUS_INJURY_CAUSED_TYPES),
+      this.countCombinedEvents(playerId, 'death', 'death'),
+      this.countActingEvents(playerId, FOUL_TYPES),
+      this.countCombinedEvents(playerId, 'foul', 'serious_injury'),
+      this.countCombinedEvents(playerId, 'foul', 'death'),
     ]);
     return {
       simple: simpleCategories.map((category, index) => ({
@@ -228,7 +237,12 @@ export class PlayersService {
     };
   }
 
-  /** One deepdive counter: unscoped, single-role, for this player alone. */
+  /**
+   * One deepdive counter for the five "simple" categories: unscoped,
+   * single-role, for this player alone. Not used for the casualty/foul
+   * groups — see `countActingEvents` and `countCombinedEvents` below for why
+   * those need a different query shape.
+   */
   private countDeepdiveEvents(
     playerId: number,
     selector: MatchEventSelector,
@@ -237,14 +251,43 @@ export class PlayersService {
   }
 
   /**
-   * Events this player committed as a foul that inflicted the given
-   * consequence. `MatchEventSelector` is single-role by design, so a combined
-   * acting-and-consequence filter needs its own query — a direct
-   * `match_events` filter, with none of the join graph the scoped counters
-   * carry, because deepdive counters apply no scope narrowing.
+   * Events this player committed with one of the given action types, no
+   * consequence filter. A direct `match_events` filter, with none of the join
+   * graph `countDeepdiveEvents` carries: `countMatchEventsForPlayer` inner-joins
+   * `matchTeams` on `actingMatchTeamId`, a nullable column, so an event with
+   * that column unset would be invisible to it. The casualty/foul group
+   * counters must never drop such a row, because `countCombinedEvents` below
+   * (their `killed`/`seriousInjuries` siblings) does not join at all —
+   * differing join shapes on lines that share one "total" would let a
+   * sub-count exceed its own total. Deepdive counters apply no scope
+   * narrowing, so the join graph earns nothing here anyway.
    */
-  private async countFoulConsequences(
+  private async countActingEvents(
     playerId: number,
+    types: readonly ActionType[],
+  ): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(matchEvents.id) })
+      .from(matchEvents)
+      .where(
+        and(
+          eq(matchEvents.actingPlayerId, playerId),
+          inArray(matchEvents.actionType, types),
+        ),
+      );
+    return row.count;
+  }
+
+  /**
+   * Events this player committed with the given action type that inflicted
+   * the given consequence. `MatchEventSelector` is single-role by design, so
+   * a combined acting-and-consequence filter needs its own query — a direct
+   * `match_events` filter, matching `countActingEvents`'s no-join shape so the
+   * two stay comparable on the same rendered line (see that method's doc).
+   */
+  private async countCombinedEvents(
+    playerId: number,
+    actionType: ActionType,
     consequenceType: ConsequenceType,
   ): Promise<number> {
     const [row] = await this.db
@@ -253,7 +296,7 @@ export class PlayersService {
       .where(
         and(
           eq(matchEvents.actingPlayerId, playerId),
-          eq(matchEvents.actionType, 'foul'),
+          eq(matchEvents.actionType, actionType),
           eq(matchEvents.consequenceType, consequenceType),
         ),
       );

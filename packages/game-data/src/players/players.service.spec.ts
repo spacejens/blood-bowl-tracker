@@ -11,7 +11,6 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import {
   CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
-  DEATH_CAUSED_TYPES,
   DEFLECTION_TYPES,
   FOUL_TYPES,
   INTERCEPTION_TYPES,
@@ -328,7 +327,7 @@ describe('PlayersService', () => {
       });
     });
 
-    it('binds each count to its own type-set selector, in order', async () => {
+    it('binds each simple category to its own type-set selector, in order', async () => {
       // A transposition of two entries would leave the tests above green (they
       // only check counts), so this test inspects the actual filter values each
       // call built.
@@ -338,10 +337,6 @@ describe('PlayersService', () => {
         COMPLETION_TYPES,
         INTERCEPTION_TYPES,
         DEFLECTION_TYPES,
-        CASUALTY_CAUSED_TYPES,
-        SERIOUS_INJURY_CAUSED_TYPES,
-        DEATH_CAUSED_TYPES,
-        FOUL_TYPES,
       ];
       const { chains } = await build(
         ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
@@ -359,13 +354,46 @@ describe('PlayersService', () => {
       });
     });
 
-    it('counts foul-caused serious injuries and deaths with a combined acting/consequence filter', async () => {
+    it('counts casualty and foul totals/serious-injuries as direct acting-type filters, unjoined', async () => {
+      // These three go through `countActingEvents`: a direct `match_events`
+      // filter with playerId first, then the type list — no join, unlike the
+      // simple-category queries above.
       const { chains } = await build(
         ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
       );
 
       await service.getDeepdiveCategoryCounts(1);
 
+      expect(extractAllFilterValues(firstCallArg(chains[5].where))).toEqual([
+        1,
+        ...CASUALTY_CAUSED_TYPES,
+      ]);
+      expect(extractAllFilterValues(firstCallArg(chains[6].where))).toEqual([
+        1,
+        ...SERIOUS_INJURY_CAUSED_TYPES,
+      ]);
+      expect(extractAllFilterValues(firstCallArg(chains[8].where))).toEqual([
+        1,
+        ...FOUL_TYPES,
+      ]);
+      expect(chains[5].innerJoin).not.toHaveBeenCalled();
+      expect(chains[6].innerJoin).not.toHaveBeenCalled();
+      expect(chains[8].innerJoin).not.toHaveBeenCalled();
+    });
+
+    it('counts casualty-killed and foul serious-injuries/deaths with a combined acting+consequence filter, unjoined', async () => {
+      const { chains } = await build(
+        ...Array.from({ length: ALL_COUNTS }, () => [{ count: 0 }]),
+      );
+
+      await service.getDeepdiveCategoryCounts(1);
+
+      // casualties.killed: actionType = 'death' AND consequenceType = 'death'
+      expect(extractAllFilterValues(firstCallArg(chains[7].where))).toEqual([
+        1,
+        'death',
+        'death',
+      ]);
       expect(extractAllFilterValues(firstCallArg(chains[9].where))).toEqual([
         1,
         'foul',
@@ -376,6 +404,9 @@ describe('PlayersService', () => {
         'foul',
         'death',
       ]);
+      expect(chains[7].innerJoin).not.toHaveBeenCalled();
+      expect(chains[9].innerJoin).not.toHaveBeenCalled();
+      expect(chains[10].innerJoin).not.toHaveBeenCalled();
     });
   });
 

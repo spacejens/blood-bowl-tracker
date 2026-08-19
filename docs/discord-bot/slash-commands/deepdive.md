@@ -147,8 +147,9 @@ labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
   line uses. One line is shown per kill event, so a victim killed more than
   once by this player appears once per kill. At most 30 kills are shown; when
   there are more, the list ends with an exact `…and N more not shown.` note
-  computed from the player's true kill count. The list length always equals the
-  killed sub-counts of the casualty and foul lines added together.
+  computed from the player's true kill count. The player's true kill count
+  always equals the killed sub-counts of the casualty and foul lines added
+  together, exactly — not merely typically.
   Each trophy is
   rendered as a drill-down button to the trophy; those come first, then — for
   a player who died — a button to the killer (the killer player for a named
