@@ -115,7 +115,9 @@ describe('DeepdiveTargetResolverService', () => {
 
   it('rejects a non-integer team id without hitting the deepdive', async () => {
     const { service, teamDeepdive } = await makeService();
-    expect(await service.resolveTeam('')).toBe(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
+    expect(await service.resolveTeam('3.5')).toBe(
+      DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+    );
     expect(teamDeepdive.resolve).not.toHaveBeenCalled();
   });
 

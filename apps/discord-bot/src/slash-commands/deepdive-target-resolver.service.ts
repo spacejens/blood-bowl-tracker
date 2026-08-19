@@ -113,7 +113,7 @@ export class DeepdiveTargetResolverService {
     resolve: (id: number) => Promise<string | InteractionReplyOptions>,
   ): Promise<string | InteractionReplyOptions> {
     const id = Number(value);
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(id)) {
       return Promise.resolve(notFoundMessage);
     }
     return resolve(id);
