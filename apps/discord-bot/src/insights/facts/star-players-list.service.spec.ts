@@ -11,6 +11,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -224,6 +225,27 @@ describe('StarPlayersListService.resolve', () => {
     expect(result.embeds[0].description).toBe(
       'Griff Oberwald\n…and 3 more without a link.',
     );
+  });
+
+  it('truncates the description to the Discord embed cap when the star catalog is large', async () => {
+    // starPlayers.list can never be narrowed by a league scope (see
+    // fact-tree.ts's comment on the starPlayers.list leaf), so it is the
+    // list fact most exposed to Discord's per-field description cap as the
+    // star catalog grows. One name here is long enough that 200 of them
+    // comfortably exceed the 4096-char MAX_DESCRIPTION_LENGTH.
+    const rows: StarRow[] = Array.from({ length: 200 }, (_unused, index) => ({
+      positionId: index,
+      name: `Star Player Number ${index} With A Fairly Long Name`,
+    }));
+    const service = await makeService(rows);
+
+    const result = (await service.resolve()) as {
+      embeds: { description: string }[];
+    };
+
+    const description = result.embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 
   it('queries the full global catalog with no scope argument', async () => {

@@ -255,5 +255,21 @@ describe('StarPlayersService', () => {
       expect(orderBy).toContain(' asc');
       expect(orderBy).not.toContain(' desc');
     });
+
+    it('requires an EXISTS match against players on position id, so a never-hired star is excluded', async () => {
+      const { chains } = await build([]);
+
+      await service.listAll();
+
+      expect(sqlText(firstCallArg(chains[0].where))).toContain('exists');
+      // The EXISTS subquery is itself a separate db.select(...) call, issued
+      // while building the outer where() argument, so it shows up as its own
+      // captured query chain.
+      const subquery = chains[1];
+      expect(extractJoinColumns(firstCallArg(subquery.where))).toEqual([
+        'players.position_id',
+        'positions.id',
+      ]);
+    });
   });
 });

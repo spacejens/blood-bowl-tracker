@@ -52,6 +52,13 @@ export interface StarPlayerHire {
  * `positions.id`, so such a pair reads as two stars. That is the existing
  * data model's behaviour (`tools/review-player` treats it the same way), not
  * something this service tries to paper over.
+ *
+ * A star position has a schema path to a league (`positions_race_eras` ->
+ * `race_eras` -> `eras.league_id`), but the "star player exception"
+ * (`tools/import-bbl`'s position-race-era importer) links every star as
+ * available in essentially every era its races span, so that path would not
+ * meaningfully narrow a league/era-scoped query. `listAll()` is therefore
+ * unscoped rather than using it.
  */
 @Injectable()
 export class StarPlayersService {
@@ -155,18 +162,30 @@ export class StarPlayersService {
   }
 
   /**
-   * Every known star player, name-ascending. The full global catalog: star
-   * positions carry no league/era/competition FK at all, so unlike
-   * `ErasService.listErasWithLeague` or `TrophiesService.listAllWithLeague`
-   * this takes no `FactScope`. The only link between a star and a league is
-   * indirect, through hire history (`players` -> `teamEras` -> `teams`), which
-   * is deliberately out of scope here.
+   * Every known star player that has been hired at least once, name-ascending.
+   * Mirrors `searchByNamePrefix`'s EXISTS filter for the same reason: a star
+   * position that has never been hired has nothing to show, and its deepdive
+   * button would dead-end on `StarPlayerDeepdiveService`'s not-found message.
+   * Not itself scoped by league/era/competition, unlike
+   * `ErasService.listErasWithLeague`/`TrophiesService.listAllWithLeague` — see
+   * this class's own doc comment for why a league/era-scoped query over stars
+   * would not be meaningful.
    */
   listAll(): Promise<StarPlayerIdentity[]> {
     return this.db
       .select({ positionId: positions.id, name: positions.name })
       .from(positions)
-      .where(eq(positions.isStarPlayer, true))
+      .where(
+        and(
+          eq(positions.isStarPlayer, true),
+          exists(
+            this.db
+              .select({ id: players.id })
+              .from(players)
+              .where(eq(players.positionId, positions.id)),
+          ),
+        ),
+      )
       .orderBy(asc(positions.name));
   }
 }

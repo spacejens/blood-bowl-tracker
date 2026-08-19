@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
@@ -17,7 +18,6 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 
 /**
  * Composes a star player's hire history into a single embed: one line per

@@ -16,6 +16,10 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  OVERFLOW_NOTE_BUDGET,
+} from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
@@ -36,10 +40,6 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import {
-  MAX_DESCRIPTION_LENGTH,
-  OVERFLOW_NOTE_BUDGET,
-} from './description-limits';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 
 type Player = {
