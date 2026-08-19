@@ -493,6 +493,20 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         resolve: (scope) => deps.competitionGroupsList.resolve(scope),
       },
     },
+    starPlayers: {
+      list: {
+        // Star positions carry no league/era/competition FK at all (unlike a
+        // trophy -> competition group -> league, or an era -> league
+        // directly), so unlike eras.list and trophies.list this is never
+        // scoped — it is always the full global catalog of known star
+        // players. The scope argument is therefore ignored.
+        supportsLeague: false,
+        supportsEra: false,
+        supportsCompetition: false,
+        supportsMatchCategory: false,
+        resolve: () => deps.starPlayersList.resolve(),
+      },
+    },
     stats: {
       supportsLeague: true,
       supportsEra: true,
