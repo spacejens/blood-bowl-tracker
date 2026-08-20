@@ -49,7 +49,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 
 ## Config files
 
-Two of the three tools below read a config file, committed at the repo root: `knip.jsonc` and `syncpack.config.js`. These are living files: a developer may hand-edit them later (e.g. to exclude a dependency from audit, group specific dependencies together, or silence a false-positive dead-code finding), and those edits must persist across future `code-hygiene` runs — this skill never overwrites them.
+Two of the three tools below read a config file, committed at the repo root: `knip.jsonc` and `syncpack.config.js`. These are living files: a developer may hand-edit them later (e.g. to mark a dependency as intentionally unused via Knip's `ignoreDependencies`, group specific dependencies together via syncpack's `versionGroups`, or silence a false-positive dead-code finding), and those edits must persist across future `code-hygiene` runs — this skill never overwrites them.
 
 ### `knip.jsonc`
 
