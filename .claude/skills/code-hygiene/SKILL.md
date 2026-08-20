@@ -130,18 +130,14 @@ If `.nvmrc`, every `FROM node:...` line, and every workspace's `@types/node` ent
    (`nvm install` with no version argument reads `.nvmrc` in the current directory.)
 5. `pnpm install` (refreshes the lockfile for the `@types/node` bump, and reinstalls under the new Node for any native deps).
 6. `pnpm verify`.
-7. **If it passes:** one commit covering `.nvmrc`, the Dockerfile, and every changed `package.json` together — e.g. "Update Node to 28 (LTS), sync .nvmrc and @types/node". This is one logical change; splitting it across commits would leave intermediate commits with a broken invariant (Dockerfile and `.nvmrc` disagreeing, or `@types/node`'s major mismatched).
-8. **If it fails:** **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to diagnose, then:
-   - **Mechanical migration** needed (e.g. a config flag renamed between major versions) — make the fix now, as part of this same commit.
+7. **Build the Docker image**, but only once step 6 passes — `pnpm verify` only confirms nothing else in the repo broke under the new Node; it does not confirm the new base image actually builds, because `verify` reinstalls and rebuilds under the *host's* Node/OS, not inside the Docker build context, and an alpine base bump can break native-module builds in ways `pnpm verify` alone won't catch:
+   ```bash
+   docker compose build discord-bot
+   ```
+8. **If both pass:** one commit covering `.nvmrc`, the Dockerfile, and every changed `package.json` together — e.g. "Update Node to 28 (LTS), sync .nvmrc and @types/node". This is one logical change; splitting it across commits would leave intermediate commits with a broken invariant (Dockerfile and `.nvmrc` disagreeing, or `@types/node`'s major mismatched). Committing only after both checks pass avoids ever committing a Node bump whose Docker image doesn't build.
+9. **If either fails:** **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to diagnose, then:
+   - **Mechanical migration** needed (e.g. a config flag renamed between major versions, or a native-module rebuild flag the alpine bump now requires) — make the fix now, as part of this same commit.
    - **Judgment call** needed (the fix isn't mechanical — it requires a product or architecture decision) — stop. Report what's already committed this run, then ask the developer whether to fix it manually and resume, skip the Node update and continue with the rest of the task list, or abort the run. Commits already made are not rolled back.
-
-`pnpm verify` only confirms nothing else in the repo broke under the new Node — it does not confirm the new base image actually builds, because `verify` reinstalls and rebuilds under the *host's* Node/OS, not inside the Docker build context. So a Node bump must also be confirmed by actually building the image:
-
-```bash
-docker compose build discord-bot
-```
-
-An alpine base bump can break native-module builds in ways `pnpm verify` alone won't catch.
 
 ### Task 2: Security audit
 
@@ -213,7 +209,7 @@ Run `pnpm verify`.
 
 Any finding a task can't safely auto-fix pauses the run immediately for developer direction, rather than being deferred into the PR description:
 
-- Task 1: a Node update's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging`. See Task 1 above for the full workflow. Commits already made earlier in the run are kept, not rolled back.
+- Task 1: a Node update's `pnpm verify` failure or Docker image build failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging`. See Task 1 above for the full workflow. Commits already made earlier in the run are kept, not rolled back.
 - Task 2: a security vulnerability with no available patched version.
 - Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
 - Task 4: any version mismatch syncpack couldn't auto-fix.
