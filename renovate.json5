@@ -56,13 +56,17 @@
       // pnpm build/lint/typecheck/test, which validates an npm dependency
       // patch bump, but never builds or deploys the Docker image — Docker
       // tag updates (docker-compose's postgres/schemaspy) have no PR-time
-      // validation at all, so they must never automerge unvalidated.
+      // validation at all, so they must never automerge unvalidated. This
+      // also excludes the github-actions manager (actions/checkout,
+      // actions/setup-node, flyctl); those are pinned to floating major/
+      // minor tags (@v4, @1.5) so patch updates essentially never fire for
+      // them anyway.
       matchManagers: ['npm'],
       matchUpdateTypes: ['patch'],
       automerge: true,
     },
     // No catch-all group: every dependency not matched above gets its own PR
-    // by Renovate's own default, so one broken update never blocks the rest.
+    // by Renovate's default, so one broken update never blocks the rest.
     // (config:recommended does still apply Renovate's own small, curated
     // group presets — e.g. well-known monorepo-published package families —
     // but those only bundle genuinely coordinated releases, the same idea as
