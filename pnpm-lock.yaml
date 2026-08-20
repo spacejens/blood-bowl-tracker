@@ -35,9 +35,6 @@ importers:
       madge:
         specifier: 8.0.0
         version: 8.0.0(supports-color@8.1.1)(typescript@5.9.3)
-      npm-check-updates:
-        specifier: 23.0.2
-        version: 23.0.2
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
@@ -3713,11 +3710,6 @@ packages:
     resolution: {integrity: sha512-71kFFjYaSshDTA8/a2HiTYPLdASWjLJxUyJxGE+ffxU+KhxSBtM9kiLUX+R2yooFdSFKMFpi4n3PFtDy6qXv8A==}
     engines: {node: '>=18'}
 
-  npm-check-updates@23.0.2:
-    resolution: {integrity: sha512-t5tv+d4sP+WbSwcDAFBwDxSUJRomc+TJoURPu7q5B/19toUsR/7eshRxBdWdE7iYw80iE4O4D/7OvCvIcaG8ug==}
-    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0, npm: '>=10.0.0'}
-    hasBin: true
-
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
 
@@ -7225,8 +7217,6 @@ snapshots:
   node-source-walk@7.0.2:
     dependencies:
       '@babel/parser': 7.29.7
-
-  npm-check-updates@23.0.2: {}
 
   nth-check@2.1.1:
     dependencies:
