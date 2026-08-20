@@ -49,8 +49,9 @@
       // never overrides another rule's groupName (the @nestjs/vitest groups
       // above keep their names, and every other dependency keeps its own
       // one-PR-per-dependency default) — a groupName here would bundle every
-      // patch update into one shared automerging PR, recreating the same
-      // all-or-nothing failure mode the removed catch-all group had.
+      // patch update into one shared automerging PR, an all-or-nothing
+      // failure mode where one broken dependency blocks automerge for every
+      // other one in the same PR.
       matchUpdateTypes: ['patch'],
       automerge: true,
     },
