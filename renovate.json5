@@ -20,8 +20,16 @@
       // not — see https://github.com/renovatebot/renovate/issues/13270).
       // Renovate must not also propose updates for these or the two systems
       // could conflict.
+      // Node stays fully owned by code-hygiene's Node version task: it keeps
+      // .nvmrc, every Dockerfile FROM node:... line, and every workspace's
+      // @types/node in lock-step, and understands LTS semantics for the
+      // -alpine tag suffix this repo uses (Renovate's node versioning does
+      // not — see https://github.com/renovatebot/renovate/issues/13270).
+      // Renovate must not also propose updates for these or the two systems
+      // could conflict. No matchManagers filter here on purpose — it must
+      // cover every manager that could touch node/@types/node (npm,
+      // dockerfile, docker-compose, nvm for .nvmrc, and any future one).
       matchPackageNames: ['node', '@types/node'],
-      matchManagers: ['npm', 'dockerfile', 'docker-compose'],
       enabled: false,
     },
     {

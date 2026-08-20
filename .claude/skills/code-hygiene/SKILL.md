@@ -86,7 +86,7 @@ madge (circular dependencies) takes no config file — it's invoked with CLI fla
 
 All three tools are already pinned root `devDependencies` with their `hygiene:*` scripts already in root `package.json` — nothing to install or bootstrap; every task below that uses one of these tools just runs its script. Task 1 (Node version updates) is the exception: it queries nodejs.org, Docker Hub, and `npm view` directly rather than running a `hygiene:*` script.
 
-`renovate.json5` at the repo root is a fifth config file this skill never touches at all — it belongs to Renovate, which runs on its own outside any `code-hygiene` pass. It is mentioned here only so a reader looking for "where did dependency updates go" finds the answer.
+`renovate.json5` at the repo root is a third config file this skill never touches at all — it belongs to Renovate, which runs on its own outside any `code-hygiene` pass. It is mentioned here only so a reader looking for "where did dependency updates go" finds the answer.
 
 ## Fixed task list (Development phase)
 
@@ -96,7 +96,7 @@ One commit per task, `pnpm verify` after each (per develop-feature's Development
 
 Node's base-image tag is tied to the Node version this repo runs, so it can't be bumped on its own: it moves together with `.nvmrc` and every workspace's `@types/node`, all three in lock-step. That lock-step requirement — plus LTS-aware resolution of the `-alpine` tag suffix this repo uses — is why this one update stays here instead of going to Renovate (see https://github.com/renovatebot/renovate/issues/13270). Every *other* npm dependency and every other pinned Docker image tag (currently `postgres` and `schemaspy` in `docker-compose.yml`) is Renovate's job, and `renovate.json5` sets `enabled: false` for `node` and `@types/node` so the two systems never propose competing updates.
 
-Scope: `.nvmrc`, every `FROM node:...` line in every `Dockerfile*` (currently `node:26-alpine`, in the two build stages of `apps/discord-bot/Dockerfile`), and every workspace `package.json` that declares `@types/node`. These all change together, in a single commit.
+Scope: `.nvmrc`, every `FROM node:...` line in every `Dockerfile*` (currently `node:24-alpine`, in the two build stages of `apps/discord-bot/Dockerfile`), and every workspace `package.json` that declares `@types/node`. These all change together, in a single commit.
 
 This task computes its four targets fresh from external sources every run — never diffed against "what changed since last time" — so a run started with `.nvmrc`, the Dockerfile tag, and `@types/node` already out of step with each other (e.g. from a manual edit) self-heals to the same computed target. No separate drift-detection mode is needed.
 
