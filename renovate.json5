@@ -46,8 +46,13 @@
       // https://docs.mend.io/wsk/renovate-github-app ("Smart Merge Control
       // is not a feature offered on this edition of Renovate"). Patch is
       // semver's closest convention to "should be safe" without that signal.
+      // Deliberately no groupName here: this rule only sets automerge, so it
+      // never overrides another rule's groupName (the @nestjs/vitest groups
+      // above keep their names, and every other dependency keeps its own
+      // one-PR-per-dependency default) — a groupName here would bundle every
+      // patch update into one shared automerging PR, recreating the same
+      // all-or-nothing failure mode the removed catch-all group had.
       matchUpdateTypes: ['patch'],
-      groupName: 'automerge - patch updates',
       automerge: true,
     },
     // No catch-all group: every other dependency gets its own PR (Renovate's
