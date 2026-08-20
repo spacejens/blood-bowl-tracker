@@ -52,6 +52,12 @@
       // patch update into one shared automerging PR, an all-or-nothing
       // failure mode where one broken dependency blocks automerge for every
       // other one in the same PR.
+      // Scoped to the npm manager only: CI (.github/workflows/ci.yml) runs
+      // pnpm build/lint/typecheck/test, which validates an npm dependency
+      // patch bump, but never builds or deploys the Docker image — Docker
+      // tag updates (docker-compose's postgres/schemaspy) have no PR-time
+      // validation at all, so they must never automerge unvalidated.
+      matchManagers: ['npm'],
       matchUpdateTypes: ['patch'],
       automerge: true,
     },
