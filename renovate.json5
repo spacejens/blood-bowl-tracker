@@ -9,8 +9,17 @@
   minimumReleaseAge: '1 day',
   packageRules: [
     {
-      groupName: 'all dependencies',
-      matchPackageNames: ['*'],
+      // Coordinated release train: these packages must share a version
+      // within a workspace, so an update to one without the others would
+      // leave incompatible versions installed together.
+      groupName: '@nestjs packages',
+      matchPackageNames: ['@nestjs/*'],
+    },
+    {
+      // Coordinated release train: @vitest/coverage-v8 must match vitest's
+      // own version.
+      groupName: 'vitest',
+      matchPackageNames: ['vitest', '@vitest/coverage-v8'],
     },
     {
       // Node stays fully owned by code-hygiene's Node version task: it keeps
@@ -37,9 +46,10 @@
       groupName: 'automerge - high confidence updates',
       automerge: true,
     },
-    // Add packageRules entries here to exclude specific dependencies, or to
-    // group specific ones together differently than "everything in one
-    // group", e.g.:
+    // No catch-all group: every other dependency gets its own PR (Renovate's
+    // default), so one broken update never blocks the rest. Add more
+    // packageRules entries here for other coordinated release trains that
+    // need to move together, or to exclude specific dependencies, e.g.:
     // {
     //   groupName: 'eslint',
     //   matchPackageNames: ['eslint', 'eslint-*', '@eslint/*', 'typescript-eslint'],
