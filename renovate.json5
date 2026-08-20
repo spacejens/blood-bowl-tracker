@@ -61,8 +61,12 @@
       matchUpdateTypes: ['patch'],
       automerge: true,
     },
-    // No catch-all group: every other dependency gets its own PR (Renovate's
-    // default), so one broken update never blocks the rest. Add more
+    // No catch-all group: every dependency not matched above gets its own PR
+    // by Renovate's own default, so one broken update never blocks the rest.
+    // (config:recommended does still apply Renovate's own small, curated
+    // group presets — e.g. well-known monorepo-published package families —
+    // but those only bundle genuinely coordinated releases, the same idea as
+    // the explicit groups above, not a broad catch-all.) Add more
     // packageRules entries here for other coordinated release trains that
     // need to move together, or to exclude specific dependencies, e.g.:
     // {
