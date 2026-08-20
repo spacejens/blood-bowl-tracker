@@ -100,7 +100,7 @@ Scope: `.nvmrc`, every `FROM node:...` line in every `Dockerfile*` (currently `n
 
 This task computes its four targets fresh from external sources every run — never diffed against "what changed since last time" — so a run started with `.nvmrc`, the Dockerfile tag, and `@types/node` already out of step with each other (e.g. from a manual edit) self-heals to the same computed target. No separate drift-detection mode is needed.
 
-1. **Determine the target Node major.** Query `https://nodejs.org/dist/index.json`, filter to entries where `lts` is truthy, take the newest entry — its major version is the target. LTS-only, per project policy: this repo runs a production service and should stay on a supported line, never a Current/odd-major release.
+1. **Determine the target Node major.** Query `https://nodejs.org/dist/index.json`, filter to entries where `lts` is truthy, take the newest entry — its major version is the target. LTS-only, per project policy: this repo runs a production service and should stay on a supported line, never a Current release. (Node's release schedule used to skip LTS for odd-numbered majors entirely, but starting with Node 27 every major eventually reaches LTS, so oddness alone is no longer a valid signal — the `lts` filter above is what actually enforces the policy, and is unaffected by that change.)
 2. **Determine the target Dockerfile tag.** Query Docker Hub's tag listing for `library/node`, filter to tags matching `<target-major>-alpine`, take the highest:
    ```bash
    curl -s "https://hub.docker.com/v2/repositories/library/node/tags/?page_size=100" | jq -r '.results[].name'
