@@ -4,8 +4,7 @@
   extends: ['config:recommended'],
   // Matches pnpm-workspace.yaml's minimumReleaseAge: 1440 (24h) local-install
   // gate, so Renovate never proposes an update pnpm would then refuse to
-  // install locally. Renovate's own age tracking is also why code-hygiene no
-  // longer has a minimumReleaseAgeExclude-pruning task.
+  // install locally.
   minimumReleaseAge: '1 day',
   packageRules: [
     {
