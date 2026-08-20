@@ -9,10 +9,8 @@ import {
   OVERFLOW_NOTE_BUDGET,
 } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
-import {
-  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-  TEAM_BUTTON_CUSTOM_ID_PREFIX,
-} from '../button-custom-ids';
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 
 export interface PlayerKillsSectionOptions {
   /** The fetched kills, newest match first, already capped by the caller. */
@@ -33,14 +31,16 @@ export interface PlayerKillsSection {
 /**
  * Builds the player deepdive's `Kills:` section: its lines and its drill-down
  * entries. Extracted from `PlayerDeepdiveService` purely for size — that file
- * is close to the repo's 500-line source ceiling — so this is a pure
- * formatting service with no injected dependencies and no I/O. It also owns
- * the two killer-text helpers (`formatTeam` and `joinWithOr`) that the
- * deepdive's own `Status:` line needs, so the same team rendering and the same
- * "or"-joining exist in exactly one place.
+ * is close to the repo's 500-line source ceiling. It also owns the two
+ * killer-text helpers (`formatTeam` and `joinWithOr`) that the deepdive's own
+ * `Status:` line needs, so the same team rendering and the same "or"-joining
+ * exist in exactly one place. It injects `PlayerRowButtonService` so a star
+ * victim's row opens the star player deepdive rather than the per-team player
+ * deepdive.
  */
 @Injectable()
 export class PlayerKillsSectionService {
+  constructor(private readonly playerRowButton: PlayerRowButtonService) {}
   /**
    * Selects a prefix of `kills` that keeps the whole description within
    * Discord's `MAX_DESCRIPTION_LENGTH` and renders it, plus an exact overflow
@@ -144,11 +144,13 @@ export class PlayerKillsSectionService {
     switch (kill.kind) {
       case 'player':
         return [
-          {
-            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(kill.playerId),
-            label: kill.playerName,
-          },
+          this.playerRowButton.buildPlayerRowButton({
+            playerId: kill.playerId,
+            playerName: kill.playerName,
+            positionId: kill.positionId,
+            positionName: kill.positionName,
+            isStarPlayer: kill.isStarPlayer,
+          }),
         ];
       case 'team':
       case 'prevented':

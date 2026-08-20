@@ -150,8 +150,14 @@ describe('TeamsService lookups', () => {
   describe('getTopPlayersByMatchEventCount', () => {
     it('delegates to TeamsStatisticsService and returns its result', async () => {
       const rows = [
-        { playerId: 1, name: 'Griff', count: 20 },
-        { playerId: 2, name: 'Morg', count: 11 },
+        {
+          playerId: 1,
+          name: 'Griff',
+          count: 20,
+          positionId: 30,
+          positionName: 'Blitzer',
+          isStarPlayer: false,
+        },
       ];
       statistics.getTopPlayersByMatchEventCount.mockResolvedValue(rows);
       await build();

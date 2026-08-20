@@ -151,6 +151,9 @@ describe('TrophyAwardsService', () => {
       teamName: 'Reikland Reavers',
       playerId: null,
       playerName: null,
+      playerPositionId: null,
+      playerPositionName: null,
+      playerIsStarPlayer: null,
     };
     const playerRecipient = {
       competitionName: 'Minor Season 23',
@@ -161,6 +164,17 @@ describe('TrophyAwardsService', () => {
       teamName: 'Gouged Eye',
       playerId: 40,
       playerName: 'Griff Oberwald',
+      playerPositionId: 60,
+      playerPositionName: 'Blitzer',
+      playerIsStarPlayer: false,
+    };
+    const starRecipient = {
+      ...playerRecipient,
+      playerId: 41,
+      playerName: 'Morg N Thorg',
+      playerPositionId: 61,
+      playerPositionName: 'Morg N Thorg',
+      playerIsStarPlayer: true,
     };
 
     it('returns team recipients for the requested trophy, capped at the limit', async () => {
@@ -179,6 +193,22 @@ describe('TrophyAwardsService', () => {
 
       await expect(service.listRecipients(1, 30)).resolves.toEqual([
         playerRecipient,
+      ]);
+    });
+
+    it('carries the position and star flag of a star hire that received the trophy', async () => {
+      await build([starRecipient]);
+
+      await expect(service.listRecipients(1, 30)).resolves.toEqual([
+        starRecipient,
+      ]);
+    });
+
+    it('still returns a team-only recipient, whose position fields are all null', async () => {
+      await build([teamRecipient]);
+
+      await expect(service.listRecipients(1, 30)).resolves.toEqual([
+        teamRecipient,
       ]);
     });
 
@@ -201,7 +231,7 @@ describe('TrophyAwardsService', () => {
       expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' desc');
     });
 
-    it('joins through competitions, eras, team eras and teams, and left-joins players', async () => {
+    it('joins through competitions, eras, team eras and teams, and left-joins players and positions', async () => {
       const { chains } = await build([]);
 
       await service.listRecipients(1, 30);
@@ -221,6 +251,9 @@ describe('TrophyAwardsService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['players.id', 'trophy_awards.player_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 1, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
     });
 
     it('returns the era each award was won in', async () => {
@@ -265,6 +298,9 @@ describe('TrophyAwardsService', () => {
       teamName: 'Reikland Reavers',
       playerId: null,
       playerName: null,
+      playerPositionId: null,
+      playerPositionName: null,
+      playerIsStarPlayer: null,
     };
     const playerAwardRecipient = {
       trophyId: 2,
@@ -274,6 +310,18 @@ describe('TrophyAwardsService', () => {
       teamName: 'Gouged Eye',
       playerId: 40,
       playerName: 'Griff Oberwald',
+      playerPositionId: 60,
+      playerPositionName: 'Blitzer',
+      playerIsStarPlayer: false,
+    };
+    const starAwardRecipient = {
+      ...playerAwardRecipient,
+      trophyId: 3,
+      playerId: 41,
+      playerName: 'Morg N Thorg',
+      playerPositionId: 61,
+      playerPositionName: 'Morg N Thorg',
+      playerIsStarPlayer: true,
     };
 
     it('returns the team awards recorded for the requested competition', async () => {
@@ -300,6 +348,22 @@ describe('TrophyAwardsService', () => {
       await expect(service.listForCompetition(7)).resolves.toEqual([
         teamAwardRecipient,
         playerAwardRecipient,
+      ]);
+    });
+
+    it('carries the position and star flag of a star hire that received the award', async () => {
+      await build([starAwardRecipient]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([
+        starAwardRecipient,
+      ]);
+    });
+
+    it('still returns a team-only award, whose position fields are all null', async () => {
+      await build([teamAwardRecipient]);
+
+      await expect(service.listForCompetition(7)).resolves.toEqual([
+        teamAwardRecipient,
       ]);
     });
 
@@ -354,7 +418,7 @@ describe('TrophyAwardsService', () => {
       expect(sqlText(firstCallArg(chains[0].orderBy, 0, 6))).toContain(' asc');
     });
 
-    it('joins through trophies, team eras and teams, and left-joins players', async () => {
+    it('joins through trophies, team eras and teams, and left-joins players and positions', async () => {
       const { chains } = await build([]);
 
       await service.listForCompetition(7);
@@ -371,6 +435,9 @@ describe('TrophyAwardsService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['players.id', 'trophy_awards.player_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 1, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
     });
 
     it('does not cap the result, since a single competition awards a bounded number of trophies', async () => {
@@ -398,6 +465,9 @@ describe('TrophyAwardsService', () => {
       eraName: 'Season 4',
       playerId: null,
       playerName: null,
+      playerPositionId: null,
+      playerPositionName: null,
+      playerIsStarPlayer: null,
     };
     const playerHonor = {
       trophyId: 2,
@@ -408,6 +478,18 @@ describe('TrophyAwardsService', () => {
       eraName: 'Season 2',
       playerId: 40,
       playerName: 'Grombrindal',
+      playerPositionId: 60,
+      playerPositionName: 'Blitzer',
+      playerIsStarPlayer: false,
+    };
+    const starHonor = {
+      ...playerHonor,
+      trophyId: 3,
+      playerId: 41,
+      playerName: 'Morg N Thorg',
+      playerPositionId: 61,
+      playerPositionName: 'Morg N Thorg',
+      playerIsStarPlayer: true,
     };
 
     it('returns the team-kind honors of the requested team, capped at the limit', async () => {
@@ -423,6 +505,18 @@ describe('TrophyAwardsService', () => {
       await build([playerHonor]);
 
       await expect(service.listByTeam(30, 30)).resolves.toEqual([playerHonor]);
+    });
+
+    it('carries the position and star flag of a star hire that won a trophy', async () => {
+      await build([starHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([starHonor]);
+    });
+
+    it('still returns a team-only honor, whose position fields are all null', async () => {
+      await build([teamHonor]);
+
+      await expect(service.listByTeam(30, 30)).resolves.toEqual([teamHonor]);
     });
 
     it('returns team-kind and player-kind honors interleaved in one list', async () => {
@@ -464,6 +558,9 @@ describe('TrophyAwardsService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['players.id', 'trophy_awards.player_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 1, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
     });
 
     it('orders by era start date, then era id as a tiebreaker, then competition start date, all descending', async () => {

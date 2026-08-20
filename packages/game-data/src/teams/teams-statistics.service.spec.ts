@@ -32,8 +32,22 @@ describe('TeamsStatisticsService', () => {
   describe('getTopPlayersByMatchEventCount', () => {
     it('returns players ranked by total match events, capped to the limit', async () => {
       const rows = [
-        { playerId: 1, name: 'Griff', count: 20 },
-        { playerId: 2, name: 'Morg', count: 11 },
+        {
+          playerId: 1,
+          name: 'Griff',
+          count: 20,
+          positionId: 30,
+          positionName: 'Blitzer',
+          isStarPlayer: false,
+        },
+        {
+          playerId: 2,
+          name: 'Morg',
+          count: 11,
+          positionId: 31,
+          positionName: 'Morg N Thorg',
+          isStarPlayer: true,
+        },
       ];
       const { chains } = await build(rows);
       await expect(
@@ -48,7 +62,16 @@ describe('TeamsStatisticsService', () => {
       // of action type, so a player with touchdowns + casualties + fouls
       // surfaces as a single summed count. The mock returns the already-summed
       // shape the SQL would produce; this pins the pass-through and limit.
-      const rows = [{ playerId: 1, name: 'Griff', count: 37 }];
+      const rows = [
+        {
+          playerId: 1,
+          name: 'Griff',
+          count: 37,
+          positionId: 30,
+          positionName: 'Blitzer',
+          isStarPlayer: false,
+        },
+      ];
       const { chains } = await build(rows);
       await expect(
         service.getTopPlayersByMatchEventCount(7, 10),

@@ -1,29 +1,19 @@
 import type { TeamHonor } from '@blood-bowl-tracker/game-data';
-import {
-  TeamsService,
-  TrophyAwardsService,
-} from '@blood-bowl-tracker/game-data';
-import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
-import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
-  passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
   stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE,
-  DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
@@ -35,7 +25,6 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { PlayerContextService } from '../../insights/player-context.service';
 import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
-import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   cannedEraSectionGrouper,
   singleEraSectionGrouper,
@@ -43,101 +32,16 @@ import {
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
-  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { TeamDeepdiveService } from './team-deepdive.service';
-
-/**
- * A `TrophyAwardsService` mock. Defaults to a team with no honors, so tests
- * about other parts of the embed are unaffected by the trophies section,
- * which is omitted entirely in that case. `count` defaults to the row count,
- * so a test only supplies it when exercising the overflow remainder.
- */
-function makeTrophyAwards(
-  honors: TeamHonor[] = [],
-  count = honors.length,
-): MockProxy<TrophyAwardsService> {
-  const trophyAwards = mock<TrophyAwardsService>();
-  trophyAwards.countByTeam.mockResolvedValue(count);
-  trophyAwards.listByTeam.mockResolvedValue(honors);
-  return trophyAwards;
-}
-
-interface MakeServiceOptions {
-  teams: TeamsService;
-  databaseTimeout?: MockProxy<DatabaseTimeoutService>;
-  leaderboard?: MockProxy<LeaderboardService>;
-  entityComponents?: MockProxy<EntityComponentsService>;
-  playerContext?: MockProxy<PlayerContextService>;
-  trophyAwards?: MockProxy<TrophyAwardsService>;
-  eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
-}
-
-async function makeService({
-  teams,
-  databaseTimeout = mockDatabaseTimeout(),
-  leaderboard = mock<LeaderboardService>(),
-  entityComponents = passthroughEntityComponents(),
-  playerContext = passthroughPlayerContext(),
-  trophyAwards = makeTrophyAwards(),
-  eraSectionGrouper = singleEraSectionGrouper(),
-}: MakeServiceOptions): Promise<{
-  service: TeamDeepdiveService;
-  leaderboard: MockProxy<LeaderboardService>;
-  entityComponents: MockProxy<EntityComponentsService>;
-  trophyAwards: MockProxy<TrophyAwardsService>;
-}> {
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      TeamDeepdiveService,
-      { provide: TeamsService, useValue: teams },
-      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
-      { provide: LeaderboardService, useValue: leaderboard },
-      { provide: EntityComponentsService, useValue: entityComponents },
-      { provide: PlayerContextService, useValue: playerContext },
-      { provide: TrophyAwardsService, useValue: trophyAwards },
-      { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(TeamDeepdiveService),
-    leaderboard,
-    entityComponents,
-    trophyAwards,
-  };
-}
-
-function makeTeams(options: {
-  team?: {
-    id: number;
-    name: string;
-    raceName: string;
-    raceId: number;
-    coachName: string;
-    coachId: number;
-  };
-  eras?: { id: number; name: string }[];
-  span?: { start: string; end: string };
-  topPlayers?: { playerId: number; name: string; count: number }[];
-}): TeamsService {
-  const teams = mock<TeamsService>();
-  teams.findById.mockResolvedValue(options.team);
-  teams.listEras.mockResolvedValue(options.eras ?? []);
-  teams.getCareerSpan.mockResolvedValue(options.span);
-  teams.getTopPlayersByMatchEventCount.mockResolvedValue(
-    options.topPlayers ?? [],
-  );
-  return teams;
-}
-
-const grinders = {
-  id: 1,
-  name: '40 grinders',
-  raceName: 'Dwarf',
-  raceId: 4,
-  coachName: 'Roze Madder',
-  coachId: 12,
-};
+import {
+  grinders,
+  makePlayerRowButton,
+  makeService,
+  makeTeams,
+  makeTrophyAwards,
+  mvp,
+  spikeCup,
+} from './team-deepdive.test-helpers';
 
 describe('TeamDeepdiveService', () => {
   it('returns the not-found message when the team does not exist', async () => {
@@ -157,16 +61,48 @@ describe('TeamDeepdiveService', () => {
   // (in that order — leaderboard entries take component priority over header
   // entries) that it hands to buildEntityComponents.
   it('renders the race, coach, career span and top-players list, with player components before header components', async () => {
+    // Two distinguishable canned responses, one per expected
+    // buildPlayerRowButton call (one per top-players row, in row order). The
+    // exact row->button mapping is covered elsewhere (e.g. "asks
+    // PlayerRowButtonService for each top player row"); this test only cares
+    // about button content/ordering alongside the rest of the embed.
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton
+      .mockReturnValueOnce({
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Griff',
+      })
+      .mockReturnValueOnce({
+        customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '8',
+        label: 'Morg',
+      });
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
         topPlayers: [
-          { playerId: 5, name: 'Griff', count: 20 },
-          { playerId: 8, name: 'Morg', count: 11 },
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+          {
+            playerId: 8,
+            name: 'Morg',
+            count: 11,
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+          },
         ],
       }),
       leaderboard: passthroughLeaderboard(),
+      playerRowButton,
     });
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -224,6 +160,15 @@ describe('TeamDeepdiveService', () => {
   });
 
   it('renders the eras line after the coach line, with era buttons after the player buttons', async () => {
+    // Matches the single top-players row's identity — see the comment on the
+    // previous test for why this is stubbed explicitly rather than relying
+    // on the default canned mock.
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockReturnValueOnce({
+      customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '5',
+      label: 'Griff',
+    });
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -232,9 +177,19 @@ describe('TeamDeepdiveService', () => {
           { id: 4, name: 'BB2020' },
         ],
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
+      playerRowButton,
     });
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -303,7 +258,16 @@ describe('TeamDeepdiveService', () => {
         team: grinders,
         eras: [],
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
     });
@@ -380,7 +344,16 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
+        topPlayers: [
+          {
+            playerId: 1,
+            name: 'P0',
+            count: 9,
+            positionId: 61,
+            positionName: 'Catcher',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard,
     });
@@ -402,7 +375,16 @@ describe('TeamDeepdiveService', () => {
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
+        topPlayers: [
+          {
+            playerId: 1,
+            name: 'P0',
+            count: 9,
+            positionId: 61,
+            positionName: 'Catcher',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard,
       entityComponents,
@@ -618,8 +600,22 @@ describe('TeamDeepdiveService', () => {
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
         topPlayers: [
-          { playerId: 5, name: 'Griff', count: 20 },
-          { playerId: 8, name: 'Morg', count: 11 },
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+          {
+            playerId: 8,
+            name: 'Morg',
+            count: 11,
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+          },
         ],
       }),
       leaderboard: passthroughLeaderboard(),
@@ -657,7 +653,16 @@ describe('TeamDeepdiveService', () => {
           teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+            topPlayers: [
+              {
+                playerId: 5,
+                name: 'Griff',
+                count: 20,
+                positionId: 60,
+                positionName: 'Blitzer',
+                isStarPlayer: false,
+              },
+            ],
           }),
           leaderboard: passthroughLeaderboard(),
           databaseTimeout,
@@ -669,33 +674,21 @@ describe('TeamDeepdiveService', () => {
     );
   });
 
-  const spikeCup: TeamHonor = {
-    trophyId: 7,
-    trophyName: 'Spike! Cup',
-    competitionName: 'Season 4 Major',
-    competitionStartDate: '2024-01-15',
-    eraId: 20,
-    eraName: 'Season 4',
-    playerId: null,
-    playerName: null,
-  };
-  const mvp: TeamHonor = {
-    trophyId: 9,
-    trophyName: 'MVP',
-    competitionName: 'Season 4 Minor',
-    competitionStartDate: '2024-01-10',
-    eraId: 20,
-    eraName: 'Season 4',
-    playerId: 55,
-    playerName: 'Grombrindal',
-  };
-
   it('renders a team honor as "<competition> (<trophy>)" under its era heading', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+        topPlayers: [
+          {
+            playerId: 5,
+            name: 'Griff',
+            count: 20,
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+          },
+        ],
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup]),
@@ -882,140 +875,5 @@ describe('TeamDeepdiveService', () => {
     expect(result.embeds[0].description.split('\n')).toContain(
       '…and 33 more not shown.',
     );
-  });
-
-  it('offers a trophy button for a team honor and trophy + player buttons for a player honor, before the header buttons', async () => {
-    const { service } = await makeService({
-      teams: makeTeams({
-        team: grinders,
-        span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
-      }),
-      leaderboard: passthroughLeaderboard(),
-      trophyAwards: makeTrophyAwards([spikeCup, mvp]),
-    });
-    const result = (await service.resolve(1)) as unknown as {
-      components: { components: { label: string; custom_id: string }[] }[];
-    };
-    const buttons = result.components.flatMap((row) => row.components);
-    expect(buttons.map((button) => button.custom_id)).toEqual([
-      `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}7`,
-      `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}9`,
-      `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}55`,
-      `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}5`,
-      'deepdive:race:4',
-      'deepdive:coach:12',
-    ]);
-    expect(buttons.map((button) => button.label)).toEqual([
-      'Spike! Cup',
-      'MVP',
-      'Grombrindal',
-      'Griff',
-      'Dwarf',
-      'Roze Madder',
-    ]);
-  });
-
-  it('falls back to the honors timeout message when the honors count times out', async () => {
-    await expectTimeoutFallback(
-      async () => {
-        const databaseTimeout = mockDatabaseTimeout();
-        databaseTimeout.run
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work);
-        stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService({
-          teams: makeTeams({
-            team: grinders,
-            span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
-          }),
-          leaderboard: passthroughLeaderboard(),
-          trophyAwards: makeTrophyAwards([spikeCup]),
-          databaseTimeout,
-        });
-        return service.resolve(1);
-      },
-      () => undefined,
-      DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE,
-    );
-  });
-
-  it('falls back to the honors timeout message when the honors list times out', async () => {
-    await expectTimeoutFallback(
-      async () => {
-        const databaseTimeout = mockDatabaseTimeout();
-        databaseTimeout.run
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work);
-        stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService({
-          teams: makeTeams({
-            team: grinders,
-            span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
-          }),
-          leaderboard: passthroughLeaderboard(),
-          trophyAwards: makeTrophyAwards([spikeCup]),
-          databaseTimeout,
-        });
-        return service.resolve(1);
-      },
-      () => undefined,
-      DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE,
-    );
-  });
-
-  it('falls back to the player-context timeout message when decorating player honors times out', async () => {
-    await expectTimeoutFallback(
-      async () => {
-        const databaseTimeout = mockDatabaseTimeout();
-        databaseTimeout.run
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work);
-        stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService({
-          teams: makeTeams({
-            team: grinders,
-            span: { start: '2021-09-01', end: '2023-06-10' },
-            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
-          }),
-          leaderboard: passthroughLeaderboard(),
-          trophyAwards: makeTrophyAwards([mvp]),
-          databaseTimeout,
-        });
-        return service.resolve(1);
-      },
-      () => undefined,
-      DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
-    );
-  });
-
-  it('skips the honor-suffix lookup entirely when no honor is a player award', async () => {
-    const playerContext = passthroughPlayerContext();
-    const { service } = await makeService({
-      teams: makeTeams({
-        team: grinders,
-        span: { start: '2021-09-01', end: '2023-06-10' },
-      }),
-      leaderboard: passthroughLeaderboard(),
-      playerContext,
-      trophyAwards: makeTrophyAwards([spikeCup]),
-    });
-    await service.resolve(1);
-    // Only the top-players decoration ran.
-    expect(playerContext.attachSuffixes).toHaveBeenCalledTimes(1);
   });
 });

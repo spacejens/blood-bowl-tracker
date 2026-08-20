@@ -23,6 +23,7 @@ import { eq, ilike, sql } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import type { TeamTopPlayer } from '../shared/match-event-counts';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import type { TeamRaceAndCoachNames } from '../shared/team-race-coach-names';
 import { getRaceAndCoachNamesByIds as queryRaceAndCoachNamesByIds } from '../shared/team-race-coach-names';
@@ -209,7 +210,7 @@ export class TeamsService {
   getTopPlayersByMatchEventCount(
     teamId: number,
     limit: number,
-  ): Promise<{ playerId: number; name: string; count: number }[]> {
+  ): Promise<TeamTopPlayer[]> {
     return this.statistics.getTopPlayersByMatchEventCount(teamId, limit);
   }
 

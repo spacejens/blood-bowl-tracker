@@ -18,8 +18,10 @@ import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
+import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 /**
  * Test-only helper. Do not import from production code.
@@ -29,6 +31,13 @@ import { PlayerKillsSectionService } from './player-kills-section.service';
  * totals, and killer/Status line) and `player-deepdive-kills.service.spec.ts`
  * (the Kills section) to keep each file under the repo's 1000-line spec
  * ceiling — see `CLAUDE.md`'s "Maximum file size".
+ *
+ * `makeService` compiles `PlayerDeepdiveService` alongside the *real*
+ * `PlayerKillsSectionService` (a documented exception — see `CLAUDE.md`'s
+ * "Testing services"). Since `PlayerKillsSectionService` itself injects
+ * `PlayerRowButtonService`, that same testing module must also supply
+ * `PlayerRowButtonService` — as the mock below — or Nest fails to resolve the
+ * real kills section's own dependency.
  */
 
 export const griff = {
@@ -103,6 +112,7 @@ export interface MakeServiceOptions {
   trophyAwards?: MockProxy<TrophyAwardsService>;
   playerDeath?: MockProxy<PlayerDeathService>;
   stars?: MockProxy<StarPlayersService>;
+  playerRowButton?: MockProxy<PlayerRowButtonService>;
 }
 
 /**
@@ -116,6 +126,9 @@ export function makeStars(): MockProxy<StarPlayersService> {
   return stars;
 }
 
+// Re-export makePlayerRowButton from team-deepdive.test-helpers to avoid duplication.
+export { makePlayerRowButton };
+
 export async function makeService({
   players,
   databaseTimeout = mockDatabaseTimeout(),
@@ -123,12 +136,14 @@ export async function makeService({
   trophyAwards = makeTrophyAwards(),
   playerDeath = makePlayerDeath(),
   stars = makeStars(),
+  playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
   trophyAwards: MockProxy<TrophyAwardsService>;
   playerDeath: MockProxy<PlayerDeathService>;
   stars: MockProxy<StarPlayersService>;
+  playerRowButton: MockProxy<PlayerRowButtonService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -140,6 +155,7 @@ export async function makeService({
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: PlayerDeathService, useValue: playerDeath },
       { provide: StarPlayersService, useValue: stars },
+      { provide: PlayerRowButtonService, useValue: playerRowButton },
     ],
   }).compile();
   return {
@@ -148,6 +164,7 @@ export async function makeService({
     trophyAwards,
     playerDeath,
     stars,
+    playerRowButton,
   };
 }
 

@@ -14,6 +14,7 @@ import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
+import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { InsightsModule } from '../insights/insights.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
@@ -34,6 +35,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
     SlashCommandRegistryService,
+    PlayerRowButtonService,
     CoachDeepdiveService,
     TeamDeepdiveService,
     RaceDeepdiveService,

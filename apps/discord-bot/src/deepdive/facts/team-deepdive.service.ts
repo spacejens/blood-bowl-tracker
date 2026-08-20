@@ -1,4 +1,4 @@
-import type { TeamHonor } from '@blood-bowl-tracker/game-data';
+import type { TeamHonor, TeamTopPlayer } from '@blood-bowl-tracker/game-data';
 import {
   TeamsService,
   TrophyAwardsService,
@@ -28,11 +28,11 @@ import { EraSectionGrouperService } from '../../shared/era-section-grouper.servi
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
-  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 
 type Team = {
   id: number;
@@ -44,12 +44,7 @@ type Team = {
 };
 type CareerSpan = { start: string; end: string };
 type Era = { id: number; name: string };
-type TopPlayer = {
-  playerId: number;
-  name: string;
-  count: number;
-  contextSuffix?: string;
-};
+type TopPlayer = TeamTopPlayer & { contextSuffix?: string };
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -81,6 +76,7 @@ export class TeamDeepdiveService {
     private readonly playerContext: PlayerContextService,
     private readonly trophyAwards: TrophyAwardsService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
+    private readonly playerRowButton: PlayerRowButtonService,
   ) {}
 
   async resolve(teamId: number): Promise<string | InteractionReplyOptions> {
@@ -283,11 +279,15 @@ export class TeamDeepdiveService {
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents([
         ...honors.flatMap((honor) => this.buildHonorEntries(honor)),
-        ...ranked.map((row): EntityComponentEntry => ({
-          customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(row.playerId),
-          label: row.name,
-        })),
+        ...ranked.map((row) =>
+          this.playerRowButton.buildPlayerRowButton({
+            playerId: row.playerId,
+            playerName: row.name,
+            positionId: row.positionId,
+            positionName: row.positionName,
+            isStarPlayer: row.isStarPlayer,
+          }),
+        ),
         ...headerEntries,
       ]);
 
@@ -341,27 +341,41 @@ export class TeamDeepdiveService {
     return this.isPlayerHonor(honor)
       ? [
           trophyEntry,
-          {
-            customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(honor.playerId),
-            label: honor.playerName,
-          },
+          this.playerRowButton.buildPlayerRowButton({
+            playerId: honor.playerId,
+            playerName: honor.playerName,
+            positionId: honor.playerPositionId,
+            positionName: honor.playerPositionName,
+            isStarPlayer: honor.playerIsStarPlayer,
+          }),
         ]
       : [trophyEntry];
   }
 
   /**
-   * Narrows a `TeamHonor` to its player-award shape. Checks both `playerId`
-   * and `playerName` (rather than either alone) so the filter, the suffix
-   * lookup, and the two formatters above all agree on what counts as a
-   * player honor — `players.name` is `NOT NULL` in the schema, so the two
-   * fields can never actually disagree, but a single shared predicate keeps
-   * that invariant enforced in one place instead of asserted at each call
-   * site.
+   * Narrows a `TeamHonor` to its player-award shape. Checks `playerId`,
+   * `playerName`, `playerPositionId`, `playerPositionName` and
+   * `playerIsStarPlayer` together (rather than any one alone) so the filter,
+   * the suffix lookup, and the two formatters above all agree on what counts
+   * as a player honor — `players.name` and `players.position_id` are both
+   * `NOT NULL` in the schema, so a present player always has a present name
+   * and position and these fields can never actually disagree, but a single
+   * shared predicate keeps that invariant enforced in one place instead of
+   * asserted at each call site.
    */
-  private isPlayerHonor(
-    honor: TeamHonor,
-  ): honor is TeamHonor & { playerId: number; playerName: string } {
-    return honor.playerId !== null && honor.playerName !== null;
+  private isPlayerHonor(honor: TeamHonor): honor is TeamHonor & {
+    playerId: number;
+    playerName: string;
+    playerPositionId: number;
+    playerPositionName: string;
+    playerIsStarPlayer: boolean;
+  } {
+    return (
+      honor.playerId !== null &&
+      honor.playerName !== null &&
+      honor.playerPositionId !== null &&
+      honor.playerPositionName !== null &&
+      honor.playerIsStarPlayer !== null
+    );
   }
 }

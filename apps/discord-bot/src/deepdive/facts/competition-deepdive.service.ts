@@ -26,10 +26,10 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
-  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 
 type CompetitionHeader = {
   id: number;
@@ -86,6 +86,7 @@ export class CompetitionDeepdiveService {
     private readonly teamContext: TeamContextService,
     private readonly playerContext: PlayerContextService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly playerRowButton: PlayerRowButtonService,
   ) {}
 
   async resolve(
@@ -282,16 +283,18 @@ export class CompetitionDeepdiveService {
 
   /** Drill down to whoever actually received the award. */
   private buildAwardEntry(award: CompetitionTrophyAward): EntityComponentEntry {
-    return this.isTeamAward(award)
-      ? {
+    return this.isPlayerAward(award)
+      ? this.playerRowButton.buildPlayerRowButton({
+          playerId: award.playerId,
+          playerName: award.playerName,
+          positionId: award.playerPositionId,
+          positionName: award.playerPositionName,
+          isStarPlayer: award.playerIsStarPlayer,
+        })
+      : {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(award.teamId),
           label: award.teamName,
-        }
-      : {
-          customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(award.playerId),
-          label: award.playerName as string,
         };
   }
 
@@ -311,6 +314,33 @@ export class CompetitionDeepdiveService {
       award.recipientKind === 'team' ||
       award.playerId === null ||
       award.playerName === null
+    );
+  }
+
+  /**
+   * Narrows a `CompetitionTrophyAward` to its player-award shape: the
+   * negation of `isTeamAward`, plus the position fields, checked together
+   * rather than any one alone — mirroring `TeamDeepdiveService.isPlayerHonor`
+   * and `TrophyDeepdiveService.isPlayerRecipient`. `players.name` and
+   * `players.position_id` are both `NOT NULL` in the schema, so a present
+   * player always has a present position and these fields can never actually
+   * disagree, but a single shared predicate keeps that invariant enforced in
+   * one place instead of asserted at each call site.
+   */
+  private isPlayerAward(
+    award: CompetitionTrophyAward,
+  ): award is CompetitionTrophyAward & {
+    playerId: number;
+    playerName: string;
+    playerPositionId: number;
+    playerPositionName: string;
+    playerIsStarPlayer: boolean;
+  } {
+    return (
+      !this.isTeamAward(award) &&
+      award.playerPositionId !== null &&
+      award.playerPositionName !== null &&
+      award.playerIsStarPlayer !== null
     );
   }
 

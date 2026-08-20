@@ -42,10 +42,13 @@ import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerRowButtonService } from '../player-row-button.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
+import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 interface MakeServiceOptions {
   competitions: CompetitionsService;
@@ -55,6 +58,7 @@ interface MakeServiceOptions {
   teamContext?: MockProxy<TeamContextService>;
   playerContext?: MockProxy<PlayerContextService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
+  playerRowButton?: MockProxy<PlayerRowButtonService>;
 }
 
 async function makeService({
@@ -65,12 +69,14 @@ async function makeService({
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
   dateRangeFormatter = mock<DateRangeFormatterService>(),
+  playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
   service: CompetitionDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
   teamContext: MockProxy<TeamContextService>;
   playerContext: MockProxy<PlayerContextService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
+  playerRowButton: MockProxy<PlayerRowButtonService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -82,6 +88,7 @@ async function makeService({
       { provide: TeamContextService, useValue: teamContext },
       { provide: PlayerContextService, useValue: playerContext },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
+      { provide: PlayerRowButtonService, useValue: playerRowButton },
     ],
   }).compile();
   return {
@@ -90,6 +97,7 @@ async function makeService({
     teamContext,
     playerContext,
     dateRangeFormatter,
+    playerRowButton,
   };
 }
 
@@ -151,6 +159,9 @@ function teamAward(
     teamName: 'Gouged Eye',
     playerId: null,
     playerName: null,
+    playerPositionId: null,
+    playerPositionName: null,
+    playerIsStarPlayer: null,
     ...overrides,
   };
 }
@@ -166,8 +177,25 @@ function playerAward(
     teamName: 'Reikland Reavers',
     playerId: 40,
     playerName: 'Griff Oberwald',
+    playerPositionId: 60,
+    playerPositionName: 'Blitzer',
+    playerIsStarPlayer: false,
     ...overrides,
   };
+}
+
+function starAward(
+  overrides: Partial<CompetitionTrophyAward> = {},
+): CompetitionTrophyAward {
+  return playerAward({
+    trophyId: 72,
+    playerId: 41,
+    playerName: 'Morg N Thorg',
+    playerPositionId: 61,
+    playerPositionName: 'Morg N Thorg',
+    playerIsStarPlayer: true,
+    ...overrides,
+  });
 }
 
 describe('CompetitionDeepdiveService', () => {
@@ -635,6 +663,43 @@ describe('CompetitionDeepdiveService', () => {
     );
   });
 
+  it('routes a star-player award to the star player deepdive instead of the per-team player deepdive', async () => {
+    const playerRowButton = makePlayerRowButton();
+    playerRowButton.buildPlayerRowButton.mockReturnValue({
+      customIdPrefix: STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '61',
+      label: 'Morg N Thorg',
+    });
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [],
+      }),
+      trophyAwards: makeTrophyAwards([starAward()]),
+      entityComponents: passthroughEntityComponents(),
+      playerRowButton,
+    });
+
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: unknown[] }[];
+    };
+
+    expect(result.components[0].components).toContainEqual({
+      type: 2,
+      style: expect.any(Number) as number,
+      label: 'Morg N Thorg',
+      custom_id: `${STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX}61`,
+      emoji: STUB_BUTTON_EMOJI,
+    });
+    expect(playerRowButton.buildPlayerRowButton).toHaveBeenCalledWith({
+      playerId: 41,
+      playerName: 'Morg N Thorg',
+      positionId: 61,
+      positionName: 'Morg N Thorg',
+      isStarPlayer: true,
+    });
+  });
+
   it('treats a malformed player-kind award with a null playerId/playerName as a team award', async () => {
     const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
@@ -761,8 +826,13 @@ describe('CompetitionDeepdiveService', () => {
         label: 'Reikland Reavers',
       },
       {
+        // The exact row->button mapping (playerId 40 -> "Griff Oberwald") is
+        // covered elsewhere ("routes a star-player award..." and the honors
+        // decoration assertions above); this test only cares about where the
+        // player-award entry lands among the rest, so it uses the default
+        // canned mock from `makePlayerRowButton()`.
         customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: '40',
+        entityId: '1',
         label: 'Griff Oberwald',
       },
       {

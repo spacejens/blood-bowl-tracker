@@ -90,7 +90,9 @@ function killEvent(
 /** The perpetrator's own player row, as `findPlayerSummary` resolves it. */
 const perpetrator = {
   playerName: 'Varag Ghoul-Chewer',
+  positionId: 13,
   positionName: 'Blitzer',
+  isStarPlayer: false,
   teamId: orcSide.teamId,
 };
 
@@ -145,7 +147,9 @@ describe('PlayerDeathService', () => {
         [
           {
             playerName: 'Varag Ghoul-Chewer',
+            positionId: 13,
             positionName: 'Blitzer',
+            isStarPlayer: false,
             teamId: orcSide.teamId,
           },
         ],
@@ -155,7 +159,9 @@ describe('PlayerDeathService', () => {
         kind: 'player',
         playerId: 77,
         playerName: 'Varag Ghoul-Chewer',
+        positionId: 13,
         positionName: 'Blitzer',
+        isStarPlayer: false,
         teamId: 12,
         teamName: 'Gouged Eye',
         raceId: 5,
@@ -189,7 +195,9 @@ describe('PlayerDeathService', () => {
         [
           {
             playerName: 'Bloodspite Ripfang',
+            positionId: 20,
             positionName: 'Werewolf',
+            isStarPlayer: false,
             teamId: undeadSide.teamId,
           },
         ],
@@ -199,7 +207,9 @@ describe('PlayerDeathService', () => {
         kind: 'player',
         playerId: 77,
         playerName: 'Bloodspite Ripfang',
+        positionId: 20,
         positionName: 'Werewolf',
+        isStarPlayer: false,
         teamId: 13,
         teamName: 'Champions of Death',
         raceId: 6,
@@ -360,7 +370,15 @@ describe('PlayerDeathService', () => {
       const { service } = await build(
         [deathEvent({ actingMatchTeamId: null, consequenceMatchTeamId: null })],
         [victimSide, orcSide, undeadSide],
-        [{ playerName: 'Griff Oberwald', positionName: 'Blitzer', teamId: 11 }],
+        [
+          {
+            playerName: 'Griff Oberwald',
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+            teamId: 11,
+          },
+        ],
       );
 
       await expect(service.getKillerInfo(1)).resolves.toEqual({
@@ -395,7 +413,15 @@ describe('PlayerDeathService', () => {
       const { service } = await build(
         [deathEvent({ actingMatchTeamId: null, consequenceMatchTeamId: 999 })],
         [victimSide, orcSide, undeadSide],
-        [{ playerName: 'Griff Oberwald', positionName: 'Blitzer', teamId: 11 }],
+        [
+          {
+            playerName: 'Griff Oberwald',
+            positionId: 60,
+            positionName: 'Blitzer',
+            isStarPlayer: false,
+            teamId: 11,
+          },
+        ],
       );
 
       await expect(service.getKillerInfo(1)).resolves.toEqual({
@@ -477,6 +503,101 @@ describe('PlayerDeathService', () => {
         viaFoul: false,
       });
     });
+
+    it('names a star player killer with their position id and star flag', async () => {
+      // Row sets, in query order: the death event, the match sides, the killer's
+      // own summary. Match the exact ordering the existing killer tests use.
+      const { service } = await build(
+        [
+          {
+            matchId: 5,
+            actionType: 'block',
+            actingPlayerId: 88,
+            actingMatchTeamId: null,
+            consequenceMatchTeamId: null,
+          },
+        ],
+        [
+          {
+            matchTeamId: 1,
+            teamId: 12,
+            teamName: 'Gouged Eye',
+            raceId: 5,
+            raceName: 'Orc',
+            coachId: 22,
+            coachName: 'Grimly',
+          },
+        ],
+        [
+          {
+            playerName: 'Morg N Thorg',
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+            teamId: 12,
+          },
+        ],
+      );
+
+      await expect(service.getKillerInfo(1)).resolves.toMatchObject({
+        kind: 'player',
+        playerId: 88,
+        playerName: 'Morg N Thorg',
+        positionId: 61,
+        positionName: 'Morg N Thorg',
+        isStarPlayer: true,
+      });
+    });
+
+    it('selects the position id and star flag on the player summary query', async () => {
+      // Build the service exactly as the killer test above does, then check
+      // the shape of the player summary query's select.
+      const { service, db } = await build(
+        [
+          {
+            matchId: 5,
+            actionType: 'block',
+            actingPlayerId: 88,
+            actingMatchTeamId: null,
+            consequenceMatchTeamId: null,
+          },
+        ],
+        [
+          {
+            matchTeamId: 1,
+            teamId: 12,
+            teamName: 'Gouged Eye',
+            raceId: 5,
+            raceName: 'Orc',
+            coachId: 22,
+            coachName: 'Grimly',
+          },
+        ],
+        [
+          {
+            playerName: 'Morg N Thorg',
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+            teamId: 12,
+          },
+        ],
+      );
+
+      await service.getKillerInfo(1);
+
+      const summarySelect = firstCallArg(db.select, 2) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(summarySelect)).toEqual([
+        'playerName',
+        'positionId',
+        'positionName',
+        'isStarPlayer',
+        'teamId',
+      ]);
+    });
   });
 
   describe('countKillsInflicted', () => {
@@ -545,7 +666,9 @@ describe('PlayerDeathService', () => {
         [
           {
             playerName: 'Griff Oberwald',
+            positionId: 60,
             positionName: 'Blitzer',
+            isStarPlayer: false,
             teamId: victimSide.teamId,
           },
         ],
@@ -556,7 +679,42 @@ describe('PlayerDeathService', () => {
           kind: 'player',
           playerId: 88,
           playerName: 'Griff Oberwald',
+          positionId: 60,
           positionName: 'Blitzer',
+          isStarPlayer: false,
+          ...victimTeam,
+          viaFoul: false,
+        },
+      ]);
+    });
+
+    it('names a star player victim with their position id and star flag', async () => {
+      // Row sets, in query order: the kill event, the perpetrator's summary,
+      // the match sides, the victim's summary. Mirror the killer-path star test
+      // to catch any copy-paste mistakes between the two call sites.
+      const { service } = await build(
+        [killEvent({ consequencePlayerId: 88 })],
+        [perpetrator],
+        [victimSide, orcSide],
+        [
+          {
+            playerName: 'Morg N Thorg',
+            positionId: 61,
+            positionName: 'Morg N Thorg',
+            isStarPlayer: true,
+            teamId: victimSide.teamId,
+          },
+        ],
+      );
+
+      await expect(service.getKillsInflicted(1, 30)).resolves.toEqual([
+        {
+          kind: 'player',
+          playerId: 88,
+          playerName: 'Morg N Thorg',
+          positionId: 61,
+          positionName: 'Morg N Thorg',
+          isStarPlayer: true,
           ...victimTeam,
           viaFoul: false,
         },
