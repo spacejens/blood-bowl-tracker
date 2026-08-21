@@ -6,13 +6,21 @@ import {
 import { Injectable } from '@nestjs/common';
 
 /**
- * The subset of an oRPC handler's `errors` object this helper needs: the
- * CONFLICT and BAD_REQUEST constructors. Typed structurally so the helper does
- * not depend on any one contract endpoint's generated error type.
+ * The BAD_REQUEST constructor from an oRPC handler's `errors` object — the
+ * only one an upsert with no CONFLICT case can use. Typed structurally so
+ * the helper does not depend on any one contract endpoint's generated error
+ * type.
  */
-export interface ConflictErrors {
-  CONFLICT: (payload: { message: string }) => Error;
+export interface BadRequestErrors {
   BAD_REQUEST: (payload: { message: string }) => Error;
+}
+
+/**
+ * The subset of an oRPC handler's `errors` object the conflict-aware
+ * {@link UpsertHandlerService.run} needs: BAD_REQUEST plus CONFLICT.
+ */
+export interface ConflictErrors extends BadRequestErrors {
+  CONFLICT: (payload: { message: string }) => Error;
 }
 
 /**
@@ -36,6 +44,8 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * BAD_REQUEST, as does a trophy award whose player id does not fit its
  * trophy's recipient kind (`TrophyAwardRecipientMismatchError`). Anything
  * else propagates untouched.
+ * {@link runWithoutConflict} is the same body minus the CONFLICT branch, for
+ * an entity whose natural key is enforced by a database constraint.
  */
 @Injectable()
 export class UpsertHandlerService {
@@ -49,12 +59,33 @@ export class UpsertHandlerService {
     run: () => Promise<{ entity: TEntity; created: boolean }>,
   ): Promise<TEntity & { created: boolean }> {
     try {
-      const { entity, created } = await run();
-      return { ...entity, created };
+      return await this.runWithoutConflict(errors, run);
     } catch (err) {
       if (err instanceof conflictErrorClass) {
         throw errors.CONFLICT({ message: err.message });
       }
+      throw err;
+    }
+  }
+
+  /**
+   * {@link run} for an entity whose contract declares no CONFLICT error,
+   * because its natural key is enforced by a database constraint and so can
+   * never match more than one row. `trophyAwards.upsert` is the only caller:
+   * its unique constraint (see packages/db/src/schema/trophy-awards.ts) makes
+   * an ambiguous match impossible, but it can still reject a payload whose
+   * player id does not fit the trophy's recipient kind, so BAD_REQUEST
+   * remains. Deliberately a distinct method rather than an optional
+   * `conflictErrorClass`, so the omission is visible at every call site.
+   */
+  async runWithoutConflict<TEntity extends object>(
+    errors: BadRequestErrors,
+    run: () => Promise<{ entity: TEntity; created: boolean }>,
+  ): Promise<TEntity & { created: boolean }> {
+    try {
+      const { entity, created } = await run();
+      return { ...entity, created };
+    } catch (err) {
       if (
         err instanceof MissingRequiredFieldError ||
         err instanceof MatchCategoryMismatchError ||
