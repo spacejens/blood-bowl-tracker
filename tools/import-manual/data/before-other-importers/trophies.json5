@@ -112,11 +112,17 @@
     {
       // BBL has no Minor 2nd/3rd/Wooden Spoon/Best Stunty -- confirmed absent
       // from the complete 16-entry team legend on `p=tt`.
+      //
+      // "Korpen" is the old name of this same award, from when the Minor
+      // Season was called the Korp season; its external id resolves here.
       name: 'Minor',
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Minor season winner.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Minor 1st' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Minor 1st' },
+        { system: 'tloeg.bbleague.se', id: 'Korpen' },
+      ],
     },
     {
       name: 'Cabal Vision Cup',
@@ -124,13 +130,6 @@
       competitionGroup: { system: 'Name', id: 'Cabal Vision Cup' },
       description: 'Winner of the Cabal Vision Cup knockout cup.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Cabal Vision Cup' }],
-    },
-    {
-      name: 'Korpen',
-      recipientKind: 'team',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-      description: 'Awarded to the team placing best during a "Korp season".',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Korpen' }],
     },
     {
       name: 'Chaos Cup',
