@@ -36,7 +36,7 @@ export interface CompetitionTeamTrophyRow {
 }
 
 /** One "Player prize" row: its exact label text and the winning player's pid. */
-export interface CompetitionPlayerPrizeRow {
+interface CompetitionPlayerPrizeRow {
   label: string;
   pid: string;
 }

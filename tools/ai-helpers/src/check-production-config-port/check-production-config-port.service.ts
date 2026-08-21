@@ -7,7 +7,7 @@ import JSON5 from 'json5';
 import { GitRootsService } from '../shared/git-roots.service';
 import { GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES } from '../shared/gitignored-files';
 
-export interface StaleProductionConfig {
+interface StaleProductionConfig {
   /** Repo-relative path. */
   readonly path: string;
   /** The config's actual `connection.apiBaseUrl`, or `undefined` if unset. */

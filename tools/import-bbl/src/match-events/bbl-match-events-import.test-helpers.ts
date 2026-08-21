@@ -139,7 +139,7 @@ export function resultArgs(importResults: MockProxy<ImportResultService>): {
  *
  * A resolution with no merged pairs: every match imports independently.
  */
-export function noMergeResolution(): MatchMergeResolution {
+function noMergeResolution(): MatchMergeResolution {
   return {
     primaryBblIdByBblId: new Map(),
     partnerBblId: () => undefined,
@@ -154,7 +154,7 @@ export function noMergeResolution(): MatchMergeResolution {
  *
  * The default two-team-code combine result used by most single-match tests.
  */
-export function defaultCombined(): CombinedOccurrences {
+function defaultCombined(): CombinedOccurrences {
   return {
     teamCodes: ['hme', 'awy'],
     actions: [],

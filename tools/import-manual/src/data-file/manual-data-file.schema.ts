@@ -178,6 +178,3 @@ export const ManualDataFileSchema = z
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;
-export type SppAwardValueEntry = z.infer<typeof SppAwardValueEntrySchema>;
-export type TrophyEntry = z.infer<typeof TrophyEntrySchema>;
-export type CompetitionGroupEntry = z.infer<typeof CompetitionGroupEntrySchema>;
