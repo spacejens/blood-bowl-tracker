@@ -36,7 +36,6 @@
     { name: 'Minor Season', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
     { name: 'Chaos Cup', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
     { name: 'Cabal Vision Cup', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
-    { name: 'Korpen', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
     { name: 'Stunty Leeg', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
     { name: 'Fright Night', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
     { name: 'Snöbollskrieg', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },

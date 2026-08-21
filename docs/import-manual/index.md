@@ -267,7 +267,7 @@ real-world entity differently:
   below) has a league to reference. Its external ids deliberately match BBL's
   own `tloeg.bbleague.se` convention exactly, so BBL's later league upsert
   resolves onto these same rows instead of creating duplicates.
-- `competition-groups.json5` — the curated catalog of 16 competition groups
+- `competition-groups.json5` — the curated catalog of 15 competition groups
   (issue #445): the recurring tracks (Major Season, Minor Season, Chaos Cup,
   Ogretoberfest, and so on) that `competitions.json5` and `trophies.json5`
   classify instances and trophies into. Not a dedup file in the usual sense —
@@ -305,8 +305,8 @@ real-world entity differently:
   rules-set rows it references — see issue #379. It declares rules sets under
   the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
   BBL/TP importers' later upserts match the same rows.
-- `trophies.json5` — the curated catalog of 32 known trophies (issue #342):
-  20 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
+- `trophies.json5` — the curated catalog of 31 known trophies (issue #342):
+  19 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
   TP-only Ogretoberfest and the three Dungeon Bowl placements.
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
