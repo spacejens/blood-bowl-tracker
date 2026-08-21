@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: superfly/flyctl-actions/setup-flyctl@1.5
       # --remote-only builds the image on Fly's builders rather than in the
       # runner, so no Docker layer caching or buildx setup is needed here.
