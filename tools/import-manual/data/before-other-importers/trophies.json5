@@ -114,7 +114,7 @@
       // from the complete 16-entry team legend on `p=tt`.
       //
       // "Korpen" is the old name of this same award, from when the Minor
-      // Season was called the Korp season; its external id resolves here.
+      // Season was called Korpen; its external id resolves here.
       name: 'Minor',
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
