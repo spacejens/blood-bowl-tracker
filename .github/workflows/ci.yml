@@ -69,8 +69,47 @@ jobs:
       - name: Build discord-bot Docker image
         run: docker build -f apps/discord-bot/Dockerfile .
 
+  schemaspy-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+      - name: Start postgres
+        run: docker compose up -d postgres
+      - name: Wait for postgres to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' postgres 2>/dev/null || true)"
+            if [ "$status" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "postgres did not become healthy in time" >&2
+          exit 1
+      - name: Run migrations
+        run: pnpm --filter @blood-bowl-tracker/db run db:migrate
+        env:
+          DATABASE_URL: postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl
+      # SchemaSpy has no Dockerfile of its own (it's a prebuilt public
+      # image), so what needs validating is that the image pulls and runs
+      # successfully against this repo's actual schema and config — the
+      # same command deploy-local and a developer would run.
+      - name: Generate SchemaSpy diagram
+        run: pnpm run db:diagram
+      - name: Stop stack
+        if: always()
+        run: docker compose down
+
   gatekeeper:
-    needs: [lint, typecheck, test, docker-build]
+    needs: [lint, typecheck, test, docker-build, schemaspy-build]
     if: always()
     runs-on: ubuntu-latest
     steps:
