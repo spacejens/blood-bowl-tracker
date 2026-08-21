@@ -328,7 +328,11 @@ legended on one of these two pages. The label text on `p=tt`/`p=ppr` is
 self-disambiguating (e.g. `Major 1st` vs. `Minor 1st`), which is why the
 curated catalog keys BBL trophies by the exact label text itself (no prefix,
 matching every other curated-data file and every real BBL importer) — cross-reference
-`tools/import-manual/data/before-other-importers/trophies.json5`.
+`tools/import-manual/data/before-other-importers/trophies.json5`. One label is an
+exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
+Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1st`
+(issue #519) — the curated catalog carries both labels as external ids on that one
+trophy.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated
