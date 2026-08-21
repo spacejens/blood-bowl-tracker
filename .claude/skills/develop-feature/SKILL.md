@@ -361,11 +361,12 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         cd <worktree-path> && node -e "console.log(Math.floor(new Date('<createdAt>').getTime() / 1000))"
         ```
         Substitute `<createdAt>` with the exact ISO-8601 value returned by the `gh pr view` call, and `<PR>` with the PR number from step 3.
-      - **Every later iteration:** reuse the `submittedAt` of the review found and handled in the previous iteration's step (c) — converted to epoch seconds — as this iteration's watermark, and also carry forward its `id` to exclude:
+      - **Every later iteration that followed a found review:** reuse the `submittedAt` of the review found and handled in the previous iteration's step (c) — converted to epoch seconds — as this iteration's watermark, and also carry forward its `id` to exclude:
         ```bash
         cd <worktree-path> && node -e "console.log(Math.floor(new Date('<submittedAt>').getTime() / 1000))"
         ```
         Substitute `<submittedAt>` with the exact ISO-8601 value from the previous iteration's found `review.submittedAt`. Keep the previous iteration's `review.id` too — it becomes `<exclude-review-id>` below.
+      - **Every later iteration that followed a still-in-progress report:** when the previous iteration ended by falling through exit check (d)'s still-in-progress path, step (c) never found a review — there is no new `submittedAt` and no new `id`, because nothing new happened. Do not advance anything: reuse the previous iteration's watermark epoch and its `--exclude-review-id` **unchanged**, and re-run the identical `wait-for-pr-review` command. If the still-in-progress report came from the very first iteration, that means the PR's `createdAt` epoch with no `--exclude-review-id` at all, exactly as the first-iteration bullet describes. This is the loop-iteration-level equivalent of "Keep waiting" in (b): the same wait, extended, because the thing being waited for has not arrived yet.
 
       Then wait for a submitted review by someone other than the developer, posted at or after that watermark, with a single command:
       ```bash
