@@ -1,0 +1,1 @@
+ALTER TABLE "game_data"."trophy_awards" ADD CONSTRAINT "trophy_awards_trophy_competition_team_era_player_unique" UNIQUE NULLS NOT DISTINCT("trophy_id","competition_id","team_era_id","player_id");
