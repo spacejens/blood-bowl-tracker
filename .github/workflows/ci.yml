@@ -62,8 +62,15 @@ jobs:
       - name: Test
         run: pnpm test
 
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build discord-bot Docker image
+        run: docker build -f apps/discord-bot/Dockerfile .
+
   gatekeeper:
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, docker-build]
     if: always()
     runs-on: ubuntu-latest
     steps:
