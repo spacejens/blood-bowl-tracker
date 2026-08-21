@@ -30,8 +30,8 @@ import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
  * Builds the real router with every `game-data` service mocked and a mocked
- * `UpsertHandlerService` whose `run`/`runBatch` mirror the real
- * implementations (see `upsert-handler.service.ts` and its own spec, which
+ * `UpsertHandlerService` whose `run`/`runWithoutConflict`/`runBatch` mirror
+ * the real implementations (see `upsert-handler.service.ts` and its own spec, which
  * cover that logic in isolation). Mirroring is deliberate here — the same
  * exception `rpc-router-factory.service.spec.ts` already documents: these
  * specs verify how the factory wires each entity service and conflict-error
@@ -72,6 +72,27 @@ export async function createRouterHarness() {
         if (err instanceof conflictErrorClass) {
           throw errors.CONFLICT({ message: err.message });
         }
+        if (
+          err instanceof MissingRequiredFieldError ||
+          err instanceof MatchCategoryMismatchError ||
+          err instanceof TrophyAwardRecipientMismatchError
+        ) {
+          throw errors.BAD_REQUEST({ message: err.message });
+        }
+        throw err;
+      }
+    },
+  );
+
+  mocks.upsertHandler.runWithoutConflict.mockImplementation(
+    async (errors, run) => {
+      try {
+        const { entity, created } = (await run()) as {
+          entity: Record<string, unknown>;
+          created: boolean;
+        };
+        return { ...entity, created };
+      } catch (err) {
         if (
           err instanceof MissingRequiredFieldError ||
           err instanceof MatchCategoryMismatchError ||

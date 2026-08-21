@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import {
   upsertProcedure,
+  upsertProcedureBadRequestOnly,
   upsertProcedureWithoutConflict,
 } from './upsert-procedure';
 
@@ -77,6 +78,42 @@ describe('upsertProcedureWithoutConflict', () => {
 
   it('preserves the precise output schema shape (type-level)', () => {
     const procedure = upsertProcedureWithoutConflict(
+      TestInputSchema,
+      TestEntitySchema,
+    );
+
+    // Sanity-check `procedure` is a genuine value reference, not just a
+    // type-only import for eslint's sake.
+    expect(outputShapeKeysOf(procedure)).toEqual(['id', 'name', 'created']);
+
+    type Output = InferContractRouterOutputs<typeof procedure>;
+    expectTypeOf<Output>().toEqualTypeOf<{
+      id: number;
+      name: string;
+      created: boolean;
+    }>();
+  });
+});
+
+describe('upsertProcedureBadRequestOnly', () => {
+  it('declares exactly a BAD_REQUEST error', () => {
+    const procedure = upsertProcedureBadRequestOnly(
+      TestInputSchema,
+      TestEntitySchema,
+    );
+    expect(errorCodesOf(procedure)).toEqual(['BAD_REQUEST']);
+  });
+
+  it('extends the entity output with a created flag', () => {
+    const procedure = upsertProcedureBadRequestOnly(
+      TestInputSchema,
+      TestEntitySchema,
+    );
+    expect(outputShapeKeysOf(procedure)).toEqual(['id', 'name', 'created']);
+  });
+
+  it('preserves the precise output schema shape (type-level)', () => {
+    const procedure = upsertProcedureBadRequestOnly(
       TestInputSchema,
       TestEntitySchema,
     );
