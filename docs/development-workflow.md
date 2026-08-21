@@ -18,7 +18,7 @@ Processes reviewer feedback on an already-open PR (`/handle-pr-reviews`, or `/ha
 
 ## code-hygiene
 
-Runs a fixed set of dependency and code cleanup checks — dependency updates, unused dependency/dead code removal, a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `develop-feature`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work.
+Runs a fixed set of code cleanup checks — Node version updates, unused dependency/dead code removal, a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `develop-feature`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work. Ordinary dependency and Docker image updates are not part of it — Renovate opens those PRs on its own, configured by `renovate.json5` at the repo root, once the [Renovate GitHub App](https://github.com/apps/renovate) is installed on this repo (a one-time manual setup step; `renovate.json5` alone does not install or grant it access).
 
 ## wrap-up
 
@@ -76,4 +76,4 @@ Nothing else is required to *use* the reviews: `develop-feature`'s Phase 6 waits
 
 Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
 
-A typical cycle: `develop-feature` takes an issue to a PR → the automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes → a human reviews what's left → `handle-pr-reviews` addresses any further feedback → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` runs on its own schedule, whenever a developer chooses, unrelated to any specific feature PR — it keeps dependencies current and the codebase free of dead code and lint/format drift.
+A typical cycle: `develop-feature` takes an issue to a PR → the automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes → a human reviews what's left → `handle-pr-reviews` addresses any further feedback → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` runs on its own schedule, whenever a developer chooses, unrelated to any specific feature PR — it keeps the Node version current and the codebase free of dead code and lint/format drift.

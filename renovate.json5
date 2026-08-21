@@ -1,0 +1,81 @@
+{
+  // Full config reference: https://docs.renovatebot.com/configuration-options/
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:recommended'],
+  // Matches pnpm-workspace.yaml's minimumReleaseAge: 1440 (24h) local-install
+  // gate, so Renovate never proposes an update pnpm would then refuse to
+  // install locally.
+  minimumReleaseAge: '1 day',
+  packageRules: [
+    {
+      // Coordinated release train: these packages must share a version
+      // within a workspace, so an update to one without the others would
+      // leave incompatible versions installed together.
+      groupName: '@nestjs packages',
+      matchPackageNames: ['@nestjs/*'],
+    },
+    {
+      // Coordinated release train: @vitest/coverage-v8 must match vitest's
+      // own version.
+      groupName: 'vitest',
+      matchPackageNames: ['vitest', '@vitest/coverage-v8'],
+    },
+    {
+      // Node stays fully owned by code-hygiene's Node version task: it keeps
+      // .nvmrc, every Dockerfile FROM node:... line, and every workspace's
+      // @types/node in lock-step, and understands LTS semantics for the
+      // -alpine tag suffix this repo uses (Renovate's node versioning does
+      // not — see https://github.com/renovatebot/renovate/issues/13270).
+      // Renovate must not also propose updates for these or the two systems
+      // could conflict. No matchManagers filter here on purpose — it must
+      // cover every manager that could touch node/@types/node (npm,
+      // dockerfile, docker-compose, nvm for .nvmrc, and any future one).
+      matchPackageNames: ['node', '@types/node'],
+      enabled: false,
+    },
+    {
+      // Automerge: no branch protection exists on `main` in this repo
+      // (confirmed via `gh api repos/.../branches/main/protection` -> 404
+      // "Branch not protected"), so Renovate's own automerge can merge
+      // directly via the API once CI passes — no bot-approval workaround
+      // needed. Scoped to patch only, without a confidence gate:
+      // matchConfidence-driven automerge ("Smart Merge Control") requires a
+      // paid Mend Repository Integration and is not available on the free
+      // Renovate GitHub App this repo uses — see
+      // https://docs.mend.io/wsk/renovate-github-app ("Smart Merge Control
+      // is not a feature offered on this edition of Renovate"). Patch is
+      // semver's closest convention to "should be safe" without that signal.
+      // Deliberately no groupName here: this rule only sets automerge, so it
+      // never overrides another rule's groupName (the @nestjs/vitest groups
+      // above keep their names, and every other dependency keeps its own
+      // one-PR-per-dependency default) — a groupName here would bundle every
+      // patch update into one shared automerging PR, an all-or-nothing
+      // failure mode where one broken dependency blocks automerge for every
+      // other one in the same PR.
+      // Scoped to the npm manager only: CI (.github/workflows/ci.yml) runs
+      // pnpm build/lint/typecheck/test, which validates an npm dependency
+      // patch bump, but never builds or deploys the Docker image — Docker
+      // tag updates (docker-compose's postgres/schemaspy) have no PR-time
+      // validation at all, so they must never automerge unvalidated. This
+      // also excludes the github-actions manager (actions/checkout,
+      // actions/setup-node, flyctl); those are pinned to floating major/
+      // minor tags (@v4, @1.5) so patch updates essentially never fire for
+      // them anyway.
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['patch'],
+      automerge: true,
+    },
+    // No catch-all group: every dependency not matched above gets its own PR
+    // by Renovate's default, so one broken update never blocks the rest.
+    // (config:recommended does still apply Renovate's own small, curated
+    // group presets — e.g. well-known monorepo-published package families —
+    // but those only bundle genuinely coordinated releases, the same idea as
+    // the explicit groups above, not a broad catch-all.) Add more
+    // packageRules entries here for other coordinated release trains that
+    // need to move together, or to exclude specific dependencies, e.g.:
+    // {
+    //   groupName: 'eslint',
+    //   matchPackageNames: ['eslint', 'eslint-*', '@eslint/*', 'typescript-eslint'],
+    // },
+  ],
+}

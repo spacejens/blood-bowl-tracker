@@ -13,8 +13,6 @@
     "test": "pnpm -r run test",
     "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm format && pnpm test",
     "db:diagram": "tools/db-diagram/db-diagram.sh",
-    "hygiene:deps": "ncu -u --workspaces",
-    "hygiene:deps:list": "ncu --workspaces --format group",
     "hygiene:audit": "pnpm audit",
     "hygiene:audit:fix": "pnpm audit --fix=update",
     "hygiene:deadcode": "knip",
@@ -33,7 +31,6 @@
     "globals": "^17.9.0",
     "knip": "6.32.1",
     "madge": "8.0.0",
-    "npm-check-updates": "23.0.2",
     "prettier": "^3.9.6",
     "syncpack": "15.3.3",
     "typescript-eslint": "^8.66.0"
