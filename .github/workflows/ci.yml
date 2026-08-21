@@ -81,8 +81,14 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build
-        run: pnpm build
+      # docker-compose.yml validates every service's env_file when the file
+      # is loaded, even one not being started — apps/discord-bot/.env is
+      # gitignored and absent on a clean checkout, so `docker compose`
+      # commands below would fail before even reaching postgres. Its
+      # contents don't matter here since the discord-bot service is never
+      # started; only the file's existence does.
+      - name: Create placeholder discord-bot .env
+        run: cp apps/discord-bot/.env.example apps/discord-bot/.env
       - name: Start postgres
         run: docker compose up -d postgres
       - name: Wait for postgres to be healthy

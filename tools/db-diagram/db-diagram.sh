@@ -35,9 +35,14 @@ if [ "$health" != "healthy" ]; then
   exit 1
 fi
 
-# 2. Recreate the output directory, clearing any stale output.
+# 2. Recreate the output directory, clearing any stale output. World-
+# writable because the schemaspy container writes into this directory as
+# its own image user (uid 1000), which on most CI runners (e.g. GitHub
+# Actions' ubuntu-latest, uid 1001) differs from the host user creating it
+# — harmless on a developer's own machine, load-bearing in CI.
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
+chmod 777 "$OUTPUT_DIR"
 
 # 3. Run the schemaspy compose service. --no-deps keeps step 1's check
 # meaningful — without it, `run` would happily start postgres itself.
