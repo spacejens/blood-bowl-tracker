@@ -124,6 +124,17 @@ describe('UpsertHandlerService', () => {
       ).rejects.toBeInstanceOf(BadRequestReply);
     });
 
+    it('translates a match category mismatch error into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new MatchCategoryMismatchError('wrong category');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'wrong category',
+      });
+    });
+
     it('rethrows any other error untouched', async () => {
       await expect(
         handler.runWithoutConflict(errors, () => {
