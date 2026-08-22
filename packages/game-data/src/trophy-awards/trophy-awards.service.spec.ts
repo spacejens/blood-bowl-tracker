@@ -96,6 +96,19 @@ describe('TrophyAwardsService', () => {
     });
   });
 
+  it('inserts all four natural-key ids, including a null playerId', async () => {
+    const { chains } = await build([{ recipientKind: 'team' }], [teamAwardRow]);
+
+    await service.upsert(teamAward);
+
+    expect(chains[1].values).toHaveBeenCalledWith({
+      trophyId: 1,
+      competitionId: 2,
+      teamEraId: 3,
+      playerId: null,
+    });
+  });
+
   it('returns the existing row when the insert hits the unique constraint', async () => {
     const { db, chains } = await build(
       [{ recipientKind: 'team' }],
@@ -110,6 +123,9 @@ describe('TrophyAwardsService', () => {
     // returns nothing, so the natural-key lookup supplies the existing row.
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
     expect(chains).toHaveLength(3);
+    // The fallback lookup must filter on IS NULL for a team award, not a
+    // literal playerId equality — otherwise it would never match.
+    expect(sqlText(firstCallArg(chains[2].where))).toContain('is null');
   });
 
   it('returns the existing row when a player award hits the unique constraint', async () => {
@@ -124,7 +140,18 @@ describe('TrophyAwardsService', () => {
     expect(result).toEqual({ trophyAward: playerAwardRow, created: false });
     // The fallback lookup must filter on the player id itself, not IS NULL —
     // otherwise a re-imported player award could return the wrong row.
-    expect(extractAllFilterValues(firstCallArg(chains[2].where))).toContain(4);
+    expect(extractAllFilterValues(firstCallArg(chains[2].where))).toEqual([
+      1, 2, 3, 4,
+    ]);
+  });
+
+  it('throws when the insert conflicts but no matching row can be read back', async () => {
+    const { db } = await build([{ recipientKind: 'team' }], [], []);
+
+    await expect(service.upsert(teamAward)).rejects.toThrow(
+      /no matching row could be read back/,
+    );
+    expect(db.insert).toHaveBeenCalledWith(trophyAwards);
   });
 
   it('records a tie as a second row for the same trophy and competition', async () => {

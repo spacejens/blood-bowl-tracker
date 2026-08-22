@@ -459,7 +459,7 @@ export class TrophyAwardsService {
       return { trophyAward: inserted[0], created: true };
     }
 
-    const existing = await this.db
+    const [existingAward] = await this.db
       .select()
       .from(trophyAwards)
       .where(
@@ -473,7 +473,16 @@ export class TrophyAwardsService {
         ),
       );
 
-    return { trophyAward: existing[0], created: false };
+    if (existingAward === undefined) {
+      throw new Error(
+        `trophy_awards insert conflicted for trophy ${data.trophyId}, ` +
+          `competition ${data.competitionId}, team era ${data.teamEraId}, ` +
+          `player ${data.playerId ?? 'none'}, but no matching row could be ` +
+          'read back.',
+      );
+    }
+
+    return { trophyAward: existingAward, created: false };
   }
 
   private async assertRecipientFitsTrophy(

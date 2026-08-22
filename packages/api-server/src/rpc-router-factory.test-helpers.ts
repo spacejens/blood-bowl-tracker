@@ -31,11 +31,12 @@ import { UpsertHandlerService } from './upsert-handler.service';
 /**
  * Builds the real router with every `game-data` service mocked and a mocked
  * `UpsertHandlerService` whose `run`/`runWithoutConflict`/`runBatch` mirror
- * the real implementations (see `upsert-handler.service.ts` and its own spec, which
- * cover that logic in isolation). Mirroring is deliberate here — the same
- * exception `rpc-router-factory.service.spec.ts` already documents: these
- * specs verify how the factory wires each entity service and conflict-error
- * class into the handler, which a canned return value would erase.
+ * the real implementations (see `upsert-handler.service.ts` and its own
+ * spec, which cover that logic in isolation). Mirroring is deliberate here —
+ * the same exception `rpc-router-factory.service.spec.ts` already documents:
+ * these specs verify how the factory wires each entity service and
+ * conflict-error class into the handler, which a canned return value would
+ * erase.
  */
 export async function createRouterHarness() {
   const mocks = {
