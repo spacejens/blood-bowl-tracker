@@ -110,6 +110,61 @@ describe('BblCompetitionsImportService', () => {
     });
   });
 
+  it('reports each imported competition curated group and created flag', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '1', name: 'Major Season 1' },
+    ]);
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      matchesByCompetition({
+        '1': [
+          new Date(Date.UTC(2011, 11, 7)),
+          new Date(Date.UTC(2011, 11, 18)),
+        ],
+      }),
+    );
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
+      ...upsertedCompetition(42),
+      competitionGroupId: 5,
+      created: false,
+    });
+
+    const { competitionsByBblId, competitionEntriesByBblId } =
+      await service.importCompetitions();
+
+    expect(competitionEntriesByBblId.get('1')).toEqual({
+      upsert: competitionsByBblId.get('1'),
+      competitionGroupId: 5,
+      created: false,
+    });
+  });
+
+  it('reports no competition entry for a competition that failed to upsert', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '1', name: 'Major Season 1' },
+    ]);
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      matchesByCompetition({
+        '1': [
+          new Date(Date.UTC(2011, 11, 7)),
+          new Date(Date.UTC(2011, 11, 18)),
+        ],
+      }),
+    );
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      undefined,
+    );
+
+    const { competitionEntriesByBblId } = await service.importCompetitions();
+
+    expect(competitionEntriesByBblId.size).toBe(0);
+  });
+
   it('derives type=cup from a <=3-day span', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
