@@ -21,6 +21,15 @@ export const ActionTypeSchema = z.enum([
   'prayers_to_nuffle',
   'secret_objective',
   'successful_landing',
+  /**
+   * A Big Guy's action of throwing a team-mate down field. Deliberately
+   * outside the standardised SPP award table (`SppEarningActionTypeSchema`):
+   * the source reports its own per-event figure, and no career-total counter
+   * exists for it in any source's roster export.
+   */
+  'throw_team_mate',
+  /** The thrown player's action of being caught / landing in a team-mate's hands. */
+  'catch',
 ]);
 
 export const ConsequenceTypeSchema = z.enum([

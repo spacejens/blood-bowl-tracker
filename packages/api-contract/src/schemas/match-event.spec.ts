@@ -38,6 +38,19 @@ describe('UpsertMatchEventSchema', () => {
     ).toThrow();
   });
 
+  it.each(['throw_team_mate', 'catch'] as const)(
+    'accepts a %s action event',
+    (actionType) => {
+      const parsed = UpsertMatchEventSchema.parse({
+        ...base,
+        actingTeamEraId: 5,
+        actingPlayerId: 9,
+        actionType,
+      });
+      expect(parsed.actionType).toBe(actionType);
+    },
+  );
+
   it('requires at least one external id', () => {
     expect(() =>
       UpsertMatchEventSchema.parse({
