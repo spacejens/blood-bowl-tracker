@@ -330,14 +330,18 @@ curated catalog keys BBL team trophies by the exact label text itself (no
 prefix, matching every other curated-data file and every real BBL importer) —
 cross-reference
 `tools/import-manual/data/before-other-importers/trophies.json5`. The player
-trophy labels are *not* self-disambiguating: BBL awards the same
-`Deadliest Player` or `Legendary Player` label in several competition groups.
-The original Major Season rows keep their bare-label ids
-unchanged, so a Major-Season award still resolves exactly as before; every
-other confirmed trophy/group combination gets its own curated row keyed
-`${label}-${groupName}` instead, and the awards importer tries that composite
-key before falling back to the bare label. One label is an
-exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
+trophy labels that BBL actually awards in more than one competition group are
+*not* self-disambiguating: `Deadliest Player` or `Legendary Player` mean a
+different trophy depending on the tier. Every curated row for one of these
+labels — including its Major Season row — is keyed by the composite
+`${label}-${groupName}` id instead of the bare label, so the awards importer's
+composite-key attempt always resolves them regardless of group, with no
+Major-Season-specific exception. A handful of other player trophy labels are
+already self-disambiguating on their own (`Bierhallenführer`,
+`Gudarnas Förkämpe`, each tied to one specific event) and keep a bare-label id
+exactly like team trophies do; for these, the importer's composite attempt is
+expected to miss and its bare-label fallback is what actually resolves them.
+One label is an exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
 Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1st`
 (issue #519) — the curated catalog carries both labels as external ids on that one
 trophy.

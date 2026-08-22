@@ -203,13 +203,15 @@ describe('curated data files', () => {
     ]);
   });
 
-  it('seeds group-scoped BBL external ids for the ambiguous player trophies', () => {
+  it('seeds a composite BBL external id for every ambiguous player trophy', () => {
     // BBL hands the same player-trophy label out in more than one
-    // competition group (a Minor-Season "Deadliest Player", a Chaos Cup
+    // competition group (a Major-Season "Deadliest Player", a Chaos Cup
     // "Legendary Player"), so the label alone cannot identify the trophy.
-    // Those combinations are seeded as their own rows keyed
-    // `${label}-${groupName}`, matching the composite format TP ids already
-    // use. Pinned here so the format cannot drift away from what
+    // Every one of these player trophies -- including its original Major
+    // Season row -- is therefore keyed by the composite
+    // `${label}-${groupName}` BBL external id, matching the composite format
+    // TP ids already use, with no bare-label exception for Major Season.
+    // Pinned here so the format cannot drift away from what
     // BblTrophyAwardsImportService looks up.
     const trophies = readPhase('before-other-importers').trophies;
     const compositeIds = trophies.flatMap((trophy) =>
@@ -221,6 +223,14 @@ describe('curated data files', () => {
     );
 
     expect(compositeIds).toEqual([
+      'Season MVP-Major Season',
+      'Top Scorer-Major Season',
+      'Most Violent Player-Major Season',
+      'Deadliest Player-Major Season',
+      'Top Fouler-Major Season',
+      'Top Thrower-Major Season',
+      'Top Intercepter-Major Season',
+      'Most SPP-Major Season',
       'Top Scorer-Minor Season',
       'Most Violent Player-Minor Season',
       'Deadliest Player-Minor Season',
@@ -228,9 +238,11 @@ describe('curated data files', () => {
       'Top Thrower-Minor Season',
       'Top Intercepter-Minor Season',
       'Most SPP-Minor Season',
+      'Legendary Player-Major Season',
       'Legendary Player-Chaos Cup',
       'Legendary Player-Ogretoberfest',
       'Legendary Player-Champion of tLoEG',
+      'Trogen Tjänst-Major Season',
       'Trogen Tjänst-Moot Mania',
       'Trogen Tjänst-Chaos Cup',
     ]);

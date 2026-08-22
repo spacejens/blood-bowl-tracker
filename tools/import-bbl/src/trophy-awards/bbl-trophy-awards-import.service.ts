@@ -48,8 +48,7 @@ interface RunContext {
  * Everything one competition's award rows need, gathered once so the two row
  * loops stay within the 3-parameter limit. Nests the run-scoped context
  * rather than duplicating its fields. `groupName` is the competition's
- * curated competition-group name, which scopes trophy resolution (issue
- * #520).
+ * curated competition-group name, which scopes trophy resolution.
  */
 interface CompetitionContext {
   competitionId: number;
@@ -342,11 +341,18 @@ export class BblTrophyAwardsImportService {
    *
    * Two external ids are tried, in order:
    *   1. `${label}-${groupName}` — the composite id the curated catalog uses
-   *      for a player-trophy label BBL awards in more than one competition
-   *      group, matching the format TP's own ids already use.
-   *   2. the bare `label` — the original scheme, which every
-   *      self-disambiguating team trophy (`Major 1st`, `Minor 1st`) and every
-   *      unambiguous player trophy still uses.
+   *      for every player-trophy label BBL awards in more than one
+   *      competition group, matching the format TP's own ids already use.
+   *      Every curated row for these trophies carries a composite id,
+   *      including the Major Season one, so this attempt always succeeds
+   *      for them regardless of which group the award is in — there is no
+   *      Major-Season-specific exception left to be inconsistent about.
+   *   2. the bare `label` — the scheme every self-disambiguating label still
+   *      uses: team trophies (`Major 1st`, `Minor 1st`) and the handful of
+   *      player trophies whose label is already tied to one specific event
+   *      (`Bierhallenführer`, `Gudarnas Förkämpe`). These have no
+   *      group-scoped row at all, so the composite attempt above is expected
+   *      to miss and this is the attempt that actually resolves them.
    *
    * The composite attempt gets its own throwaway `errors` array: a failed
    * lookup there is the *expected* outcome for every trophy that has no

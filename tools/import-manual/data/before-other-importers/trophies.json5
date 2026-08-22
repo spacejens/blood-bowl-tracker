@@ -17,21 +17,28 @@
 // itself (matching the raw source id/label convention every other
 // curated-data file and every real BBL importer use -- no prefix).
 //
-// BBL's *player* trophy labels are NOT self-disambiguating: BBL
+// Some of BBL's *player* trophy labels are NOT self-disambiguating: BBL
 // hands the same "Deadliest Player" or "Legendary Player" label out in
 // several competition groups, so the label alone identifies no single
-// trophy. Every such trophy/group combination confirmed in the cached BBL
-// data therefore gets its own row, keyed `${label}-${groupName}` -- the same
-// hyphen-joined composite the tourplay.net ids below use. The original Major
-// Season rows keep their bare-label ids unchanged, so a Major-Season award
-// still resolves exactly as before, and BblTrophyAwardsImportService tries
-// the composite key first and falls back to the bare label. 12 such composite
-// rows exist: 7 Minor Season variants of the "during the season" player
-// trophies, 3 Legendary Player groups (Chaos Cup, Ogretoberfest, Champion of
-// tLoEG) and 2 Trogen Tjänst groups (Moot Mania, Chaos Cup). "Season MVP"
-// deliberately has none -- no cross-group award of it is confirmed in the
-// cached data, and the server-side group-match check would surface one
-// loudly if it ever appeared.
+// trophy. Every curated row for one of these labels -- including its
+// original Major Season row -- is keyed by the composite
+// `${label}-${groupName}` BBL external id instead of the bare label, the
+// same hyphen-joined composite the tourplay.net ids below use, so
+// BblTrophyAwardsImportService's composite-key attempt always resolves them
+// regardless of group: there is no Major-Season-specific bare-label
+// exception left to be inconsistent about. A handful of other player
+// trophies (Bierhallenführer, Gudarnas Förkämpe) are already
+// self-disambiguating on their own and keep a bare-label id like team
+// trophies do; the importer's composite attempt is expected to miss for
+// these, and its bare-label fallback is what actually resolves them. 12
+// group-scoped rows carry the groups the ambiguous trophies are actually
+// awarded in beyond their original Major Season row: 7 Minor Season
+// variants of the "during the season" player trophies, 3 Legendary Player
+// groups (Chaos Cup, Ogretoberfest, Champion of tLoEG) and 2 Trogen Tjänst
+// groups (Moot Mania, Chaos Cup). "Season MVP" has no such sibling -- no
+// cross-group award of it is confirmed in the cached data, and the
+// server-side group-match check would surface one loudly if it ever
+// appeared.
 //
 // TP external ids (issue #446) are seeded for the 10 trophies TP actually
 // awards, keyed as `${disambiguator}-${groupName}` -- the same hyphen-joined
@@ -266,14 +273,18 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Voted by all coaches.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Season MVP-Major Season' },
+      ],
     },
     {
       name: 'Top Scorer',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most touchdowns during the season.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Scorer' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Top Scorer-Major Season' },
+      ],
     },
     {
       name: 'Most Violent Player',
@@ -281,7 +292,10 @@
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most casualties during the season.',
       externalIds: [
-        { system: 'tloeg.bbleague.se', id: 'Most Violent Player' },
+        {
+          system: 'tloeg.bbleague.se',
+          id: 'Most Violent Player-Major Season',
+        },
       ],
     },
     {
@@ -289,35 +303,45 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most kills during the season.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Deadliest Player' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Deadliest Player-Major Season' },
+      ],
     },
     {
       name: 'Top Fouler',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most foul casualties during the season.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Fouler' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Top Fouler-Major Season' },
+      ],
     },
     {
       name: 'Top Thrower',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most completions during the season.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Thrower' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Top Thrower-Major Season' },
+      ],
     },
     {
       name: 'Top Intercepter',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most interceptions during the season.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Intercepter' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Top Intercepter-Major Season' },
+      ],
     },
     {
       name: 'Most SPP',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most Star Player Points during the season.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Most SPP' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Most SPP-Major Season' },
+      ],
     },
     // BBL awards these seven player trophies in Minor Season competitions
     // too, not just Major. Each is its own curated row -- the trophy really
@@ -417,7 +441,9 @@
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         'Player who reached 176 Star Player Points during a season or event.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Legendary Player' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Legendary Player-Major Season' },
+      ],
     },
     {
       name: 'Legendary Player',
@@ -458,7 +484,9 @@
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         '"Loyal Service" -- a medal honoring the unsung heroes on the field, awarded after the season to players who fought through three or more injuries.',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'Trogen Tjänst' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Trogen Tjänst-Major Season' },
+      ],
     },
     {
       name: 'Trogen Tjänst',
