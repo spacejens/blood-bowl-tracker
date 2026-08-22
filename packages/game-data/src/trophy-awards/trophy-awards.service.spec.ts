@@ -38,9 +38,22 @@ const teamAward = {
 
 const playerAward = { ...teamAward, playerId: 4 };
 
+/** A generic award used by the league-scoped assertion cases below. */
+const baseAward = {
+  trophyId: 1,
+  competitionId: 2,
+  teamEraId: 3,
+  playerId: null,
+};
+const fakeAward = { ...playerAwardRow, id: 13, playerId: 11 };
+
 /** The trophy-lookup row: recipient kind plus the trophy's curated group. */
-const teamTrophyRow = [{ recipientKind: 'team', competitionGroupId: 1 }];
-const playerTrophyRow = [{ recipientKind: 'player', competitionGroupId: 1 }];
+const teamTrophyRow = [
+  { recipientKind: 'team', competitionGroupId: 1, leagueId: null },
+];
+const playerTrophyRow = [
+  { recipientKind: 'player', competitionGroupId: 1, leagueId: null },
+];
 /** The competition-lookup row, in the same group as both trophy rows. */
 const matchingCompetitionRow = [{ competitionGroupId: 1 }];
 
@@ -211,7 +224,7 @@ describe('TrophyAwardsService', () => {
 
   it('inserts when the competition is in the trophy own group', async () => {
     const { db, chains } = await build(
-      [{ recipientKind: 'player', competitionGroupId: 3 }],
+      [{ recipientKind: 'player', competitionGroupId: 3, leagueId: null }],
       [{ competitionGroupId: 3 }],
       [playerAwardRow],
     );
@@ -226,7 +239,7 @@ describe('TrophyAwardsService', () => {
 
   it('throws when the competition belongs to a different competition group', async () => {
     const { db } = await build(
-      [{ recipientKind: 'player', competitionGroupId: 1 }],
+      [{ recipientKind: 'player', competitionGroupId: 1, leagueId: null }],
       [{ competitionGroupId: 2 }],
     );
 
@@ -243,6 +256,45 @@ describe('TrophyAwardsService', () => {
       TrophyAwardCompetitionGroupMismatchError,
     );
     expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it("accepts an award when a league-scoped trophy matches the competition group's league", async () => {
+    // query 0: the trophy row (league-scoped);
+    // query 1: the competition joined to its group, yielding the league;
+    // query 2: the insert.
+    const { chains } = await build(
+      [{ recipientKind: 'player', competitionGroupId: null, leagueId: 7 }],
+      [{ leagueId: 7 }],
+      [fakeAward],
+    );
+
+    const result = await service.upsert({ ...baseAward, playerId: 11 });
+
+    expect(result).toEqual({ trophyAward: fakeAward, created: true });
+    expect(chains[2].values).toHaveBeenCalled();
+  });
+
+  it('rejects an award when a league-scoped trophy belongs to another league', async () => {
+    const { chains } = await build(
+      [{ recipientKind: 'player', competitionGroupId: null, leagueId: 7 }],
+      [{ leagueId: 9 }],
+    );
+
+    await expect(
+      service.upsert({ ...baseAward, playerId: 11 }),
+    ).rejects.toBeInstanceOf(TrophyAwardCompetitionGroupMismatchError);
+    expect(chains).toHaveLength(2);
+  });
+
+  it('rejects an award for a league-scoped trophy when the competition does not exist', async () => {
+    await build(
+      [{ recipientKind: 'player', competitionGroupId: null, leagueId: 7 }],
+      [],
+    );
+
+    await expect(
+      service.upsert({ ...baseAward, playerId: 11 }),
+    ).rejects.toBeInstanceOf(TrophyAwardCompetitionGroupMismatchError);
   });
 
   describe('listRecipients', () => {

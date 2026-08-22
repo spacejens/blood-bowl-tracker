@@ -1,6 +1,7 @@
 import type { UpsertTrophyAward } from '@blood-bowl-tracker/api-contract';
 import type { Db, TrophyAward } from '@blood-bowl-tracker/db';
 import {
+  competitionGroups,
   competitions,
   DB,
   eras,
@@ -448,18 +449,16 @@ export class TrophyAwardsService {
    * No cutoff on tie size is applied — real BBL data has ties of up to four.
    *
    * Two things are checked before anything is written: the award's recipient
-   * must fit the trophy's `recipientKind`, and the competition must belong to
-   * the trophy's curated competition group. Either failure throws instead of
+   * must fit the trophy's `recipientKind`, and the competition must fall
+   * inside the trophy's curated scope — its competition group, or its league
+   * when the trophy is league-scoped. Either failure throws instead of
    * writing.
    */
   async upsert(
     data: UpsertTrophyAward,
   ): Promise<{ trophyAward: TrophyAward; created: boolean }> {
     const trophy = await this.assertRecipientFitsTrophy(data);
-    await this.assertCompetitionGroupMatchesTrophy(
-      data,
-      trophy.competitionGroupId,
-    );
+    await this.assertScopeMatchesTrophy(data, trophy);
 
     const inserted = await this.db
       .insert(trophyAwards)
@@ -511,16 +510,19 @@ export class TrophyAwardsService {
 
   /**
    * Verifies the award's recipient fits the trophy, and hands the resolved
-   * trophy row back so `assertCompetitionGroupMatchesTrophy` can reuse it
-   * rather than reading `trophies` a second time.
+   * trophy's scope back so `assertScopeMatchesTrophy` can reuse it rather
+   * than reading `trophies` a second time. Exactly one of the two scope
+   * fields is non-null — the database's `trophies_group_or_league` check
+   * guarantees it.
    */
   private async assertRecipientFitsTrophy(
     data: UpsertTrophyAward,
-  ): Promise<{ competitionGroupId: number }> {
+  ): Promise<{ competitionGroupId: number | null; leagueId: number | null }> {
     const [trophy] = await this.db
       .select({
         recipientKind: trophies.recipientKind,
         competitionGroupId: trophies.competitionGroupId,
+        leagueId: trophies.leagueId,
       })
       .from(trophies)
       .where(eq(trophies.id, data.trophyId));
@@ -546,31 +548,60 @@ export class TrophyAwardsService {
   }
 
   /**
-   * A trophy may only be awarded for a competition in the competition group
-   * it is curated for. The trophy's group is passed in, already read by
+   * A trophy may only be awarded for a competition inside the scope it is
+   * curated for. A group-scoped trophy compares the competition's own
+   * `competitionGroupId` directly; a league-scoped one resolves the
+   * competition's group's `leagueId` instead, since `competitions` carries no
+   * league of its own. The trophy's scope is passed in, already read by
    * `assertRecipientFitsTrophy`; only the competition needs its own lookup.
    */
-  private async assertCompetitionGroupMatchesTrophy(
+  private async assertScopeMatchesTrophy(
     data: UpsertTrophyAward,
-    trophyCompetitionGroupId: number,
+    trophyScope: { competitionGroupId: number | null; leagueId: number | null },
   ): Promise<void> {
-    const [competition] = await this.db
-      .select({ competitionGroupId: competitions.competitionGroupId })
+    if (trophyScope.competitionGroupId !== null) {
+      const [competition] = await this.db
+        .select({ competitionGroupId: competitions.competitionGroupId })
+        .from(competitions)
+        .where(eq(competitions.id, data.competitionId));
+
+      if (competition === undefined) {
+        throw new TrophyAwardCompetitionGroupMismatchError(
+          `Cannot award trophy ${data.trophyId} in competition ` +
+            `${data.competitionId}: the competition does not exist.`,
+        );
+      }
+      if (competition.competitionGroupId !== trophyScope.competitionGroupId) {
+        throw new TrophyAwardCompetitionGroupMismatchError(
+          `Trophy ${data.trophyId} is curated for competition group ` +
+            `${trophyScope.competitionGroupId}, but competition ` +
+            `${data.competitionId} belongs to competition group ` +
+            `${competition.competitionGroupId}.`,
+        );
+      }
+      return;
+    }
+
+    const [competitionLeague] = await this.db
+      .select({ leagueId: competitionGroups.leagueId })
       .from(competitions)
+      .innerJoin(
+        competitionGroups,
+        eq(competitionGroups.id, competitions.competitionGroupId),
+      )
       .where(eq(competitions.id, data.competitionId));
 
-    if (competition === undefined) {
+    if (competitionLeague === undefined) {
       throw new TrophyAwardCompetitionGroupMismatchError(
         `Cannot award trophy ${data.trophyId} in competition ` +
           `${data.competitionId}: the competition does not exist.`,
       );
     }
-    if (competition.competitionGroupId !== trophyCompetitionGroupId) {
+    if (competitionLeague.leagueId !== trophyScope.leagueId) {
       throw new TrophyAwardCompetitionGroupMismatchError(
-        `Trophy ${data.trophyId} is curated for competition group ` +
-          `${trophyCompetitionGroupId}, but competition ` +
-          `${data.competitionId} belongs to competition group ` +
-          `${competition.competitionGroupId}.`,
+        `Trophy ${data.trophyId} is curated for league ` +
+          `${trophyScope.leagueId}, but competition ${data.competitionId} ` +
+          `belongs to league ${competitionLeague.leagueId}.`,
       );
     }
   }
