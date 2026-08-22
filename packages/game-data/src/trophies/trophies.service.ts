@@ -93,6 +93,22 @@ export class TrophiesService {
   }
 
   /**
+   * Every trophy scoped to a league rather than to one of its competition
+   * groups, ordered by name. The league deepdive lists these and offers a
+   * drill-down button each, and the competition group deepdive folds them in
+   * alongside its own group-scoped trophies — a league-scoped trophy can be
+   * awarded in any competition in that league. Mirrors
+   * `listByCompetitionGroup`: id and label are all a button needs.
+   */
+  listByLeague(leagueId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: trophies.id, name: trophies.name })
+      .from(trophies)
+      .where(eq(trophies.leagueId, leagueId))
+      .orderBy(trophies.name);
+  }
+
+  /**
    * The whole curated trophy catalog, for the `trophies.list` insight (#422),
    * each row carrying the competition group that awards it. Optionally scoped
    * to a league: trophies have no league of their own, so the filter goes

@@ -315,4 +315,22 @@ describe('TrophiesService', () => {
       await expect(service.listAllWithLeague({})).resolves.toEqual([]);
     });
   });
+
+  describe('listByLeague', () => {
+    it('lists trophies scoped directly to one league, ordered by name', async () => {
+      const { chains } = await build([
+        { id: 3, name: 'Legendary Player' },
+        { id: 4, name: 'Trogen Tjänst' },
+      ]);
+
+      const rows = await service.listByLeague(7);
+
+      expect(rows).toEqual([
+        { id: 3, name: 'Legendary Player' },
+        { id: 4, name: 'Trogen Tjänst' },
+      ]);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+      expect(chains[0].orderBy).toHaveBeenCalled();
+    });
+  });
 });
