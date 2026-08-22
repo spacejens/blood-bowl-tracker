@@ -254,10 +254,10 @@ describe('TpTrophyAwardsImportService', () => {
   it('keys the same award code in two competition groups as two trophies', async () => {
     // The award code alone is not a trophy: `1` means the Major Season gold
     // in one competition and the Chaos Cup win in another. Pinned because the
-    // server-side group check added for issue #520 rejects any award whose
-    // competition is in a different group than the resolved trophy -- so a
-    // key that ignored the group would now fail at write time rather than
-    // silently mis-attributing the award.
+    // server-side group check rejects any award whose competition is in a
+    // different group than the resolved trophy -- so a key that ignored the
+    // group would now fail at write time rather than silently
+    // mis-attributing the award.
     const { service, mocks } = await makeService(
       new Map([
         ['Third era::tloegbbl-major-season-25', [award()]],

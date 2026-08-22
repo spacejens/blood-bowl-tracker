@@ -81,7 +81,7 @@ export class BblTrophyAwardsImportService {
    * `trophies`' NOT NULL columns, so the call fails and is recorded as a skip
    * rather than inventing a trophy. The id tried first is the competition's
    * group-scoped composite `${label}-${groupName}`, falling back to the bare
-   * label (issue #520) — see `resolveTrophyId`. Resolutions are memoized per
+   * label — see `resolveTrophyId`. Resolutions are memoized per
    * run under `${label}::${groupName}` — successes and failures alike — so a
    * bad key is reported once, not once per row, and the same label in two
    * different groups is never conflated.
@@ -340,7 +340,7 @@ export class BblTrophyAwardsImportService {
    * `undefined` when it cannot be resolved (in which case
    * TrophiesImportService has already recorded the failure on `errors`).
    *
-   * Two external ids are tried, in order (issue #520):
+   * Two external ids are tried, in order:
    *   1. `${label}-${groupName}` — the composite id the curated catalog uses
    *      for a player-trophy label BBL awards in more than one competition
    *      group, matching the format TP's own ids already use.

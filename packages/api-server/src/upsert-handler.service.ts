@@ -37,7 +37,7 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * BAD_REQUEST, as does a trophy award whose player id does not fit its
  * trophy's recipient kind (`TrophyAwardRecipientMismatchError`) and one whose
  * competition belongs to a different competition group than its trophy is
- * curated for (`TrophyAwardCompetitionGroupMismatchError`, issue #520).
+ * curated for (`TrophyAwardCompetitionGroupMismatchError`).
  * Anything else propagates untouched.
  */
 @Injectable()

@@ -309,7 +309,7 @@ real-world entity differently:
   19 team and 24 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
   TP-only Ogretoberfest and the three Dungeon Bowl placements. 12 of the
   player entries are group-scoped duplicates of a BBL player-trophy label
-  that BBL awards in more than one competition group (issue #520), keyed by a
+  that BBL awards in more than one competition group, keyed by a
   composite `${label}-${groupName}` external id.
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.

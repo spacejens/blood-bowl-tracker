@@ -42,8 +42,7 @@ export class TrophyAwardRecipientMismatchError extends Error {}
 /**
  * The award's competition belongs to a different competition group than the
  * trophy is curated for (or the competition does not exist at all) — e.g. a
- * Major-Season trophy being awarded for a Minor-Season competition, which is
- * exactly the bug issue #520 found in the BBL importer.
+ * Major-Season trophy being awarded for a Minor-Season competition.
  *
  * Enforced here, not in the database and not per importer, for the same
  * reason `TrophyAwardRecipientMismatchError` is: Postgres cannot
@@ -451,8 +450,8 @@ export class TrophyAwardsService {
    *
    * Two things are checked before anything is written: the award's recipient
    * must fit the trophy's `recipientKind`, and the competition must belong to
-   * the trophy's curated competition group (issue #520). Either failure
-   * throws instead of writing.
+   * the trophy's curated competition group. Either failure throws instead of
+   * writing.
    */
   async upsert(
     data: UpsertTrophyAward,
@@ -540,9 +539,8 @@ export class TrophyAwardsService {
 
   /**
    * A trophy may only be awarded for a competition in the competition group
-   * it is curated for (issue #520). The trophy's group is passed in, already
-   * read by `assertRecipientFitsTrophy`; only the competition needs its own
-   * lookup.
+   * it is curated for. The trophy's group is passed in, already read by
+   * `assertRecipientFitsTrophy`; only the competition needs its own lookup.
    */
   private async assertCompetitionGroupMatchesTrophy(
     data: UpsertTrophyAward,

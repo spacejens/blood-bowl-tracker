@@ -331,8 +331,8 @@ prefix, matching every other curated-data file and every real BBL importer) —
 cross-reference
 `tools/import-manual/data/before-other-importers/trophies.json5`. The player
 trophy labels are *not* self-disambiguating: BBL awards the same
-`Deadliest Player` or `Legendary Player` label in several competition groups
-(issue #520). The original Major Season rows keep their bare-label ids
+`Deadliest Player` or `Legendary Player` label in several competition groups.
+The original Major Season rows keep their bare-label ids
 unchanged, so a Major-Season award still resolves exactly as before; every
 other confirmed trophy/group combination gets its own curated row keyed
 `${label}-${groupName}` instead, and the awards importer tries that composite

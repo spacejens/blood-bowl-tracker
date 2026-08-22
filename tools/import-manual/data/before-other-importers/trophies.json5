@@ -17,7 +17,7 @@
 // itself (matching the raw source id/label convention every other
 // curated-data file and every real BBL importer use -- no prefix).
 //
-// BBL's *player* trophy labels are NOT self-disambiguating (issue #520): BBL
+// BBL's *player* trophy labels are NOT self-disambiguating: BBL
 // hands the same "Deadliest Player" or "Legendary Player" label out in
 // several competition groups, so the label alone identifies no single
 // trophy. Every such trophy/group combination confirmed in the cached BBL
@@ -62,9 +62,8 @@
 // eight unqualified "during the season" player trophies (Season MVP through
 // Most SPP), plus Legendary Player and Trogen Tjänst, are curated under
 // Major Season: Major is BBL's flagship season and the legend defines no
-// Minor-season equivalent. Their group-scoped siblings added for issue #520
-// (see the composite-id note above) carry the other groups BBL actually
-// awarded them in.
+// Minor-season equivalent. Their group-scoped siblings (see the composite-id
+// note above) carry the other groups BBL actually awarded them in.
 // Bierhallenführer and Gudarnas Förkämpe follow their own description text,
 // which is already explicit about the event they are awarded at.
 {
@@ -133,7 +132,7 @@
       //
       // "Korpen" is the old name of this same award, from when the Minor
       // Season was called Korpen; its external id resolves here.
-      name: 'Minor',
+      name: 'Minor Winner',
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Minor season winner.',
@@ -144,11 +143,9 @@
     },
     {
       // Despite its name, this trophy is only ever awarded within Minor
-      // Season competitions in the actual BBL data (issue #520) -- it was
-      // previously curated under its own "Cabal Vision Cup" competition
-      // group, seeded only as a placeholder since no real competition
-      // instance for it was known. That group has been removed; this is now
-      // curated under "Minor Season" like any other Minor Season trophy.
+      // Season competitions in the actual BBL data, never in a competition
+      // or match of its own, so it is curated under "Minor Season" like any
+      // other Minor Season trophy.
       name: 'Cabal Vision Cup',
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
@@ -322,13 +319,13 @@
       description: 'Most Star Player Points during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Most SPP' }],
     },
-    // Issue #520: BBL awarded these seven player trophies in Minor Season
-    // competitions too, not just Major. Each is its own curated row -- the
-    // trophy really is a different trophy per tier -- keyed by the composite
+    // BBL awards these seven player trophies in Minor Season competitions
+    // too, not just Major. Each is its own curated row -- the trophy really
+    // is a different trophy per tier -- keyed by the composite
     // `${label}-${groupName}` BBL external id, since the raw BBL label alone
     // is identical in both tiers.
     {
-      name: 'Top Scorer',
+      name: 'Top Scorer (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most touchdowns during the season.',
@@ -337,7 +334,7 @@
       ],
     },
     {
-      name: 'Most Violent Player',
+      name: 'Most Violent Player (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most casualties during the season.',
@@ -349,7 +346,7 @@
       ],
     },
     {
-      name: 'Deadliest Player',
+      name: 'Deadliest Player (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most kills during the season.',
@@ -358,7 +355,7 @@
       ],
     },
     {
-      name: 'Top Fouler',
+      name: 'Top Fouler (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most foul casualties during the season.',
@@ -367,7 +364,7 @@
       ],
     },
     {
-      name: 'Top Thrower',
+      name: 'Top Thrower (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most completions during the season.',
@@ -376,7 +373,7 @@
       ],
     },
     {
-      name: 'Top Intercepter',
+      name: 'Top Intercepter (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most interceptions during the season.',
@@ -385,7 +382,7 @@
       ],
     },
     {
-      name: 'Most SPP',
+      name: 'Most SPP (Minor)',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most Star Player Points during the season.',

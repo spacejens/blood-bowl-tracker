@@ -24,13 +24,11 @@
 //  - "GBBL" is a one-off with a single known instance, but still gets its own
 //    group, consistent with every other named cup, and it belongs to the GBBL
 //    league rather than tLoEG.
-//  - "Cabal Vision Cup" previously had a group of its own here, seeded solely
-//    because the "Cabal Vision Cup" trophy required one and no real
-//    competition instance was known for it. Issue #520's investigation found
-//    that trophy is, in the actual BBL data, only ever awarded within Minor
-//    Season competitions (bblId 57 and 60) -- and this group has never had a
-//    single competition or match curated under it. The trophy was recurated
-//    under "Minor Season" instead and this now-unreferenced group removed.
+//  - "Cabal Vision Cup" is deliberately absent from this catalog despite
+//    naming a real curated trophy (see trophies.json5): in the actual BBL
+//    data it is only ever awarded within Minor Season competitions (bblId 57
+//    and 60), never in a competition or match of its own, so the trophy is
+//    curated under "Minor Season" rather than a dedicated group.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
