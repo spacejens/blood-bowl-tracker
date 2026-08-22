@@ -84,6 +84,8 @@ describe('TpMatchEventsBuilderService', () => {
       'interception',
       'deflection',
       'successful_landing',
+      'throw_team_mate',
+      'catch',
     ] as const)(
       'dispatches a %s event to buildSimpleActionEvent with its own type as the action type',
       (type) => {

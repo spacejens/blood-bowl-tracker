@@ -4,6 +4,7 @@ import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 
 import { mockImportResultService } from '../import-package.test-helpers';
+import { TpAdminMatchEventBuilderService } from './tp-admin-match-event-builder.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 import type {
@@ -36,14 +37,19 @@ export const UNKNOWN_LINE_UP_ID = 888888;
 
 /**
  * Compile a fresh testing module with `TpMatchEventKindBuildersService` as
- * the only real provider; its sole dependency `ImportResultService` is the
+ * the real provider under test; its `ImportResultService` dependency is the
  * standard `mockImportResultService()` mock (its pure item/message
- * construction is covered by its own package's spec).
+ * construction is covered by its own package's spec), while
+ * `TpAdminMatchEventBuilderService` is passed real — it is a pure,
+ * dependency-free formatting service with no collaborators of its own to
+ * drift from, so mocking it would leave the actual admin-event assembly it
+ * performs unasserted.
  */
 export async function makeKindBuilders(): Promise<TpMatchEventKindBuildersService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpMatchEventKindBuildersService,
+      TpAdminMatchEventBuilderService,
       { provide: ImportResultService, useValue: mockImportResultService() },
     ],
   }).compile();

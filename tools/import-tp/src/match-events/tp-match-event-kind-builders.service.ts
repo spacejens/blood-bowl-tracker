@@ -8,6 +8,10 @@ import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpInjuryType, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import {
+  type TpAdminMatchEvent,
+  TpAdminMatchEventBuilderService,
+} from './tp-admin-match-event-builder.service';
 import type {
   BuildEventDataOptions,
   TeamEra,
@@ -27,30 +31,11 @@ interface ResolvePlayerOptions {
 }
 
 /**
- * Every administrative TP match event kind — everything except the
- * gameplay events (touchdown, injury, mvp_award, and the five other simple
- * action kinds, plus casualty_caused and sent_off), which are all built by
- * their own dedicated methods rather than {@link TpMatchEventKindBuildersService.buildAdminEvents}.
- */
-type TpAdminMatchEvent = Exclude<
-  TpMatchEvent,
-  | { type: 'touchdown' }
-  | { type: 'completion' }
-  | { type: 'interception' }
-  | { type: 'deflection' }
-  | { type: 'foul' }
-  | { type: 'mvp_award' }
-  | { type: 'successful_landing' }
-  | { type: 'sent_off' }
-  | { type: 'casualty_caused' }
-  | { type: 'injury' }
->;
-
-/**
- * The seven TP event kinds that are structurally identical action events:
+ * The nine TP event kinds that are structurally identical action events:
  * one acting player, one acting team, no other payload. Touchdown and
  * mvp_award were already modeled this way; completion, interception,
- * deflection, foul, and successful_landing share the exact same shape.
+ * deflection, foul, successful_landing, throw_team_mate, and catch share the
+ * exact same shape.
  */
 type TpSimpleActionEvent = Extract<
   TpMatchEvent,
@@ -61,6 +46,8 @@ type TpSimpleActionEvent = Extract<
   | { type: 'foul' }
   | { type: 'mvp_award' }
   | { type: 'successful_landing' }
+  | { type: 'throw_team_mate' }
+  | { type: 'catch' }
 >;
 
 /**
@@ -108,7 +95,10 @@ const INJURY_ACTION_SEVERITY_BY_TYPE: Record<TpInjuryType, ActionType> = {
  */
 @Injectable()
 export class TpMatchEventKindBuildersService {
-  constructor(private readonly importResults: ImportResultService) {}
+  constructor(
+    private readonly importResults: ImportResultService,
+    private readonly adminEventBuilder: TpAdminMatchEventBuilderService,
+  ) {}
 
   /** Resolve a roster id + era id to its team_eras id, or undefined. */
   resolveTeamEraId(options: ResolveTeamEraOptions): number | undefined {
@@ -175,9 +165,8 @@ export class TpMatchEventKindBuildersService {
 
   /**
    * Build a simple, single-actor action event (touchdown, completion,
-   * interception, deflection, foul, mvp_award, successful_landing) — the one
-   * shape shared by all seven, previously duplicated per-kind as
-   * `buildTouchdownEvent`/`buildMvpAwardEvent`.
+   * interception, deflection, foul, mvp_award, successful_landing,
+   * throw_team_mate, catch) — the one shape shared by all nine.
    */
   buildSimpleActionEvent(
     options: BuildEventDataOptions & { event: TpSimpleActionEvent },
@@ -473,184 +462,13 @@ export class TpMatchEventKindBuildersService {
   /**
    * Build the administrative TP match events (weather, inducements, winnings,
    * fan factor, journeyman signing, expensive mistake, dedicated fans, secret
-   * objective, prayers to Nuffle, concession) for one event, per the mapping
-   * table in the Task 9 plan (as amended by the round-1 review brief). Weather
-   * has no actor or consequence recipient, so it's classified via `eventType`
-   * rather than `actionType`, and stays team-less/neutral. Single-team-scoped
-   * events resolve their team era via `rosterId` under the match's era;
-   * "both-sides" events (winnings, fan factor, dedicated fans) emit up to two
-   * `UpsertMatchEvent`s using the match's already-resolved
-   * `homeTeamEraId`/`awayTeamEraId`, with external ids suffixed
-   * `-home`/`-away` — dedicated fans is consequence-scoped (it's an outcome,
-   * not an action) and skips a side whose modifier is `0` (unchanged), so it
-   * can return zero, one, or two events. Every other administrative event uses
-   * a plain `tp-<tpEventId>` external id.
+   * objective, prayers to Nuffle, concession) for one event. Delegates to
+   * {@link TpAdminMatchEventBuilderService}, split out purely to stay under
+   * this repo's 500-line source file ceiling.
    */
   buildAdminEvents(
     options: BuildEventDataOptions & { event: TpAdminMatchEvent },
   ): UpsertMatchEvent[] {
-    const {
-      event,
-      matchId,
-      eraId,
-      tpSystemId,
-      teamErasByRosterId,
-      homeTeamEraId,
-      awayTeamEraId,
-    } = options;
-    const actingTeamEraId = (rosterId: number) =>
-      this.resolveTeamEraId({ teamErasByRosterId, rosterId, eraId });
-
-    switch (event.type) {
-      case 'weather_roll': {
-        return [
-          {
-            matchId,
-            eventType: 'weather',
-            weatherType: event.weatherType,
-            externalIds: this.externalId(tpSystemId, event.tpEventId),
-          },
-        ];
-      }
-      case 'inducements_roll': {
-        const data: UpsertMatchEvent = {
-          matchId,
-          actionType: 'inducements',
-          inducementsCost: event.totalCost,
-          externalIds: this.externalId(tpSystemId, event.tpEventId),
-        };
-        this.setIfDefined(
-          data,
-          'actingTeamEraId',
-          actingTeamEraId(event.rosterId),
-        );
-        this.setIfDefined(data, 'inducementsFromTreasury', event.fromTreasury);
-        return [data];
-      }
-      case 'journeyman_signing': {
-        const data: UpsertMatchEvent = {
-          matchId,
-          actionType: 'journeymen_signings',
-          journeymenCount: event.journeymenCount,
-          externalIds: this.externalId(tpSystemId, event.tpEventId),
-        };
-        this.setIfDefined(
-          data,
-          'actingTeamEraId',
-          actingTeamEraId(event.rosterId),
-        );
-        return [data];
-      }
-      case 'secret_objective': {
-        const data: UpsertMatchEvent = {
-          matchId,
-          actionType: 'secret_objective',
-          secretObjective: event.secretObjective,
-          externalIds: this.externalId(tpSystemId, event.tpEventId),
-        };
-        this.setIfDefined(
-          data,
-          'actingTeamEraId',
-          actingTeamEraId(event.rosterId),
-        );
-        return [data];
-      }
-      case 'expensive_mistake': {
-        const data: UpsertMatchEvent = {
-          matchId,
-          consequenceType: 'expensive_mistake',
-          expensiveMistake: event.expensiveMistake,
-          externalIds: this.externalId(tpSystemId, event.tpEventId),
-        };
-        this.setIfDefined(
-          data,
-          'consequenceTeamEraId',
-          actingTeamEraId(event.rosterId),
-        );
-        return [data];
-      }
-      case 'winnings_roll': {
-        const home: UpsertMatchEvent = {
-          matchId,
-          actionType: 'winnings',
-          winnings: event.localWinnings,
-          externalIds: this.externalId(tpSystemId, event.tpEventId, 'home'),
-        };
-        this.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
-        const away: UpsertMatchEvent = {
-          matchId,
-          actionType: 'winnings',
-          winnings: event.visitorWinnings,
-          externalIds: this.externalId(tpSystemId, event.tpEventId, 'away'),
-        };
-        this.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
-        return [home, away];
-      }
-      case 'fan_factor_roll': {
-        const home: UpsertMatchEvent = {
-          matchId,
-          actionType: 'fan_factor',
-          fanFactor: event.fanFactorLocal,
-          externalIds: this.externalId(tpSystemId, event.tpEventId, 'home'),
-        };
-        this.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
-        const away: UpsertMatchEvent = {
-          matchId,
-          actionType: 'fan_factor',
-          fanFactor: event.fanFactorVisitor,
-          externalIds: this.externalId(tpSystemId, event.tpEventId, 'away'),
-        };
-        this.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
-        return [home, away];
-      }
-      case 'dedicated_fans_roll': {
-        const events: UpsertMatchEvent[] = [];
-        if (event.dedicatedFansModifierLocal !== 0) {
-          const home: UpsertMatchEvent = {
-            matchId,
-            consequenceType: 'dedicated_fans',
-            dedicatedFans: event.dedicatedFansModifierLocal,
-            externalIds: this.externalId(tpSystemId, event.tpEventId, 'home'),
-          };
-          this.setIfDefined(home, 'consequenceTeamEraId', homeTeamEraId);
-          events.push(home);
-        }
-        if (event.dedicatedFansModifierVisitor !== 0) {
-          const away: UpsertMatchEvent = {
-            matchId,
-            consequenceType: 'dedicated_fans',
-            dedicatedFans: event.dedicatedFansModifierVisitor,
-            externalIds: this.externalId(tpSystemId, event.tpEventId, 'away'),
-          };
-          this.setIfDefined(away, 'consequenceTeamEraId', awayTeamEraId);
-          events.push(away);
-        }
-        return events;
-      }
-      case 'prayers_to_nuffle': {
-        return [
-          {
-            matchId,
-            actionType: 'prayers_to_nuffle',
-            prayersToNuffle: event.prayersToNuffle,
-            externalIds: this.externalId(tpSystemId, event.tpEventId),
-          },
-        ];
-      }
-      case 'concession': {
-        const data: UpsertMatchEvent = {
-          matchId,
-          consequenceType: 'concession',
-          externalIds: this.externalId(tpSystemId, event.tpEventId),
-        };
-        const concedingTeamEraId = event.concedeLocal
-          ? homeTeamEraId
-          : event.concedeVisitor
-            ? awayTeamEraId
-            : undefined;
-        this.setIfDefined(data, 'consequenceTeamEraId', concedingTeamEraId);
-        return [data];
-      }
-    }
+    return this.adminEventBuilder.buildAdminEvents(options);
   }
 }
