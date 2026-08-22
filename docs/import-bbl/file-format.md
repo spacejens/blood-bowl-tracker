@@ -326,13 +326,36 @@ same 28 numbers as the union of the `p=tt` and `p=ppr` sets, with no extras —
 so the pair is exhaustive: nothing in the mirror uses a prize icon that isn't
 legended on one of these two pages. The label text on `p=tt`/`p=ppr` is
 self-disambiguating (e.g. `Major 1st` vs. `Minor 1st`), which is why the
-curated catalog keys BBL trophies by the exact label text itself (no prefix,
-matching every other curated-data file and every real BBL importer) — cross-reference
-`tools/import-manual/data/before-other-importers/trophies.json5`. One label is an
-exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
+curated catalog keys BBL team trophies by the exact label text itself (no
+prefix, matching every other curated-data file and every real BBL importer) —
+cross-reference
+`tools/import-manual/data/before-other-importers/trophies.json5`. The player
+trophy labels that BBL actually awards in more than one competition group are
+*not* self-disambiguating: `Deadliest Player` or `Legendary Player` mean a
+different trophy depending on the tier. Every curated row for one of these
+labels — including its Major Season row — is keyed by the composite
+`${label}-${groupName}` id instead of the bare label, so the awards importer's
+composite-key attempt always resolves them regardless of group, with no
+Major-Season-specific exception. A handful of other player trophy labels are
+already self-disambiguating on their own (`Bierhallenführer`,
+`Gudarnas Förkämpe`, each tied to one specific event) and keep a bare-label id
+exactly like team trophies do; for these, the importer's composite attempt is
+expected to miss and its bare-label fallback is what actually resolves them.
+One label is an exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
 Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1st`
 (issue #519) — the curated catalog carries both labels as external ids on that one
 trophy.
+
+Group-scoped resolution above requires trusting a competition's curated
+competition group, which is only true for a competition already present in
+`tools/import-manual/data/before-other-importers/competitions.json5`. A BBL
+competition this importer has to create fresh — because it is not yet in that
+curated catalog — has no trustworthy group classification, so
+`BblTrophyAwardsImportService` skips *all* of that competition's trophy
+awards outright rather than risk resolving into the wrong group (reported as
+a "was not pre-seeded by curated data" error). The fix, when this shows up in
+import output, is to add a curated row for the competition to
+`competitions.json5` first, then re-run the import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated
@@ -346,4 +369,5 @@ actually won a trophy. That is the job of the `sr` page's "Team trophy" and
 "Player prize" tables described above, whose rows the trophy-awards importer
 (`tools/import-bbl/src/trophy-awards/bbl-trophy-awards-import.service.ts`,
 issue #343) turns into `trophy_awards` rows, resolving each row's trophy by
-its exact label text via `trophies_external_ids`.
+its group-scoped composite id, falling back to the bare label, via
+`trophies_external_ids`.

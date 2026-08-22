@@ -69,7 +69,7 @@ describe('curated data files', () => {
     }
   });
 
-  it('curates all 15 competition groups against a real league', () => {
+  it('curates all 14 competition groups against a real league', () => {
     const data = readPhase('before-other-importers');
     const leagueIds = new Set(
       data.leagues.flatMap((league) =>
@@ -77,12 +77,11 @@ describe('curated data files', () => {
       ),
     );
 
-    expect(data.competitionGroups).toHaveLength(15);
+    expect(data.competitionGroups).toHaveLength(14);
     expect(data.competitionGroups.map((group) => group.name)).toEqual([
       'Major Season',
       'Minor Season',
       'Chaos Cup',
-      'Cabal Vision Cup',
       'Stunty Leeg',
       'Fright Night',
       'Snöbollskrieg',
@@ -143,7 +142,7 @@ describe('curated data files', () => {
       data.competitionGroups.map((group) => group.name),
     );
 
-    expect(data.trophies).toHaveLength(31);
+    expect(data.trophies).toHaveLength(43);
     for (const trophy of data.trophies) {
       expect(
         trophy.competitionGroup,
@@ -201,6 +200,51 @@ describe('curated data files', () => {
       ['Dungeon Bowl Gold', '1-Dungeon Bowl'],
       ['Dungeon Bowl Silver', '2-Dungeon Bowl'],
       ['Dungeon Bowl Bronze', '3-Dungeon Bowl'],
+    ]);
+  });
+
+  it('seeds a composite BBL external id for every ambiguous player trophy', () => {
+    // BBL hands the same player-trophy label out in more than one
+    // competition group (a Major-Season "Deadliest Player", a Chaos Cup
+    // "Legendary Player"), so the label alone cannot identify the trophy.
+    // Every one of these player trophies -- including its original Major
+    // Season row -- is therefore keyed by the composite
+    // `${label}-${groupName}` BBL external id, matching the composite format
+    // TP ids already use, with no bare-label exception for Major Season.
+    // Pinned here so the format cannot drift away from what
+    // BblTrophyAwardsImportService looks up.
+    const trophies = readPhase('before-other-importers').trophies;
+    const compositeIds = trophies.flatMap((trophy) =>
+      trophy.externalIds
+        .filter(
+          (ref) => ref.system === 'tloeg.bbleague.se' && ref.id.includes('-'),
+        )
+        .map((ref) => ref.id),
+    );
+
+    expect(compositeIds).toEqual([
+      'Season MVP-Major Season',
+      'Top Scorer-Major Season',
+      'Most Violent Player-Major Season',
+      'Deadliest Player-Major Season',
+      'Top Fouler-Major Season',
+      'Top Thrower-Major Season',
+      'Top Intercepter-Major Season',
+      'Most SPP-Major Season',
+      'Top Scorer-Minor Season',
+      'Most Violent Player-Minor Season',
+      'Deadliest Player-Minor Season',
+      'Top Fouler-Minor Season',
+      'Top Thrower-Minor Season',
+      'Top Intercepter-Minor Season',
+      'Most SPP-Minor Season',
+      'Legendary Player-Major Season',
+      'Legendary Player-Chaos Cup',
+      'Legendary Player-Ogretoberfest',
+      'Legendary Player-Champion of tLoEG',
+      'Trogen Tjänst-Major Season',
+      'Trogen Tjänst-Moot Mania',
+      'Trogen Tjänst-Chaos Cup',
     ]);
   });
 

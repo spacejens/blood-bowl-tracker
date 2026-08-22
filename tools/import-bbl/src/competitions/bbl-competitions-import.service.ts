@@ -29,6 +29,29 @@ const STANDINGS_LIST_PAGE_TYPE = 'sr';
 // competitions in the mirror (see the competitions design doc); do not change.
 const CUP_MAX_SPAN_DAYS = 3;
 
+/**
+ * One imported competition as this service reports it: the upsert payload it
+ * built, the curated competition group the server resolved it into, and
+ * whether that upsert had to create the row fresh.
+ *
+ * `competitionGroupId` is only a real classification when `created` is false:
+ * a competition this importer had to create was not pre-seeded by
+ * tools/import-manual's before-other-importers phase, so its group id is
+ * whatever `competitions.competition_group_id`'s schema default happens to
+ * be. BblTrophyAwardsImportService relies on that distinction, mirroring
+ * TpTrophyAwardsImportService.
+ *
+ * Reported alongside `competitionsByBblId` rather than replacing it: the four
+ * other importer steps consuming that map only ever need the
+ * `UpsertCompetition`, and changing their shared type for one consumer's sake
+ * would churn all of them.
+ */
+export interface BblCompetitionEntry {
+  upsert: UpsertCompetition;
+  competitionGroupId: number;
+  created: boolean;
+}
+
 interface ResolveTypeAndEraOptions {
   competition: BblCompetition;
   dates: Date[];
@@ -81,10 +104,12 @@ export class BblCompetitionsImportService {
   async importCompetitions(): Promise<{
     result: ImportResult;
     competitionsByBblId: Map<string, UpsertCompetition>;
+    competitionEntriesByBblId: Map<string, BblCompetitionEntry>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const competitionsByBblId = new Map<string, UpsertCompetition>();
+    const competitionEntriesByBblId = new Map<string, BblCompetitionEntry>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
@@ -101,6 +126,7 @@ export class BblCompetitionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
+        competitionEntriesByBblId,
       };
     }
 
@@ -112,6 +138,7 @@ export class BblCompetitionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
+        competitionEntriesByBblId,
       };
     }
     const [bblSystemId] = bootstrap.ids;
@@ -153,6 +180,7 @@ export class BblCompetitionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
+        competitionEntriesByBblId,
       };
     }
 
@@ -187,6 +215,11 @@ export class BblCompetitionsImportService {
       );
       if (upserted !== undefined) {
         competitionsByBblId.set(competition.bblId, competitionData);
+        competitionEntriesByBblId.set(competition.bblId, {
+          upsert: competitionData,
+          competitionGroupId: upserted.competitionGroupId,
+          created: upserted.created,
+        });
         imported += 1;
       }
     }
@@ -194,6 +227,7 @@ export class BblCompetitionsImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       competitionsByBblId,
+      competitionEntriesByBblId,
     };
   }
 

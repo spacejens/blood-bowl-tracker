@@ -1,6 +1,7 @@
 import {
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -84,6 +85,17 @@ describe('UpsertHandlerService', () => {
     ).rejects.toBeInstanceOf(BadRequestReply);
     expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
       message: 'wrong recipient',
+    });
+  });
+
+  it('translates a trophy award competition group mismatch error into a BAD_REQUEST reply', async () => {
+    await expect(
+      handler.run(errors, TestConflictError, () => {
+        throw new TrophyAwardCompetitionGroupMismatchError('wrong group');
+      }),
+    ).rejects.toBeInstanceOf(BadRequestReply);
+    expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+      message: 'wrong group',
     });
   });
 
@@ -224,6 +236,21 @@ describe('UpsertHandlerService', () => {
       {
         success: false,
         error: 'wrong recipient',
+      },
+    ]);
+  });
+
+  it('turns a trophy award competition group mismatch error into a per-item failure', async () => {
+    await expect(
+      handler.runBatch(TestConflictError, [
+        () => {
+          throw new TrophyAwardCompetitionGroupMismatchError('wrong group');
+        },
+      ]),
+    ).resolves.toEqual([
+      {
+        success: false,
+        error: 'wrong group',
       },
     ]);
   });

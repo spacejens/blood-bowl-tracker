@@ -108,10 +108,12 @@ async function run(): Promise<ImportResult> {
     // names a team era within its competition, or a player (recorded under
     // that player's own team era). The trophies themselves are curated data
     // seeded by tools/import-manual, which always runs before this importer.
+    // The enriched competition entries are passed (not the plain upsert map):
+    // resolving a trophy needs each competition's curated group.
     const trophyAwardsOutcome = await app
       .get(BblTrophyAwardsImportService)
       .importTrophyAwards({
-        competitionsByBblId: competitionOutcome.competitionsByBblId,
+        competitionEntriesByBblId: competitionOutcome.competitionEntriesByBblId,
         teamEraIdsByCompetitionBblId:
           teamParticipationOutcome.teamEraIdsByCompetitionBblId,
         playerIdsByPid: playerOutcome.playerIdsByPid,

@@ -251,6 +251,95 @@ describe('TpTrophyAwardsImportService', () => {
     );
   });
 
+  it('keys the same award code in two competition groups as two trophies', async () => {
+    // The award code alone is not a trophy: `1` means the Major Season gold
+    // in one competition and the Chaos Cup win in another. Pinned because the
+    // server-side group check rejects any award whose competition is in a
+    // different group than the resolved trophy -- so a key that ignored the
+    // group would now fail at write time rather than silently
+    // mis-attributing the award.
+    const { service, mocks } = await makeService(
+      new Map([
+        ['Third era::tloegbbl-major-season-25', [award()]],
+        ['Third era::tloegbbl-chaos-cup-8', [award()]],
+      ]),
+      {
+        groups: [
+          { id: 1, name: 'Major Season', leagueId: 1, createdAt: new Date() },
+          { id: 2, name: 'Chaos Cup', leagueId: 1, createdAt: new Date() },
+        ],
+        competitionIdsByTpId: new Map([
+          [6543, 42],
+          [6544, 43],
+        ]),
+      },
+    );
+    // Distinct trophy ids per composite key: the default mock resolves every
+    // lookup to the same trophy id, which cannot distinguish a swapped
+    // trophy-to-competition attribution from a correct one. Restricted to
+    // exactly the two expected keys so a regression that resolves either
+    // competition via a bare label or another composite key fails loudly
+    // here, rather than silently falling through to trophy 202.
+    mocks.trophiesImport.upsertTrophy.mockImplementation((data) => {
+      const externalId = data.externalIds?.[0]?.externalId;
+      expect(['1-Major Season', '1-Chaos Cup']).toContain(externalId);
+      return Promise.resolve(
+        externalId === '1-Major Season'
+          ? upsertedTrophy(201)
+          : upsertedTrophy(202),
+      );
+    });
+
+    await service.importTrophyAwards(
+      options({
+        competitionsByTpId: new Map([
+          [6543, competitionEntry({ competitionGroupId: 1 })],
+          [
+            6544,
+            competitionEntry({
+              competitionGroupId: 2,
+              competition: 'tloegbbl-chaos-cup-8',
+              upsert: upsertCompetition({
+                externalIds: [
+                  { externalSystemId: TP_SYSTEM_ID, externalId: '6544' },
+                ],
+              }),
+            }),
+          ],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+      {
+        externalIds: [
+          { externalSystemId: TP_SYSTEM_ID, externalId: '1-Major Season' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+      {
+        externalIds: [
+          { externalSystemId: TP_SYSTEM_ID, externalId: '1-Chaos Cup' },
+        ],
+      },
+      expect.any(Array),
+    );
+    // Pins the trophy-to-competition attribution itself, not just which
+    // trophy keys were looked up: matches each award's competitionId against
+    // its own group-scoped trophyId, so a swap between the two competitions
+    // (or their resolved trophies) would fail this assertion.
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionId: 42, trophyId: 201 }),
+      expect.any(Array),
+    );
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionId: 43, trophyId: 202 }),
+      expect.any(Array),
+    );
+  });
+
   it.each([
     [1, '1-Dungeon Bowl'],
     [2, '2-Dungeon Bowl'],
