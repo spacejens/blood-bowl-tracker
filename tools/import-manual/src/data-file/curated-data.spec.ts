@@ -143,7 +143,7 @@ describe('curated data files', () => {
       data.competitionGroups.map((group) => group.name),
     );
 
-    expect(data.trophies).toHaveLength(31);
+    expect(data.trophies).toHaveLength(43);
     for (const trophy of data.trophies) {
       expect(
         trophy.competitionGroup,
@@ -201,6 +201,39 @@ describe('curated data files', () => {
       ['Dungeon Bowl Gold', '1-Dungeon Bowl'],
       ['Dungeon Bowl Silver', '2-Dungeon Bowl'],
       ['Dungeon Bowl Bronze', '3-Dungeon Bowl'],
+    ]);
+  });
+
+  it('seeds group-scoped BBL external ids for the ambiguous player trophies', () => {
+    // Issue #520: BBL hands the same player-trophy label out in more than one
+    // competition group (a Minor-Season "Deadliest Player", a Chaos Cup
+    // "Legendary Player"), so the label alone cannot identify the trophy.
+    // Those combinations are seeded as their own rows keyed
+    // `${label}-${groupName}`, matching the composite format TP ids already
+    // use. Pinned here so the format cannot drift away from what
+    // BblTrophyAwardsImportService looks up.
+    const trophies = readPhase('before-other-importers').trophies;
+    const compositeIds = trophies.flatMap((trophy) =>
+      trophy.externalIds
+        .filter(
+          (ref) => ref.system === 'tloeg.bbleague.se' && ref.id.includes('-'),
+        )
+        .map((ref) => ref.id),
+    );
+
+    expect(compositeIds).toEqual([
+      'Top Scorer-Minor Season',
+      'Most Violent Player-Minor Season',
+      'Deadliest Player-Minor Season',
+      'Top Fouler-Minor Season',
+      'Top Thrower-Minor Season',
+      'Top Intercepter-Minor Season',
+      'Most SPP-Minor Season',
+      'Legendary Player-Chaos Cup',
+      'Legendary Player-Ogretoberfest',
+      'Legendary Player-Champion of tLoEG',
+      'Trogen Tjänst-Moot Mania',
+      'Trogen Tjänst-Chaos Cup',
     ]);
   });
 

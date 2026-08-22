@@ -305,9 +305,12 @@ real-world entity differently:
   rules-set rows it references — see issue #379. It declares rules sets under
   the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
   BBL/TP importers' later upserts match the same rows.
-- `trophies.json5` — the curated catalog of 31 known trophies (issue #342):
-  19 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
-  TP-only Ogretoberfest and the three Dungeon Bowl placements.
+- `trophies.json5` — the curated catalog of 43 known trophies (issue #342):
+  19 team and 24 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
+  TP-only Ogretoberfest and the three Dungeon Bowl placements. 12 of the
+  player entries are group-scoped duplicates of a BBL player-trophy label
+  that BBL awards in more than one competition group (issue #520), keyed by a
+  composite `${label}-${groupName}` external id.
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
 
