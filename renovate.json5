@@ -65,6 +65,28 @@
       matchUpdateTypes: ['patch'],
       automerge: true,
     },
+    {
+      // Triage aid: label every Renovate PR with the kind of bump it
+      // contains, so the list can be scanned at a glance and each update
+      // given scrutiny proportional to its risk. The `renovate:` prefix
+      // namespaces these apart from this repo's hand-maintained labels
+      // (bug, development, feature, ...) and keeps them sorted together in
+      // GitHub's label list. Not pre-created: Renovate creates each label
+      // via the GitHub API the first time it applies it, in default gray.
+      // `addLabels`, not `labels`: Renovate merges `addLabels` across every
+      // matching packageRule by appending, whereas `labels` replaces the
+      // whole list. The patch-automerge rule above matches the same PRs
+      // this rule does for patch updates, so `addLabels` is what guarantees
+      // the update-type label is added without clobbering, or being
+      // clobbered by, labels set elsewhere.
+      // One rule covers all six types because `{{updateType}}` is
+      // Renovate's own per-PR template interpolation, resolving to whichever
+      // type applies. lockFileMaintenance and replacement are deliberately
+      // absent — not part of the triage use case; they can be added here
+      // later the same way.
+      matchUpdateTypes: ['patch', 'minor', 'major', 'pin', 'digest', 'rollback'],
+      addLabels: ['renovate:{{updateType}}'],
+    },
     // No catch-all group: every dependency not matched above gets its own PR
     // by Renovate's default, so one broken update never blocks the rest.
     // (config:recommended does still apply Renovate's own small, curated
