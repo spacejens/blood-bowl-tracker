@@ -7,6 +7,7 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -41,8 +42,8 @@ const BLANK_LABEL = '\u200b';
  * The button colour each destination type gets, so a coach can tell coach
  * buttons from team buttons from player buttons at a glance without reading
  * every label. Discord offers only four usable styles (Link navigates to a
- * URL and Premium is for purchases), so some of the nine destination types share colours:
- * the four "container" types (era, competition, competition group, trophy)
+ * URL and Premium is for purchases), so some of the ten destination types share colours:
+ * the five "container" types (era, competition, competition group, league, trophy)
  * share Secondary, and the three "who played" types (coach, team, race) share
  * Success — race used to be Danger, but red read as a destructive-action
  * colour for routine navigation among these look-alike types. Player is the
@@ -56,7 +57,7 @@ const BLANK_LABEL = '\u200b';
  *
  * The `Record<ButtonCustomIdPrefix, ButtonStyle>` annotation is deliberate:
  * TypeScript requires every member of the union to appear as a key, so adding
- * a tenth prefix constant fails the build here until someone chooses its
+ * a further prefix constant fails the build here until someone chooses its
  * colour. Do not add a runtime fallback — that would let a new destination
  * type ship silently mis-coloured.
  */
@@ -64,6 +65,7 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
   [ERA_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [COMPETITION_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
+  [LEAGUE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [TROPHY_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [COACH_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
   [TEAM_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
@@ -75,7 +77,7 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
 /**
  * The emoji each destination type gets, rendered by Discord in the component's
  * own `emoji` field (not prefixed into the label). Colour alone cannot carry
- * type identity: Discord offers only four usable button styles for nine and
+ * type identity: Discord offers only four usable button styles for ten and
  * counting destination types, and select-menu options have no colour at all,
  * so a coach and a competition would be indistinguishable in a long list.
  * Emoji is the primary type signal; `BUTTON_STYLE_BY_PREFIX` remains an
@@ -86,11 +88,13 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
  * individual player (player), a star for a star player (star-player), a double
  * helix for species/ancestry (race), a stadium for a single event
  * (competition), a repeat symbol for a recurring series (competition group),
- * and a trophy cup for an award (trophy).
+ * a classical building for the institution a whole league is, one level above
+ * the competition group's repeat symbol (league), and a trophy cup for an
+ * award (trophy).
  *
  * The `Record<ButtonCustomIdPrefix, string>` annotation is deliberate, exactly
  * as it is for the colour map above: TypeScript requires every member of the
- * union to appear as a key, so adding a tenth prefix constant fails the build
+ * union to appear as a key, so adding a further prefix constant fails the build
  * here until someone chooses its emoji. Do not add a runtime fallback — that
  * would let a new destination type ship with the wrong icon.
  */
@@ -103,6 +107,7 @@ const ENTITY_EMOJI_BY_PREFIX: Record<ButtonCustomIdPrefix, string> = {
   [RACE_BUTTON_CUSTOM_ID_PREFIX]: '🧬',
   [COMPETITION_BUTTON_CUSTOM_ID_PREFIX]: '🏟️',
   [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX]: '🔁',
+  [LEAGUE_BUTTON_CUSTOM_ID_PREFIX]: '🏛️',
   [TROPHY_BUTTON_CUSTOM_ID_PREFIX]: '🏆',
 };
 

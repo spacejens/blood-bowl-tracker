@@ -8,6 +8,7 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -407,5 +408,23 @@ describe('EntityComponentsService', () => {
         ]),
       );
     }
+  });
+
+  it('gives league entries the container style and the institution emoji', () => {
+    const { components } = service.buildEntityComponents([
+      {
+        customIdPrefix: LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '7',
+        label: 'tLoEG',
+      },
+    ]);
+
+    const [row] = components as EntityButtonRow[];
+    const [button] = row.components;
+    expect(button.style).toBe(ButtonStyle.Secondary);
+    expect(button.custom_id).toBe('deepdive:league:7');
+    expect(service.getEmojiForPrefix(LEAGUE_BUTTON_CUSTOM_ID_PREFIX)).toBe(
+      '🏛️',
+    );
   });
 });
