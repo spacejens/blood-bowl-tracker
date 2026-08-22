@@ -311,6 +311,17 @@ describe('TpTrophyAwardsImportService', () => {
       },
       expect.any(Array),
     );
+    // Pins the trophy-to-competition attribution itself, not just which
+    // trophy keys were looked up: a swap between competitions 42 and 43
+    // would still pass the two assertions above.
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionId: 42 }),
+      expect.any(Array),
+    );
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionId: 43 }),
+      expect.any(Array),
+    );
   });
 
   it.each([
