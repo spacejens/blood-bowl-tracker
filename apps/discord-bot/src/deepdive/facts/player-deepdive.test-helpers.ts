@@ -120,7 +120,7 @@ export interface MakeServiceOptions {
  * so tests about other parts of the embed never see the star drill-down
  * button.
  */
-export function makeStars(): MockProxy<StarPlayersService> {
+function makeStars(): MockProxy<StarPlayersService> {
   const stars = mock<StarPlayersService>();
   stars.findByPlayerId.mockResolvedValue(undefined);
   return stars;
