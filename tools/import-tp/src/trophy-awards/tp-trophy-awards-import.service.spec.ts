@@ -251,6 +251,68 @@ describe('TpTrophyAwardsImportService', () => {
     );
   });
 
+  it('keys the same award code in two competition groups as two trophies', async () => {
+    // The award code alone is not a trophy: `1` means the Major Season gold
+    // in one competition and the Chaos Cup win in another. Pinned because the
+    // server-side group check added for issue #520 rejects any award whose
+    // competition is in a different group than the resolved trophy -- so a
+    // key that ignored the group would now fail at write time rather than
+    // silently mis-attributing the award.
+    const { service, mocks } = await makeService(
+      new Map([
+        ['Third era::tloegbbl-major-season-25', [award()]],
+        ['Third era::tloegbbl-chaos-cup-8', [award()]],
+      ]),
+      {
+        groups: [
+          { id: 1, name: 'Major Season', leagueId: 1, createdAt: new Date() },
+          { id: 2, name: 'Chaos Cup', leagueId: 1, createdAt: new Date() },
+        ],
+        competitionIdsByTpId: new Map([
+          [6543, 42],
+          [6544, 43],
+        ]),
+      },
+    );
+
+    await service.importTrophyAwards(
+      options({
+        competitionsByTpId: new Map([
+          [6543, competitionEntry({ competitionGroupId: 1 })],
+          [
+            6544,
+            competitionEntry({
+              competitionGroupId: 2,
+              competition: 'tloegbbl-chaos-cup-8',
+              upsert: upsertCompetition({
+                externalIds: [
+                  { externalSystemId: TP_SYSTEM_ID, externalId: '6544' },
+                ],
+              }),
+            }),
+          ],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+      {
+        externalIds: [
+          { externalSystemId: TP_SYSTEM_ID, externalId: '1-Major Season' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+      {
+        externalIds: [
+          { externalSystemId: TP_SYSTEM_ID, externalId: '1-Chaos Cup' },
+        ],
+      },
+      expect.any(Array),
+    );
+  });
+
   it.each([
     [1, '1-Dungeon Bowl'],
     [2, '2-Dungeon Bowl'],
