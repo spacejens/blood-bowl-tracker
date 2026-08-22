@@ -9,6 +9,7 @@ import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -383,30 +384,38 @@ describe('TrophiesService', () => {
         name: 'Chaos Cup',
         competitionGroupId: 3,
         competitionGroupName: 'Chaos Cup',
+        leagueId: null,
+        leagueName: null,
       },
       {
         id: 2,
         name: '1st',
         competitionGroupId: 4,
         competitionGroupName: 'Major Season',
+        leagueId: null,
+        leagueName: null,
       },
     ];
 
-    it('returns the rows the query resolves to and joins trophies to competition groups', async () => {
+    it('returns the rows the query resolves to and outer-joins trophies to competition groups and leagues', async () => {
       const { db, chains } = await build(rows);
       await expect(service.listAllWithLeague({})).resolves.toEqual(rows);
       expect(db.select).toHaveBeenCalledTimes(1);
       expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
+      expect(chains[0].innerJoin).not.toHaveBeenCalled();
     });
 
-    it("filters by the competition group's league id when the scope carries a leagueId", async () => {
+    it("filters by either the competition group's league id or the trophy's own when the scope carries a leagueId", async () => {
       const { chains } = await build(rows);
       await service.listAllWithLeague({ leagueId: 42 });
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(42);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        42, 42,
+      ]);
       expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
         'competition_groups.league_id',
+        'trophies.league_id',
       ]);
     });
 
@@ -420,6 +429,50 @@ describe('TrophiesService', () => {
     it('resolves to an empty list when the catalog is empty', async () => {
       await build([]);
       await expect(service.listAllWithLeague({})).resolves.toEqual([]);
+    });
+
+    it('includes league-scoped trophies when scoping the catalog to a league', async () => {
+      const { chains } = await build([]);
+
+      await service.listAllWithLeague({ leagueId: 7 });
+
+      // The filter is an OR over the group's league and the trophy's own,
+      // so the league id appears on both sides.
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        7, 7,
+      ]);
+    });
+
+    it('applies no filter to the catalog when the scope is all-time', async () => {
+      const { chains } = await build([]);
+
+      await service.listAllWithLeague({});
+
+      expect(firstCallArg(chains[0].where)).toBeUndefined();
+    });
+
+    it('returns the trophy catalog with both scope names', async () => {
+      await build([
+        {
+          id: 3,
+          name: 'Legendary Player',
+          competitionGroupId: null,
+          competitionGroupName: null,
+          leagueId: 7,
+          leagueName: 'tLoEG',
+        },
+      ]);
+
+      expect(await service.listAllWithLeague({})).toEqual([
+        {
+          id: 3,
+          name: 'Legendary Player',
+          competitionGroupId: null,
+          competitionGroupName: null,
+          leagueId: 7,
+          leagueName: 'tLoEG',
+        },
+      ]);
     });
   });
 

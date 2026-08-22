@@ -33,8 +33,10 @@ import { TrophiesListService } from './trophies-list.service';
 type TrophyRow = {
   id: number;
   name: string;
-  competitionGroupId: number;
-  competitionGroupName: string;
+  competitionGroupId: number | null;
+  competitionGroupName: string | null;
+  leagueId: number | null;
+  leagueName: string | null;
 };
 
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
@@ -99,6 +101,8 @@ describe('TrophiesListService.resolve', () => {
         name: 'Chaos Cup',
         competitionGroupId: 3,
         competitionGroupName: 'Chaos Cup',
+        leagueId: null,
+        leagueName: null,
       },
     ]);
     const result = await service.resolve(FACT_SCOPE_ALL_TIME);
@@ -135,30 +139,40 @@ describe('TrophiesListService.resolve', () => {
         name: '2nd',
         competitionGroupId: 2,
         competitionGroupName: 'Minor Season',
+        leagueId: null,
+        leagueName: null,
       },
       {
         id: 2,
         name: '2nd',
         competitionGroupId: 1,
         competitionGroupName: 'Major Season',
+        leagueId: null,
+        leagueName: null,
       },
       {
         id: 5,
         name: 'Chaos Cup',
         competitionGroupId: 3,
         competitionGroupName: 'Chaos Cup',
+        leagueId: null,
+        leagueName: null,
       },
       {
         id: 1,
         name: '1st',
         competitionGroupId: 1,
         competitionGroupName: 'Major Season',
+        leagueId: null,
+        leagueName: null,
       },
       {
         id: 3,
         name: '1st',
         competitionGroupId: 2,
         competitionGroupName: 'Minor Season',
+        leagueId: null,
+        leagueName: null,
       },
     ]);
     const result = await service.resolve(FACT_SCOPE_ALL_TIME);
@@ -267,12 +281,16 @@ describe('TrophiesListService.resolve', () => {
           name: 'Second',
           competitionGroupId: 9,
           competitionGroupName: 'Zeta Group',
+          leagueId: null,
+          leagueName: null,
         },
         {
           id: 1,
           name: 'First',
           competitionGroupId: 8,
           competitionGroupName: 'Alpha Group',
+          leagueId: null,
+          leagueName: null,
         },
       ],
       entityComponents,
@@ -305,6 +323,8 @@ describe('TrophiesListService.resolve', () => {
           name: 'Chaos Cup',
           competitionGroupId: 3,
           competitionGroupName: 'Chaos Cup',
+          leagueId: null,
+          leagueName: null,
         },
       ],
       entityComponents,
@@ -336,6 +356,8 @@ describe('TrophiesListService.resolve', () => {
       name: `Trophy Number ${index} With A Fairly Long Name`,
       competitionGroupId: index,
       competitionGroupName: 'The Rather Long Competition Group Name',
+      leagueId: null,
+      leagueName: null,
     }));
     const service = await makeService(rows);
 
@@ -360,6 +382,8 @@ describe('TrophiesListService.resolve', () => {
       name: `Trophy Number ${index} With A Fairly Long Name`,
       competitionGroupId: index,
       competitionGroupName: 'The Rather Long Competition Group Name',
+      leagueId: null,
+      leagueName: null,
     }));
     const service = await makeService(rows, entityComponents);
 
@@ -370,5 +394,38 @@ describe('TrophiesListService.resolve', () => {
     const description = result.embeds[0].description;
     expect(description.endsWith(`\n${overflowNote}`)).toBe(true);
     expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+  });
+
+  it('labels a league-scoped trophy with its league and sorts on that name', async () => {
+    const trophies = mock<TrophiesService>();
+    trophies.listAllWithLeague.mockResolvedValue([
+      {
+        id: 1,
+        name: 'Major Gold',
+        competitionGroupId: 1,
+        competitionGroupName: 'Major Season',
+        leagueId: null,
+        leagueName: null,
+      },
+      {
+        id: 3,
+        name: 'Legendary Player',
+        competitionGroupId: null,
+        competitionGroupName: null,
+        leagueId: 7,
+        leagueName: 'Chaos League',
+      },
+    ]);
+    const service = await makeServiceFromTrophies(trophies);
+
+    const reply = await service.resolve({});
+
+    const description = (reply as { embeds: { description: string }[] })
+      .embeds[0].description;
+    // "Chaos League" sorts before "Major Season", so the league-scoped row
+    // comes first.
+    expect(description.indexOf('Legendary Player (Chaos League)')).toBeLessThan(
+      description.indexOf('Major Gold (Major Season)'),
+    );
   });
 });
