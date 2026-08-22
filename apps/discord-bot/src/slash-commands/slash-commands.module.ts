@@ -8,6 +8,7 @@ import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
 import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
+import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
@@ -46,6 +47,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     CompetitionGroupDeepdiveService,
     EraDeepdiveService,
     TrophyDeepdiveService,
+    LeagueDeepdiveService,
   ],
   exports: [InsightsCommandService, SlashCommandRegistryService],
 })

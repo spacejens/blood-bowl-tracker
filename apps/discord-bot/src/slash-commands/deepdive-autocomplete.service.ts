@@ -3,6 +3,7 @@ import {
   CompetitionGroupsService,
   CompetitionsService,
   ErasService,
+  LeaguesService,
   PlayersService,
   RacesService,
   StarPlayersService,
@@ -36,6 +37,7 @@ export class DeepdiveAutocompleteService {
     private readonly races: RacesService,
     private readonly stars: StarPlayersService,
     private readonly trophies: TrophiesService,
+    private readonly leagues: LeaguesService,
   ) {}
 
   async resolve(
@@ -134,6 +136,16 @@ export class DeepdiveAutocompleteService {
       );
       return trophies.map((row) => ({
         name: `${row.name} (${row.competitionGroupName})`,
+        value: String(row.id),
+      }));
+    }
+    if (focused.name === 'league') {
+      const leagues = await this.leagues.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return leagues.map((row) => ({
+        name: row.name,
         value: String(row.id),
       }));
     }
