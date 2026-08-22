@@ -170,6 +170,58 @@ describe('TrophiesService', () => {
     ).rejects.toBeInstanceOf(Error);
   });
 
+  it('writes the league id on the external-id upsert path', async () => {
+    const { chains } = await build([], [{ ...fakeTrophy, leagueId: 7 }]);
+
+    await service.upsert({
+      ...baseData,
+      competitionGroupId: null,
+      leagueId: 7,
+    });
+
+    expect(firstCallArg(chains[1].values)).toMatchObject({
+      competitionGroupId: null,
+      leagueId: 7,
+    });
+  });
+
+  it('writes the league id when matching an existing trophy by name', async () => {
+    const { chains } = await build(
+      [fakeTrophy],
+      [{ ...fakeTrophy, leagueId: 7 }],
+    );
+
+    await service.upsert({
+      name: 'Legendary Player',
+      recipientKind: 'player',
+      competitionGroupId: null,
+      leagueId: 7,
+      externalIds: [],
+    });
+
+    expect(firstCallArg(chains[1].set)).toMatchObject({
+      competitionGroupId: null,
+      leagueId: 7,
+    });
+  });
+
+  it('writes the league id when creating a trophy by name', async () => {
+    const { chains } = await build([], [{ ...fakeTrophy, leagueId: 7 }]);
+
+    await service.upsert({
+      name: 'Legendary Player',
+      recipientKind: 'player',
+      competitionGroupId: null,
+      leagueId: 7,
+      externalIds: [],
+    });
+
+    expect(firstCallArg(chains[1].values)).toMatchObject({
+      competitionGroupId: null,
+      leagueId: 7,
+    });
+  });
+
   describe('searchByNamePrefix', () => {
     it('returns trophies with their competition group name, ordered by name and limited', async () => {
       const rows = [
