@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import {
   CompetitionGroupsService,
   LeaguesService,
@@ -71,13 +70,11 @@ async function makeService(options: {
     entityComponents = mock<EntityComponentsService>(),
   } = options;
 
-  if (!entityComponents.buildEntityComponents.getMockName()) {
-    entityComponents.buildEntityComponents.mockReturnValue({
-      components: [],
-      overflowNote: null,
-    });
-    entityComponents.getEmojiForPrefix.mockReturnValue('🏛️');
-  }
+  entityComponents.buildEntityComponents.mockReturnValue({
+    components: [],
+    overflowNote: null,
+  });
+  entityComponents.getEmojiForPrefix.mockReturnValue('🏛️');
 
   const moduleRef = await Test.createTestingModule({
     providers: [
