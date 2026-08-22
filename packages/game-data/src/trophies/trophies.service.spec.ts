@@ -225,8 +225,18 @@ describe('TrophiesService', () => {
   describe('searchByNamePrefix', () => {
     it('returns trophies with their competition group name, ordered by name and limited', async () => {
       const rows = [
-        { id: 7, name: 'Chaos Cup', competitionGroupName: 'Major' },
-        { id: 9, name: 'Chaos Shield', competitionGroupName: 'Minor' },
+        {
+          id: 7,
+          name: 'Chaos Cup',
+          competitionGroupName: 'Major',
+          leagueName: null,
+        },
+        {
+          id: 9,
+          name: 'Chaos Shield',
+          competitionGroupName: 'Minor',
+          leagueName: null,
+        },
       ];
       likePattern.escape.mockReturnValue('cha');
       const { chains } = await build(rows);
@@ -238,7 +248,7 @@ describe('TrophiesService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(25);
       expect(chains[0].orderBy).toHaveBeenCalledWith(trophies.name);
       expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
     });
 
@@ -256,6 +266,26 @@ describe('TrophiesService', () => {
       };
       expect(condition.queryChunks).toContain('50\\%\\_\\\\off%');
     });
+
+    it('returns both scope names from the prefix search', async () => {
+      await build([
+        {
+          id: 3,
+          name: 'Legendary Player',
+          competitionGroupName: null,
+          leagueName: 'tLoEG',
+        },
+      ]);
+
+      expect(await service.searchByNamePrefix('Leg', 25)).toEqual([
+        {
+          id: 3,
+          name: 'Legendary Player',
+          competitionGroupName: null,
+          leagueName: 'tLoEG',
+        },
+      ]);
+    });
   });
 
   describe('findById', () => {
@@ -266,13 +296,15 @@ describe('TrophiesService', () => {
         description: 'The team that wins after four matches.',
         competitionGroupId: 4,
         competitionGroupName: 'Major',
+        leagueId: null,
+        leagueName: null,
       };
       const { chains } = await build([header]);
 
       await expect(service.findById(7)).resolves.toEqual(header);
 
       expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
       ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
       expect(chains[0].where).toHaveBeenCalledTimes(1);
     });
@@ -293,7 +325,30 @@ describe('TrophiesService', () => {
         'description',
         'competitionGroupId',
         'competitionGroupName',
+        'leagueId',
+        'leagueName',
       ]);
+    });
+
+    it('resolves a league-scoped trophy header through the league join', async () => {
+      const { chains } = await build([
+        {
+          id: 3,
+          name: 'Legendary Player',
+          description: null,
+          competitionGroupId: null,
+          competitionGroupName: null,
+          leagueId: 7,
+          leagueName: 'tLoEG',
+        },
+      ]);
+
+      const header = await service.findById(3);
+
+      expect(header).toMatchObject({ leagueId: 7, leagueName: 'tLoEG' });
+      // Both scope joins are outer, so a row with either scope survives.
+      expect(chains[0].leftJoin).toHaveBeenCalledTimes(2);
+      expect(chains[0].innerJoin).not.toHaveBeenCalled();
     });
   });
 

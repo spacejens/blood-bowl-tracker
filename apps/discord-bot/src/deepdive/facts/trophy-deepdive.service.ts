@@ -24,6 +24,7 @@ import { TeamContextService } from '../../insights/team-context.service';
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+  LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -44,9 +45,10 @@ type RecipientContext = {
 };
 
 /**
- * Composes one trophy's header (which competition group awards it, and its
- * criteria) and every recipient it has ever had, most recent competition
- * first. Shared by `/deepdive trophy:<id>` and the trophy deepdive buttons.
+ * Composes one trophy's header (the competition group or league it is
+ * awarded for, and its criteria) and every recipient it has ever had, most
+ * recent competition first. Shared by `/deepdive trophy:<id>` and the trophy
+ * deepdive buttons.
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
  * timeout is distinguishable from a genuine "not found" (`undefined`). Each
  * recipient becomes a drill-down entry — the team for a team trophy, the
@@ -156,17 +158,13 @@ export class TrophyDeepdiveService {
     // button/select-menu priority over the drill-up to the competition group.
     const entries: EntityComponentEntry[] = [
       ...shown.map((recipient) => this.buildEntry(recipient)),
-      {
-        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: String(trophy.competitionGroupId),
-        label: trophy.competitionGroupName,
-      },
+      this.buildScopeEntry(trophy),
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);
 
     const description = [
-      `Awarded for: ${trophy.competitionGroupName}`,
+      `Awarded for: ${trophy.competitionGroupName ?? trophy.leagueName}`,
       ...(trophy.description === null
         ? []
         : [`Description: ${trophy.description}`]),
@@ -240,6 +238,26 @@ export class TrophyDeepdiveService {
     return this.isTeamRecipient(recipient)
       ? `${recipient.competitionName}: ${recipient.teamName}${context.teamSuffixes.get(recipient.teamId) ?? ''}`
       : `${recipient.competitionName}: ${recipient.playerName}${context.playerSuffixes.get(recipient.playerId as number) ?? ''}`;
+  }
+
+  /**
+   * Whichever scope the trophy carries, as the one drill-up entry and the
+   * one "Awarded for:" label. Exactly one pair is populated — the database's
+   * own check constraint guarantees it — so the group branch is selected by
+   * a non-null `competitionGroupId` and the league branch is everything else.
+   */
+  private buildScopeEntry(trophy: TrophyHeader): EntityComponentEntry {
+    return trophy.competitionGroupId !== null
+      ? {
+          customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(trophy.competitionGroupId),
+          label: trophy.competitionGroupName ?? '',
+        }
+      : {
+          customIdPrefix: LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(trophy.leagueId),
+          label: trophy.leagueName ?? '',
+        };
   }
 
   /** Drill down to whoever actually received the trophy. */

@@ -113,6 +113,8 @@ function trophyHeader(overrides: Partial<TrophyHeader> = {}): TrophyHeader {
     description: 'The team that wins after four matches.',
     competitionGroupId: 4,
     competitionGroupName: 'Major',
+    leagueId: null,
+    leagueName: null,
     ...overrides,
   };
 }
@@ -639,6 +641,35 @@ describe('TrophyDeepdiveService', () => {
         entityId: '4',
         label: 'Major',
       },
+    ]);
+  });
+
+  it('names the league and drills up to it for a league-scoped trophy', async () => {
+    const trophies = mock<TrophiesService>();
+    trophies.findById.mockResolvedValue({
+      id: 3,
+      name: 'Legendary Player',
+      description: null,
+      competitionGroupId: null,
+      competitionGroupName: null,
+      leagueId: 7,
+      leagueName: 'tLoEG',
+    });
+    const trophyAwards = mock<TrophyAwardsService>();
+    trophyAwards.countRecipients.mockResolvedValue(0);
+    const { service, entityComponents } = await makeService({
+      trophies,
+      trophyAwards,
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    const reply = await service.resolve(3);
+
+    const description = (reply as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('Awarded for: tLoEG');
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      { customIdPrefix: 'deepdive:league:', entityId: '7', label: 'tLoEG' },
     ]);
   });
 
