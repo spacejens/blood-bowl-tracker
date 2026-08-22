@@ -132,7 +132,7 @@
       //
       // "Korpen" is the old name of this same award, from when the Minor
       // Season was called Korpen; its external id resolves here.
-      name: 'Minor Winner',
+      name: 'Minor Gold',
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Minor season winner.',
@@ -325,7 +325,7 @@
     // `${label}-${groupName}` BBL external id, since the raw BBL label alone
     // is identical in both tiers.
     {
-      name: 'Top Scorer (Minor)',
+      name: 'Minor Top Scorer',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most touchdowns during the season.',
@@ -334,7 +334,7 @@
       ],
     },
     {
-      name: 'Most Violent Player (Minor)',
+      name: 'Minor Most Violent Player',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most casualties during the season.',
@@ -346,7 +346,7 @@
       ],
     },
     {
-      name: 'Deadliest Player (Minor)',
+      name: 'Minor Deadliest Player',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most kills during the season.',
@@ -355,7 +355,7 @@
       ],
     },
     {
-      name: 'Top Fouler (Minor)',
+      name: 'Minor Top Fouler',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most foul casualties during the season.',
@@ -364,7 +364,7 @@
       ],
     },
     {
-      name: 'Top Thrower (Minor)',
+      name: 'Minor Top Thrower',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most completions during the season.',
@@ -373,7 +373,7 @@
       ],
     },
     {
-      name: 'Top Intercepter (Minor)',
+      name: 'Minor Top Intercepter',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most interceptions during the season.',
@@ -382,7 +382,7 @@
       ],
     },
     {
-      name: 'Most SPP (Minor)',
+      name: 'Minor Most SPP',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most Star Player Points during the season.',
