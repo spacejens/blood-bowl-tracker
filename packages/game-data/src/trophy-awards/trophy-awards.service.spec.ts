@@ -67,11 +67,9 @@ describe('TrophyAwardsService', () => {
   }
 
   it('inserts a team award when no matching row exists', async () => {
-    const { db, chains } = await build(
-      teamTrophyRow,
-      matchingCompetitionRow,
-      [teamAwardRow],
-    );
+    const { db, chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
 
     const result = await service.upsert(teamAward);
 
@@ -82,11 +80,9 @@ describe('TrophyAwardsService', () => {
   });
 
   it('inserts a player award when no matching row exists', async () => {
-    const { db } = await build(
-      playerTrophyRow,
-      matchingCompetitionRow,
-      [playerAwardRow],
-    );
+    const { db } = await build(playerTrophyRow, matchingCompetitionRow, [
+      playerAwardRow,
+    ]);
 
     const result = await service.upsert(playerAward);
 
@@ -95,11 +91,9 @@ describe('TrophyAwardsService', () => {
   });
 
   it('targets the natural-key constraint columns when inserting', async () => {
-    const { chains } = await build(
-      teamTrophyRow,
-      matchingCompetitionRow,
-      [teamAwardRow],
-    );
+    const { chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
 
     await service.upsert(teamAward);
 
@@ -114,11 +108,9 @@ describe('TrophyAwardsService', () => {
   });
 
   it('inserts all four natural-key ids, including a null playerId', async () => {
-    const { chains } = await build(
-      teamTrophyRow,
-      matchingCompetitionRow,
-      [teamAwardRow],
-    );
+    const { chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
 
     await service.upsert(teamAward);
 
@@ -169,12 +161,7 @@ describe('TrophyAwardsService', () => {
   });
 
   it('throws when the insert conflicts but no matching row can be read back', async () => {
-    const { db } = await build(
-      teamTrophyRow,
-      matchingCompetitionRow,
-      [],
-      [],
-    );
+    const { db } = await build(teamTrophyRow, matchingCompetitionRow, [], []);
 
     await expect(service.upsert(teamAward)).rejects.toThrow(
       /no matching row could be read back/,
@@ -186,11 +173,9 @@ describe('TrophyAwardsService', () => {
     // A tie is a different playerId, so the insert does not conflict and a
     // second row is created for the same trophy + competition.
     const tiedRow = { ...playerAwardRow, id: 12, playerId: 5 };
-    const { db } = await build(
-      playerTrophyRow,
-      matchingCompetitionRow,
-      [tiedRow],
-    );
+    const { db } = await build(playerTrophyRow, matchingCompetitionRow, [
+      tiedRow,
+    ]);
 
     const result = await service.upsert({ ...playerAward, playerId: 5 });
 
