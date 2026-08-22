@@ -55,12 +55,12 @@ export class TpMatchEventsImportService {
 
   /**
    * Import touchdown, mvp_award, the other simple action events (completion,
-   * interception, deflection, foul, successful_landing), sent_off,
-   * injury/casualty, and administrative match events from every already
-   * parsed TP match. Unlike BBL — which correlates separately scraped action
-   * and consequence occurrences — TP embeds the acting/victim player and
-   * team directly on each event for every kind EXCEPT casualties: a code-6
-   * (`casualty_caused`, the action) and its code-8 (`injury`, the
+   * interception, deflection, foul, successful_landing, throw_team_mate,
+   * catch), sent_off, injury/casualty, and administrative match events from
+   * every already parsed TP match. Unlike BBL — which correlates separately
+   * scraped action and consequence occurrences — TP embeds the acting/victim
+   * player and team directly on each event for every kind EXCEPT casualties:
+   * a code-6 (`casualty_caused`, the action) and its code-8 (`injury`, the
    * consequence) are logged as two independent events with no shared id, so
    * they need their own correlation step
    * (`TpMatchEventsCorrelationService.correlateCasualties`, computed once
@@ -86,9 +86,10 @@ export class TpMatchEventsImportService {
    *
    * A touchdown's `actingTeamEraId` is the scoring roster's team era and its
    * `actingPlayerId` the scorer (`lineUpId`); mvp_award, completion,
-   * interception, deflection, foul, and successful_landing are all resolved
-   * the same way, crediting the acting player and their team. sent_off is
-   * consequence-side, crediting the sent-off player and their team.
+   * interception, deflection, foul, successful_landing, throw_team_mate, and
+   * catch are all resolved the same way, crediting the acting player and
+   * their team. sent_off is consequence-side, crediting the sent-off player
+   * and their team.
    *
    * An injury always emits at least a `consequence_type` row on the victim
    * (`rosterId`/`lineUpId`) — including `injuryType: 'None'`, a real Badly

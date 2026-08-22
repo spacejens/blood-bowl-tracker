@@ -46,7 +46,6 @@ export type {
   PlayerDeepdiveCategoryCounts,
   PlayerDeepdiveEventGroup,
 } from './players/player-deepdive-counts.service';
-export { PlayerDeepdiveCountsService } from './players/player-deepdive-counts.service';
 export { PlayersModule } from './players/players.module';
 export {
   PlayersService,
