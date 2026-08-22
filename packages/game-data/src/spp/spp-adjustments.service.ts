@@ -165,6 +165,9 @@ export class SppAdjustmentsService {
           playerId: row.id,
           name: row.name,
           adjustment,
+          // No career counts means the estimate had nothing to work from, so
+          // the whole reported total is unexplained by construction.
+          hadCareerCounts: careerCountsByPlayerId.get(row.id) !== undefined,
         });
       }
     }

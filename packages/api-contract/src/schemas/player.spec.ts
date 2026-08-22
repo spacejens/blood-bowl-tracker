@@ -200,11 +200,25 @@ describe('SyncSppAdjustmentsResultSchema', () => {
     expect(
       SyncSppAdjustmentsResultSchema.parse({
         updatedPlayerIds: [3],
-        nonzeroAdjustments: [{ playerId: 3, name: 'Karcheres', adjustment: 6 }],
+        nonzeroAdjustments: [
+          {
+            playerId: 3,
+            name: 'Karcheres',
+            adjustment: 6,
+            hadCareerCounts: true,
+          },
+        ],
       }),
     ).toEqual({
       updatedPlayerIds: [3],
-      nonzeroAdjustments: [{ playerId: 3, name: 'Karcheres', adjustment: 6 }],
+      nonzeroAdjustments: [
+        {
+          playerId: 3,
+          name: 'Karcheres',
+          adjustment: 6,
+          hadCareerCounts: true,
+        },
+      ],
     });
   });
 });

@@ -122,18 +122,42 @@ describe('TpSppAdjustmentsImportService', () => {
     adjustments.syncReportedSppAdjustments
       .mockResolvedValueOnce({
         updatedPlayerIds: [1],
-        nonzeroAdjustments: [{ playerId: 1, name: 'Karcheres', adjustment: 3 }],
+        nonzeroAdjustments: [
+          {
+            playerId: 1,
+            name: 'Karcheres',
+            adjustment: 3,
+            hadCareerCounts: false,
+          },
+        ],
       })
       .mockResolvedValueOnce({
         updatedPlayerIds: [2],
-        nonzeroAdjustments: [{ playerId: 2, name: 'Fenriz', adjustment: 10 }],
+        nonzeroAdjustments: [
+          {
+            playerId: 2,
+            name: 'Fenriz',
+            adjustment: 10,
+            hadCareerCounts: true,
+          },
+        ],
       });
 
     const outcome = await service.importSppAdjustments({ playerIds: ids });
 
     expect(outcome.nonzeroAdjustments).toEqual([
-      { playerId: 2, name: 'Fenriz', adjustment: 10 },
-      { playerId: 1, name: 'Karcheres', adjustment: 3 },
+      {
+        playerId: 2,
+        name: 'Fenriz',
+        adjustment: 10,
+        hadCareerCounts: true,
+      },
+      {
+        playerId: 1,
+        name: 'Karcheres',
+        adjustment: 3,
+        hadCareerCounts: false,
+      },
     ]);
   });
 
@@ -150,8 +174,18 @@ describe('TpSppAdjustmentsImportService', () => {
   it('formats a review-aid summary of the remaining adjustments', () => {
     expect(
       service.summaryLines([
-        { playerId: 2, name: 'Fenriz', adjustment: 10 },
-        { playerId: 1, name: 'Karcheres', adjustment: 3 },
+        {
+          playerId: 2,
+          name: 'Fenriz',
+          adjustment: 10,
+          hadCareerCounts: true,
+        },
+        {
+          playerId: 1,
+          name: 'Karcheres',
+          adjustment: 3,
+          hadCareerCounts: false,
+        },
       ]),
     ).toEqual([
       '2 player(s) left with an unexplained SPP adjustment:',
