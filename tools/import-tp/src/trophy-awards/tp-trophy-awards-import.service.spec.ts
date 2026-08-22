@@ -142,6 +142,7 @@ function upsertedTrophy(id: number): Trophy & { created: boolean } {
     recipientKind: 'team',
     description: null,
     competitionGroupId: 1,
+    leagueId: null,
     createdAt: new Date('2026-01-01'),
     created: true,
   };
