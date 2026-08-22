@@ -108,6 +108,55 @@ describe('UpsertHandlerService', () => {
     ).rejects.toBe(boom);
   });
 
+  describe('runWithoutConflict', () => {
+    it('flattens the entity and created flag on success', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () =>
+          Promise.resolve({ entity: { id: 1, name: 'Griff' }, created: true }),
+        ),
+      ).resolves.toEqual({ id: 1, name: 'Griff', created: true });
+    });
+
+    it('translates a trophy award recipient mismatch into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new TrophyAwardRecipientMismatchError('wrong recipient');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'wrong recipient',
+      });
+    });
+
+    it('translates a missing-required-field error into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new MissingRequiredFieldError('missing leagueId');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+    });
+
+    it('translates a match category mismatch error into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new MatchCategoryMismatchError('wrong category');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'wrong category',
+      });
+    });
+
+    it('rethrows any other error untouched', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new Error('db unavailable');
+        }),
+      ).rejects.toThrow('db unavailable');
+      expect(errors.BAD_REQUEST).not.toHaveBeenCalled();
+    });
+  });
+
   it('returns one flat success entry per item, in input order', async () => {
     await expect(
       handler.runBatch(TestConflictError, [

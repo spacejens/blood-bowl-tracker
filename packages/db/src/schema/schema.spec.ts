@@ -299,6 +299,23 @@ describe('schema', () => {
     expect(trophyExternalIds.externalId).toBeDefined();
   });
 
+  it('trophy_awards is unique on (trophy_id, competition_id, team_era_id, player_id) with NULLS NOT DISTINCT', () => {
+    const config = getTableConfig(trophyAwards);
+    const unique = config.uniqueConstraints[0];
+    expect(unique).toBeDefined();
+    expect(unique.columns.map((c) => c.name)).toEqual([
+      'trophy_id',
+      'competition_id',
+      'team_era_id',
+      'player_id',
+    ]);
+    // NULLS NOT DISTINCT, not Postgres's NULLS DISTINCT default: a team award
+    // always has player_id NULL, so the default semantics would treat every
+    // team award as distinct from every other and let the same trophy be
+    // recorded twice for one competition and team era.
+    expect(unique.nullsNotDistinct).toBe(true);
+  });
+
   it('exports trophyAwards link table with a nullable playerId', () => {
     expect(trophyAwards.id).toBeDefined();
     expect(trophyAwards.trophyId).toBeDefined();

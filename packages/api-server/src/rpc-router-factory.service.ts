@@ -30,7 +30,6 @@ import {
   TeamUpsertConflictError,
   TrophiesService,
   TrophyAwardsService,
-  TrophyAwardUpsertConflictError,
   TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -458,20 +457,17 @@ export class RpcRouterFactoryService {
       },
       trophyAwards: {
         // Only `upsert`, matching the contract: award rows are few enough
-        // that batching buys nothing. A conflict here is not an external-id
-        // clash (there are none) but more than one row matching the
-        // application-level dedup key — see TrophyAwardsService.
+        // that batching buys nothing. No conflict class: `trophy_awards` has
+        // a database unique constraint on its natural key, so the dedup
+        // lookup can never match more than one row. `runWithoutConflict`
+        // still maps a recipient-kind mismatch to BAD_REQUEST.
         upsert: implement(contract.trophyAwards.upsert).handler(
           ({ input, errors }) =>
-            this.upsertHandler.run(
-              errors,
-              TrophyAwardUpsertConflictError,
-              async () => {
-                const { trophyAward, created } =
-                  await this.trophyAwardsService.upsert(input);
-                return { entity: trophyAward, created };
-              },
-            ),
+            this.upsertHandler.runWithoutConflict(errors, async () => {
+              const { trophyAward, created } =
+                await this.trophyAwardsService.upsert(input);
+              return { entity: trophyAward, created };
+            }),
         ),
       },
       externalSystems: {

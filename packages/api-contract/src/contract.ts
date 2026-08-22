@@ -55,6 +55,7 @@ import {
 } from './schemas/trophy-award';
 import {
   upsertProcedure,
+  upsertProcedureBadRequestOnly,
   upsertProcedureWithoutConflict,
 } from './upsert-procedure';
 
@@ -189,11 +190,15 @@ export const contract = {
     // award rows per run, so batching saves nothing. Same reasoning as
     // `trophies` and `competitionGroups`.
     //
-    // A CONFLICT is still declared even though a trophy award carries no
-    // external ids: `trophy_awards` has no database-level natural key, so
-    // more than one row can match the application-level dedup key, and
-    // `TrophyAwardsService` refuses to guess between them.
-    upsert: upsertProcedure(UpsertTrophyAwardSchema, TrophyAwardSchema),
+    // No CONFLICT error: `trophy_awards` carries a database unique constraint
+    // on its natural key (trophy, competition, team era, player), so the
+    // dedup lookup can never match more than one row. BAD_REQUEST stays,
+    // for an award whose player id does not fit the trophy's recipient kind
+    // (see TrophyAwardsService).
+    upsert: upsertProcedureBadRequestOnly(
+      UpsertTrophyAwardSchema,
+      TrophyAwardSchema,
+    ),
   },
   externalSystems: {
     // The only upsert with no CONFLICT error: an external system is matched

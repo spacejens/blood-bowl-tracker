@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -15,7 +16,6 @@ import {
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
-  TrophyAwardUpsertConflictError,
 } from './trophy-awards.service';
 
 const teamAwardRow = {
@@ -50,8 +50,9 @@ describe('TrophyAwardsService', () => {
   /**
    * `rowsPerQuery[0]` is always the trophy lookup (its `recipientKind` and
    * `competitionGroupId`), `rowsPerQuery[1]` the competition lookup (its
-   * `competitionGroupId`), `rowsPerQuery[2]` the dedup lookup,
-   * `rowsPerQuery[3]` the insert.
+   * `competitionGroupId`), `rowsPerQuery[2]` the conflict-tolerant insert,
+   * and `rowsPerQuery[3]` the natural-key lookup that only runs when that
+   * insert hits the unique constraint and returns nothing.
    */
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -66,6 +67,62 @@ describe('TrophyAwardsService', () => {
   }
 
   it('inserts a team award when no matching row exists', async () => {
+    const { db, chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
+
+    const result = await service.upsert(teamAward);
+
+    expect(result).toEqual({ trophyAward: teamAwardRow, created: true });
+    expect(db.insert).toHaveBeenCalledWith(trophyAwards);
+    // Three queries only: the insert succeeded, so no fallback lookup ran.
+    expect(chains).toHaveLength(3);
+  });
+
+  it('inserts a player award when no matching row exists', async () => {
+    const { db } = await build(playerTrophyRow, matchingCompetitionRow, [
+      playerAwardRow,
+    ]);
+
+    const result = await service.upsert(playerAward);
+
+    expect(result).toEqual({ trophyAward: playerAwardRow, created: true });
+    expect(db.insert).toHaveBeenCalledWith(trophyAwards);
+  });
+
+  it('targets the natural-key constraint columns when inserting', async () => {
+    const { chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
+
+    await service.upsert(teamAward);
+
+    expect(chains[2].onConflictDoNothing).toHaveBeenCalledWith({
+      target: [
+        trophyAwards.trophyId,
+        trophyAwards.competitionId,
+        trophyAwards.teamEraId,
+        trophyAwards.playerId,
+      ],
+    });
+  });
+
+  it('inserts all four natural-key ids, including a null playerId', async () => {
+    const { chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
+
+    await service.upsert(teamAward);
+
+    expect(chains[2].values).toHaveBeenCalledWith({
+      trophyId: 1,
+      competitionId: 2,
+      teamEraId: 3,
+      playerId: null,
+    });
+  });
+
+  it('returns the existing row when the insert hits the unique constraint', async () => {
     const { db, chains } = await build(
       teamTrophyRow,
       matchingCompetitionRow,
@@ -75,13 +132,18 @@ describe('TrophyAwardsService', () => {
 
     const result = await service.upsert(teamAward);
 
-    expect(result).toEqual({ trophyAward: teamAwardRow, created: true });
+    expect(result).toEqual({ trophyAward: teamAwardRow, created: false });
+    // The insert is still attempted — that is the point of insert-first — but
+    // returns nothing, so the natural-key lookup supplies the existing row.
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
     expect(chains).toHaveLength(4);
+    // The fallback lookup must filter on IS NULL for a team award, not a
+    // literal playerId equality — otherwise it would never match.
+    expect(sqlText(firstCallArg(chains[3].where))).toContain('is null');
   });
 
-  it('inserts a player award when no matching row exists', async () => {
-    const { db } = await build(
+  it('returns the existing row when a player award hits the unique constraint', async () => {
+    const { chains } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
       [],
@@ -90,47 +152,35 @@ describe('TrophyAwardsService', () => {
 
     const result = await service.upsert(playerAward);
 
-    expect(result).toEqual({ trophyAward: playerAwardRow, created: true });
+    expect(result).toEqual({ trophyAward: playerAwardRow, created: false });
+    // The fallback lookup must filter on the player id itself, not IS NULL —
+    // otherwise a re-imported player award could return the wrong row.
+    expect(extractAllFilterValues(firstCallArg(chains[3].where))).toEqual([
+      1, 2, 3, 4,
+    ]);
+  });
+
+  it('throws when the insert conflicts but no matching row can be read back', async () => {
+    const { db } = await build(teamTrophyRow, matchingCompetitionRow, [], []);
+
+    await expect(service.upsert(teamAward)).rejects.toThrow(
+      /no matching row could be read back/,
+    );
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
   });
 
-  it('returns the existing row without inserting when one already matches', async () => {
-    const { db } = await build(teamTrophyRow, matchingCompetitionRow, [
-      teamAwardRow,
-    ]);
-
-    const result = await service.upsert(teamAward);
-
-    expect(result).toEqual({ trophyAward: teamAwardRow, created: false });
-    expect(db.insert).not.toHaveBeenCalled();
-  });
-
   it('records a tie as a second row for the same trophy and competition', async () => {
-    // A tie is a different playerId, so the dedup lookup finds nothing and a
-    // second row is inserted for the same trophy + competition.
+    // A tie is a different playerId, so the insert does not conflict and a
+    // second row is created for the same trophy + competition.
     const tiedRow = { ...playerAwardRow, id: 12, playerId: 5 };
-    const { db } = await build(
-      playerTrophyRow,
-      matchingCompetitionRow,
-      [],
-      [tiedRow],
-    );
+    const { db } = await build(playerTrophyRow, matchingCompetitionRow, [
+      tiedRow,
+    ]);
 
     const result = await service.upsert({ ...playerAward, playerId: 5 });
 
     expect(result).toEqual({ trophyAward: tiedRow, created: true });
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
-  });
-
-  it('throws TrophyAwardUpsertConflictError when more than one row matches', async () => {
-    await build(teamTrophyRow, matchingCompetitionRow, [
-      teamAwardRow,
-      { ...teamAwardRow, id: 99 },
-    ]);
-
-    await expect(service.upsert(teamAward)).rejects.toBeInstanceOf(
-      TrophyAwardUpsertConflictError,
-    );
   });
 
   it('throws when a player trophy is awarded with no playerId', async () => {
@@ -163,7 +213,6 @@ describe('TrophyAwardsService', () => {
     const { db, chains } = await build(
       [{ recipientKind: 'player', competitionGroupId: 3 }],
       [{ competitionGroupId: 3 }],
-      [],
       [playerAwardRow],
     );
 
@@ -171,7 +220,8 @@ describe('TrophyAwardsService', () => {
 
     expect(result).toEqual({ trophyAward: playerAwardRow, created: true });
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
-    expect(chains).toHaveLength(4);
+    // Three queries only: the insert succeeded, so no fallback lookup ran.
+    expect(chains).toHaveLength(3);
   });
 
   it('throws when the competition belongs to a different competition group', async () => {

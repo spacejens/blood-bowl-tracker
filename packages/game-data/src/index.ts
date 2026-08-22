@@ -110,5 +110,4 @@ export {
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
-  TrophyAwardUpsertConflictError,
 } from './trophy-awards/trophy-awards.service';

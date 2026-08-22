@@ -14,17 +14,6 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, desc, eq, isNull } from 'drizzle-orm';
 
-import { UpsertConflictError } from '../shared/upsert-conflict-error';
-
-/**
- * More than one existing `trophy_awards` row matches the natural key this
- * service dedups on. `trophy_awards` deliberately carries no database-level
- * unique constraint (see `packages/db/src/schema/trophy-awards.ts`), so that
- * is physically possible; it always means a bug upstream, and picking one of
- * the rows arbitrarily would hide it.
- */
-export class TrophyAwardUpsertConflictError extends UpsertConflictError {}
-
 /**
  * The award's `playerId` does not fit the referenced trophy's
  * `recipientKind`: set for a `team` trophy, or missing for a `player` one
@@ -440,9 +429,19 @@ export class TrophyAwardsService {
    *
    * There is no update path: an award row is nothing but the four ids it
    * links, so "already recorded" means "identical" and the existing row is
-   * returned untouched. That application-level dedup is what keeps a full
-   * reimport from multiplying rows, since the table has no unique constraint
-   * of its own.
+   * returned untouched.
+   *
+   * Insert-first, not select-first: `trophy_awards` carries a unique
+   * constraint on exactly this natural key (see
+   * `packages/db/src/schema/trophy-awards.ts`), so letting the database
+   * arbitrate leaves no window between a lookup and an insert for a
+   * concurrent importer to slip a duplicate through. The SELECT runs only on
+   * the conflict path, to fetch the row that won. There is deliberately no
+   * "more than one row matched" branch any more — the constraint makes that
+   * state unreachable.
+   *
+   * The conflict target is NULLS NOT DISTINCT on the database side, which is
+   * what makes a team award (always `playerId === null`) dedup at all.
    *
    * A tie is not a special case: two players winning the same trophy in the
    * same competition differ in `playerId`, so each simply gets its own row.
@@ -462,7 +461,29 @@ export class TrophyAwardsService {
       trophy.competitionGroupId,
     );
 
-    const existing = await this.db
+    const inserted = await this.db
+      .insert(trophyAwards)
+      .values({
+        trophyId: data.trophyId,
+        competitionId: data.competitionId,
+        teamEraId: data.teamEraId,
+        playerId: data.playerId,
+      })
+      .onConflictDoNothing({
+        target: [
+          trophyAwards.trophyId,
+          trophyAwards.competitionId,
+          trophyAwards.teamEraId,
+          trophyAwards.playerId,
+        ],
+      })
+      .returning();
+
+    if (inserted[0]) {
+      return { trophyAward: inserted[0], created: true };
+    }
+
+    const [existingAward] = await this.db
       .select()
       .from(trophyAwards)
       .where(
@@ -476,29 +497,16 @@ export class TrophyAwardsService {
         ),
       );
 
-    if (existing.length > 1) {
-      throw new TrophyAwardUpsertConflictError(
-        `Multiple trophy awards already match trophy ${data.trophyId}, ` +
-          `competition ${data.competitionId}, team era ${data.teamEraId} and ` +
-          `player ${data.playerId ?? 'none'}: ` +
-          `${existing.map((row) => row.id).join(', ')}`,
+    if (existingAward === undefined) {
+      throw new Error(
+        `trophy_awards insert conflicted for trophy ${data.trophyId}, ` +
+          `competition ${data.competitionId}, team era ${data.teamEraId}, ` +
+          `player ${data.playerId ?? 'none'}, but no matching row could be ` +
+          'read back.',
       );
     }
 
-    if (existing[0]) {
-      return { trophyAward: existing[0], created: false };
-    }
-
-    const inserted = await this.db
-      .insert(trophyAwards)
-      .values({
-        trophyId: data.trophyId,
-        competitionId: data.competitionId,
-        teamEraId: data.teamEraId,
-        playerId: data.playerId,
-      })
-      .returning();
-    return { trophyAward: inserted[0], created: true };
+    return { trophyAward: existingAward, created: false };
   }
 
   /**

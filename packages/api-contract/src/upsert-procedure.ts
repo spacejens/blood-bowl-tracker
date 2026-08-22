@@ -35,3 +35,25 @@ export function upsertProcedureWithoutConflict<
     .input(inputSchema)
     .output(entitySchema.extend({ created: z.boolean() }));
 }
+
+/**
+ * Upsert contract procedure with BAD_REQUEST but WITHOUT the CONFLICT error.
+ * Used only by trophyAwards.upsert: its natural key is enforced by a database
+ * unique constraint (see packages/db/src/schema/trophy-awards.ts), so more
+ * than one existing row can never match and there is nothing to conflict
+ * between — but the upsert can still reject a payload whose player id does
+ * not fit the trophy's recipient kind, which is a BAD_REQUEST. Distinct from
+ * `upsertProcedureWithoutConflict` (which declares no errors at all) so
+ * neither omission is an easy-to-miss flag.
+ */
+export function upsertProcedureBadRequestOnly<
+  TInput extends z.ZodType,
+  TShape extends z.ZodRawShape,
+>(inputSchema: TInput, entitySchema: z.ZodObject<TShape>) {
+  return oc
+    .input(inputSchema)
+    .errors({
+      BAD_REQUEST: { message: 'Invalid payload for this entity' },
+    })
+    .output(entitySchema.extend({ created: z.boolean() }));
+}
