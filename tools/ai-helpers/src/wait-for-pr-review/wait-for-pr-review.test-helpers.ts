@@ -148,7 +148,7 @@ export const OPTIONS = {
  * (`HEAD_REF_OID`, the later of the two SHAs) — required for the freshness
  * cross-check added alongside `updated_at`.
  */
-export const COMPLETION_SECTION =
+const COMPLETION_SECTION =
   '\n\nNo actionable comments were generated in the recent review. 🎉\n\n' +
   'Reviewing files that changed from the base of the PR and between ' +
   `\`e44832555c4036093c6dcb7c9ad9da576c8f6adc\` and \`${HEAD_REF_OID}\`.\n\n`;

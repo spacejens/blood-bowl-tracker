@@ -69,7 +69,7 @@ describe('curated data files', () => {
     }
   });
 
-  it('curates all 16 competition groups against a real league', () => {
+  it('curates all 15 competition groups against a real league', () => {
     const data = readPhase('before-other-importers');
     const leagueIds = new Set(
       data.leagues.flatMap((league) =>
@@ -77,13 +77,12 @@ describe('curated data files', () => {
       ),
     );
 
-    expect(data.competitionGroups).toHaveLength(16);
+    expect(data.competitionGroups).toHaveLength(15);
     expect(data.competitionGroups.map((group) => group.name)).toEqual([
       'Major Season',
       'Minor Season',
       'Chaos Cup',
       'Cabal Vision Cup',
-      'Korpen',
       'Stunty Leeg',
       'Fright Night',
       'Snöbollskrieg',
@@ -144,7 +143,7 @@ describe('curated data files', () => {
       data.competitionGroups.map((group) => group.name),
     );
 
-    expect(data.trophies).toHaveLength(32);
+    expect(data.trophies).toHaveLength(31);
     for (const trophy of data.trophies) {
       expect(
         trophy.competitionGroup,

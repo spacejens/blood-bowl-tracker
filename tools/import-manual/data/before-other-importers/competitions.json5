@@ -588,7 +588,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2014-01-08',
       endDate: '2014-06-30',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '15' }],
     },
     {
@@ -597,7 +597,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2014-07-02',
       endDate: '2014-12-20',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '19' }],
     },
     {
@@ -606,7 +606,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2016-07-03',
       endDate: '2016-12-26',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '29' }],
     },
     {
@@ -615,7 +615,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2017-01-20',
       endDate: '2017-06-25',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '36' }],
     },
     {
@@ -624,7 +624,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2017-07-04',
       endDate: '2017-12-17',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '39' }],
     },
     {
@@ -633,7 +633,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2018-01-18',
       endDate: '2018-07-01',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '43' }],
     },
     {
@@ -642,7 +642,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2018-07-02',
       endDate: '2018-12-23',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '48' }],
     },
     {
@@ -651,7 +651,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2019-01-03',
       endDate: '2019-06-18',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '50' }],
     },
     {
@@ -660,7 +660,7 @@
       era: { system: 'Name', id: 'First era' },
       startDate: '2019-07-15',
       endDate: '2020-01-01',
-      competitionGroup: { system: 'Name', id: 'Korpen' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       externalIds: [{ system: 'tloeg.bbleague.se', id: '53' }],
     },
 
