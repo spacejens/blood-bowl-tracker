@@ -418,7 +418,7 @@ describe('TrophiesListService.resolve', () => {
     ]);
     const service = await makeServiceFromTrophies(trophies);
 
-    const reply = await service.resolve({});
+    const reply = await service.resolve(FACT_SCOPE_ALL_TIME);
 
     const description = (reply as { embeds: { description: string }[] })
       .embeds[0].description;

@@ -53,6 +53,7 @@ export class TrophiesService {
     {
       id: number;
       name: string;
+      competitionGroupId: number | null;
       competitionGroupName: string | null;
       leagueName: string | null;
     }[]
@@ -62,6 +63,7 @@ export class TrophiesService {
         .select({
           id: trophies.id,
           name: trophies.name,
+          competitionGroupId: trophies.competitionGroupId,
           competitionGroupName: competitionGroups.name,
           leagueName: leagues.name,
         })

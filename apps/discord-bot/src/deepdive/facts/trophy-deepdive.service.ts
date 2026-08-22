@@ -164,7 +164,7 @@ export class TrophyDeepdiveService {
       this.entityComponents.buildEntityComponents(entries);
 
     const description = [
-      `Awarded for: ${trophy.competitionGroupName ?? trophy.leagueName}`,
+      `Awarded for: ${trophy.competitionGroupId !== null ? trophy.competitionGroupName : trophy.leagueName}`,
       ...(trophy.description === null
         ? []
         : [`Description: ${trophy.description}`]),

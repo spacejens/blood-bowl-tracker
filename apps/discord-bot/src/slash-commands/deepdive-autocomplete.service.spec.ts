@@ -168,6 +168,7 @@ describe('DeepdiveAutocompleteService', () => {
       {
         id: 7,
         name: 'Chaos Cup',
+        competitionGroupId: 4,
         competitionGroupName: 'Major',
         leagueName: null,
       },
@@ -185,6 +186,7 @@ describe('DeepdiveAutocompleteService', () => {
       {
         id: 3,
         name: 'Legendary Player',
+        competitionGroupId: null,
         competitionGroupName: null,
         leagueName: 'tLoEG',
       },

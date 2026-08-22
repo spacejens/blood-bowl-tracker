@@ -4,6 +4,7 @@ import {
   TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
+import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -14,6 +15,10 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
+import {
+  entityComponentsMock,
+  STUB_BUTTON_EMOJI,
+} from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_LEAGUE_COMPETITION_GROUPS_TIMEOUT_MESSAGE,
   DEEPDIVE_LEAGUE_NO_COMPETITION_GROUPS_MESSAGE,
@@ -192,6 +197,41 @@ describe('LeagueDeepdiveService', () => {
     expect(await service.resolve(7)).toBe(
       DEEPDIVE_LEAGUE_COMPETITION_GROUPS_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('includes components and the overflow note when entries did not fit', async () => {
+    const entityComponents = entityComponentsMock();
+    const { service } = await makeService({
+      leagues: makeLeagues({ id: 7, name: 'tLoEG' }),
+      trophies: makeTrophies([{ id: 3, name: 'Legendary Player' }]),
+      competitionGroups: makeGroups([{ id: 1, name: 'Major Season' }]),
+      entityComponents,
+    });
+    const components = [
+      {
+        type: ComponentType.ActionRow as const,
+        components: [
+          {
+            type: ComponentType.Button as const,
+            style: ButtonStyle.Primary as const,
+            label: 'Legendary Player',
+            custom_id: 'deepdive:trophy:3',
+            emoji: STUB_BUTTON_EMOJI,
+          },
+        ],
+      },
+    ];
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components,
+      overflowNote: '…and 3 more without a link.',
+    });
+
+    const reply = await service.resolve(7);
+
+    expect(reply).toMatchObject({ components });
+    const description = (reply as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('…and 3 more without a link.');
   });
 
   it('says so when the league has no trophies and no groups', async () => {

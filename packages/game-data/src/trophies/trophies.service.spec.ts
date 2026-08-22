@@ -229,12 +229,14 @@ describe('TrophiesService', () => {
         {
           id: 7,
           name: 'Chaos Cup',
+          competitionGroupId: 4,
           competitionGroupName: 'Major',
           leagueName: null,
         },
         {
           id: 9,
           name: 'Chaos Shield',
+          competitionGroupId: 5,
           competitionGroupName: 'Minor',
           leagueName: null,
         },
@@ -273,6 +275,7 @@ describe('TrophiesService', () => {
         {
           id: 3,
           name: 'Legendary Player',
+          competitionGroupId: null,
           competitionGroupName: null,
           leagueName: 'tLoEG',
         },
@@ -282,6 +285,7 @@ describe('TrophiesService', () => {
         {
           id: 3,
           name: 'Legendary Player',
+          competitionGroupId: null,
           competitionGroupName: null,
           leagueName: 'tLoEG',
         },

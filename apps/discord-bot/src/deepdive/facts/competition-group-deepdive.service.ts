@@ -90,7 +90,9 @@ export class CompetitionGroupDeepdiveService {
         // A league-scoped trophy can be awarded in any competition in the
         // league, so it belongs on every one of that league's groups too.
         this.trophies.listByLeague(group.leagueId),
-      ]).then(([own, leagueWide]) => [...own, ...leagueWide]),
+      ]).then(([own, leagueWide]) =>
+        [...own, ...leagueWide].sort((a, b) => a.name.localeCompare(b.name)),
+      ),
       null,
     );
     if (groupTrophies === null) {

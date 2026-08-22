@@ -107,7 +107,7 @@ export class LeagueDeepdiveService {
       'Trophies:',
       ...trophyLines,
       '',
-      'Competitions:',
+      'Competition groups:',
       ...groupLines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');

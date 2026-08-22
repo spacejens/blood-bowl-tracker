@@ -135,7 +135,7 @@ export class DeepdiveAutocompleteService {
         MAX_AUTOCOMPLETE_CHOICES,
       );
       return trophies.map((row) => ({
-        name: `${row.name} (${row.competitionGroupName ?? row.leagueName})`,
+        name: `${row.name} (${row.competitionGroupId !== null ? row.competitionGroupName : row.leagueName})`,
         value: String(row.id),
       }));
     }
