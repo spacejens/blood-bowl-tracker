@@ -230,6 +230,27 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
 
       expect(events[0]).not.toHaveProperty('computeSppValue');
     });
+
+    it.each(['throw_team_mate', 'catch'] as const)(
+      'builds a %s event carrying TP’s own reported starPoints as sppValue',
+      (type) => {
+        const [event] = service.buildSimpleActionEvent(
+          buildOptions({
+            event: {
+              type,
+              tpEventId: 9,
+              instant: 'x',
+              lineUpId: ACTOR_LINE_UP_ID,
+              rosterId: HOME_ROSTER_ID,
+              starPoints: 1,
+            },
+          }),
+          type,
+        );
+
+        expect(event).toMatchObject({ actionType: type, sppValue: 1 });
+      },
+    );
   });
 
   describe('buildSentOffEvent', () => {

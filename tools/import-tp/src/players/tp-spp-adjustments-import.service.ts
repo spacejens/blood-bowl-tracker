@@ -91,8 +91,12 @@ export class TpSppAdjustmentsImportService {
 
   /**
    * The review-aid summary as console lines, biggest adjustment first, or no
-   * lines at all when nothing is left unexplained. Formatting lives here rather
-   * than in `main.ts` so it is covered by tests.
+   * lines at all when nothing is left unexplained. Entries TP supplied no
+   * career counts for are marked: for those, no ongoing-competition estimate
+   * was possible at all, so the whole reported total is unexplained by
+   * construction — a TP-side data gap rather than a discrepancy worth
+   * investigating. Formatting lives here rather than in `main.ts` so it is
+   * covered by tests.
    */
   summaryLines(nonzeroAdjustments: SppAdjustmentSummary[]): string[] {
     if (nonzeroAdjustments.length === 0) {
@@ -102,7 +106,8 @@ export class TpSppAdjustmentsImportService {
       `${nonzeroAdjustments.length} player(s) left with an unexplained SPP adjustment:`,
       ...nonzeroAdjustments.map(
         (entry) =>
-          `  - ${entry.name} (player ${entry.playerId}): ${entry.adjustment} SPP`,
+          `  - ${entry.name} (player ${entry.playerId}): ${entry.adjustment} SPP` +
+          (entry.hadCareerCounts ? '' : ' (no TP career counts available)'),
       ),
     ];
   }

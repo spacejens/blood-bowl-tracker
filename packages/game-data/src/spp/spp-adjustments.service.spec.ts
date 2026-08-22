@@ -477,8 +477,43 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(result.nonzeroAdjustments).toEqual([
-      { playerId: 2, name: 'Fenriz', adjustment: 10 },
-      { playerId: 1, name: 'Karcheres', adjustment: 3 },
+      { playerId: 2, name: 'Fenriz', adjustment: 10, hadCareerCounts: false },
+      { playerId: 1, name: 'Karcheres', adjustment: 3, hadCareerCounts: false },
+    ]);
+  });
+
+  it('flags whether TP career counts were available for each reported player', async () => {
+    const careerCounts = {
+      touchdown: 4,
+      completion: 0,
+      interception: 0,
+      mvp_award: 0,
+      casualty: 0,
+    };
+    const h = await makeService(
+      mockDb(
+        [
+          { id: 1, name: 'Karcheres', sppTotal: 20 },
+          { id: 2, name: 'Fenriz', sppTotal: 30 },
+        ],
+        [{ id: 1 }],
+        [{ id: 2 }],
+      ),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(
+      new Map([
+        [1, 17],
+        [2, 20],
+      ]),
+    );
+
+    const result = await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1, careerCounts }, { playerId: 2 }],
+    });
+
+    expect(result.nonzeroAdjustments).toEqual([
+      { playerId: 2, name: 'Fenriz', adjustment: 10, hadCareerCounts: false },
+      { playerId: 1, name: 'Karcheres', adjustment: 3, hadCareerCounts: true },
     ]);
   });
 

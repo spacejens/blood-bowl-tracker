@@ -33,6 +33,10 @@ export const ACTION_CATEGORY: Record<ActionType, string> = {
   // scrape, so this category slug is never actually used by import-bbl, but
   // ACTION_CATEGORY must stay exhaustive over the shared ActionType enum.
   successful_landing: 'landing',
+  // TP-only (code 45, "throw team-mate") — same rationale as successful_landing.
+  throw_team_mate: 'throw-team-mate',
+  // TP-only (code 47, "catch") — same rationale as successful_landing.
+  catch: 'catch',
 };
 
 /** The category slug used in an event's synthesized external id, per consequence. */

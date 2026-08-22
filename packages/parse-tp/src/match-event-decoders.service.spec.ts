@@ -48,7 +48,8 @@ describe('MatchEventDecodersService', () => {
 
   it('registers exactly the known codes', () => {
     expect([...decoders.keys()].sort((a, b) => a - b)).toEqual([
-      3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 20, 23, 25, 26, 31, 32, 42, 46,
+      3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 20, 23, 25, 26, 31, 32, 42, 45,
+      46, 47,
     ]);
   });
 
@@ -272,7 +273,9 @@ describe('MatchEventDecodersService', () => {
     ['mvp_award', 7],
     ['deflection', 25],
     ['sent_off', 32],
+    ['throw_team_mate', 45],
     ['successful_landing', 46],
+    ['catch', 47],
   ] as const)(
     'omits starPoints on a %s (code %d) when the raw event does not report it',
     (_type, code) => {
@@ -677,6 +680,50 @@ describe('MatchEventDecodersService', () => {
       rosterId: 164868,
       starPoints: 1,
     });
+  });
+
+  it('decodes a throw team-mate (code 45)', () => {
+    expect(
+      decode(45, {
+        id: 7150325,
+        instant: '2026-01-17T18:49:52Z',
+        lineUpId: 2442071,
+        rosterId: 164868,
+        starPoints: 1,
+      }),
+    ).toEqual({
+      type: 'throw_team_mate',
+      tpEventId: 7150325,
+      instant: '2026-01-17T18:49:52Z',
+      lineUpId: 2442071,
+      rosterId: 164868,
+      starPoints: 1,
+    });
+  });
+
+  it('decodes a catch (code 47)', () => {
+    expect(
+      decode(47, {
+        id: 7150328,
+        instant: '2026-01-17T18:50:03Z',
+        lineUpId: 2442075,
+        rosterId: 164868,
+        starPoints: 1,
+      }),
+    ).toEqual({
+      type: 'catch',
+      tpEventId: 7150328,
+      instant: '2026-01-17T18:50:03Z',
+      lineUpId: 2442075,
+      rosterId: 164868,
+      starPoints: 1,
+    });
+  });
+
+  it('throws a descriptive Error naming the code when a catch (code 47) is missing its actor', () => {
+    expect(() => decode(47, { id: 1, instant: 'x' })).toThrow(
+      /code 47.*lineUpId/s,
+    );
   });
 
   it('throws a descriptive Error naming the code and the failing field when a payload is invalid', () => {
