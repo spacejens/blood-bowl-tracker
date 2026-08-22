@@ -163,8 +163,8 @@ export class PlayerDeepdiveCountsService {
   /**
    * One deepdive counter for the "simple" categories: unscoped, single-role,
    * for this player alone. Not used for the casualty/foul groups — see
-   * `countActingEvents` and `countCombinedEvents` below for why those need a
-   * different query shape.
+   * `countActingEvents`, `countFoulOutcome` and `countDeathOutcome` below for
+   * why those need a different query shape.
    */
   private countDeepdiveEvents(
     playerId: number,
@@ -179,8 +179,9 @@ export class PlayerDeepdiveCountsService {
    * graph `countDeepdiveEvents` carries: `countMatchEventsForPlayer` inner-joins
    * `matchTeams` on `actingMatchTeamId`, a nullable column, so an event with
    * that column unset would be invisible to it. The casualty/foul group
-   * counters must never drop such a row, because `countCombinedEvents` below
-   * (their `killed`/`seriousInjuries` siblings) does not join at all —
+   * counters must never drop such a row, because `countFoulOutcome` and
+   * `countDeathOutcome` below (their `killed`/`seriousInjuries` siblings) do
+   * not join at all —
    * differing join shapes on lines that share one "total" would let a
    * sub-count exceed its own total. Deepdive counters apply no scope
    * narrowing, so the join graph earns nothing here anyway.
