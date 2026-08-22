@@ -77,12 +77,11 @@ describe('curated data files', () => {
       ),
     );
 
-    expect(data.competitionGroups).toHaveLength(15);
+    expect(data.competitionGroups).toHaveLength(14);
     expect(data.competitionGroups.map((group) => group.name)).toEqual([
       'Major Season',
       'Minor Season',
       'Chaos Cup',
-      'Cabal Vision Cup',
       'Stunty Leeg',
       'Fright Night',
       'Snöbollskrieg',

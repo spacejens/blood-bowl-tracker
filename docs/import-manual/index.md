@@ -267,7 +267,7 @@ real-world entity differently:
   below) has a league to reference. Its external ids deliberately match BBL's
   own `tloeg.bbleague.se` convention exactly, so BBL's later league upsert
   resolves onto these same rows instead of creating duplicates.
-- `competition-groups.json5` — the curated catalog of 15 competition groups
+- `competition-groups.json5` — the curated catalog of 14 competition groups
   (issue #445): the recurring tracks (Major Season, Minor Season, Chaos Cup,
   Ogretoberfest, and so on) that `competitions.json5` and `trophies.json5`
   classify instances and trophies into. Not a dedup file in the usual sense —

@@ -143,9 +143,15 @@
       ],
     },
     {
+      // Despite its name, this trophy is only ever awarded within Minor
+      // Season competitions in the actual BBL data (issue #520) -- it was
+      // previously curated under its own "Cabal Vision Cup" competition
+      // group, seeded only as a placeholder since no real competition
+      // instance for it was known. That group has been removed; this is now
+      // curated under "Minor Season" like any other Minor Season trophy.
       name: 'Cabal Vision Cup',
       recipientKind: 'team',
-      competitionGroup: { system: 'Name', id: 'Cabal Vision Cup' },
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Winner of the Cabal Vision Cup knockout cup.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Cabal Vision Cup' }],
     },
