@@ -1,6 +1,6 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
   ReferenceLookupService,
@@ -11,6 +11,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import type { BblCompetitionEntry } from '../competitions/bbl-competitions-import.service';
 import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-trophy-reader.service';
 import type { CompetitionTrophyRows } from '../matches/competition-trophy-page-parser';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
@@ -44,6 +45,7 @@ interface Mocks {
   trophyReader: MockProxy<BblCompetitionTrophyReaderService>;
   trophiesImport: MockProxy<TrophiesImportService>;
   trophyAwardsImport: MockProxy<TrophyAwardsImportService>;
+  competitionGroupsImport: MockProxy<CompetitionGroupsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
@@ -53,14 +55,22 @@ interface Mocks {
 /** The numeric id the mocked bootstrap assigns to the BBL external system. */
 const BBL_SYSTEM_ID = 7;
 
-/** An UpsertCompetition fixture keyed under the BBL system by `bblId`. */
-function makeCompetition(bblId: string): UpsertCompetition {
+/** A BblCompetitionEntry fixture keyed under the BBL system by `bblId`. */
+function makeCompetition(
+  bblId: string,
+  overrides: Partial<BblCompetitionEntry> = {},
+): BblCompetitionEntry {
   return {
-    name: `Competition ${bblId}`,
-    type: 'season',
-    eraId: 200,
-    teamEraIds: [],
-    externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }],
+    upsert: {
+      name: `Competition ${bblId}`,
+      type: 'season',
+      eraId: 200,
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }],
+    },
+    competitionGroupId: 9,
+    created: false,
+    ...overrides,
   };
 }
 
@@ -72,6 +82,7 @@ async function makeService(
     trophyReader: mock<BblCompetitionTrophyReaderService>(),
     trophiesImport: mock<TrophiesImportService>(),
     trophyAwardsImport: mock<TrophyAwardsImportService>(),
+    competitionGroupsImport: mock<CompetitionGroupsImportService>(),
     bootstrap: mock<ExternalSystemBootstrapService>(),
     nameConfig: mock<ExternalSystemNameConfigService>(),
     importResults: mock<ImportResultService>(),
@@ -95,6 +106,12 @@ async function makeService(
     id: 500,
   } as never);
   mockReferenceLookup(mocks.lookup, { competition: competitionIdsByBblId });
+  // Default: two curated groups. Every fixture competition below is in group
+  // 9 ("Major Season") unless a test overrides it.
+  mocks.competitionGroupsImport.listCompetitionGroups.mockResolvedValue([
+    { id: 9, name: 'Major Season' },
+    { id: 10, name: 'Minor Season' },
+  ] as never);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -107,6 +124,10 @@ async function makeService(
       {
         provide: TrophyAwardsImportService,
         useValue: mocks.trophyAwardsImport,
+      },
+      {
+        provide: CompetitionGroupsImportService,
+        useValue: mocks.competitionGroupsImport,
       },
       { provide: ExternalSystemBootstrapService, useValue: mocks.bootstrap },
       { provide: ExternalSystemNameConfigService, useValue: mocks.nameConfig },
@@ -215,6 +236,70 @@ describe('BblTrophyAwardsImportService', () => {
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
+  });
+
+  it('skips a competition that was newly created (not pre-seeded by curated data)', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+
+    await service.importTrophyAwards(
+      options({
+        competitionsByBblId: new Map([
+          ['1', makeCompetition('1', { created: true })],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { competition: '1' },
+        message:
+          'Skipping trophy awards for competition id 1: it was not ' +
+          'pre-seeded by curated data, so its competition group cannot be ' +
+          'trusted as a real classification.',
+      },
+    ]);
+  });
+
+  it('skips a competition whose group is not in the curated catalog', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+
+    await service.importTrophyAwards(
+      options({
+        competitionsByBblId: new Map([
+          ['1', makeCompetition('1', { competitionGroupId: 404 })],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { competition: '1' },
+        message:
+          'Skipping trophy awards for competition id 1: its competition ' +
+          'group 404 is not in the curated competition-group catalog.',
+      },
+    ]);
+  });
+
+  it('aborts when the competition-groups list cannot be fetched', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+    mocks.competitionGroupsImport.listCompetitionGroups.mockResolvedValue(
+      undefined,
+    );
+
+    const outcome = await service.importTrophyAwards(options());
+
+    expect(outcome.result).toBe(CANNED_RESULT);
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyReader.getRowsByCompetitionId).not.toHaveBeenCalled();
   });
 
   it('records a skip error for an unresolvable team code', async () => {
