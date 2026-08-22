@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -109,6 +110,21 @@ describe('TrophyAwardsService', () => {
     // returns nothing, so the natural-key lookup supplies the existing row.
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
     expect(chains).toHaveLength(3);
+  });
+
+  it('returns the existing row when a player award hits the unique constraint', async () => {
+    const { chains } = await build(
+      [{ recipientKind: 'player' }],
+      [],
+      [playerAwardRow],
+    );
+
+    const result = await service.upsert(playerAward);
+
+    expect(result).toEqual({ trophyAward: playerAwardRow, created: false });
+    // The fallback lookup must filter on the player id itself, not IS NULL —
+    // otherwise a re-imported player award could return the wrong row.
+    expect(extractAllFilterValues(firstCallArg(chains[2].where))).toContain(4);
   });
 
   it('records a tie as a second row for the same trophy and competition', async () => {
