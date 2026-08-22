@@ -113,7 +113,7 @@ async function run(): Promise<ImportResult> {
     const trophyAwardsOutcome = await app
       .get(BblTrophyAwardsImportService)
       .importTrophyAwards({
-        competitionsByBblId: competitionOutcome.competitionEntriesByBblId,
+        competitionEntriesByBblId: competitionOutcome.competitionEntriesByBblId,
         teamEraIdsByCompetitionBblId:
           teamParticipationOutcome.teamEraIdsByCompetitionBblId,
         playerIdsByPid: playerOutcome.playerIdsByPid,

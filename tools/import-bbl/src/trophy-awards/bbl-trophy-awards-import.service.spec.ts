@@ -146,7 +146,7 @@ function options(
   overrides: Partial<ImportBblTrophyAwardsOptions> = {},
 ): ImportBblTrophyAwardsOptions {
   return {
-    competitionsByBblId: new Map([['1', makeCompetition('1')]]),
+    competitionEntriesByBblId: new Map([['1', makeCompetition('1')]]),
     teamEraIdsByCompetitionBblId: new Map([['1', new Map([['sew', 21]])]]),
     playerIdsByPid: new Map([
       ['102', 31],
@@ -236,7 +236,7 @@ describe('BblTrophyAwardsImportService', () => {
     );
 
     await service.importTrophyAwards(
-      options({ competitionsByBblId: new Map() }),
+      options({ competitionEntriesByBblId: new Map() }),
     );
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
@@ -250,7 +250,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1', { created: true })],
         ]),
       }),
@@ -275,7 +275,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1', { competitionGroupId: 404 })],
         ]),
       }),
@@ -423,7 +423,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1')],
           ['2', makeCompetition('2')],
         ]),
@@ -481,7 +481,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1')],
           ['2', makeCompetition('2')],
         ]),
@@ -502,7 +502,9 @@ describe('BblTrophyAwardsImportService', () => {
       error.message.includes('2 further'),
     );
     expect(summaryErrors).toHaveLength(1);
-    expect(summaryErrors[0].message).toContain('Made Up Prize::Major Season');
+    expect(summaryErrors[0].message).toContain(
+      '"Made Up Prize" label in competition group "Major Season"',
+    );
   });
 
   it('resolves a trophy by its group-scoped composite external id first', async () => {
@@ -595,7 +597,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1')],
           ['2', makeCompetition('2', { competitionGroupId: 10 })],
         ]),
@@ -634,9 +636,9 @@ describe('BblTrophyAwardsImportService', () => {
     expect(resultArgs(mocks.importResults).errors).toContainEqual({
       item: { trophy: 'Unknown Prize::Major Season' },
       message:
-        'Skipped 1 further award row(s) referencing the "Unknown ' +
-        'Prize::Major Season" trophy key: it could not be resolved (see the ' +
-        'earlier error for this key).',
+        'Skipped 1 further award row(s) referencing the "Unknown Prize" ' +
+        'label in competition group "Major Season": it could not be ' +
+        'resolved (see the earlier error for this label/group).',
     });
   });
 

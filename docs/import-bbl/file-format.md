@@ -332,13 +332,26 @@ cross-reference
 `tools/import-manual/data/before-other-importers/trophies.json5`. The player
 trophy labels are *not* self-disambiguating: BBL awards the same
 `Deadliest Player` or `Legendary Player` label in several competition groups
-(issue #520), so each confirmed trophy/group combination has its own curated
-row keyed `${label}-${groupName}`, and the awards importer tries that
-composite key before falling back to the bare label. One label is an
+(issue #520). The original Major Season rows keep their bare-label ids
+unchanged, so a Major-Season award still resolves exactly as before; every
+other confirmed trophy/group combination gets its own curated row keyed
+`${label}-${groupName}` instead, and the awards importer tries that composite
+key before falling back to the bare label. One label is an
 exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
 Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1st`
 (issue #519) — the curated catalog carries both labels as external ids on that one
 trophy.
+
+Group-scoped resolution above requires trusting a competition's curated
+competition group, which is only true for a competition already present in
+`tools/import-manual/data/before-other-importers/competitions.json5`. A BBL
+competition this importer has to create fresh — because it is not yet in that
+curated catalog — has no trustworthy group classification, so
+`BblTrophyAwardsImportService` skips *all* of that competition's trophy
+awards outright rather than risk resolving into the wrong group (reported as
+a "was not pre-seeded by curated data" error). The fix, when this shows up in
+import output, is to add a curated row for the competition to
+`competitions.json5` first, then re-run the import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated

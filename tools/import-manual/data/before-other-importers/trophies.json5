@@ -51,7 +51,7 @@
 // `tloeg.bbleague.se` id. Award files contain placement entries only
 // (awardType 1/2/3) with no Best Stunty or Wooden Spoon, so no stunty/spoon
 // entries are seeded for Dungeon Bowl. TP's award files have so far only
-// contained team-level entries, so none of the 12 player trophies and none of
+// contained team-level entries, so none of the 24 player trophies and none of
 // the BBL-only cups have any TP source data to ground an id on. Those stay
 // unseeded rather than carrying a guessed code -- a new TP competition
 // tracking a different group, or a new award kind, would widen this set.

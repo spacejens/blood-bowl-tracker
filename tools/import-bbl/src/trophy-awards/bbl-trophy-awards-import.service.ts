@@ -14,7 +14,7 @@ import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-tr
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 export interface ImportBblTrophyAwardsOptions {
-  competitionsByBblId: Map<string, BblCompetitionEntry>;
+  competitionEntriesByBblId: Map<string, BblCompetitionEntry>;
   teamEraIdsByCompetitionBblId: Map<string, Map<string, number>>;
   playerIdsByPid: Map<string, number>;
   teamEraIdsByPid: Map<string, number>;
@@ -120,7 +120,7 @@ export class BblTrophyAwardsImportService {
     // already in the database and resolvable by its BBL id.
     const competitionIds = await this.lookup.lookupMap(
       'competition',
-      [...options.competitionsByBblId].map(([bblId, entry]) => ({
+      [...options.competitionEntriesByBblId].map(([bblId, entry]) => ({
         externalSystemId: entry.upsert.externalIds[0].externalSystemId,
         externalId: bblId,
       })),
@@ -140,7 +140,7 @@ export class BblTrophyAwardsImportService {
       const context = this.buildContext(
         {
           competitionBblId,
-          entry: options.competitionsByBblId.get(competitionBblId),
+          entry: options.competitionEntriesByBblId.get(competitionBblId),
           teamEraIdsByCode:
             options.teamEraIdsByCompetitionBblId.get(competitionBblId) ??
             new Map<string, number>(),
@@ -200,13 +200,14 @@ export class BblTrophyAwardsImportService {
     }
 
     for (const [key, droppedCount] of runContext.droppedRowCountsByKey) {
+      const [label, groupName] = key.split('::');
       errors.push(
         this.importResults.error({
           item: { trophy: key },
           message:
             `Skipped ${droppedCount} further award row(s) referencing the ` +
-            `"${key}" trophy key: it could not be resolved (see the ` +
-            `earlier error for this key).`,
+            `"${label}" label in competition group "${groupName}": it could ` +
+            'not be resolved (see the earlier error for this label/group).',
         }),
       );
     }
@@ -346,6 +347,13 @@ export class BblTrophyAwardsImportService {
    * A bare-label fallback that resolves the *wrong* group's trophy is not
    * silently accepted either: the server-side group check in
    * TrophyAwardsService rejects that award at write time.
+   *
+   * Discarding the composite attempt's errors also means a transient failure
+   * on that attempt (e.g. a network blip) is indistinguishable from "no such
+   * group-scoped row" and falls through to the bare-label attempt just the
+   * same. This is an accepted trade-off, not a bug: the server-side group
+   * check above still protects correctness even if that fallback ends up
+   * matching the wrong group's trophy.
    *
    * Memoized per run under `${label}::${groupName}`, failures included, so
    * the same label in two different groups no longer shares one cache entry.
