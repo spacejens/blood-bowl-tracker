@@ -204,7 +204,7 @@ describe('curated data files', () => {
   });
 
   it('seeds group-scoped BBL external ids for the ambiguous player trophies', () => {
-    // Issue #520: BBL hands the same player-trophy label out in more than one
+    // BBL hands the same player-trophy label out in more than one
     // competition group (a Minor-Season "Deadliest Player", a Chaos Cup
     // "Legendary Player"), so the label alone cannot identify the trophy.
     // Those combinations are seeded as their own rows keyed
