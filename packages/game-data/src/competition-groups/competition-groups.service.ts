@@ -65,6 +65,20 @@ export class CompetitionGroupsService {
   }
 
   /**
+   * Every competition group belonging to one league, ordered by name. The
+   * league deepdive lists these and offers a drill-down button each; it needs
+   * no more than the id and label, mirroring
+   * `TrophiesService.listByCompetitionGroup`.
+   */
+  listByLeague(leagueId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: competitionGroups.id, name: competitionGroups.name })
+      .from(competitionGroups)
+      .where(eq(competitionGroups.leagueId, leagueId))
+      .orderBy(competitionGroups.name);
+  }
+
+  /**
    * Every competition group with its league name and how many competitions
    * belong to it, for the `/insights competitionGroups.list` fact. Left-joins
    * competitions so a group with zero competitions still appears with a
