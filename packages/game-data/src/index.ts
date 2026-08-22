@@ -109,5 +109,4 @@ export type {
 export {
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
-  TrophyAwardUpsertConflictError,
 } from './trophy-awards/trophy-awards.service';
