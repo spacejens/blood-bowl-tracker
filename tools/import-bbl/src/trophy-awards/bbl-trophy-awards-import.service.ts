@@ -35,9 +35,13 @@ interface RunContext {
    * Count, per group-scoped key already known to be unresolvable, of further
    * award rows that referenced it and were dropped without their own error
    * (since TrophiesImportService only records the resolution failure once,
-   * the first time the key is seen).
+   * the first time the key is seen). Carries label and groupName directly so
+   * the end-of-run summary loop does not need to re-parse them from the key.
    */
-  droppedRowCountsByKey: Map<string, number>;
+  droppedRowCountsByKey: Map<
+    string,
+    { label: string; groupName: string; count: number }
+  >;
 }
 
 /**
@@ -133,7 +137,10 @@ export class BblTrophyAwardsImportService {
       bblSystemId,
       groupNamesById: new Map(groups.map((group) => [group.id, group.name])),
       competitionIds,
-      droppedRowCountsByKey: new Map<string, number>(),
+      droppedRowCountsByKey: new Map<
+        string,
+        { label: string; groupName: string; count: number }
+      >(),
     };
 
     for (const [competitionBblId, rows] of rowsByCompetitionId) {
@@ -199,13 +206,15 @@ export class BblTrophyAwardsImportService {
       }
     }
 
-    for (const [key, droppedCount] of runContext.droppedRowCountsByKey) {
-      const [label, groupName] = key.split('::');
+    for (const [
+      ,
+      { label, groupName, count },
+    ] of runContext.droppedRowCountsByKey) {
       errors.push(
         this.importResults.error({
-          item: { trophy: key },
+          item: { trophy: label },
           message:
-            `Skipped ${droppedCount} further award row(s) referencing the ` +
+            `Skipped ${count} further award row(s) referencing the ` +
             `"${label}" label in competition group "${groupName}": it could ` +
             'not be resolved (see the earlier error for this label/group).',
         }),
@@ -371,10 +380,12 @@ export class BblTrophyAwardsImportService {
     if (run.trophyIdsByKey.has(key)) {
       const memoized = run.trophyIdsByKey.get(key);
       if (memoized === undefined) {
-        run.droppedRowCountsByKey.set(
-          key,
-          (run.droppedRowCountsByKey.get(key) ?? 0) + 1,
-        );
+        const existing = run.droppedRowCountsByKey.get(key);
+        run.droppedRowCountsByKey.set(key, {
+          label,
+          groupName: context.groupName,
+          count: (existing?.count ?? 0) + 1,
+        });
       }
       return memoized;
     }

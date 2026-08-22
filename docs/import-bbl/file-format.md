@@ -365,4 +365,5 @@ actually won a trophy. That is the job of the `sr` page's "Team trophy" and
 "Player prize" tables described above, whose rows the trophy-awards importer
 (`tools/import-bbl/src/trophy-awards/bbl-trophy-awards-import.service.ts`,
 issue #343) turns into `trophy_awards` rows, resolving each row's trophy by
-its exact label text via `trophies_external_ids`.
+its group-scoped composite id, falling back to the bare label, via
+`trophies_external_ids`.

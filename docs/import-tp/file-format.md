@@ -652,7 +652,7 @@ competition groups (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest).
 Dungeon Bowl now has its own three catalog trophies — BBL never awarded a
 Dungeon Bowl trophy, so `Dungeon Bowl Gold`/`Silver`/`Bronze` carry no BBL id.
 These award files have so far only contained team-level entries: none of the
-12 curated player trophies, and none of the BBL-only cups, appear anywhere in
+24 curated player trophies, and none of the BBL-only cups, appear anywhere in
 this data, so the catalog still seeds no player trophies and no BBL-only cups
 — no TP source data grounds them. Everything else in the catalog stays seeded
 with BBL ids only. A new TP competition tracking a different group, or a new

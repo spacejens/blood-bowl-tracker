@@ -634,7 +634,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toContainEqual({
-      item: { trophy: 'Unknown Prize::Major Season' },
+      item: { trophy: 'Unknown Prize' },
       message:
         'Skipped 1 further award row(s) referencing the "Unknown Prize" ' +
         'label in competition group "Major Season": it could not be ' +
