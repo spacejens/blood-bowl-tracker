@@ -434,4 +434,20 @@ describe('ManualDataFileSchema', () => {
     });
     expect(parsed.competitions[0].name).toBeUndefined();
   });
+
+  it('accepts a trophy scoped to a league', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Legendary Player',
+          recipientKind: 'player',
+          league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+        },
+      ],
+    });
+    expect(parsed.trophies[0].league).toEqual({
+      system: 'tloeg.bbleague.se',
+      id: 'tLoEG',
+    });
+  });
 });
