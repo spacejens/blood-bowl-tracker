@@ -44,18 +44,18 @@ type GroupCompetition = {
 };
 
 /**
- * Composes one recurring competition group's header, the trophies it awards,
- * and every instance of it that has been run, oldest first. Shared by
- * `/deepdive competition-group:<id>` and the competition group deepdive
- * buttons. Each DB call is wrapped in `databaseTimeout.run` with a `null`
- * sentinel so a timeout is distinguishable from a genuine "not found"
- * (`undefined`). Competition entries come before trophy entries in the
- * drill-down pool because listing the instances is this deepdive's primary
- * job, and `buildEntityComponents` has no internal prioritisation — first
- * entries win the components budget. Instances are grouped into per-era
- * sections, each headed `<era> competitions:`, oldest era first, so a
- * long-running group reads as one block per era instead of one flat list
- * repeating the era on every row.
+ * Composes one recurring competition group's header, the trophies it awards
+ * including those its league awards across every group, and every instance of
+ * it that has been run, oldest first. Shared by `/deepdive competition-group:<id>`
+ * and the competition group deepdive buttons. Each DB call is wrapped in
+ * `databaseTimeout.run` with a `null` sentinel so a timeout is distinguishable
+ * from a genuine "not found" (`undefined`). Competition entries come before
+ * trophy entries in the drill-down pool because listing the instances is this
+ * deepdive's primary job, and `buildEntityComponents` has no internal
+ * prioritisation — first entries win the components budget. Instances are
+ * grouped into per-era sections, each headed `<era> competitions:`, oldest era
+ * first, so a long-running group reads as one block per era instead of one flat
+ * list repeating the era on every row.
  */
 @Injectable()
 export class CompetitionGroupDeepdiveService {
@@ -85,7 +85,12 @@ export class CompetitionGroupDeepdiveService {
     }
 
     const groupTrophies: GroupTrophy[] | null = await this.databaseTimeout.run(
-      this.trophies.listByCompetitionGroup(competitionGroupId),
+      Promise.all([
+        this.trophies.listByCompetitionGroup(competitionGroupId),
+        // A league-scoped trophy can be awarded in any competition in the
+        // league, so it belongs on every one of that league's groups too.
+        this.trophies.listByLeague(group.leagueId),
+      ]).then(([own, leagueWide]) => [...own, ...leagueWide]),
       null,
     );
     if (groupTrophies === null) {
