@@ -107,6 +107,7 @@ export type {
   TrophyRecipient,
 } from './trophy-awards/trophy-awards.service';
 export {
+  TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
   TrophyAwardUpsertConflictError,

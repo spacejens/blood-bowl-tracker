@@ -1,6 +1,6 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  CompetitionGroupsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
   ReferenceLookupService,
@@ -11,6 +11,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import type { BblCompetitionEntry } from '../competitions/bbl-competitions-import.service';
 import { BblCompetitionTrophyReaderService } from '../matches/bbl-competition-trophy-reader.service';
 import type { CompetitionTrophyRows } from '../matches/competition-trophy-page-parser';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
@@ -44,6 +45,7 @@ interface Mocks {
   trophyReader: MockProxy<BblCompetitionTrophyReaderService>;
   trophiesImport: MockProxy<TrophiesImportService>;
   trophyAwardsImport: MockProxy<TrophyAwardsImportService>;
+  competitionGroupsImport: MockProxy<CompetitionGroupsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
@@ -53,14 +55,22 @@ interface Mocks {
 /** The numeric id the mocked bootstrap assigns to the BBL external system. */
 const BBL_SYSTEM_ID = 7;
 
-/** An UpsertCompetition fixture keyed under the BBL system by `bblId`. */
-function makeCompetition(bblId: string): UpsertCompetition {
+/** A BblCompetitionEntry fixture keyed under the BBL system by `bblId`. */
+function makeCompetition(
+  bblId: string,
+  overrides: Partial<BblCompetitionEntry> = {},
+): BblCompetitionEntry {
   return {
-    name: `Competition ${bblId}`,
-    type: 'season',
-    eraId: 200,
-    teamEraIds: [],
-    externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }],
+    upsert: {
+      name: `Competition ${bblId}`,
+      type: 'season',
+      eraId: 200,
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }],
+    },
+    competitionGroupId: 9,
+    created: false,
+    ...overrides,
   };
 }
 
@@ -72,6 +82,7 @@ async function makeService(
     trophyReader: mock<BblCompetitionTrophyReaderService>(),
     trophiesImport: mock<TrophiesImportService>(),
     trophyAwardsImport: mock<TrophyAwardsImportService>(),
+    competitionGroupsImport: mock<CompetitionGroupsImportService>(),
     bootstrap: mock<ExternalSystemBootstrapService>(),
     nameConfig: mock<ExternalSystemNameConfigService>(),
     importResults: mock<ImportResultService>(),
@@ -95,6 +106,12 @@ async function makeService(
     id: 500,
   } as never);
   mockReferenceLookup(mocks.lookup, { competition: competitionIdsByBblId });
+  // Default: two curated groups. Every fixture competition below is in group
+  // 9 ("Major Season") unless a test overrides it.
+  mocks.competitionGroupsImport.listCompetitionGroups.mockResolvedValue([
+    { id: 9, name: 'Major Season' },
+    { id: 10, name: 'Minor Season' },
+  ] as never);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -107,6 +124,10 @@ async function makeService(
       {
         provide: TrophyAwardsImportService,
         useValue: mocks.trophyAwardsImport,
+      },
+      {
+        provide: CompetitionGroupsImportService,
+        useValue: mocks.competitionGroupsImport,
       },
       { provide: ExternalSystemBootstrapService, useValue: mocks.bootstrap },
       { provide: ExternalSystemNameConfigService, useValue: mocks.nameConfig },
@@ -125,7 +146,7 @@ function options(
   overrides: Partial<ImportBblTrophyAwardsOptions> = {},
 ): ImportBblTrophyAwardsOptions {
   return {
-    competitionsByBblId: new Map([['1', makeCompetition('1')]]),
+    competitionEntriesByBblId: new Map([['1', makeCompetition('1')]]),
     teamEraIdsByCompetitionBblId: new Map([['1', new Map([['sew', 21]])]]),
     playerIdsByPid: new Map([
       ['102', 31],
@@ -155,9 +176,14 @@ describe('BblTrophyAwardsImportService', () => {
 
     expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
       {
-        externalIds: [{ externalSystemId: 7, externalId: 'Major 1st' }],
+        externalIds: [
+          {
+            externalSystemId: 7,
+            externalId: 'Major 1st-Major Season',
+          },
+        ],
       },
-      expect.anything(),
+      [],
     );
     expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
       { trophyId: 100, competitionId: 11, teamEraId: 21, playerId: null },
@@ -210,11 +236,75 @@ describe('BblTrophyAwardsImportService', () => {
     );
 
     await service.importTrophyAwards(
-      options({ competitionsByBblId: new Map() }),
+      options({ competitionEntriesByBblId: new Map() }),
     );
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
+  });
+
+  it('skips a competition that was newly created (not pre-seeded by curated data)', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+
+    await service.importTrophyAwards(
+      options({
+        competitionEntriesByBblId: new Map([
+          ['1', makeCompetition('1', { created: true })],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { competition: '1' },
+        message:
+          'Skipping trophy awards for competition id 1: it was not ' +
+          'pre-seeded by curated data, so its competition group cannot be ' +
+          'trusted as a real classification.',
+      },
+    ]);
+  });
+
+  it('skips a competition whose group is not in the curated catalog', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+
+    await service.importTrophyAwards(
+      options({
+        competitionEntriesByBblId: new Map([
+          ['1', makeCompetition('1', { competitionGroupId: 404 })],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { competition: '1' },
+        message:
+          'Skipping trophy awards for competition id 1: its competition ' +
+          'group 404 is not in the curated competition-group catalog.',
+      },
+    ]);
+  });
+
+  it('aborts when the competition-groups list cannot be fetched', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+    mocks.competitionGroupsImport.listCompetitionGroups.mockResolvedValue(
+      undefined,
+    );
+
+    const outcome = await service.importTrophyAwards(options());
+
+    expect(outcome.result).toBe(CANNED_RESULT);
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyReader.getRowsByCompetitionId).not.toHaveBeenCalled();
   });
 
   it('records a skip error for an unresolvable team code', async () => {
@@ -278,7 +368,9 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(1);
+    // Resolved once per row-group (memoized), which is one composite attempt
+    // plus one bare-label fallback since neither matches a curated trophy.
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(2);
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).imported).toBe(0);
   });
@@ -318,12 +410,12 @@ describe('BblTrophyAwardsImportService', () => {
         ['2', 12],
       ]),
     );
-    // Every label resolves to trophy 100 except the made-up one, which
-    // TrophiesImportService answers undefined for (as it would for any label
-    // matching no curated trophy).
+    // Every label resolves to trophy 100 except the made-up one (composite or
+    // bare), which TrophiesImportService answers undefined for (as it would
+    // for any external id matching no curated trophy).
     mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
       Promise.resolve(
-        data.externalIds[0].externalId === 'Made Up Prize'
+        data.externalIds[0].externalId.startsWith('Made Up Prize')
           ? undefined
           : ({ id: 100 } as never),
       ),
@@ -331,7 +423,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1')],
           ['2', makeCompetition('2')],
         ]),
@@ -343,12 +435,13 @@ describe('BblTrophyAwardsImportService', () => {
     );
 
     // The unrecognized label is resolved once for the whole run, not once
-    // per competition that references it.
+    // per competition that references it: one composite attempt plus one
+    // bare-label fallback, both memoized under the same group-scoped key.
     expect(
-      mocks.trophiesImport.upsertTrophy.mock.calls.filter(
-        ([data]) => data.externalIds[0].externalId === 'Made Up Prize',
+      mocks.trophiesImport.upsertTrophy.mock.calls.filter(([data]) =>
+        data.externalIds[0].externalId.startsWith('Made Up Prize'),
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     // Competition 2's other, resolvable row still got written, proving the
     // loop moved on after competition 1's (and competition 2's own) skip.
     expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
@@ -388,7 +481,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(
       options({
-        competitionsByBblId: new Map([
+        competitionEntriesByBblId: new Map([
           ['1', makeCompetition('1')],
           ['2', makeCompetition('2')],
         ]),
@@ -399,16 +492,154 @@ describe('BblTrophyAwardsImportService', () => {
       }),
     );
 
-    // The label is resolved (and its failure recorded by
-    // TrophiesImportService) once; the two later rows that also referenced it
-    // are dropped silently unless a summary error is added for them.
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(1);
+    // The key is resolved (one composite attempt plus one bare-label
+    // fallback, whose failure TrophiesImportService records) once; the two
+    // later rows that also referenced it are dropped silently unless a
+    // summary error is added for them.
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(2);
     const { errors } = resultArgs(mocks.importResults);
     const summaryErrors = errors.filter((error) =>
       error.message.includes('2 further'),
     );
     expect(summaryErrors).toHaveLength(1);
-    expect(summaryErrors[0].message).toContain('Made Up Prize');
+    expect(summaryErrors[0].message).toContain(
+      '"Made Up Prize" label in competition group "Major Season"',
+    );
+  });
+
+  it('resolves a trophy by its group-scoped composite external id first', async () => {
+    const { service, mocks } = await makeService(
+      rows([], [{ label: 'Deadliest Player', pid: '102' }]),
+    );
+    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
+      Promise.resolve(
+        data.externalIds?.[0].externalId === 'Deadliest Player-Major Season'
+          ? ({ id: 201 } as never)
+          : undefined,
+      ),
+    );
+
+    await service.importTrophyAwards(options());
+
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+      {
+        externalIds: [
+          {
+            externalSystemId: BBL_SYSTEM_ID,
+            externalId: 'Deadliest Player-Major Season',
+          },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      { trophyId: 201, competitionId: 11, teamEraId: 41, playerId: 31 },
+      expect.any(Array),
+    );
+  });
+
+  it('falls back to the bare label when no group-scoped trophy exists', async () => {
+    const { service, mocks } = await makeService(
+      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
+    );
+    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
+      Promise.resolve(
+        data.externalIds?.[0].externalId === 'Major 1st'
+          ? ({ id: 300 } as never)
+          : undefined,
+      ),
+    );
+
+    await service.importTrophyAwards(options());
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      { trophyId: 300, competitionId: 11, teamEraId: 21, playerId: null },
+      expect.any(Array),
+    );
+    // The failed composite attempt must not pollute the run's import errors:
+    // a self-disambiguating team label legitimately has no composite row.
+    expect(resultArgs(mocks.importResults).errors).toEqual([]);
+  });
+
+  it('does not conflate the same label awarded in two different groups', async () => {
+    const { service, mocks } = await makeService(
+      new Map([
+        [
+          '1',
+          {
+            teamTrophies: [],
+            playerPrizes: [{ label: 'Deadliest Player', pid: '102' }],
+          },
+        ],
+        [
+          '2',
+          {
+            teamTrophies: [],
+            playerPrizes: [{ label: 'Deadliest Player', pid: '103' }],
+          },
+        ],
+      ]),
+      new Map([
+        ['1', 11],
+        ['2', 12],
+      ]),
+    );
+    mocks.trophiesImport.upsertTrophy.mockImplementation((data) => {
+      const externalId = data.externalIds?.[0].externalId;
+      if (externalId === 'Deadliest Player-Major Season') {
+        return Promise.resolve({ id: 201 } as never);
+      }
+      if (externalId === 'Deadliest Player-Minor Season') {
+        return Promise.resolve({ id: 202 } as never);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    await service.importTrophyAwards(
+      options({
+        competitionEntriesByBblId: new Map([
+          ['1', makeCompetition('1')],
+          ['2', makeCompetition('2', { competitionGroupId: 10 })],
+        ]),
+        teamEraIdsByCompetitionBblId: new Map([
+          ['1', new Map([['sew', 21]])],
+          ['2', new Map([['sew', 22]])],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      { trophyId: 201, competitionId: 11, teamEraId: 41, playerId: 31 },
+      expect.any(Array),
+    );
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      { trophyId: 202, competitionId: 12, teamEraId: 42, playerId: 32 },
+      expect.any(Array),
+    );
+  });
+
+  it('reports an unresolvable label under its group-scoped key', async () => {
+    const { service, mocks } = await makeService(
+      rows(
+        [],
+        [
+          { label: 'Unknown Prize', pid: '102' },
+          { label: 'Unknown Prize', pid: '103' },
+        ],
+      ),
+    );
+    mocks.trophiesImport.upsertTrophy.mockResolvedValue(undefined);
+
+    await service.importTrophyAwards(options());
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults).errors).toContainEqual({
+      item: { trophy: 'Unknown Prize' },
+      message:
+        'Skipped 1 further award row(s) referencing the "Unknown Prize" ' +
+        'label in competition group "Major Season": it could not be ' +
+        'resolved (see the earlier error for this label/group).',
+    });
   });
 
   it('bails with the bootstrap error when the external system cannot be upserted', async () => {

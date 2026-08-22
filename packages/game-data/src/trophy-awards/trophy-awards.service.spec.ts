@@ -12,6 +12,7 @@ import {
   sqlText,
 } from '../shared/query-assertions.test-helpers';
 import {
+  TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
   TrophyAwardUpsertConflictError,
@@ -37,12 +38,20 @@ const teamAward = {
 
 const playerAward = { ...teamAward, playerId: 4 };
 
+/** The trophy-lookup row: recipient kind plus the trophy's curated group. */
+const teamTrophyRow = [{ recipientKind: 'team', competitionGroupId: 1 }];
+const playerTrophyRow = [{ recipientKind: 'player', competitionGroupId: 1 }];
+/** The competition-lookup row, in the same group as both trophy rows. */
+const matchingCompetitionRow = [{ competitionGroupId: 1 }];
+
 describe('TrophyAwardsService', () => {
   let service: TrophyAwardsService;
 
   /**
-   * `rowsPerQuery[0]` is always the trophy lookup (its `recipientKind`),
-   * `rowsPerQuery[1]` the dedup lookup, `rowsPerQuery[2]` the insert.
+   * `rowsPerQuery[0]` is always the trophy lookup (its `recipientKind` and
+   * `competitionGroupId`), `rowsPerQuery[1]` the competition lookup (its
+   * `competitionGroupId`), `rowsPerQuery[2]` the dedup lookup,
+   * `rowsPerQuery[3]` the insert.
    */
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -58,7 +67,8 @@ describe('TrophyAwardsService', () => {
 
   it('inserts a team award when no matching row exists', async () => {
     const { db, chains } = await build(
-      [{ recipientKind: 'team' }],
+      teamTrophyRow,
+      matchingCompetitionRow,
       [],
       [teamAwardRow],
     );
@@ -67,12 +77,13 @@ describe('TrophyAwardsService', () => {
 
     expect(result).toEqual({ trophyAward: teamAwardRow, created: true });
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
-    expect(chains).toHaveLength(3);
+    expect(chains).toHaveLength(4);
   });
 
   it('inserts a player award when no matching row exists', async () => {
     const { db } = await build(
-      [{ recipientKind: 'player' }],
+      playerTrophyRow,
+      matchingCompetitionRow,
       [],
       [playerAwardRow],
     );
@@ -84,7 +95,9 @@ describe('TrophyAwardsService', () => {
   });
 
   it('returns the existing row without inserting when one already matches', async () => {
-    const { db } = await build([{ recipientKind: 'team' }], [teamAwardRow]);
+    const { db } = await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+    ]);
 
     const result = await service.upsert(teamAward);
 
@@ -96,7 +109,12 @@ describe('TrophyAwardsService', () => {
     // A tie is a different playerId, so the dedup lookup finds nothing and a
     // second row is inserted for the same trophy + competition.
     const tiedRow = { ...playerAwardRow, id: 12, playerId: 5 };
-    const { db } = await build([{ recipientKind: 'player' }], [], [tiedRow]);
+    const { db } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      [],
+      [tiedRow],
+    );
 
     const result = await service.upsert({ ...playerAward, playerId: 5 });
 
@@ -105,10 +123,10 @@ describe('TrophyAwardsService', () => {
   });
 
   it('throws TrophyAwardUpsertConflictError when more than one row matches', async () => {
-    await build(
-      [{ recipientKind: 'team' }],
-      [teamAwardRow, { ...teamAwardRow, id: 99 }],
-    );
+    await build(teamTrophyRow, matchingCompetitionRow, [
+      teamAwardRow,
+      { ...teamAwardRow, id: 99 },
+    ]);
 
     await expect(service.upsert(teamAward)).rejects.toBeInstanceOf(
       TrophyAwardUpsertConflictError,
@@ -116,7 +134,7 @@ describe('TrophyAwardsService', () => {
   });
 
   it('throws when a player trophy is awarded with no playerId', async () => {
-    const { db } = await build([{ recipientKind: 'player' }]);
+    const { db } = await build(playerTrophyRow);
 
     await expect(service.upsert(teamAward)).rejects.toBeInstanceOf(
       TrophyAwardRecipientMismatchError,
@@ -125,7 +143,7 @@ describe('TrophyAwardsService', () => {
   });
 
   it('throws when a team trophy is awarded with a playerId', async () => {
-    const { db } = await build([{ recipientKind: 'team' }]);
+    const { db } = await build(teamTrophyRow);
 
     await expect(service.upsert(playerAward)).rejects.toBeInstanceOf(
       TrophyAwardRecipientMismatchError,
@@ -139,6 +157,42 @@ describe('TrophyAwardsService', () => {
     await expect(service.upsert(teamAward)).rejects.toBeInstanceOf(
       TrophyAwardRecipientMismatchError,
     );
+  });
+
+  it('inserts when the competition is in the trophy own group', async () => {
+    const { db, chains } = await build(
+      [{ recipientKind: 'player', competitionGroupId: 3 }],
+      [{ competitionGroupId: 3 }],
+      [],
+      [playerAwardRow],
+    );
+
+    const result = await service.upsert(playerAward);
+
+    expect(result).toEqual({ trophyAward: playerAwardRow, created: true });
+    expect(db.insert).toHaveBeenCalledWith(trophyAwards);
+    expect(chains).toHaveLength(4);
+  });
+
+  it('throws when the competition belongs to a different competition group', async () => {
+    const { db } = await build(
+      [{ recipientKind: 'player', competitionGroupId: 1 }],
+      [{ competitionGroupId: 2 }],
+    );
+
+    await expect(service.upsert(playerAward)).rejects.toBeInstanceOf(
+      TrophyAwardCompetitionGroupMismatchError,
+    );
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it('throws when the referenced competition does not exist', async () => {
+    const { db } = await build(playerTrophyRow, []);
+
+    await expect(service.upsert(playerAward)).rejects.toBeInstanceOf(
+      TrophyAwardCompetitionGroupMismatchError,
+    );
+    expect(db.insert).not.toHaveBeenCalled();
   });
 
   describe('listRecipients', () => {

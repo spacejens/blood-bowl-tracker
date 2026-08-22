@@ -1,6 +1,7 @@
 import {
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -34,8 +35,10 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * category doesn't fit its competition's type (`MatchCategoryMismatchError`)
  * is likewise a payload-validity failure, not a conflict, and also becomes
  * BAD_REQUEST, as does a trophy award whose player id does not fit its
- * trophy's recipient kind (`TrophyAwardRecipientMismatchError`). Anything
- * else propagates untouched.
+ * trophy's recipient kind (`TrophyAwardRecipientMismatchError`) and one whose
+ * competition belongs to a different competition group than its trophy is
+ * curated for (`TrophyAwardCompetitionGroupMismatchError`).
+ * Anything else propagates untouched.
  */
 @Injectable()
 export class UpsertHandlerService {
@@ -58,7 +61,8 @@ export class UpsertHandlerService {
       if (
         err instanceof MissingRequiredFieldError ||
         err instanceof MatchCategoryMismatchError ||
-        err instanceof TrophyAwardRecipientMismatchError
+        err instanceof TrophyAwardRecipientMismatchError ||
+        err instanceof TrophyAwardCompetitionGroupMismatchError
       ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }
@@ -72,8 +76,10 @@ export class UpsertHandlerService {
    * failures exactly as `run` does, but a known domain failure (this
    * entity's conflict error, `MissingRequiredFieldError`,
    * `MatchCategoryMismatchError`, a trophy award whose player id does not
-   * fit its trophy's recipient kind (`TrophyAwardRecipientMismatchError`))
-   * becomes that item's `{success: false}` entry instead of a thrown
+   * fit its trophy's recipient kind (`TrophyAwardRecipientMismatchError`), a
+   * trophy award whose competition is in a different competition group than
+   * its trophy (`TrophyAwardCompetitionGroupMismatchError`)) becomes that
+   * item's `{success: false}` entry instead of a thrown
    * contract error, so one bad item never costs its siblings their upserts.
    * Anything else still propagates untouched and
    * aborts the whole batch — an unexpected server error is not a per-item
@@ -108,7 +114,8 @@ export class UpsertHandlerService {
         if (
           err instanceof MissingRequiredFieldError ||
           err instanceof MatchCategoryMismatchError ||
-          err instanceof TrophyAwardRecipientMismatchError
+          err instanceof TrophyAwardRecipientMismatchError ||
+          err instanceof TrophyAwardCompetitionGroupMismatchError
         ) {
           results.push({ success: false, error: err.message });
           continue;
