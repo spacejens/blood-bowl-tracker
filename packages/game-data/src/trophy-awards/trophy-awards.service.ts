@@ -40,6 +40,22 @@ export class TrophyAwardUpsertConflictError extends UpsertConflictError {}
 export class TrophyAwardRecipientMismatchError extends Error {}
 
 /**
+ * The award's competition belongs to a different competition group than the
+ * trophy is curated for (or the competition does not exist at all) — e.g. a
+ * Major-Season trophy being awarded for a Minor-Season competition, which is
+ * exactly the bug issue #520 found in the BBL importer.
+ *
+ * Enforced here, not in the database and not per importer, for the same
+ * reason `TrophyAwardRecipientMismatchError` is: Postgres cannot
+ * cross-reference `trophies` and `competitions` from a plain `check()` on
+ * `trophy_awards`, and putting it in this shared service is what makes it
+ * apply to every importer — BBL, TP and any future one — instead of being
+ * duplicated in each. It always signals a bug in the calling importer or its
+ * curated data, never an expected-and-skippable condition.
+ */
+export class TrophyAwardCompetitionGroupMismatchError extends Error {}
+
+/**
  * One award of a trophy, as the trophy deepdive renders it: which competition
  * it was won in, which era that competition belongs to, which team won it,
  * and — for a player trophy — which player. `playerId`/`playerName` are
@@ -432,11 +448,20 @@ export class TrophyAwardsService {
    * A tie is not a special case: two players winning the same trophy in the
    * same competition differ in `playerId`, so each simply gets its own row.
    * No cutoff on tie size is applied — real BBL data has ties of up to four.
+   *
+   * Two things are checked before anything is written: the award's recipient
+   * must fit the trophy's `recipientKind`, and the competition must belong to
+   * the trophy's curated competition group (issue #520). Either failure
+   * throws instead of writing.
    */
   async upsert(
     data: UpsertTrophyAward,
   ): Promise<{ trophyAward: TrophyAward; created: boolean }> {
-    await this.assertRecipientFitsTrophy(data);
+    const trophy = await this.assertRecipientFitsTrophy(data);
+    await this.assertCompetitionGroupMatchesTrophy(
+      data,
+      trophy.competitionGroupId,
+    );
 
     const existing = await this.db
       .select()
@@ -477,11 +502,19 @@ export class TrophyAwardsService {
     return { trophyAward: inserted[0], created: true };
   }
 
+  /**
+   * Verifies the award's recipient fits the trophy, and hands the resolved
+   * trophy row back so `assertCompetitionGroupMatchesTrophy` can reuse it
+   * rather than reading `trophies` a second time.
+   */
   private async assertRecipientFitsTrophy(
     data: UpsertTrophyAward,
-  ): Promise<void> {
+  ): Promise<{ competitionGroupId: number }> {
     const [trophy] = await this.db
-      .select({ recipientKind: trophies.recipientKind })
+      .select({
+        recipientKind: trophies.recipientKind,
+        competitionGroupId: trophies.competitionGroupId,
+      })
       .from(trophies)
       .where(eq(trophies.id, data.trophyId));
 
@@ -500,6 +533,38 @@ export class TrophyAwardsService {
       throw new TrophyAwardRecipientMismatchError(
         `Trophy ${data.trophyId} is awarded to a team, so the award must not ` +
           `name a player (playerId was ${data.playerId}).`,
+      );
+    }
+    return trophy;
+  }
+
+  /**
+   * A trophy may only be awarded for a competition in the competition group
+   * it is curated for (issue #520). The trophy's group is passed in, already
+   * read by `assertRecipientFitsTrophy`; only the competition needs its own
+   * lookup.
+   */
+  private async assertCompetitionGroupMatchesTrophy(
+    data: UpsertTrophyAward,
+    trophyCompetitionGroupId: number,
+  ): Promise<void> {
+    const [competition] = await this.db
+      .select({ competitionGroupId: competitions.competitionGroupId })
+      .from(competitions)
+      .where(eq(competitions.id, data.competitionId));
+
+    if (competition === undefined) {
+      throw new TrophyAwardCompetitionGroupMismatchError(
+        `Cannot award trophy ${data.trophyId} in competition ` +
+          `${data.competitionId}: the competition does not exist.`,
+      );
+    }
+    if (competition.competitionGroupId !== trophyCompetitionGroupId) {
+      throw new TrophyAwardCompetitionGroupMismatchError(
+        `Trophy ${data.trophyId} is curated for competition group ` +
+          `${trophyCompetitionGroupId}, but competition ` +
+          `${data.competitionId} belongs to competition group ` +
+          `${competition.competitionGroupId}.`,
       );
     }
   }
