@@ -69,7 +69,7 @@ describe('curated data files', () => {
     }
   });
 
-  it('curates all 15 competition groups against a real league', () => {
+  it('curates all 14 competition groups against a real league', () => {
     const data = readPhase('before-other-importers');
     const leagueIds = new Set(
       data.leagues.flatMap((league) =>
