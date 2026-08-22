@@ -422,6 +422,8 @@ describe('TrophiesListService.resolve', () => {
 
     const description = (reply as { embeds: { description: string }[] })
       .embeds[0].description;
+    expect(description).toContain('Legendary Player (Chaos League)');
+    expect(description).toContain('Major Gold (Major Season)');
     // "Chaos League" sorts before "Major Season", so the league-scoped row
     // comes first.
     expect(description.indexOf('Legendary Player (Chaos League)')).toBeLessThan(
