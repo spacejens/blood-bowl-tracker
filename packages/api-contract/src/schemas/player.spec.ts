@@ -221,4 +221,35 @@ describe('SyncSppAdjustmentsResultSchema', () => {
       ],
     });
   });
+
+  it('rejects a nonzero-adjustment entry with hadCareerCounts omitted', () => {
+    expect(() =>
+      SyncSppAdjustmentsResultSchema.parse({
+        updatedPlayerIds: [3],
+        nonzeroAdjustments: [
+          {
+            playerId: 3,
+            name: 'Karcheres',
+            adjustment: 6,
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a nonzero-adjustment entry with a non-boolean hadCareerCounts', () => {
+    expect(() =>
+      SyncSppAdjustmentsResultSchema.parse({
+        updatedPlayerIds: [3],
+        nonzeroAdjustments: [
+          {
+            playerId: 3,
+            name: 'Karcheres',
+            adjustment: 6,
+            hadCareerCounts: 'true',
+          },
+        ],
+      }),
+    ).toThrow();
+  });
 });
