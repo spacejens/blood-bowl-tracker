@@ -414,9 +414,31 @@ export class MatchEventDecodersService {
         })),
       ],
       [
+        45,
+        this.decode(touchdownRaw, 45, (v) => ({
+          type: 'throw_team_mate',
+          tpEventId: v.id,
+          instant: v.instant,
+          lineUpId: v.lineUpId,
+          rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
+        })),
+      ],
+      [
         46,
         this.decode(touchdownRaw, 46, (v) => ({
           type: 'successful_landing',
+          tpEventId: v.id,
+          instant: v.instant,
+          lineUpId: v.lineUpId,
+          rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
+        })),
+      ],
+      [
+        47,
+        this.decode(touchdownRaw, 47, (v) => ({
+          type: 'catch',
           tpEventId: v.id,
           instant: v.instant,
           lineUpId: v.lineUpId,

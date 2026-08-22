@@ -104,6 +104,28 @@ export type TpMatchEvent =
     })
   | (TpMatchEventBase & {
       /**
+       * A Big Guy's action of throwing a team-mate down field (TP code 45).
+       * `lineUpId` is the THROWER; the thrown player's own landing is a
+       * separate `catch` event. TP reports 1 SPP for it in every observed
+       * instance, but the figure is read from `starPoints`, never assumed.
+       */
+      type: 'throw_team_mate';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      /**
+       * The thrown player's action of being caught (TP code 47) — the
+       * counterpart to `throw_team_mate`, with `lineUpId` naming the thrown
+       * player. Distinct from `successful_landing` (code 46), which TP
+       * records separately.
+       */
+      type: 'catch';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      /**
        * The action of causing a casualty (code 6) — distinct from `injury`
        * (code 8), which reports the victim + severity. `rosterId` here is
        * the ACTING team (the causer's own roster), following every other

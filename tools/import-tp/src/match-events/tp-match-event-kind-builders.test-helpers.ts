@@ -2,8 +2,11 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
+import { mock } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
+import { TpAdminMatchEventBuilderService } from './tp-admin-match-event-builder.service';
+import { TpMatchEventHelpersService } from './tp-match-event-helpers.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 import type {
@@ -36,14 +39,31 @@ export const UNKNOWN_LINE_UP_ID = 888888;
 
 /**
  * Compile a fresh testing module with `TpMatchEventKindBuildersService` as
- * the only real provider; its sole dependency `ImportResultService` is the
- * standard `mockImportResultService()` mock (its pure item/message
- * construction is covered by its own package's spec).
+ * the real provider under test. `ImportResultService` is the standard
+ * `mockImportResultService()` mock (its pure item/message construction is
+ * covered by its own package's spec). `TpAdminMatchEventBuilderService` is
+ * mocked with `vitest-mock-extended`, not passed real: it has its own
+ * injected collaborator (`TpMatchEventHelpersService`), so passing it real
+ * here would exercise a two-hop chain of real services rather than the
+ * isolated unit under test. Its actual admin-event assembly behavior has its
+ * own dedicated spec, `tp-admin-match-event-builder.service.spec.ts`, where
+ * it is the real provider; this shared helper only needs the delegate call
+ * itself to work, which a mock's default behavior handles fine — a test that
+ * needs a specific return value stubs it directly. `TpMatchEventHelpersService`
+ * stays real: `TpMatchEventKindBuildersService` uses it directly for its own
+ * (non-admin) event construction, and it is itself a pure, dependency-free
+ * formatting service with no collaborators of its own, so passing it real
+ * carries no coupling risk.
  */
 export async function makeKindBuilders(): Promise<TpMatchEventKindBuildersService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpMatchEventKindBuildersService,
+      {
+        provide: TpAdminMatchEventBuilderService,
+        useValue: mock<TpAdminMatchEventBuilderService>(),
+      },
+      TpMatchEventHelpersService,
       { provide: ImportResultService, useValue: mockImportResultService() },
     ],
   }).compile();

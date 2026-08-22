@@ -33,10 +33,10 @@ export class TpMatchEventsBuilderService {
 
   /**
    * Build zero or more `UpsertMatchEvent`s for one TP match event. Touchdown,
-   * completion, interception, deflection, mvp_award, and successful_landing
-   * are all built as simple single-actor action events; sent_off is
-   * consequence-side; injury always yields at least a consequence row
-   * (including `injuryType: 'None'`, a real Badly Hurt result);
+   * completion, interception, deflection, mvp_award, successful_landing,
+   * throw_team_mate, and catch are all built as simple single-actor action
+   * events; sent_off is consequence-side; injury always yields at least a
+   * consequence row (including `injuryType: 'None'`, a real Badly Hurt result);
    * casualty_caused yields nothing when it was paired with an injury event via
    * `casualtyPairing` (it's emitted as part of that injury's row instead), or
    * a standalone `'casualty'`-action row otherwise. A foul behaves the same
@@ -53,6 +53,8 @@ export class TpMatchEventsBuilderService {
       case 'interception':
       case 'deflection':
       case 'successful_landing':
+      case 'throw_team_mate':
+      case 'catch':
         return this.eventBuilders.buildSimpleActionEvent(
           { ...options, event },
           event.type,

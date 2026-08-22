@@ -122,18 +122,42 @@ describe('TpSppAdjustmentsImportService', () => {
     adjustments.syncReportedSppAdjustments
       .mockResolvedValueOnce({
         updatedPlayerIds: [1],
-        nonzeroAdjustments: [{ playerId: 1, name: 'Karcheres', adjustment: 3 }],
+        nonzeroAdjustments: [
+          {
+            playerId: 1,
+            name: 'Karcheres',
+            adjustment: 3,
+            hadCareerCounts: false,
+          },
+        ],
       })
       .mockResolvedValueOnce({
         updatedPlayerIds: [2],
-        nonzeroAdjustments: [{ playerId: 2, name: 'Fenriz', adjustment: 10 }],
+        nonzeroAdjustments: [
+          {
+            playerId: 2,
+            name: 'Fenriz',
+            adjustment: 10,
+            hadCareerCounts: true,
+          },
+        ],
       });
 
     const outcome = await service.importSppAdjustments({ playerIds: ids });
 
     expect(outcome.nonzeroAdjustments).toEqual([
-      { playerId: 2, name: 'Fenriz', adjustment: 10 },
-      { playerId: 1, name: 'Karcheres', adjustment: 3 },
+      {
+        playerId: 2,
+        name: 'Fenriz',
+        adjustment: 10,
+        hadCareerCounts: true,
+      },
+      {
+        playerId: 1,
+        name: 'Karcheres',
+        adjustment: 3,
+        hadCareerCounts: false,
+      },
     ]);
   });
 
@@ -147,15 +171,38 @@ describe('TpSppAdjustmentsImportService', () => {
     expect(outcome.nonzeroAdjustments).toEqual([]);
   });
 
-  it('formats a review-aid summary of the remaining adjustments', () => {
+  it('formats the summary with the biggest adjustment first', () => {
     expect(
       service.summaryLines([
-        { playerId: 2, name: 'Fenriz', adjustment: 10 },
-        { playerId: 1, name: 'Karcheres', adjustment: 3 },
+        { playerId: 2, name: 'Fenriz', adjustment: 10, hadCareerCounts: true },
+        {
+          playerId: 1,
+          name: 'Karcheres',
+          adjustment: 3,
+          hadCareerCounts: true,
+        },
       ]),
     ).toEqual([
       '2 player(s) left with an unexplained SPP adjustment:',
       '  - Fenriz (player 2): 10 SPP',
+      '  - Karcheres (player 1): 3 SPP',
+    ]);
+  });
+
+  it('marks only the entries the source reported no career counts for', () => {
+    expect(
+      service.summaryLines([
+        { playerId: 2, name: 'Fenriz', adjustment: 10, hadCareerCounts: false },
+        {
+          playerId: 1,
+          name: 'Karcheres',
+          adjustment: 3,
+          hadCareerCounts: true,
+        },
+      ]),
+    ).toEqual([
+      '2 player(s) left with an unexplained SPP adjustment:',
+      '  - Fenriz (player 2): 10 SPP (no TP career counts available)',
       '  - Karcheres (player 1): 3 SPP',
     ]);
   });

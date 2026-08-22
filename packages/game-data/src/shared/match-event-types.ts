@@ -18,6 +18,20 @@ export const COMPLETION_TYPES: readonly ActionType[] = ['completion'];
 export const INTERCEPTION_TYPES: readonly ActionType[] = ['interception'];
 export const DEFLECTION_TYPES: readonly ActionType[] = ['deflection'];
 /**
+ * A Big Guy's Throw Team-Mate action, counted on the throwing player. The
+ * thrown player's own side of the play is {@link CATCH_TYPES}, a separate
+ * event on a separate player.
+ */
+export const THROW_TEAM_MATE_TYPES: readonly ActionType[] = ['throw_team_mate'];
+/**
+ * The thrown player's catch. Deliberately absent from
+ * {@link SPP_EARNING_ACTION_TYPES} and {@link SPP_CAREER_COUNT_GROUPS}: no
+ * source's roster export carries a career total for it, so there is nothing
+ * for the ongoing-competition estimate to price. A TP-sourced event still
+ * carries its own reported `spp_value`.
+ */
+export const CATCH_TYPES: readonly ActionType[] = ['catch'];
+/**
  * Fouls, counted on the acting side. A foul that CAUSED a casualty is imported
  * (from both BBL and TP) as a single row carrying `actionType: 'foul'` plus the
  * victim's `consequenceType`. Because acting-role counts filter on

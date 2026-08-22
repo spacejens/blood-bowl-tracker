@@ -91,6 +91,15 @@ export const SppAdjustmentSummarySchema = z.object({
   playerId: z.number().int(),
   name: z.string(),
   adjustment: z.number().int(),
+  /**
+   * Whether the source supplied career action counts for this player. When
+   * false, no ongoing-competition estimate was possible at all, so the whole
+   * reported total counts as unexplained — a source-side data gap (the player
+   * had already left the team's live roster before any roster snapshot was
+   * captured), not an import discrepancy. Distinguishing the two is what
+   * makes the review printout actionable.
+   */
+  hadCareerCounts: z.boolean(),
 });
 
 export const SyncSppAdjustmentsResultSchema = z.object({
