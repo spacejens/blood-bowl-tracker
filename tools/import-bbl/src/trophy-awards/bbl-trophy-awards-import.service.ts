@@ -27,17 +27,17 @@ export interface ImportBblTrophyAwardsOptions {
  * competition DB ids.
  */
 interface RunContext {
-  trophyIdsByLabel: Map<string, number | undefined>;
+  trophyIdsByKey: Map<string, number | undefined>;
   bblSystemId: number;
   groupNamesById: Map<number, string>;
   competitionIds: Map<string, number>;
   /**
-   * Count, per label already known to be unresolvable, of further award rows
-   * that referenced it and were dropped without their own error (since
-   * TrophiesImportService only records the resolution failure once, the
-   * first time the label is seen).
+   * Count, per group-scoped key already known to be unresolvable, of further
+   * award rows that referenced it and were dropped without their own error
+   * (since TrophiesImportService only records the resolution failure once,
+   * the first time the key is seen).
    */
-  droppedRowCountsByLabel: Map<string, number>;
+  droppedRowCountsByKey: Map<string, number>;
 }
 
 /**
@@ -71,13 +71,16 @@ export class BblTrophyAwardsImportService {
    * Record every trophy and player award BBL's competition results pages
    * (`p=sr`) list.
    *
-   * A trophy is *resolved*, never created: the upsert carries only the row's
-   * exact BBL label as a `tloeg.bbleague.se` external id, which matches the
-   * curated catalog seeded by tools/import-manual. A label the catalog does
-   * not know cannot satisfy `trophies`' NOT NULL columns, so the call fails
-   * and is recorded as a skip rather than inventing a trophy. Resolutions are
-   * memoized per run — successes and failures alike — so a bad label is
-   * reported once, not once per row.
+   * A trophy is *resolved*, never created: the upsert carries only a
+   * `tloeg.bbleague.se` external id, which matches the curated catalog seeded
+   * by tools/import-manual. An id the catalog does not know cannot satisfy
+   * `trophies`' NOT NULL columns, so the call fails and is recorded as a skip
+   * rather than inventing a trophy. The id tried first is the competition's
+   * group-scoped composite `${label}-${groupName}`, falling back to the bare
+   * label (issue #520) — see `resolveTrophyId`. Resolutions are memoized per
+   * run under `${label}::${groupName}` — successes and failures alike — so a
+   * bad key is reported once, not once per row, and the same label in two
+   * different groups is never conflated.
    *
    * Ties are not special-cased: BBL lists one row per tied winner (up to four
    * in the real data) and each becomes its own award row. No cutoff.
@@ -126,11 +129,11 @@ export class BblTrophyAwardsImportService {
     const rowsByCompetitionId =
       await this.trophyReader.getRowsByCompetitionId(errors);
     const runContext: RunContext = {
-      trophyIdsByLabel: new Map<string, number | undefined>(),
+      trophyIdsByKey: new Map<string, number | undefined>(),
       bblSystemId,
       groupNamesById: new Map(groups.map((group) => [group.id, group.name])),
       competitionIds,
-      droppedRowCountsByLabel: new Map<string, number>(),
+      droppedRowCountsByKey: new Map<string, number>(),
     };
 
     for (const [competitionBblId, rows] of rowsByCompetitionId) {
@@ -196,14 +199,14 @@ export class BblTrophyAwardsImportService {
       }
     }
 
-    for (const [label, droppedCount] of runContext.droppedRowCountsByLabel) {
+    for (const [key, droppedCount] of runContext.droppedRowCountsByKey) {
       errors.push(
         this.importResults.error({
-          item: { trophy: label },
+          item: { trophy: key },
           message:
             `Skipped ${droppedCount} further award row(s) referencing the ` +
-            `"${label}" trophy label: it could not be resolved (see the ` +
-            `earlier error for this label).`,
+            `"${key}" trophy key: it could not be resolved (see the ` +
+            `earlier error for this key).`,
         }),
       );
     }
@@ -323,40 +326,77 @@ export class BblTrophyAwardsImportService {
   }
 
   /**
-   * The catalog trophy whose BBL external id is this exact label, or
+   * The catalog trophy this label refers to *in this competition's group*, or
    * `undefined` when it cannot be resolved (in which case
    * TrophiesImportService has already recorded the failure on `errors`).
-   * Memoized per run, including failures. Every row after the first that
-   * hits an already-known-bad label is counted in
-   * `context.run.droppedRowCountsByLabel` rather than reported individually,
-   * so the caller can add one summary error per label once the run ends.
+   *
+   * Two external ids are tried, in order (issue #520):
+   *   1. `${label}-${groupName}` — the composite id the curated catalog uses
+   *      for a player-trophy label BBL awards in more than one competition
+   *      group, matching the format TP's own ids already use.
+   *   2. the bare `label` — the original scheme, which every
+   *      self-disambiguating team trophy (`Major 1st`, `Minor 1st`) and every
+   *      unambiguous player trophy still uses.
+   *
+   * The composite attempt gets its own throwaway `errors` array: a failed
+   * lookup there is the *expected* outcome for every trophy that has no
+   * group-scoped row, and letting TrophiesImportService record it on the run's
+   * real error list would report a spurious failure for almost every award.
+   * Only the fallback's failure is a real one, so only it writes to `errors`.
+   * A bare-label fallback that resolves the *wrong* group's trophy is not
+   * silently accepted either: the server-side group check in
+   * TrophyAwardsService rejects that award at write time.
+   *
+   * Memoized per run under `${label}::${groupName}`, failures included, so
+   * the same label in two different groups no longer shares one cache entry.
+   * Every row after the first that hits an already-known-bad key is counted
+   * in `context.run.droppedRowCountsByKey` rather than reported individually,
+   * so the caller can add one summary error per key once the run ends.
    */
   private async resolveTrophyId(
     label: string,
     context: CompetitionContext,
     errors: ImportError[],
   ): Promise<number | undefined> {
-    if (context.run.trophyIdsByLabel.has(label)) {
-      const trophyId = context.run.trophyIdsByLabel.get(label);
-      if (trophyId === undefined) {
-        const { droppedRowCountsByLabel } = context.run;
-        droppedRowCountsByLabel.set(
-          label,
-          (droppedRowCountsByLabel.get(label) ?? 0) + 1,
+    const { run } = context;
+    const key = `${label}::${context.groupName}`;
+    if (run.trophyIdsByKey.has(key)) {
+      const memoized = run.trophyIdsByKey.get(key);
+      if (memoized === undefined) {
+        run.droppedRowCountsByKey.set(
+          key,
+          (run.droppedRowCountsByKey.get(key) ?? 0) + 1,
         );
       }
-      return trophyId;
+      return memoized;
     }
-    const trophy = await this.trophiesImport.upsertTrophy(
+
+    const composite = await this.trophiesImport.upsertTrophy(
       {
         externalIds: [
-          { externalSystemId: context.run.bblSystemId, externalId: label },
+          {
+            externalSystemId: run.bblSystemId,
+            externalId: `${label}-${context.groupName}`,
+          },
         ],
       },
-      errors,
+      // Deliberately discarded -- see this method's doc comment.
+      [],
     );
-    const trophyId = trophy?.id;
-    context.run.trophyIdsByLabel.set(label, trophyId);
+    let trophyId = composite?.id;
+    if (trophyId === undefined) {
+      const fallback = await this.trophiesImport.upsertTrophy(
+        {
+          externalIds: [
+            { externalSystemId: run.bblSystemId, externalId: label },
+          ],
+        },
+        errors,
+      );
+      trophyId = fallback?.id;
+    }
+
+    run.trophyIdsByKey.set(key, trophyId);
     return trophyId;
   }
 }
