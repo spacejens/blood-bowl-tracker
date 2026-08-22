@@ -274,6 +274,16 @@ describe('TpTrophyAwardsImportService', () => {
         ]),
       },
     );
+    // Distinct trophy ids per composite key: the default mock resolves every
+    // lookup to the same trophy id, which cannot distinguish a swapped
+    // trophy-to-competition attribution from a correct one.
+    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
+      Promise.resolve(
+        data.externalIds?.[0].externalId === '1-Major Season'
+          ? upsertedTrophy(201)
+          : upsertedTrophy(202),
+      ),
+    );
 
     await service.importTrophyAwards(
       options({
@@ -312,14 +322,15 @@ describe('TpTrophyAwardsImportService', () => {
       expect.any(Array),
     );
     // Pins the trophy-to-competition attribution itself, not just which
-    // trophy keys were looked up: a swap between competitions 42 and 43
-    // would still pass the two assertions above.
+    // trophy keys were looked up: matches each award's competitionId against
+    // its own group-scoped trophyId, so a swap between the two competitions
+    // (or their resolved trophies) would fail this assertion.
     expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
-      expect.objectContaining({ competitionId: 42 }),
+      expect.objectContaining({ competitionId: 42, trophyId: 201 }),
       expect.any(Array),
     );
     expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
-      expect.objectContaining({ competitionId: 43 }),
+      expect.objectContaining({ competitionId: 43, trophyId: 202 }),
       expect.any(Array),
     );
   });
