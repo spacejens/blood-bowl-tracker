@@ -16,12 +16,14 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayersService } from './players.service';
 
 describe('PlayersService toplist queries', () => {
   let service: PlayersService;
   let likePattern: MockProxy<LikePatternService>;
   let sppTotals: MockProxy<SppTotalsService>;
+  let deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -33,6 +35,7 @@ describe('PlayersService toplist queries', () => {
         PlayersService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: SppTotalsService, useValue: sppTotals },
+        { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -43,6 +46,7 @@ describe('PlayersService toplist queries', () => {
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
     sppTotals = mock<SppTotalsService>();
+    deepdiveCounts = mock<PlayerDeepdiveCountsService>();
   });
 
   it('countMvpAwardsByPlayer returns the rows the query resolves to', async () => {
