@@ -276,14 +276,19 @@ describe('TpTrophyAwardsImportService', () => {
     );
     // Distinct trophy ids per composite key: the default mock resolves every
     // lookup to the same trophy id, which cannot distinguish a swapped
-    // trophy-to-competition attribution from a correct one.
-    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
-      Promise.resolve(
-        data.externalIds?.[0].externalId === '1-Major Season'
+    // trophy-to-competition attribution from a correct one. Restricted to
+    // exactly the two expected keys so a regression that resolves either
+    // competition via a bare label or another composite key fails loudly
+    // here, rather than silently falling through to trophy 202.
+    mocks.trophiesImport.upsertTrophy.mockImplementation((data) => {
+      const externalId = data.externalIds?.[0]?.externalId;
+      expect(['1-Major Season', '1-Chaos Cup']).toContain(externalId);
+      return Promise.resolve(
+        externalId === '1-Major Season'
           ? upsertedTrophy(201)
           : upsertedTrophy(202),
-      ),
-    );
+      );
+    });
 
     await service.importTrophyAwards(
       options({
