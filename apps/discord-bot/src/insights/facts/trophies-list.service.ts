@@ -15,8 +15,10 @@ import { ListDescriptionService } from '../../shared/list-description.service';
 interface TrophyEntry {
   id: number;
   name: string;
-  competitionGroupId: number;
-  competitionGroupName: string;
+  competitionGroupId: number | null;
+  competitionGroupName: string | null;
+  leagueId: number | null;
+  leagueName: string | null;
 }
 
 @Injectable()
@@ -44,18 +46,23 @@ export class TrophiesListService {
       };
     }
 
-    // Group first so trophies awarded by the same competition cluster
-    // together, then trophy name within (and across) groups.
+    // Scope name first so trophies awarded under the same competition group
+    // (or the same league) cluster together, then trophy name within. A
+    // trophy carries exactly one of the two names, so whichever is present
+    // is the sort key.
+    const scopeName = (trophy: TrophyEntry): string =>
+      trophy.competitionGroupName ?? trophy.leagueName ?? '';
+
     const ordered: TrophyEntry[] = rows
       .slice()
       .sort(
         (a, b) =>
-          a.competitionGroupName.localeCompare(b.competitionGroupName) ||
+          scopeName(a).localeCompare(scopeName(b)) ||
           a.name.localeCompare(b.name),
       );
 
     const lines = ordered.map(
-      (trophy) => `${trophy.name} (${trophy.competitionGroupName})`,
+      (trophy) => `${trophy.name} (${scopeName(trophy)})`,
     );
 
     const { components, overflowNote } =

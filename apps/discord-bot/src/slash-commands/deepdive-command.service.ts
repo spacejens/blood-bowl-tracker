@@ -14,6 +14,7 @@ import {
   DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
@@ -31,6 +32,7 @@ export {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -43,6 +45,7 @@ import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -97,6 +100,10 @@ export class DeepdiveCommandService implements OnModuleInit {
       COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleCompetitionGroupButton(interaction),
     );
+    this.discordClient.registerButtonHandler(
+      LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handleLeagueButton(interaction),
+    );
     this.discordClient.registerSelectMenuHandler(
       ERA_BUTTON_CUSTOM_ID_PREFIX,
       (interaction: StringSelectMenuInteraction) =>
@@ -141,6 +148,11 @@ export class DeepdiveCommandService implements OnModuleInit {
       COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
       (interaction: StringSelectMenuInteraction) =>
         this.handleCompetitionGroupSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleLeagueSelect(interaction),
     );
   }
 
@@ -206,6 +218,12 @@ export class DeepdiveCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'league',
+          description: 'Show the detail view for a single league (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) =>
@@ -226,6 +244,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const trophyOption = interaction.options.getString('trophy');
     const competitionGroupOption =
       interaction.options.getString('competition-group');
+    const leagueOption = interaction.options.getString('league');
     const supplied = [
       eraOption,
       coachOption,
@@ -236,6 +255,7 @@ export class DeepdiveCommandService implements OnModuleInit {
       competitionOption,
       trophyOption,
       competitionGroupOption,
+      leagueOption,
     ].filter((value) => value !== null);
     if (supplied.length > 1) {
       return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
@@ -268,6 +288,9 @@ export class DeepdiveCommandService implements OnModuleInit {
       return this.targetResolver.resolveCompetitionGroup(
         competitionGroupOption,
       );
+    }
+    if (leagueOption !== null) {
+      return this.targetResolver.resolveLeague(leagueOption);
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -351,6 +374,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.targetResolver.resolveCompetitionGroup(idPart);
+  }
+
+  async handleLeagueButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      LEAGUE_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.targetResolver.resolveLeague(idPart);
   }
 
   async handleEraSelect(
@@ -441,5 +473,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE;
     }
     return this.targetResolver.resolveCompetitionGroup(value);
+  }
+
+  async handleLeagueSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE;
+    }
+    return this.targetResolver.resolveLeague(value);
   }
 }

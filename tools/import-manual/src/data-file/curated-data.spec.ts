@@ -136,20 +136,32 @@ describe('curated data files', () => {
     }
   });
 
-  it('classifies every curated trophy into a curated group', () => {
+  it('classifies every curated trophy into a curated group or league', () => {
     const data = readPhase('before-other-importers');
     const groupNames = new Set(
       data.competitionGroups.map((group) => group.name),
     );
+    const leagueIds = new Set(
+      data.leagues.flatMap((league) =>
+        league.externalIds.map((ref) => `${ref.system}|${ref.id}`),
+      ),
+    );
 
-    expect(data.trophies).toHaveLength(43);
+    expect(data.trophies).toHaveLength(38);
     for (const trophy of data.trophies) {
-      expect(
-        trophy.competitionGroup,
-        `trophy "${trophy.name}" has no competitionGroup`,
-      ).toBeDefined();
-      expect(trophy.competitionGroup!.system).toBe('Name');
-      expect(groupNames).toContain(trophy.competitionGroup!.id);
+      if (trophy.league) {
+        expect(leagueIds).toContain(
+          `${trophy.league.system}|${trophy.league.id}`,
+        );
+        expect(trophy.competitionGroup).toBeUndefined();
+      } else {
+        expect(
+          trophy.competitionGroup,
+          `trophy "${trophy.name}" has no competitionGroup or league`,
+        ).toBeDefined();
+        expect(trophy.competitionGroup!.system).toBe('Name');
+        expect(groupNames).toContain(trophy.competitionGroup!.id);
+      }
     }
   });
 
@@ -205,8 +217,8 @@ describe('curated data files', () => {
 
   it('seeds a composite BBL external id for every ambiguous player trophy', () => {
     // BBL hands the same player-trophy label out in more than one
-    // competition group (a Major-Season "Deadliest Player", a Chaos Cup
-    // "Legendary Player"), so the label alone cannot identify the trophy.
+    // competition group (a Major-Season "Deadliest Player", a Minor-Season
+    // "Deadliest Player"), so the label alone cannot identify the trophy.
     // Every one of these player trophies -- including its original Major
     // Season row -- is therefore keyed by the composite
     // `${label}-${groupName}` BBL external id, matching the composite format
@@ -238,13 +250,6 @@ describe('curated data files', () => {
       'Top Thrower-Minor Season',
       'Top Intercepter-Minor Season',
       'Most SPP-Minor Season',
-      'Legendary Player-Major Season',
-      'Legendary Player-Chaos Cup',
-      'Legendary Player-Ogretoberfest',
-      'Legendary Player-Champion of tLoEG',
-      'Trogen Tjänst-Major Season',
-      'Trogen Tjänst-Moot Mania',
-      'Trogen Tjänst-Chaos Cup',
     ]);
   });
 

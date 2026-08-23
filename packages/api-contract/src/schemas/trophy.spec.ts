@@ -10,6 +10,7 @@ describe('trophy schemas', () => {
       recipientKind: 'team',
       description: 'The team that wins after four matches.',
       competitionGroupId: 2,
+      leagueId: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.recipientKind).toBe('team');
@@ -23,6 +24,7 @@ describe('trophy schemas', () => {
       recipientKind: 'team',
       description: null,
       competitionGroupId: 2,
+      leagueId: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.description).toBeNull();
@@ -78,5 +80,41 @@ describe('trophy schemas', () => {
     expect(
       UpsertTrophySchema.parse({ name: 'Major Gold' }).competitionGroupId,
     ).toBeUndefined();
+  });
+
+  it('accepts a league-scoped trophy with a null competition group', () => {
+    const parsed = TrophySchema.parse({
+      id: 1,
+      name: 'Legendary Player',
+      recipientKind: 'player',
+      description: null,
+      competitionGroupId: null,
+      leagueId: 7,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(parsed.competitionGroupId).toBeNull();
+    expect(parsed.leagueId).toBe(7);
+  });
+
+  it('accepts an upsert that clears the competition group and sets a league', () => {
+    const parsed = UpsertTrophySchema.parse({
+      name: 'Legendary Player',
+      competitionGroupId: null,
+      leagueId: 7,
+    });
+    expect(parsed.competitionGroupId).toBeNull();
+    expect(parsed.leagueId).toBe(7);
+  });
+
+  it('leaves both scope fields undefined when an upsert omits them', () => {
+    const parsed = UpsertTrophySchema.parse({ name: 'Legendary Player' });
+    expect(parsed.competitionGroupId).toBeUndefined();
+    expect(parsed.leagueId).toBeUndefined();
+  });
+
+  it('rejects a non-integer league id on upsert', () => {
+    expect(() =>
+      UpsertTrophySchema.parse({ name: 'Legendary Player', leagueId: 1.5 }),
+    ).toThrow();
   });
 });

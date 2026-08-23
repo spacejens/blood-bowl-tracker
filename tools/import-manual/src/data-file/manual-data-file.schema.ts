@@ -137,6 +137,13 @@ const TrophyEntrySchema = z.object({
   // like any other cross-reference. Optional, so an entry that says nothing
   // about a group leaves the stored classification alone.
   competitionGroup: ExternalRefSchema.optional(),
+  // The league this trophy is awarded across, when it is not tied to one
+  // competition group -- a normal external-id cross-reference in the source
+  // system's own namespace (e.g. { system: 'tloeg.bbleague.se', id: 'tLoEG' }),
+  // the same convention competition-groups.json5 and eras.json5 use for a
+  // league. Optional and mutually exclusive with `competitionGroup`; the
+  // database's own check constraint is what enforces that exactly one is set.
+  league: ExternalRefSchema.optional(),
   externalIds: z.array(ExternalRefSchema).default([]),
 });
 

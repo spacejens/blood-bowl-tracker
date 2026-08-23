@@ -9,7 +9,8 @@ export const TrophySchema = z.object({
   name: z.string(),
   recipientKind: TrophyRecipientKindSchema,
   description: z.string().nullable(),
-  competitionGroupId: z.number(),
+  competitionGroupId: z.number().nullable(),
+  leagueId: z.number().nullable(),
   createdAt: z.coerce.date(),
 });
 
@@ -30,10 +31,14 @@ export const UpsertTrophySchema = z.object({
   // Nullable AND optional: omitting it leaves the stored description alone,
   // an explicit null clears it.
   description: z.string().nullable().optional(),
-  // Optional like every other trophy field: an omitted value leaves the
-  // stored group alone (overlay semantics), and on create the database's own
-  // default applies. Real classification is curated in tools/import-manual.
-  competitionGroupId: z.number().int().optional(),
+  // A trophy is scoped to exactly one of a competition group and a league.
+  // Both are nullable AND optional, matching `description`'s overlay
+  // semantics: omitting a field leaves the stored value alone, an explicit
+  // null clears it — which is how a curated entry reclassifies a trophy from
+  // group-scoped to league-scoped in a single upsert. Mutual exclusivity is
+  // enforced by the database's own check constraint, not here.
+  competitionGroupId: z.number().int().nullable().optional(),
+  leagueId: z.number().int().nullable().optional(),
   externalIds: z.array(ExternalIdSchema).default([]),
 });
 

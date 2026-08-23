@@ -5,6 +5,7 @@ import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
 import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-group-deepdive.service';
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
+import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
@@ -15,6 +16,7 @@ import {
   DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
@@ -49,6 +51,7 @@ export class DeepdiveTargetResolverService {
     private readonly competitionGroupDeepdive: CompetitionGroupDeepdiveService,
     private readonly trophyDeepdive: TrophyDeepdiveService,
     private readonly starPlayerDeepdive: StarPlayerDeepdiveService,
+    private readonly leagueDeepdive: LeagueDeepdiveService,
   ) {}
 
   resolveEra(value: string): Promise<string | InteractionReplyOptions> {
@@ -114,6 +117,12 @@ export class DeepdiveTargetResolverService {
       value,
       DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
       (id) => this.competitionGroupDeepdive.resolve(id),
+    );
+  }
+
+  resolveLeague(value: string): Promise<string | InteractionReplyOptions> {
+    return this.resolveTarget(value, DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE, (id) =>
+      this.leagueDeepdive.resolve(id),
     );
   }
 

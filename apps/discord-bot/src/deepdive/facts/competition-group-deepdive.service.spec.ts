@@ -117,6 +117,7 @@ function makeTrophies(
 ): MockProxy<TrophiesService> {
   const trophies = mock<TrophiesService>();
   trophies.listByCompetitionGroup.mockResolvedValue(rows);
+  trophies.listByLeague.mockResolvedValue([]);
   return trophies;
 }
 
@@ -398,5 +399,55 @@ describe('CompetitionGroupDeepdiveService', () => {
     expect(
       (result as { embeds: { description: string }[] }).embeds[0].description,
     ).toContain('…and 3 more without a link.');
+  });
+
+  it("lists the parent league's trophies alongside the group's own", async () => {
+    const competitionGroups = makeGroups({
+      id: 1,
+      name: 'Major Season',
+      leagueId: 7,
+      leagueName: 'tLoEG',
+    });
+    const trophies = mock<TrophiesService>();
+    trophies.listByCompetitionGroup.mockResolvedValue([
+      { id: 1, name: 'Major Gold' },
+    ]);
+    trophies.listByLeague.mockResolvedValue([
+      { id: 3, name: 'Legendary Player' },
+    ]);
+    const { service } = await makeService({
+      competitionGroups,
+      trophies,
+      competitions: makeCompetitions([]),
+    });
+
+    const reply = await service.resolve(1);
+
+    const description = (reply as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('Major Gold');
+    expect(description).toContain('Legendary Player');
+    expect(trophies.listByLeague).toHaveBeenCalledWith(7);
+  });
+
+  it('reports a timeout when the league trophies lookup is slow', async () => {
+    const competitionGroups = makeGroups({
+      id: 1,
+      name: 'Major Season',
+      leagueId: 7,
+      leagueName: 'tLoEG',
+    });
+    const databaseTimeout = mockDatabaseTimeout();
+    databaseTimeout.run
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (_work, fallback) => fallback);
+    const { service } = await makeService({
+      competitionGroups,
+      databaseTimeout,
+    });
+
+    expect(await service.resolve(1)).toBe(
+      DEEPDIVE_COMPETITION_GROUP_TROPHIES_TIMEOUT_MESSAGE,
+    );
   });
 });

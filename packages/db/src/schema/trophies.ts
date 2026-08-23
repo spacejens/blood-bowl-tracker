@@ -1,7 +1,9 @@
-import { integer, serial, varchar } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { competitionGroups } from './competition-groups';
 import { historyTrackedTable } from './history';
+import { leagues } from './leagues';
 import { gameData } from './pg-schema';
 
 /**
@@ -38,15 +40,29 @@ const trophiesTable = historyTrackedTable({
     // known by name before its criteria are. `varchar` rather than `text`
     // because no schema module in this package uses `text`.
     description: varchar('description', { length: 1024 }),
-    // Which competition group this trophy can be awarded for (issue #445), so
-    // #446 can consider only applicable trophies when awarding for a
-    // competition. Same NOT NULL + default-1 rationale as
-    // `competitions.competition_group_id`.
-    competitionGroupId: integer('competition_group_id')
-      .references(() => competitionGroups.id)
-      .notNull()
-      .default(1),
+    // Which competition group this trophy can be awarded for. Nullable, and
+    // mutually exclusive with `leagueId`: a recurring group-specific trophy
+    // (e.g. "Major Gold") names a group here, while a lifetime-achievement
+    // trophy that any competition in the league can award names a league
+    // instead. Enforced by the `trophies_group_or_league` check below. No
+    // default: an unspecified scope must fail loudly rather than silently
+    // land in competition group 1.
+    competitionGroupId: integer('competition_group_id').references(
+      () => competitionGroups.id,
+    ),
+    // The league this trophy is awarded across, when it is not tied to one
+    // competition group. Exactly one of this and `competitionGroupId` is set.
+    leagueId: integer('league_id').references(() => leagues.id),
   },
+  extraConfig: (t) => ({
+    // A plain single-table check, unlike the cross-table comparisons
+    // `trophy-awards.ts` and `matches.ts` note Postgres cannot express this
+    // way, so it is enforced in the database rather than in application code.
+    groupOrLeague: check(
+      'trophies_group_or_league',
+      sql`(${t.competitionGroupId} IS NOT NULL) != (${t.leagueId} IS NOT NULL)`,
+    ),
+  }),
 });
 
 export const trophies = trophiesTable.table;

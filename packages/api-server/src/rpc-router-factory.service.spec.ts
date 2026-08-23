@@ -973,6 +973,7 @@ describe('RpcRouterFactoryService', () => {
         recipientKind: 'team' as const,
         description: null,
         competitionGroupId: 5,
+        leagueId: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -992,6 +993,7 @@ describe('RpcRouterFactoryService', () => {
         recipientKind: 'team',
         description: null,
         competitionGroupId: 5,
+        leagueId: null,
         createdAt: new Date('2026-01-01'),
         created: true,
       });

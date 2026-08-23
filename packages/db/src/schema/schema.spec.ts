@@ -286,10 +286,27 @@ describe('schema', () => {
     expect(trophies.description.notNull).toBe(false);
   });
 
-  it('exports trophies table with a competition group foreign key', () => {
+  it('exports trophies.competition_group_id as a nullable column with no default', () => {
+    // Nullable on purpose: a trophy is scoped EITHER to a competition group
+    // or to a league, never to both, so a league-scoped trophy leaves this
+    // column empty. The default is dropped for the same reason — an
+    // unspecified scope must not silently become competition group 1.
     expect(trophies.competitionGroupId).toBeDefined();
-    expect(trophies.competitionGroupId.notNull).toBe(true);
-    expect(trophies.competitionGroupId.hasDefault).toBe(true);
+    expect(trophies.competitionGroupId.notNull).toBe(false);
+    expect(trophies.competitionGroupId.hasDefault).toBe(false);
+  });
+
+  it('exports trophies.league_id as a nullable integer column', () => {
+    expect(trophies.leagueId).toBeDefined();
+    expect(trophies.leagueId.notNull).toBe(false);
+    expect(trophies.leagueId.hasDefault).toBe(false);
+    expect(trophies.leagueId.getSQLType()).toBe('integer');
+  });
+
+  it('constrains trophies to exactly one of competition group and league', () => {
+    const config = getTableConfig(trophies);
+    const names = config.checks.map((c) => c.name);
+    expect(names).toContain('trophies_group_or_league');
   });
 
   it('exports trophyExternalIds keyed on trophyId', () => {

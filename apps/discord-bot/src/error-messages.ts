@@ -207,3 +207,17 @@ export const DEEPDIVE_COMPETITION_GROUP_NO_TROPHIES_MESSAGE =
   'Not one piece of silverware rides on this one.';
 export const DEEPDIVE_COMPETITION_GROUP_NO_COMPETITIONS_MESSAGE =
   'This fixture has never actually been played.';
+
+// --- League deepdive (deepdive/facts/league-deepdive.ts) ---
+export const DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE =
+  'No league by that name has ever been chartered.';
+export const DEEPDIVE_LEAGUE_TIMEOUT_MESSAGE =
+  'The registrar is still digging the league charter out of the vault.';
+export const DEEPDIVE_LEAGUE_COMPETITION_GROUPS_TIMEOUT_MESSAGE =
+  'The fixture secretary is still listing every fixture this league runs.';
+export const DEEPDIVE_LEAGUE_TROPHIES_TIMEOUT_MESSAGE =
+  'The silversmith is still counting the cups on the league shelf.';
+export const DEEPDIVE_LEAGUE_NO_COMPETITION_GROUPS_MESSAGE =
+  'This league has never scheduled a single fixture.';
+export const DEEPDIVE_LEAGUE_NO_TROPHIES_MESSAGE =
+  'This league keeps no silverware of its own.';

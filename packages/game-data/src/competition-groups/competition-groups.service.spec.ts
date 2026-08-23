@@ -105,6 +105,22 @@ describe('CompetitionGroupsService', () => {
     expect(db.chains[0].from).toHaveBeenCalledWith(competitionGroups);
   });
 
+  it('lists the competition groups of one league, ordered by name', async () => {
+    const { service, db } = await makeService([
+      { id: 1, name: 'Chaos Cup' },
+      { id: 2, name: 'Major Season' },
+    ]);
+
+    const rows = await service.listByLeague(7);
+
+    expect(rows).toEqual([
+      { id: 1, name: 'Chaos Cup' },
+      { id: 2, name: 'Major Season' },
+    ]);
+    expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(7);
+    expect(db.chains[0].orderBy).toHaveBeenCalled();
+  });
+
   describe('findByIdWithLeague', () => {
     it('returns the group joined with its league name', async () => {
       const row = {

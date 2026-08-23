@@ -16,6 +16,7 @@ import {
   DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
@@ -31,6 +32,7 @@ import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   DeepdiveCommandService,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -82,6 +84,7 @@ function chatInput(options: {
   competition?: string | null;
   trophy?: string | null;
   competitionGroup?: string | null;
+  league?: string | null;
 }): ChatInputCommandInteraction {
   return {
     options: {
@@ -94,7 +97,9 @@ function chatInput(options: {
         if (name === 'race') return options.race ?? null;
         if (name === 'competition') return options.competition ?? null;
         if (name === 'trophy') return options.trophy ?? null;
-        return options.competitionGroup ?? null;
+        if (name === 'competition-group')
+          return options.competitionGroup ?? null;
+        return options.league ?? null;
       }),
     },
   } as unknown as ChatInputCommandInteraction;
@@ -167,6 +172,12 @@ describe('DeepdiveCommandService', () => {
         name: 'competition-group',
         description:
           'Show the detail view for a single competition group (optional)',
+        type: 3,
+        autocomplete: true,
+      },
+      {
+        name: 'league',
+        description: 'Show the detail view for a single league (optional)',
         type: 3,
         autocomplete: true,
       },
@@ -282,6 +293,14 @@ describe('DeepdiveCommandService', () => {
     );
     expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
       COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
+      LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
   });
@@ -631,6 +650,43 @@ describe('DeepdiveCommandService', () => {
     ).resolves.toBe('group embed');
     expect(targetResolver.resolveCompetitionGroup).toHaveBeenCalledWith('4');
   });
+
+  it('offers a league option', async () => {
+    const { service } = await makeService();
+    const names = service.buildCommand().options?.map((option) => option.name);
+    expect(names).toContain('league');
+  });
+
+  it('routes the league option to the league resolver', async () => {
+    const { service, targetResolver } = await makeService();
+    targetResolver.resolveLeague.mockResolvedValue('league embed');
+    const interaction = chatInput({ league: '7' });
+
+    await expect(service.execute(interaction)).resolves.toBe('league embed');
+    expect(targetResolver.resolveLeague).toHaveBeenCalledWith('7');
+  });
+
+  it('routes a league button to the league resolver', async () => {
+    const { service, targetResolver } = await makeService();
+    targetResolver.resolveLeague.mockResolvedValue('league embed');
+
+    await expect(
+      service.handleLeagueButton(
+        buttonInteraction(`${LEAGUE_BUTTON_CUSTOM_ID_PREFIX}7`),
+      ),
+    ).resolves.toBe('league embed');
+    expect(targetResolver.resolveLeague).toHaveBeenCalledWith('7');
+  });
+
+  it('routes a league select menu value to the league resolver', async () => {
+    const { service, targetResolver } = await makeService();
+    targetResolver.resolveLeague.mockResolvedValue('league embed');
+
+    await expect(
+      service.handleLeagueSelect(selectInteraction(['7'])),
+    ).resolves.toBe('league embed');
+    expect(targetResolver.resolveLeague).toHaveBeenCalledWith('7');
+  });
 });
 
 interface SelectCase {
@@ -699,6 +755,12 @@ const selectCases: SelectCase[] = [
       service.handleCompetitionGroupSelect(interaction),
     resolver: (made) => made.targetResolver.resolveCompetitionGroup,
     notFoundMessage: DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'league',
+    invoke: (service, interaction) => service.handleLeagueSelect(interaction),
+    resolver: (made) => made.targetResolver.resolveLeague,
+    notFoundMessage: DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   },
 ];
 

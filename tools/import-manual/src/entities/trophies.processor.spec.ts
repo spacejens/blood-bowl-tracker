@@ -66,6 +66,7 @@ describe('TrophiesProcessor', () => {
       recipientKind: 'team',
       description: 'The team that wins after four matches.',
       competitionGroupId: 1,
+      leagueId: null,
       createdAt: new Date(),
       created: true,
     });
@@ -105,6 +106,7 @@ describe('TrophiesProcessor', () => {
       recipientKind: 'team',
       description: null,
       competitionGroupId: 1,
+      leagueId: null,
       createdAt: new Date(),
       created: true,
     });
@@ -149,6 +151,7 @@ describe('TrophiesProcessor', () => {
       recipientKind: 'team',
       description: null,
       competitionGroupId: 1,
+      leagueId: null,
       createdAt: new Date(),
       created: true,
     });
@@ -173,6 +176,7 @@ describe('TrophiesProcessor', () => {
       recipientKind: 'team',
       description: null,
       competitionGroupId: 4,
+      leagueId: null,
       createdAt: new Date(),
       created: true,
     });
@@ -209,6 +213,7 @@ describe('TrophiesProcessor', () => {
       recipientKind: 'team',
       description: null,
       competitionGroupId: 1,
+      leagueId: null,
       createdAt: new Date(),
       created: true,
     });
@@ -242,5 +247,105 @@ describe('TrophiesProcessor', () => {
 
     expect(await processor.process(makeContext(data))).toBe(0);
     expect(trophies.upsertTrophy).not.toHaveBeenCalled();
+  });
+
+  it('resolves a league reference and passes its id to the upsert', async () => {
+    refResolver.resolveOptionalRef.mockImplementation((options) =>
+      Promise.resolve(
+        options.kind === 'league'
+          ? { ok: true, id: 7 }
+          : { ok: true, id: undefined },
+      ),
+    );
+    trophies.upsertTrophy.mockResolvedValue({
+      id: 3,
+      name: 'Legendary Player',
+      recipientKind: 'player',
+      description: null,
+      competitionGroupId: 1,
+      leagueId: 7,
+      createdAt: new Date(),
+      created: true,
+    });
+
+    const imported = await processor.process(
+      makeContext({
+        ...emptyData(),
+        trophies: [
+          {
+            name: 'Legendary Player',
+            recipientKind: 'player',
+            league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+            externalIds: [],
+          },
+        ],
+      }),
+    );
+
+    expect(imported).toBe(1);
+    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: undefined, leagueId: 7 }),
+      expect.anything(),
+    );
+  });
+
+  it('skips an entry whose league reference does not resolve', async () => {
+    refResolver.resolveOptionalRef.mockImplementation((options) =>
+      Promise.resolve(
+        options.kind === 'league' ? { ok: false } : { ok: true, id: undefined },
+      ),
+    );
+
+    const imported = await processor.process(
+      makeContext({
+        ...emptyData(),
+        trophies: [
+          {
+            name: 'Legendary Player',
+            recipientKind: 'player',
+            league: { system: 'tloeg.bbleague.se', id: 'nope' },
+            externalIds: [],
+          },
+        ],
+      }),
+    );
+
+    expect(imported).toBe(0);
+    expect(trophies.upsertTrophy).not.toHaveBeenCalled();
+  });
+
+  it('passes both scope ids through undefined when an entry names neither', async () => {
+    // Neither-set and both-set are authoring errors the database's own check
+    // constraint catches at write time; the processor adds no validation of
+    // its own and simply forwards what it resolved.
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
+    trophies.upsertTrophy.mockResolvedValue({
+      id: 3,
+      name: 'Orphan',
+      recipientKind: 'team',
+      description: null,
+      competitionGroupId: 1,
+      leagueId: null,
+      createdAt: new Date(),
+      created: true,
+    });
+
+    await processor.process(
+      makeContext({
+        ...emptyData(),
+        trophies: [{ name: 'Orphan', recipientKind: 'team', externalIds: [] }],
+      }),
+    );
+
+    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        competitionGroupId: undefined,
+        leagueId: undefined,
+      }),
+      expect.anything(),
+    );
   });
 });

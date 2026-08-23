@@ -39,6 +39,9 @@ export const COMPETITION_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:competition:';
 export const COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX =
   'deepdive:competition-group:';
 
+/** Prefix for league deepdive button customIds: `deepdive:league:<id>`. */
+export const LEAGUE_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:league:';
+
 /** Prefix for trophy deepdive button customIds: `deepdive:trophy:<id>`. */
 export const TROPHY_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:trophy:';
 
@@ -46,7 +49,7 @@ export const TROPHY_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:trophy:';
  * Every routing prefix a drill-down button can use. Narrowing
  * `EntityComponentEntry.customIdPrefix` to this union (rather than `string`)
  * is what lets `entity-components.service.ts` hold an exhaustive
- * `Record<ButtonCustomIdPrefix, ButtonStyle>` colour map: adding a tenth
+ * `Record<ButtonCustomIdPrefix, ButtonStyle>` colour map: adding a further
  * prefix constant without giving it a colour there becomes a compile error
  * instead of a silently mis-coloured button.
  */
@@ -59,4 +62,5 @@ export type ButtonCustomIdPrefix =
   | typeof RACE_BUTTON_CUSTOM_ID_PREFIX
   | typeof COMPETITION_BUTTON_CUSTOM_ID_PREFIX
   | typeof COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX
+  | typeof LEAGUE_BUTTON_CUSTOM_ID_PREFIX
   | typeof TROPHY_BUTTON_CUSTOM_ID_PREFIX;
