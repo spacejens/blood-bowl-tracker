@@ -1,6 +1,6 @@
 ---
 name: codebase-review
-description: Use for an on-demand review of the whole blood-bowl-tracker codebase against the conventions in CLAUDE.md that no ESLint rule enforces, and against documentation quality and correctness under docs/ — fans out one read-only subagent per fixed criterion, confirms the findings with the developer, and files one parent GitHub issue per review pass with a sub-issue per distinct kind of problem found. Produces only issues; by instruction (not a technical sandbox), it is not supposed to change code, docs, or skill files, and never opens a PR.
+description: Use for an on-demand review of the whole blood-bowl-tracker codebase against the conventions in CLAUDE.md that no ESLint rule enforces, and against documentation quality and correctness under docs/ — fans out one read-only subagent per fixed criterion, confirms the findings with the developer, and — once at least one finding is confirmed — files one parent GitHub issue for the pass with a sub-issue per distinct kind of problem found; a clean pass, or one where nothing is confirmed, files nothing. Produces only issues; by instruction (not a technical sandbox), it is not supposed to change code, docs, or skill files, and never opens a PR.
 ---
 
 # codebase-review
