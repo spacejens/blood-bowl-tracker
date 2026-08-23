@@ -39,6 +39,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
   ```bash
   gh pr create \
     --title "Code hygiene: <YYYY-MM-DD>" \
+    --assignee @me \
     --body "$(cat <<'EOF'
   ## Summary
   <one bullet per task that made a commit, summarizing what changed>
