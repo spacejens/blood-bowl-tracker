@@ -51,12 +51,19 @@ COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
 
 # Identity of the code in this image, surfaced in the bot's startup message.
 # `.dockerignore` excludes `.git`, so this cannot be discovered at runtime
-# inside the container — it has to be passed in at build time. Both default to
+# inside the container — it has to be passed in at build time. All default to
 # empty; DeploymentInfoService omits an empty field rather than failing.
+# GIT_COMMIT_MESSAGE is the raw, possibly multi-line message; the service
+# picks the single line to display, using GIT_IS_MERGE_COMMIT ("true"/"false")
+# to tell a merge commit's unhelpful subject from its body.
 ARG GIT_SHA=""
 ARG GIT_BRANCH=""
+ARG GIT_COMMIT_MESSAGE=""
+ARG GIT_IS_MERGE_COMMIT=""
 ENV GIT_SHA=$GIT_SHA
 ENV GIT_BRANCH=$GIT_BRANCH
+ENV GIT_COMMIT_MESSAGE=$GIT_COMMIT_MESSAGE
+ENV GIT_IS_MERGE_COMMIT=$GIT_IS_MERGE_COMMIT
 
 ENV NODE_ENV=production
 EXPOSE 3000
