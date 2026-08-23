@@ -361,8 +361,9 @@ their own stage-specific import error naming the missing competition; the
 team-participation and match-event steps iterate the id map directly, so a
 competition absent from it is simply never visited, and they skip it without
 a trace. The fix, when this shows up in import output, is to add a curated
-row for the competition to `competitions.json5` first, then re-run the
-import.
+row for the competition to
+[`competitions.json5`](../../tools/import-manual/data/before-other-importers/competitions.json5)
+first, then re-run the import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated

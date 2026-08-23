@@ -412,7 +412,7 @@ This action answers a question the developer asks about live production data. Th
 3. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/pg-schema.ts`), so qualify names as `game_data.<table>`.
 4. Run the query. Do this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting, for the same reason the reset section does: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string silently falls back to libpq's local-connection defaults, which would run the query against a local database while reporting it as production.
 
-   The generated query is arbitrary SQL the developer described, and it may itself contain single-quoted string literals (e.g. `WHERE status = 'active'`). Wrapping the whole query in single quotes for `-c` breaks the moment the query contains one: the shell treats that embedded `'` as the end of the argument, corrupting the command. Assign the query text to a shell variable via a single-quoted heredoc instead — heredoc content is not shell-quoted, so any single quotes inside the query pass through intact — and pass the variable to `-c` with double-quote expansion:
+   The generated query is arbitrary SQL the developer described, and it may itself contain single-quoted string literals (e.g. `WHERE status = 'active'`). Wrapping the whole query in single quotes for `-c` breaks the moment the query contains one: the shell treats that embedded `'` as the end of the argument, corrupting the command. Assign the query text to a shell variable via a single-quoted heredoc instead — heredoc content is not shell-quoted, so any single quotes inside the query pass through intact — and pass the variable to `-c` with double-quote expansion. Use a delimiter distinctive enough that the query text won't plausibly contain it as a standalone line (`SQL_QUERY_EOF_<random 6-digit number>`, not a plain word like `SQL`), and double-check the query text for that exact line before running:
 
    ```bash
    DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
@@ -420,23 +420,24 @@ This action answers a question the developer asks about live production data. Th
      postgres://*|postgresql://*) ;;
      *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
    esac
-   QUERY=$(cat <<'SQL'
+   QUERY=$(cat <<'SQL_QUERY_EOF_482917'
    <the actual query text, written literally here, single quotes and all>
-   SQL
+   SQL_QUERY_EOF_482917
    )
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-     -c 'SET default_transaction_read_only = on;' \
-     -c 'SET statement_timeout = 30000;' \
-     -c "$QUERY"
+     -c 'BEGIN TRANSACTION READ ONLY;' \
+     -c "SET LOCAL statement_timeout = '30s';" \
+     -c "$QUERY" \
+     -c 'COMMIT;'
    ```
 
    This is different from the fixed `-c '...'` queries used elsewhere in this file (e.g. the reset section's `SET` statements and its `DROP SCHEMA`/`CREATE SCHEMA` statements): those are hardcoded strings this skill itself wrote, so their quoting is settled at authoring time, and none of them contain an embedded single quote. (The reset section's baseline row-count query is the one exception worth noting: it's also hardcoded, but its `WHERE` clause needs a literal `'game_data'`, so it's already `-c "..."` double-quoted for that reason.) This section's query is arbitrary and developer-described, so it needs the heredoc form instead.
 
-   Both `SET`s are mandatory and must be part of the same `psql` invocation as the query — a separate call gets a separate session, where neither applies.
+   All four `-c` flags run against the same session, so the explicit `BEGIN`/`COMMIT` bracket the read-only setting and the query in one transaction — this matters, not just tidiness: `SET default_transaction_read_only = on` (used elsewhere in this section's earlier drafts) only sets a *session default* for future transactions, and an ordinary role can still issue `SET default_transaction_read_only = off` mid-session to undo it before its own next statement. `BEGIN TRANSACTION READ ONLY`, by contrast, marks the *current* transaction read-only, and Postgres refuses `SET TRANSACTION READ WRITE` inside an already-read-only transaction — so nothing the query's own text does can flip it back before `COMMIT`. `SET LOCAL` (rather than plain `SET`) scopes the statement timeout to this one transaction for the same reason, rather than leaning on a session-wide setting the query could also reset.
 
-   `default_transaction_read_only = on` is a database-enforced backstop, not a substitute for reading the query first. Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss: `SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, and any `INSERT`/`UPDATE`/`DELETE`/DDL. If a query is rejected with `cannot execute ... in a read-only transaction`, that is the guard working — report it and do **not** disable the setting to get the query through. A genuine write against production only ever happens through the importers or the reset action, chosen deliberately.
+   `BEGIN TRANSACTION READ ONLY` is a database-enforced backstop, not a substitute for reading the query first. Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss: `SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, and any `INSERT`/`UPDATE`/`DELETE`/DDL. If a query is rejected with `cannot execute ... in a read-only transaction`, that is the guard working — report it and do **not** disable the setting to get the query through. A genuine write against production only ever happens through the importers or the reset action, chosen deliberately. This is a defense against an accidentally wrong query, not a hardened defense against deliberately adversarial SQL text designed to smuggle in its own `COMMIT`/`BEGIN` pair to end-run the wrapping — closing that fully would need a dedicated, privilege-restricted read-only database role, which is out of scope here (see Non-goals).
 
-   `statement_timeout = 30000` (30 seconds) bounds the damage an accidentally expensive query can do to the live bot's database. If a query times out, say so and offer a narrowed version (a tighter `WHERE`, a `LIMIT`, an aggregate instead of a row dump) rather than raising the timeout.
+   `statement_timeout = '30s'` bounds the damage an accidentally expensive query can do to the live bot's database. If a query times out, say so and offer a narrowed version (a tighter `WHERE`, a `LIMIT`, an aggregate instead of a row dump) rather than raising the timeout.
 
    If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection after a quiet period is slow by design, and retrying once is reasonable before giving up.
 5. Report the query that was run and its output. Keep the output as-is rather than summarising away rows the developer asked to see; if it is very large, say how many rows came back and show a representative slice. Never print the connection string, and do not paste query output that would contain a credential.
@@ -449,3 +450,4 @@ This action answers a question the developer asks about live production data. Th
 - **No creating of gitignored production config.** `apps/discord-bot/.env.production` and the `tools/import-*/import-*-config.production.json5` files are authored once by a developer. This skill syncs them into a worktree and checks them, but never generates one from a template — same stance `deploy-local` takes on the local equivalents.
 - **No backups.** There is no backup or restore of the Neon database; production data is reproducible by re-import, as `docs/discord-bot/production-hosting.md` documents.
 - **No teardown.** The skill never stops or destroys the Fly machine or the Neon project.
+- **No dedicated read-only database role.** The read-only-queries action enforces its guard with an explicit `BEGIN TRANSACTION READ ONLY` and `SET LOCAL statement_timeout`, not a separate, privilege-restricted Postgres role — it connects with the same `DATABASE_URL` role every other action here uses. That closes accidental writes but not deliberately adversarial SQL crafted to smuggle in its own `COMMIT`/`BEGIN` pair. Provisioning and distributing credentials for a dedicated role is a real credential-management task, which this skill deliberately stays out of (see above).
