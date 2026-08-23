@@ -173,3 +173,97 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
      - **Proceed anyway** — continue to Phase 3 despite the larger scope.
      - **Leave the PR as-is** — stop here. Nothing is pushed; the PR stays open with its findings reported.
      - **Hand off to develop-feature** — stop here, and file a follow-up issue describing the migration work so it can be picked up as a normal `/develop-feature` cycle.
+
+---
+
+### Phase 3: Development
+
+Runs only when Phase 2 ended in **Mechanical fix found** (or when the developer chose **Proceed anyway** at its escalation).
+
+Follow `develop-feature`'s Phase 4 discipline, with Phase 2's investigation summary standing in for its plan file:
+
+- **Docs first** — if the fix introduces a new concept or constraint (rare for a dependency bump, but a changed runtime requirement or a new config flag qualifies), update the relevant spec under `docs/` per `docs/spec-conventions.md`.
+- **Test first** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`. When the bump broke an existing test, that test *is* the failing test; confirm it fails for the reason the changelog predicts before changing anything, rather than adjusting it to whatever the new version happens to return.
+- **Implement** the fix.
+- **Debug** — **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` on any unexpected failure.
+- **Verify** — **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion` before calling the change done.
+- **Docs and deployment sync** — if the change makes anything under `docs/` stale, or changes what `Dockerfile`/`docker-compose.yml` need to know, update those now.
+- **Commit** one logical change at a time, then run `pnpm verify` from the repo root if that commit's diff touched anything under `apps/`, `packages/`, or `tools/`; if it touched only `.claude/` or `docs/`, skip it and note why — `develop-feature`'s Phase 4 step 5 rule, unchanged.
+
+Typically this is a single commit: "make the code changes this dependency bump needs." **Never amend, rebase, or force-push Renovate's existing commit** — add your own commits on top of it. Rewriting Renovate's commit would force-push the PR's branch and destroy the correspondence between the PR's review history and its diff.
+
+Print a brief status line — what was fixed and whether `pnpm verify` is green (or was skipped and why) — then continue immediately into Phase 4.
+
+---
+
+### Phase 4: Self-review & Integration
+
+#### Self-review
+
+Identical to `develop-feature`'s Phase 5, with no changes:
+
+1. **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` across all changes on the branch. Scope the review to the commits made in Phase 3 — Renovate's own manifest/lockfile commit is the input to this work, not part of the diff under review.
+2. Fix every Critical and Important finding and re-run `pnpm verify`; repeat until the review is clean (no unresolved Critical or Important findings, all tests passing).
+3. Once clean, resolve each remaining Minor finding as exactly one of **Fix**, **Drop**, or **Question**, exactly as `develop-feature`'s Phase 5 step 4 describes — defaulting to Fix, applying all Fixes first, then re-checking each recorded Question's file and line against the post-Fix state. Carry the pending-questions list forward into Integration.
+
+#### Integration
+
+The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync merge step and no `gh pr create`** — the PR already exists, and merging `main` into Renovate's branch would put commits on it that Renovate never made and that the developer did not ask for. Leave the branch exactly as far behind `main` as Renovate left it; GitHub's merge button handles the rest.
+
+1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist:
+   ```bash
+   node tools/ai-helpers/dist/main.js check-main-stray
+   ```
+   `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/ai-helpers/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
+
+2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
+   ```bash
+   date +%s
+   ```
+   Record the printed epoch. **This is where this skill differs from `develop-feature`'s first-iteration watermark**, which anchors to the PR's `createdAt`. That anchor is correct there because the PR is brand new; here the PR may be weeks old and already carry CodeRabbit reviews of Renovate's original commit, and using `createdAt` would make the very first wait match one of those stale reviews instantly. Capturing the epoch just before the push is the equivalent "nothing before this counts" line for a pre-existing PR, and capturing it *before* rather than after the push closes the race where a fast bot review lands while `git push` is still returning.
+
+3. **Push onto Renovate's branch.**
+   ```bash
+   git push origin <headRefName>
+   ```
+   This updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
+
+   **Tell the developer, once, in the status line for this step:** Renovate treats a branch carrying commits it did not author as manually edited, and stops rebasing or updating it on its own. Renovate's PR body offers a "check this box to rebase/retry" checkbox — **ticking it after this push discards these commits**, because Renovate rebuilds the branch from scratch. The developer should merge the PR rather than ask Renovate to retry it.
+
+4. **Post pending self-review questions, if any.** If the Self-review step's pending-questions list is empty, skip this step entirely and silently — the common case. Otherwise build a JSON array of `{ "file": "<repo-relative path>", "line": <integer>, "body": "<question text>" }` objects (do **not** prepend `**Comment by Claude**` — the subcommand does that itself) and post them with one command:
+   ```bash
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
+   [
+     { "file": "path/to/file.ts", "line": 42, "body": "..." }
+   ]
+   QUESTIONSEOF
+   ```
+   Report from its printed `posted`/`failed` arrays how many went inline, how many went top-level, and how many failed (naming each failure's file, line, and error). Any failure here is a one-line warning and never a stop — the push already landed regardless.
+
+5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, skip the loop with a one-line warning and go to step 6), then repeat for at most **5 iterations**:
+
+   a. Wait for a non-author review with a single backgrounded command:
+   ```bash
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
+   ```
+   The **first** iteration's `<watermark-epoch>` is the epoch captured in step 2 above — not the PR's `createdAt` — and omits `--exclude-review-id` entirely (there is nothing to exclude yet). Every later iteration uses the previous iteration's found `review.submittedAt` converted to epoch seconds, and passes that review's `id` as `--exclude-review-id`. Run it with `run_in_background: true` and branch on the JSON it prints at exit; never use `ScheduleWakeup` for this wait.
+
+   b. Handle `{"found": false, ...}` results exactly as `develop-feature`'s Phase 6 steps (b), (b2), and (b3) describe — timeout, CodeRabbit rate-limit, and comment-update-failure respectively, including their retry commands, their watermark-advancement rules, and which of them Pause versus continue automatically. None of that behavior changes here; do not restate or re-derive it, read it there.
+
+   c. **REQUIRED SUB-SKILL:** Use `handle-pr-reviews`, targeting this PR by number and always passing `--skip-deploy-local` (`/handle-pr-reviews <PR> --skip-deploy-local`) — the flag keeps its `deploy-local` hand-off from stalling this unattended loop; step 6 below makes that offer once instead.
+
+   d. Apply `develop-feature`'s exit check unchanged: leave the loop early on "No unhandled review comments or failing CI checks found", on a stop for an ambiguous item, or on a Phase 7 summary reporting that no fix commits were pushed. A "still in progress" report is **not** an exit condition — start the next iteration.
+
+   After the loop, print a brief status line naming how it ended, then continue.
+
+6. **Offer a local look.** **REQUIRED SUB-SKILL:** Use the `deploy-local` skill, exactly as `develop-feature`'s Phase 6 step 6 does — this is the only `deploy-local` offer this skill produces, since step 5c suppresses `handle-pr-reviews`' own. It is worth making even for a dependency bump: an updated runtime library can break at startup in ways no unit test covers. Do not ask the developer separately before invoking it — `deploy-local` asks which of its actions to run.
+
+7. **Skill ends.** Human review and merge happen outside this workflow, same as `develop-feature`. Renovate's PR is now updated in place, has been through both Claude's self-review and an independent bot pass, and is ready for the developer to merge. Once it has merged, use the `wrap-up` skill to verify the merge and clean up the worktree and branch.
+
+---
+
+## Out of scope
+
+- **Batch-processing or triaging several stuck Renovate PRs in one run.** One PR per invocation, chosen by the developer. Run the skill again for the next one.
+- **Any change to `renovate.json5`.** Its automerge rules, grouping, labelling, and disabled packages are deliberate decisions the developer makes directly — a skill run reacting to one awkward PR is the worst possible vantage point from which to retune them.
+- **Node version and `@types/node` updates.** `renovate.json5` disables Renovate for both; they belong to `code-hygiene`'s Node version task, which moves them in lock-step with every Dockerfile `FROM node:...` line.
