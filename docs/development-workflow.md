@@ -2,9 +2,7 @@
 
 Development in this project is structured by a set of Claude Code skills — see the subsections below for what each one does.
 
-Each skill isolates its work in its own git worktree, so it never touches your current checkout while it runs.
-
-Every skill converges on a pull request rather than merging anything itself: human review and merge always happen outside the Claude workflow, so every change is visible on GitHub before it lands.
+Most skills isolate their work in its own git worktree and converge on a pull request, so human review and merge always happen outside the Claude workflow and every change is visible on GitHub before it lands. The exception is a skill whose only output is GitHub issues rather than a code or doc change — `write-issue` and `codebase-review` — which runs against the current checkout and opens no PR, since there is no working-tree change to isolate or merge.
 
 Each skill's own `SKILL.md` under `.claude/skills/` is the source of truth for its exact phase-by-phase behavior — this document only orients you to which skill to reach for and how they fit together.
 
@@ -33,6 +31,10 @@ Verifies that work the developer says is finished is actually finished — check
 ## write-issue
 
 Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitHub issues, through a short clarifying dialogue on purpose and scope. Can produce several issues from one request (e.g. "find the remaining gaps in X and write an issue for each"). Matches this repo's existing issue style — plain-text intent, not overly specific — so issues stay a durable statement of need rather than a stale implementation spec. Independent of the `develop-feature` cycle; the issues it creates are picked up by `develop-feature` later.
+
+## codebase-review
+
+Reviews the whole codebase against a fixed list of criteria — repo conventions no ESLint rule enforces, plus documentation quality — and, once you confirm what it found, reports it as GitHub issues (`/codebase-review`). It changes nothing and opens no PR; see `.claude/skills/codebase-review/SKILL.md` for the exact criteria and confirmation flow. Run it periodically, independent of feature work; `code-hygiene` is its counterpart for the mechanical checks a tool can fix on its own.
 
 ## Continuous integration
 
@@ -82,4 +84,4 @@ Nothing else is required to *use* the reviews: `develop-feature`'s Phase 6 waits
 
 Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
 
-A typical cycle: `develop-feature` takes an issue to a PR → the automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes → a human reviews what's left → `handle-pr-reviews` addresses any further feedback → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` runs on its own schedule, whenever a developer chooses, unrelated to any specific feature PR — it keeps the Node version current and the codebase free of dead code and lint/format drift. Renovate's own dependency PRs run on a third track, outside both: `finish-renovate-pr` picks up whichever of them got stuck and drives it to merge-ready, reusing `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way a `develop-feature` cycle does — without opening a new PR or syncing `main` in, since Renovate's PR and branch already exist.
+A typical cycle: `develop-feature` takes an issue to a PR → the automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes → a human reviews what's left → `handle-pr-reviews` addresses any further feedback → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` and `codebase-review` both run on their own schedule, whenever a developer chooses, unrelated to any specific feature PR — `code-hygiene` keeps the Node version current and the codebase free of dead code and lint/format drift, while `codebase-review` files issues for the convention and documentation drift that no tool can fix on its own. Renovate's own dependency PRs run on a third track, outside all of these: `finish-renovate-pr` picks up whichever of them got stuck and drives it to merge-ready, reusing `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way a `develop-feature` cycle does — without opening a new PR or syncing `main` in, since Renovate's PR and branch already exist.
