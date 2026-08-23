@@ -10,8 +10,9 @@
  * each tied to a per-row drill-down entry (the player deepdive's honors and
  * kills builders — see `PlayerKillsSectionService`), or by truncating the
  * assembled text outright (e.g. `StarPlayerDeepdiveService.enforceDescriptionLimit`,
- * and `PlayerDeepdiveService`'s own final safety net on top of its row
- * selection). For the list-style insights facts — star players, eras,
+ * `PlayerDeepdiveService`'s own final safety net on top of its row
+ * selection, and `DeploymentInfoService`, whose commit message is free-form
+ * text with no row cap of its own). For the list-style insights facts — star players, eras,
  * trophies and competition groups, which have no row cap at all and rely on
  * this entirely — that truncation is centralised in `ListDescriptionService`
  * (`shared/`); the deepdive fact services keep their own equivalent.

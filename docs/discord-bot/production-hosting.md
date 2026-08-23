@@ -112,7 +112,8 @@ The implementation lives in `apps/discord-bot/src/leader-election/`.
 Each machine posts a status embed when it starts, so it is clear at a glance
 whether something new was deployed, rolled back, or merely restarted. The
 title names the role; the description has one `Label: value` line per field
-that resolved:
+that resolved, then the commit message as its own paragraph below a blank
+line:
 
 ```
 Bot starting as active
@@ -121,24 +122,32 @@ Machine: 148e123456
 App: blood-bowl-tracker-discord-bot
 Branch: main
 Commit: abcdef1
+
+Show team records on the standings page
 ```
 
-| Field          | Source in production                                                     |
-| -------------- | ------------------------------------------------------------------------ |
-| Machine id     | `FLY_MACHINE_ID`, injected by Fly                                        |
-| App name       | `FLY_APP_NAME`, injected by Fly                                          |
-| Branch         | `GIT_BRANCH` build arg, from `github.ref_name`                           |
-| Commit SHA     | `GIT_SHA` build arg, from `github.sha` (shown as the first 7 characters) |
-| Active/standby | which side of the election this machine ended up on, shown in the title  |
+| Field          | Source in production                                                                                                                                                  |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Machine id     | `FLY_MACHINE_ID`, injected by Fly                                                                                                                                     |
+| App name       | `FLY_APP_NAME`, injected by Fly                                                                                                                                       |
+| Branch         | `GIT_BRANCH` build arg, from `$GITHUB_REF_NAME`                                                                                                                       |
+| Commit SHA     | `GIT_SHA` build arg, from `$GITHUB_SHA` (shown as the first 7 characters)                                                                                             |
+| Commit message | `GIT_COMMIT_MESSAGE` build arg, from `git log -1 --pretty=%B` on the runner — the merge commit's PR-title body line when there is one, otherwise its subject line; a separate paragraph, not a `Label: value` line |
+| Active/standby | which side of the election this machine ended up on, shown in the title                                                                                               |
 
-The two `GIT_*` values are baked into the image by
+An unusually long commit message can push the assembled description past
+Discord's length limit; `DeploymentInfoService` truncates it rather than
+letting Discord reject the whole message.
+
+The four `GIT_*` values are baked into the image by
 `.github/workflows/deploy.yml` at build time, because `.dockerignore` excludes
 `.git` — a running container has no way to discover its own commit. Locally,
-the `deploy-local` skill exports the same two variables from the host
-checkout, and a bare `pnpm start:dev` falls back to running
-`git rev-parse HEAD` / `git branch --show-current` directly. Any field that
-cannot be resolved is left off the embed rather than shown blank; none is
-required, and none can fail startup.
+the `deploy-local` skill exports the same four variables from the host
+checkout, and a bare `pnpm start:dev` falls back to running `git rev-parse
+HEAD` / `git branch --show-current` directly, plus `git log -1 --pretty=%B`
+for the commit message and `git rev-parse HEAD^2` to detect a merge commit.
+Any field that cannot be resolved is left off the embed rather than shown
+blank; none is required, and none can fail startup.
 
 This is the only message either machine posts on startup — the previous
 behavior of also posting the unfiltered `stats` insight was dropped, since

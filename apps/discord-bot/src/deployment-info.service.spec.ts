@@ -8,6 +8,7 @@ vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }));
 import { execFileSync } from 'node:child_process';
 
 import { DeploymentInfoService } from './deployment-info.service';
+import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 
 describe('DeploymentInfoService', () => {
   let configService: MockProxy<ConfigService>;
@@ -16,6 +17,20 @@ describe('DeploymentInfoService', () => {
   /** Builds a config mock whose `get` answers from a plain record. */
   function withEnv(env: Record<string, string>): void {
     configService.get.mockImplementation((key: string) => env[key]);
+  }
+
+  /**
+   * Stubs `git` per exact argument vector, e.g. `'rev-parse HEAD'`. Any
+   * invocation not listed throws, which is what the service sees when a
+   * `git` command fails — so an unlisted command means "this one fails".
+   */
+  function gitReturns(outputs: Record<string, string>): void {
+    vi.mocked(execFileSync).mockImplementation((_cmd, args) => {
+      const argv = (args as string[]).join(' ');
+      const output = outputs[argv];
+      if (output === undefined) throw new Error(`git ${argv} failed`);
+      return output;
+    });
   }
 
   beforeEach(async () => {
@@ -38,6 +53,8 @@ describe('DeploymentInfoService', () => {
       FLY_APP_NAME: 'blood-bowl-tracker-discord-bot',
       GIT_SHA: 'abcdef1234567890',
       GIT_BRANCH: 'main',
+      GIT_COMMIT_MESSAGE: 'Add the thing\n',
+      GIT_IS_MERGE_COMMIT: 'false',
     });
 
     expect(service.getDeploymentInfo()).toEqual({
@@ -45,19 +62,22 @@ describe('DeploymentInfoService', () => {
       appName: 'blood-bowl-tracker-discord-bot',
       branch: 'main',
       commitSha: 'abcdef1234567890',
+      commitMessage: 'Add the thing',
     });
     expect(execFileSync).not.toHaveBeenCalled();
   });
 
   it('falls back to git when the build-time env vars are absent', () => {
-    vi.mocked(execFileSync).mockImplementation((_cmd, args) => {
-      const argv = args as string[];
-      return argv.includes('rev-parse') ? 'fedcba9876543210\n' : 'my-branch\n';
+    gitReturns({
+      'branch --show-current': 'my-branch\n',
+      'rev-parse HEAD': 'fedcba9876543210\n',
+      'log -1 --pretty=%B': 'Tidy up the importer\n',
     });
 
     expect(service.getDeploymentInfo()).toEqual({
       branch: 'my-branch',
       commitSha: 'fedcba9876543210',
+      commitMessage: 'Tidy up the importer',
     });
   });
 
@@ -69,14 +89,71 @@ describe('DeploymentInfoService', () => {
     expect(service.getDeploymentInfo()).toEqual({});
   });
 
+  it('shows a merge commit body line instead of its subject', () => {
+    withEnv({
+      GIT_COMMIT_MESSAGE:
+        'Merge pull request #551 from spacejens/some-branch\n\nShow team records on the standings page\n',
+      GIT_IS_MERGE_COMMIT: 'true',
+    });
+
+    expect(service.getDeploymentInfo().commitMessage).toBe(
+      'Show team records on the standings page',
+    );
+  });
+
+  it('shows the subject of a merge commit that has no body', () => {
+    withEnv({
+      GIT_COMMIT_MESSAGE: 'Merge branch main into my-branch\n',
+      GIT_IS_MERGE_COMMIT: 'true',
+    });
+
+    expect(service.getDeploymentInfo().commitMessage).toBe(
+      'Merge branch main into my-branch',
+    );
+  });
+
+  it('shows the subject of a non-merge commit that has a body', () => {
+    withEnv({
+      GIT_COMMIT_MESSAGE:
+        'Add team records\n\nWhy: the standings page needed them.\n',
+      GIT_IS_MERGE_COMMIT: 'false',
+    });
+
+    expect(service.getDeploymentInfo().commitMessage).toBe('Add team records');
+  });
+
+  it('treats a successful second-parent lookup as a merge commit', () => {
+    gitReturns({
+      'log -1 --pretty=%B':
+        'Merge pull request #551 from spacejens/some-branch\n\nShow team records\n',
+      'rev-parse --verify --quiet HEAD^2': '1111111111111111\n',
+    });
+
+    expect(service.getDeploymentInfo().commitMessage).toBe('Show team records');
+  });
+
+  it('omits the commit message when the raw value is blank', () => {
+    withEnv({ GIT_COMMIT_MESSAGE: '   \n\n', GIT_IS_MERGE_COMMIT: 'false' });
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error('not a git repository');
+    });
+
+    expect(service.getDeploymentInfo().commitMessage).toBeUndefined();
+  });
+
   it('resolves once and reuses the result on later calls', () => {
-    vi.mocked(execFileSync).mockReturnValue('deadbeef\n');
+    gitReturns({
+      'branch --show-current': 'main\n',
+      'rev-parse HEAD': 'deadbeef\n',
+      'log -1 --pretty=%B': 'Add the thing\n',
+    });
 
     service.getDeploymentInfo();
     service.getDeploymentInfo();
 
-    // One call for the branch and one for the SHA, on the first call only.
-    expect(execFileSync).toHaveBeenCalledTimes(2);
+    // Branch, SHA, and message — on the first call only. The commit message
+    // has no body line, so the merge check is never reached.
+    expect(execFileSync).toHaveBeenCalledTimes(3);
   });
 
   it('describes an active machine as an embed with one line per field', () => {
@@ -85,6 +162,9 @@ describe('DeploymentInfoService', () => {
       FLY_APP_NAME: 'blood-bowl-tracker-discord-bot',
       GIT_SHA: 'abcdef1234567890',
       GIT_BRANCH: 'main',
+      GIT_COMMIT_MESSAGE:
+        'Merge pull request #551 from spacejens/some-branch\n\nShow team records\n',
+      GIT_IS_MERGE_COMMIT: 'true',
     });
 
     expect(service.describe('active')).toEqual({
@@ -96,6 +176,8 @@ describe('DeploymentInfoService', () => {
             'App: blood-bowl-tracker-discord-bot',
             'Branch: main',
             'Commit: abcdef1',
+            '',
+            'Show team records',
           ].join('\n'),
         },
       ],
@@ -122,6 +204,34 @@ describe('DeploymentInfoService', () => {
 
     expect(service.describe('active')).toEqual({
       embeds: [{ title: 'Bot starting as active' }],
+    });
+  });
+
+  it('truncates the description when it exceeds the Discord limit', () => {
+    const longCommitMessage = 'x'.repeat(5000);
+    withEnv({
+      GIT_BRANCH: 'main',
+      GIT_COMMIT_MESSAGE: longCommitMessage,
+      GIT_IS_MERGE_COMMIT: 'false',
+    });
+
+    const { description } = service.describe('active').embeds[0];
+
+    expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
+    expect(description?.endsWith('…')).toBe(true);
+    expect(description?.startsWith('Branch: main\n\nxxx')).toBe(true);
+  });
+
+  it('describes only the commit message when no labelled field resolves', () => {
+    withEnv({
+      GIT_COMMIT_MESSAGE: 'Add team records\n',
+      GIT_IS_MERGE_COMMIT: 'false',
+    });
+
+    expect(service.describe('active')).toEqual({
+      embeds: [
+        { title: 'Bot starting as active', description: 'Add team records' },
+      ],
     });
   });
 });

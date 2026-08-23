@@ -26,19 +26,32 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # Depth 2 makes a merge commit's parents present in the runner's
+          # clone, which is what the `HEAD^2` lookup below needs to tell a
+          # merge commit from an ordinary one.
+          fetch-depth: 2
       - uses: superfly/flyctl-actions/setup-flyctl@1.6
       # --remote-only builds the image on Fly's builders rather than in the
       # runner, so no Docker layer caching or buildx setup is needed here.
       # Run from the repo root, where fly.toml lives and which is the build
       # context apps/discord-bot/Dockerfile expects.
       #
-      # The two build args bake this commit's identity into the image so the
-      # bot's startup message reports which version is deployed — the image
-      # has no .git to discover it from at runtime.
+      # The build args bake this commit's identity into the image so the bot's
+      # startup message reports which version is deployed — the image has no
+      # .git to discover it from at runtime. The message is captured into a
+      # shell variable and passed double-quoted so its newlines survive.
       - name: Deploy to Fly.io
-        run: >-
-          flyctl deploy --remote-only
-          --build-arg GIT_SHA=${{ github.sha }}
-          --build-arg GIT_BRANCH=${{ github.ref_name }}
+        run: |
+          commit_message="$(git log -1 --pretty=%B)"
+          if git rev-parse --verify --quiet HEAD^2 >/dev/null; then
+            is_merge_commit=true
+          else
+            is_merge_commit=false
+          fi
+          flyctl deploy --remote-only \
+            --build-arg GIT_SHA="$GITHUB_SHA" \
+            --build-arg GIT_BRANCH="$GITHUB_REF_NAME" \
+            --build-arg GIT_COMMIT_MESSAGE="$commit_message" \
+            --build-arg GIT_IS_MERGE_COMMIT="$is_merge_commit"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

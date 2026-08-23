@@ -75,9 +75,15 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
    ```bash
    export GIT_SHA=$(git rev-parse HEAD)
    export GIT_BRANCH=$(git branch --show-current)
+   export GIT_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+   if git rev-parse --verify --quiet HEAD^2 >/dev/null; then
+     export GIT_IS_MERGE_COMMIT=true
+   else
+     export GIT_IS_MERGE_COMMIT=false
+   fi
    docker compose up -d --build
    ```
-   Both variables feed `docker-compose.yml`'s build args and end up as env
+   All four variables feed `docker-compose.yml`'s build args and end up as env
    vars in the image, which the bot reports in its startup message. A detached
    HEAD makes `git branch --show-current` print nothing; that is fine — the
    startup message just omits the branch.
