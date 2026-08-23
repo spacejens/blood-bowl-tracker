@@ -404,44 +404,23 @@ This action answers a question the developer asks about live production data. Th
    fi
    ```
    If the file exists in neither place, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section.
-2. Confirm the file sets `DATABASE_URL`, **without printing its value**:
+2. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/pg-schema.ts`), so qualify names as `game_data.<table>`.
+3. Run the query through `tools/ai-helpers`'s `run-production-query` subcommand (build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build` if `dist/main.js` is missing), feeding the query text via stdin in the same heredoc form this skill already uses for `write-file` and `post-review-questions`:
    ```bash
-   grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
+   node tools/ai-helpers/dist/main.js run-production-query <<'QUERYEOF'
+   <the actual query text, written literally here>
+   QUERYEOF
    ```
-   Expected output: `1`. Anything else — stop and report.
-3. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/pg-schema.ts`), so qualify names as `game_data.<table>`.
-4. Run the query. Do this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting, for the same reason the reset section does: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string silently falls back to libpq's local-connection defaults, which would run the query against a local database while reporting it as production.
+   This is why the process control lives here instead of as hand-rolled shell in this file: extracting and validating `DATABASE_URL` from `apps/discord-bot/.env.production`, and enforcing the query's read-only/timeout guarantees, all need real behavior a shell one-liner can't give safely — see `RunProductionQueryService` (`tools/ai-helpers/src/run-production-query/run-production-query.service.ts`) for the implementation, and its spec for the behavior actually under test. Concretely:
+   - The connection string is never echoed, and the command aborts before connecting if `DATABASE_URL` is missing or malformed (after stripping a dotenv-style surrounding quote pair and trailing CRLF) — same validation the reset section's own extraction does, just in TypeScript instead of `sed`/`case`.
+   - The query is passed to `psql` as a single `execFile` argument, not through a shell, so embedded single quotes, double quotes, or anything else in the developer-described SQL need no escaping and there is no heredoc-delimiter-collision risk to worry about — unlike a hand-written shell invocation of the same command.
+   - The query runs wrapped in `BEGIN TRANSACTION READ ONLY; SET LOCAL statement_timeout = '30s'; <query>; COMMIT;`. `BEGIN TRANSACTION READ ONLY` is a database-enforced backstop, not a substitute for reading the query first: Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss (`SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, any `INSERT`/`UPDATE`/`DELETE`/DDL), and refuses `SET TRANSACTION READ WRITE` inside an already-read-only transaction — so nothing the query's own text can do flips it back before `COMMIT`. This is a defense against an accidentally wrong query, not a hardened defense against deliberately adversarial SQL crafted to smuggle in its own `COMMIT`/`BEGIN` pair to end-run the wrapping — closing that fully would need a dedicated, privilege-restricted read-only database role, which is out of scope here (see Non-goals).
+   - `SET LOCAL statement_timeout = '30s'` bounds a normal accidentally-expensive query, but the query's own text runs inside that same transaction and could open with its own `SET LOCAL statement_timeout = 0;` to remove the bound before an expensive statement later on — a session/transaction-level setting alone is not a guarantee. The real guarantee is a 35-second process-level deadline enforced by `ProcessRunnerService` (the same collaborator `GitRootsService`'s own git calls use), which sends `SIGTERM` — and escalates to `SIGKILL` if that's ignored — to the `psql` process itself if it's still running 35 seconds in. That's 5 seconds past the SQL-level timeout, so a normal slow query reports Postgres's own timeout error first; the process kill only fires when the query defeated that. Unlike a SQL-level setting, nothing the query's own text can do prevents an external process from delivering a signal to it.
+   - If `psql` is not installed, or the connection fails, the command reports that — Neon autosuspends idle compute, so a first connection after a quiet period is slow by design, and retrying once is reasonable before giving up.
 
-   The generated query is arbitrary SQL the developer described, and it may itself contain single-quoted string literals (e.g. `WHERE status = 'active'`). Wrapping the whole query in single quotes for `-c` breaks the moment the query contains one: the shell treats that embedded `'` as the end of the argument, corrupting the command. Assign the query text to a shell variable via a single-quoted heredoc instead — heredoc content is not shell-quoted, so any single quotes inside the query pass through intact — and pass the variable to `-c` with double-quote expansion. Use a delimiter distinctive enough that the query text won't plausibly contain it as a standalone line (`SQL_QUERY_EOF_<random 6-digit number>`, not a plain word like `SQL`), and double-check the query text for that exact line before running:
-
-   ```bash
-   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
-   case "$DATABASE_URL" in
-     postgres://*|postgresql://*) ;;
-     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
-   esac
-   QUERY=$(cat <<'SQL_QUERY_EOF_482917'
-   <the actual query text, written literally here, single quotes and all>
-   SQL_QUERY_EOF_482917
-   )
-   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-     -c 'BEGIN TRANSACTION READ ONLY;' \
-     -c "SET LOCAL statement_timeout = '30s';" \
-     -c "$QUERY" \
-     -c 'COMMIT;'
-   ```
-
-   This is different from the fixed `-c '...'` queries used elsewhere in this file (e.g. the reset section's `SET` statements and its `DROP SCHEMA`/`CREATE SCHEMA` statements): those are hardcoded strings this skill itself wrote, so their quoting is settled at authoring time, and none of them contain an embedded single quote. (The reset section's baseline row-count query is the one exception worth noting: it's also hardcoded, but its `WHERE` clause needs a literal `'game_data'`, so it's already `-c "..."` double-quoted for that reason.) This section's query is arbitrary and developer-described, so it needs the heredoc form instead.
-
-   All four `-c` flags run against the same session, so the explicit `BEGIN`/`COMMIT` bracket the read-only setting and the query in one transaction — this matters, not just tidiness: `SET default_transaction_read_only = on` (used elsewhere in this section's earlier drafts) only sets a *session default* for future transactions, and an ordinary role can still issue `SET default_transaction_read_only = off` mid-session to undo it before its own next statement. `BEGIN TRANSACTION READ ONLY`, by contrast, marks the *current* transaction read-only, and Postgres refuses `SET TRANSACTION READ WRITE` inside an already-read-only transaction — so nothing the query's own text does can flip it back before `COMMIT`. `SET LOCAL` (rather than plain `SET`) scopes the statement timeout to this one transaction for the same reason, rather than leaning on a session-wide setting the query could also reset.
-
-   `BEGIN TRANSACTION READ ONLY` is a database-enforced backstop, not a substitute for reading the query first. Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss: `SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, and any `INSERT`/`UPDATE`/`DELETE`/DDL. If a query is rejected with `cannot execute ... in a read-only transaction`, that is the guard working — report it and do **not** disable the setting to get the query through. A genuine write against production only ever happens through the importers or the reset action, chosen deliberately. This is a defense against an accidentally wrong query, not a hardened defense against deliberately adversarial SQL text designed to smuggle in its own `COMMIT`/`BEGIN` pair to end-run the wrapping — closing that fully would need a dedicated, privilege-restricted read-only database role, which is out of scope here (see Non-goals).
-
-   `statement_timeout = '30s'` bounds the damage an accidentally expensive query can do to the live bot's database. If a query times out, say so and offer a narrowed version (a tighter `WHERE`, a `LIMIT`, an aggregate instead of a row dump) rather than raising the timeout.
-
-   If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection after a quiet period is slow by design, and retrying once is reasonable before giving up.
-5. Report the query that was run and its output. Keep the output as-is rather than summarising away rows the developer asked to see; if it is very large, say how many rows came back and show a representative slice. Never print the connection string, and do not paste query output that would contain a credential.
-6. If the developer has follow-up questions, repeat from step 3. Each one is a fresh `psql` invocation with its own `SET`s — never keep a session open across tool calls, because shell state does not persist between them.
+   The command prints one JSON object: `exitCode`, `stdout`, `stderr`, and `timedOut` (`true` only when the 35-second process-level deadline killed it, including a query that tried to disable its own SQL-level timeout — report that case as "killed for running past the timeout", not as an ordinary query error).
+4. Report the query that was run and the command's `stdout`/`stderr`. Keep the output as-is rather than summarising away rows the developer asked to see; if it is very large, say how many rows came back and show a representative slice. Never print the connection string, and do not paste query output that would contain a credential.
+5. If the developer has follow-up questions, repeat from step 2. Each one is a fresh `run-production-query` invocation with its own transaction — there is no session kept open across tool calls.
 
 ## Non-goals
 
