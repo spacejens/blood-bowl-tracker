@@ -86,7 +86,7 @@ An agent that finds nothing for its criterion reports an empty finding list. Tha
 3. **Present the full candidate list to the developer via `AskUserQuestion` (multi-select)**, following `write-issue`'s Phase 1 confirmation pattern and `CLAUDE.md`'s "Developer prompts" batching rules exactly — read those rather than re-deriving them here. Two things are specific to this skill and not covered by that reference:
    - Each child option's description shows the candidate's title and its evidence count (`<N> occurrences`), so the developer can judge scope before committing to anything. The parent option has no evidence of its own — show the total child count instead (`<N> problem types found`).
    - The parent candidate is one of the options because `write-issue`'s Phase 3 (see below) requires one. Unlike `write-issue`'s own new-parent-with-sub-issues use case, there is no existing issue that could stand in for it here — a fresh review pass always creates its own fresh parent — so deselecting the parent while keeping children is not a supported combination; treat it the same as deselecting everything below.
-4. **If nothing is confirmed** — the developer deselects the parent, all children, or both — report that no issues will be created and **stop**. This is a valid outcome, not an error.
+4. **If no child is confirmed** — whether or not the parent is — report that no issues will be created and **stop**. This is a valid outcome, not an error. A parent with no children is never created: an empty parent issue with nothing to link is not a useful output, so selecting only the parent is treated exactly like selecting nothing.
 
 ## Phase 3: Draft and create
 
