@@ -20,10 +20,16 @@ const STATEMENT_TIMEOUT_SQL = "SET LOCAL statement_timeout = '30s';";
 
 /**
  * 5 seconds past the SQL-level timeout, so a normal slow query reports
- * Postgres's own timeout error first. This is the actual guarantee: it runs
- * as a real OS-level deadline on the psql process itself, so unlike
- * `STATEMENT_TIMEOUT_SQL`, nothing the query's own text can do (e.g. opening
- * with its own `SET LOCAL statement_timeout = 0;`) prevents it from firing.
+ * Postgres's own timeout error first. Unlike `STATEMENT_TIMEOUT_SQL`,
+ * nothing the query's own text can do (e.g. opening with its own
+ * `SET LOCAL statement_timeout = 0;`) prevents this from firing -- it is a
+ * real OS-level deadline on the `psql` client process itself, killed via
+ * `SIGTERM`/`SIGKILL`. That guarantees this command always terminates and
+ * reports `timedOut`; it is not a guarantee that the server-side statement
+ * stops running. Postgres only notices the client disconnected the next
+ * time it tries to communicate with it, so a CPU/IO-bound statement the
+ * query text deliberately kept unbounded may continue consuming production
+ * compute until it finishes or hits a server-side limit of its own.
  */
 const PROCESS_TIMEOUT_MS = 35_000;
 
