@@ -11,7 +11,7 @@ Drift accumulates silently in older code that predates a convention, or in areas
 
 ## Invocation
 
-```
+```text
 /codebase-review
 ```
 
