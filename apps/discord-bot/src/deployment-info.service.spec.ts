@@ -8,6 +8,7 @@ vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }));
 import { execFileSync } from 'node:child_process';
 
 import { DeploymentInfoService } from './deployment-info.service';
+import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 
 describe('DeploymentInfoService', () => {
   let configService: MockProxy<ConfigService>;
@@ -216,6 +217,21 @@ describe('DeploymentInfoService', () => {
         { title: 'Bot starting as active', description: 'Branch: main' },
       ],
     });
+  });
+
+  it('truncates the description when it exceeds the Discord limit', () => {
+    const longCommitMessage = 'x'.repeat(5000);
+    withEnv({
+      GIT_BRANCH: 'main',
+      GIT_COMMIT_MESSAGE: longCommitMessage,
+      GIT_IS_MERGE_COMMIT: 'false',
+    });
+
+    const { description } = service.describe('active').embeds[0];
+
+    expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
+    expect(description?.endsWith('…')).toBe(true);
+    expect(description?.startsWith('Branch: main\n\nxxx')).toBe(true);
   });
 
   it('describes only the commit message when no labelled field resolves', () => {

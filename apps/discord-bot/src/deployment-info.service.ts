@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { MAX_DESCRIPTION_LENGTH } from './description-limits';
+
 /**
  * Identity of this running instance, for the startup message. Every field is
  * optional on purpose: this is informational, so a missing env var or a failed
@@ -71,7 +73,7 @@ export class DeploymentInfoService {
     const paragraphs: string[] = [];
     if (lines.length > 0) paragraphs.push(lines.join('\n'));
     if (info.commitMessage) paragraphs.push(info.commitMessage);
-    const description = paragraphs.join('\n\n');
+    const description = this.enforceDescriptionLimit(paragraphs.join('\n\n'));
     return {
       embeds: [
         {
@@ -80,6 +82,21 @@ export class DeploymentInfoService {
         },
       ],
     };
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit. The commit
+   * message is free-form text with no inherent length ceiling (unlike the
+   * other fields here, which are all structurally bounded), so unlike those
+   * fields it needs truncation before Discord rejects the whole message.
+   * Mirrors `StarPlayerDeepdiveService.enforceDescriptionLimit` verbatim in
+   * shape.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
   }
 
   private resolve(): DeploymentInfo {
