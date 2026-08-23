@@ -7650,9 +7650,9 @@
     {
       "type": "integer",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
-      "default": "1",
+      "default": null,
       "generated": null,
       "identity": null,
       "name": "competition_group_id",
@@ -7767,7 +7767,7 @@
     {
       "type": "integer",
       "typeSchema": null,
-      "notNull": true,
+      "notNull": false,
       "dimensions": 0,
       "default": null,
       "generated": null,
@@ -10893,6 +10893,56 @@
       "entityType": "checks",
       "schema": "game_data",
       "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "league_id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophies"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "league_id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophies_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "league_id"
+      ],
+      "schemaTo": "game_data",
+      "tableTo": "leagues",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "trophies_league_id_leagues_id_fkey",
+      "entityType": "fks",
+      "schema": "game_data",
+      "table": "trophies"
+    },
+    {
+      "value": "(\"competition_group_id\" IS NOT NULL) != (\"league_id\" IS NOT NULL)",
+      "name": "trophies_group_or_league",
+      "entityType": "checks",
+      "schema": "game_data",
+      "table": "trophies"
     }
   ],
   "renames": []
