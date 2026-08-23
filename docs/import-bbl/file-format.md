@@ -348,12 +348,16 @@ trophy.
 
 Group-scoped resolution above requires trusting a competition's curated
 competition group, which is only true for a competition already present in
-`tools/import-manual/data/before-other-importers/competitions.json5`. A BBL
-competition this importer has to create fresh — because it is not yet in that
-curated catalog — has no trustworthy group classification, so
-`BblTrophyAwardsImportService` skips *all* of that competition's trophy
-awards outright rather than risk resolving into the wrong group (reported as
-a "was not pre-seeded by curated data" error). The fix, when this shows up in
+`tools/import-manual/data/before-other-importers/competitions.json5`.
+`competitions.competition_group_id` is `NOT NULL` with no database default,
+so a BBL competition this importer has to create fresh — because it is not
+yet in that curated catalog — fails its own upsert outright, reported as a
+per-record `MissingRequiredFieldError` naming the missing
+`competitionGroupId` field. That failed upsert means the competition never
+enters `BblCompetitionsImportService`'s internal id map, so every later
+importer step keyed off that map — matches, match outcomes, team
+participation, match events, and trophy awards alike — silently skips the
+competition too, not just its trophy awards. The fix, when this shows up in
 import output, is to add a curated row for the competition to
 `competitions.json5` first, then re-run the import.
 

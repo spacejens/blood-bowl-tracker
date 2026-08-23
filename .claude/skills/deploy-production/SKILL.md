@@ -46,10 +46,10 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Trigger a redeploy without a new merge** — dispatch the GitHub Actions deploy workflow against the current `main`.
    - **Drop and recreate the production database** — DESTRUCTIVE: wipe the Neon schema and let the bot's startup migrations rebuild it.
-   - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
+   - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
-   - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
+   - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
    - **Run the BBL import against production** — run `tools/import-bbl/` over a `flyctl proxy` tunnel.
    - **Run the TP import against production** — run `tools/import-tp/` over a `flyctl proxy` tunnel.
    - **Run the manual import (after other importers) against production** — run `tools/import-manual/` against `data/after-other-importers` over a `flyctl proxy` tunnel.

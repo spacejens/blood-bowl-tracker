@@ -30,9 +30,11 @@ export const UpsertCompetitionSchema = z.object({
   // end date is not always derivable.
   startDate: IsoDate.optional(),
   endDate: IsoDate.nullable().optional(),
-  // Optional like every other competition field: an omitted value leaves the
-  // stored group alone (overlay semantics), and on create the database's own
-  // default applies. Real classification is curated in tools/import-manual.
+  // Optional in this Zod schema for update's overlay semantics: an omitted
+  // value on update leaves the stored group alone. On create it is now
+  // effectively required — the column is NOT NULL with no database default,
+  // so an omitted value on create throws MissingRequiredFieldError. Real
+  // classification is curated in tools/import-manual.
   competitionGroupId: z.number().int().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
