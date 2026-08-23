@@ -1,6 +1,6 @@
 ---
 name: codebase-review
-description: Use for an on-demand review of the whole blood-bowl-tracker codebase against the conventions in CLAUDE.md that no ESLint rule enforces, and against documentation quality and correctness under docs/ — fans out one read-only subagent per fixed criterion, confirms the findings with the developer, and files one parent GitHub issue per review pass with a sub-issue per distinct kind of problem found. Produces only issues; it never changes code, docs, or skill files and never opens a PR.
+description: Use for an on-demand review of the whole blood-bowl-tracker codebase against the conventions in CLAUDE.md that no ESLint rule enforces, and against documentation quality and correctness under docs/ — fans out one read-only subagent per fixed criterion, confirms the findings with the developer, and files one parent GitHub issue per review pass with a sub-issue per distinct kind of problem found. Produces only issues; by instruction (not a technical sandbox), it is not supposed to change code, docs, or skill files, and never opens a PR.
 ---
 
 # codebase-review
@@ -103,6 +103,6 @@ Report every created issue's URL to the developer when done.
 
 ## Non-goals
 
-- No worktree, no branch, no code, doc, or skill-file changes, and no PR — this skill produces GitHub issues only, exactly like `write-issue`.
+- No worktree, no branch, and no PR — this skill produces GitHub issues only, exactly like `write-issue`. No code, doc, or skill-file change is instructed anywhere in this file, and dispatched agents are told explicitly not to make one (see "Subagent dispatch" above) — but that guarantee is instruction-based, the same as every other read-only review subagent in this repo, not a technical sandbox: nothing here strips `Bash` or otherwise prevents a dispatched agent from writing a file if it disregarded its instructions.
 - Does not assign issues or apply an "in progress" label — that happens later, when `develop-feature` picks up a filed sub-issue.
 - Does not fix anything it finds, including obviously easy fixes. Triage and prioritisation stay with the developer, via Phase 2's confirmation and the resulting issue queue.
