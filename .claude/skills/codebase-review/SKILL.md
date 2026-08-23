@@ -60,7 +60,7 @@ Each agent returns a list of distinct **problem-type findings**, each with:
 - **Description** — plain text: what the problem is, and why it matters. No implementation prescription.
 - **Evidence** — a representative sample of `file:line` locations, plus a **total occurrence count**. For a widespread finding the sample is capped (roughly 5–10 locations) and the count carries the rest; an exhaustive list of hundreds of locations is not wanted.
 
-An agent that finds nothing for its criterion reports an empty finding list. That is a normal outcome, not a failure — say so in the dispatch prompt so an agent doesn't manufacture a marginal finding to avoid returning nothing.
+An agent that finds nothing for its criterion reports an empty finding list. That is a normal outcome, not a failure — say so in the dispatch prompt so an agent doesn't manufacture a marginal finding to avoid returning nothing. **An empty finding list is not the same as full coverage**, so alongside its findings (or lack of them) every agent also reports what it actually checked: for a criterion scoped to a fixed, enumerable file set (criterion 5), the paths it read and any it skipped and why; for a criterion scoped by pattern across the whole repo (the other five), a one-line note on the search breadth actually covered. This is what lets criterion 5's own partial-coverage caveat below be reported honestly rather than reading as a clean pass. Carry this coverage note into the parent issue body in Phase 3.
 
 ### Fixed criteria list
 
