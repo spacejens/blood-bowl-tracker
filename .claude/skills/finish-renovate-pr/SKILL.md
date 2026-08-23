@@ -74,6 +74,8 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    Expected: exactly `headRefName`. Anything else — stop and report.
 
+   The full path just created, `.claude/worktrees/<worktree-dir>`, is what every later step means by `<worktree-path>`.
+
 4. **Link the plans directory**, so Phase 2's investigation summary is saved outside the worktree and survives its removal. Identical to `develop-feature`'s Setup step 8:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
