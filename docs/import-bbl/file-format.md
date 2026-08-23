@@ -355,12 +355,14 @@ yet in that curated catalog — fails its own upsert outright, reported as a
 per-record `MissingRequiredFieldError` naming the missing
 `competitionGroupId` field. That failed upsert means the competition never
 enters `BblCompetitionsImportService`'s internal id map, so every later
-importer step keyed off that map — matches, match outcomes, team
-participation, match events, and trophy awards alike — also skips the
-competition, each recording its own stage-specific import error for the
-missing map entry rather than skipping silently. The fix, when this shows up
-in import output, is to add a curated row for the competition to
-`competitions.json5` first, then re-run the import.
+importer step keyed off that map also skips the competition — but not all of
+them say so. The matches, match-outcome, and trophy-award steps each record
+their own stage-specific import error naming the missing competition; the
+team-participation and match-event steps iterate the id map directly, so a
+competition absent from it is simply never visited, and they skip it without
+a trace. The fix, when this shows up in import output, is to add a curated
+row for the competition to `competitions.json5` first, then re-run the
+import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated
