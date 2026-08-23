@@ -260,7 +260,12 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```
    Report from its printed `posted`/`failed` arrays how many went inline, how many went top-level, and how many failed (naming each failure's file, line, and error). Any failure here is a one-line warning and never a stop — the push already landed regardless.
 
-5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, skip the loop with a one-line warning and go to step 6), then repeat for at most **5 iterations**:
+5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, skip the loop with a one-line warning and go to step 6), then repeat for at most **5 iterations**. Record how the loop ends — step 8's final report names this outcome rather than assuming a bot pass always completed:
+   - **Clean** — a `handle-pr-reviews` run reported "No unhandled review comments or failing CI checks found." A completed independent bot pass.
+   - **Skipped** — the `gh api user` call above failed, so the loop never ran at all. No bot pass happened.
+   - **Timed out and skipped** — the developer chose to skip ahead after a wait timeout (step (b) below). No bot pass completed for the latest push.
+   - **Iteration cap reached** — all 5 iterations ran without reaching a clean verdict (e.g. CodeRabbit stayed mid-review, or kept surfacing new findings each pass). A bot pass may have partially run, but did not conclude clean.
+   - **Ambiguous item surfaced** — a `handle-pr-reviews` run stopped mid-triage on an item needing developer judgment. The loop exited before a clean verdict.
 
    a. Wait for a non-author review with a single backgrounded command:
    ```bash
@@ -284,7 +289,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```
    Same blocking conditions as Phase 2 step 6: if `isDraft` is `true`, or `mergeable` is `CONFLICTING`, or `mergeStateStatus` is `DIRTY`/`BEHIND`/`BLOCKED`/`UNSTABLE`, report PR #<PR> as blocked on a stale, conflicting, or otherwise non-ready branch (naming the reported status, or that it's a draft) instead of ready — the developer will need to resolve it (this skill still does not merge `main` in on its own). Otherwise (`mergeable: MERGEABLE` with a clean `mergeStateStatus`, or `UNKNOWN` treated as non-blocking) continue to report ready as below.
 
-8. **Skill ends.** Human review and merge happen outside this workflow, same as `develop-feature`. Renovate's PR is now updated in place, has been through both Claude's self-review and an independent bot pass, and — per the mergeability check above — is ready for the developer to merge (or reported as blocked, if that check found otherwise). Once it has merged, use the `wrap-up` skill to verify the merge and clean up the worktree and branch.
+8. **Skill ends.** Human review and merge happen outside this workflow, same as `develop-feature`. Renovate's PR is now updated in place and has been through Claude's self-review. Report the review loop's recorded outcome from step 5 alongside the mergeability result: only say the change "has also been through an independent bot pass" when step 5's outcome was **Clean** — for **Skipped**, **Timed out and skipped**, **Iteration cap reached**, or **Ambiguous item surfaced**, say plainly that the bot review did not complete (naming which of those it was) rather than implying one did. Then report the PR as ready for the developer to merge, or blocked, per the mergeability check above. Once it has merged, use the `wrap-up` skill to verify the merge and clean up the worktree and branch.
 
 ---
 
