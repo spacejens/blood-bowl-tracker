@@ -46,13 +46,13 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Trigger a redeploy without a new merge** — dispatch the GitHub Actions deploy workflow against the current `main`.
    - **Drop and recreate the production database** — DESTRUCTIVE: wipe the Neon schema and let the bot's startup migrations rebuild it.
-   - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
+   - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
-   - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
    - **Run the BBL import against production** — run `tools/import-bbl/` over a `flyctl proxy` tunnel.
    - **Run the TP import against production** — run `tools/import-tp/` over a `flyctl proxy` tunnel.
    - **Run the manual import (after other importers) against production** — run `tools/import-manual/` against `data/after-other-importers` over a `flyctl proxy` tunnel.
+   - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
    The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the ten options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
 
@@ -260,51 +260,6 @@ Run this section only if "Drop and recreate the production database" was selecte
 
 9. Report to the developer: that the schemas were dropped and recreated, what the restart's migration output showed, and which imports (if any) are about to run or were declined.
 
-### Run read-only queries against production
-
-Run this section only if "Run read-only queries against production" was selected in step 0 above. Runs after the "Drop and recreate the production database" section if that was also selected — a reset's baseline counts are captured by that section's own step 3, and this section is how the *post*-reimport comparison gets made. Runs standalone if it is the only one picked.
-
-This action answers a question the developer asks about live production data. There is deliberately **no fixed or pre-approved query list**: the useful queries change with whatever is being investigated, and a hardcoded list would only ever match the investigation that prompted writing it. The developer describes what they want to know; you write the SQL for it in the conversation, show it to them before running it, and run it inside a session the database itself holds read-only.
-
-1. Make sure the production environment file is present, exactly as the reset section's step 1 does — copy it from the main checkout only if missing, never overwrite a copy already in the worktree, and never create one from a template:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ] && [ ! -f "$WORKTREE_ROOT/apps/discord-bot/.env.production" ] && [ -f "$MAIN_ROOT/apps/discord-bot/.env.production" ]; then
-     cp "$MAIN_ROOT/apps/discord-bot/.env.production" "$WORKTREE_ROOT/apps/discord-bot/.env.production"
-   fi
-   ```
-   If the file exists in neither place, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section.
-2. Confirm the file sets `DATABASE_URL`, **without printing its value**:
-   ```bash
-   grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
-   ```
-   Expected output: `1`. Anything else — stop and report.
-3. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/pg-schema.ts`), so qualify names as `game_data.<table>`.
-4. Run the query. Do this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting, for the same reason the reset section does: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string silently falls back to libpq's local-connection defaults, which would run the query against a local database while reporting it as production.
-
-   ```bash
-   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
-   case "$DATABASE_URL" in
-     postgres://*|postgresql://*) ;;
-     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
-   esac
-   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-     -c 'SET default_transaction_read_only = on;' \
-     -c 'SET statement_timeout = 30000;' \
-     -c '<the query>'
-   ```
-
-   Both `SET`s are mandatory and must be part of the same `psql` invocation as the query — a separate call gets a separate session, where neither applies.
-
-   `default_transaction_read_only = on` is a database-enforced backstop, not a substitute for reading the query first. Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss: `SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, and any `INSERT`/`UPDATE`/`DELETE`/DDL. If a query is rejected with `cannot execute ... in a read-only transaction`, that is the guard working — report it and do **not** disable the setting to get the query through. A genuine write against production only ever happens through the importers or the reset action, chosen deliberately.
-
-   `statement_timeout = 30000` (30 seconds) bounds the damage an accidentally expensive query can do to the live bot's database. If a query times out, say so and offer a narrowed version (a tighter `WHERE`, a `LIMIT`, an aggregate instead of a row dump) rather than raising the timeout.
-
-   If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection after a quiet period is slow by design, and retrying once is reasonable before giving up.
-5. Report the query that was run and its output. Keep the output as-is rather than summarising away rows the developer asked to see; if it is very large, say how many rows came back and show a representative slice. Never print the connection string, and do not paste query output that would contain a credential.
-6. If the developer has follow-up questions, repeat from step 3. Each one is a fresh `psql` invocation with its own `SET`s — never keep a session open across tool calls, because shell state does not persist between them.
-
 ### Production imports: shared setup
 
 Run this section only if at least one of the four "against production" import actions was selected in step 0 (or chained from the database reset above). It is not a menu option of its own — it is the setup those actions share, run once no matter how many of them were selected, immediately before the first of them.
@@ -433,6 +388,59 @@ Run this section only if "Production imports: shared setup" ran. Like that secti
    ```
    Expected: no output. If something is still listening, tell the developer explicitly — a leftover tunnel will collide with the next `deploy-production` run's own tunnel. It will not collide with `deploy-local`, which binds `3000`.
 3. Report a combined summary of every import that ran: which ones, their exit codes, record counts, and any errors. Say explicitly that the tunnel is closed, so the developer knows no private connection to production was left open.
+
+### Run read-only queries against production
+
+Run this section only if "Run read-only queries against production" was selected in step 0 above. Runs last — after the "Drop and recreate the production database" section and after every selected import section (and their tunnel teardown) if those were also selected: a reset's baseline counts are captured by that section's own step 3, and this section is how the *post*-reimport comparison gets made once any selected imports have actually populated the database. Runs standalone if it is the only one picked.
+
+This action answers a question the developer asks about live production data. There is deliberately **no fixed or pre-approved query list**: the useful queries change with whatever is being investigated, and a hardcoded list would only ever match the investigation that prompted writing it. The developer describes what they want to know; you write the SQL for it in the conversation, show it to them before running it, and run it inside a session the database itself holds read-only.
+
+1. Make sure the production environment file is present, exactly as the reset section's step 1 does — copy it from the main checkout only if missing, never overwrite a copy already in the worktree, and never create one from a template:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ] && [ ! -f "$WORKTREE_ROOT/apps/discord-bot/.env.production" ] && [ -f "$MAIN_ROOT/apps/discord-bot/.env.production" ]; then
+     cp "$MAIN_ROOT/apps/discord-bot/.env.production" "$WORKTREE_ROOT/apps/discord-bot/.env.production"
+   fi
+   ```
+   If the file exists in neither place, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section.
+2. Confirm the file sets `DATABASE_URL`, **without printing its value**:
+   ```bash
+   grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
+   ```
+   Expected output: `1`. Anything else — stop and report.
+3. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/pg-schema.ts`), so qualify names as `game_data.<table>`.
+4. Run the query. Do this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting, for the same reason the reset section does: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string silently falls back to libpq's local-connection defaults, which would run the query against a local database while reporting it as production.
+
+   The generated query is arbitrary SQL the developer described, and it may itself contain single-quoted string literals (e.g. `WHERE status = 'active'`). Wrapping the whole query in single quotes for `-c` breaks the moment the query contains one: the shell treats that embedded `'` as the end of the argument, corrupting the command. Assign the query text to a shell variable via a single-quoted heredoc instead — heredoc content is not shell-quoted, so any single quotes inside the query pass through intact — and pass the variable to `-c` with double-quote expansion:
+
+   ```bash
+   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
+   case "$DATABASE_URL" in
+     postgres://*|postgresql://*) ;;
+     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
+   esac
+   QUERY=$(cat <<'SQL'
+   <the actual query text, written literally here, single quotes and all>
+   SQL
+   )
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+     -c 'SET default_transaction_read_only = on;' \
+     -c 'SET statement_timeout = 30000;' \
+     -c "$QUERY"
+   ```
+
+   This is different from the fixed `-c '...'` queries used elsewhere in this file (e.g. the reset section's baseline row-count query): those are hardcoded strings this skill itself wrote, with no developer-supplied content and no risk of an embedded quote, so plain single-quoting them is safe. This section's query is arbitrary and developer-described, so it needs the heredoc form instead.
+
+   Both `SET`s are mandatory and must be part of the same `psql` invocation as the query — a separate call gets a separate session, where neither applies.
+
+   `default_transaction_read_only = on` is a database-enforced backstop, not a substitute for reading the query first. Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss: `SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, and any `INSERT`/`UPDATE`/`DELETE`/DDL. If a query is rejected with `cannot execute ... in a read-only transaction`, that is the guard working — report it and do **not** disable the setting to get the query through. A genuine write against production only ever happens through the importers or the reset action, chosen deliberately.
+
+   `statement_timeout = 30000` (30 seconds) bounds the damage an accidentally expensive query can do to the live bot's database. If a query times out, say so and offer a narrowed version (a tighter `WHERE`, a `LIMIT`, an aggregate instead of a row dump) rather than raising the timeout.
+
+   If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection after a quiet period is slow by design, and retrying once is reasonable before giving up.
+5. Report the query that was run and its output. Keep the output as-is rather than summarising away rows the developer asked to see; if it is very large, say how many rows came back and show a representative slice. Never print the connection string, and do not paste query output that would contain a credential.
+6. If the developer has follow-up questions, repeat from step 3. Each one is a fresh `psql` invocation with its own `SET`s — never keep a session open across tool calls, because shell state does not persist between them.
 
 ## Non-goals
 
