@@ -113,10 +113,7 @@ export class DeploymentInfoService {
     const rawMessage =
       this.env('GIT_COMMIT_MESSAGE') ?? this.git(['log', '-1', '--pretty=%B']);
     if (rawMessage) {
-      const commitMessage = this.deriveCommitMessage(
-        rawMessage,
-        this.isMergeCommit(),
-      );
+      const commitMessage = this.deriveCommitMessage(rawMessage);
       if (commitMessage) info.commitMessage = commitMessage;
     }
     return info;
@@ -131,7 +128,9 @@ export class DeploymentInfoService {
   private isMergeCommit(): boolean {
     const fromEnv = this.env('GIT_IS_MERGE_COMMIT');
     if (fromEnv !== undefined) return fromEnv.toLowerCase() === 'true';
-    return this.git(['rev-parse', 'HEAD^2']) !== undefined;
+    return (
+      this.git(['rev-parse', '--verify', '--quiet', 'HEAD^2']) !== undefined
+    );
   }
 
   /**
@@ -141,16 +140,13 @@ export class DeploymentInfoService {
    * commit with a body shows that body line. Everything else shows its
    * subject.
    */
-  private deriveCommitMessage(
-    rawMessage: string,
-    isMergeCommit: boolean,
-  ): string | undefined {
+  private deriveCommitMessage(rawMessage: string): string | undefined {
     const nonBlank = rawMessage
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line !== '');
     const [subject, firstBodyLine] = nonBlank;
-    if (isMergeCommit && firstBodyLine) return firstBodyLine;
+    if (firstBodyLine && this.isMergeCommit()) return firstBodyLine;
     return subject;
   }
 

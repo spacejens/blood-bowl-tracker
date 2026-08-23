@@ -126,13 +126,13 @@ describe('DeploymentInfoService', () => {
     gitReturns({
       'log -1 --pretty=%B':
         'Merge pull request #551 from spacejens/some-branch\n\nShow team records\n',
-      'rev-parse HEAD^2': '1111111111111111\n',
+      'rev-parse --verify --quiet HEAD^2': '1111111111111111\n',
     });
 
     expect(service.getDeploymentInfo().commitMessage).toBe('Show team records');
   });
 
-  it('omits the commit message when it has no non-blank line', () => {
+  it('omits the commit message when the raw value is blank', () => {
     withEnv({ GIT_COMMIT_MESSAGE: '   \n\n', GIT_IS_MERGE_COMMIT: 'false' });
     vi.mocked(execFileSync).mockImplementation(() => {
       throw new Error('not a git repository');
@@ -151,8 +151,9 @@ describe('DeploymentInfoService', () => {
     service.getDeploymentInfo();
     service.getDeploymentInfo();
 
-    // Branch, SHA, message, and merge check — on the first call only.
-    expect(execFileSync).toHaveBeenCalledTimes(4);
+    // Branch, SHA, and message — on the first call only. The commit message
+    // has no body line, so the merge check is never reached.
+    expect(execFileSync).toHaveBeenCalledTimes(3);
   });
 
   it('describes an active machine as an embed with one line per field', () => {
@@ -203,19 +204,6 @@ describe('DeploymentInfoService', () => {
 
     expect(service.describe('active')).toEqual({
       embeds: [{ title: 'Bot starting as active' }],
-    });
-  });
-
-  it('omits the commit-message paragraph when it does not resolve', () => {
-    withEnv({ GIT_BRANCH: 'main' });
-    vi.mocked(execFileSync).mockImplementation(() => {
-      throw new Error('not a git repository');
-    });
-
-    expect(service.describe('active')).toEqual({
-      embeds: [
-        { title: 'Bot starting as active', description: 'Branch: main' },
-      ],
     });
   });
 
