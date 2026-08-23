@@ -278,7 +278,13 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 6. **Offer a local look.** **REQUIRED SUB-SKILL:** Use the `deploy-local` skill, exactly as `develop-feature`'s Phase 6 step 6 does — this is the only `deploy-local` offer this skill produces, since step 5c suppresses `handle-pr-reviews`' own. It is worth making even for a dependency bump: an updated runtime library can break at startup in ways no unit test covers. Do not ask the developer separately before invoking it — `deploy-local` asks which of its actions to run.
 
-7. **Skill ends.** Human review and merge happen outside this workflow, same as `develop-feature`. Renovate's PR is now updated in place, has been through both Claude's self-review and an independent bot pass, and is ready for the developer to merge. Once it has merged, use the `wrap-up` skill to verify the merge and clean up the worktree and branch.
+7. **Re-check mergeability before the final report.** The review loop above can run long (up to 5 iterations, each waiting up to 10 minutes), and `main` may have advanced or the branch may have gone stale in that time — the mergeability check in Phase 2 step 6 only covers the "No code changes needed" exit, not this pushed-fix path. Re-run it now:
+   ```bash
+   gh pr view <PR> --json mergeable,mergeStateStatus
+   ```
+   If `mergeable` is `CONFLICTING`, or `mergeStateStatus` is `DIRTY`/`BEHIND`, report PR #<PR> as blocked on a stale or conflicting branch (naming the reported status) instead of ready — the developer will need to resolve it (this skill still does not merge `main` in on its own). Otherwise (`mergeable: MERGEABLE`, or `UNKNOWN` treated as non-blocking, same as Phase 2 step 6) continue to report ready as below.
+
+8. **Skill ends.** Human review and merge happen outside this workflow, same as `develop-feature`. Renovate's PR is now updated in place, has been through both Claude's self-review and an independent bot pass, and — per the mergeability check above — is ready for the developer to merge (or reported as blocked, if that check found otherwise). Once it has merged, use the `wrap-up` skill to verify the merge and clean up the worktree and branch.
 
 ---
 
