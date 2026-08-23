@@ -103,3 +103,73 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
 
 7. Print a brief status line — worktree path, branch, whether `pnpm install`/`pnpm build` succeeded, and the sync counts — then continue immediately into Phase 2.
+
+---
+
+### Phase 2: Investigation
+
+Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3) phases. There is no brainstorming, no approval gate on a spec, and no enumerated task plan — a dependency bump is a single, already-decided change, and the only open question is what the codebase needs in order to accept it.
+
+1. **Read what Renovate already told you.** Renovate's PR `body` (recorded in Phase 1) contains the update's old and new versions, links to the upstream release notes and changelog, and — for a major bump — its own breaking-change callout. Read it before anything else; it usually names the exact breaking change the failing test is hitting.
+
+   The PR's `renovate:<updateType>` label (`renovate:major`, `renovate:minor`, `renovate:patch`, `renovate:pin`, `renovate:digest`, `renovate:rollback` — applied by `renovate.json5`'s labelling rule) tells you at a glance which class of update this is, and therefore how much scrutiny it deserves.
+
+2. **Determine why it is stuck.** Read `statusCheckRollup` from Phase 1. Each entry has `name`, `status`, `conclusion`, and `detailsUrl`. There are two distinct cases, and they lead to different places:
+   - **Some check's `conclusion` is not `SUCCESS`** — CI is failing. Go to step 3.
+   - **Every check is `SUCCESS`** — CI is green and nothing is broken; the PR simply is not eligible for automerge. `renovate.json5` automerges only `matchManagers: ['npm']` + `matchUpdateTypes: ['patch']`, so a green minor bump, a green major bump, and any Docker-tag update all sit here by design, waiting for a human. Skip step 3, do a light version of step 4 (enough to say what the update touches), and expect the **No code changes needed** outcome in step 6.
+
+   `pnpm build` failing locally in Phase 1 step 5 counts as evidence alongside CI, not instead of it — it is often the same failure, seen sooner.
+
+3. **Pull the failing job's logs.** Existing `gh` commands cover this completely; no repo tooling is needed. List the checks and their state:
+   ```bash
+   gh pr checks <PR>
+   ```
+   Then take the failing check's `detailsUrl` from `statusCheckRollup` — it has the form `https://github.com/<owner>/<repo>/actions/runs/<run-id>/job/<job-id>` — and read only the failing steps of that run:
+   ```bash
+   gh run view <run-id> --log-failed
+   ```
+   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, and `docker-build` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other three.
+
+   If the logs are inconclusive, reproduce locally in the worktree — the dependency is already installed there by Phase 1:
+   ```bash
+   pnpm verify
+   ```
+
+4. **Read how the codebase uses the dependency.** Grep for the package's imports and for the specific APIs the changelog flags as changed — the point is to judge the *size* of the fix, not to start making it:
+   ```bash
+   grep -rn "<package-name>" --include=package.json --exclude-dir=node_modules .
+   ```
+   ```bash
+   grep -rn "from '<package-name>" --include="*.ts" --exclude-dir=node_modules apps packages tools
+   ```
+   For a transitive dependency (Renovate titles these `update dependency <parent>><child>`, e.g. `@discordjs/rest>undici`) there will usually be **no direct import at all** — the update reaches this repo only through its parent package, and the fix, if any, is a change to how the parent is used or a bump of the parent itself.
+
+   A large repo-wide sweep is better delegated: dispatch a read-only `Explore` agent scoped to the affected package(s), per `develop-feature`'s "Subagent dispatch discipline" (every shell command in the dispatch prompt prefixed with `cd <worktree-path> &&`).
+
+5. **Write the investigation summary.** Save it to `docs/plans/<YYYY-MM-DD>-renovate-pr-<PR>-investigation.md` — e.g. `docs/plans/2026-08-23-renovate-pr-544-investigation.md`. Cover four things: what the update changes (old → new version, and the breaking change if any), why the PR is stuck, what fix is planned (or that none is needed), and which files it will touch.
+
+   **Do not use the Write tool for this** — in a worktree `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it. Use the `write-file` subcommand, exactly as `develop-feature`'s Phases 2 and 3 do:
+   ```bash
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
+   ...full summary markdown...
+   SUMMARYEOF
+   ```
+   It prints `{"written": "...", "bytes": N}`. If `dist/main.js` is missing, build it with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`; if the heredoc form is refused in this session, write the content to a plain file first and pipe it in (`cat <file> | node tools/ai-helpers/dist/main.js write-file <path>`). Then confirm the save actually landed:
+   ```bash
+   test -s "<worktree-path>/docs/plans/<summary-filename>.md"
+   ```
+
+   This summary is a working note — context for Phase 3 and a record for the developer. It is **not** an approval gate: unlike `develop-feature`'s spec, nothing pauses on it.
+
+6. **Branch on what was found.**
+
+   - **No code changes needed** — CI is green and the PR is only awaiting manual review (the common case for a minor or major bump), or the failure turns out to be unrelated or flaky and a re-run would clear it. Confirm the checks are currently green:
+     ```bash
+     gh pr checks <PR>
+     ```
+     Then report that PR #<PR> is ready for human review as-is, summarising what the update changes and what you checked, and **stop**. Skip Phase 3 and Phase 4 entirely — with no new commits there is no diff for self-review to read and nothing new for the review loop's bot to review, so running either would only add noise to Renovate's PR. Say plainly in the report that nothing was pushed.
+   - **Mechanical fix found** — the change is a renamed API, a moved import, a changed option name, a type-only adjustment, an updated test expectation, or a matching bump of a sibling package. Continue to Phase 3.
+   - **Fix is not mechanical** — it needs a substantial refactor or a product/architecture judgment call. **Pause** (mirroring `code-hygiene`'s Node-task escalation): report what the update breaks, what a fix would involve, and what is already known, then ask the developer via `AskUserQuestion` (single-select, three genuine options — per `CLAUDE.md`'s convention, do not add a free-text or chat option, and do not invent a fourth):
+     - **Proceed anyway** — continue to Phase 3 despite the larger scope.
+     - **Leave the PR as-is** — stop here. Nothing is pushed; the PR stays open with its findings reported.
+     - **Hand off to develop-feature** — stop here, and file a follow-up issue describing the migration work so it can be picked up as a normal `/develop-feature` cycle.
