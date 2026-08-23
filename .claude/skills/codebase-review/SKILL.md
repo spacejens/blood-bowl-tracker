@@ -24,7 +24,7 @@ Takes no arguments; always runs the full fixed criteria list below against the w
 **Out of scope:**
 
 - Dependency freshness and dead code removal — `code-hygiene` already owns both.
-- Any convention already fully enforced by a dedicated ESLint rule — `max-lines`, `local/max-function-params`, and `local/no-direct-service-instantiation`. CI already guarantees these, so re-checking them here adds nothing. A criterion below that sits *next to* one of these rules (for example test discipline, next to `local/no-direct-service-instantiation`) covers only the part the rule cannot see.
+- Any convention already fully enforced by a dedicated ESLint rule — such as `max-lines`, `local/max-function-params`, `local/no-direct-service-instantiation`, and `local/no-test-helper-imports`. CI already guarantees these, so re-checking them here adds nothing. A criterion below that sits *next to* one of these rules (for example test discipline, next to `local/no-direct-service-instantiation`) covers only the part the rule cannot see.
 
 ## Relationship to existing skills
 
@@ -46,7 +46,8 @@ Dispatch one read-only `Agent` per criterion in the fixed list below, each scann
   ```
 - Prefix **every** shell command in every dispatch prompt with `cd <repo-root> &&`. Subagent shell sessions do not reliably persist a working directory across tool calls, per `CLAUDE.md`'s worktree discipline; the same rule applies here even though this skill creates no worktree.
 - Tell each agent to search **"very thorough"** breadth — several naming conventions and several directories — since a criterion that only samples one package would under-report drift.
-- Each dispatch prompt contains, in this order: the repo root and the `cd` prefix rule; the criterion's own instructions from the fixed list below, quoted in full; a pointer to the specific `CLAUDE.md` section (or `docs/` file) that defines the convention being audited, so the agent reads the authoritative wording rather than working from the summary; the "what does not count" exclusions for that criterion; and the finding report format below.
+- `Explore` is built to locate code by excerpt, not to audit it — every criterion here is a judgment call over full file content (does this comment cross into narration, does this mock reimplement its collaborator, does this doc still match the code), so tell each agent explicitly to **read each candidate file in full** before judging it, not to decide from a search-result excerpt.
+- Each dispatch prompt contains, in this order: the repo root and the `cd` prefix rule; the criterion's own instructions from the fixed list below, quoted in full; a pointer to the specific `CLAUDE.md` section (or `docs/` file) that defines the convention being audited, so the agent reads the authoritative wording rather than working from the summary; the "what does not count" exclusions for that criterion; the read-full-files instruction above; and the finding report format below.
 - Tell each agent explicitly that it must **not** fix anything it finds, must not edit any file, and must report findings only.
 
 ### Finding report format
@@ -82,14 +83,14 @@ An agent that finds nothing for its criterion reports an empty finding list. Tha
    - Keep genuinely distinct problem types separate even when they came from the same criterion.
 2. **Present the full candidate list to the developer via `AskUserQuestion` (multi-select)**, following `write-issue`'s Phase 1 confirmation pattern and `CLAUDE.md`'s "Developer prompts" batching rules exactly — read those rather than re-deriving them here. Two things are specific to this skill and not covered by that reference:
    - Each option's description shows the candidate's title and its evidence count (`<N> occurrences`), so the developer can judge scope before committing to anything.
-   - The parent candidate is one of the options, per `write-issue`'s new-parent-with-sub-issues shape — in principle the developer can deselect it in favour of an existing issue, though a fresh review pass normally wants a fresh parent.
-3. **If nothing is confirmed** — the developer deselects everything — report that no issues will be created and **stop**. This is a valid outcome, not an error.
+   - The parent candidate is one of the options, per `write-issue`'s new-parent-with-sub-issues shape. It is always confirmed alongside any confirmed children — a fresh review pass always creates its own fresh parent — so deselecting the parent while keeping children is not a supported combination; treat it the same as deselecting everything below.
+3. **If nothing is confirmed** — the developer deselects the parent, all children, or both — report that no issues will be created and **stop**. This is a valid outcome, not an error.
 
 ## Phase 3: Draft and create
 
 Follow `write-issue`'s Phase 3 (Draft and create) — read `.claude/skills/write-issue/SKILL.md` and follow that phase, in its **new-parent-with-sub-issues** mode. Do not restate its steps here. The mapping into it:
 
-- The confirmed candidates from Phase 2 are its candidates; they have already passed confirmation, so there is no Phase 2 of `write-issue` to run for them.
+- The confirmed candidates from Phase 2 are its candidates; they have already passed confirmation, so there is no Phase 2 of `write-issue` to run for them. If the developer picks "Revise the draft" at `write-issue`'s Phase 3 step 2, re-draft from this candidate's Phase 1 evidence directly — there is no `write-issue` Phase 2 dialogue to loop back into.
 - The parent candidate is its to-be-created parent: draft and create it **first**, and note its issue number — every child needs it.
 - Each child candidate's body states the need and its purpose in plain text, with the representative evidence from Phase 1 (sample locations and total count) included as supporting detail — not as an implementation prescription. This matches this repo's existing issue style.
 - Its step 3 (kind labels) delegates to `develop-feature`'s ad-hoc-mode step 2. This is process/tooling work, so `development` is the expected label for most or all candidates — but judge each candidate on its own merits through that step rather than applying `development` by default.
