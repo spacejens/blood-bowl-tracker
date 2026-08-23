@@ -52,8 +52,9 @@ export class DeploymentInfoService {
 
   /**
    * The startup status embed: one `Label: value` line per resolved field, so
-   * it's readable at a glance instead of packed into one sentence. A field
-   * that didn't resolve is omitted rather than shown as blank.
+   * it's readable at a glance instead of packed into one sentence, followed by
+   * the commit message as its own paragraph. A field that didn't resolve is
+   * omitted rather than shown as blank.
    */
   describe(role: 'active' | 'standby'): StartupEmbedMessage {
     const info = this.getDeploymentInfo();
@@ -64,11 +65,18 @@ export class DeploymentInfoService {
     if (info.commitSha) {
       lines.push(`Commit: ${info.commitSha.slice(0, SHORT_SHA_LENGTH)}`);
     }
+    // Two paragraphs: the labelled fields, then the commit message. Either is
+    // dropped when it is empty, so nothing renders as a blank line or a
+    // dangling separator.
+    const paragraphs: string[] = [];
+    if (lines.length > 0) paragraphs.push(lines.join('\n'));
+    if (info.commitMessage) paragraphs.push(info.commitMessage);
+    const description = paragraphs.join('\n\n');
     return {
       embeds: [
         {
           title: `Bot starting as ${role}`,
-          ...(lines.length > 0 ? { description: lines.join('\n') } : {}),
+          ...(description ? { description } : {}),
         },
       ],
     };

@@ -160,6 +160,9 @@ describe('DeploymentInfoService', () => {
       FLY_APP_NAME: 'blood-bowl-tracker-discord-bot',
       GIT_SHA: 'abcdef1234567890',
       GIT_BRANCH: 'main',
+      GIT_COMMIT_MESSAGE:
+        'Merge pull request #551 from spacejens/some-branch\n\nShow team records\n',
+      GIT_IS_MERGE_COMMIT: 'true',
     });
 
     expect(service.describe('active')).toEqual({
@@ -171,6 +174,8 @@ describe('DeploymentInfoService', () => {
             'App: blood-bowl-tracker-discord-bot',
             'Branch: main',
             'Commit: abcdef1',
+            '',
+            'Show team records',
           ].join('\n'),
         },
       ],
@@ -197,6 +202,32 @@ describe('DeploymentInfoService', () => {
 
     expect(service.describe('active')).toEqual({
       embeds: [{ title: 'Bot starting as active' }],
+    });
+  });
+
+  it('omits the commit-message paragraph when it does not resolve', () => {
+    withEnv({ GIT_BRANCH: 'main' });
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error('not a git repository');
+    });
+
+    expect(service.describe('active')).toEqual({
+      embeds: [
+        { title: 'Bot starting as active', description: 'Branch: main' },
+      ],
+    });
+  });
+
+  it('describes only the commit message when no labelled field resolves', () => {
+    withEnv({
+      GIT_COMMIT_MESSAGE: 'Add team records\n',
+      GIT_IS_MERGE_COMMIT: 'false',
+    });
+
+    expect(service.describe('active')).toEqual({
+      embeds: [
+        { title: 'Bot starting as active', description: 'Add team records' },
+      ],
     });
   });
 });
