@@ -177,7 +177,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
 6. **Branch on what was found.**
 
-   - **No code changes needed** — CI is green and the PR is only awaiting manual review (the common case for a minor or major bump), or the failure turns out to be unrelated or flaky and a re-run would clear it. Confirm the checks are currently green:
+   - **No code changes needed** — CI is green and the PR is only awaiting manual review (the common case for a non-npm minor or major bump), or the failure turns out to be unrelated or flaky and a re-run would clear it. Confirm the checks are currently green:
      ```bash
      gh pr checks <PR>
      ```
