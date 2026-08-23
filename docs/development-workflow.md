@@ -2,9 +2,7 @@
 
 Development in this project is structured by a set of Claude Code skills — see the subsections below for what each one does.
 
-Each skill isolates its work in its own git worktree, so it never touches your current checkout while it runs.
-
-Every skill converges on a pull request rather than merging anything itself: human review and merge always happen outside the Claude workflow, so every change is visible on GitHub before it lands.
+Most skills isolate their work in its own git worktree and converge on a pull request, so human review and merge always happen outside the Claude workflow and every change is visible on GitHub before it lands. The exception is a skill whose only output is GitHub issues rather than a code or doc change — `write-issue` and `codebase-review` — which runs against the current checkout and opens no PR, since there is no working-tree change to isolate or merge.
 
 Each skill's own `SKILL.md` under `.claude/skills/` is the source of truth for its exact phase-by-phase behavior — this document only orients you to which skill to reach for and how they fit together.
 
