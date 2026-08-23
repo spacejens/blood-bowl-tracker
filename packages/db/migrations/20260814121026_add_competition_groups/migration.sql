@@ -40,10 +40,15 @@ CREATE TRIGGER competition_groups_set_updated_at
 -- -v`) rather than "fixed" by re-adding a default.
 ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
--- competitions_history.competition_group_id intentionally stays nullable:
--- history rows predating this migration can never be backfilled, since history
--- snapshots are immutable. See rewriteHistorySetNotNull in db-generate.ts.
-ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id" integer;
+-- competitions_history.competition_group_id is tightened alongside its
+-- tracked column, as a one-time catch-up: normally a fresh history column
+-- added here would stay nullable (pre-existing history rows predating this
+-- migration could never be backfilled, since history snapshots are
+-- immutable -- see rewriteHistorySetNotNull in db-generate.ts). That does
+-- not apply here, made safe by the coordinated database drop and re-import
+-- in issue #448, which leaves zero pre-existing history rows for this
+-- column to ever have been missing from.
+ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 ALTER TABLE "game_data"."competitions" ADD CONSTRAINT "competitions_competition_group_id_competition_groups_id_fkey" FOREIGN KEY ("competition_group_id") REFERENCES "game_data"."competition_groups"("id");
 --> statement-breakpoint
