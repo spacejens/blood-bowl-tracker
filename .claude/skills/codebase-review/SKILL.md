@@ -28,9 +28,9 @@ Takes no arguments; always runs the full fixed criteria list below against the w
 
 ## Relationship to existing skills
 
-- **No worktree, no branch, no code changes** — the same non-goals as `write-issue`. This skill does **not** follow `develop-feature`'s Setup / Development / Integration phases the way `code-hygiene` does, because it produces no commits and no PR. It runs against the current checkout.
+- **No worktree, no branch, no code changes** — the same non-goals as `write-issue`. This skill does **not** follow `develop-feature`'s Setup / Development / Self-review / Integration phases the way `code-hygiene` does, because it produces no commits and no PR. It runs against the current checkout.
 - **Phase 3 reuses `write-issue`'s Phase 3 (Draft and create) by reference**, in its new-parent-with-sub-issues mode — read `.claude/skills/write-issue/SKILL.md` and follow that phase, rather than duplicating its steps here, so the two skills can't drift out of sync. This is the same cross-reference pattern `write-issue` itself uses for `develop-feature`'s kind-label step.
-- **`write-issue`'s Phase 1 (Enumerate candidates) and Phase 2 (Refine each candidate) are not used.** Phase 1 of this skill already produces evidence-backed candidates, so there is nothing to enumerate from a free-form prompt; and Phase 2's purpose/scope dialogue and cross-tool impact review don't apply to findings that already carry their own evidence and scope. This skill's own Phase 2 confirmation stands in for `write-issue`'s Phase 1 confirmation — the same way `code-hygiene` skips the `develop-feature` steps that don't apply to fixed, non-conversational work.
+- **`write-issue`'s Phase 1 (Enumerate candidates) and Phase 2 (Refine each candidate) are not used.** This skill's own Phase 1 below already produces evidence-backed candidates, so there is nothing to enumerate from a free-form prompt; and `write-issue`'s Phase 2 purpose/scope dialogue and cross-tool impact review don't apply to findings that already carry their own evidence and scope. This skill's own Phase 2 confirmation stands in for `write-issue`'s Phase 1 confirmation — the same way `code-hygiene` skips the `develop-feature` steps that don't apply to fixed, non-conversational work.
 - **Kind labels come from `develop-feature`'s ad-hoc-mode step 2**, reached through `write-issue`'s Phase 3 step 3, which already delegates there. Do not duplicate that logic in this file either.
 
 ## Phase 1: Review — fan out one subagent per criterion
@@ -39,7 +39,7 @@ Dispatch one read-only `Agent` per criterion in the fixed list below, each scann
 
 ### Subagent dispatch
 
-- Use `subagent_type: "Explore"` — a read-only search agent with no `Write`/`Edit` tools. This skill changes nothing, and an agent that cannot write is the enforcement of that.
+- Use `subagent_type: "Explore"` — a search agent with no `Write`/`Edit` tools, which rules out the two most direct ways it could change a file. It retains `Bash`, so the explicit "must not fix anything, must not edit any file" instruction below is what actually carries the read-only guarantee.
 - Resolve the repo root once, before dispatching, and pass it into every prompt:
   ```bash
   git rev-parse --show-toplevel
@@ -71,7 +71,7 @@ An agent that finds nothing for its criterion reports an empty finding list. Tha
 
 4. **Dependency usage appropriateness.** Find judgment-level dependency choices that `code-hygiene`'s automated tooling doesn't cover: a hand-rolled utility duplicating a library already used elsewhere in this repo, and a dependency introduced where an existing one already solves the problem. Does not count: dependency freshness or version drift, unused dependencies, and `dependencies`-vs-`devDependencies` placement — all three belong to `code-hygiene`.
 
-5. **Documentation quality and correctness.** Check every `*.md` file under `docs/` (excluding the gitignored `docs/plans/`) on two axes. **Correctness:** staleness against the code it describes — a renamed field, changed behavior, a described module that no longer exists, a rule the code no longer implements. **Readability against `docs/spec-conventions.md`:** a missing one-sentence purpose statement, a wall of text that needs sectioning, a broken or missing cross-reference, and content the conventions say belongs in code rather than a spec. Read `docs/spec-conventions.md` first, then judge against it.
+5. **Documentation quality and correctness.** Check every `*.md` file under `docs/` (excluding gitignored paths such as `docs/plans/`) on two axes. **Correctness:** staleness against the code it describes — a renamed field, changed behavior, a described module that no longer exists, a rule the code no longer implements. **Readability against `docs/spec-conventions.md`:** a missing one-sentence purpose statement, a wall of text that needs sectioning, a broken or missing cross-reference, and content the conventions say belongs in code rather than a spec. Read `docs/spec-conventions.md` first, then judge against it. This is the widest criterion in the list — full coverage of every file against the current code is not expected in one pass; report what was actually checked so a partial pass reads as partial, not exhaustive.
 
 6. **Architecture/structure.** Read `docs/architecture.md` plus the actual module layout across `apps/`, `packages/`, and `tools/`, and propose restructuring opportunities by asking how this codebase would be structured if it were built fresh today with all current requirements known upfront, rather than having grown incrementally. Look for responsibilities split across packages that would sit together, packages that have accumulated unrelated responsibilities, and duplicated concepts that would be one shared module. Report each opportunity as its own finding with the concrete modules involved — not a single "the architecture could be better" finding. Does not count: file-size or function-length concerns, which ESLint already enforces.
 
@@ -80,15 +80,10 @@ An agent that finds nothing for its criterion reports an empty finding list. Tha
 1. **Merge every criterion's findings into one candidate list.** The result is one parent candidate, titled `Codebase review pass — <YYYY-MM-DD>` using today's date, plus one child candidate per distinct problem-type finding.
    - Where two criteria surfaced overlapping findings that point at the same underlying problem — for example the architecture criterion and the dependency criterion both flagging the same module — merge them into a single candidate rather than filing near-duplicate issues, combining their evidence.
    - Keep genuinely distinct problem types separate even when they came from the same criterion.
-2. **Present the full candidate list to the developer via `AskUserQuestion` (multi-select)**, following `write-issue`'s Phase 1 confirmation pattern exactly:
-   - At most 4 options per question and at most 4 questions per call. Split the candidates across consecutive questions of at most 4 candidates each, in the order presented, **all sent in a single call** — the union of the answers is the confirmed set.
-   - Set `multiSelect: true` on **every** split question, not only the first, and word each so it reads as a continuation of one decision.
-   - A single call caps out at 16 candidates. If there are more, ask about the first 16 in one call, then ask about the rest in a follow-up call, repeating until every candidate has been offered. Say how many batches there are when asking the first, so the developer knows more is coming.
-   - Never invent an option — no "None", "All", "Both", "Neither", or "Skip the rest"; deselecting everything already means none. Never add an explicit free-text or "Chat about this" option; both are provided automatically. See `CLAUDE.md`'s "Developer prompts" section.
+2. **Present the full candidate list to the developer via `AskUserQuestion` (multi-select)**, following `write-issue`'s Phase 1 confirmation pattern and `CLAUDE.md`'s "Developer prompts" batching rules exactly — read those rather than re-deriving them here. Two things are specific to this skill and not covered by that reference:
    - Each option's description shows the candidate's title and its evidence count (`<N> occurrences`), so the developer can judge scope before committing to anything.
    - The parent candidate is one of the options, per `write-issue`'s new-parent-with-sub-issues shape — in principle the developer can deselect it in favour of an existing issue, though a fresh review pass normally wants a fresh parent.
 3. **If nothing is confirmed** — the developer deselects everything — report that no issues will be created and **stop**. This is a valid outcome, not an error.
-4. **If child candidates are confirmed but the parent is not**, ask the developer via `AskUserQuestion` which existing issue should be the parent, offering the open issues that plausibly fit as options plus "Create the parent anyway". Carry the answer into Phase 3 as the known parent number.
 
 ## Phase 3: Draft and create
 
