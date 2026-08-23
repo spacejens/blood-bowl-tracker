@@ -57,6 +57,7 @@ export class RunProductionQueryService {
   ) {}
 
   async run(query: string): Promise<RunProductionQueryResult> {
+    this.validateQuery(query);
     const databaseUrl = await this.readDatabaseUrl();
     const result = await this.processRunner.run(
       'psql',
@@ -76,6 +77,35 @@ export class RunProductionQueryService {
       PROCESS_TIMEOUT_MS,
     );
     return { ...result, timedOut: result.exitCode === TIMED_OUT_EXIT_CODE };
+  }
+
+  /**
+   * Runs before anything else -- before credentials are even read, let alone
+   * `psql` spawned -- since both checks here are about what `query` itself
+   * could do, independent of the connection.
+   */
+  private validateQuery(query: string): void {
+    const trimmed = query.trim();
+    if (trimmed === '') {
+      throw new Error(
+        'Query text is empty -- nothing to run. Pass the SQL to run on stdin.',
+      );
+    }
+    // psql's `-c` accepts either a SQL command or a single backslash
+    // meta-command, and `execFile` (unlike a shell) never gets a chance to
+    // reject this: `\!` in particular shells out to the LOCAL machine
+    // running this command, entirely outside the database and its read-only
+    // transaction -- not a SQL injection, but arbitrary local code
+    // execution. Reject any query that could be interpreted as one before
+    // it ever reaches `psql`.
+    if (trimmed.startsWith('\\')) {
+      throw new Error(
+        'Query text looks like a psql meta-command (starts with "\\"), ' +
+          'which this action refuses to run -- meta-commands like \\! run ' +
+          'locally, outside the database and its read-only transaction. ' +
+          'Pass plain SQL instead.',
+      );
+    }
   }
 
   private async readDatabaseUrl(): Promise<string> {

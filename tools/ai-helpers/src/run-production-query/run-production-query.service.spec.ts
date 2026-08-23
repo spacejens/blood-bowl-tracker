@@ -155,4 +155,32 @@ describe('RunProductionQueryService', () => {
     );
     expect(processRunner.run).not.toHaveBeenCalled();
   });
+
+  it('rejects a blank query before reading DATABASE_URL or spawning psql', async () => {
+    // No env file written: if the blank-query check ran after credential
+    // reading, this would fail with the missing-.env.production error
+    // instead of the blank-query one, proving the check runs first.
+    await expect(service.run('   \n\t  ')).rejects.toThrow(
+      /query text is empty/i,
+    );
+    expect(gitRoots.resolve).not.toHaveBeenCalled();
+    expect(processRunner.run).not.toHaveBeenCalled();
+  });
+
+  it('rejects a query beginning with a psql meta-command before reading DATABASE_URL or spawning psql', async () => {
+    // psql's -c accepts either SQL or a single backslash meta-command --
+    // `\!` shells out to the LOCAL machine, entirely outside the database
+    // and its read-only transaction. No env file written, for the same
+    // reason as the blank-query test above: proves this check runs first.
+    await expect(
+      service.run('\\! printf "meta-command-executed"'),
+    ).rejects.toThrow(/meta-command/i);
+    expect(gitRoots.resolve).not.toHaveBeenCalled();
+    expect(processRunner.run).not.toHaveBeenCalled();
+  });
+
+  it('rejects a meta-command query even with leading whitespace before the backslash', async () => {
+    await expect(service.run('  \\dt')).rejects.toThrow(/meta-command/i);
+    expect(processRunner.run).not.toHaveBeenCalled();
+  });
 });
