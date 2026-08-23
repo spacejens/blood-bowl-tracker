@@ -356,9 +356,10 @@ per-record `MissingRequiredFieldError` naming the missing
 `competitionGroupId` field. That failed upsert means the competition never
 enters `BblCompetitionsImportService`'s internal id map, so every later
 importer step keyed off that map — matches, match outcomes, team
-participation, match events, and trophy awards alike — silently skips the
-competition too, not just its trophy awards. The fix, when this shows up in
-import output, is to add a curated row for the competition to
+participation, match events, and trophy awards alike — also skips the
+competition, each recording its own stage-specific import error for the
+missing map entry rather than skipping silently. The fix, when this shows up
+in import output, is to add a curated row for the competition to
 `competitions.json5` first, then re-run the import.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
