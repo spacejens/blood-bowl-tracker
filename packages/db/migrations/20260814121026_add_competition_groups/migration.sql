@@ -31,7 +31,7 @@ CREATE TRIGGER competition_groups_set_updated_at
   BEFORE UPDATE ON "game_data"."competition_groups"
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 --> statement-breakpoint
-ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer DEFAULT 1 NOT NULL;
+ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 -- competitions_history.competition_group_id intentionally stays nullable:
 -- history rows predating this migration can never be backfilled, since history
@@ -40,7 +40,7 @@ ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id"
 --> statement-breakpoint
 ALTER TABLE "game_data"."competitions" ADD CONSTRAINT "competitions_competition_group_id_competition_groups_id_fkey" FOREIGN KEY ("competition_group_id") REFERENCES "game_data"."competition_groups"("id");
 --> statement-breakpoint
-ALTER TABLE "game_data"."trophies" ADD COLUMN "competition_group_id" integer DEFAULT 1 NOT NULL;
+ALTER TABLE "game_data"."trophies" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 -- trophies_history.competition_group_id intentionally stays nullable:
 -- history rows predating this migration can never be backfilled, since history

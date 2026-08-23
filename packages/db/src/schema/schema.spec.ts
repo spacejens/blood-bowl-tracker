@@ -101,7 +101,7 @@ describe('schema', () => {
   it('exports competitions table with a competition group foreign key', () => {
     expect(competitions.competitionGroupId).toBeDefined();
     expect(competitions.competitionGroupId.notNull).toBe(true);
-    expect(competitions.competitionGroupId.hasDefault).toBe(true);
+    expect(competitions.competitionGroupId.hasDefault).toBe(false);
   });
 
   it('exports competition groups table with a league foreign key', () => {
