@@ -26,13 +26,6 @@ interface CompetitionEntry {
   era: string;
   competition: string;
   competitionGroupId: number;
-  // Whether TpCompetitionsImportService's own upsert created this competition
-  // fresh rather than matching an existing curated row (see
-  // TpCompetitionsImportService.importCompetitions' doc comment). When true,
-  // competitionGroupId cannot be trusted as a curated classification --
-  // buildContext skips the competition outright instead of resolving trophies
-  // against a group id that just happens to be the schema default.
-  created: boolean;
 }
 
 export interface ImportTpTrophyAwardsOptions {
@@ -212,9 +205,8 @@ export class TpTrophyAwardsImportService {
 
   /**
    * Everything this competition's awards need, or undefined after recording
-   * why they must be skipped: the competition was not imported, it was not
-   * pre-seeded by curated data (so its group id cannot be trusted), or its
-   * group is not in the curated catalog.
+   * why they must be skipped: the competition was not imported, or its group
+   * is not in the curated catalog.
    */
   private buildContext(
     options: {
@@ -236,26 +228,6 @@ export class TpTrophyAwardsImportService {
         this.importResults.error({
           item: { competition: tpId },
           message: `Skipping trophy awards for competition id ${tpId}: it was not imported.`,
-        }),
-      );
-      return undefined;
-    }
-    // A competition TpCompetitionsImportService had to create fresh (rather
-    // than matching an existing curated row) was not pre-seeded by
-    // tools/import-manual's before-other-importers phase, so its
-    // competitionGroupId is whatever competitions.competition_group_id's
-    // schema default happens to be (see that column's comment), not a real
-    // classification -- checked before groupName resolution so a freshly
-    // created competition never reaches trophy resolution regardless of what
-    // group id it landed on.
-    if (entry.created) {
-      errors.push(
-        this.importResults.error({
-          item: { competition: tpId },
-          message:
-            `Skipping trophy awards for competition id ${tpId}: it was not ` +
-            'pre-seeded by curated data, so its competition group cannot be ' +
-            'trusted as a real classification.',
         }),
       );
       return undefined;

@@ -110,7 +110,7 @@ describe('BblCompetitionsImportService', () => {
     });
   });
 
-  it('reports each imported competition curated group and created flag', async () => {
+  it('reports each imported competition curated group', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
@@ -137,7 +137,6 @@ describe('BblCompetitionsImportService', () => {
     expect(competitionEntriesByBblId.get('1')).toEqual({
       upsert: competitionsByBblId.get('1'),
       competitionGroupId: 5,
-      created: false,
     });
   });
 

@@ -226,10 +226,8 @@ export class BblTrophyAwardsImportService {
   /**
    * Everything this competition's award rows need, or `undefined` after
    * recording why they must all be skipped: the competition was not
-   * imported, it was not pre-seeded by curated data (so its group id cannot
-   * be trusted), or its group is not in the curated catalog. Mirrors
-   * TpTrophyAwardsImportService.buildContext, including its
-   * freshly-created guard.
+   * imported, or its group is not in the curated catalog. Mirrors
+   * TpTrophyAwardsImportService.buildContext.
    */
   private buildContext(
     options: {
@@ -255,25 +253,6 @@ export class BblTrophyAwardsImportService {
         this.importResults.error({
           item: { competition: competitionBblId },
           message: `Skipping trophy awards for competition id ${competitionBblId}: it was not imported.`,
-        }),
-      );
-      return undefined;
-    }
-    // A competition this importer had to create fresh (rather than matching
-    // an existing curated row) was not pre-seeded by tools/import-manual's
-    // before-other-importers phase, so its competitionGroupId is whatever
-    // competitions.competition_group_id's schema default happens to be, not
-    // a real classification -- checked before groupName resolution so such a
-    // competition never reaches trophy resolution regardless of which group
-    // id it landed on.
-    if (entry.created) {
-      errors.push(
-        this.importResults.error({
-          item: { competition: competitionBblId },
-          message:
-            `Skipping trophy awards for competition id ${competitionBblId}: ` +
-            'it was not pre-seeded by curated data, so its competition group ' +
-            'cannot be trusted as a real classification.',
         }),
       );
       return undefined;

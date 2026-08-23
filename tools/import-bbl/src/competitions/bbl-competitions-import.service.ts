@@ -31,15 +31,14 @@ const CUP_MAX_SPAN_DAYS = 3;
 
 /**
  * One imported competition as this service reports it: the upsert payload it
- * built, the curated competition group the server resolved it into, and
- * whether that upsert had to create the row fresh.
+ * built and the curated competition group the server resolved it into.
  *
- * `competitionGroupId` is only a real classification when `created` is false:
- * a competition this importer had to create was not pre-seeded by
- * tools/import-manual's before-other-importers phase, so its group id is
- * whatever `competitions.competition_group_id`'s schema default happens to
- * be. BblTrophyAwardsImportService relies on that distinction, mirroring
- * TpTrophyAwardsImportService.
+ * `competitionGroupId` is always a real classification:
+ * `competitions.competition_group_id` is NOT NULL with no database default,
+ * so a competition this importer had to create without a curated group never
+ * reaches this map — its upsert fails with a per-record error instead.
+ * BblTrophyAwardsImportService can therefore resolve a trophy against this
+ * group id directly, mirroring TpTrophyAwardsImportService.
  *
  * Reported alongside `competitionsByBblId` rather than replacing it: the four
  * other importer steps consuming that map only ever need the
@@ -49,7 +48,6 @@ const CUP_MAX_SPAN_DAYS = 3;
 export interface BblCompetitionEntry {
   upsert: UpsertCompetition;
   competitionGroupId: number;
-  created: boolean;
 }
 
 interface ResolveTypeAndEraOptions {
@@ -218,7 +216,6 @@ export class BblCompetitionsImportService {
         competitionEntriesByBblId.set(competition.bblId, {
           upsert: competitionData,
           competitionGroupId: upserted.competitionGroupId,
-          created: upserted.created,
         });
         imported += 1;
       }

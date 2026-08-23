@@ -20,7 +20,6 @@ function competitionEntry(overrides: Partial<UpsertCompetition> = {}): {
   era: string;
   competition: string;
   competitionGroupId: number;
-  created: boolean;
 } {
   return {
     upsert: {
@@ -36,7 +35,6 @@ function competitionEntry(overrides: Partial<UpsertCompetition> = {}): {
     era: 'era-1',
     competition: 'winter-cup',
     competitionGroupId: 1,
-    created: false,
   };
 }
 
