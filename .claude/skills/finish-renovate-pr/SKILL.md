@@ -7,7 +7,7 @@ description: Use when a Renovate dependency-update PR in the blood-bowl-tracker 
 
 Takes one stuck Renovate pull request and carries it to a mergeable state: investigating why it did not auto-merge, reviewing how the updated dependency is used in this codebase, making whatever code changes are needed, and pushing the fix back onto Renovate's own existing branch.
 
-Renovate opens dependency-update PRs on its own, configured by `renovate.json5` at the repo root. Patch updates from the npm manager automerge once CI passes; everything else — minor and major bumps, Docker tag updates, anything whose CI fails — sits open waiting for a human. This skill is the "go finish PR #NNN" entry point for one of those, chosen by the developer.
+Renovate opens dependency-update PRs on its own, configured by `renovate.json5` at the repo root. Patch and minor updates from the npm manager automerge once CI passes; everything else — major bumps, Docker tag updates, anything whose CI fails — sits open waiting for a human. This skill is the "go finish PR #NNN" entry point for one of those, chosen by the developer.
 
 See [docs/development-workflow.md](../../../docs/development-workflow.md) for the human-readable explanation of how this fits with the other skills.
 
@@ -130,7 +130,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 2. **Determine why it is stuck.** Read `statusCheckRollup` from Phase 1. Each entry has `name`, `status`, `conclusion`, and `detailsUrl`. There are three distinct cases, and they lead to different places:
    - **Some check's `conclusion` is an actual failure** (`FAILURE`, `TIMED_OUT`, `CANCELLED`, `ACTION_REQUIRED`, or any other conclusion that is not `SUCCESS`, `SKIPPED`, or `NEUTRAL`) — CI is failing. Treat the classification as a catch-all rather than an enumerated list: GitHub also reports `STALE` and `STARTUP_FAILURE`, and any future conclusion value not on the known-safe list belongs here too. Go to step 3.
    - **Some check is still queued or running** (`status` is not yet `COMPLETED`, so `conclusion` is `null`) — CI has not finished yet, it has not failed. Poll with `gh pr checks <PR> --watch`, which blocks until every check reaches a final state, or re-check with plain `gh pr checks <PR>` at most a handful of times with a short pause between. If checks are still not final after a reasonable wait, stop waiting: report PR #<PR>'s current check status to the developer and do not guess further, rather than polling indefinitely. Once every check has a final conclusion, re-evaluate this step.
-   - **Every check is `SUCCESS`** (a `SKIPPED` or `NEUTRAL` conclusion counts as non-blocking here too) — CI is green and nothing is broken; the PR simply is not eligible for automerge. `renovate.json5` automerges only `matchManagers: ['npm']` + `matchUpdateTypes: ['patch']`, so a green minor bump, a green major bump, and any Docker-tag update all sit here by design, waiting for a human. Skip step 3, do a light version of step 4 (enough to say what the update touches), and expect the **No code changes needed** outcome in step 6.
+   - **Every check is `SUCCESS`** (a `SKIPPED` or `NEUTRAL` conclusion counts as non-blocking here too) — CI is green and nothing is broken; the PR simply is not eligible for automerge. `renovate.json5` automerges only `matchManagers: ['npm']` + `matchUpdateTypes: ['patch', 'minor']`, so a green major bump and any Docker-tag update sit here by design, waiting for a human. Skip step 3, do a light version of step 4 (enough to say what the update touches), and expect the **No code changes needed** outcome in step 6.
 
    `pnpm build` failing locally in Phase 1 step 5 counts as evidence alongside CI, not instead of it — it is often the same failure, seen sooner.
 
@@ -177,7 +177,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
 6. **Branch on what was found.**
 
-   - **No code changes needed** — CI is green and the PR is only awaiting manual review (the common case for a minor or major bump), or the failure turns out to be unrelated or flaky and a re-run would clear it. Confirm the checks are currently green:
+   - **No code changes needed** — CI is green and the PR is only awaiting manual review (the common case for a non-npm minor or major bump), or the failure turns out to be unrelated or flaky and a re-run would clear it. Confirm the checks are currently green:
      ```bash
      gh pr checks <PR>
      ```
