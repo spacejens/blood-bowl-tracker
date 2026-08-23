@@ -81,10 +81,10 @@
       // via the GitHub API the first time it applies it, in default gray.
       // `addLabels`, not `labels`: Renovate merges `addLabels` across every
       // matching packageRule by appending, whereas `labels` replaces the
-      // whole list. The automerge rule above matches the same PRs this rule
-      // does for patch and minor updates, so `addLabels` is what guarantees
-      // the update-type label is added without clobbering, or being
-      // clobbered by, labels set elsewhere.
+      // whole list. For npm patch and minor PRs, this overlaps with the
+      // automerge rule above (which is npm-only, unlike this rule); either
+      // way, `addLabels` is what guarantees the update-type label is added
+      // without clobbering, or being clobbered by, labels set elsewhere.
       // One rule covers all six types because `{{updateType}}` is
       // Renovate's own per-PR template interpolation, resolving to whichever
       // type applies. lockFileMaintenance and replacement are deliberately
