@@ -38,31 +38,37 @@
       // (confirmed via `gh api repos/.../branches/main/protection` -> 404
       // "Branch not protected"), so Renovate's own automerge can merge
       // directly via the API once CI passes — no bot-approval workaround
-      // needed. Scoped to patch only, without a confidence gate:
+      // needed. Scoped to patch and minor, without a confidence gate:
       // matchConfidence-driven automerge ("Smart Merge Control") requires a
       // paid Mend Repository Integration and is not available on the free
       // Renovate GitHub App this repo uses — see
       // https://docs.mend.io/wsk/renovate-github-app ("Smart Merge Control
-      // is not a feature offered on this edition of Renovate"). Patch is
-      // semver's closest convention to "should be safe" without that signal.
+      // is not a feature offered on this edition of Renovate"). Minor is in
+      // scope on the evidence of this repo's own history instead: across
+      // dozens of patch and minor dependency updates made by hand before
+      // Renovate was introduced, exactly one needed a code change, and that
+      // change fixed a newly-surfaced lint error — which CI catches, and a
+      // red CI run blocks automerge anyway. Major updates did need real
+      // code changes when tested the same way, so they are deliberately not
+      // listed here and keep waiting for a human.
       // Deliberately no groupName here: this rule only sets automerge, so it
       // never overrides another rule's groupName (the @nestjs/vitest groups
       // above keep their names, and every other dependency keeps its own
       // one-PR-per-dependency default) — a groupName here would bundle every
-      // patch update into one shared automerging PR, an all-or-nothing
-      // failure mode where one broken dependency blocks automerge for every
-      // other one in the same PR.
+      // patch and minor update into one shared automerging PR, an
+      // all-or-nothing failure mode where one broken dependency blocks
+      // automerge for every other one in the same PR.
       // Scoped to the npm manager only: CI (.github/workflows/ci.yml) runs
       // pnpm build/lint/typecheck/test, which validates an npm dependency
-      // patch bump, but never builds or deploys the Docker image — Docker
-      // tag updates (docker-compose's postgres/schemaspy) have no PR-time
-      // validation at all, so they must never automerge unvalidated. This
-      // also excludes the github-actions manager (actions/checkout,
-      // actions/setup-node, flyctl); those are pinned to floating major/
-      // minor tags (@v4, @1.5) so patch updates essentially never fire for
-      // them anyway.
+      // patch or minor bump, but never builds or deploys the Docker image —
+      // Docker tag updates (docker-compose's postgres/schemaspy) have no
+      // PR-time validation at all, so they must never automerge
+      // unvalidated. This also excludes the github-actions manager
+      // (actions/checkout, actions/setup-node, flyctl); those are pinned to
+      // floating major/minor tags (@v4, @1.5) so patch and minor updates
+      // essentially never fire for them anyway.
       matchManagers: ['npm'],
-      matchUpdateTypes: ['patch'],
+      matchUpdateTypes: ['patch', 'minor'],
       automerge: true,
     },
     {
@@ -75,8 +81,8 @@
       // via the GitHub API the first time it applies it, in default gray.
       // `addLabels`, not `labels`: Renovate merges `addLabels` across every
       // matching packageRule by appending, whereas `labels` replaces the
-      // whole list. The patch-automerge rule above matches the same PRs
-      // this rule does for patch updates, so `addLabels` is what guarantees
+      // whole list. The automerge rule above matches the same PRs this rule
+      // does for patch and minor updates, so `addLabels` is what guarantees
       // the update-type label is added without clobbering, or being
       // clobbered by, labels set elsewhere.
       // One rule covers all six types because `{{updateType}}` is
