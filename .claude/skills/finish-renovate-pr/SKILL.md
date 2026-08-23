@@ -247,7 +247,9 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```bash
    git push origin <headRefName>
    ```
-   This updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
+   If this command fails (a non-zero exit — a rejected non-fast-forward push, a permissions error, a network failure), **stop immediately**: report the failure verbatim and do not proceed to step 4's question-posting, step 5's review loop, or step 6's `deploy-local` offer. None of those make sense against a PR that still doesn't have this run's fix — the commits exist locally in the worktree, so nothing is lost, but reporting success or continuing as if the push landed would be actively misleading.
+
+   Once the push succeeds: this updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
 
    **Tell the developer, once, in the status line for this step:** Renovate treats a branch carrying commits it did not author as manually edited, and stops rebasing or updating it on its own. Renovate's PR body offers a "check this box to rebase/retry" checkbox — **ticking it after this push discards these commits**, because Renovate rebuilds the branch from scratch. The developer should merge the PR rather than ask Renovate to retry it.
 
