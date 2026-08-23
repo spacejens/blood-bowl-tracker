@@ -430,7 +430,7 @@ This action answers a question the developer asks about live production data. Th
      -c "$QUERY"
    ```
 
-   This is different from the fixed `-c '...'` queries used elsewhere in this file (e.g. the reset section's baseline row-count query): those are hardcoded strings this skill itself wrote, with no developer-supplied content and no risk of an embedded quote, so plain single-quoting them is safe. This section's query is arbitrary and developer-described, so it needs the heredoc form instead.
+   This is different from the fixed `-c '...'` queries used elsewhere in this file (e.g. the reset section's `SET` statements and its `DROP SCHEMA`/`CREATE SCHEMA` statements): those are hardcoded strings this skill itself wrote, so their quoting is settled at authoring time, and none of them contain an embedded single quote. (The reset section's baseline row-count query is the one exception worth noting: it's also hardcoded, but its `WHERE` clause needs a literal `'game_data'`, so it's already `-c "..."` double-quoted for that reason.) This section's query is arbitrary and developer-described, so it needs the heredoc form instead.
 
    Both `SET`s are mandatory and must be part of the same `psql` invocation as the query — a separate call gets a separate session, where neither applies.
 
