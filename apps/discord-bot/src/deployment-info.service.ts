@@ -14,6 +14,11 @@ export interface DeploymentInfo {
   appName?: string;
   branch?: string;
   commitSha?: string;
+  /**
+   * One line summarising the running commit: the merge commit's first body
+   * line (the PR title) when there is one, otherwise the subject line.
+   */
+  commitMessage?: string;
 }
 
 /** How many leading characters of the commit SHA the message shows. */
@@ -80,7 +85,48 @@ export class DeploymentInfoService {
     if (branch) info.branch = branch;
     const commitSha = this.env('GIT_SHA') ?? this.git(['rev-parse', 'HEAD']);
     if (commitSha) info.commitSha = commitSha;
+    const rawMessage =
+      this.env('GIT_COMMIT_MESSAGE') ?? this.git(['log', '-1', '--pretty=%B']);
+    if (rawMessage) {
+      const commitMessage = this.deriveCommitMessage(
+        rawMessage,
+        this.isMergeCommit(),
+      );
+      if (commitMessage) info.commitMessage = commitMessage;
+    }
     return info;
+  }
+
+  /**
+   * A commit has a second parent only if it is a merge commit, so the
+   * `rev-parse HEAD^2` lookup succeeding is the structural merge test. The
+   * `GIT_IS_MERGE_COMMIT` build arg carries the same answer into the image,
+   * where there is no `.git` to ask.
+   */
+  private isMergeCommit(): boolean {
+    const fromEnv = this.env('GIT_IS_MERGE_COMMIT');
+    if (fromEnv !== undefined) return fromEnv.toLowerCase() === 'true';
+    return this.git(['rev-parse', 'HEAD^2']) !== undefined;
+  }
+
+  /**
+   * Picks the one readable line out of a raw commit message. A merge commit's
+   * subject is GitHub's `Merge pull request #N from user/branch`, which says
+   * nothing useful, while its first body line is the PR title — so a merge
+   * commit with a body shows that body line. Everything else shows its
+   * subject.
+   */
+  private deriveCommitMessage(
+    rawMessage: string,
+    isMergeCommit: boolean,
+  ): string | undefined {
+    const nonBlank = rawMessage
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '');
+    const [subject, firstBodyLine] = nonBlank;
+    if (isMergeCommit && firstBodyLine) return firstBodyLine;
+    return subject;
   }
 
   private env(key: string): string | undefined {
