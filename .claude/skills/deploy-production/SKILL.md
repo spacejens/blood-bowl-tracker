@@ -1,11 +1,11 @@
 ---
 name: deploy-production
-description: Use to operate the blood-bowl-tracker production deployment on Fly.io and Neon — check deployment status, restart the machine, roll back to a previous release, trigger a redeploy of current main without a new merge, drop and recreate the production database, or run the manual/BBL/TP importers against production
+description: Use to operate the blood-bowl-tracker production deployment on Fly.io and Neon — check deployment status, restart the machine, roll back to a previous release, trigger a redeploy of current main without a new merge, drop and recreate the production database, run read-only queries against the production database, or run the manual/BBL/TP importers against production
 ---
 
 # deploy-production
 
-Operates the already-deployed production Discord bot described in `docs/discord-bot/production-hosting.md`: status and log inspection, machine restarts, rollbacks, on-demand redeploys, a destructive database reset, and the four production import runs. Every action here is a wrapper around commands that page already documents by hand — when an action fails, that page is the fallback.
+Operates the already-deployed production Discord bot described in `docs/discord-bot/production-hosting.md`: status and log inspection, machine restarts, rollbacks, on-demand redeploys, a destructive database reset, read-only queries against the production database, and the four production import runs. Every action here is a wrapper around commands that page already documents by hand — when an action fails, that page is the fallback.
 
 This skill does **not** perform normal deploys. Those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
 
@@ -34,7 +34,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
 
 ## Steps
 
-0. Ask the developer which action(s) to perform. There are nine actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+0. Ask the developer which action(s) to perform. There are ten actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
    All three questions are one decision split in three, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, `Run what 3`.
 
@@ -49,11 +49,12 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
 
    **Question 3 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
+   - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
    - **Run the BBL import against production** — run `tools/import-bbl/` over a `flyctl proxy` tunnel.
    - **Run the TP import against production** — run `tools/import-tp/` over a `flyctl proxy` tunnel.
    - **Run the manual import (after other importers) against production** — run `tools/import-manual/` against `data/after-other-importers` over a `flyctl proxy` tunnel.
 
-   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the nine options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
+   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the ten options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
 
 ### Check deployment status
 
@@ -181,7 +182,7 @@ This dispatches the same `.github/workflows/deploy.yml` workflow that merges to 
 
 Run this section only if "Drop and recreate the production database" was selected in step 0 above. Runs after every earlier section if those were also selected; runs standalone if it is the only one picked.
 
-**This is destructive and has no undo.** It deletes all production data. The only way back is a full re-import, which is much slower against production than locally and leaves the bot serving empty data for that whole window. Treat every step below as mandatory — in particular, never skip step 3's typed confirmation, and never proceed on an implied or assumed "yes".
+**This is destructive and has no undo.** It deletes all production data. The only way back is a full re-import, which is much slower against production than locally and leaves the bot serving empty data for that whole window. Treat every step below as mandatory — in particular, never skip step 4's typed confirmation, and never proceed on an implied or assumed "yes".
 
 1. Make sure the production environment file is present. `apps/discord-bot/.env.production` is gitignored, so a worktree created fresh from a branch will not have it even though the main checkout does. Fill it in from the main checkout only if missing — never overwrite a copy already in the worktree, and never create one from a template:
    ```bash
@@ -197,7 +198,22 @@ Run this section only if "Drop and recreate the production database" was selecte
    grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
    ```
    Expected output: `1`. Anything else (0, or more than one) — stop and report. Every later step reads this value into a shell variable and never echoes it.
-3. Require a typed confirmation. Ask the developer, in plain text, to reply with exactly:
+3. Capture a baseline row count for every table, **before** anything is dropped. There are no backups (see Non-goals), so these counts are the only way to sanity-check afterwards that the re-import reproduced comparable data. Run this the same way as step 5's drop — a single shell invocation, the same extraction and validation of `DATABASE_URL`, never echoed — and in a read-only transaction, since nothing here should write:
+   ```bash
+   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
+   case "$DATABASE_URL" in
+     postgres://*|postgresql://*) ;;
+     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
+   esac
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At \
+     -c 'SET default_transaction_read_only = on;' \
+     -c "SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname = 'game_data' AND relname NOT LIKE '%\_history' ORDER BY relname;"
+   ```
+   `n_live_tup` is an estimate maintained by the statistics collector, which is what makes this affordable on every table at once; it is a baseline to compare against, not an exact audit. History tables are excluded because their counts grow with every re-import by design and would not be comparable. If the developer needs exact counts for specific tables, run those as explicit `SELECT count(*)` queries.
+
+   Report the full table of counts to the developer **in the conversation** before continuing, and keep it — step 9's report and any later comparison depend on it, and it is gone the moment the schema is dropped. If this step fails to connect, stop: dropping a database whose prior contents were never recorded gives up the only check that the re-import worked.
+
+4. Require a typed confirmation. Ask the developer, in plain text, to reply with exactly:
 
    ```
    blood-bowl-tracker-discord-bot
@@ -205,7 +221,7 @@ Run this section only if "Drop and recreate the production database" was selecte
 
    Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections **except** the four "against production" import actions — if any of those were also selected in step 0, do not run them automatically. Report that they were skipped because the reset they were expected to follow did not happen, and that the developer can re-invoke the skill to run them deliberately against the existing, unmodified production data if that is actually what they want.
 
-4. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string does not error — it silently falls back to libpq's local-connection defaults, which could drop schemas in a local database while this step reports success against production, so abort rather than let that happen:
+5. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string does not error — it silently falls back to libpq's local-connection defaults, which could drop schemas in a local database while this step reports success against production, so abort rather than let that happen:
 
    ```bash
    DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
@@ -219,22 +235,22 @@ Run this section only if "Drop and recreate the production database" was selecte
      -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
    ```
 
-   If the `case` aborts, stop and report that `DATABASE_URL` looked empty or malformed after extraction — without ever printing the value itself — and tell the developer to check `apps/discord-bot/.env.production` by hand. Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 5 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
+   If the `case` aborts, stop and report that `DATABASE_URL` looked empty or malformed after extraction — without ever printing the value itself — and tell the developer to check `apps/discord-bot/.env.production` by hand. Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 6 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
 
    If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
 
-5. Restart both machines so the bot's startup migrations rebuild the schema:
+6. Restart both machines so the bot's startup migrations rebuild the schema:
    ```bash
    fly apps restart blood-bowl-tracker-discord-bot
    ```
-   `packages/db`'s `createDb` runs drizzle's `migrate()` before the app serves anything, exactly as it does on a first deploy against an empty database. No separate migration command exists or is needed. This restarts both machines at the same moment, which is the one scenario where the two machines can race to apply the same migration against the now-empty database (see `docs/discord-bot/production-hosting.md`'s "Common failures" entry on the migration race) — expect this and don't treat one machine briefly crash-looping on a migration error as a failed reset; step 6 covers what to actually check.
-6. Verify the rebuild on both machines, polling until both report `started` (up to about 60 seconds):
+   `packages/db`'s `createDb` runs drizzle's `migrate()` before the app serves anything, exactly as it does on a first deploy against an empty database. No separate migration command exists or is needed. This restarts both machines at the same moment, which is the one scenario where the two machines can race to apply the same migration against the now-empty database (see `docs/discord-bot/production-hosting.md`'s "Common failures" entry on the migration race) — expect this and don't treat one machine briefly crash-looping on a migration error as a failed reset; step 7 covers what to actually check.
+7. Verify the rebuild on both machines, polling until both report `started` (up to about 60 seconds):
    ```bash
    fly status
    fly logs --no-tail
    ```
-   A successful reset shows every migration applying in order (not "nothing pending") on at least one machine, then a normal startup with the usual active/standby leader-election outcome across the two. If the other machine's logs show a migration error immediately after the restart, that's the documented race — it should recover on Fly's automatic retry once the winning machine's migration has committed; give it another `fly status`/`fly logs --no-tail` pass before treating it as a real failure. **"Nothing pending" on every machine against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports. This also means any of the four "against production" import actions that were selected back in step 0 must **not** run automatically either — the reset they were expected to follow did not actually happen. Report the failure, report that those imports were skipped as a result, and stop before reaching any import section; do not proceed to step 7 below.
-7. On success, offer to chain straight into the production imports — otherwise production sits empty until someone remembers to re-import. Skip any import action already selected in step 0 (it will run on its own below), and skip this question entirely if all four were already selected. Ask with `AskUserQuestion`, `multiSelect: true`, `question`: "The database is empty. Which imports should I run now?", offering the not-already-selected subset of exactly these four options, in this order:
+   A successful reset shows every migration applying in order (not "nothing pending") on at least one machine, then a normal startup with the usual active/standby leader-election outcome across the two. If the other machine's logs show a migration error immediately after the restart, that's the documented race — it should recover on Fly's automatic retry once the winning machine's migration has committed; give it another `fly status`/`fly logs --no-tail` pass before treating it as a real failure. **"Nothing pending" on every machine against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports. This also means any of the four "against production" import actions that were selected back in step 0 must **not** run automatically either — the reset they were expected to follow did not actually happen. Report the failure, report that those imports were skipped as a result, and stop before reaching any import section; do not proceed to step 8 below.
+8. On success, offer to chain straight into the production imports — otherwise production sits empty until someone remembers to re-import. Skip any import action already selected in step 0 (it will run on its own below), and skip this question entirely if all four were already selected. Ask with `AskUserQuestion`, `multiSelect: true`, `question`: "The database is empty. Which imports should I run now?", offering the not-already-selected subset of exactly these four options, in this order:
    - **Run the manual import (before other importers) against production**
    - **Run the BBL import against production**
    - **Run the TP import against production**
@@ -242,13 +258,58 @@ Run this section only if "Drop and recreate the production database" was selecte
 
    Add nothing else to that list — no "All", no "None"; deselecting everything already means "none", and that is a valid answer meaning production stays empty for now. Anything selected here joins the set from step 0 and runs in the same fixed order as the sections below.
 
-8. Report to the developer: that the schemas were dropped and recreated, what the restart's migration output showed, and which imports (if any) are about to run or were declined.
+9. Report to the developer: that the schemas were dropped and recreated, what the restart's migration output showed, and which imports (if any) are about to run or were declined.
+
+### Run read-only queries against production
+
+Run this section only if "Run read-only queries against production" was selected in step 0 above. Runs after the "Drop and recreate the production database" section if that was also selected — a reset's baseline counts are captured by that section's own step 3, and this section is how the *post*-reimport comparison gets made. Runs standalone if it is the only one picked.
+
+This action answers a question the developer asks about live production data. There is deliberately **no fixed or pre-approved query list**: the useful queries change with whatever is being investigated, and a hardcoded list would only ever match the investigation that prompted writing it. The developer describes what they want to know; you write the SQL for it in the conversation, show it to them before running it, and run it inside a session the database itself holds read-only.
+
+1. Make sure the production environment file is present, exactly as the reset section's step 1 does — copy it from the main checkout only if missing, never overwrite a copy already in the worktree, and never create one from a template:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ] && [ ! -f "$WORKTREE_ROOT/apps/discord-bot/.env.production" ] && [ -f "$MAIN_ROOT/apps/discord-bot/.env.production" ]; then
+     cp "$MAIN_ROOT/apps/discord-bot/.env.production" "$WORKTREE_ROOT/apps/discord-bot/.env.production"
+   fi
+   ```
+   If the file exists in neither place, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section.
+2. Confirm the file sets `DATABASE_URL`, **without printing its value**:
+   ```bash
+   grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
+   ```
+   Expected output: `1`. Anything else — stop and report.
+3. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/pg-schema.ts`), so qualify names as `game_data.<table>`.
+4. Run the query. Do this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting, for the same reason the reset section does: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string silently falls back to libpq's local-connection defaults, which would run the query against a local database while reporting it as production.
+
+   ```bash
+   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
+   case "$DATABASE_URL" in
+     postgres://*|postgresql://*) ;;
+     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
+   esac
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+     -c 'SET default_transaction_read_only = on;' \
+     -c 'SET statement_timeout = 30000;' \
+     -c '<the query>'
+   ```
+
+   Both `SET`s are mandatory and must be part of the same `psql` invocation as the query — a separate call gets a separate session, where neither applies.
+
+   `default_transaction_read_only = on` is a database-enforced backstop, not a substitute for reading the query first. Postgres hard-errors on any write it reaches, including the non-obvious ones a visual review can miss: `SELECT ... FOR UPDATE`, `SELECT setval(...)`/`nextval(...)`, `SELECT ... INTO`, and any `INSERT`/`UPDATE`/`DELETE`/DDL. If a query is rejected with `cannot execute ... in a read-only transaction`, that is the guard working — report it and do **not** disable the setting to get the query through. A genuine write against production only ever happens through the importers or the reset action, chosen deliberately.
+
+   `statement_timeout = 30000` (30 seconds) bounds the damage an accidentally expensive query can do to the live bot's database. If a query times out, say so and offer a narrowed version (a tighter `WHERE`, a `LIMIT`, an aggregate instead of a row dump) rather than raising the timeout.
+
+   If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection after a quiet period is slow by design, and retrying once is reasonable before giving up.
+5. Report the query that was run and its output. Keep the output as-is rather than summarising away rows the developer asked to see; if it is very large, say how many rows came back and show a representative slice. Never print the connection string, and do not paste query output that would contain a credential.
+6. If the developer has follow-up questions, repeat from step 3. Each one is a fresh `psql` invocation with its own `SET`s — never keep a session open across tool calls, because shell state does not persist between them.
 
 ### Production imports: shared setup
 
 Run this section only if at least one of the four "against production" import actions was selected in step 0 (or chained from the database reset above). It is not a menu option of its own — it is the setup those actions share, run once no matter how many of them were selected, immediately before the first of them.
 
-Throughout this section and the four import sections below, "or chained from the database reset" means the reset actually ran and completed successfully (its step 6 confirmed the schemas rebuilt, not "nothing pending"). If the reset was refused at its typed confirmation, or completed but step 6 detected "nothing pending", any import action selected alongside it does **not** run automatically — see the reset section's step 3 and step 6 for the exact handling.
+Throughout this section and the four import sections below, "or chained from the database reset" means the reset actually ran and completed successfully (its step 7 confirmed the schemas rebuilt, not "nothing pending"). If the reset was refused at its typed confirmation, or completed but step 7 detected "nothing pending", any import action selected alongside it does **not** run automatically — see the reset section's step 4 and step 7 for the exact handling.
 
 Everything here automates the flow documented in `docs/discord-bot/production-hosting.md`'s "Running import tools against production" section; read that section when something here fails.
 
