@@ -64,21 +64,21 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    git fetch origin <headRefName>
    ```
    ```bash
-   git worktree add .claude/worktrees/<worktree-dir> <headRefName>
+   git worktree add --track -b <headRefName> .claude/worktrees/<worktree-dir> origin/<headRefName>
    ```
    `<worktree-dir>` is `headRefName` with every `/` replaced by `-` (e.g. branch `renovate/discordjs-rest-undici-8.x` → directory `.claude/worktrees/renovate-discordjs-rest-undici-8.x`) — a directory name cannot contain the slash, but the **branch name is never renamed or sanitized**. `develop-feature`'s mandatory `git branch -m worktree-<name> <name>` rename step has no counterpart here and must not be performed: the branch must stay byte-for-byte what Renovate created.
 
+   The full path just created, `.claude/worktrees/<worktree-dir>`, is what every later step means by `<worktree-path>`. Unlike `develop-feature`'s `EnterWorktree`, plain `git worktree add` does **not** move the session's cwd — it only creates the directory. **From this point on, every command in this skill (not just subagent dispatch prompts) must carry an explicit `cd <worktree-path> &&` prefix**, so it actually runs against the worktree instead of the main checkout. The commands below are written with that prefix from here on.
+
    Verify before continuing:
    ```bash
-   git branch --show-current
+   cd <worktree-path> && git branch --show-current
    ```
    Expected: exactly `headRefName`. Anything else — stop and report.
 
-   The full path just created, `.claude/worktrees/<worktree-dir>`, is what every later step means by `<worktree-path>`.
-
 4. **Link the plans directory**, so Phase 2's investigation summary is saved outside the worktree and survives its removal. Identical to `develop-feature`'s Setup step 8:
    ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   cd <worktree-path> && MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
      mkdir -p "$MAIN_ROOT/docs/plans"
      if [ -e docs/plans ]; then
@@ -91,16 +91,16 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
 
 5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/ai-helpers` exists as compiled output for step 6:
    ```bash
-   pnpm install
+   cd <worktree-path> && pnpm install
    ```
    ```bash
-   pnpm build
+   cd <worktree-path> && pnpm build
    ```
    A failure here is **expected and informative** on this skill's PRs, unlike on `develop-feature`'s: the dependency bump under investigation is itself a plausible cause. Do not stop on it. Record the failure output verbatim — it is Phase 2's first and best evidence — and continue to step 6.
 
 6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 10:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js sync-gitignored
    ```
    If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
 
@@ -116,9 +116,10 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
    The PR's `renovate:<updateType>` label (`renovate:major`, `renovate:minor`, `renovate:patch`, `renovate:pin`, `renovate:digest`, `renovate:rollback` — applied by `renovate.json5`'s labelling rule) tells you at a glance which class of update this is, and therefore how much scrutiny it deserves.
 
-2. **Determine why it is stuck.** Read `statusCheckRollup` from Phase 1. Each entry has `name`, `status`, `conclusion`, and `detailsUrl`. There are two distinct cases, and they lead to different places:
-   - **Some check's `conclusion` is not `SUCCESS`** — CI is failing. Go to step 3.
-   - **Every check is `SUCCESS`** — CI is green and nothing is broken; the PR simply is not eligible for automerge. `renovate.json5` automerges only `matchManagers: ['npm']` + `matchUpdateTypes: ['patch']`, so a green minor bump, a green major bump, and any Docker-tag update all sit here by design, waiting for a human. Skip step 3, do a light version of step 4 (enough to say what the update touches), and expect the **No code changes needed** outcome in step 6.
+2. **Determine why it is stuck.** Read `statusCheckRollup` from Phase 1. Each entry has `name`, `status`, `conclusion`, and `detailsUrl`. There are three distinct cases, and they lead to different places:
+   - **Some check's `conclusion` is an actual failure** (`FAILURE`, `TIMED_OUT`, `CANCELLED`, or `ACTION_REQUIRED`) — CI is failing. Go to step 3.
+   - **Some check is still queued or running** (`status` is not yet `COMPLETED`, so `conclusion` is `null`) — CI has not finished yet, it has not failed. Wait and re-read the status (e.g. re-run `gh pr checks <PR>`) rather than treating this as a failure; once every check has a final conclusion, re-evaluate this step.
+   - **Every check is `SUCCESS`** (a `SKIPPED` or `NEUTRAL` conclusion counts as non-blocking here too) — CI is green and nothing is broken; the PR simply is not eligible for automerge. `renovate.json5` automerges only `matchManagers: ['npm']` + `matchUpdateTypes: ['patch']`, so a green minor bump, a green major bump, and any Docker-tag update all sit here by design, waiting for a human. Skip step 3, do a light version of step 4 (enough to say what the update touches), and expect the **No code changes needed** outcome in step 6.
 
    `pnpm build` failing locally in Phase 1 step 5 counts as evidence alongside CI, not instead of it — it is often the same failure, seen sooner.
 
@@ -130,7 +131,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
    ```bash
    gh run view <run-id> --log-failed
    ```
-   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, and `docker-build` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other three.
+   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, `docker-build`, and `schemaspy-build` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other five.
 
    If the logs are inconclusive, reproduce locally in the worktree — the dependency is already installed there by Phase 1:
    ```bash
@@ -148,7 +149,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
    A large repo-wide sweep is better delegated: dispatch a read-only `Explore` agent scoped to the affected package(s), per `develop-feature`'s "Subagent dispatch discipline" (every shell command in the dispatch prompt prefixed with `cd <worktree-path> &&`).
 
-5. **Write the investigation summary.** Save it to `docs/plans/<YYYY-MM-DD>-renovate-pr-<PR>-investigation.md` — e.g. `docs/plans/2026-08-23-renovate-pr-544-investigation.md`. Cover four things: what the update changes (old → new version, and the breaking change if any), why the PR is stuck, what fix is planned (or that none is needed), and which files it will touch.
+5. **Write the investigation summary.** `<summary-filename>` is `<YYYY-MM-DD>-renovate-pr-<PR>-investigation` (no extension) — e.g. `2026-08-23-renovate-pr-544-investigation`. Save it to `docs/plans/<summary-filename>.md`. Cover four things: what the update changes (old → new version, and the breaking change if any), why the PR is stuck, what fix is planned (or that none is needed), and which files it will touch.
 
    **Do not use the Write tool for this** — in a worktree `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it. Use the `write-file` subcommand, exactly as `develop-feature`'s Phases 2 and 3 do:
    ```bash
@@ -169,12 +170,12 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
      ```bash
      gh pr checks <PR>
      ```
-     Then report that PR #<PR> is ready for human review as-is, summarising what the update changes and what you checked, and **stop**. Skip Phase 3 and Phase 4 entirely — with no new commits there is no diff for self-review to read and nothing new for the review loop's bot to review, so running either would only add noise to Renovate's PR. Say plainly in the report that nothing was pushed.
+     Then report that PR #<PR> is ready for human review as-is, summarising what the update changes and what you checked, and **stop**. Skip Phase 3 and Phase 4 entirely — with no new commits there is no diff for self-review to read and nothing new for the review loop's bot to review, so running either would only add noise to Renovate's PR. Say plainly in the report that nothing was pushed. Since no work is in flight, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `cd <worktree-path>/.. && git worktree remove <worktree-path>`.
    - **Mechanical fix found** — the change is a renamed API, a moved import, a changed option name, a type-only adjustment, an updated test expectation, or a matching bump of a sibling package. Continue to Phase 3.
    - **Fix is not mechanical** — it needs a substantial refactor or a product/architecture judgment call. **Pause** (mirroring `code-hygiene`'s Node-task escalation): report what the update breaks, what a fix would involve, and what is already known, then ask the developer via `AskUserQuestion` (single-select, three genuine options — per `CLAUDE.md`'s convention, do not add a free-text or chat option, and do not invent a fourth):
      - **Proceed anyway** — continue to Phase 3 despite the larger scope.
-     - **Leave the PR as-is** — stop here. Nothing is pushed; the PR stays open with its findings reported.
-     - **Hand off to develop-feature** — stop here, and file a follow-up issue describing the migration work so it can be picked up as a normal `/develop-feature` cycle.
+     - **Leave the PR as-is** — stop here. Nothing is pushed; the PR stays open with its findings reported. Since no work is in flight, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `cd <worktree-path>/.. && git worktree remove <worktree-path>`.
+     - **Hand off to develop-feature** — stop here, and file a follow-up issue describing the migration work so it can be picked up as a normal `/develop-feature` cycle. Since no work is in flight on this PR, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `cd <worktree-path>/.. && git worktree remove <worktree-path>`.
 
 ---
 
@@ -190,7 +191,7 @@ Follow `develop-feature`'s Phase 4 discipline, with Phase 2's investigation summ
 - **Debug** — **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` on any unexpected failure.
 - **Verify** — **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion` before calling the change done.
 - **Docs and deployment sync** — if the change makes anything under `docs/` stale, or changes what `Dockerfile`/`docker-compose.yml` need to know, update those now.
-- **Commit** one logical change at a time, then run `pnpm verify` from the repo root if that commit's diff touched anything under `apps/`, `packages/`, or `tools/`; if it touched only `.claude/` or `docs/`, skip it and note why — `develop-feature`'s Phase 4 step 5 rule, unchanged.
+- **Commit** one logical change at a time, then run `pnpm verify` from the repo root if that commit's diff touched anything under `apps/`, `packages/`, or `tools/`; if it touched only `.claude/` or `docs/`, skip it and note why — `develop-feature`'s Phase 4 step 5 rule, unchanged. **One addition specific to this skill:** a commit touching the root `package.json`, `pnpm-lock.yaml`, or `pnpm-workspace.yaml` always runs `pnpm verify`, regardless of whether it also touches `apps/`/`packages/`/`tools/` — this skill's most common diff is exactly a root manifest/lockfile change from bumping or re-resolving a dependency, and that is precisely the change most worth verifying.
 
 Typically this is a single commit: "make the code changes this dependency bump needs." **Never amend, rebase, or force-push Renovate's existing commit** — add your own commits on top of it. Rewriting Renovate's commit would force-push the PR's branch and destroy the correspondence between the PR's review history and its diff.
 
@@ -214,19 +215,19 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist:
    ```bash
-   node tools/ai-helpers/dist/main.js check-main-stray
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js check-main-stray
    ```
    `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/ai-helpers/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
 
 2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
    ```bash
-   date +%s
+   cd <worktree-path> && date +%s
    ```
    Record the printed epoch. **This is where this skill differs from `develop-feature`'s first-iteration watermark**, which anchors to the PR's `createdAt`. That anchor is correct there because the PR is brand new; here the PR may be weeks old and already carry CodeRabbit reviews of Renovate's original commit, and using `createdAt` would make the very first wait match one of those stale reviews instantly. Capturing the epoch just before the push is the equivalent "nothing before this counts" line for a pre-existing PR, and capturing it *before* rather than after the push closes the race where a fast bot review lands while `git push` is still returning.
 
 3. **Push onto Renovate's branch.**
    ```bash
-   git push origin <headRefName>
+   cd <worktree-path> && git push origin <headRefName>
    ```
    This updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
 
