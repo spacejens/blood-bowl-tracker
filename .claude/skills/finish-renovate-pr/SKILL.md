@@ -59,7 +59,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    Run these as two separate commands so a failure in one does not mask the other. Either failure is a one-line warning and the run **continues** — matching `develop-feature`'s assign/label failure tolerance. Do not add a kind label (`feature`/`bug`/`development`): a Renovate PR already carries its own `renovate:<updateType>` label, and this skill opens no PR that would need one.
 
-3. **Create a worktree on Renovate's existing branch.** This is a deliberate departure from `develop-feature`'s Setup phase, which uses `superpowers:using-git-worktrees`' native `EnterWorktree` tool. That tool only ever creates a *new* branch off the default branch; this skill needs the worktree checked out on `headRefName` itself, because fixes must land on that exact branch to update the existing PR. So use the plain git-worktree fallback path (`superpowers:using-git-worktrees` Step 1b) instead:
+3. **Create a worktree on Renovate's existing branch, then enter it.** This is a deliberate departure from `develop-feature`'s Setup phase, which uses `superpowers:using-git-worktrees`' native `EnterWorktree` tool in its `name` mode — that mode only ever creates a *new* branch off the default branch, and this skill needs the worktree checked out on `headRefName` itself, because fixes must land on that exact branch to update the existing PR. So this skill does the `git worktree add` step itself first, using the plain git-worktree fallback path (`superpowers:using-git-worktrees` Step 1b):
    ```bash
    git fetch origin <headRefName>
    ```
@@ -68,17 +68,21 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    `<worktree-dir>` is `headRefName` with every `/` replaced by `-` (e.g. branch `renovate/discordjs-rest-undici-8.x` → directory `.claude/worktrees/renovate-discordjs-rest-undici-8.x`) — a directory name cannot contain the slash, but the **branch name is never renamed or sanitized**. `develop-feature`'s mandatory `git branch -m worktree-<name> <name>` rename step has no counterpart here and must not be performed: the branch must stay byte-for-byte what Renovate created.
 
-   The full path just created, `.claude/worktrees/<worktree-dir>`, is what every later step means by `<worktree-path>`. Unlike `develop-feature`'s `EnterWorktree`, plain `git worktree add` does **not** move the session's cwd — it only creates the directory. **From this point on, every command in this skill (not just subagent dispatch prompts) must carry an explicit `cd <worktree-path> &&` prefix**, so it actually runs against the worktree instead of the main checkout. The commands below are written with that prefix from here on.
+   The full path just created, `.claude/worktrees/<worktree-dir>`, is what every later step means by `<worktree-path>`. Plain `git worktree add` does **not** move the session's cwd — it only creates the directory. So immediately call `EnterWorktree` in its `path` mode to enter the worktree that was just created:
+   ```
+   EnterWorktree(path: ".claude/worktrees/<worktree-dir>")
+   ```
+   `EnterWorktree`'s `path` parameter is documented as built for exactly this case — entering a worktree already created with plain `git worktree add` — and, unlike plain `git worktree add`, it actually moves the session's cwd into the worktree. **From this point on, every step in this skill runs from inside the worktree** — no further `cd <worktree-path> &&` prefixing is needed on top-level shell commands. (This is unrelated to the "Subagent dispatch discipline" convention referenced above: a dispatched subagent's shell session is separate from the controller's and still needs its own `cd <worktree-path> &&` prefix on every command in its dispatch prompt.)
 
    Verify before continuing:
    ```bash
-   cd <worktree-path> && git branch --show-current
+   git branch --show-current
    ```
    Expected: exactly `headRefName`. Anything else — stop and report.
 
 4. **Link the plans directory**, so Phase 2's investigation summary is saved outside the worktree and survives its removal. Identical to `develop-feature`'s Setup step 8:
    ```bash
-   cd <worktree-path> && MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
      mkdir -p "$MAIN_ROOT/docs/plans"
      if [ -e docs/plans ]; then
@@ -91,16 +95,16 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
 
 5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/ai-helpers` exists as compiled output for step 6:
    ```bash
-   cd <worktree-path> && pnpm install
+   pnpm install
    ```
    ```bash
-   cd <worktree-path> && pnpm build
+   pnpm build
    ```
    A failure here is **expected and informative** on this skill's PRs, unlike on `develop-feature`'s: the dependency bump under investigation is itself a plausible cause. Do not stop on it. Record the failure output verbatim — it is Phase 2's first and best evidence — and continue to step 6.
 
 6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 10:
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/ai-helpers/dist/main.js sync-gitignored
    ```
    If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
 
@@ -153,13 +157,13 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
    **Do not use the Write tool for this** — in a worktree `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it. Use the `write-file` subcommand, exactly as `develop-feature`'s Phases 2 and 3 do:
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
+   node tools/ai-helpers/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
    ...full summary markdown...
    SUMMARYEOF
    ```
    It prints `{"written": "...", "bytes": N}`. If `dist/main.js` is missing, build it with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`; if the heredoc form is refused in this session, write the content to a plain file first and pipe it in (`cat <file> | node tools/ai-helpers/dist/main.js write-file <path>`). Then confirm the save actually landed:
    ```bash
-   test -s "<worktree-path>/docs/plans/<summary-filename>.md"
+   test -s "docs/plans/<summary-filename>.md"
    ```
 
    This summary is a working note — context for Phase 3 and a record for the developer. It is **not** an approval gate: unlike `develop-feature`'s spec, nothing pauses on it.
@@ -170,12 +174,12 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
      ```bash
      gh pr checks <PR>
      ```
-     Then report that PR #<PR> is ready for human review as-is, summarising what the update changes and what you checked, and **stop**. Skip Phase 3 and Phase 4 entirely — with no new commits there is no diff for self-review to read and nothing new for the review loop's bot to review, so running either would only add noise to Renovate's PR. Say plainly in the report that nothing was pushed. Since no work is in flight, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `cd <worktree-path>/.. && git worktree remove <worktree-path>`.
+     Then report that PR #<PR> is ready for human review as-is, summarising what the update changes and what you checked, and **stop**. Skip Phase 3 and Phase 4 entirely — with no new commits there is no diff for self-review to read and nothing new for the review loop's bot to review, so running either would only add noise to Renovate's PR. Say plainly in the report that nothing was pushed. Since no work is in flight, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `git worktree remove <worktree-path>` run from **outside** the worktree, in the main checkout (this skill's steps normally run from inside the worktree per Phase 1 step 3, so switch back to the main checkout first — a worktree cannot remove itself).
    - **Mechanical fix found** — the change is a renamed API, a moved import, a changed option name, a type-only adjustment, an updated test expectation, or a matching bump of a sibling package. Continue to Phase 3.
    - **Fix is not mechanical** — it needs a substantial refactor or a product/architecture judgment call. **Pause** (mirroring `code-hygiene`'s Node-task escalation): report what the update breaks, what a fix would involve, and what is already known, then ask the developer via `AskUserQuestion` (single-select, three genuine options — per `CLAUDE.md`'s convention, do not add a free-text or chat option, and do not invent a fourth):
      - **Proceed anyway** — continue to Phase 3 despite the larger scope.
-     - **Leave the PR as-is** — stop here. Nothing is pushed; the PR stays open with its findings reported. Since no work is in flight, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `cd <worktree-path>/.. && git worktree remove <worktree-path>`.
-     - **Hand off to develop-feature** — stop here, and file a follow-up issue describing the migration work so it can be picked up as a normal `/develop-feature` cycle. Since no work is in flight on this PR, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `cd <worktree-path>/.. && git worktree remove <worktree-path>`.
+     - **Leave the PR as-is** — stop here. Nothing is pushed; the PR stays open with its findings reported. Since no work is in flight, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `git worktree remove <worktree-path>` run from **outside** the worktree, in the main checkout (this skill's steps normally run from inside the worktree per Phase 1 step 3, so switch back to the main checkout first — a worktree cannot remove itself).
+     - **Hand off to develop-feature** — stop here, and file a follow-up issue describing the migration work so it can be picked up as a normal `/develop-feature` cycle. Since no work is in flight on this PR, clean up what Phase 1 claimed: remove the `in progress` label (`gh pr edit <PR> --remove-label "in progress"`) and remove the now-unneeded worktree — use the `wrap-up` skill, or a plain `git worktree remove <worktree-path>` run from **outside** the worktree, in the main checkout (this skill's steps normally run from inside the worktree per Phase 1 step 3, so switch back to the main checkout first — a worktree cannot remove itself).
 
 ---
 
@@ -215,19 +219,19 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist:
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js check-main-stray
+   node tools/ai-helpers/dist/main.js check-main-stray
    ```
    `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/ai-helpers/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
 
 2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
    ```bash
-   cd <worktree-path> && date +%s
+   date +%s
    ```
    Record the printed epoch. **This is where this skill differs from `develop-feature`'s first-iteration watermark**, which anchors to the PR's `createdAt`. That anchor is correct there because the PR is brand new; here the PR may be weeks old and already carry CodeRabbit reviews of Renovate's original commit, and using `createdAt` would make the very first wait match one of those stale reviews instantly. Capturing the epoch just before the push is the equivalent "nothing before this counts" line for a pre-existing PR, and capturing it *before* rather than after the push closes the race where a fast bot review lands while `git push` is still returning.
 
 3. **Push onto Renovate's branch.**
    ```bash
-   cd <worktree-path> && git push origin <headRefName>
+   git push origin <headRefName>
    ```
    This updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
 
@@ -235,7 +239,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 4. **Post pending self-review questions, if any.** If the Self-review step's pending-questions list is empty, skip this step entirely and silently — the common case. Otherwise build a JSON array of `{ "file": "<repo-relative path>", "line": <integer>, "body": "<question text>" }` objects (do **not** prepend `**Comment by Claude**` — the subcommand does that itself) and post them with one command:
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
+   node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
    [
      { "file": "path/to/file.ts", "line": 42, "body": "..." }
    ]
@@ -247,7 +251,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
    a. Wait for a non-author review with a single backgrounded command:
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
+   node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
    ```
    The **first** iteration's `<watermark-epoch>` is the epoch captured in step 2 above — not the PR's `createdAt` — and omits `--exclude-review-id` entirely (there is nothing to exclude yet). Every later iteration uses the previous iteration's found `review.submittedAt` converted to epoch seconds, and passes that review's `id` as `--exclude-review-id`. Run it with `run_in_background: true` and branch on the JSON it prints at exit; never use `ScheduleWakeup` for this wait.
 
