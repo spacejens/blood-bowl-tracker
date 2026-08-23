@@ -143,7 +143,7 @@ pnpm run db:generate   # generates a new migration from schema changes
 
 Always review the generated SQL before committing. Drizzle-kit may generate `DROP + ADD` for a rename — rewrite these as `ALTER TABLE ... RENAME COLUMN` / `ALTER TABLE ... RENAME TO` to preserve existing data.
 
-Migrations are applied automatically at application startup. `createDb` in `packages/db` calls `drizzle-orm`'s `migrate()` before returning the database instance, so every deployment applies any pending migrations before the app begins handling requests. Migrations are roll-forward only; there is no rollback mechanism.
+Migrations are applied automatically at application startup. `createDb` in `packages/db` calls `drizzle-orm`'s `migrate()` before returning the database instance, so every deployment applies any pending migrations before the app begins handling requests. Migrations are roll-forward only; there is no rollback mechanism. As of the `20260814121026_add_competition_groups` migration, the chain requires an empty database — a local Postgres volume with existing data must be recreated (e.g. `docker compose down -v`) before running migrations.
 
 ### History tracking
 

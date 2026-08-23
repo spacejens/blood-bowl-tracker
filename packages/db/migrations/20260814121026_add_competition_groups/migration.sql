@@ -31,6 +31,13 @@ CREATE TRIGGER competition_groups_set_updated_at
   BEFORE UPDATE ON "game_data"."competition_groups"
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 --> statement-breakpoint
+-- No DEFAULT is provided here deliberately: this column is a real
+-- classification that every competition and trophy must have, not a
+-- placeholder value to backfill existing rows with. That means this
+-- ALTER only applies cleanly to a competitions/trophies table with zero
+-- existing rows. If this statement fails with a NOT-NULL violation, the
+-- local database needs recreating from empty (e.g. `docker compose down
+-- -v`) rather than "fixed" by re-adding a default.
 ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 -- competitions_history.competition_group_id intentionally stays nullable:
@@ -40,6 +47,8 @@ ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id"
 --> statement-breakpoint
 ALTER TABLE "game_data"."competitions" ADD CONSTRAINT "competitions_competition_group_id_competition_groups_id_fkey" FOREIGN KEY ("competition_group_id") REFERENCES "game_data"."competition_groups"("id");
 --> statement-breakpoint
+-- No DEFAULT here either, for the same reason as competitions above:
+-- this only applies cleanly to a trophies table with zero existing rows.
 ALTER TABLE "game_data"."trophies" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 -- trophies_history.competition_group_id intentionally stays nullable:

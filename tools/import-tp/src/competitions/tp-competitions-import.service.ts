@@ -105,6 +105,12 @@ export class TpCompetitionsImportService {
         // before-other-importers phase), so the response is the only place
         // it appears. Consumed by TpTrophyAwardsImportService, which needs
         // the group's curated name to resolve a trophy.
+        //
+        // This value is always a real classification:
+        // `competitions.competition_group_id` is NOT NULL with no database
+        // default, so a competition this importer had to create without a
+        // curated group never reaches this map — its upsert fails with a
+        // per-record error instead.
         competitionGroupId: number;
       }
     >;
