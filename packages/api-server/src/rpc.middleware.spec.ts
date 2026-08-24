@@ -25,7 +25,7 @@ import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
   let auth: MockProxy<ApiTokenAuthService>;
-  const next = vi.fn();
+  let next = vi.fn();
 
   type StandardHandleResult = { matched: boolean; response?: unknown };
 
@@ -53,6 +53,7 @@ describe('RpcMiddleware', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    next = vi.fn();
     auth = mock<ApiTokenAuthService>();
     auth.authenticate.mockReturnValue({
       authenticated: true,
