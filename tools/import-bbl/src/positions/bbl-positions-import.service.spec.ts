@@ -335,8 +335,8 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
-    // both rows resolve to the same upserted id 100 in this test's mock;
-    // the extra race is now just another candidate, not isDeleted
+    // both rows resolve to the same upserted id 100 in this test's mock,
+    // so the extra race just adds another candidate for the same position
     expect(positionRaceCandidates.get(100)).toEqual({
       isStarPlayer: false,
       raceDbIds: new Set([70, 140]),
