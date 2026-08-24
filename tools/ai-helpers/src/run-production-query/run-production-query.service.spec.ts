@@ -104,6 +104,31 @@ describe('RunProductionQueryService', () => {
     );
   });
 
+  it('passes a multi-line query containing a line that looks like a shell heredoc delimiter through unchanged', async () => {
+    // The service itself never parses `query` as shell syntax (it's one
+    // execFile argv entry, not shell input), so a line that happens to
+    // match a delimiter some *caller* used to pipe the query in is inert
+    // here -- the risk that class of content posed was entirely in how the
+    // query text got INTO this process (a shell heredoc in the skill's own
+    // example invocation, since fixed to use the Write tool instead), never
+    // in how this service handles the text once received.
+    const multilineQuery =
+      "SELECT * FROM game_data.leagues WHERE name = 'QUERYEOF';\n" +
+      'QUERYEOF\n' +
+      "SELECT 'still just data, not a new shell command';";
+    writeEnvFile('DATABASE_URL=postgres://user:pass@host/db\n');
+    processRunner.run.mockResolvedValue({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    });
+
+    await service.run(multilineQuery);
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args).toContain(multilineQuery);
+  });
+
   it('reports timedOut: true when the process-level deadline killed the query, closing a self-disabled SQL timeout', async () => {
     writeEnvFile('DATABASE_URL=postgres://user:pass@host/db\n');
     processRunner.run.mockResolvedValue({
