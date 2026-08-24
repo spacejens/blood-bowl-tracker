@@ -1,11 +1,22 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DbGenerateService } from './db-generate.service.js';
+
+vi.mock('node:child_process', () => ({
+  execFileSync: vi.fn(),
+}));
 
 function writeSnapshot(
   folder: string,
@@ -96,6 +107,40 @@ describe('DbGenerateService', () => {
       const next = join(dir, '20260102000000_next');
       writeSnapshot(previous, []);
       writeSnapshot(next, [{ schema: 'game_data', name: 'races' }]);
+
+      expect(service.findNewHistoryTables(previous, next)).toEqual([]);
+    });
+
+    it('treats a folder with no snapshot.json as having no tables', () => {
+      dir = mkdtempSync(join(tmpdir(), 'db-generate-'));
+      const previous = join(dir, '20260101000000_previous');
+      const next = join(dir, '20260102000000_next');
+      mkdirSync(previous, { recursive: true });
+      writeSnapshot(next, [{ schema: 'game_data', name: 'coaches_history' }]);
+
+      expect(service.findNewHistoryTables(previous, next)).toEqual([
+        'game_data.coaches_history',
+      ]);
+    });
+
+    it('ignores snapshot entries whose entityType is not tables', () => {
+      dir = mkdtempSync(join(tmpdir(), 'db-generate-'));
+      const previous = join(dir, '20260101000000_previous');
+      const next = join(dir, '20260102000000_next');
+      writeSnapshot(previous, []);
+      mkdirSync(next, { recursive: true });
+      writeFileSync(
+        join(next, 'snapshot.json'),
+        JSON.stringify({
+          ddl: [
+            {
+              entityType: 'indexes',
+              schema: 'game_data',
+              name: 'coaches_history',
+            },
+          ],
+        }),
+      );
 
       expect(service.findNewHistoryTables(previous, next)).toEqual([]);
     });
@@ -317,6 +362,17 @@ describe('DbGenerateService', () => {
       );
     });
 
+    it('trims a plain trailing newline (with no breakpoint marker) before appending', () => {
+      const sql =
+        'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;\n';
+      const statements = 'CREATE TRIGGER x;';
+      const result = service.appendMigrationStatements(sql, statements);
+      expect(result).toBe(
+        'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;' +
+          `\n--> statement-breakpoint\n${statements}\n`,
+      );
+    });
+
     it('returns sql unchanged when statements is empty', () => {
       const sql =
         'ALTER TABLE "game_data"."coaches_history" ADD COLUMN "x" text;';
@@ -340,6 +396,153 @@ describe('DbGenerateService', () => {
           '"game_data"."coaches"("id") DEFERRABLE INITIALLY DEFERRED;',
       );
       expect(result).toContain('--> statement-breakpoint');
+    });
+  });
+
+  describe('generate', () => {
+    const createBlockSql =
+      'CREATE TABLE "game_data"."coaches_history" (\n' +
+      '\t"id" integer,\n' +
+      '\t"name" varchar(255) NOT NULL,\n' +
+      '\t"history_version" integer,\n' +
+      '\t"history_period" tstzrange NOT NULL,\n' +
+      '\tCONSTRAINT "coaches_history_pkey" PRIMARY KEY("id","history_version")\n' +
+      ');--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+      '"coaches_history_id_coaches_id_fkey" FOREIGN KEY ("id") ' +
+      'REFERENCES "game_data"."coaches"("id");';
+
+    let root: string;
+    let migrationsDir: string;
+
+    beforeEach(() => {
+      root = mkdtempSync(join(tmpdir(), 'db-generate-root-'));
+      migrationsDir = join(root, 'migrations');
+      mkdirSync(migrationsDir, { recursive: true });
+      vi.mocked(execFileSync).mockReset();
+      vi.spyOn(console, 'log').mockImplementation(() => undefined);
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      rmSync(root, { recursive: true, force: true });
+      vi.restoreAllMocks();
+    });
+
+    function addMigration(name: string, sql: string): string {
+      const folder = join(migrationsDir, name);
+      mkdirSync(folder, { recursive: true });
+      writeFileSync(join(folder, 'migration.sql'), sql);
+      return folder;
+    }
+
+    it('rewrites the new migration folder produced by drizzle-kit', () => {
+      const previous = addMigration('20260101000000_previous', 'SELECT 1;');
+      writeSnapshot(previous, [{ schema: 'game_data', name: 'coaches' }]);
+      vi.mocked(execFileSync).mockImplementation(() => {
+        const next = addMigration('20260102000000_next', createBlockSql);
+        writeSnapshot(next, [
+          { schema: 'game_data', name: 'coaches' },
+          { schema: 'game_data', name: 'coaches_history' },
+        ]);
+        return '';
+      });
+
+      service.generate(['--name', 'add_coaches'], root);
+
+      expect(execFileSync).toHaveBeenCalledWith(
+        'drizzle-kit',
+        ['generate', '--name', 'add_coaches'],
+        { cwd: root, stdio: 'inherit' },
+      );
+      const written = readFileSync(
+        join(migrationsDir, '20260102000000_next', 'migration.sql'),
+        'utf-8',
+      );
+      expect(written).toContain(
+        'CREATE TABLE "game_data"."coaches_history" (LIKE "game_data"."coaches");',
+      );
+      expect(written).not.toContain('coaches_history_id_coaches_id_fkey');
+      expect(written).toContain(
+        'ADD CONSTRAINT "coaches_history_pkey" PRIMARY KEY ("id", "history_version");',
+      );
+      expect(written).toContain(
+        'ADD CONSTRAINT "coaches_history_id_fkey" FOREIGN KEY ("id") REFERENCES "game_data"."coaches"("id") DEFERRABLE INITIALLY DEFERRED;',
+      );
+      expect(written).toContain('CREATE TRIGGER coaches_versioning');
+      expect(written).toContain('CREATE TRIGGER coaches_set_updated_at');
+      expect(console.log).toHaveBeenCalledWith(
+        'Rewrote history-table DDL (LIKE + PK/FK + triggers) for: game_data.coaches_history',
+      );
+    });
+
+    it('treats a not-yet-created migrations directory as having no prior folders', () => {
+      rmSync(migrationsDir, { recursive: true, force: true });
+      const sql =
+        'ALTER TABLE "game_data"."coaches" ADD COLUMN "nickname" text;';
+      vi.mocked(execFileSync).mockImplementation(() => {
+        const first = addMigration('20260101000000_first', sql);
+        writeSnapshot(first, [{ schema: 'game_data', name: 'coaches' }]);
+        return '';
+      });
+
+      service.generate(['--name', 'add_nickname'], root);
+
+      expect(
+        readFileSync(
+          join(migrationsDir, '20260101000000_first', 'migration.sql'),
+          'utf-8',
+        ),
+      ).toBe(sql);
+    });
+
+    it('leaves a new migration untouched when it needs no history rewriting', () => {
+      const sql =
+        'ALTER TABLE "game_data"."coaches" ADD COLUMN "nickname" text;';
+      vi.mocked(execFileSync).mockImplementation(() => {
+        const first = addMigration('20260101000000_first', sql);
+        writeSnapshot(first, [{ schema: 'game_data', name: 'coaches' }]);
+        return '';
+      });
+
+      service.generate(['--name', 'add_nickname'], root);
+
+      expect(
+        readFileSync(
+          join(migrationsDir, '20260101000000_first', 'migration.sql'),
+          'utf-8',
+        ),
+      ).toBe(sql);
+      expect(console.log).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when drizzle-kit produces no new migration folder', () => {
+      const existing = addMigration('20260101000000_existing', 'SELECT 1;');
+      writeSnapshot(existing, [{ schema: 'game_data', name: 'coaches' }]);
+      vi.mocked(execFileSync).mockReturnValue('');
+
+      service.generate(['--name', 'no_changes'], root);
+
+      expect(readFileSync(join(existing, 'migration.sql'), 'utf-8')).toBe(
+        'SELECT 1;',
+      );
+      expect(console.log).not.toHaveBeenCalled();
+    });
+
+    it('refuses to run drizzle-kit without a migration name', () => {
+      const exit = vi
+        .spyOn(process, 'exit')
+        .mockImplementation((code?: number | string | null) => {
+          throw new Error(`process.exit: ${String(code)}`);
+        });
+
+      expect(() => service.generate([], root)).toThrow('process.exit: 1');
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(execFileSync).not.toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalledWith(
+        'db:generate requires a descriptive migration name.\n' +
+          'Pass one with --name, e.g.: pnpm db:generate --name add_players_table',
+      );
     });
   });
 });
