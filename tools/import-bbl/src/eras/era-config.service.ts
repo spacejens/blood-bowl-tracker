@@ -219,8 +219,7 @@ export class EraConfigService {
 
   /**
    * A competition id may appear in only one override within a single era.
-   * Formerly enforced inside the hand-rolled competitions.overrides parser;
-   * now a post-parse business rule, since it is cross-entry (across the
+   * This is a post-parse business rule, since it is cross-entry (across the
    * overrides array) rather than a single entry's own shape.
    */
   private assertOverriddenCompetitionsUniqueWithinEra(
