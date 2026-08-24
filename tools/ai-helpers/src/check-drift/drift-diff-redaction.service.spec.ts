@@ -28,18 +28,18 @@ describe('DriftDiffRedactionService', () => {
     );
   });
 
-  it('redacts the value of an unquoted JSON5 key', () => {
+  it('redacts the value of an unquoted JSON5 key, preserving indentation', () => {
     expect(service.redact("<   apiToken: 'super-secret',")).toBe(
-      '< apiToken (value changed)',
+      '<   apiToken (value changed)',
     );
   });
 
-  it('redacts the value of a quoted JSON5 key, dropping the quotes', () => {
+  it('redacts the value of a quoted JSON5 key, dropping the quotes and preserving indentation', () => {
     expect(service.redact(">   'apiToken': 'super-secret',")).toBe(
-      '> apiToken (value changed)',
+      '>   apiToken (value changed)',
     );
     expect(service.redact('>   "apiToken": "super-secret",')).toBe(
-      '> apiToken (value changed)',
+      '>   apiToken (value changed)',
     );
   });
 
@@ -67,6 +67,17 @@ describe('DriftDiffRedactionService', () => {
     );
   });
 
+  it('fails closed on a quoted value containing a colon, instead of matching it as a JSON5 key', () => {
+    // A naive key regex without the `\1` backreference could mistake the
+    // text before this colon for a key name and leak part of the value.
+    expect(service.redact(">   'https://user:pw@host/path',")).toBe(
+      '> (content changed)',
+    );
+    expect(service.redact(">   'my-token:with-colon',")).toBe(
+      '> (content changed)',
+    );
+  });
+
   it('redacts each qualifying line of a multi-line diff independently', () => {
     const raw = [
       '3c3',
@@ -82,7 +93,7 @@ describe('DriftDiffRedactionService', () => {
     expect(service.redact(raw)).toBe(
       [
         '3c3',
-        '< apiToken (value changed)',
+        '<   apiToken (value changed)',
         '---',
         '> apiToken (value changed)',
         '6c6',
@@ -97,7 +108,7 @@ describe('DriftDiffRedactionService', () => {
     const raw = ['2,4c2,4', '< {', "<   apiToken: 'old',", '< }'].join('\n');
 
     expect(service.redact(raw)).toBe(
-      ['2,4c2,4', '< {', '< apiToken (value changed)', '< }'].join('\n'),
+      ['2,4c2,4', '< {', '<   apiToken (value changed)', '< }'].join('\n'),
     );
   });
 

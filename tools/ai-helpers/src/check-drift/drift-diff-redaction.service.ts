@@ -47,7 +47,11 @@ export class DriftDiffRedactionService {
     }
     const jsonKey = JSON5_KEY.exec(body);
     if (jsonKey !== null) {
-      return `${prefix}${jsonKey[2]} (value changed)`;
+      // Preserve the original indentation so a redacted line still lines up
+      // with its surrounding structural (unredacted) JSON5 punctuation.
+      // Whitespace cannot carry a secret, so this is safe to keep.
+      const indent = /^\s*/.exec(body)?.[0] ?? '';
+      return `${prefix}${indent}${jsonKey[2]} (value changed)`;
     }
     // Fail closed: an unrecognized line may continue a secret value.
     return `${prefix}(content changed)`;

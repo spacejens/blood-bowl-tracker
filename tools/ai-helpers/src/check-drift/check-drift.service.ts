@@ -67,6 +67,9 @@ export class CheckDriftService {
         worktreeCopy,
       ]);
       if (result.exitCode > 1) {
+        // `diff`'s own stderr only ever carries operational failures (a
+        // missing path, a permission error), never file content, so
+        // forwarding it unredacted here is safe.
         throw new Error(
           `diff of ${path} failed (exit ${result.exitCode}): ` +
             result.stderr.trim(),
