@@ -20,7 +20,7 @@
 //
 // These entries pre-register teams that do NOT yet exist, so each one supplies
 // its race and coach -- a create needs them, even though an upsert that merely
-// overlays an existing row would not (issue #174). Every coach referenced
+// overlays an existing row would not. Every coach referenced
 // below already has an entry in coaches.json5 in this same directory (pooled
 // and processed before teams). Every race referenced below already has an
 // entry in races-and-positions.json5, EXCEPT "College of Fire" and "College of

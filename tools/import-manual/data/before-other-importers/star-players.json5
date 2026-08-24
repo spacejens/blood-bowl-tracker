@@ -4,8 +4,8 @@
 //
 // BBL's star-player positions always carry a "Name" external id equal to the
 // star player's bare name (see BblPositionsImportService). TP's star-player
-// positions (both the inducement-hire path and the embedded roster path
-// added by #229) now carry a "Name" external id too -- their own bare name --
+// positions (both the inducement-hire path and the embedded roster path)
+// now carry a "Name" external id too -- their own bare name --
 // alongside their tourplay.net-scoped one (see TpPositionsImportService). A
 // star player whose BBL and TP spelling already match verbatim therefore
 // merges automatically now (both sides land on the same "Name" id) and needs
