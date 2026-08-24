@@ -154,8 +154,6 @@ export abstract class ReviewConfigServiceBase {
       );
     }
 
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return configGroupSchema.parse(parsed);
   }
 }
