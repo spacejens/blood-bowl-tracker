@@ -1,7 +1,11 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
+import type { QueryChain } from './db-mock.test-helpers';
 import { mockDb } from './db-mock.test-helpers';
-import { getPlayerContextNamesByIds } from './player-context-names';
+import { PlayerContextNamesService } from './player-context-names.service';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -25,10 +29,24 @@ const morg = {
   coachName: 'Skarsnik',
 };
 
-describe('getPlayerContextNamesByIds', () => {
+describe('PlayerContextNamesService', () => {
+  let service: PlayerContextNamesService;
+
+  async function build(...rowsPerQuery: unknown[][]): Promise<{
+    db: Db;
+    chains: QueryChain[];
+  }> {
+    const { db, chains } = mockDb(...rowsPerQuery);
+    const moduleRef = await Test.createTestingModule({
+      providers: [PlayerContextNamesService, { provide: DB, useValue: db }],
+    }).compile();
+    service = moduleRef.get(PlayerContextNamesService);
+    return { db, chains };
+  }
+
   it('maps each returned row to its context names, keyed by player id', async () => {
-    const { db } = mockDb([griff, morg]);
-    const names = await getPlayerContextNamesByIds({ db, playerIds: [1, 2] });
+    await build([griff, morg]);
+    const names = await service.getPlayerContextNamesByIds([1, 2]);
     expect(names.get(1)).toEqual({
       positionName: 'Blitzer',
       teamName: 'Reikland Reavers',
@@ -47,8 +65,8 @@ describe('getPlayerContextNamesByIds', () => {
   });
 
   it('joins position, team era, team, race, coach and era, filtering on the requested ids', async () => {
-    const { db, chains } = mockDb([]);
-    await getPlayerContextNamesByIds({ db, playerIds: [4, 7] });
+    const { db, chains } = await build([]);
+    await service.getPlayerContextNamesByIds([4, 7]);
     expect(db.select).toHaveBeenCalledTimes(1);
     expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
@@ -73,15 +91,15 @@ describe('getPlayerContextNamesByIds', () => {
   });
 
   it('returns an empty map without querying when no player ids are given', async () => {
-    const { db } = mockDb([]);
-    const names = await getPlayerContextNamesByIds({ db, playerIds: [] });
+    const { db } = await build([]);
+    const names = await service.getPlayerContextNamesByIds([]);
     expect(names.size).toBe(0);
     expect(db.select).not.toHaveBeenCalled();
   });
 
   it('omits a player the query returned no row for', async () => {
-    const { db } = mockDb([griff]);
-    const names = await getPlayerContextNamesByIds({ db, playerIds: [1, 99] });
+    await build([griff]);
+    const names = await service.getPlayerContextNamesByIds([1, 99]);
     expect(names.get(99)).toBeUndefined();
   });
 });

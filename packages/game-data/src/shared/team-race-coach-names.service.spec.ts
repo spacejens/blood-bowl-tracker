@@ -1,20 +1,38 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
+import type { QueryChain } from './db-mock.test-helpers';
 import { mockDb } from './db-mock.test-helpers';
 import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
 } from './query-assertions.test-helpers';
-import { getRaceAndCoachNamesByIds } from './team-race-coach-names';
+import { TeamRaceCoachNamesService } from './team-race-coach-names.service';
 
-describe('getRaceAndCoachNamesByIds', () => {
+describe('TeamRaceCoachNamesService', () => {
+  let service: TeamRaceCoachNamesService;
+
+  async function build(...rowsPerQuery: unknown[][]): Promise<{
+    db: Db;
+    chains: QueryChain[];
+  }> {
+    const { db, chains } = mockDb(...rowsPerQuery);
+    const moduleRef = await Test.createTestingModule({
+      providers: [TeamRaceCoachNamesService, { provide: DB, useValue: db }],
+    }).compile();
+    service = moduleRef.get(TeamRaceCoachNamesService);
+    return { db, chains };
+  }
+
   it('maps each returned row to its race and coach names, keyed by team id', async () => {
-    const { db } = mockDb([
+    await build([
       { teamId: 1, raceName: 'Orc', coachName: 'Skarsnik' },
       { teamId: 2, raceName: 'Dwarf', coachName: 'Roze Madder' },
     ]);
-    const names = await getRaceAndCoachNamesByIds({ db, teamIds: [1, 2] });
+    const names = await service.getRaceAndCoachNamesByIds([1, 2]);
     expect(names.get(1)).toEqual({ raceName: 'Orc', coachName: 'Skarsnik' });
     expect(names.get(2)).toEqual({
       raceName: 'Dwarf',
@@ -24,8 +42,8 @@ describe('getRaceAndCoachNamesByIds', () => {
   });
 
   it('joins races and coaches onto teams and filters on the requested ids', async () => {
-    const { db, chains } = mockDb([]);
-    await getRaceAndCoachNamesByIds({ db, teamIds: [4, 7] });
+    const { db, chains } = await build([]);
+    await service.getRaceAndCoachNamesByIds([4, 7]);
     expect(db.select).toHaveBeenCalledTimes(1);
     expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
@@ -38,17 +56,15 @@ describe('getRaceAndCoachNamesByIds', () => {
   });
 
   it('returns an empty map without querying when no team ids are given', async () => {
-    const { db } = mockDb([]);
-    const names = await getRaceAndCoachNamesByIds({ db, teamIds: [] });
+    const { db } = await build([]);
+    const names = await service.getRaceAndCoachNamesByIds([]);
     expect(names.size).toBe(0);
     expect(db.select).not.toHaveBeenCalled();
   });
 
   it('omits a team the query returned no row for', async () => {
-    const { db } = mockDb([
-      { teamId: 1, raceName: 'Orc', coachName: 'Skarsnik' },
-    ]);
-    const names = await getRaceAndCoachNamesByIds({ db, teamIds: [1, 99] });
+    await build([{ teamId: 1, raceName: 'Orc', coachName: 'Skarsnik' }]);
+    const names = await service.getRaceAndCoachNamesByIds([1, 99]);
     expect(names.get(99)).toBeUndefined();
   });
 });

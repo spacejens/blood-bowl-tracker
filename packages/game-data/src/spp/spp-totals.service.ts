@@ -13,7 +13,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, inArray, ne, sql, sum } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
-import { matchScopeFilter } from '../shared/match-event-counts';
+import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 
 /**
  * A player's Star Player Points total: the sum of the per-event awards
@@ -26,7 +26,10 @@ import { matchScopeFilter } from '../shared/match-event-counts';
  */
 @Injectable()
 export class SppTotalsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly matchScopeFilter: MatchScopeFilterService,
+  ) {}
 
   /**
    * `SUM` over zero rows is SQL NULL, and drizzle returns the sum as a
@@ -117,7 +120,12 @@ export class SppTotalsService {
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(positions, eq(positions.id, players.positionId))
-      .where(and(matchScopeFilter(scope), eq(positions.isStarPlayer, false)))
+      .where(
+        and(
+          this.matchScopeFilter.build(scope),
+          eq(positions.isStarPlayer, false),
+        ),
+      )
       .groupBy(players.id, players.name)
       .having(ne(total, 0))
       .orderBy(desc(total))

@@ -5,6 +5,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -19,6 +20,10 @@ async function makeService(rows: unknown[]) {
       },
       { provide: DB, useValue: db },
       { provide: LikePatternService, useValue: mock<LikePatternService>() },
+      {
+        provide: TeamRaceCoachNamesService,
+        useValue: mock<TeamRaceCoachNamesService>(),
+      },
     ],
   }).compile();
   return { service: moduleRef.get(TeamsService), chains };

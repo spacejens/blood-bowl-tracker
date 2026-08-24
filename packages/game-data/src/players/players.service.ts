@@ -17,7 +17,7 @@ import { and, count, desc, eq, ilike, isNotNull, sql } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
-import { countMatchEventsByPlayer } from '../shared/match-event-counts';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -33,8 +33,8 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
-import type { PlayerContextNames } from '../shared/player-context-names';
-import { getPlayerContextNamesByIds as queryPlayerContextNamesByIds } from '../shared/player-context-names';
+import type { PlayerContextNames } from '../shared/player-context-names.service';
+import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
@@ -50,6 +50,8 @@ export class PlayersService {
     private readonly likePattern: LikePatternService,
     private readonly sppTotals: SppTotalsService,
     private readonly deepdiveCounts: PlayerDeepdiveCountsService,
+    private readonly matchEventCounts: MatchEventCountsService,
+    private readonly playerContextNames: PlayerContextNamesService,
   ) {}
 
   async findById(id: number): Promise<
@@ -135,12 +137,12 @@ export class PlayersService {
   /**
    * Position, team, race, era and coach names for a batch of players, for
    * annotating player lists with context beyond the player name. See
-   * shared/player-context-names.ts.
+   * `PlayerContextNamesService`.
    */
   getContextNamesByIds(
     playerIds: number[],
   ): Promise<Map<number, PlayerContextNames>> {
-    return queryPlayerContextNamesByIds({ db: this.db, playerIds });
+    return this.playerContextNames.getPlayerContextNamesByIds(playerIds);
   }
 
   async upsert(
@@ -178,8 +180,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: MVP_AWARD_TYPES },
       scope,
       limit,
@@ -190,8 +191,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
       scope,
       limit,
@@ -202,8 +202,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: COMPLETION_TYPES },
       scope,
       limit,
@@ -214,8 +213,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
       scope,
       limit,
@@ -226,8 +224,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: DEFLECTION_TYPES },
       scope,
       limit,
@@ -238,8 +235,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
       scope,
       limit,
@@ -250,8 +246,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
       scope,
       limit,
@@ -262,8 +257,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
       scope,
       limit,
@@ -274,8 +268,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'acting', types: FOUL_TYPES },
       scope,
       limit,
@@ -286,8 +279,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
       scope,
       limit,
@@ -298,8 +290,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
       scope,
       limit,
@@ -310,8 +301,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
       scope,
       limit,
@@ -322,8 +312,7 @@ export class PlayersService {
     scope: FactScope,
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByPlayer({
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
       scope,
       limit,

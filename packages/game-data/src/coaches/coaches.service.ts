@@ -32,9 +32,9 @@ import {
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
-import { countMatchEventsByCoach } from '../shared/match-event-counts';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { FOUL_TYPES } from '../shared/match-event-types';
-import { countMatchesWithOutcomeByCoach } from '../shared/match-outcome-counts';
+import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -46,6 +46,8 @@ export class CoachesService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
+    private readonly matchEventCounts: MatchEventCountsService,
+    private readonly matchOutcomeCounts: MatchOutcomeCountsService,
   ) {}
 
   async upsert(data: UpsertCoach): Promise<{ coach: Coach; created: boolean }> {
@@ -209,15 +211,14 @@ export class CoachesService {
   /**
    * The won/lost/drawn siblings of `countMatchesPlayedByCoach`: the same
    * league/era/match-category scope, narrowed to matches with the given
-   * outcome for the coach's own side. See shared/match-outcome-counts.ts for
-   * the query and its dedup semantics.
+   * outcome for the coach's own side. See `MatchOutcomeCountsService` for the
+   * query and its dedup semantics.
    */
   countMatchesWonByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByCoach({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByCoach({
       outcome: 'won',
       scope,
       limit,
@@ -228,8 +229,7 @@ export class CoachesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByCoach({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByCoach({
       outcome: 'lost',
       scope,
       limit,
@@ -240,8 +240,7 @@ export class CoachesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByCoach({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByCoach({
       outcome: 'drawn',
       scope,
       limit,
@@ -497,8 +496,7 @@ export class CoachesService {
     // Deliberately does not forward scope.competitionId: coach toplists are
     // league/era/match-category-scoped only, matching every other
     // coach.toplist.* fact.
-    return countMatchEventsByCoach({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByCoach({
       selector: { role: 'acting', types: FOUL_TYPES },
       scope: {
         leagueId: scope.leagueId,
