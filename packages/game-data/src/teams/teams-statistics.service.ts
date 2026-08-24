@@ -15,13 +15,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
-import type { TeamTopPlayer } from '../shared/match-event-counts';
-import {
-  countAllMatchEventsByPlayerForTeam,
-  countMatchEventsByTeam,
-  listBiggestExpensiveMistakes as queryListBiggestExpensiveMistakes,
-  sumExpensiveMistakesByTeam as querySumExpensiveMistakesByTeam,
-} from '../shared/match-event-counts';
+import type { TeamTopPlayer } from '../shared/match-event-counts.service';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -37,17 +32,24 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
-import { countMatchesWithOutcomeByTeam } from '../shared/match-outcome-counts';
+import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 
 @Injectable()
 export class TeamsStatisticsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly matchEventCounts: MatchEventCountsService,
+    private readonly matchOutcomeCounts: MatchOutcomeCountsService,
+  ) {}
 
   getTopPlayersByMatchEventCount(
     teamId: number,
     limit: number,
   ): Promise<TeamTopPlayer[]> {
-    return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
+    return this.matchEventCounts.countAllMatchEventsByPlayerForTeam({
+      teamId,
+      limit,
+    });
   }
 
   async countMatchesPlayedByTeam(
@@ -86,14 +88,13 @@ export class TeamsStatisticsService {
   /**
    * The won/lost/drawn siblings of `countMatchesPlayedByTeam`: the same
    * league/era/match-category scope, narrowed to matches with the given
-   * outcome for this team's side. See shared/match-outcome-counts.ts.
+   * outcome for this team's side. See `MatchOutcomeCountsService`.
    */
   countMatchesWonByTeam(
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByTeam({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByTeam({
       outcome: 'won',
       scope,
       limit,
@@ -104,8 +105,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByTeam({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByTeam({
       outcome: 'lost',
       scope,
       limit,
@@ -116,8 +116,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByTeam({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByTeam({
       outcome: 'drawn',
       scope,
       limit,
@@ -195,7 +194,7 @@ export class TeamsStatisticsService {
    * `TrophyAwardsService.countByTeam`, grouped by team instead of filtered to
    * one, so the toplist and a team's own deepdive trophy count agree.
    *
-   * Hand-written rather than routed through `countMatchEventsByTeam`: trophy
+   * Hand-written rather than routed through `MatchEventCountsService`: trophy
    * awards are not match events, so there is no match-category dimension and
    * `scope.category` is deliberately ignored (the fact-tree leaf correspondingly
    * declares `supportsMatchCategory: false`). League and era are read off the
@@ -240,8 +239,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
       scope,
       limit,
@@ -252,8 +250,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: COMPLETION_TYPES },
       scope,
       limit,
@@ -264,8 +261,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
       scope,
       limit,
@@ -276,8 +272,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: DEFLECTION_TYPES },
       scope,
       limit,
@@ -288,8 +283,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
       scope,
       limit,
@@ -300,8 +294,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
       scope,
       limit,
@@ -312,8 +305,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
       scope,
       limit,
@@ -324,8 +316,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'acting', types: FOUL_TYPES },
       scope,
       limit,
@@ -336,8 +327,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
       scope,
       limit,
@@ -348,8 +338,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
       scope,
       limit,
@@ -360,8 +349,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
       scope,
       limit,
@@ -372,8 +360,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
       scope,
       limit,
@@ -384,8 +371,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return countMatchEventsByTeam({
-      db: this.db,
+    return this.matchEventCounts.countMatchEventsByTeam({
       selector: { role: 'consequence', types: DEATH_SUFFERED_TYPES },
       scope,
       limit,
@@ -396,7 +382,7 @@ export class TeamsStatisticsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return querySumExpensiveMistakesByTeam({ db: this.db, scope, limit });
+    return this.matchEventCounts.sumExpensiveMistakesByTeam({ scope, limit });
   }
 
   listBiggestExpensiveMistakes(
@@ -411,6 +397,6 @@ export class TeamsStatisticsService {
       category: MatchCategory;
     }[]
   > {
-    return queryListBiggestExpensiveMistakes({ db: this.db, scope, limit });
+    return this.matchEventCounts.listBiggestExpensiveMistakes({ scope, limit });
   }
 }

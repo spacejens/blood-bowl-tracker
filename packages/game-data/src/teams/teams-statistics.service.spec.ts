@@ -1,11 +1,26 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import {
+  CASUALTY_CAUSED_TYPES,
+  COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEFLECTION_TYPES,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  SENT_OFF_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  TOUCHDOWN_TYPES,
+} from '../shared/match-event-types';
+import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -16,6 +31,8 @@ import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsStatisticsService', () => {
   let service: TeamsStatisticsService;
+  let matchEventCounts: MockProxy<MatchEventCountsService>;
+  let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -23,14 +40,24 @@ describe('TeamsStatisticsService', () => {
   }> {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
-      providers: [TeamsStatisticsService, { provide: DB, useValue: db }],
+      providers: [
+        TeamsStatisticsService,
+        { provide: MatchEventCountsService, useValue: matchEventCounts },
+        { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
+        { provide: DB, useValue: db },
+      ],
     }).compile();
     service = moduleRef.get(TeamsStatisticsService);
     return { db, chains };
   }
 
+  beforeEach(() => {
+    matchEventCounts = mock<MatchEventCountsService>();
+    matchOutcomeCounts = mock<MatchOutcomeCountsService>();
+  });
+
   describe('getTopPlayersByMatchEventCount', () => {
-    it('returns players ranked by total match events, capped to the limit', async () => {
+    it('asks MatchEventCountsService for the team, capped to the limit, and returns its rows', async () => {
       const rows = [
         {
           playerId: 1,
@@ -40,43 +67,19 @@ describe('TeamsStatisticsService', () => {
           positionName: 'Blitzer',
           isStarPlayer: false,
         },
-        {
-          playerId: 2,
-          name: 'Morg',
-          count: 11,
-          positionId: 31,
-          positionName: 'Morg N Thorg',
-          isStarPlayer: true,
-        },
       ];
-      const { chains } = await build(rows);
-      await expect(
-        service.getTopPlayersByMatchEventCount(7, 10),
-      ).resolves.toEqual(rows);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
-      expect(chains[0].limit).toHaveBeenCalledWith(10);
-    });
+      matchEventCounts.countAllMatchEventsByPlayerForTeam.mockResolvedValue(
+        rows,
+      );
+      await build();
 
-    it('sums events of different types into one total per player', async () => {
-      // The query GROUP BYs the player and COUNTs every matched row regardless
-      // of action type, so a player with touchdowns + casualties + fouls
-      // surfaces as a single summed count. The mock returns the already-summed
-      // shape the SQL would produce; this pins the pass-through and limit.
-      const rows = [
-        {
-          playerId: 1,
-          name: 'Griff',
-          count: 37,
-          positionId: 30,
-          positionName: 'Blitzer',
-          isStarPlayer: false,
-        },
-      ];
-      const { chains } = await build(rows);
       await expect(
         service.getTopPlayersByMatchEventCount(7, 10),
       ).resolves.toEqual(rows);
-      expect(chains[0].limit).toHaveBeenCalledWith(10);
+
+      expect(
+        matchEventCounts.countAllMatchEventsByPlayerForTeam,
+      ).toHaveBeenCalledWith({ teamId: 7, limit: 10 });
     });
   });
 
@@ -109,49 +112,32 @@ describe('TeamsStatisticsService', () => {
     });
 
     it.each([
-      ['countMatchesWonByTeam'],
-      ['countMatchesLostByTeam'],
-      ['countMatchesDrawnByTeam'],
-    ] as const)('%s returns the rows the query resolves to', async (method) => {
-      const rows = [
-        { teamId: 1, name: '40 grinders', count: 6 },
-        { teamId: 2, name: 'Reikland Reavers', count: 2 },
-      ];
-      const { db } = await build(rows);
-      await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
-        rows,
-      );
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
-
-    it.each([
-      [
-        'countMatchesWonByTeam',
-        ['matches.winning_match_team_id', 'match_teams.id'],
-      ],
-      [
-        'countMatchesLostByTeam',
-        [
-          'matches.winning_match_team_id',
-          'matches.winning_match_team_id',
-          'match_teams.id',
-        ],
-      ],
-      ['countMatchesDrawnByTeam', ['matches.winning_match_team_id']],
+      ['countMatchesWonByTeam', 'won'],
+      ['countMatchesLostByTeam', 'lost'],
+      ['countMatchesDrawnByTeam', 'drawn'],
     ] as const)(
-      '%s forwards the match category scope and limit to the outcome query',
-      async (method, expectedOutcomeColumns) => {
-        const { chains } = await build([]);
-        await service[method]({ category: 'season_final' }, 21);
-        expect(chains[0].where).toHaveBeenCalledTimes(1);
-        expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-          'season_final',
-        ]);
-        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
-          ...expectedOutcomeColumns,
-          'matches.category',
-        ]);
-        expect(chains[0].limit).toHaveBeenCalledWith(21);
+      '%s asks MatchOutcomeCountsService for its own outcome and returns the rows',
+      async (method, outcome) => {
+        const rows = [
+          { teamId: 1, name: '40 grinders', count: 6 },
+          { teamId: 2, name: 'Reikland Reavers', count: 2 },
+        ];
+        matchOutcomeCounts.countMatchesWithOutcomeByTeam.mockResolvedValue(
+          rows,
+        );
+        await build();
+
+        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+          rows,
+        );
+
+        expect(
+          matchOutcomeCounts.countMatchesWithOutcomeByTeam,
+        ).toHaveBeenCalledWith({
+          outcome,
+          scope: FACT_SCOPE_ALL_TIME,
+          limit: 21,
+        });
       },
     );
 
@@ -269,321 +255,38 @@ describe('TeamsStatisticsService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
-    it('countTouchdownsScoredByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 15 }];
-      const { db } = await build(rows);
-      await expect(
-        service.countTouchdownsScoredByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
+    it.each([
+      ['countTouchdownsScoredByTeam', 'acting', TOUCHDOWN_TYPES],
+      ['countCompletionsByTeam', 'acting', COMPLETION_TYPES],
+      ['countInterceptionsByTeam', 'acting', INTERCEPTION_TYPES],
+      ['countDeflectionsByTeam', 'acting', DEFLECTION_TYPES],
+      ['countCasualtiesCausedByTeam', 'acting', CASUALTY_CAUSED_TYPES],
+      [
+        'countSeriousInjuriesCausedByTeam',
+        'acting',
+        SERIOUS_INJURY_CAUSED_TYPES,
+      ],
+      ['countDeathsCausedByTeam', 'acting', DEATH_CAUSED_TYPES],
+      ['countFoulsCommittedByTeam', 'acting', FOUL_TYPES],
+      ['countTimesSentOffByTeam', 'consequence', SENT_OFF_TYPES],
+    ] as const)(
+      '%s asks MatchEventCountsService for its own selector and returns the rows',
+      async (method, role, types) => {
+        const rows = [{ teamId: 1, name: '40 grinders', count: 15 }];
+        matchEventCounts.countMatchEventsByTeam.mockResolvedValue(rows);
+        await build();
 
-    it('countTouchdownsScoredByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTouchdownsScoredByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'touchdown',
-        20,
-      ]);
-    });
+        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+          rows,
+        );
 
-    it('countTouchdownsScoredByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTouchdownsScoredByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'touchdown',
-        30,
-      ]);
-    });
-
-    it('countCompletionsByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 8 }];
-      await build(rows);
-      await expect(
-        service.countCompletionsByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countCompletionsByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countCompletionsByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'completion',
-        20,
-      ]);
-    });
-
-    it('countCompletionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countCompletionsByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'completion',
-        30,
-      ]);
-    });
-
-    it('countInterceptionsByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 5 }];
-      await build(rows);
-      await expect(
-        service.countInterceptionsByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countInterceptionsByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countInterceptionsByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'interception',
-        20,
-      ]);
-    });
-
-    it('countInterceptionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countInterceptionsByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'interception',
-        30,
-      ]);
-    });
-
-    it('countDeflectionsByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
-      await build(rows);
-      await expect(
-        service.countDeflectionsByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countDeflectionsByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countDeflectionsByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'deflection',
-        20,
-      ]);
-    });
-
-    it('countDeflectionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countDeflectionsByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'deflection',
-        30,
-      ]);
-    });
-
-    it('countCasualtiesCausedByTeam returns the rows the query resolves to', async () => {
-      const rows = [
-        { teamId: 1, name: '40 grinders', count: 22 },
-        { teamId: 2, name: 'Gouged Eye', count: 9 },
-      ];
-      const { db } = await build(rows);
-      await expect(
-        service.countCasualtiesCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
-
-    it('countCasualtiesCausedByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countCasualtiesCausedByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'casualty',
-        'badly_hurt',
-        'serious_injury',
-        'death',
-        20,
-      ]);
-    });
-
-    it('countCasualtiesCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countCasualtiesCausedByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'casualty',
-        'badly_hurt',
-        'serious_injury',
-        'death',
-        30,
-      ]);
-    });
-
-    it('countSeriousInjuriesCausedByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 7 }];
-      await build(rows);
-      await expect(
-        service.countSeriousInjuriesCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countSeriousInjuriesCausedByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countSeriousInjuriesCausedByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'serious_injury',
-        20,
-      ]);
-    });
-
-    it('countSeriousInjuriesCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countSeriousInjuriesCausedByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'serious_injury',
-        30,
-      ]);
-    });
-
-    it('countDeathsCausedByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
-      await build(rows);
-      await expect(
-        service.countDeathsCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countDeathsCausedByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countDeathsCausedByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'death',
-        20,
-      ]);
-    });
-
-    it('countDeathsCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countDeathsCausedByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'death',
-        30,
-      ]);
-    });
-
-    it('countFoulsCommittedByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 13 }];
-      await build(rows);
-      await expect(
-        service.countFoulsCommittedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countFoulsCommittedByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countFoulsCommittedByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'foul',
-        20,
-      ]);
-    });
-
-    it('countFoulsCommittedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countFoulsCommittedByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.acting_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'foul',
-        30,
-      ]);
-    });
-
-    it('countTimesSentOffByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 8 }];
-      await build(rows);
-      await expect(
-        service.countTimesSentOffByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countTimesSentOffByTeam adds an era filter when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTimesSentOffByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'sent_off',
-        20,
-      ]);
-    });
-
-    it('countTimesSentOffByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTimesSentOffByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['match_teams.id', 'match_events.consequence_match_team_id']);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'sent_off',
-        30,
-      ]);
-    });
-
-    it('countTouchdownsScoredByTeam filters by the match category in the scope', async () => {
-      const { chains } = await build([]);
-      await service.countTouchdownsScoredByTeam({ category: 'cup_final' }, 21);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toContain(
-        'cup_final',
-      );
-    });
+        expect(matchEventCounts.countMatchEventsByTeam).toHaveBeenCalledWith({
+          selector: { role, types },
+          scope: FACT_SCOPE_ALL_TIME,
+          limit: 21,
+        });
+      },
+    );
 
     it('countMatchesPlayedByTeam filters by the match category', async () => {
       const { chains } = await build([]);
@@ -631,17 +334,6 @@ describe('TeamsStatisticsService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
       ).toEqual(['eras.id', 'team_eras.era_id']);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
-    });
-
-    it('countTouchdownsScoredByTeam filters by league', async () => {
-      const { chains } = await build([]);
-      await service.countTouchdownsScoredByTeam({ leagueId: 9 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'touchdown',
-        9,
-      ]);
     });
   });
 });
