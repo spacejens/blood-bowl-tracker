@@ -128,6 +128,21 @@ describe('MatchOutcomeCountsService', () => {
         'season_final',
       ]);
     });
+
+    it('ignores the competition scope', async () => {
+      const { chains } = await build([]);
+      await service.countMatchesWithOutcomeByCoach({
+        outcome: 'won',
+        scope: { leagueId: 9, competitionId: 30 },
+        limit: 21,
+      });
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        9,
+      ]);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).not.toContain(
+        'matches.competition_id',
+      );
+    });
   });
 
   describe('countMatchesWithOutcomeByTeam', () => {
