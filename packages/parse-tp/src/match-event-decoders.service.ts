@@ -57,11 +57,11 @@ const casualtyCausedRaw = z.object({
   starPoints: z.number().optional(),
 });
 /**
- * Code 31 (`foul`) carries turn fields that the previously-shared
- * `touchdownRaw` schema silently dropped. They are what lets a foul be paired
- * with the `injury` it caused (see `tools/import-tp`'s `correlateFouls`).
- * `rosterId` is already the fouler's own team, so `turnRosterId` is expected
- * to equal it; it is decoded anyway for symmetry with `injury.turnRosterId`.
+ * Code 31 (`foul`) carries turn fields that `touchdownRaw` does not decode.
+ * They are what lets a foul be paired with the `injury` it caused (see
+ * `tools/import-tp`'s `correlateFouls`). `rosterId` is already the fouler's
+ * own team, so `turnRosterId` is expected to equal it; it is decoded anyway
+ * for symmetry with `injury.turnRosterId`.
  */
 const foulRaw = z.object({
   id: z.number(),

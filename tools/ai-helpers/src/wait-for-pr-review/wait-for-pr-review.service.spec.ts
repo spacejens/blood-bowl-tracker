@@ -635,9 +635,10 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('discards a comment-update-failure candidate whose id is missing, not throws', async () => {
-    // prosePhraseComment previously validated only `body`, so a malformed
-    // candidate with a matching phrase but no `id` would have been returned
-    // as-is — leaving a b3 retry with an unusable exclusion value.
+    // prosePhraseComment validates `id` as well as `body`, so a malformed
+    // candidate with a matching phrase but no `id` is discarded rather than
+    // returned — otherwise it would leave a b3 retry with an unusable
+    // exclusion value.
     processRunner.run
       .mockResolvedValueOnce({
         exitCode: 0,
