@@ -3,7 +3,7 @@ import {
   ReportWriterService,
 } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { DataTypeReviewer } from '../shared/data-type-reviewer';
@@ -25,53 +25,42 @@ const match: SampledMatch = {
   selectedFor: ['Contains a foul'],
 };
 
-interface Harness {
-  service: ReviewService;
-  sampler: MockProxy<MatchSamplerService>;
-  reviewer: MockProxy<DataTypeReviewer>;
-  builder: MockProxy<ReportBuilderService>;
-  writer: MockProxy<ReportWriterService>;
-  resultLookup: MockProxy<MatchResultLookupService>;
-}
-
-async function makeHarness(): Promise<Harness> {
-  const sampler = mock<MatchSamplerService>();
-  sampler.sample.mockResolvedValue({ matches: [match], gaps: [] });
-  const reviewer = mock<DataTypeReviewer>();
-  Object.defineProperty(reviewer, 'id', { value: 'match-events' });
-  reviewer.getRawSource.mockResolvedValue('<p>raw</p>');
-  reviewer.getImportedView.mockResolvedValue('<p>imported</p>');
-  const builder = mock<ReportBuilderService>();
-  builder.build.mockReturnValue('<html></html>');
-  const writer = mock<ReportWriterService>();
-  writer.write.mockResolvedValue('/tmp/report.html');
-  const resultLookup = mock<MatchResultLookupService>();
-  resultLookup.findByMatchIds.mockResolvedValue(new Map());
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      ReviewService,
-      { provide: MatchSamplerService, useValue: sampler },
-      { provide: DATA_TYPE_REVIEWERS, useValue: [reviewer] },
-      { provide: ReportBuilderService, useValue: builder },
-      { provide: ReportWriterService, useValue: writer },
-      HtmlService,
-      { provide: MatchResultLookupService, useValue: resultLookup },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(ReviewService),
-    sampler,
-    reviewer,
-    builder,
-    writer,
-    resultLookup,
-  };
-}
-
 describe('ReviewService', () => {
-  it('renders both panels of every reviewer for every sampled match', async () => {
-    const { service, reviewer, builder } = await makeHarness();
+  let service: ReviewService;
+  let sampler: MockProxy<MatchSamplerService>;
+  let reviewer: MockProxy<DataTypeReviewer>;
+  let builder: MockProxy<ReportBuilderService>;
+  let writer: MockProxy<ReportWriterService>;
+  let resultLookup: MockProxy<MatchResultLookupService>;
 
+  beforeEach(async () => {
+    sampler = mock<MatchSamplerService>();
+    sampler.sample.mockResolvedValue({ matches: [match], gaps: [] });
+    reviewer = mock<DataTypeReviewer>();
+    Object.defineProperty(reviewer, 'id', { value: 'match-events' });
+    reviewer.getRawSource.mockResolvedValue('<p>raw</p>');
+    reviewer.getImportedView.mockResolvedValue('<p>imported</p>');
+    builder = mock<ReportBuilderService>();
+    builder.build.mockReturnValue('<html></html>');
+    writer = mock<ReportWriterService>();
+    writer.write.mockResolvedValue('/tmp/report.html');
+    resultLookup = mock<MatchResultLookupService>();
+    resultLookup.findByMatchIds.mockResolvedValue(new Map());
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReviewService,
+        { provide: MatchSamplerService, useValue: sampler },
+        { provide: DATA_TYPE_REVIEWERS, useValue: [reviewer] },
+        { provide: ReportBuilderService, useValue: builder },
+        { provide: ReportWriterService, useValue: writer },
+        HtmlService,
+        { provide: MatchResultLookupService, useValue: resultLookup },
+      ],
+    }).compile();
+    service = moduleRef.get(ReviewService);
+  });
+
+  it('renders both panels of every reviewer for every sampled match', async () => {
     await service.run();
 
     expect(reviewer.getRawSource).toHaveBeenCalledWith(match);
@@ -92,8 +81,6 @@ describe('ReviewService', () => {
   });
 
   it('writes the built document and reports where it landed', async () => {
-    const { service, builder, writer } = await makeHarness();
-
     await expect(service.run()).resolves.toEqual({
       reportPath: '/tmp/report.html',
       matchCount: 1,
@@ -107,8 +94,6 @@ describe('ReviewService', () => {
   });
 
   it('writes the document with the same generatedAt the report body shows', async () => {
-    const { service, builder, writer } = await makeHarness();
-
     await service.run();
 
     const report = builder.build.mock.calls[0][0];
@@ -119,7 +104,6 @@ describe('ReviewService', () => {
   });
 
   it("passes the sampler's gaps through to the report and the outcome", async () => {
-    const { service, sampler, builder } = await makeHarness();
     const gaps = [{ source: 'tp' as const, reason: 'nothing found' }];
     sampler.sample.mockResolvedValue({ matches: [], gaps });
 
@@ -130,7 +114,6 @@ describe('ReviewService', () => {
   });
 
   it('turns a failing panel into an inline note instead of aborting the run', async () => {
-    const { service, reviewer, builder } = await makeHarness();
     reviewer.getRawSource.mockRejectedValue(new Error('disk on fire'));
 
     const outcome = await service.run();
@@ -144,7 +127,6 @@ describe('ReviewService', () => {
   });
 
   it('stringifies a non-Error rejection in the inline note', async () => {
-    const { service, reviewer, builder } = await makeHarness();
     reviewer.getImportedView.mockRejectedValue('disk on fire');
 
     await service.run();
@@ -156,7 +138,6 @@ describe('ReviewService', () => {
   });
 
   it("passes each sampled match's result to the report builder", async () => {
-    const { service, resultLookup, builder } = await makeHarness();
     resultLookup.findByMatchIds.mockResolvedValue(
       new Map([[match.matchId, { teams: [], winningMatchTeamId: null }]]),
     );
