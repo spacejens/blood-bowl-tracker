@@ -50,8 +50,8 @@ export class ManualImportService {
    * never aborts the rest. Reference-resolution and upsert failures are
    * collected; a missing directory, malformed file, or unreachable API
    * throws out of here to be reported as an unexpected failure. A same-kind
-   * external-id collision is no longer detected client-side; the API's
-   * upsert reports it as a CONFLICT, collected like any other ImportError.
+   * external-id collision is detected server-side: the API's upsert reports
+   * it as a CONFLICT, collected like any other ImportError.
    */
   async run(dir: string): Promise<ImportResult> {
     const data = await this.reader.read(dir);

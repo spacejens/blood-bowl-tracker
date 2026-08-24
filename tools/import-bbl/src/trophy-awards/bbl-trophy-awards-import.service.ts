@@ -350,7 +350,7 @@ export class BblTrophyAwardsImportService {
    * matching the wrong group's trophy.
    *
    * Memoized per run under `${label}::${groupName}`, failures included, so
-   * the same label in two different groups no longer shares one cache entry.
+   * the same label in two different groups gets its own cache entry.
    * Every row after the first that hits an already-known-bad key is counted
    * in `context.run.droppedRowCountsByKey` rather than reported individually,
    * so the caller can add one summary error per key once the run ends.
