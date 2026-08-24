@@ -27,15 +27,16 @@ export class TpPositionRaceErasImportService {
   ) {}
 
   /**
-   * Post-players step: populate `positions_race_eras` for TP *star* positions,
-   * whose availability TP states nowhere and must be derived
-   * from actual usage. `TpPlayersImportService` emits one `StarPositionUsage`
-   * per imported star-position player (across the embedded-roster,
-   * match-embedded, mercenary Big Guy and inducements-hired paths). This step
-   * resolves each usage's raw `(teamRaceCode, era)` references to numeric
-   * `(raceId, eraId)`, dedupes the pairs per star position, and persists them
-   * with one `PositionsImportService.syncRaceEras` call per position -- the
-   * same upsert-only write path the regular-position sync and the BBL importer
+   * Post-players step: populate `positions_race_eras` for TP *star* positions.
+   * TP states provide no availability for star positions, so it must be
+   * derived from actual usage instead. `TpPlayersImportService` emits one
+   * `StarPositionUsage` per imported star-position player (across the
+   * embedded-roster, match-embedded, mercenary Big Guy and inducements-hired
+   * paths). This step resolves each usage's raw `(teamRaceCode, era)`
+   * references to numeric `(raceId, eraId)`, dedupes the pairs per star
+   * position, and persists them with one
+   * `PositionsImportService.syncRaceEras` call per position -- the same
+   * upsert-only write path the regular-position sync and the BBL importer
    * use, so repeated imports are safe.
    *
    * A usage whose race code or era name cannot be resolved is recorded as a
