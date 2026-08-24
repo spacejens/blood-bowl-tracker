@@ -247,6 +247,23 @@ end to end. It does not extend to a service with any dependency that has I/O,
 external state, or its own further real dependencies — those chains must
 still be mocked as normal, at the first link that isn't pure.
 
+**A pure, dependency-free decision service may also be passed real as one
+collaborator among an otherwise-mocked subject's dependencies.** The two
+carve-outs above require the *subject under test* to itself be pure end to
+end. A decision service can independently be genuinely dependency-free (no
+constructor, no I/O, no external state) while sitting as *one* dependency of
+a subject that has other, I/O-bearing collaborators — those other
+collaborators are still mocked as normal. Passing the pure one real still
+carries no coupling risk, for the same reason as the carve-outs above: it has
+no concrete behavior to drift from. Example: `UpsertHandlerService`
+(`packages/api-server/src/upsert-handler.service.ts`) — pure exception
+classification and object shaping, no constructor — is a real provider in
+`rpc-router-factory.service.spec.ts` and its
+`rpc-router-factory.test-helpers.ts` harness, alongside every `game-data`
+entity service mocked normally. The alternative — mocking it — would require
+hand-copying its classification logic into a `mockImplementation`, which then
+risks drifting from the real implementation as new cases are added.
+
 ## Function parameter limit
 
 Functions and methods take at most 3 parameters — enforced repo-wide by the
