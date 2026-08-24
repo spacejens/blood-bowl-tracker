@@ -23,8 +23,8 @@ describe('player schemas', () => {
   });
 
   it('UpsertPlayerSchema accepts an empty name', () => {
-    // Some BBL players legitimately have no name — unlike
-    // other entities, players are not required to have a non-empty name.
+    // Some BBL players legitimately have no name — unlike other entities,
+    // players are not required to have a non-empty name.
     const parsed = UpsertPlayerSchema.parse({
       name: '',
       teamEraId: 10,

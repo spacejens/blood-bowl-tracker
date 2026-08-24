@@ -202,8 +202,8 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     // this test guards against, where overwriting `excludeReviewId` instead
     // of layering `excludeReviewIds` on top of it drops the caller's own
     // exclusion. On the fixed code, poll 2's jq program still excludes
-    // `PRR_previous`, so this mock reports nothing,
-    // and the wait times out instead of returning a false `found: true`.
+    // `PRR_previous`, so this mock reports nothing, and the wait times out
+    // instead of returning a false `found: true`.
     processRunner.run.mockImplementation((_command, args) => {
       if (args[0] === 'api') {
         return Promise.resolve(rollingResult({}));

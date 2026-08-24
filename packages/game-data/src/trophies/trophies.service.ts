@@ -222,10 +222,10 @@ export class TrophiesService {
    * The empty-`externalIds` path, which no other entity has.
    *
    * A trophy is allowed to carry no external id at all. The curated catalog
-   * currently gives every trophy — including the TP-only "Ogretoberfest" —
-   * an explicit external id, so no curated trophy exercises
-   * this path today, but it stays supported for a future trophy that needs
-   * it (e.g. one with no source system to key on yet). `upsertByExternalIds`
+   * currently gives every trophy — including the TP-only "Ogretoberfest" — an
+   * explicit external id, so no curated trophy exercises this path today, but
+   * it stays supported for a future trophy that needs it (e.g. one with no
+   * source system to key on yet). `upsertByExternalIds`
    * resolves an existing row purely from external ids, so such a payload
    * would insert a fresh duplicate on every import run. Matching on exact
    * `name` instead keeps it idempotent.

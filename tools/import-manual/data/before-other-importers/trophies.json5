@@ -8,10 +8,10 @@
 // and the three Dungeon Bowl placements) are TP-only and have no BBL
 // equivalent.
 //
-// Trophies deliberately carry NO shared "Name" external id, the same
-// precedent competitions set: superficially identical labels
-// (e.g. "1st") can be genuinely different trophies depending on the
-// competition tier, so identity is a curation decision, never inferred from
+// Trophies deliberately carry NO shared "Name" external id, the same precedent
+// competitions set: superficially identical labels (e.g. "1st") can be
+// genuinely different trophies depending on the competition tier, so identity
+// is a curation decision, never inferred from
 // label text. BBL's *team* trophy labels ARE self-disambiguating (`Major 1st`
 // vs. `Minor 1st`), so each of those is keyed by the exact BBL label text
 // itself (matching the raw source id/label convention every other
@@ -42,9 +42,9 @@
 // confirmed in the cached data, and the server-side group-match check would
 // surface one loudly if it ever appeared.
 //
-// TP external ids are seeded for the 10 trophies TP actually
-// awards, keyed as `${disambiguator}-${groupName}` -- the same hyphen-joined
-// composite BBL positions use (`${typId}-${race.bblId}`). TP's raw
+// TP external ids are seeded for the 10 trophies TP actually awards, keyed as
+// `${disambiguator}-${groupName}` -- the same hyphen-joined composite BBL
+// positions use (`${typId}-${race.bblId}`). TP's raw
 // `awardType` codes (1/2/3, 100/200) are NOT globally unique per trophy: the
 // same code means a different trophy depending on which competition tier it
 // appears in, so the competition group's name is what scopes it.
@@ -65,9 +65,9 @@
 // unseeded rather than carrying a guessed code -- a new TP competition
 // tracking a different group, or a new award kind, would widen this set.
 //
-// Every trophy also records the competition group it is applicable for,
-// so the TP awards importer (tools/import-tp/src/trophy-awards/)
-// can consider only applicable trophies when awarding for a competition. The
+// Every trophy also records the competition group it is applicable for, so the
+// TP awards importer (tools/import-tp/src/trophy-awards/) can consider only
+// applicable trophies when awarding for a competition. The
 // eight unqualified "during the season" player trophies (Season MVP through
 // Most SPP) are curated under Major Season: Major is BBL's flagship season
 // and the legend defines no Minor-season equivalent. Their group-scoped

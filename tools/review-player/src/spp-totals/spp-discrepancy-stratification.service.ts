@@ -43,8 +43,8 @@ const DISCREPANCY_STRATUM = 'spp-discrepancy';
  * would always disagree — that's the expected, unavoidable state for such a
  * player, not a real discrepancy worth an uncapped stratum flooding the
  * report with. `StarPlayerStratificationService` covers that expected case
- * separately, in its own bounded stratum. A star player who
- * DOES carry a real stored total stays in scope here: excluding every star
+ * separately, in its own bounded stratum. A star player who DOES carry a real
+ * stored total stays in scope here: excluding every star
  * player outright would hide a genuine, fixable mismatch behind whatever
  * `StarPlayerStratificationService` happens to sample.
  */

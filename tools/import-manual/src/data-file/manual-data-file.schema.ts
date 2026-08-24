@@ -123,9 +123,9 @@ const SppAwardValueEntrySchema = z.object({
  * NOT `.min(1)` and defaults to `[]`: a trophy may genuinely have none yet
  * (the TP-only "Ogretoberfest" has no BBL equivalent, and TP's own
  * `awardType` codes are not globally unique per trophy, so they cannot be
- * seeded until a competition-classification concept exists). Such a trophy
- * is matched on its exact name instead, by
- * `TrophiesService.upsert`, so re-running the import never duplicates it.
+ * seeded until a competition-classification concept exists). Such a trophy is
+ * matched on its exact name instead, by `TrophiesService.upsert`, so
+ * re-running the import never duplicates it.
  */
 const TrophyEntrySchema = z.object({
   name: z.string().min(1),

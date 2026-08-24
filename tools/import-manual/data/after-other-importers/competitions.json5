@@ -27,8 +27,8 @@
 //
 // Runs AFTER the BBL/TP importers (this is the after-other-importers
 // directory): each entry matches its existing database row by that row's own
-// source-system id alone. Competitions carry NO "Name" external id. This was
-// later removed: a shared Name id made distinct same-named competitions --
+// source-system id alone. Competitions carry NO "Name" external id; it was
+// removed because a shared Name id made distinct same-named competitions --
 // exactly the Reserves Rumble case -- dedupe onto a single row via
 // resolveExistingByExternalIds, so supplying one here would be a dead lookup
 // key.

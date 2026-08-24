@@ -228,8 +228,8 @@ export class TpPositionsImportService {
     // TP-system bare-name external id (preserving TP's own catalog-independent
     // star id), one TP-system external id per distinct numeric tpPositionId
     // seen for that star, and a Name-system bare-name id so they dedupe onto
-    // the SAME Position row the inducement-hire path and the BBL
-    // importer create. The numeric ids are what makes a roster-embedded star
+    // the SAME Position row the inducement-hire path and the BBL importer
+    // create. The numeric ids are what makes a roster-embedded star
     // resolvable: TpPlayersImportService looks a position up by
     // String(lineUpMasterId), which is exactly this number, so without them
     // every roster-embedded star is skipped. A numeric id colliding

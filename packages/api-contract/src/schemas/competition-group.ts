@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { ExternalIdSchema } from './external-id';
 
 /**
- * A curated competition group: the recurring track a competition
- * instance belongs to, e.g. "Major Season" or "Chaos Cup".
+ * A curated competition group: the recurring track a competition instance
+ * belongs to, e.g. "Major Season" or "Chaos Cup".
  *
  * No source system names a group -- it exists purely as a curation decision
  * made in tools/import-manual -- but it still carries external ids, under the

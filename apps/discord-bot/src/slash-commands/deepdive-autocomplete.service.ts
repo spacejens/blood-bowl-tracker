@@ -87,9 +87,8 @@ export class DeepdiveAutocompleteService {
     if (focused.name === 'star-player') {
       // Cannot reuse the `player` branch: `PlayersService.searchByNamePrefix`
       // deliberately excludes stars, and a star's autocomplete value is its
-      // `positions.id`, not a `players.id`. No team name in the
-      // label — a star has no single team, which is the whole point of this
-      // target.
+      // `positions.id`, not a `players.id`. No team name in the label — a star
+      // has no single team, which is the whole point of this target.
       const stars = await this.stars.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,

@@ -62,7 +62,7 @@ export class BblCompetitionTrophyReaderService {
   /**
    * The 1st/2nd/3rd view of the same rows, used only as a tie-break signal by
    * BblMatchOutcomesImportService. Signature and output are unchanged from
-   * earlier imports.
+   * the earlier implementation.
    */
   async getPlacementsByCompetitionId(
     errors: ImportError[],
