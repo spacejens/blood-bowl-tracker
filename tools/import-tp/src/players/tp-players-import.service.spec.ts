@@ -363,9 +363,10 @@ describe('TpPlayersImportService', () => {
     // Two RosterEntry rows share rosterId 168446 across different eras, so
     // teamErasByRosterId.get(168446) returns two genuinely ambiguous
     // candidates. The first one (in rosters[] order) is deliberately the
-    // WRONG era for this hire: a guess-based `.find()` over rosters (the old
-    // behavior) would pick this first match -- Third Era, teamEraId 6000 --
-    // instead of the correct 6001, so this test fails under that old code.
+    // WRONG era for this hire: a naive `.find()` over rosters would pick
+    // this first match -- Third Era, teamEraId 6000 -- instead of the
+    // correct 6001, so this test only passes when resolution uses the real
+    // eraId rather than roster order.
     const multiEraRosters: RosterEntry[] = [
       ...rosters,
       {

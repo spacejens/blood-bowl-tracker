@@ -22,8 +22,8 @@ function paramValue(param: Param): string | number {
 }
 
 /**
- * Retrieve one recorded argument from a `vi.fn()` mock.
- * Generalizes the old `firstWhereCondition(builder)` (= firstCallArg(builder.where)).
+ * Retrieve one recorded argument from a `vi.fn()` mock. `firstCallArg(builder.where)`
+ * recovers the first `.where()` condition a query builder mock was called with.
  */
 export function firstCallArg(
   mockFn: unknown,
