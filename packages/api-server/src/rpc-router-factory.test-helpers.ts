@@ -5,11 +5,9 @@ import {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
-  MatchCategoryMismatchError,
   MatchesService,
   MatchEventsService,
   MatchOutcomesService,
-  MissingRequiredFieldError,
   PlayersService,
   PositionsService,
   RacesService,
@@ -18,25 +16,22 @@ import {
   SppAwardValuesService,
   TeamsService,
   TrophiesService,
-  TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { mock } from 'vitest-mock-extended';
 
 import { RpcRouterFactoryService } from './rpc-router-factory.service';
-import type { ConflictErrors } from './upsert-handler.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
- * Builds the real router with every `game-data` service mocked and a mocked
- * `UpsertHandlerService` whose `run`/`runWithoutConflict`/`runBatch` mirror
- * the real implementations (see `upsert-handler.service.ts` and its own
- * spec, which cover that logic in isolation). Mirroring is deliberate here —
- * the same exception `rpc-router-factory.service.spec.ts` already documents:
- * these specs verify how the factory wires each entity service and
- * conflict-error class into the handler, which a canned return value would
- * erase.
+ * Builds the real router with every `game-data` service mocked, and the real
+ * `UpsertHandlerService`. That service is pure and dependency-free — it has
+ * no constructor, no injected collaborators and no I/O, only exception
+ * classification — so passing the real instance carries none of the coupling
+ * risk the "never pass a real collaborator" rule guards against, and it means
+ * these specs contain no copy of its classification logic to drift from it.
+ * Its own behavior is covered in isolation by `upsert-handler.service.spec.ts`.
  */
 export async function createRouterHarness() {
   const mocks = {
@@ -58,86 +53,7 @@ export async function createRouterHarness() {
     matchEventsService: mock<MatchEventsService>(),
     sppAdjustmentsService: mock<SppAdjustmentsService>(),
     sppAwardValuesService: mock<SppAwardValuesService>(),
-    upsertHandler: mock<UpsertHandlerService>(),
   };
-
-  mocks.upsertHandler.run.mockImplementation(
-    async (errors: ConflictErrors, conflictErrorClass, runUpsert) => {
-      try {
-        const { entity, created } = (await runUpsert()) as {
-          entity: Record<string, unknown>;
-          created: boolean;
-        };
-        return { ...entity, created };
-      } catch (err) {
-        if (err instanceof conflictErrorClass) {
-          throw errors.CONFLICT({ message: err.message });
-        }
-        if (
-          err instanceof MissingRequiredFieldError ||
-          err instanceof MatchCategoryMismatchError ||
-          err instanceof TrophyAwardRecipientMismatchError
-        ) {
-          throw errors.BAD_REQUEST({ message: err.message });
-        }
-        throw err;
-      }
-    },
-  );
-
-  mocks.upsertHandler.runWithoutConflict.mockImplementation(
-    async (errors, run) => {
-      try {
-        const { entity, created } = (await run()) as {
-          entity: Record<string, unknown>;
-          created: boolean;
-        };
-        return { ...entity, created };
-      } catch (err) {
-        if (
-          err instanceof MissingRequiredFieldError ||
-          err instanceof MatchCategoryMismatchError ||
-          err instanceof TrophyAwardRecipientMismatchError
-        ) {
-          throw errors.BAD_REQUEST({ message: err.message });
-        }
-        throw err;
-      }
-    },
-  );
-
-  mocks.upsertHandler.runBatch.mockImplementation(
-    async (conflictErrorClass, items) => {
-      const results: Record<string, unknown>[] = [];
-      for (const runItem of items) {
-        try {
-          const { entity, created } = (await runItem()) as {
-            entity: Record<string, unknown>;
-            created: boolean;
-          };
-          results.push({ ...entity, success: true, created });
-        } catch (err) {
-          if (
-            conflictErrorClass !== undefined &&
-            err instanceof conflictErrorClass
-          ) {
-            results.push({ success: false, error: err.message });
-            continue;
-          }
-          if (
-            err instanceof MissingRequiredFieldError ||
-            err instanceof MatchCategoryMismatchError ||
-            err instanceof TrophyAwardRecipientMismatchError
-          ) {
-            results.push({ success: false, error: err.message });
-            continue;
-          }
-          throw err;
-        }
-      }
-      return results as never;
-    },
-  );
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -172,7 +88,7 @@ export async function createRouterHarness() {
         provide: SppAwardValuesService,
         useValue: mocks.sppAwardValuesService,
       },
-      { provide: UpsertHandlerService, useValue: mocks.upsertHandler },
+      UpsertHandlerService,
     ],
   }).compile();
 

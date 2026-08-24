@@ -37,7 +37,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { RpcRouterFactoryService } from './rpc-router-factory.service';
-import type { ConflictErrors } from './upsert-handler.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 describe('RpcRouterFactoryService', () => {
@@ -60,7 +59,6 @@ describe('RpcRouterFactoryService', () => {
   let matchEventsService: MockProxy<MatchEventsService>;
   let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
-  let upsertHandler: MockProxy<UpsertHandlerService>;
 
   beforeEach(async () => {
     coachesService = mock<CoachesService>();
@@ -81,31 +79,6 @@ describe('RpcRouterFactoryService', () => {
     matchEventsService = mock<MatchEventsService>();
     sppAdjustmentsService = mock<SppAdjustmentsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
-    upsertHandler = mock<UpsertHandlerService>();
-    // Mirrors UpsertHandlerService's real implementation (see
-    // upsert-handler.service.ts / its own spec for coverage of this logic in
-    // isolation) so these tests keep verifying how RpcRouterFactoryService
-    // wires each entity service and conflict-error class into the handler,
-    // rather than degrading into an assertion on a hardcoded stub value.
-    upsertHandler.run.mockImplementation(
-      async (errors: ConflictErrors, conflictErrorClass, runUpsert) => {
-        try {
-          const { entity, created } = (await runUpsert()) as {
-            entity: Record<string, unknown>;
-            created: boolean;
-          };
-          return { ...entity, created };
-        } catch (err) {
-          if (err instanceof conflictErrorClass) {
-            throw errors.CONFLICT({ message: err.message });
-          }
-          if (err instanceof MissingRequiredFieldError) {
-            throw errors.BAD_REQUEST({ message: err.message });
-          }
-          throw err;
-        }
-      },
-    );
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -131,7 +104,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchEventsService, useValue: matchEventsService },
         { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
-        { provide: UpsertHandlerService, useValue: upsertHandler },
+        UpsertHandlerService,
       ],
     }).compile();
     router = moduleRef.get(RpcRouterFactoryService).build();
