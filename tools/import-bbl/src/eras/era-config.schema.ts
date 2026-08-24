@@ -1,39 +1,17 @@
 import {
   isoDateSchema,
+  nonBlankStringSchema,
   optionalIsoDateSchema,
+  rulesSetsSchema,
 } from '@blood-bowl-tracker/import';
 import { z } from 'zod';
 
 const NOT_AN_OBJECT = 'must be an object.';
-const NOT_A_NON_EMPTY_STRING = 'must be a non-empty string.';
 const NOT_A_BOOLEAN = 'must be a boolean.';
-const NOT_A_STRING_LIST = 'must be a non-empty array of non-empty strings.';
 const NOT_A_POSITIVE_INTEGER = 'must be a positive integer.';
 
-/**
- * Module-local schema builder — data assembly, not application logic.
- * A string with at least one non-whitespace character, keeping the original
- * (untrimmed) value.
- */
-const nonEmptyString = z
-  .string({ error: NOT_A_NON_EMPTY_STRING })
-  .refine((value) => value.trim() !== '', NOT_A_NON_EMPTY_STRING);
-
 const identitySchema = z.object(
-  {
-    name: nonEmptyString,
-    // One issue for the whole field, so the message stays the single
-    // sentence the config file's author needs to read.
-    rulesSets: z.custom<string[]>(
-      (value) =>
-        Array.isArray(value) &&
-        value.length > 0 &&
-        value.every(
-          (entry) => typeof entry === 'string' && entry.trim() !== '',
-        ),
-      NOT_A_STRING_LIST,
-    ),
-  },
+  { name: nonBlankStringSchema, rulesSets: rulesSetsSchema },
   { error: NOT_AN_OBJECT },
 );
 
@@ -112,7 +90,7 @@ const playersSchema = z
 const competitionOverrideSchema = z
   .object(
     {
-      bblId: nonEmptyString,
+      bblId: nonBlankStringSchema,
       type: z.enum(['season', 'cup'], { error: 'must be "season" or "cup".' }),
       startDate: optionalIsoDateSchema,
       endDate: optionalIsoDateSchema,
@@ -205,8 +183,8 @@ const positionsSchema = z
   .array(
     z.object(
       {
-        positionId: nonEmptyString,
-        raceId: nonEmptyString,
+        positionId: nonBlankStringSchema,
+        raceId: nonBlankStringSchema,
         available: z.boolean({ error: NOT_A_BOOLEAN }),
       },
       { error: NOT_AN_OBJECT },
@@ -239,7 +217,7 @@ export const leaguesShellSchema = z
   .array(
     z.object(
       {
-        leagueName: nonEmptyString,
+        leagueName: nonBlankStringSchema,
         eras: z
           .array(z.unknown(), { error: 'must be a non-empty array of eras.' })
           .min(1, 'must be a non-empty array of eras.'),

@@ -1,16 +1,11 @@
 import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
+import { nonBlankStringSchema } from '@blood-bowl-tracker/import';
 import { z } from 'zod';
 
 /** The literal `winnerTeamCode` value meaning "this match was a draw". */
 export const DRAW = 'draw';
 
-const NOT_A_NON_EMPTY_STRING = 'must be a non-empty string.';
 const NOT_A_TEAM_CODE = `must be a non-empty string: a BBL team code, or "${DRAW}".`;
-
-/** Module-local schema builder — data assembly, not application logic. */
-const nonEmptyString = z
-  .string({ error: NOT_A_NON_EMPTY_STRING })
-  .refine((value) => value.trim() !== '', NOT_A_NON_EMPTY_STRING);
 
 /**
  * One `matches.merges` entry: exactly two non-empty match ids. Both checks
@@ -30,7 +25,7 @@ export const matchMergePairSchema = z
 /** One `matches.categoryOverrides` entry. */
 export const matchCategoryOverrideSchema = z.object(
   {
-    matchId: nonEmptyString,
+    matchId: nonBlankStringSchema,
     category: z.enum(MATCH_CATEGORIES, {
       error: `must be one of: ${MATCH_CATEGORIES.join(', ')}.`,
     }),
@@ -41,7 +36,7 @@ export const matchCategoryOverrideSchema = z.object(
 /** One `matches.resultOverrides` entry. */
 export const matchResultOverrideSchema = z.object(
   {
-    matchId: nonEmptyString,
+    matchId: nonBlankStringSchema,
     winnerTeamCode: z
       .string({ error: NOT_A_TEAM_CODE })
       .refine((value) => value.trim() !== '', NOT_A_TEAM_CODE),
