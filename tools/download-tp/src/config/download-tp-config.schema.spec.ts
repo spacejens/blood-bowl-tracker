@@ -2,10 +2,26 @@ import { describe, expect, it } from 'vitest';
 
 import {
   browserGroupSchema,
+  configGroupSchema,
   connectionGroupSchema,
   downloadGroupSchema,
   tournamentsSchema,
 } from './download-tp-config.schema';
+
+describe('configGroupSchema', () => {
+  it('keeps an object config as-is', () => {
+    expect(configGroupSchema.parse({ download: { tournaments: [] } })).toEqual({
+      download: { tournaments: [] },
+    });
+  });
+
+  it('turns anything that is not an object into an empty config', () => {
+    expect(configGroupSchema.parse(undefined)).toEqual({});
+    expect(configGroupSchema.parse(null)).toEqual({});
+    expect(configGroupSchema.parse('nope')).toEqual({});
+    expect(configGroupSchema.parse(7)).toEqual({});
+  });
+});
 
 describe('connectionGroupSchema', () => {
   it('reads both urls', () => {

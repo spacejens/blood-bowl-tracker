@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+const NOT_A_NON_EMPTY_STRING = 'must be a non-empty string.';
+
 /**
  * Module-local schema builder — it assembles a zod value the way an object
  * literal would, rather than performing application logic. Produces an ISO
@@ -34,6 +36,40 @@ export const optionalIsoDateSchema = isoDate(
  * `dataDir`, where the calling service supplies its own error text.
  */
 export const nonEmptyStringSchema = z.string().min(1);
+
+/**
+ * A string carrying at least one non-whitespace character, keeping the
+ * original (untrimmed) value. Used for named config fields — era names, team
+ * codes, match ids — where a blank-looking value is a mistake, and the
+ * message tail is the one ConfigErrorMessageService renders after the field's
+ * location. Distinct from `nonEmptyStringSchema`, which only rejects the
+ * empty string and carries no message of its own.
+ */
+export const nonBlankStringSchema = z
+  .string({ error: NOT_A_NON_EMPTY_STRING })
+  .refine((value) => value.trim() !== '', NOT_A_NON_EMPTY_STRING);
+
+/**
+ * An era's `identity.rulesSets`: the rule set names the era spans. Written as
+ * one `custom` check rather than a nested array schema so a bad list reports
+ * a single issue at the field itself, keeping the message the one sentence
+ * the config file's author needs to read.
+ */
+export const rulesSetsSchema = z.custom<string[]>(
+  (value) =>
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((entry) => typeof entry === 'string' && entry.trim() !== ''),
+  'must be a non-empty array of non-empty strings.',
+);
+
+/**
+ * A config group — a top-level JSON5 object, or one nested inside it. Never
+ * fails: anything that is not an object (including a missing key) becomes an
+ * empty group, so the reading service still throws its own friendly
+ * per-field error rather than a schema error.
+ */
+export const configGroupSchema = z.looseObject({}).catch({});
 
 /**
  * The `externalSystemName` setting: a string with at least one

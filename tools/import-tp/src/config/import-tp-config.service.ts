@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
+  configGroupSchema,
   type ConnectionConfig,
   connectionConfigSchema,
 } from '@blood-bowl-tracker/import';
@@ -129,8 +130,6 @@ export class ImportTpConfigService {
       );
     }
 
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return configGroupSchema.parse(parsed);
   }
 }

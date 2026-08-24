@@ -6,6 +6,7 @@ import JSON5 from 'json5';
 
 import {
   browserGroupSchema,
+  configGroupSchema,
   connectionGroupSchema,
   downloadGroupSchema,
   tournamentsSchema,
@@ -144,8 +145,6 @@ export class DownloadTpConfigService {
       );
     }
 
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return configGroupSchema.parse(parsed);
   }
 }

@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
 /**
+ * The config file as a whole: a JSON5 object, with anything else (including
+ * a missing file) becoming an empty config so each getter still throws its
+ * own friendly per-field error rather than a schema error.
+ */
+export const configGroupSchema = z.looseObject({}).catch({});
+
+/**
  * The `connection` group. Lenient on the fields themselves so the service
  * can keep throwing one message for a missing group and a different,
  * field-specific message for each missing url.
