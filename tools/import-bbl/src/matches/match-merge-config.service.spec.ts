@@ -1,3 +1,4 @@
+import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -25,6 +26,8 @@ async function makeService(
     providers: [
       MatchMergeConfigService,
       { provide: EraConfigService, useValue: eraConfig },
+      // ConfigErrorMessageService is passed real, not mocked — pure, dependency-free, per CLAUDE.md.
+      ConfigErrorMessageService,
     ],
   }).compile();
   return moduleRef.get(MatchMergeConfigService);

@@ -1,13 +1,15 @@
+import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
-
-/** The literal `winnerTeamCode` value meaning "this match was a draw". */
-const DRAW = 'draw';
+import { DRAW, matchResultOverrideSchema } from './match-config.schema';
 
 @Injectable()
 export class MatchResultConfigService {
-  constructor(private readonly eraConfig: EraConfigService) {}
+  constructor(
+    private readonly eraConfig: EraConfigService,
+    private readonly messages: ConfigErrorMessageService,
+  ) {}
 
   /**
    * Explicit BBL match id -> outcome assignments, gathered from each era's
@@ -29,7 +31,11 @@ export class MatchResultConfigService {
     this.eraConfig.getEras().forEach((era, eraIndex) => {
       (era.matches?.resultOverrides ?? []).forEach((entry, entryIndex) => {
         const location = `BBL_ERAS[${eraIndex}].matches.resultOverrides[${entryIndex}]`;
-        const { matchId, winnerTeamCode } = this.parseEntry(entry, location);
+        const parsed = matchResultOverrideSchema.safeParse(entry);
+        if (!parsed.success) {
+          throw new Error(this.messages.format(location, parsed.error));
+        }
+        const { matchId, winnerTeamCode } = parsed.data;
         const existing = seenAt.get(matchId);
         if (existing !== undefined) {
           throw new Error(
@@ -43,27 +49,5 @@ export class MatchResultConfigService {
     });
 
     return overrides;
-  }
-
-  private parseEntry(
-    entry: unknown,
-    location: string,
-  ): { matchId: string; winnerTeamCode: string } {
-    if (typeof entry !== 'object' || entry === null) {
-      throw new Error(
-        `${location} must be an object of the form { matchId, winnerTeamCode }.`,
-      );
-    }
-    const { matchId, winnerTeamCode } = entry as Record<string, unknown>;
-    if (typeof matchId !== 'string' || matchId.trim() === '') {
-      throw new Error(`${location}.matchId must be a non-empty string.`);
-    }
-    if (typeof winnerTeamCode !== 'string' || winnerTeamCode.trim() === '') {
-      throw new Error(
-        `${location}.winnerTeamCode must be a non-empty string: a BBL team ` +
-          `code, or "${DRAW}".`,
-      );
-    }
-    return { matchId, winnerTeamCode };
   }
 }

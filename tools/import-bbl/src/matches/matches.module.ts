@@ -1,4 +1,7 @@
-import { ImportModule } from '@blood-bowl-tracker/import';
+import {
+  ConfigErrorMessageService,
+  ImportModule,
+} from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
 
 import { EraConfigModule } from '../eras/era-config.module';
@@ -37,6 +40,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     CompetitionTrophyPageParser,
     BblCompetitionTrophyReaderService,
     BblMatchOutcomesImportService,
+    ConfigErrorMessageService,
   ],
   exports: [
     MatchListPageParser,
