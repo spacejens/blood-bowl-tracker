@@ -68,7 +68,9 @@ export class MatchOutcomeCountsService {
   /**
    * The same league/era/match-category scope filter the `countMatchesPlayedBy*`
    * queries apply. Competition scoping is deliberately absent: matches-played
-   * and its outcome siblings are league/era/category-scoped only.
+   * and its outcome siblings are league/era/category-scoped only. Deliberately
+   * not `MatchScopeFilterService`, which also filters on competition — merging
+   * the two would silently add competition scoping here.
    */
   private scopeFilter(scope: FactScope): SQL | undefined {
     return and(

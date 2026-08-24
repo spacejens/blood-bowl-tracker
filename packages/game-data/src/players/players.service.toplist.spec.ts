@@ -27,6 +27,7 @@ import {
 } from '../shared/match-event-types';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import {
+  extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
@@ -163,7 +164,10 @@ describe('PlayersService toplist queries', () => {
 
     await service.topPlayersByTotalSpp(FACT_SCOPE_ALL_TIME, 21);
 
-    expect(chains[0].where).toHaveBeenCalledTimes(1);
+    // The IS NOT NULL guard binds no value; the star-player exclusion binds false.
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      false,
+    ]);
     expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
       'players.spp_total',
       'positions.is_star_player',
@@ -180,6 +184,9 @@ describe('PlayersService toplist queries', () => {
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1))).toEqual(
       ['positions.id', 'players.position_id'],
     );
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      false,
+    ]);
   });
 
   it('topPlayersByTotalSpp filters by the era the player record belongs to', async () => {
@@ -187,7 +194,10 @@ describe('PlayersService toplist queries', () => {
 
     await service.topPlayersByTotalSpp({ eraId: 20 }, 21);
 
-    expect(chains[0].where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      20,
+      false,
+    ]);
   });
 
   it('topPlayersByTotalSpp filters by league through the player era', async () => {
@@ -195,7 +205,10 @@ describe('PlayersService toplist queries', () => {
 
     await service.topPlayersByTotalSpp({ leagueId: 9 }, 21);
 
-    expect(chains[0].where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+      9,
+      false,
+    ]);
   });
 
   it('topPlayersByTotalSpp sums match events instead when a competition is scoped', async () => {

@@ -5,8 +5,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { QueryChain } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
@@ -23,21 +21,16 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
 
-  async function build(...rowsPerQuery: unknown[][]): Promise<{
-    db: Db;
-    chains: QueryChain[];
-  }> {
-    const { db, chains } = mockDb(...rowsPerQuery);
+  async function build(): Promise<void> {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsStatisticsService,
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
-        { provide: DB, useValue: db },
+        { provide: DB, useValue: mock<Db>() },
       ],
     }).compile();
     service = moduleRef.get(TeamsStatisticsService);
-    return { db, chains };
   }
 
   beforeEach(() => {

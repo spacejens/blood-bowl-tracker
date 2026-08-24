@@ -85,7 +85,7 @@ describe('PlayerDeepdiveCountsService', () => {
         casualties: { total: 6, seriousInjuries: 2, killed: 1 },
         fouls: { total: 7, seriousInjuries: 3, killed: 2 },
       });
-      expect(db.select).toHaveBeenCalledTimes(6);
+      expect(db.select).toHaveBeenCalledTimes(DB_COUNTS);
       expect(matchEventCounts.countMatchEventsForPlayer).toHaveBeenCalledTimes(
         7,
       );

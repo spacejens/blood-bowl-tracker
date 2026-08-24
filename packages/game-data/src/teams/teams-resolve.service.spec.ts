@@ -18,12 +18,12 @@ async function makeService(rows: unknown[]) {
         provide: TeamsStatisticsService,
         useValue: mock<TeamsStatisticsService>(),
       },
+      { provide: DB, useValue: db },
+      { provide: LikePatternService, useValue: mock<LikePatternService>() },
       {
         provide: TeamRaceCoachNamesService,
         useValue: mock<TeamRaceCoachNamesService>(),
       },
-      { provide: DB, useValue: db },
-      { provide: LikePatternService, useValue: mock<LikePatternService>() },
     ],
   }).compile();
   return { service: moduleRef.get(TeamsService), chains };
