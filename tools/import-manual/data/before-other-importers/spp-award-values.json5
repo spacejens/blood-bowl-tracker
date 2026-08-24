@@ -1,4 +1,4 @@
-// Standardised Star Player Points award values (issue #379).
+// Standardised Star Player Points award values.
 //
 // One entry per (rules set, race, action type). An entry with no `race` is
 // that rules set's baseline, applying to every race with no more specific

@@ -77,7 +77,7 @@ export class BblTeamParticipationImportService {
    *      (`p=m&m=<id>`) rather than the truncatable match-list names.
    *   2. The competition's standings page (`p=se&s=<id>`), which lists every
    *      registered team — including teams with a 0-0 record that played no
-   *      matches (issue #155), which source 1 alone can never surface.
+   *      matches, which source 1 alone can never surface.
    * Each resulting team id is resolved to an imported team by page id; each
    * team's era is synced (yielding a team_eras id) and collected into the
    * competition's teamEraIds; the team's race is recorded against the

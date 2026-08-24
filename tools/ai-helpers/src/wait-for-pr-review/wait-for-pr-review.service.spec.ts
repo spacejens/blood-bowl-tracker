@@ -325,7 +325,7 @@ describe('WaitForPrReviewService', () => {
     // CodeRabbit's own rolling walkthrough comment can incidentally contain
     // this filter's phrase in prose (a summary, a changes table) — notably
     // on a PR whose diff is about rate-limit detection itself, which
-    // produced a real false positive on issue #465's own PR — so the filter
+    // produced a real false positive in practice — so the filter
     // must exclude any comment carrying the walkthrough's marker before it
     // could ever be mistaken for a genuine rate-limit notice. Extracted to
     // this filter's own sub-expression, not asserted against the whole
@@ -361,7 +361,7 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase match found only inside a code span as a rate limit', async () => {
-    // Real false positive from PR #399: CodeRabbit's own "review in
+    // A real false positive seen in practice: CodeRabbit's own "review in
     // progress" status comment echoes this branch's name in a checkbox's
     // inline code, and the branch name happens to contain "rate-limit".
     // `gh`/jq's own coarse phrase test can still surface this as a
@@ -1065,9 +1065,9 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase found only inside code formatting as a completion', async () => {
-    // Mirrors the rate-limit false positive from PR #399: jq's own phrase test
-    // is coarse, so the service re-checks the section with code formatting
-    // stripped.
+    // Mirrors the rate-limit false positive seen in practice: jq's own
+    // phrase test is coarse, so the service re-checks the section with
+    // code formatting stripped.
     mockPoll(
       EMPTY,
       completionWithSection(

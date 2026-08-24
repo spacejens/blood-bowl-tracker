@@ -20,9 +20,9 @@ export const REVIEW = {
 };
 
 /**
- * The artifact shape from issue #474 (PR #469): a formally submitted review
- * from a non-author with an empty body, produced while CodeRabbit was
- * actually rate-limited and never ran a real pass.
+ * A formally submitted review from a non-author with an empty body,
+ * produced while CodeRabbit was actually rate-limited and never ran a real
+ * pass.
  */
 export const EMPTY_BODY_REVIEW = {
   id: 'PRR_empty1',
@@ -50,8 +50,8 @@ export const RATE_LIMIT_COMMENT_EPOCH_SECONDS = Math.floor(
 );
 
 /**
- * CodeRabbit's own wording for the third non-review outcome, observed on
- * PR #408: it failed to persist an edit to its rolling walkthrough comment
+ * CodeRabbit's own wording for the third non-review outcome, observed in
+ * practice: it failed to persist an edit to its rolling walkthrough comment
  * and posted this separate top-level comment instead.
  */
 export const COMMENT_UPDATE_FAILED_COMMENT = {
@@ -64,8 +64,8 @@ export const COMMENT_UPDATE_FAILED_COMMENT = {
 
 /**
  * The PR's current head commit, as `gh pr view --json headRefOid` would
- * report it. Real second SHA from the "Reviewing files that changed... between
- * X and Y" sentence observed on PR #402.
+ * report it. A real second SHA from the "Reviewing files that changed...
+ * between X and Y" sentence, observed in practice.
  */
 export const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
 
@@ -143,7 +143,7 @@ export const OPTIONS = {
 /**
  * The bounded `<!-- recent_review_start -->…<!-- recent_review_end -->` body
  * of CodeRabbit's rolling walkthrough comment, as jq extracts it — real text
- * observed on PR #402. Includes the "Reviewing files that changed... between
+ * observed in practice. Includes the "Reviewing files that changed... between
  * X and Y" sentence so the section covers the current head commit
  * (`HEAD_REF_OID`, the later of the two SHAs) — required for the freshness
  * cross-check added alongside `updated_at`.

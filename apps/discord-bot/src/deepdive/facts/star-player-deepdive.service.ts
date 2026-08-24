@@ -27,9 +27,9 @@ import {
  * deepdive.
  *
  * The subject here is a `positions` row, not a `players` row — a star's
- * identity is its position, and every hire is its own players row (issue
- * #245). That is exactly why this target exists: the regular player deepdive
- * can only ever show the single hire it was opened on.
+ * identity is its position, and every hire is its own players row. That is
+ * exactly why this target exists: the regular player deepdive can only ever
+ * show the single hire it was opened on.
  *
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so
  * a timeout is distinguishable from a genuine "not found" (`undefined`). A

@@ -1,4 +1,4 @@
-// The two real leagues (issue #445).
+// The two real leagues.
 //
 // These exist here, ahead of the BBL and TP importers, because
 // competition-groups.json5 needs a league to reference and it runs in this

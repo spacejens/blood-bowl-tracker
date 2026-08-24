@@ -68,7 +68,7 @@ describe('MatchLookupService', () => {
   it("backfills secondaryExternalId from the matched match's other external id when only one was requested", async () => {
     // A merged BBL match reached via a single overrides.bbl id (e.g. '1311')
     // must still resolve both source pages' ids, exactly as a stratifier
-    // would, so the raw-source panel can render both — see issue #331 follow-up.
+    // would, so the raw-source panel can render both.
     const dbResult = mockDb(
       [{ matchId: 11 }],
       [

@@ -117,7 +117,7 @@ export type CompetitionTrophyAward = {
  * the deepdive can head each run of same-era honors with the era's name
  * instead of repeating it on every row. Deliberately keyed by `teamId` through
  * `team_eras` rather than by one `teamEraId`, so a future player-scoped
- * sibling (issue #421) can reuse the same join shape with a different filter.
+ * sibling can reuse the same join shape with a different filter.
  */
 export type TeamHonor = {
   trophyId: number;

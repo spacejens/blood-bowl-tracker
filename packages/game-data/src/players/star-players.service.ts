@@ -25,9 +25,9 @@ import { LikePatternService } from '../shared/like-pattern.service';
 /**
  * A star player's identity. A star is not a `players` row: it is a
  * `positions` row with `is_star_player = true`, and every time a team hires
- * that star a *new* `players` row is created pointing at the same position
- * (see issue #245). So a star's id is its `positions.id`, and its display
- * name is `positions.name`.
+ * that star a *new* `players` row is created pointing at the same position.
+ * So a star's id is its `positions.id`, and its display name is
+ * `positions.name`.
  */
 export interface StarPlayerIdentity {
   positionId: number;

@@ -105,7 +105,7 @@ describe('SppAwardValuesProcessor', () => {
       }),
     );
     // The kind is what keeps this ref off the competition that shares BBL's
-    // numeric id space with races (issue #480).
+    // numeric id space with races.
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({
         ref: { system: 'Name', id: 'Orc' },
