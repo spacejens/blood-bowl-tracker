@@ -14,7 +14,9 @@
       "default": "./dist/test-helpers/db-mock.test-helpers.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && cp src/test-helpers/package.json dist/test-helpers/package.json",
     "lint": "eslint \"src/**/*.ts\"",
@@ -30,7 +32,8 @@
     "@blood-bowl-tracker/db": "workspace:*",
     "@nestjs/common": "^11.1.29",
     "json5": "^2.2.3",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.29",
