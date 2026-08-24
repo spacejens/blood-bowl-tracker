@@ -8,7 +8,7 @@ import type {
   StringSelectMenuInteraction,
 } from 'discord.js';
 import type { Mock } from 'vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
@@ -41,38 +41,6 @@ import {
 } from './deepdive-command.service';
 import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
-
-interface MadeService {
-  service: DeepdiveCommandService;
-  autocompleteService: MockProxy<DeepdiveAutocompleteService>;
-  discordClient: MockProxy<DiscordClientService>;
-  registry: MockProxy<SlashCommandRegistryService>;
-  targetResolver: MockProxy<DeepdiveTargetResolverService>;
-}
-
-async function makeService(): Promise<MadeService> {
-  const autocompleteService = mock<DeepdiveAutocompleteService>();
-  const discordClient = mock<DiscordClientService>();
-  const registry = mock<SlashCommandRegistryService>();
-  const targetResolver = mock<DeepdiveTargetResolverService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      DeepdiveCommandService,
-      { provide: DeepdiveAutocompleteService, useValue: autocompleteService },
-      { provide: DiscordClientService, useValue: discordClient },
-      { provide: SlashCommandRegistryService, useValue: registry },
-      { provide: DeepdiveTargetResolverService, useValue: targetResolver },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(DeepdiveCommandService),
-    autocompleteService,
-    discordClient,
-    registry,
-    targetResolver,
-  };
-}
 
 function chatInput(options: {
   era?: string | null;
@@ -114,8 +82,30 @@ const SAMPLE_EMBED: InteractionReplyOptions = {
 };
 
 describe('DeepdiveCommandService', () => {
-  it('builds a deepdive command with optional autocompleted era, coach, and team options', async () => {
-    const { service } = await makeService();
+  let service: DeepdiveCommandService;
+  let autocompleteService: MockProxy<DeepdiveAutocompleteService>;
+  let discordClient: MockProxy<DiscordClientService>;
+  let registry: MockProxy<SlashCommandRegistryService>;
+  let targetResolver: MockProxy<DeepdiveTargetResolverService>;
+
+  beforeEach(async () => {
+    autocompleteService = mock<DeepdiveAutocompleteService>();
+    discordClient = mock<DiscordClientService>();
+    registry = mock<SlashCommandRegistryService>();
+    targetResolver = mock<DeepdiveTargetResolverService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        DeepdiveCommandService,
+        { provide: DeepdiveAutocompleteService, useValue: autocompleteService },
+        { provide: DiscordClientService, useValue: discordClient },
+        { provide: SlashCommandRegistryService, useValue: registry },
+        { provide: DeepdiveTargetResolverService, useValue: targetResolver },
+      ],
+    }).compile();
+    service = moduleRef.get(DeepdiveCommandService);
+  });
+
+  it('builds a deepdive command with optional autocompleted era, coach, and team options', () => {
     const command = service.buildCommand();
     expect(command.name).toBe('deepdive');
     expect(command.description).toEqual(expect.any(String));
@@ -186,7 +176,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('delegates the command autocomplete callback to DeepdiveAutocompleteService', async () => {
-    const { service, autocompleteService } = await makeService();
     autocompleteService.resolve.mockResolvedValue([
       { name: 'BB2020 (Premier League)', value: '3' },
     ]);
@@ -200,13 +189,11 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the usage message when no era target is given', async () => {
-    const { service } = await makeService();
     const result = await service.execute(chatInput({}));
     expect(result).toBe(DEEPDIVE_USAGE_MESSAGE);
   });
 
   it('returns the not-found message for an era id that resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveEra.mockResolvedValue(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ era: '999' }));
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
@@ -214,15 +201,13 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the era deepdive service for a resolved era', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveEra.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ era: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
     expect(targetResolver.resolveEra).toHaveBeenCalledWith('7');
   });
 
-  it('registers itself with the registry and both button handlers on init', async () => {
-    const { service, registry, discordClient } = await makeService();
+  it('registers itself with the registry and both button handlers on init', () => {
     service.onModuleInit();
     expect(registry.register).toHaveBeenCalledTimes(1);
     const command = registry.register.mock.calls[0][0] as { name: string };
@@ -306,7 +291,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles an era button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveEra.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleEraButton(
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}7`),
@@ -316,7 +300,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message when an era button id resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveEra.mockResolvedValue(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
     const result = await service.handleEraButton(
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}999`),
@@ -325,7 +308,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message for a coach id that resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCoach.mockResolvedValue(
       DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
     );
@@ -335,7 +317,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the coach deepdive service for a resolved coach', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCoach.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ coach: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
@@ -343,7 +324,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects the call when both era and coach are supplied', async () => {
-    const { service, targetResolver } = await makeService();
     const result = await service.execute(chatInput({ era: '7', coach: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(targetResolver.resolveEra).not.toHaveBeenCalled();
@@ -351,7 +331,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a coach button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCoach.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleCoachButton(
       buttonInteraction(`${COACH_BUTTON_CUSTOM_ID_PREFIX}7`),
@@ -361,7 +340,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message when a coach button id resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCoach.mockResolvedValue(
       DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
     );
@@ -372,7 +350,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message for a team id that resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveTeam.mockResolvedValue(
       DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
     );
@@ -382,7 +359,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the team deepdive service for a resolved team', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveTeam.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ team: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
@@ -390,14 +366,12 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects supplying both a team and another target', async () => {
-    const { service, targetResolver } = await makeService();
     const result = await service.execute(chatInput({ era: '7', team: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(targetResolver.resolveTeam).not.toHaveBeenCalled();
   });
 
   it('handles a team button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveTeam.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleTeamButton(
       buttonInteraction(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}7`),
@@ -407,7 +381,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message when a team button id resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveTeam.mockResolvedValue(
       DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
     );
@@ -418,7 +391,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message for a player id that resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolvePlayer.mockResolvedValue(
       DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
     );
@@ -428,7 +400,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the player deepdive service for a resolved player', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolvePlayer.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ player: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
@@ -436,14 +407,12 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects supplying both a player and another target', async () => {
-    const { service, targetResolver } = await makeService();
     const result = await service.execute(chatInput({ era: '7', player: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(targetResolver.resolvePlayer).not.toHaveBeenCalled();
   });
 
   it('handles a player button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolvePlayer.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handlePlayerButton(
       buttonInteraction(`${PLAYER_BUTTON_CUSTOM_ID_PREFIX}7`),
@@ -453,7 +422,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message when a player button id resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolvePlayer.mockResolvedValue(
       DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
     );
@@ -464,7 +432,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the star player deepdive for a resolved id', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveStarPlayer.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ starPlayer: '20' }));
     expect(result).toBe(SAMPLE_EMBED);
@@ -472,7 +439,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects supplying both a star player and another target', async () => {
-    const { service, targetResolver } = await makeService();
     const result = await service.execute(
       chatInput({ starPlayer: '20', team: '1' }),
     );
@@ -481,7 +447,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a star player button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveStarPlayer.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleStarPlayerButton(
       buttonInteraction(`${STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX}20`),
@@ -491,7 +456,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a star player select by resolving the chosen value', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveStarPlayer.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleStarPlayerSelect(
       selectInteraction(['20']),
@@ -501,13 +465,11 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the star player not-found message for an empty select', async () => {
-    const { service } = await makeService();
     const result = await service.handleStarPlayerSelect(selectInteraction([]));
     expect(result).toBe(DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE);
   });
 
   it('returns the not-found message for a race id that resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveRace.mockResolvedValue(
       DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
     );
@@ -517,7 +479,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the race deepdive service for a resolved race', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveRace.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ race: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
@@ -525,14 +486,12 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects supplying both a race and another target', async () => {
-    const { service, targetResolver } = await makeService();
     const result = await service.execute(chatInput({ era: '7', race: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(targetResolver.resolveRace).not.toHaveBeenCalled();
   });
 
   it('handles a race button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveRace.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleRaceButton(
       buttonInteraction(`${RACE_BUTTON_CUSTOM_ID_PREFIX}7`),
@@ -542,7 +501,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message when a race button id resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveRace.mockResolvedValue(
       DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
     );
@@ -553,7 +511,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('forwards the rendered embed from the competition deepdive service for a resolved competition', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCompetition.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ competition: '3' }));
     expect(result).toBe(SAMPLE_EMBED);
@@ -561,7 +518,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message for a competition id that resolves to nothing', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCompetition.mockResolvedValue(
       DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
     );
@@ -571,7 +527,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects supplying both a competition and another target', async () => {
-    const { service, targetResolver } = await makeService();
     const result = await service.execute(
       chatInput({ era: '7', competition: '3' }),
     );
@@ -580,7 +535,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a competition button by resolving the id from its customId', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCompetition.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleCompetitionButton(
       buttonInteraction(`${COMPETITION_BUTTON_CUSTOM_ID_PREFIX}3`),
@@ -590,7 +544,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('resolves the trophy deepdive for a numeric trophy option', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveTrophy.mockResolvedValue('trophy embed');
 
     await expect(service.execute(chatInput({ trophy: '7' }))).resolves.toBe(
@@ -600,15 +553,12 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects a trophy option combined with another target', async () => {
-    const { service } = await makeService();
-
     await expect(
       service.execute(chatInput({ trophy: '7', era: '3' })),
     ).resolves.toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
   });
 
   it('resolves the trophy deepdive from a trophy button', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveTrophy.mockResolvedValue('trophy embed');
     const interaction = {
       customId: `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}7`,
@@ -621,7 +571,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('resolves the competition group deepdive for a numeric option', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCompetitionGroup.mockResolvedValue('group embed');
 
     await expect(
@@ -631,15 +580,12 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('rejects a competition group option combined with another target', async () => {
-    const { service } = await makeService();
-
     await expect(
       service.execute(chatInput({ competitionGroup: '4', era: '3' })),
     ).resolves.toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
   });
 
   it('resolves the competition group deepdive from a competition group button', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveCompetitionGroup.mockResolvedValue('group embed');
     const interaction = {
       customId: `${COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX}4`,
@@ -651,14 +597,12 @@ describe('DeepdiveCommandService', () => {
     expect(targetResolver.resolveCompetitionGroup).toHaveBeenCalledWith('4');
   });
 
-  it('offers a league option', async () => {
-    const { service } = await makeService();
+  it('offers a league option', () => {
     const names = service.buildCommand().options?.map((option) => option.name);
     expect(names).toContain('league');
   });
 
   it('routes the league option to the league resolver', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveLeague.mockResolvedValue('league embed');
     const interaction = chatInput({ league: '7' });
 
@@ -667,7 +611,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('routes a league button to the league resolver', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveLeague.mockResolvedValue('league embed');
 
     await expect(
@@ -679,7 +622,6 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('routes a league select menu value to the league resolver', async () => {
-    const { service, targetResolver } = await makeService();
     targetResolver.resolveLeague.mockResolvedValue('league embed');
 
     await expect(
@@ -687,108 +629,105 @@ describe('DeepdiveCommandService', () => {
     ).resolves.toBe('league embed');
     expect(targetResolver.resolveLeague).toHaveBeenCalledWith('7');
   });
+
+  function selectInteraction(values: string[]): StringSelectMenuInteraction {
+    return { values } as unknown as StringSelectMenuInteraction;
+  }
+
+  interface SelectCase {
+    name: string;
+    invoke: (
+      service: DeepdiveCommandService,
+      interaction: StringSelectMenuInteraction,
+    ) => Promise<string | InteractionReplyOptions>;
+    resolver: (
+      targetResolver: MockProxy<DeepdiveTargetResolverService>,
+    ) => Mock<(value: string) => Promise<string | InteractionReplyOptions>>;
+    notFoundMessage: string;
+  }
+
+  const selectCases: SelectCase[] = [
+    {
+      name: 'era',
+      invoke: (service, interaction) => service.handleEraSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveEra,
+      notFoundMessage: DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'coach',
+      invoke: (service, interaction) => service.handleCoachSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveCoach,
+      notFoundMessage: DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'team',
+      invoke: (service, interaction) => service.handleTeamSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveTeam,
+      notFoundMessage: DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'player',
+      invoke: (service, interaction) => service.handlePlayerSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolvePlayer,
+      notFoundMessage: DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'race',
+      invoke: (service, interaction) => service.handleRaceSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveRace,
+      notFoundMessage: DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'competition',
+      invoke: (service, interaction) =>
+        service.handleCompetitionSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveCompetition,
+      notFoundMessage: DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'trophy',
+      invoke: (service, interaction) => service.handleTrophySelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveTrophy,
+      notFoundMessage: DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'competitionGroup',
+      invoke: (service, interaction) =>
+        service.handleCompetitionGroupSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveCompetitionGroup,
+      notFoundMessage: DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'league',
+      invoke: (service, interaction) => service.handleLeagueSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolveLeague,
+      notFoundMessage: DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
+    },
+  ];
+
+  describe.each(selectCases)(
+    'DeepdiveCommandService.handle$name Select',
+    ({ invoke, resolver, notFoundMessage }) => {
+      it('resolves the deepdive for the selected value', async () => {
+        const resolverMethod = resolver(targetResolver);
+        resolverMethod.mockResolvedValue('the deepdive');
+        const result = await invoke(service, selectInteraction(['42']));
+        expect(resolverMethod).toHaveBeenCalledWith('42');
+        expect(result).toBe('the deepdive');
+      });
+
+      it('returns the not-found message when nothing was selected', async () => {
+        const result = await invoke(service, selectInteraction([]));
+        expect(result).toBe(notFoundMessage);
+      });
+
+      it('returns the not-found message for a non-integer value', async () => {
+        const resolverMethod = resolver(targetResolver);
+        resolverMethod.mockResolvedValue(notFoundMessage);
+        const result = await invoke(service, selectInteraction(['nope']));
+        expect(resolverMethod).toHaveBeenCalledWith('nope');
+        expect(result).toBe(notFoundMessage);
+      });
+    },
+  );
 });
-
-interface SelectCase {
-  name: string;
-  invoke: (
-    service: DeepdiveCommandService,
-    interaction: StringSelectMenuInteraction,
-  ) => Promise<string | InteractionReplyOptions>;
-  resolver: (
-    made: MadeService,
-  ) => Mock<(value: string) => Promise<string | InteractionReplyOptions>>;
-  notFoundMessage: string;
-}
-
-function selectInteraction(values: string[]): StringSelectMenuInteraction {
-  return { values } as unknown as StringSelectMenuInteraction;
-}
-
-const selectCases: SelectCase[] = [
-  {
-    name: 'era',
-    invoke: (service, interaction) => service.handleEraSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveEra,
-    notFoundMessage: DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'coach',
-    invoke: (service, interaction) => service.handleCoachSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveCoach,
-    notFoundMessage: DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'team',
-    invoke: (service, interaction) => service.handleTeamSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveTeam,
-    notFoundMessage: DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'player',
-    invoke: (service, interaction) => service.handlePlayerSelect(interaction),
-    resolver: (made) => made.targetResolver.resolvePlayer,
-    notFoundMessage: DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'race',
-    invoke: (service, interaction) => service.handleRaceSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveRace,
-    notFoundMessage: DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'competition',
-    invoke: (service, interaction) =>
-      service.handleCompetitionSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveCompetition,
-    notFoundMessage: DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'trophy',
-    invoke: (service, interaction) => service.handleTrophySelect(interaction),
-    resolver: (made) => made.targetResolver.resolveTrophy,
-    notFoundMessage: DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'competitionGroup',
-    invoke: (service, interaction) =>
-      service.handleCompetitionGroupSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveCompetitionGroup,
-    notFoundMessage: DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE,
-  },
-  {
-    name: 'league',
-    invoke: (service, interaction) => service.handleLeagueSelect(interaction),
-    resolver: (made) => made.targetResolver.resolveLeague,
-    notFoundMessage: DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
-  },
-];
-
-describe.each(selectCases)(
-  'DeepdiveCommandService.handle$name Select',
-  ({ invoke, resolver, notFoundMessage }) => {
-    it('resolves the deepdive for the selected value', async () => {
-      const made = await makeService();
-      const resolverMethod = resolver(made);
-      resolverMethod.mockResolvedValue('the deepdive');
-      const result = await invoke(made.service, selectInteraction(['42']));
-      expect(resolverMethod).toHaveBeenCalledWith('42');
-      expect(result).toBe('the deepdive');
-    });
-
-    it('returns the not-found message when nothing was selected', async () => {
-      const made = await makeService();
-      const result = await invoke(made.service, selectInteraction([]));
-      expect(result).toBe(notFoundMessage);
-    });
-
-    it('returns the not-found message for a non-integer value', async () => {
-      const made = await makeService();
-      const resolverMethod = resolver(made);
-      resolverMethod.mockResolvedValue(notFoundMessage);
-      const result = await invoke(made.service, selectInteraction(['nope']));
-      expect(resolverMethod).toHaveBeenCalledWith('nope');
-      expect(result).toBe(notFoundMessage);
-    });
-  },
-);
