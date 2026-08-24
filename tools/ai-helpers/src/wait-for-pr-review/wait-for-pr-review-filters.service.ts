@@ -201,12 +201,11 @@ export class WaitForPrReviewFiltersService {
    * produced a false `rateLimited: true` despite the same comment already
    * reporting a clean, completed review) — which would otherwise abort the
    * wait on a false positive before any real review or genuine rate-limit
-   * notice exists. A genuine rate-limit
-   * notice is always a short, separate comment (or, since this same fix, a
-   * bounded section behind its own distinct markers — see
-   * `rateLimitEditFilter`) and never carries the walkthrough markers, so
-   * this guard costs nothing in real detection. Same rationale as
-   * `commentUpdateFailedFilter`'s identical guard below.
+   * notice exists. A genuine rate-limit notice is always a short, separate
+   * comment (or, since this same fix, a bounded section behind its own
+   * distinct markers — see `rateLimitEditFilter`) and never carries the
+   * walkthrough markers, so this guard costs nothing in real detection.
+   * Same rationale as `commentUpdateFailedFilter`'s identical guard below.
    */
   private rateLimitFilter(options: WaitForPrReviewFilterOptions): string {
     const excludeClause =

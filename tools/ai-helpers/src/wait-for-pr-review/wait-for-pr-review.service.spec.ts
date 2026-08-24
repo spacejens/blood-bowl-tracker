@@ -1065,9 +1065,9 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase found only inside code formatting as a completion', async () => {
-    // Mirrors the rate-limit false positive seen in practice: jq's own phrase test
-    // is coarse, so the service re-checks the section with code formatting
-    // stripped.
+    // Mirrors the rate-limit false positive seen in practice: jq's own
+    // phrase test is coarse, so the service re-checks the section with
+    // code formatting stripped.
     mockPoll(
       EMPTY,
       completionWithSection(

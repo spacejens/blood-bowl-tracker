@@ -505,8 +505,8 @@ export class WaitForPrReviewService {
    * CodeRabbit can submit a formally valid review carrying nothing at all —
    * empty body, no inline comments — while its actual pass was blocked by the
    * developer's review rate limit. The jq filter cannot tell that apart from
-   * a real review, so an empty-bodied candidate is
-   * verified with one extra lookup before it is trusted.
+   * a real review, so an empty-bodied candidate is verified with one extra
+   * lookup before it is trusted.
    *
    * Fails closed, matching `coversHeadCommit`'s precedent: a lookup that could
    * not answer (`undefined`) discards the candidate rather than trusting an
