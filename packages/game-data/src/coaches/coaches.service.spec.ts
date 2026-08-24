@@ -10,6 +10,9 @@ import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import { FOUL_TYPES } from '../shared/match-event-types';
+import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -43,6 +46,8 @@ function isCountDistinct(expr: unknown): boolean {
 describe('CoachesService', () => {
   let service: CoachesService;
   let likePattern: MockProxy<LikePatternService>;
+  let matchEventCounts: MockProxy<MatchEventCountsService>;
+  let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -53,6 +58,8 @@ describe('CoachesService', () => {
       providers: [
         CoachesService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: MatchEventCountsService, useValue: matchEventCounts },
+        { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -62,6 +69,8 @@ describe('CoachesService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    matchEventCounts = mock<MatchEventCountsService>();
+    matchOutcomeCounts = mock<MatchOutcomeCountsService>();
   });
 
   describe('upsert', () => {
@@ -208,48 +217,26 @@ describe('CoachesService', () => {
       ['countMatchesLostByCoach', 'lost'],
       ['countMatchesDrawnByCoach', 'drawn'],
     ] as const)(
-      '%s returns the rows the query resolves to',
-      async (method, _outcome) => {
+      '%s asks MatchOutcomeCountsService for the %s outcome and returns the rows',
+      async (method, outcome) => {
         const rows = [
           { coachId: 1, name: 'Roze Madder', count: 5 },
           { coachId: 2, name: 'Grashnak', count: 2 },
         ];
-        const { db } = await build(rows);
-        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+        matchOutcomeCounts.countMatchesWithOutcomeByCoach.mockResolvedValue(
           rows,
         );
-        expect(db.select).toHaveBeenCalledTimes(1);
-      },
-    );
+        await build();
 
-    it.each([
-      [
-        'countMatchesWonByCoach',
-        ['matches.winning_match_team_id', 'match_teams.id'],
-      ],
-      [
-        'countMatchesLostByCoach',
-        [
-          'matches.winning_match_team_id',
-          'matches.winning_match_team_id',
-          'match_teams.id',
-        ],
-      ],
-      ['countMatchesDrawnByCoach', ['matches.winning_match_team_id']],
-    ] as const)(
-      '%s forwards the era scope and limit to the outcome query',
-      async (method, expectedOutcomeColumns) => {
-        const { chains } = await build([]);
-        await service[method]({ eraId: 20 }, 21);
-        expect(chains[0].where).toHaveBeenCalledTimes(1);
-        expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-          20,
-        ]);
-        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
-          ...expectedOutcomeColumns,
-          'team_eras.era_id',
-        ]);
-        expect(chains[0].limit).toHaveBeenCalledWith(21);
+        await expect(service[method]({ eraId: 20 }, 21)).resolves.toEqual(rows);
+
+        expect(
+          matchOutcomeCounts.countMatchesWithOutcomeByCoach,
+        ).toHaveBeenCalledWith({
+          outcome,
+          scope: { eraId: 20 },
+          limit: 21,
+        });
       },
     );
 
@@ -311,71 +298,32 @@ describe('CoachesService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
-    it('countFoulsCommittedByCoach returns the rows the query resolves to', async () => {
+    it('countFoulsCommittedByCoach returns the rows MatchEventCountsService resolves to', async () => {
       const rows = [
         { coachId: 1, name: 'Roze Madder', count: 13 },
         { coachId: 2, name: 'Grashnak', count: 4 },
       ];
-      const { db } = await build(rows);
+      matchEventCounts.countMatchEventsByCoach.mockResolvedValue(rows);
+      await build();
       await expect(
         service.countFoulsCommittedByCoach(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
     });
 
-    it('countFoulsCommittedByCoach filters on foul events and forwards league, era and limit', async () => {
-      const { chains } = await build([]);
-      await service.countFoulsCommittedByCoach({ leagueId: 9, eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'foul',
-        9,
-        20,
-      ]);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-    });
-
-    it('countFoulsCommittedByCoach ignores a competition scope', async () => {
-      // Coach toplists are league/era-scoped only (see the design doc): the
-      // competitionId must not reach the query even though the shared helper
-      // would accept it.
-      const { chains } = await build([]);
+    it('countFoulsCommittedByCoach forwards a foul selector and drops the competition from the scope', async () => {
+      // Coach toplists are league/era/match-category-scoped only, so the
+      // competitionId must not reach the count service even though it would
+      // accept one.
+      await build();
       await service.countFoulsCommittedByCoach(
-        { eraId: 20, competitionId: 30 },
+        { leagueId: 9, eraId: 20, competitionId: 30, category: 'season_final' },
         21,
       );
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        'foul',
-        20,
-      ]);
-    });
-
-    it('countFoulsCommittedByCoach joins coaches through teams', async () => {
-      const { chains } = await build([]);
-      await service.countFoulsCommittedByCoach(FACT_SCOPE_ALL_TIME, 21);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 5, 1)),
-      ).toEqual(['coaches.id', 'teams.coach_id']);
-    });
-
-    it('countFoulsCommittedByCoach filters by the match category in the scope', async () => {
-      const { chains } = await build([]);
-      await service.countFoulsCommittedByCoach(
-        { category: 'season_final' },
-        21,
-      );
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toContain(
-        'season_final',
-      );
-    });
-
-    it('countFoulsCommittedByCoach still ignores a competition in the scope', async () => {
-      const { chains } = await build([]);
-      await service.countFoulsCommittedByCoach({ competitionId: 30 }, 21);
-      expect(
-        extractAllFilterValues(firstCallArg(chains[0].where)),
-      ).not.toContain(30);
+      expect(matchEventCounts.countMatchEventsByCoach).toHaveBeenCalledWith({
+        selector: { role: 'acting', types: FOUL_TYPES },
+        scope: { leagueId: 9, eraId: 20, category: 'season_final' },
+        limit: 21,
+      });
     });
 
     it('countMatchesPlayedByCoach filters by the match category', async () => {
