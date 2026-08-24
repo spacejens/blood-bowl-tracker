@@ -8,10 +8,12 @@ import {
   PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import type { EntityLink } from '../leaderboard.service';
-import { LeaderboardService } from '../leaderboard.service';
 import { PlayerContextService } from '../player-context.service';
-import type { ScopedCountMethods, ToplistResolver } from './toplist-factory';
-import { makeToplistResolvers } from './toplist-factory';
+import type {
+  ScopedCountMethods,
+  ToplistResolver,
+} from './toplist-factory.service';
+import { ToplistFactoryService } from './toplist-factory.service';
 
 type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
 
@@ -45,10 +47,10 @@ export class PlayerToplistService {
 
   constructor(
     private readonly players: PlayersService,
-    private readonly leaderboard: LeaderboardService,
     private readonly playerContext: PlayerContextService,
+    private readonly toplistFactory: ToplistFactoryService,
   ) {
-    this.resolvers = makeToplistResolvers<
+    this.resolvers = this.toplistFactory.makeResolvers<
       PlayerToplistMethod,
       PlayersService,
       PlayerToplistRow
@@ -77,7 +79,6 @@ export class PlayerToplistService {
       entityLink: this.playerLink,
       decorateRows: (rows, scope) => this.decoratePlayerRows(rows, scope),
       formatRow: (row) => this.formatPlayerRow(row),
-      leaderboard: this.leaderboard,
     });
   }
 
