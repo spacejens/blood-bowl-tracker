@@ -15,6 +15,7 @@ import {
   PostReviewQuestionsArgsService,
 } from './post-review-questions/post-review-questions-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
@@ -34,6 +35,7 @@ const SUBCOMMANDS = [
   'start-production-tunnel',
   'stop-production-tunnel',
   'run-production-query',
+  'reset-production-schema',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -185,6 +187,8 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .get(RunProductionQueryService)
         .run(options.runProductionQueryStdin);
     }
+    case 'reset-production-schema':
+      return app.get(ResetProductionSchemaService).run();
   }
 }
 

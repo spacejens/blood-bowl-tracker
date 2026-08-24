@@ -198,17 +198,14 @@ Run this section only if "Drop and recreate the production database" was selecte
    grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
    ```
    Expected output: `1`. Anything else (0, or more than one) — stop and report. Every later step reads this value into a shell variable and never echoes it.
-3. Capture a baseline row count for every table, **before** anything is dropped. There are no backups (see Non-goals), so these counts are the only way to sanity-check afterwards that the re-import reproduced comparable data. Run this the same way as step 5's drop — a single shell invocation, the same extraction and validation of `DATABASE_URL`, never echoed — and in a read-only transaction, since nothing here should write:
+3. Capture a baseline row count for every table, **before** anything is dropped. There are no backups (see Non-goals), so these counts are the only way to sanity-check afterwards that the re-import reproduced comparable data. Run this through the same `run-production-query` subcommand step 3 of the read-only-queries section below uses (build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build` if `dist/main.js` is missing) — this is a fixed, hardcoded query, but routing it through the same tool keeps `DATABASE_URL` out of view here too, exactly as it does for a developer-described query:
    ```bash
-   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
-   case "$DATABASE_URL" in
-     postgres://*|postgresql://*) ;;
-     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
-   esac
-   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -At \
-     -c 'SET default_transaction_read_only = on;' \
-     -c "SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname = 'game_data' AND relname NOT LIKE '%\_history' ORDER BY relname;"
+   node tools/ai-helpers/dist/main.js run-production-query <<'QUERYEOF'
+   SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname = 'game_data' AND relname NOT LIKE '%\_history' ORDER BY relname;
+   QUERYEOF
    ```
+   (This one query has no risk of containing a shell-heredoc-delimiter collision — it's fixed text this skill itself wrote, not developer-supplied — so the plain heredoc form is fine here even though the read-only-queries section below uses the `Write`-tool-to-scratch-file form for arbitrary developer queries instead.)
+
    `n_live_tup` is an estimate maintained by the statistics collector, which is what makes this affordable on every table at once; it is a baseline to compare against, not an exact audit. History tables are excluded because their counts grow with every re-import by design and would not be comparable. If the developer needs exact counts for specific tables, run those as explicit `SELECT count(*)` queries.
 
    Report the full table of counts to the developer **in the conversation** before continuing, and keep it — step 9's report and any later comparison depend on it, and it is gone the moment the schema is dropped. If this step fails to connect, stop: dropping a database whose prior contents were never recorded gives up the only check that the re-import worked.
@@ -221,23 +218,15 @@ Run this section only if "Drop and recreate the production database" was selecte
 
    Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections **except** the four "against production" import actions — if any of those were also selected in step 0, do not run them automatically. Report that they were skipped because the reset they were expected to follow did not happen, and that the developer can re-invoke the skill to run them deliberately against the existing, unmodified production data if that is actually what they want.
 
-5. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string does not error — it silently falls back to libpq's local-connection defaults, which could drop schemas in a local database while this step reports success against production, so abort rather than let that happen:
-
+5. Drop and recreate the schemas through `tools/ai-helpers`'s `reset-production-schema` subcommand (build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build` if `dist/main.js` is missing):
    ```bash
-   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
-   case "$DATABASE_URL" in
-     postgres://*|postgresql://*) ;;
-     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
-   esac
-   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-     -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
-     -c 'CREATE SCHEMA public;' \
-     -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
+   node tools/ai-helpers/dist/main.js reset-production-schema
    ```
+   This reads and validates `DATABASE_URL` from `apps/discord-bot/.env.production` internally — the same way `run-production-query` does (dotenv-style quote/CRLF stripping, a `postgres://`/`postgresql://` prefix check, aborting before connecting on anything else) — and never returns or prints it; see `ResetProductionSchemaService` (`tools/ai-helpers/src/reset-production-schema/reset-production-schema.service.ts`) for the implementation. Do **not** hand-roll this as inline shell: extracting `DATABASE_URL` by hand for a step you're about to look at the output of is exactly how it ends up printed by accident (that happened once — see this file's git history on this step if you need the cautionary tale).
 
-   If the `case` aborts, stop and report that `DATABASE_URL` looked empty or malformed after extraction — without ever printing the value itself — and tell the developer to check `apps/discord-bot/.env.production` by hand. Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 6 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
+   All **three** schemas must go, not just `public`: application tables live under `game_data` (see `packages/db/src/schema/pg-schema.ts`), not `public` — `public` only holds the shared `versioning()`/`set_updated_at()` trigger functions that `game_data`'s history tracking depends on. Dropping `public` alone removes those functions and, by cascade, the triggers on `game_data` tables that call them — but leaves every `game_data` table and all its data completely untouched, which reads as a successful reset (no error) while doing nothing to the actual data. `drizzle` holds drizzle-orm's own migration journal (`drizzle.__drizzle_migrations`, see `packages/db/src/db.ts`) — dropping `game_data` and `public` without also dropping `drizzle` would leave that journal asserting every migration already ran, so the restart in step 6 would rebuild nothing (drizzle tracks applied migrations by name, not content, so it silently skips anything already recorded — see `getMigrationsToRun` in `drizzle-orm`). This mirrors `docker compose down -v` locally, which wipes the whole volume.
 
-   If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
+   On success the command prints one JSON object to stdout: `exitCode`, `stdout`, `stderr`. A non-zero `exitCode` means the reset failed partway — report `stderr` and stop rather than proceeding to step 6. If the query was rejected before `psql` ever ran — a credential problem — the command instead exits non-zero printing `{"error": "<message>"}` to stderr; report that message. If `psql` is not installed, or the connection fails, the command reports that — Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
 
 6. Restart both machines so the bot's startup migrations rebuild the schema:
    ```bash
