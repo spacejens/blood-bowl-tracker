@@ -46,8 +46,7 @@ ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer
 -- migration could never be backfilled, since history snapshots are
 -- immutable -- see rewriteHistorySetNotNull in db-generate.ts). That does
 -- not apply here, made safe by the coordinated database drop and re-import,
--- which leaves zero pre-existing history rows for this column to ever have
--- been missing from.
+-- which means no pre-existing history row lacks this column.
 ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 ALTER TABLE "game_data"."competitions" ADD CONSTRAINT "competitions_competition_group_id_competition_groups_id_fkey" FOREIGN KEY ("competition_group_id") REFERENCES "game_data"."competition_groups"("id");
