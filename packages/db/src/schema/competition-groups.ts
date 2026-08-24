@@ -5,7 +5,7 @@ import { leagues } from './leagues';
 import { gameData } from './pg-schema';
 
 /**
- * The curated catalog of recurring competition tracks (issue #445): "Major
+ * The curated catalog of recurring competition tracks: "Major
  * Season", "Chaos Cup", "Ogretoberfest", and so on. A competition instance and
  * a trophy each belong to exactly one group, which is what distinguishes a
  * Major season's 1st place from a Minor season's 1st place even when both

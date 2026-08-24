@@ -18,7 +18,7 @@ export const trophyRecipientKindEnum = gameData.enum('trophy_recipient_kind', [
 
 /**
  * The curated catalog of known trophies. Deliberately has NO shared "Name"
- * external id, matching the precedent set for `competitions` by issue #285:
+ * external id, matching the precedent set for `competitions`:
  * trophy identity is a curation decision, not something inferred from label
  * text, because superficially identical labels (e.g. "1st") can be genuinely
  * different trophies depending on which competition tier awarded them

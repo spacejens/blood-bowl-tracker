@@ -12,7 +12,7 @@ export const PlayerSchema = z.object({
 
 export const UpsertPlayerSchema = z.object({
   // Unlike other entities' upsert schemas, a player's name may be empty —
-  // some BBL players legitimately have no name (see issue #131).
+  // some BBL players legitimately have no name.
   name: z.string().optional(),
   teamEraId: z.number().int().optional(),
   positionId: z.number().int().optional(),

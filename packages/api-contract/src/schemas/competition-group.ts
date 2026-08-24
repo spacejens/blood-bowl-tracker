@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ExternalIdSchema } from './external-id';
 
 /**
- * A curated competition group (issue #445): the recurring track a competition
+ * A curated competition group: the recurring track a competition
  * instance belongs to, e.g. "Major Season" or "Chaos Cup".
  *
  * No source system names a group -- it exists purely as a curation decision
