@@ -2,8 +2,8 @@ import type { Rule } from 'eslint';
 
 /**
  * Every `@Injectable()` class in this repo ends in one of these suffixes
- * (verified repo-wide as of GitHub issue #268 Task 20). A suffix outside
- * this list is not caught — see the "Known limitation" note below.
+ * (verified repo-wide). A suffix outside this list is not caught — see
+ * the "Known limitation" note below.
  */
 const INJECTABLE_SUFFIXES = [
   'Service',
@@ -16,10 +16,10 @@ const INJECTABLE_SUFFIXES = [
 /**
  * Bans `new XService(...)` (and the other injectable-class suffixes below)
  * so service tests cannot regress to direct instantiation with hand-built
- * fakes. The repo standard (see `.superpowers/sdd/migration-conventions.md`,
- * and GitHub issue #268) is a `Test.createTestingModule` whose only real
- * provider is the class under test, with every injected dependency mocked
- * via `vitest-mock-extended`.
+ * fakes. The repo standard (see `.superpowers/sdd/migration-conventions.md`)
+ * is a `Test.createTestingModule` whose only real provider is the class
+ * under test, with every injected dependency mocked via
+ * `vitest-mock-extended`.
  *
  * Deliberately matches only an unqualified identifier whose name ends in one
  * of `INJECTABLE_SUFFIXES`: `new ServiceLocator()` and

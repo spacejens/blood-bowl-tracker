@@ -259,7 +259,7 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('merges nothing when two acting teams from different source pages each have the sole candidate action for one consequence', () => {
-      // Issue #331: BBL match 1311 merged with 1312. The consequence
+      // BBL match 1311 merged with 1312. The consequence
       // filter is "any team other than the acting team", which in a
       // four-team merged match spans up to three other teams — so the
       // single stat_reduction_av on `tha` is the sole candidate for BOTH
