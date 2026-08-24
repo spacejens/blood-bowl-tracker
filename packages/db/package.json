@@ -14,18 +14,20 @@
     "format:fix": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "db:generate": "node src/scripts/db-generate.ts",
+    "db:generate": "node dist/scripts/db-generate.js",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.29",
+    "@nestjs/core": "^11.1.29",
     "drizzle-orm": "rc",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.29",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "rc",

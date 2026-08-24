@@ -34,6 +34,7 @@ export default tseslint.config(
             'packages/api-server/test/*.ts',
             'packages/api-server/vitest.config.ts',
             'packages/db/drizzle.config.ts',
+            'packages/db/test/*.ts',
             'packages/db/vitest.config.ts',
             'packages/discord-client/test/*.ts',
             'packages/discord-client/vitest.config.ts',
