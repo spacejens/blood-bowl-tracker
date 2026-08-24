@@ -17,40 +17,19 @@ import {
 } from '../leaderboard.service';
 import { TeamContextService } from '../team-context.service';
 import { TeamToplistService } from './team-toplist.service';
+import { ToplistFactoryService } from './toplist-factory.service';
+import type { ToplistFactoryMock } from './toplist-factory-mock.test-helpers';
+import { mockToplistFactory } from './toplist-factory-mock.test-helpers';
 
-interface MadeService {
-  service: TeamToplistService;
-  leaderboard: MockProxy<LeaderboardService>;
-  teamContext: MockProxy<TeamContextService>;
-}
+type TeamRow = {
+  teamId: number;
+  name: string;
+  count: number;
+  contextSuffix?: string;
+};
 
-async function makeService(
-  teams: TeamsService,
-  teamContext: MockProxy<TeamContextService> = mock<TeamContextService>(),
-): Promise<MadeService> {
-  const leaderboard = mock<LeaderboardService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      TeamToplistService,
-      { provide: TeamsService, useValue: teams },
-      { provide: LeaderboardService, useValue: leaderboard },
-      { provide: TeamContextService, useValue: teamContext },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(TeamToplistService),
-    leaderboard,
-    teamContext,
-  };
-}
-
-type TeamCountMethod =
-  | 'countMatchesPlayedByTeam'
-  | 'countMatchesWonByTeam'
-  | 'countMatchesLostByTeam'
-  | 'countMatchesDrawnByTeam'
-  | 'countCompetitionsByTeam'
-  | 'countErasByTeam'
+/** The 14 team toplists the factory builds. */
+type TeamFactoryMethod =
   | 'countTouchdownsScoredByTeam'
   | 'countCompletionsByTeam'
   | 'countInterceptionsByTeam'
@@ -66,67 +45,66 @@ type TeamCountMethod =
   | 'countDeathsSufferedByTeam'
   | 'countTrophiesByTeam';
 
-interface TeamCase {
+/** The six team toplists TeamToplistService still writes by hand. */
+type TeamHandWrittenMethod =
+  | 'countMatchesPlayedByTeam'
+  | 'countMatchesWonByTeam'
+  | 'countMatchesLostByTeam'
+  | 'countMatchesDrawnByTeam'
+  | 'countCompetitionsByTeam'
+  | 'countErasByTeam';
+
+interface MadeService {
+  service: TeamToplistService;
+  leaderboard: MockProxy<LeaderboardService>;
+  teamContext: MockProxy<TeamContextService>;
+  toplist: ToplistFactoryMock<TeamFactoryMethod, TeamRow>;
+}
+
+async function makeService(
+  teams: TeamsService,
+  teamContext: MockProxy<TeamContextService> = mock<TeamContextService>(),
+): Promise<MadeService> {
+  const leaderboard = mock<LeaderboardService>();
+  const toplist = mockToplistFactory<TeamFactoryMethod, TeamRow>();
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TeamToplistService,
+      { provide: TeamsService, useValue: teams },
+      { provide: LeaderboardService, useValue: leaderboard },
+      { provide: TeamContextService, useValue: teamContext },
+      { provide: ToplistFactoryService, useValue: toplist.factory },
+    ],
+  }).compile();
+  return {
+    service: moduleRef.get(TeamToplistService),
+    leaderboard,
+    teamContext,
+    toplist,
+  };
+}
+
+interface FactoryCase {
   describeName: string;
-  method: TeamCountMethod;
+  method: TeamFactoryMethod;
   resolve: (service: TeamToplistService, scope?: FactScope) => Promise<unknown>;
-  rows: { teamId: number; name: string; count: number }[];
-  eraRows?: { teamId: number; name: string; count: number }[];
-  competitionRows?: { teamId: number; name: string; count: number }[];
+  rows: TeamRow[];
+  eraRows?: TeamRow[];
+  competitionRows?: TeamRow[];
   expectedTitle: string;
 }
 
-const cases: TeamCase[] = [
-  {
-    describeName: 'resolveMatchesPlayed',
-    method: 'countMatchesPlayedByTeam',
-    resolve: (service, scope) =>
-      service.resolveMatchesPlayed(scope as FactScope),
-    rows: [{ teamId: 1, name: '40 grinders', count: 12 }],
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 5 }],
-    expectedTitle: 'Teams by matches played',
-  },
-  {
-    describeName: 'resolveMatchesWon',
-    method: 'countMatchesWonByTeam',
-    resolve: (service, scope) => service.resolveMatchesWon(scope as FactScope),
-    rows: [{ teamId: 1, name: '40 grinders', count: 7 }],
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
-    expectedTitle: 'Teams by matches won',
-  },
-  {
-    describeName: 'resolveMatchesLost',
-    method: 'countMatchesLostByTeam',
-    resolve: (service, scope) => service.resolveMatchesLost(scope as FactScope),
-    rows: [{ teamId: 2, name: 'Reikland Reavers', count: 9 }],
-    eraRows: [{ teamId: 2, name: 'Reikland Reavers', count: 4 }],
-    expectedTitle: 'Teams by matches lost',
-  },
-  {
-    describeName: 'resolveMatchesDrawn',
-    method: 'countMatchesDrawnByTeam',
-    resolve: (service, scope) =>
-      service.resolveMatchesDrawn(scope as FactScope),
-    rows: [{ teamId: 1, name: '40 grinders', count: 2 }],
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
-    expectedTitle: 'Teams by matches drawn',
-  },
-  {
-    describeName: 'resolveCompetitionsPlayed',
-    method: 'countCompetitionsByTeam',
-    resolve: (service, scope) =>
-      service.resolveCompetitionsPlayed(scope as FactScope),
-    rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
-    expectedTitle: 'Teams by competitions played',
-  },
-  {
-    describeName: 'resolveErasActive',
-    method: 'countErasByTeam',
-    resolve: (service) => service.resolveErasActive(),
-    rows: [{ teamId: 1, name: '40 grinders', count: 3 }],
-    expectedTitle: 'Teams by eras active',
-  },
+interface HandWrittenCase {
+  describeName: string;
+  method: TeamHandWrittenMethod;
+  resolve: (service: TeamToplistService, scope?: FactScope) => Promise<unknown>;
+  rows: TeamRow[];
+  eraRows?: TeamRow[];
+  competitionRows?: TeamRow[];
+  expectedTitle: string;
+}
+
+const factoryCases: FactoryCase[] = [
   {
     describeName: 'resolveTouchdownsScored',
     method: 'countTouchdownsScoredByTeam',
@@ -281,14 +259,167 @@ const cases: TeamCase[] = [
   },
 ];
 
-describe.each(cases)(
+const handWrittenCases: HandWrittenCase[] = [
+  {
+    describeName: 'resolveMatchesPlayed',
+    method: 'countMatchesPlayedByTeam',
+    resolve: (service, scope) =>
+      service.resolveMatchesPlayed(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 12 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 5 }],
+    expectedTitle: 'Teams by matches played',
+  },
+  {
+    describeName: 'resolveMatchesWon',
+    method: 'countMatchesWonByTeam',
+    resolve: (service, scope) => service.resolveMatchesWon(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 7 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
+    expectedTitle: 'Teams by matches won',
+  },
+  {
+    describeName: 'resolveMatchesLost',
+    method: 'countMatchesLostByTeam',
+    resolve: (service, scope) => service.resolveMatchesLost(scope as FactScope),
+    rows: [{ teamId: 2, name: 'Reikland Reavers', count: 9 }],
+    eraRows: [{ teamId: 2, name: 'Reikland Reavers', count: 4 }],
+    expectedTitle: 'Teams by matches lost',
+  },
+  {
+    describeName: 'resolveMatchesDrawn',
+    method: 'countMatchesDrawnByTeam',
+    resolve: (service, scope) =>
+      service.resolveMatchesDrawn(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 2 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
+    expectedTitle: 'Teams by matches drawn',
+  },
+  {
+    describeName: 'resolveCompetitionsPlayed',
+    method: 'countCompetitionsByTeam',
+    resolve: (service, scope) =>
+      service.resolveCompetitionsPlayed(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
+    expectedTitle: 'Teams by competitions played',
+  },
+  {
+    describeName: 'resolveErasActive',
+    method: 'countErasByTeam',
+    resolve: (service) => service.resolveErasActive(),
+    rows: [{ teamId: 1, name: '40 grinders', count: 3 }],
+    expectedTitle: 'Teams by eras active',
+  },
+];
+
+describe.each(factoryCases)(
+  'TeamToplistService.$describeName',
+  ({ method, resolve, rows, expectedTitle, competitionRows }) => {
+    // The resolver-to-LeaderboardService binding is ToplistFactoryService's
+    // job, covered by toplist-factory.service.spec.ts. Here the factory is a
+    // mock handing back inert resolvers, so these tests assert only what
+    // TeamToplistService itself owns.
+    it('wires the embed title and per-row deepdive button id', async () => {
+      const teams = mock<TeamsService>();
+      const { service, toplist } = await makeService(teams);
+      const canned = {
+        embeds: [{ title: 'canned', description: 'canned' }],
+      };
+      toplist.resolver(method).mockResolvedValueOnce(canned);
+      const result = await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(result).toBe(canned);
+      const options = toplist.options();
+      expect(options.titles[method]).toBe(expectedTitle);
+      expect(options.entityLink?.customIdPrefix).toBe(
+        TEAM_BUTTON_CUSTOM_ID_PREFIX,
+      );
+      expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].teamId);
+    });
+
+    it('passes the era scope through to the factory resolver', async () => {
+      const teams = mock<TeamsService>();
+      const { service, toplist } = await makeService(teams);
+      await resolve(service, { eraId: 20 });
+      expect(toplist.resolver(method)).toHaveBeenCalledWith(teams, {
+        eraId: 20,
+      });
+    });
+
+    if (competitionRows) {
+      it('passes the competition scope through to the factory resolver', async () => {
+        const teams = mock<TeamsService>();
+        const { service, toplist } = await makeService(teams);
+        await resolve(service, { competitionId: 30 });
+        expect(toplist.resolver(method)).toHaveBeenCalledWith(teams, {
+          competitionId: 30,
+        });
+      });
+    }
+
+    it('configures the toplist-specific timeout message and returns the resolver reply verbatim', async () => {
+      const teams = mock<TeamsService>();
+      const { service, toplist } = await makeService(teams);
+      toplist
+        .resolver(method)
+        .mockResolvedValueOnce(TEAM_TOPLIST_TIMEOUT_MESSAGE);
+      const result = await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(result).toBe(TEAM_TOPLIST_TIMEOUT_MESSAGE);
+      expect(toplist.options().timeoutMessage).toBe(
+        TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      );
+    });
+
+    it('decorates every fetched row with both race and coach context', async () => {
+      const teams = mock<TeamsService>();
+      const teamContext = mock<TeamContextService>();
+      teamContext.attachSuffixes.mockResolvedValue(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+      );
+      const { toplist } = await makeService(teams, teamContext);
+      const decorated = await toplist
+        .options()
+        .decorateRows?.(rows, FACT_SCOPE_ALL_TIME);
+      expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
+      const [inputRows, teamIdOf, contextOptions] =
+        teamContext.attachSuffixes.mock.calls[0];
+      expect(inputRows).toEqual(rows);
+      expect(teamIdOf(rows[0])).toBe(rows[0].teamId);
+      expect(contextOptions).toEqual({ includeRace: true, includeCoach: true });
+      expect(decorated).toEqual(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+      );
+    });
+
+    it('renders each row with its context suffix between the name and the count', async () => {
+      const teams = mock<TeamsService>();
+      const { toplist } = await makeService(teams);
+      expect(
+        toplist.options().formatRow?.({
+          ...rows[0],
+          contextSuffix: ' (Orc, Skarsnik)',
+          rank: 3,
+        }),
+      ).toBe(`3. ${rows[0].name} (Orc, Skarsnik) — ${rows[0].count}`);
+    });
+
+    it('renders a row with no known context without stray parentheses', async () => {
+      const teams = mock<TeamsService>();
+      const { toplist } = await makeService(teams);
+      expect(
+        toplist
+          .options()
+          .formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
+      ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
+    });
+  },
+);
+
+describe.each(handWrittenCases)(
   'TeamToplistService.$describeName',
   ({ method, resolve, rows, expectedTitle, eraRows, competitionRows }) => {
-    // LeaderboardService.resolveToplist itself (ranking, ties, embed/button
-    // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
-    // is a mock returning a canned reply, so this test only asserts what
-    // TeamToplistService itself owns: the embed title it configures, and the
-    // per-row deepdive entityLink it configures.
+    // These six resolvers take a narrower scope than the factory's table
+    // allows, so TeamToplistService still writes them by hand against the
+    // mocked LeaderboardService.
     it('wires the embed title and per-row deepdive button id', async () => {
       const teams = mock<TeamsService>();
       teams[method].mockResolvedValue(rows);
@@ -300,7 +431,7 @@ describe.each(cases)(
       const result = await resolve(service, FACT_SCOPE_ALL_TIME);
       expect(result).toBe(canned);
       const options = leaderboard.resolveToplist.mock
-        .calls[0][0] as unknown as ResolveToplistOptions<(typeof rows)[number]>;
+        .calls[0][0] as unknown as ResolveToplistOptions<TeamRow>;
       expect(options.title).toBe(expectedTitle);
       expect(options.entityLink?.customIdPrefix).toBe(
         TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -400,9 +531,7 @@ describe.each(cases)(
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
       const options = leaderboard.resolveToplist.mock
-        .calls[0][0] as unknown as ResolveToplistOptions<
-        (typeof rows)[number] & { contextSuffix?: string }
-      >;
+        .calls[0][0] as unknown as ResolveToplistOptions<TeamRow>;
       expect(
         options.formatRow?.({
           ...rows[0],
@@ -419,9 +548,7 @@ describe.each(cases)(
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
       const options = leaderboard.resolveToplist.mock
-        .calls[0][0] as unknown as ResolveToplistOptions<
-        (typeof rows)[number] & { contextSuffix?: string }
-      >;
+        .calls[0][0] as unknown as ResolveToplistOptions<TeamRow>;
       expect(
         options.formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
       ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);

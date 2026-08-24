@@ -26,10 +26,12 @@ type BiggestMistakeRow = MistakeRow & {
 };
 
 /**
- * Two hand-written resolvers (rather than the uniform makeToplistResolvers
- * shape) because each needs a custom `formatRow`: the totals list appends `gp`,
- * and the biggest-events list also appends the match date. Both rank in the
- * application layer via LeaderboardService's resolveToplist/topRanksWithTies.
+ * Two hand-written resolvers (rather than the uniform toplist-factory shape)
+ * because each needs a different custom `formatRow`: the totals list appends
+ * `gp`, and the biggest-events list also appends the match date — and the
+ * factory applies a single formatRow across a whole titles table, so the two
+ * cannot share one. Both rank in the application layer via LeaderboardService's
+ * resolveToplist/topRanksWithTies.
  */
 @Injectable()
 export class ExpensiveMistakesToplistService {

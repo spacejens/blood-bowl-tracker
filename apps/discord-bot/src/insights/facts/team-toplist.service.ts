@@ -11,8 +11,11 @@ import {
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { TeamContextService } from '../team-context.service';
-import type { ScopedCountMethods, ToplistResolver } from './toplist-factory';
-import { makeToplistResolvers } from './toplist-factory';
+import type {
+  ScopedCountMethods,
+  ToplistResolver,
+} from './toplist-factory.service';
+import { ToplistFactoryService } from './toplist-factory.service';
 
 /**
  * `countMatchesPlayedByTeam`, `countCompetitionsByTeam`, and `countErasByTeam`
@@ -70,8 +73,9 @@ export class TeamToplistService {
     private readonly teams: TeamsService,
     private readonly leaderboard: LeaderboardService,
     private readonly teamContext: TeamContextService,
+    private readonly toplistFactory: ToplistFactoryService,
   ) {
-    this.resolvers = makeToplistResolvers<
+    this.resolvers = this.toplistFactory.makeResolvers<
       TeamToplistMethod,
       TeamsService,
       TeamToplistRow
@@ -101,7 +105,6 @@ export class TeamToplistService {
       // (scope) parameter the hook now supplies is deliberately ignored.
       decorateRows: (rows) => this.decorateTeamRows(rows),
       formatRow: (row) => this.formatTeamRow(row),
-      leaderboard: this.leaderboard,
     });
   }
 
@@ -203,7 +206,7 @@ export class TeamToplistService {
    * so they share one private builder rather than repeating the same
    * resolveToplist call three times. Same precedent as
    * CoachToplistService.resolveGapToplist. They stay hand-written (rather than
-   * joining makeToplistResolvers) to sit next to resolveMatchesPlayed, whose
+   * joining the toplist factory) to sit next to resolveMatchesPlayed, whose
    * league/era/category-only scope they share.
    */
   private resolveMatchOutcomeToplist(options: {

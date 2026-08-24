@@ -19,26 +19,9 @@ import {
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
 import { CoachToplistService } from './coach-toplist.service';
-
-interface MadeService {
-  service: CoachToplistService;
-  leaderboard: MockProxy<LeaderboardService>;
-  dayCount: MockProxy<DayCountFormatterService>;
-}
-
-async function makeService(coaches: CoachesService): Promise<MadeService> {
-  const leaderboard = mock<LeaderboardService>();
-  const dayCount = mock<DayCountFormatterService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      CoachToplistService,
-      { provide: CoachesService, useValue: coaches },
-      { provide: LeaderboardService, useValue: leaderboard },
-      { provide: DayCountFormatterService, useValue: dayCount },
-    ],
-  }).compile();
-  return { service: moduleRef.get(CoachToplistService), leaderboard, dayCount };
-}
+import { ToplistFactoryService } from './toplist-factory.service';
+import type { ToplistFactoryMock } from './toplist-factory-mock.test-helpers';
+import { mockToplistFactory } from './toplist-factory-mock.test-helpers';
 
 interface CoachRow {
   coachId: number;
@@ -46,28 +29,65 @@ interface CoachRow {
   count: number;
 }
 
-type CoachCountMethod =
+/** The seven coach toplists the factory builds. */
+type CoachFactoryMethod =
+  | 'countFoulsCommittedByCoach'
   | 'countMatchesPlayedByCoach'
   | 'countMatchesWonByCoach'
   | 'countMatchesLostByCoach'
   | 'countMatchesDrawnByCoach'
   | 'countTeamsByCoach'
-  | 'countCompetitionsByCoach'
-  | 'countErasByCoach'
-  | 'countFoulsCommittedByCoach'
-  | 'getGapBetweenMatchesByCoachDescending'
-  | 'getGapBetweenMatchesByCoachAscending'
-  | 'getAverageGapBetweenMatchesByCoach';
+  | 'countCompetitionsByCoach';
 
-interface ToplistCase {
+interface MadeService {
+  service: CoachToplistService;
+  leaderboard: MockProxy<LeaderboardService>;
+  dayCount: MockProxy<DayCountFormatterService>;
+  toplist: ToplistFactoryMock<CoachFactoryMethod, CoachRow>;
+}
+
+async function makeService(coaches: CoachesService): Promise<MadeService> {
+  const leaderboard = mock<LeaderboardService>();
+  const dayCount = mock<DayCountFormatterService>();
+  const toplist = mockToplistFactory<CoachFactoryMethod, CoachRow>();
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      CoachToplistService,
+      { provide: CoachesService, useValue: coaches },
+      { provide: LeaderboardService, useValue: leaderboard },
+      { provide: DayCountFormatterService, useValue: dayCount },
+      { provide: ToplistFactoryService, useValue: toplist.factory },
+    ],
+  }).compile();
+  return {
+    service: moduleRef.get(CoachToplistService),
+    leaderboard,
+    dayCount,
+    toplist,
+  };
+}
+
+interface FactoryCase {
   describeName: string;
-  method: CoachCountMethod;
+  method: CoachFactoryMethod;
   resolve: (service: CoachToplistService) => Promise<unknown>;
   rows: CoachRow[];
   expectedTitle: string;
 }
 
-const cases: ToplistCase[] = [
+interface HandWrittenCase {
+  describeName: string;
+  method:
+    | 'countErasByCoach'
+    | 'getGapBetweenMatchesByCoachDescending'
+    | 'getGapBetweenMatchesByCoachAscending'
+    | 'getAverageGapBetweenMatchesByCoach';
+  resolve: (service: CoachToplistService) => Promise<unknown>;
+  rows: CoachRow[];
+  expectedTitle: string;
+}
+
+const factoryCases: FactoryCase[] = [
   {
     describeName: 'resolveMatchesPlayed',
     method: 'countMatchesPlayedByCoach',
@@ -126,13 +146,6 @@ const cases: ToplistCase[] = [
     expectedTitle: 'Coaches by competitions played',
   },
   {
-    describeName: 'resolveErasActive',
-    method: 'countErasByCoach',
-    resolve: (service) => service.resolveErasActive(),
-    rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
-    expectedTitle: 'Coaches by eras active',
-  },
-  {
     describeName: 'resolveFoulsCommitted',
     method: 'countFoulsCommittedByCoach',
     resolve: (service) => service.resolveFoulsCommitted(FACT_SCOPE_ALL_TIME),
@@ -141,6 +154,16 @@ const cases: ToplistCase[] = [
       { coachId: 2, name: 'Grashnak', count: 4 },
     ],
     expectedTitle: 'Coaches by fouls committed',
+  },
+];
+
+const handWrittenCases: HandWrittenCase[] = [
+  {
+    describeName: 'resolveErasActive',
+    method: 'countErasByCoach',
+    resolve: (service) => service.resolveErasActive(),
+    rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
+    expectedTitle: 'Coaches by eras active',
   },
   {
     describeName: 'resolveTimeBetweenMatchesDescending',
@@ -174,14 +197,65 @@ const cases: ToplistCase[] = [
   },
 ];
 
-describe.each(cases)(
+describe.each(factoryCases)(
   'CoachToplistService.$describeName',
   ({ method, resolve, rows, expectedTitle }) => {
-    // LeaderboardService.resolveToplist itself (ranking, ties, embed/button
-    // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
-    // is a mock returning a canned reply, so this test only asserts what
-    // CoachToplistService itself owns: the embed title it configures, and the
-    // per-row deepdive entityLink it configures.
+    // The resolver-to-LeaderboardService binding is ToplistFactoryService's
+    // job, covered by toplist-factory.service.spec.ts. Here the factory is a
+    // mock handing back inert resolvers, so these tests assert only what
+    // CoachToplistService itself owns: the options it configures and the
+    // resolver it delegates each public method to.
+    it('wires the embed title and per-row deepdive button id', async () => {
+      const coaches = mock<CoachesService>();
+      const { service, toplist } = await makeService(coaches);
+      const canned = {
+        embeds: [{ title: 'canned', description: 'canned' }],
+      };
+      toplist.resolver(method).mockResolvedValueOnce(canned);
+      const result = await resolve(service);
+      expect(result).toBe(canned);
+      const options = toplist.options();
+      expect(options.titles[method]).toBe(expectedTitle);
+      expect(options.entityLink?.customIdPrefix).toBe(
+        COACH_BUTTON_CUSTOM_ID_PREFIX,
+      );
+      expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].coachId);
+    });
+
+    it('delegates to the factory resolver for its own count method, with the coaches service and scope', async () => {
+      const coaches = mock<CoachesService>();
+      const { service, toplist } = await makeService(coaches);
+      await resolve(service);
+      expect(toplist.resolver(method)).toHaveBeenCalledWith(
+        coaches,
+        FACT_SCOPE_ALL_TIME,
+      );
+    });
+
+    it('configures the toplist-specific timeout and no-data messages and returns the resolver reply verbatim', async () => {
+      const coaches = mock<CoachesService>();
+      const { service, toplist } = await makeService(coaches);
+      toplist
+        .resolver(method)
+        .mockResolvedValueOnce(COACH_TOPLIST_TIMEOUT_MESSAGE);
+      const result = await resolve(service);
+      expect(result).toBe(COACH_TOPLIST_TIMEOUT_MESSAGE);
+      expect(toplist.options().timeoutMessage).toBe(
+        COACH_TOPLIST_TIMEOUT_MESSAGE,
+      );
+      expect(toplist.options().noDataMessage).toBe(
+        COACH_TOPLIST_NO_DATA_MESSAGE,
+      );
+    });
+  },
+);
+
+describe.each(handWrittenCases)(
+  'CoachToplistService.$describeName',
+  ({ method, resolve, rows, expectedTitle }) => {
+    // These resolvers are hand-written on CoachToplistService (they do not fit
+    // the factory's (scope, limit) shape), so they still call the mocked
+    // LeaderboardService directly.
     it('wires the embed title and per-row deepdive button id', async () => {
       const coaches = mock<CoachesService>();
       coaches[method].mockResolvedValue(rows);
@@ -214,10 +288,6 @@ describe.each(cases)(
       expect(queryFn.mock.calls[0]?.at(-1)).toBe(TOPLIST_FETCH_LIMIT);
     });
 
-    // The real timeout race lives in DatabaseTimeoutService/LeaderboardService
-    // (covered by their own specs); here `leaderboard` is a mock, so this
-    // confirms CoachToplistService configures the right timeout message and
-    // that whatever leaderboard.resolveToplist resolves to is returned as-is.
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
       const coaches = mock<CoachesService>();
       coaches[method].mockResolvedValue(rows);
@@ -237,20 +307,13 @@ describe.each(cases)(
 );
 
 describe('CoachToplistService.resolveCompetitionsPlayed', () => {
-  it('passes the era id through to the query', async () => {
+  it('passes the era scope through to the factory resolver', async () => {
     const coaches = mock<CoachesService>();
-    coaches.countCompetitionsByCoach.mockResolvedValue([
-      { coachId: 1, name: 'Roze Madder', count: 3 },
-    ]);
-    const { service, leaderboard } = await makeService(coaches);
-    leaderboard.resolveToplist.mockImplementation(async (options) => {
-      await options.fetchRows(TOPLIST_FETCH_LIMIT);
-      return 'canned';
-    });
+    const { service, toplist } = await makeService(coaches);
     await service.resolveCompetitionsPlayed({ eraId: 20 });
-    expect(coaches.countCompetitionsByCoach).toHaveBeenCalledWith(
+    expect(toplist.resolver('countCompetitionsByCoach')).toHaveBeenCalledWith(
+      coaches,
       { eraId: 20 },
-      TOPLIST_FETCH_LIMIT,
     );
   });
 });
@@ -270,23 +333,16 @@ describe('CoachToplistService.resolveErasActive', () => {
 });
 
 describe('CoachToplistService.resolveFoulsCommitted', () => {
-  it('passes the whole scope and the fetch limit through to the query', async () => {
+  it('passes the whole scope through to the factory resolver', async () => {
     // The competitionId is forwarded verbatim here on purpose: dropping it is
     // CoachesService.countFoulsCommittedByCoach's responsibility, covered in
     // its own spec.
     const coaches = mock<CoachesService>();
-    coaches.countFoulsCommittedByCoach.mockResolvedValue([
-      { coachId: 1, name: 'Roze Madder', count: 13 },
-    ]);
-    const { service, leaderboard } = await makeService(coaches);
-    leaderboard.resolveToplist.mockImplementation(async (options) => {
-      await options.fetchRows(TOPLIST_FETCH_LIMIT);
-      return 'canned';
-    });
+    const { service, toplist } = await makeService(coaches);
     await service.resolveFoulsCommitted({ leagueId: 9, eraId: 20 });
-    expect(coaches.countFoulsCommittedByCoach).toHaveBeenCalledWith(
+    expect(toplist.resolver('countFoulsCommittedByCoach')).toHaveBeenCalledWith(
+      coaches,
       { leagueId: 9, eraId: 20 },
-      TOPLIST_FETCH_LIMIT,
     );
   });
 });
