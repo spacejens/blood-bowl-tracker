@@ -42,6 +42,11 @@ export function mockToplistFactory<
   const resolvers = new Map<TMethod, Mock>();
   (factory.makeResolvers as unknown as Mock).mockImplementation(
     (options: MakeResolversOptions<TMethod, TRow>) => {
+      if (captured !== undefined) {
+        throw new Error(
+          'mockToplistFactory only supports one makeResolvers call per subject',
+        );
+      }
       captured = options;
       const built: Record<string, Mock> = {};
       for (const method of Object.keys(options.titles) as TMethod[]) {

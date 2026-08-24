@@ -130,8 +130,10 @@ export class CoachToplistService {
   /**
    * The three time-between-matches toplists are hand-written rather than
    * built by the toplist factory because each row renders as a duration
-   * ("91 days") instead of a bare count, and the factory has no formatRow
-   * hook. Same precedent as ExpensiveMistakesToplistService's `gp` rendering.
+   * ("91 days") instead of a bare count, and the factory applies a single
+   * formatRow across a whole titles table, which the count-rendered coach
+   * toplists already occupy. Same precedent as
+   * ExpensiveMistakesToplistService's `gp` rendering.
    */
   private resolveGapToplist(options: {
     title: string;
