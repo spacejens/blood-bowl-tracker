@@ -238,13 +238,12 @@ export class TrophiesService {
    * alone is `ExternalSystemsService.upsert`.
    *
    * One scenario this branch must still guard against: a future TP awards
-   * importer (not yet written; giving trophies external ids turned out to be
-   * a pure curated-data change, not an importer change) that creates a
-   * same-named row via
-   * the external-id path (e.g. it resolves its own external id to a *new*
-   * trophy row instead of attaching that id to the existing row already found
-   * by name) before the manual importer's next run. That would leave two rows
-   * sharing one `name`, and this fallback — which matches by name alone —
+   * importer (not yet written; giving trophies external ids turned out to be a
+   * pure curated-data change, not an importer change) that creates a same-named
+   * row via the external-id path (e.g. it resolves its own external id to a
+   * *new* trophy row instead of attaching that id to the existing row already
+   * found by name) before the manual importer's next run. That would leave two
+   * rows sharing one `name`, and this fallback — which matches by name alone —
    * would otherwise pick one of them arbitrarily. To prevent silently doing
    * that, the name lookup below throws `TrophyUpsertConflictError` if it ever
    * finds more than one row. Closing this gap here means that future TP
