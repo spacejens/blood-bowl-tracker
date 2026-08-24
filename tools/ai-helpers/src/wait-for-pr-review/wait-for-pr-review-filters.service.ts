@@ -36,10 +36,10 @@ export const RATE_LIMIT_PHRASES =
 /**
  * Tolerant, deliberately CodeRabbit-specific wording for its third
  * non-review outcome: it failed to persist an edit to its rolling
- * walkthrough comment and posted a separate top-level notice instead
- * (observed on PR #408: "CodeRabbit couldn't update its existing comment.
+ * walkthrough comment and posted a separate top-level notice instead —
+ * observed in practice: "CodeRabbit couldn't update its existing comment.
  * The review summary may be out of date. Error details: putComment timed
- * out."). Same tolerance rationale as `RATE_LIMIT_PHRASES` — the exact text
+ * out." Same tolerance rationale as `RATE_LIMIT_PHRASES` — the exact text
  * is CodeRabbit's own and may drift, so any one of these phrases
  * (case-insensitive) qualifies. The character class accepts both a straight
  * and a typographic apostrophe.
@@ -75,7 +75,7 @@ export const NO_ACTIONABLE_COMMENTS_PHRASES =
  * comment when it rate-limits a re-review — no new comment is posted, and the
  * comment's `createdAt` never moves, which is exactly why `rateLimitFilter`
  * (which reads `gh pr view --json comments`, a payload with no `updated_at`)
- * cannot see it. Observed on PR #464.
+ * cannot see it — observed in practice.
  *
  * CAUTION FOR FUTURE EDITORS: these two constants are themselves
  * self-referential source text on a PR that touches this file — CodeRabbit's
@@ -195,12 +195,13 @@ export class WaitForPrReviewFiltersService {
    * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
    * summary, a changes table) can incidentally contain this filter's phrase
    * — notably on a PR whose diff is *about* rate-limit detection, such as
-   * the one that introduced this guard (issue #465's own PR: the walkthrough
-   * summarizing this very change said "prioritizes rate-limit results",
-   * which matched `rate-limit` and produced a false `rateLimited: true`
-   * despite the same comment already reporting a clean, completed review)
-   * — which would otherwise abort the wait on a false positive before any
-   * real review or genuine rate-limit notice exists. A genuine rate-limit
+   * the one that introduced this guard (the walkthrough comment for this
+   * very guard is itself an example: it summarized the change as
+   * "prioritizes rate-limit results", which matched `rate-limit` and
+   * produced a false `rateLimited: true` despite the same comment already
+   * reporting a clean, completed review) — which would otherwise abort the
+   * wait on a false positive before any real review or genuine rate-limit
+   * notice exists. A genuine rate-limit
    * notice is always a short, separate comment (or, since this same fix, a
    * bounded section behind its own distinct markers — see
    * `rateLimitEditFilter`) and never carries the walkthrough markers, so

@@ -198,9 +198,11 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     // poll 2's jq program excludes `PRR_empty1` but not `PRR_previous`, so
     // this mock reports `FOUND` (the `PRR_review1` fixture) as newly found —
     // standing in for jq re-matching the already-handled `PRR_previous`
-    // review once its exclusion was lost, a real regression of the exact bug
-    // issue #474 exists to fix. On the fixed code, poll 2's jq
-    // program still excludes `PRR_previous`, so this mock reports nothing,
+    // review once its exclusion was lost — a real regression of the bug
+    // this test guards against, where overwriting `excludeReviewId` instead
+    // of layering `excludeReviewIds` on top of it drops the caller's own
+    // exclusion. On the fixed code, poll 2's jq program still excludes
+    // `PRR_previous`, so this mock reports nothing,
     // and the wait times out instead of returning a false `found: true`.
     processRunner.run.mockImplementation((_command, args) => {
       if (args[0] === 'api') {
