@@ -11,7 +11,7 @@ export const productionConfigSchema = z
   .looseObject({
     connection: z
       .looseObject({ apiBaseUrl: z.string().optional().catch(undefined) })
-      .catch({ apiBaseUrl: undefined })
+      .catch(() => ({ apiBaseUrl: undefined }))
       .optional(),
   })
-  .catch({ connection: undefined });
+  .catch(() => ({ connection: undefined }));

@@ -2,24 +2,24 @@ import { describe, expect, it } from 'vitest';
 
 import {
   browserGroupSchema,
-  configGroupSchema,
+  configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
   tournamentsSchema,
 } from './download-tp-config.schema';
 
-describe('configGroupSchema', () => {
+describe('configFileSchema', () => {
   it('keeps an object config as-is', () => {
-    expect(configGroupSchema.parse({ download: { tournaments: [] } })).toEqual({
+    expect(configFileSchema.parse({ download: { tournaments: [] } })).toEqual({
       download: { tournaments: [] },
     });
   });
 
   it('turns anything that is not an object into an empty config', () => {
-    expect(configGroupSchema.parse(undefined)).toEqual({});
-    expect(configGroupSchema.parse(null)).toEqual({});
-    expect(configGroupSchema.parse('nope')).toEqual({});
-    expect(configGroupSchema.parse(7)).toEqual({});
+    expect(configFileSchema.parse(undefined)).toEqual({});
+    expect(configFileSchema.parse(null)).toEqual({});
+    expect(configFileSchema.parse('nope')).toEqual({});
+    expect(configFileSchema.parse(7)).toEqual({});
   });
 });
 

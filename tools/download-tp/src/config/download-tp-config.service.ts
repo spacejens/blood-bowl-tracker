@@ -6,7 +6,7 @@ import JSON5 from 'json5';
 
 import {
   browserGroupSchema,
-  configGroupSchema,
+  configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
   tournamentsSchema,
@@ -145,6 +145,6 @@ export class DownloadTpConfigService {
       );
     }
 
-    return configGroupSchema.parse(parsed);
+    return configFileSchema.parse(parsed);
   }
 }

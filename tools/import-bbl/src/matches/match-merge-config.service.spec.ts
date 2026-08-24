@@ -26,7 +26,8 @@ async function makeService(
     providers: [
       MatchMergeConfigService,
       { provide: EraConfigService, useValue: eraConfig },
-      // ConfigErrorMessageService is passed real, not mocked — pure, dependency-free, per CLAUDE.md.
+      // Real, not mocked: a pure, dependency-free formatting service whose
+      // exact output is what this spec's error assertions check.
       ConfigErrorMessageService,
     ],
   }).compile();

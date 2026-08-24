@@ -69,7 +69,7 @@ export const rulesSetsSchema = z.custom<string[]>(
  * empty group, so the reading service still throws its own friendly
  * per-field error rather than a schema error.
  */
-export const configGroupSchema = z.looseObject({}).catch({});
+export const configGroupSchema = z.looseObject({}).catch(() => ({}));
 
 /**
  * The `externalSystemName` setting: a string with at least one

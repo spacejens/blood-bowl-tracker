@@ -125,6 +125,32 @@ describe('eraConfigSchema', () => {
     expect(result.error?.issues[0].message).toBe('must be a positive integer.');
   });
 
+  it('rejects a non-numeric firstPlayerId with the "when present" message', () => {
+    const result = eraConfigSchema.safeParse({
+      ...VALID_ERA,
+      players: { autoAssignByPlayerId: true, firstPlayerId: 'x' },
+    });
+    expect(result.error?.issues[0].path).toEqual(['players', 'firstPlayerId']);
+    expect(result.error?.issues[0].message).toBe(
+      'must be a positive integer when present.',
+    );
+  });
+
+  it('rejects a non-numeric lastPlayerId with the "when present" message', () => {
+    const result = eraConfigSchema.safeParse({
+      ...VALID_ERA,
+      players: {
+        autoAssignByPlayerId: true,
+        firstPlayerId: 1,
+        lastPlayerId: 'x',
+      },
+    });
+    expect(result.error?.issues[0].path).toEqual(['players', 'lastPlayerId']);
+    expect(result.error?.issues[0].message).toBe(
+      'must be a positive integer when present.',
+    );
+  });
+
   it('allows no player ids at all when autoAssignByPlayerId is false', () => {
     const parsed = eraConfigSchema.parse({
       ...VALID_ERA,

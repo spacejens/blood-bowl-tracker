@@ -9,6 +9,8 @@ import { z } from 'zod';
 const NOT_AN_OBJECT = 'must be an object.';
 const NOT_A_BOOLEAN = 'must be a boolean.';
 const NOT_A_POSITIVE_INTEGER = 'must be a positive integer.';
+const NOT_A_POSITIVE_INTEGER_WHEN_PRESENT =
+  'must be a positive integer when present.';
 
 const identitySchema = z.object(
   { name: nonBlankStringSchema, rulesSets: rulesSetsSchema },
@@ -34,14 +36,14 @@ const playersSchema = z
     {
       autoAssignByPlayerId: z.boolean({ error: NOT_A_BOOLEAN }),
       firstPlayerId: z
-        .number({ error: NOT_A_POSITIVE_INTEGER })
-        .int(NOT_A_POSITIVE_INTEGER)
-        .positive(NOT_A_POSITIVE_INTEGER)
+        .number({ error: NOT_A_POSITIVE_INTEGER_WHEN_PRESENT })
+        .int(NOT_A_POSITIVE_INTEGER_WHEN_PRESENT)
+        .positive(NOT_A_POSITIVE_INTEGER_WHEN_PRESENT)
         .optional(),
       lastPlayerId: z
-        .number({ error: NOT_A_POSITIVE_INTEGER })
-        .int(NOT_A_POSITIVE_INTEGER)
-        .positive(NOT_A_POSITIVE_INTEGER)
+        .number({ error: NOT_A_POSITIVE_INTEGER_WHEN_PRESENT })
+        .int(NOT_A_POSITIVE_INTEGER_WHEN_PRESENT)
+        .positive(NOT_A_POSITIVE_INTEGER_WHEN_PRESENT)
         .optional(),
       playerIdOverrides: z
         .custom<number[]>(

@@ -121,6 +121,7 @@ describe('configGroupSchema', () => {
     expect(configGroupSchema.parse(null)).toEqual({});
     expect(configGroupSchema.parse('nope')).toEqual({});
     expect(configGroupSchema.parse(7)).toEqual({});
+    expect(configGroupSchema.parse([1, 2, 3])).toEqual({});
   });
 });
 

@@ -5,7 +5,7 @@ import { z } from 'zod';
  * a missing file) becoming an empty config so each getter still throws its
  * own friendly per-field error rather than a schema error.
  */
-export const configGroupSchema = z.looseObject({}).catch({});
+export const configFileSchema = z.looseObject({}).catch(() => ({}));
 
 /**
  * The `connection` group. Lenient on the fields themselves so the service
