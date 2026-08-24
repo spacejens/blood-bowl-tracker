@@ -1,6 +1,5 @@
 import { ApiClientModule } from '@blood-bowl-tracker/api-client';
 import { DynamicModule, Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 
 import { CoachesModule } from './coaches/coaches.module';
 import { CompetitionsModule } from './competitions/competitions.module';
@@ -26,7 +25,6 @@ export class AppModule {
     return {
       module: AppModule,
       imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
         ImportTpConfigModule,
         ApiClientModule.forRootAsync({
           useFactory: (config: ImportTpConfigService) => ({
