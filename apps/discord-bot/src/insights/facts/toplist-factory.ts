@@ -5,7 +5,7 @@ import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 
 /** A row shape every scoped toplist count returns. */
-interface CountedRow {
+export interface CountedRow {
   name: string;
   count: number;
 }

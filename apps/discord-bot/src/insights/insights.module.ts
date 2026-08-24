@@ -35,6 +35,7 @@ import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
+import { ToplistFactoryService } from './facts/toplist-factory.service';
 import { TrophiesListService } from './facts/trophies-list.service';
 import { LeaderboardService } from './leaderboard.service';
 import { PlayerContextService } from './player-context.service';
@@ -64,6 +65,7 @@ const GAME_DATA_MODULES = [
     DatabaseTimeoutService,
     EntityComponentsService,
     LeaderboardService,
+    ToplistFactoryService,
     TeamContextService,
     PlayerContextService,
     DayCountFormatterService,
@@ -97,6 +99,7 @@ const GAME_DATA_MODULES = [
     DatabaseTimeoutService,
     EntityComponentsService,
     LeaderboardService,
+    ToplistFactoryService,
     TeamContextService,
     PlayerContextService,
     DayCountFormatterService,
