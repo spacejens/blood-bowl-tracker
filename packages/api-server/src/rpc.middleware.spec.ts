@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-const handleMock = vi.fn();
+let handleMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@orpc/server/node', () => ({
   RPCHandler: vi.fn().mockImplementation(function () {
@@ -53,6 +53,7 @@ describe('RpcMiddleware', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    handleMock = vi.fn();
     next = vi.fn();
     auth = mock<ApiTokenAuthService>();
     auth.authenticate.mockReturnValue({
