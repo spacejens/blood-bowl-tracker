@@ -1,3 +1,4 @@
+import { externalSystemNameSchema } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
@@ -14,7 +15,9 @@ export class ExternalSystemNameConfigService {
    * yields the default "TP".
    */
   getTpSystemName(): string {
-    const name = this.config.get<string>('externalSystemName');
-    return name && name.trim() !== '' ? name : 'TP';
+    const parsed = externalSystemNameSchema.safeParse(
+      this.config.get('externalSystemName'),
+    );
+    return parsed.success ? parsed.data : 'TP';
   }
 }

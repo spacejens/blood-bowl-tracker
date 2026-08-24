@@ -1,3 +1,4 @@
+import { nonEmptyStringSchema } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
@@ -14,13 +15,13 @@ export class LeagueConfigService {
    */
   getLeagueName(): string {
     const league = this.config.get<Record<string, unknown>>('league');
-    const name = league?.name;
-    if (typeof name !== 'string' || name === '') {
+    const parsed = nonEmptyStringSchema.safeParse(league?.name);
+    if (!parsed.success) {
       throw new Error(
         'league.name is not set in import-tp-config.json5. Set league.name ' +
           'to the name of the league the TP data covers (e.g. "tLoEGBBL").',
       );
     }
-    return name;
+    return parsed.data;
   }
 }

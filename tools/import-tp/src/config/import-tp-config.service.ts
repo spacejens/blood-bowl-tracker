@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import {
+  type ConnectionConfig,
+  connectionConfigSchema,
+} from '@blood-bowl-tracker/import';
 import { Inject, Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
@@ -65,10 +69,7 @@ export class ImportTpConfigService {
    * `apiBaseUrl` itself is unset, but the `connection` group must be present.
    */
   getApiBaseUrl(): string {
-    const url = this.getConnection().apiBaseUrl;
-    return typeof url === 'string' && url !== ''
-      ? url
-      : 'http://localhost:3000';
+    return this.getConnection().apiBaseUrl ?? 'http://localhost:3000';
   }
 
   /**
@@ -77,9 +78,8 @@ export class ImportTpConfigService {
    * requests with 401, so there is no useful default.
    */
   getApiToken(): string {
-    const connection = this.getConnection();
-    const token = connection.apiToken;
-    if (typeof token !== 'string' || token === '') {
+    const token = this.getConnection().apiToken;
+    if (token === undefined) {
       throw new Error(
         'connection.apiToken is not set in import-tp-config.json5. Set it ' +
           'to the bearer token this tool authenticates with; it must match ' +
@@ -90,9 +90,9 @@ export class ImportTpConfigService {
   }
 
   /** The required `connection` group, or a friendly error when it's absent. */
-  private getConnection(): Record<string, unknown> {
-    const connection = this.get<Record<string, unknown>>('connection');
-    if (typeof connection !== 'object' || connection === null) {
+  private getConnection(): ConnectionConfig {
+    const parsed = connectionConfigSchema.safeParse(this.get('connection'));
+    if (!parsed.success) {
       throw new Error(
         'connection is not set in import-tp-config.json5. Set it to an ' +
           "object, e.g. { apiBaseUrl: 'http://localhost:3000', apiToken: " +
@@ -100,7 +100,7 @@ export class ImportTpConfigService {
           'http://localhost:3000 if omitted).',
       );
     }
-    return connection;
+    return parsed.data;
   }
 
   /**
