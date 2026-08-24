@@ -211,7 +211,7 @@ like any other cross-reference, so the group only has to have been imported
 at some point — not necessarily in this run.
 
 Because references resolve against the database rather than a per-process map,
-a phase whose entries name a group no longer has to process the group catalog
+a phase whose entries name a group does not have to process the group catalog
 itself — the group only needs to have been imported by some earlier run or
 phase. The catalog is curated in `data/before-other-importers`, alongside the
 competitions that classify into it.
@@ -241,8 +241,7 @@ inferred from label text alone.
 A trophy is the one entity that may declare no external id at all (see
 `## Data files` above for the otherwise-universal rule): it is then identified
 by its exact `name` instead, so re-running the import never duplicates it. No
-curated trophy relies on this today — `Ogretoberfest` used to, and gained a
-`tourplay.net` id in issue #446 — but the mechanism stays supported for any
+curated trophy relies on this today, but the mechanism stays supported for any
 future trophy with no stable external id to key on.
 
 Every trophy TP has been observed to award carries a `tourplay.net` external
@@ -289,14 +288,13 @@ real-world entity differently:
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
 - `teams.json5` — team name variants.
 - `star-players.json5` — star player `Position` rows. Both BBL and TP
-  importers now attach a `Name` external id equal to the star's bare name
-  across all three star-position code paths (the roster-catalog path, the
+  importers attach a `Name` external id equal to the star's bare name across
+  all three star-position code paths (the roster-catalog path, the
   inducement-hire path, and the Big Guy mercenary fallback — see
   [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)).
-  Since star players whose names match verbatim between the two systems now
-  dedupe automatically via the shared `Name` external id, manual entries here
-  are no longer required for common cases. However, the file mechanism still
-  serves to resolve genuine spelling mismatches where BBL and TP disagree —
+  Star players whose names match verbatim between the two systems therefore
+  dedupe automatically via that shared `Name` external id, so this file is
+  needed only for genuine spelling mismatches where BBL and TP disagree —
   smart vs. straight quotes, a leading "The", trailing epithets — which are
   deliberately left unmerged rather than guessed at, for the same reason
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a

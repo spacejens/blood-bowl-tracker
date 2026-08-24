@@ -325,9 +325,9 @@ than consulting a map built earlier in the same run. Each step resolves
 everything it needs in one batched call and then looks the records up locally,
 so the network cost is one round trip per step, not per record.
 
-The ordering in `main.ts` still matters — a race has to be upserted before a
-team referencing it can be resolved — and resolution itself no longer needs a
-client-side id map built earlier in the same run.
+The ordering in `main.ts` matters — a race has to be upserted before a team
+referencing it can be resolved — but resolution itself reads the database,
+not a client-side id map built earlier in the same run.
 
 Some maps deliberately remain, because no external-id resolve can answer
 them: the competition payload carrier `competitionsByTpId` and the two maps

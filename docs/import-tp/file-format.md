@@ -217,8 +217,8 @@ An injury's `injuryType` maps to a `consequence_type` via:
 | `PA`             | `stat_reduction_pa` |
 | `AG`             | `stat_reduction_ag` |
 
-`None` used to be skipped entirely (treated as "no injury happened"); it is
-in fact a genuine Badly Hurt result and is now always imported.
+`None` is a genuine Badly Hurt result, not "no injury happened", so it is
+always imported like any other injury type.
 
 `matchEvents[].starPoints` — the [Star Player Points](../glossary.md#star-player-points-spp)
 TP itself says this event awarded its acting player — is carried on every
@@ -461,8 +461,8 @@ the same entity regardless of team), upserted with `isStarPlayer: true` and a
 bare-name TP external id, matching the hired-star-player convention below so
 both paths dedupe onto the same `Position` row. Their ids merge into the same
 `positionIdsByTpPositionId` map the regular positions use — see "Embedded
-roster star players" below for how this closes the gap that used to skip
-these players.
+roster star players" below for how that shared map lets these players
+resolve.
 
 **Teams** (via `TpTeamsImportService`) are keyed by roster `id` and `teamName`
 (one TP and one Name external id). Their race resolves via `raceIdsByTeamRaceCode`
