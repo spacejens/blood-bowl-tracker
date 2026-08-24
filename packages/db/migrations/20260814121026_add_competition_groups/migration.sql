@@ -31,69 +31,30 @@ CREATE TRIGGER competition_groups_set_updated_at
   BEFORE UPDATE ON "game_data"."competition_groups"
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 --> statement-breakpoint
--- A prior migration (20260721101504_admin_match_event_review_fixes) issues
--- SET CONSTRAINTS ALL IMMEDIATE for its own unrelated column-type change,
--- which is a transaction-scoped setting: on a database that has never run
--- any migration before (drizzle-kit applies the full backlog as one
--- transaction), that statement is still in effect here and would flip the
--- leagues_history/competition_groups_history self-referencing FKs from
--- DEFERRABLE INITIALLY DEFERRED to checked-per-statement. Each history row
--- below is written by a BEFORE INSERT trigger before its own tracked row
--- physically exists, so an immediate check fails with a bogus FK violation.
--- Restoring the default DEFERRED behavior here, unconditionally, makes this
--- migration's own seed inserts correct regardless of what any earlier
--- migration in the same batch left behind.
-SET CONSTRAINTS ALL DEFERRED;
+-- No DEFAULT is provided here deliberately: this column is a real
+-- classification that every competition and trophy must have, not a
+-- placeholder value to backfill existing rows with. That means this
+-- ALTER only applies cleanly to a competitions/trophies table with zero
+-- existing rows. If this statement fails with a NOT-NULL violation, the
+-- local database needs recreating from empty (e.g. `docker compose down
+-- -v`) rather than "fixed" by re-adding a default.
+ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
--- Seed the real tLoEG league and Major Season competition group (issue #445).
--- Both are retained data, not throwaway placeholders: they are the same rows
--- tools/import-manual's leagues.json5 and competition-groups.json5 upsert onto
--- by external id (upsertByExternalIds never matches by name), so this seed
--- must give the league the exact `tloeg.bbleague.se`:`tLoEG` external id pair
--- leagues.json5 declares -- a name-only seed row has nothing for that upsert
--- to match against and gets duplicated by it on a fresh database. Both the
--- league and its external system are conditional because an already-imported
--- database has them; competition_groups is brand new here, so the Major
--- Season row is deterministically id 1 -- which is what the two DEFAULT 1
--- columns below (and their .default(1) in packages/db/src/schema) refer to.
-INSERT INTO "game_data"."external_systems" ("name", "category")
-SELECT 'tloeg.bbleague.se', 'imported_data_source'
-WHERE NOT EXISTS (
-  SELECT 1 FROM "game_data"."external_systems" WHERE "name" = 'tloeg.bbleague.se'
-);
---> statement-breakpoint
-INSERT INTO "game_data"."leagues" ("name")
-SELECT 'tLoEG'
-WHERE NOT EXISTS (
-  SELECT 1 FROM "game_data"."leagues" WHERE "name" = 'tLoEG'
-);
---> statement-breakpoint
-INSERT INTO "game_data"."leagues_external_ids" ("league_id", "external_system_id", "external_id")
-SELECT l."id", es."id", 'tLoEG'
-FROM "game_data"."leagues" l, "game_data"."external_systems" es
-WHERE l."name" = 'tLoEG' AND es."name" = 'tloeg.bbleague.se'
-AND NOT EXISTS (
-  SELECT 1 FROM "game_data"."leagues_external_ids"
-  WHERE "league_id" = l."id" AND "external_system_id" = es."id"
-);
---> statement-breakpoint
-INSERT INTO "game_data"."competition_groups" ("name", "league_id")
-SELECT 'Major Season', "id"
-FROM "game_data"."leagues"
-WHERE "name" = 'tLoEG'
-ORDER BY "id"
-LIMIT 1;
---> statement-breakpoint
-ALTER TABLE "game_data"."competitions" ADD COLUMN "competition_group_id" integer DEFAULT 1 NOT NULL;
---> statement-breakpoint
--- competitions_history.competition_group_id intentionally stays nullable:
--- history rows predating this migration can never be backfilled, since history
--- snapshots are immutable. See rewriteHistorySetNotNull in db-generate.ts.
-ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id" integer;
+-- competitions_history.competition_group_id is tightened alongside its
+-- tracked column, as a one-time catch-up: normally a fresh history column
+-- added here would stay nullable (pre-existing history rows predating this
+-- migration could never be backfilled, since history snapshots are
+-- immutable -- see rewriteHistorySetNotNull in db-generate.ts). That does
+-- not apply here, made safe by the coordinated database drop and re-import
+-- in issue #448, which leaves zero pre-existing history rows for this
+-- column to ever have been missing from.
+ALTER TABLE "game_data"."competitions_history" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 ALTER TABLE "game_data"."competitions" ADD CONSTRAINT "competitions_competition_group_id_competition_groups_id_fkey" FOREIGN KEY ("competition_group_id") REFERENCES "game_data"."competition_groups"("id");
 --> statement-breakpoint
-ALTER TABLE "game_data"."trophies" ADD COLUMN "competition_group_id" integer DEFAULT 1 NOT NULL;
+-- No DEFAULT here either, for the same reason as competitions above:
+-- this only applies cleanly to a trophies table with zero existing rows.
+ALTER TABLE "game_data"."trophies" ADD COLUMN "competition_group_id" integer NOT NULL;
 --> statement-breakpoint
 -- trophies_history.competition_group_id intentionally stays nullable:
 -- history rows predating this migration can never be backfilled, since history

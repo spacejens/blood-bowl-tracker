@@ -185,7 +185,6 @@ function competitionEntry(
     era: string;
     competition: string;
     competitionGroupId: number;
-    created: boolean;
   }> = {},
 ) {
   return {
@@ -193,7 +192,6 @@ function competitionEntry(
     era: 'Third era',
     competition: 'tloegbbl-major-season-25',
     competitionGroupId: 1,
-    created: false,
     ...overrides,
   };
 }
@@ -412,27 +410,6 @@ describe('TpTrophyAwardsImportService', () => {
     const { errors, imported } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
-  });
-
-  it('skips a competition that was newly created (not pre-seeded by curated data)', async () => {
-    const { service, mocks } = await makeService(awards([award()]), {
-      groups: DEFAULT_GROUPS,
-    });
-
-    await service.importTrophyAwards(
-      options({
-        competitionsByTpId: new Map([
-          [6543, competitionEntry({ created: true })],
-        ]),
-      }),
-    );
-
-    expect(mocks.trophiesImport.upsertTrophy).not.toHaveBeenCalled();
-    const { errors, imported } = resultArgs(mocks.importResults);
-    expect(imported).toBe(0);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('6543');
-    expect(errors[0].message).toContain('not pre-seeded');
   });
 
   it('resolves an unresolvable trophy once and reports a dedup summary error', async () => {

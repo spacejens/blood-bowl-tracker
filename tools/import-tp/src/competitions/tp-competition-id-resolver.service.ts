@@ -12,7 +12,6 @@ interface CompetitionEntry {
   era: string;
   competition: string;
   competitionGroupId: number;
-  created: boolean;
 }
 
 export interface ResolveCompetitionIdsOptions {

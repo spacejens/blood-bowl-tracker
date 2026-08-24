@@ -69,7 +69,6 @@ function makeCompetition(
       externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: bblId }],
     },
     competitionGroupId: 9,
-    created: false,
     ...overrides,
   };
 }
@@ -241,31 +240,6 @@ describe('BblTrophyAwardsImportService', () => {
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
-  });
-
-  it('skips a competition that was newly created (not pre-seeded by curated data)', async () => {
-    const { service, mocks } = await makeService(
-      rows([{ label: 'Major 1st', teamCode: 'sew' }]),
-    );
-
-    await service.importTrophyAwards(
-      options({
-        competitionEntriesByBblId: new Map([
-          ['1', makeCompetition('1', { created: true })],
-        ]),
-      }),
-    );
-
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
-    expect(resultArgs(mocks.importResults).errors).toEqual([
-      {
-        item: { competition: '1' },
-        message:
-          'Skipping trophy awards for competition id 1: it was not ' +
-          'pre-seeded by curated data, so its competition group cannot be ' +
-          'trusted as a real classification.',
-      },
-    ]);
   });
 
   it('skips a competition whose group is not in the curated catalog', async () => {

@@ -66,6 +66,12 @@ describe('CompetitionsService', () => {
     ],
   };
 
+  // competitions.competition_group_id is NOT NULL with no database default,
+  // so every create-path payload has to carry one; baseData deliberately
+  // omits it so the update-path tests keep asserting on the columns they
+  // actually exercise.
+  const createData = { ...baseData, competitionGroupId: 3 };
+
   describe('upsert', () => {
     it('creates a new competition with its team-era links when no external IDs match', async () => {
       // query 0: external-id lookup finds nothing; query 1: the insert
@@ -74,7 +80,7 @@ describe('CompetitionsService', () => {
       // team-era links are new and get inserted.
       const { db, chains } = await build([], [fakeCompetition]);
 
-      const result = await service.upsert(baseData);
+      const result = await service.upsert(createData);
 
       expect(result).toEqual({
         competition: { ...fakeCompetition, teamEraIds: [100, 101] },
@@ -88,7 +94,7 @@ describe('CompetitionsService', () => {
     it('inserts the competition with its name, type, eraId and both dates', async () => {
       const { chains } = await build([], [fakeCompetition]);
 
-      await service.upsert(baseData);
+      await service.upsert(createData);
 
       expect(firstCallArg(chains[1].values)).toEqual({
         name: 'Major Season 24',
@@ -96,19 +102,21 @@ describe('CompetitionsService', () => {
         eraId: 20,
         startDate: '2024-01-15',
         endDate: '2024-06-30',
+        competitionGroupId: 3,
       });
     });
 
     it('omits endDate from the insert when the payload omits it', async () => {
       const { chains } = await build([], [fakeCompetition]);
 
-      await service.upsert({ ...baseData, endDate: undefined });
+      await service.upsert({ ...createData, endDate: undefined });
 
       expect(firstCallArg(chains[1].values)).toStrictEqual({
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
         startDate: '2024-01-15',
+        competitionGroupId: 3,
       });
     });
 
@@ -116,8 +124,17 @@ describe('CompetitionsService', () => {
       const { db } = await build([]);
 
       await expect(
-        service.upsert({ ...baseData, startDate: undefined }),
+        service.upsert({ ...createData, startDate: undefined }),
       ).rejects.toThrow(MissingRequiredFieldError);
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('throws MissingRequiredFieldError when creating a competition with no competitionGroupId', async () => {
+      const { db } = await build([]);
+
+      await expect(service.upsert(baseData)).rejects.toThrow(
+        MissingRequiredFieldError,
+      );
       expect(db.insert).not.toHaveBeenCalled();
     });
 
@@ -187,7 +204,7 @@ describe('CompetitionsService', () => {
         [{ teamEraId: 100 }],
       );
 
-      const result = await service.upsert(baseData);
+      const result = await service.upsert(createData);
 
       expect(firstCallArg(chains[4].values)).toEqual([
         { competitionId: 1, teamEraId: 101 },
@@ -203,7 +220,7 @@ describe('CompetitionsService', () => {
         [{ teamEraId: 100 }, { teamEraId: 101 }],
       );
 
-      const result = await service.upsert(baseData);
+      const result = await service.upsert(createData);
 
       expect(chains).toHaveLength(4);
       expect(db.insert).not.toHaveBeenCalledWith(competitionTeams);

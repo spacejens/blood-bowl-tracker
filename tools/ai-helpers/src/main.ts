@@ -15,6 +15,7 @@ import {
   PostReviewQuestionsArgsService,
 } from './post-review-questions/post-review-questions-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
@@ -32,6 +33,7 @@ const SUBCOMMANDS = [
   'check-production-config-port',
   'start-production-tunnel',
   'stop-production-tunnel',
+  'run-production-query',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -49,6 +51,10 @@ const CHECK_PRODUCTION_CONFIG_PORT_USAGE =
 
 const START_PRODUCTION_TUNNEL_USAGE =
   'Usage: node dist/main.js start-production-tunnel <local-port> <remote-port>';
+
+const RUN_PRODUCTION_QUERY_USAGE =
+  'Usage: node dist/main.js run-production-query ' +
+  '(query text is read from stdin)';
 
 /** Arguments for `write-file`; absent for every other subcommand. */
 interface WriteFileInput {
@@ -69,6 +75,7 @@ interface DispatchOptions {
   readonly expectedApiBaseUrl?: string;
   readonly startProductionTunnel?: StartProductionTunnelInput;
   readonly postReviewQuestionsStdin?: string;
+  readonly runProductionQueryStdin?: string;
 }
 
 function readWriteFileInput(): WriteFileInput {
@@ -106,6 +113,11 @@ function readStartProductionTunnelInput(): StartProductionTunnelInput {
 }
 
 function readPostReviewQuestionsStdin(): string {
+  // fd 0 is stdin: read it fully before the Nest context is created.
+  return readFileSync(0, 'utf8');
+}
+
+function readRunProductionQueryStdin(): string {
   // fd 0 is stdin: read it fully before the Nest context is created.
   return readFileSync(0, 'utf8');
 }
@@ -165,6 +177,14 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
     }
     case 'stop-production-tunnel':
       return app.get(ProductionTunnelService).stop();
+    case 'run-production-query': {
+      if (options.runProductionQueryStdin === undefined) {
+        throw new Error(RUN_PRODUCTION_QUERY_USAGE);
+      }
+      return app
+        .get(RunProductionQueryService)
+        .run(options.runProductionQueryStdin);
+    }
   }
 }
 
@@ -193,6 +213,10 @@ async function run(): Promise<unknown> {
     subcommand === 'post-review-questions'
       ? readPostReviewQuestionsStdin()
       : undefined;
+  const runProductionQueryStdin =
+    subcommand === 'run-production-query'
+      ? readRunProductionQueryStdin()
+      : undefined;
 
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
@@ -205,6 +229,7 @@ async function run(): Promise<unknown> {
       expectedApiBaseUrl,
       startProductionTunnel,
       postReviewQuestionsStdin,
+      runProductionQueryStdin,
     });
   } finally {
     await app.close();

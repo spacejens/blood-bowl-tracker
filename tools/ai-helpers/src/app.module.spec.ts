@@ -6,6 +6,7 @@ import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 import { ChildProcessService } from './shared/child-process.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { ProcessRunnerService } from './shared/process-runner.service';
@@ -54,6 +55,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(ProductionTunnelService)).toBeInstanceOf(
       ProductionTunnelService,
+    );
+    expect(moduleRef.get(RunProductionQueryService)).toBeInstanceOf(
+      RunProductionQueryService,
     );
   });
 });

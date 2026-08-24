@@ -1800,7 +1800,7 @@
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": "1",
+      "default": null,
       "generated": null,
       "identity": null,
       "name": "competition_group_id",

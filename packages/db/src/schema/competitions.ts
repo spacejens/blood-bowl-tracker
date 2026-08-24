@@ -20,19 +20,18 @@ const competitionsTable = historyTrackedTable({
     eraId: integer('era_id')
       .references(() => eras.id)
       .notNull(),
-    // Which recurring track this instance belongs to (issue #445). NOT NULL
-    // with a database default because the BBL and TP importers create
-    // competitions without classifying them; the default points at the
-    // "Major Season" row the add_competition_groups migration seeds into a
-    // brand-new table, so it is deterministically id 1. Real per-instance
-    // classification is curated in
+    // Which recurring track this instance belongs to. NOT NULL with no
+    // database default: an unclassified competition must fail loudly on
+    // create rather than silently land in whichever group happens to be
+    // id 1. Classification is curated per instance in
     // tools/import-manual/data/before-other-importers/competitions.json5,
     // which runs ahead of the BBL/TP importers so this column is already
-    // correct by the time they run.
+    // correct by the time they run; a competition those importers reach
+    // first, with no curated row, surfaces as a per-record import error
+    // naming the missing field.
     competitionGroupId: integer('competition_group_id')
       .references(() => competitionGroups.id)
-      .notNull()
-      .default(1),
+      .notNull(),
     startDate: date('start_date').notNull(),
     endDate: date('end_date'),
   },
