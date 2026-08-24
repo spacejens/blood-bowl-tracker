@@ -195,7 +195,7 @@ describe('MatchSamplerService', () => {
     // MatchLookupService backfills secondaryExternalId for a merged match
     // even when only its higher (non-primary) id was configured as the
     // override — the match itself is still found, so this must not be
-    // reported as a gap (issue #331 follow-up).
+    // reported as a gap.
     const { service, config, lookup } = await makeHarness();
     config.getOverrides.mockImplementation((source) =>
       source === 'bbl' ? ['1312'] : [],

@@ -22,7 +22,7 @@ const STAR_PLAYER_STRATUM = 'star-players';
  * A random sample of star players, kept in its own bounded stratum rather
  * than mixed into the regular random sample: a popular star gets induced by
  * many teams, so today's data model gives them one `players` row per hire
- * (see issue #245) — if left in the general pool they crowd out ordinary
+ * — if left in the general pool they crowd out ordinary
  * players in a report several-fold. The random-sample stratum excludes star
  * players outright, and the discrepancy stratum excludes a star player with
  * no stored total; this is the only stratum such a player appears in, and —

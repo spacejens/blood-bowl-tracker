@@ -18,7 +18,7 @@ const RANDOM_STRATUM = 'random';
  * players stops being a sample after the first run.
  *
  * Excludes star players: a popular star gets induced by many teams, so
- * today's data model gives them one `players` row per hire (see issue #245)
+ * today's data model gives them one `players` row per hire
  * — left in, they would crowd out ordinary players in a report several-fold.
  * `StarPlayerStratificationService` covers them separately, in their own
  * bounded stratum.

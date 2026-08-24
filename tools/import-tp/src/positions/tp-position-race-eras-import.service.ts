@@ -27,7 +27,7 @@ export class TpPositionRaceErasImportService {
   ) {}
 
   /**
-   * Post-players step (issue #234): populate `positions_race_eras` for TP
+   * Post-players step: populate `positions_race_eras` for TP
    * *star* positions, whose availability TP states nowhere and must be derived
    * from actual usage. `TpPlayersImportService` emits one `StarPositionUsage`
    * per imported star-position player (across the embedded-roster,
