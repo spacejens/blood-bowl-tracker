@@ -10,34 +10,39 @@ import { mock } from 'vitest-mock-extended';
 
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PLAYER_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import type { ResolveToplistOptions } from '../leaderboard.service';
-import {
-  LeaderboardService,
-  TOPLIST_FETCH_LIMIT,
-} from '../leaderboard.service';
 import { PlayerContextService } from '../player-context.service';
 import { passthroughPlayerContext } from '../player-context-mock.test-helpers';
 import { PlayerToplistService } from './player-toplist.service';
+import { ToplistFactoryService } from './toplist-factory.service';
+import type { ToplistFactoryMock } from './toplist-factory-mock.test-helpers';
+import { mockToplistFactory } from './toplist-factory-mock.test-helpers';
+
+type PlayerRow = {
+  playerId: number;
+  name: string;
+  count: number;
+  contextSuffix?: string;
+};
 
 interface MadeService {
   service: PlayerToplistService;
-  leaderboard: MockProxy<LeaderboardService>;
+  toplist: ToplistFactoryMock<PlayerCountMethod, PlayerRow>;
 }
 
 async function makeService(
   players: PlayersService,
   playerContext: MockProxy<PlayerContextService> = passthroughPlayerContext(),
 ): Promise<MadeService> {
-  const leaderboard = mock<LeaderboardService>();
+  const toplist = mockToplistFactory<PlayerCountMethod, PlayerRow>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerToplistService,
       { provide: PlayersService, useValue: players },
-      { provide: LeaderboardService, useValue: leaderboard },
       { provide: PlayerContextService, useValue: playerContext },
+      { provide: ToplistFactoryService, useValue: toplist.factory },
     ],
   }).compile();
-  return { service: moduleRef.get(PlayerToplistService), leaderboard };
+  return { service: moduleRef.get(PlayerToplistService), toplist };
 }
 
 type PlayerCountMethod =
@@ -221,94 +226,72 @@ const cases: PlayerCase[] = [
 describe.each(cases)(
   'PlayerToplistService.$describeName',
   ({ method, resolve, rows, expectedTitle, eraRows, competitionRows }) => {
-    // LeaderboardService.resolveToplist itself (ranking, ties, embed/button
-    // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
-    // is a mock returning a canned reply, so this test only asserts what
-    // PlayerToplistService itself owns: the embed title it configures, and the
-    // per-row deepdive entityLink it configures.
+    // The resolver-to-LeaderboardService binding is ToplistFactoryService's
+    // job, covered by toplist-factory.service.spec.ts. Here the factory is a
+    // mock handing back inert resolvers, so these tests assert only what
+    // PlayerToplistService itself owns: the options it configures (title,
+    // entityLink, messages, decorateRows, formatRow) and the resolver it
+    // delegates each public method to.
     it('wires the embed title and per-row deepdive button id', async () => {
       const players = mock<PlayersService>();
-      players[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(players);
+      const { service, toplist } = await makeService(players);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
       };
-      leaderboard.resolveToplist.mockResolvedValueOnce(canned);
+      toplist.resolver(method).mockResolvedValueOnce(canned);
       const result = await resolve(service, FACT_SCOPE_ALL_TIME);
       expect(result).toBe(canned);
-      const options = leaderboard.resolveToplist.mock
-        .calls[0][0] as unknown as ResolveToplistOptions<(typeof rows)[number]>;
-      expect(options.title).toBe(expectedTitle);
+      const options = toplist.options();
+      expect(options.titles[method]).toBe(expectedTitle);
       expect(options.entityLink?.customIdPrefix).toBe(
         PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       );
       expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].playerId);
     });
 
-    it('passes the era id through to the query', async () => {
+    it('passes the era scope through to the factory resolver', async () => {
       const players = mock<PlayersService>();
-      const queryFn = players[method];
-      queryFn.mockResolvedValue(eraRows);
-      const { service, leaderboard } = await makeService(players);
-      leaderboard.resolveToplist.mockImplementation(async (options) => {
-        await options.fetchRows(TOPLIST_FETCH_LIMIT);
-        return 'canned';
-      });
+      const { service, toplist } = await makeService(players);
       await resolve(service, { eraId: 20 });
-      expect(queryFn).toHaveBeenCalledWith({ eraId: 20 }, TOPLIST_FETCH_LIMIT);
+      expect(toplist.resolver(method)).toHaveBeenCalledWith(players, {
+        eraId: 20,
+      });
     });
 
     if (competitionRows) {
-      it('passes the competition id through to the query', async () => {
+      it('passes the competition scope through to the factory resolver', async () => {
         const players = mock<PlayersService>();
-        const queryFn = players[method];
-        queryFn.mockResolvedValue(competitionRows);
-        const { service, leaderboard } = await makeService(players);
-        leaderboard.resolveToplist.mockImplementation(async (options) => {
-          await options.fetchRows(TOPLIST_FETCH_LIMIT);
-          return 'canned';
-        });
+        const { service, toplist } = await makeService(players);
         await resolve(service, { competitionId: 30 });
-        expect(queryFn).toHaveBeenCalledWith(
-          { competitionId: 30 },
-          TOPLIST_FETCH_LIMIT,
-        );
+        expect(toplist.resolver(method)).toHaveBeenCalledWith(players, {
+          competitionId: 30,
+        });
       });
     }
 
-    it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
+    it('configures the toplist-specific timeout message and returns the resolver reply verbatim', async () => {
       const players = mock<PlayersService>();
-      players[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(players);
-      leaderboard.resolveToplist.mockResolvedValueOnce(
-        PLAYER_TOPLIST_TIMEOUT_MESSAGE,
-      );
+      const { service, toplist } = await makeService(players);
+      toplist
+        .resolver(method)
+        .mockResolvedValueOnce(PLAYER_TOPLIST_TIMEOUT_MESSAGE);
       const result = await resolve(service, FACT_SCOPE_ALL_TIME);
       expect(result).toBe(PLAYER_TOPLIST_TIMEOUT_MESSAGE);
-      expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
-        expect.objectContaining({
-          timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
-        }),
+      expect(toplist.options().timeoutMessage).toBe(
+        PLAYER_TOPLIST_TIMEOUT_MESSAGE,
       );
     });
 
     it('decorates every fetched row with position, team, race, era and coach when the toplist is not era-scoped', async () => {
       const players = mock<PlayersService>();
-      players[method].mockResolvedValue(rows);
       const playerContext = mock<PlayerContextService>();
       playerContext.attachSuffixes.mockResolvedValue(
         rows.map((row) => ({ ...row, contextSuffix: ' (decorated)' })),
       );
-      const { service, leaderboard } = await makeService(
-        players,
-        playerContext,
-      );
-      let fetched: unknown;
-      leaderboard.resolveToplist.mockImplementation(async (options) => {
-        fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
-        return 'canned';
-      });
-      await resolve(service, FACT_SCOPE_ALL_TIME);
+      const { toplist } = await makeService(players, playerContext);
+      const decorated = await toplist
+        .options()
+        .decorateRows?.(rows, FACT_SCOPE_ALL_TIME);
       expect(playerContext.attachSuffixes).toHaveBeenCalledTimes(1);
       const [inputRows, playerIdOf, contextOptions] =
         playerContext.attachSuffixes.mock.calls[0];
@@ -321,27 +304,19 @@ describe.each(cases)(
         includeEra: true,
         includeCoach: true,
       });
-      expect(fetched).toEqual(
+      expect(decorated).toEqual(
         rows.map((row) => ({ ...row, contextSuffix: ' (decorated)' })),
       );
     });
 
     it('leaves the era out of the row context when the toplist is era-scoped', async () => {
       const players = mock<PlayersService>();
-      players[method].mockResolvedValue(eraRows);
       const playerContext = mock<PlayerContextService>();
       playerContext.attachSuffixes.mockResolvedValue(
         eraRows.map((row) => ({ ...row, contextSuffix: '' })),
       );
-      const { service, leaderboard } = await makeService(
-        players,
-        playerContext,
-      );
-      leaderboard.resolveToplist.mockImplementation(async (options) => {
-        await options.fetchRows(TOPLIST_FETCH_LIMIT);
-        return 'canned';
-      });
-      await resolve(service, { eraId: 20 });
+      const { toplist } = await makeService(players, playerContext);
+      await toplist.options().decorateRows?.(eraRows, { eraId: 20 });
       const [, , contextOptions] = playerContext.attachSuffixes.mock.calls[0];
       expect(contextOptions).toEqual({
         includePosition: true,
@@ -354,16 +329,9 @@ describe.each(cases)(
 
     it('renders each row with its context suffix between the name and the count', async () => {
       const players = mock<PlayersService>();
-      players[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(players);
-      leaderboard.resolveToplist.mockResolvedValueOnce('canned');
-      await resolve(service, FACT_SCOPE_ALL_TIME);
-      const options = leaderboard.resolveToplist.mock
-        .calls[0][0] as unknown as ResolveToplistOptions<
-        (typeof rows)[number] & { contextSuffix?: string }
-      >;
+      const { toplist } = await makeService(players);
       expect(
-        options.formatRow?.({
+        toplist.options().formatRow?.({
           ...rows[0],
           contextSuffix: ' (Blitzer, Reikland Reavers, Human, Roze Madder)',
           rank: 3,
@@ -375,16 +343,11 @@ describe.each(cases)(
 
     it('renders a row with no known context without stray parentheses', async () => {
       const players = mock<PlayersService>();
-      players[method].mockResolvedValue(rows);
-      const { service, leaderboard } = await makeService(players);
-      leaderboard.resolveToplist.mockResolvedValueOnce('canned');
-      await resolve(service, FACT_SCOPE_ALL_TIME);
-      const options = leaderboard.resolveToplist.mock
-        .calls[0][0] as unknown as ResolveToplistOptions<
-        (typeof rows)[number] & { contextSuffix?: string }
-      >;
+      const { toplist } = await makeService(players);
       expect(
-        options.formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
+        toplist
+          .options()
+          .formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
       ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
     });
   },

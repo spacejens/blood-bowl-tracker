@@ -11,8 +11,8 @@ import {
 import { DayCountFormatterService } from '../day-count-formatter.service';
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
-import type { ToplistResolver } from './toplist-factory';
-import { makeToplistResolvers } from './toplist-factory';
+import type { ToplistResolver } from './toplist-factory.service';
+import { ToplistFactoryService } from './toplist-factory.service';
 
 type CoachToplistMethod =
   | 'countFoulsCommittedByCoach'
@@ -45,8 +45,9 @@ export class CoachToplistService {
     private readonly coaches: CoachesService,
     private readonly leaderboard: LeaderboardService,
     private readonly dayCount: DayCountFormatterService,
+    private readonly toplistFactory: ToplistFactoryService,
   ) {
-    this.resolvers = makeToplistResolvers<
+    this.resolvers = this.toplistFactory.makeResolvers<
       CoachToplistMethod,
       CoachesService,
       { coachId: number; name: string; count: number }
@@ -63,7 +64,6 @@ export class CoachToplistService {
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.coachLink,
-      leaderboard: this.leaderboard,
     });
   }
 
@@ -129,9 +129,11 @@ export class CoachToplistService {
 
   /**
    * The three time-between-matches toplists are hand-written rather than
-   * built by makeToplistResolvers because each row renders as a duration
-   * ("91 days") instead of a bare count, and the factory has no formatRow
-   * hook. Same precedent as ExpensiveMistakesToplistService's `gp` rendering.
+   * built by the toplist factory because each row renders as a duration
+   * ("91 days") instead of a bare count, and the factory applies a single
+   * formatRow across a whole titles table, which the count-rendered coach
+   * toplists already occupy. Same precedent as
+   * ExpensiveMistakesToplistService's `gp` rendering.
    */
   private resolveGapToplist(options: {
     title: string;

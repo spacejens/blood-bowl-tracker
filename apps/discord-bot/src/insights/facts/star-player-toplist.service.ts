@@ -18,7 +18,7 @@ import { LeaderboardService } from '../leaderboard.service';
 
 /**
  * The star player toplist facts. Hand-written rather than produced by
- * `makeToplistResolvers`: that factory is built around count methods taking a
+ * `ToplistFactoryService`: that factory is built around count methods taking a
  * `FactScope`, and star player facts have no scope to give it (a star position
  * reaches a league only through the "star player exception", which links every
  * star to essentially every era — see `StarPlayersService`'s doc comment).

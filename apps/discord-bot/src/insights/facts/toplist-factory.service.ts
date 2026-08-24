@@ -1,11 +1,12 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 
 /** A row shape every scoped toplist count returns. */
-interface CountedRow {
+export interface CountedRow {
   name: string;
   count: number;
 }
@@ -30,8 +31,8 @@ export type ToplistResolver<TService> = (
   scope: FactScope,
 ) => Promise<string | InteractionReplyOptions>;
 
-/** Options for {@link makeToplistResolvers}. */
-export interface MakeToplistResolversOptions<
+/** Options for {@link ToplistFactoryService.makeResolvers}. */
+export interface MakeResolversOptions<
   TMethod extends string,
   TRow extends CountedRow,
 > {
@@ -51,7 +52,6 @@ export interface MakeToplistResolversOptions<
   decorateRows?: (rows: TRow[], scope: FactScope) => Promise<TRow[]>;
   /** Overrides the default `"<rank>. <name> — <count>"` line rendering. */
   formatRow?: (row: TRow & { rank: number }) => string;
-  leaderboard: LeaderboardService;
 }
 
 /**
@@ -60,40 +60,46 @@ export interface MakeToplistResolversOptions<
  * named count under the shared timeout/no-data handling and title the embed —
  * so the table is the only part worth reading.
  */
-export function makeToplistResolvers<
-  TMethod extends string,
-  TService extends Record<
-    TMethod,
-    (scope: FactScope, limit: number) => Promise<TRow[]>
-  >,
-  TRow extends CountedRow = CountedRow,
->(
-  options: MakeToplistResolversOptions<TMethod, TRow>,
-): Record<TMethod, ToplistResolver<TService>> {
-  const {
-    titles,
-    timeoutMessage,
-    noDataMessage,
-    entityLink,
-    decorateRows,
-    formatRow,
-    leaderboard,
-  } = options;
-  const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
-  for (const method of Object.keys(titles) as TMethod[]) {
-    resolvers[method] = (service, scope) => {
-      return leaderboard.resolveToplist({
-        title: titles[method],
-        fetchRows: async (limit) => {
-          const rows = await service[method](scope, limit);
-          return decorateRows === undefined ? rows : decorateRows(rows, scope);
-        },
-        timeoutMessage,
-        noDataMessage,
-        entityLink,
-        formatRow,
-      });
-    };
+@Injectable()
+export class ToplistFactoryService {
+  constructor(private readonly leaderboard: LeaderboardService) {}
+
+  makeResolvers<
+    TMethod extends string,
+    TService extends Record<
+      TMethod,
+      (scope: FactScope, limit: number) => Promise<TRow[]>
+    >,
+    TRow extends CountedRow = CountedRow,
+  >(
+    options: MakeResolversOptions<TMethod, TRow>,
+  ): Record<TMethod, ToplistResolver<TService>> {
+    const {
+      titles,
+      timeoutMessage,
+      noDataMessage,
+      entityLink,
+      decorateRows,
+      formatRow,
+    } = options;
+    const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
+    for (const method of Object.keys(titles) as TMethod[]) {
+      resolvers[method] = (service, scope) => {
+        return this.leaderboard.resolveToplist({
+          title: titles[method],
+          fetchRows: async (limit) => {
+            const rows = await service[method](scope, limit);
+            return decorateRows === undefined
+              ? rows
+              : decorateRows(rows, scope);
+          },
+          timeoutMessage,
+          noDataMessage,
+          entityLink,
+          formatRow,
+        });
+      };
+    }
+    return resolvers;
   }
-  return resolvers;
 }
