@@ -66,12 +66,11 @@
 // tracking a different group, or a new award kind, would widen this set.
 //
 // Every competition-scoped trophy also records the competition group it is
-// applicable for, so the TP awards importer
-// (tools/import-tp/src/trophy-awards/) can consider only applicable trophies
-// when awarding for a competition -- Legendary Player and Trogen Tjänst are
-// league-scoped instead and carry no competition group, as explained below.
-// The
-// eight unqualified "during the season" player trophies (Season MVP through
+// applicable for, so the TP awards importer (tools/import-tp/src/trophy-awards/)
+// can consider only applicable trophies when awarding for a competition --
+// Legendary Player and Trogen Tjänst are league-scoped instead and carry no
+// competition group, as explained below. The eight unqualified "during the
+// season" player trophies (Season MVP through
 // Most SPP) are curated under Major Season: Major is BBL's flagship season
 // and the legend defines no Minor-season equivalent. Their group-scoped
 // siblings (see the composite-id note above) carry the other groups BBL
