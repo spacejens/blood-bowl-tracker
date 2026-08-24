@@ -185,7 +185,7 @@ describe('eraConfigSchema', () => {
     );
   });
 
-  it('rejects a non-positive-integer entry in playerIdOverrides', () => {
+  it('rejects a non-positive-integer entry in playerIdOverrides, naming its index', () => {
     const result = eraConfigSchema.safeParse({
       ...VALID_ERA,
       players: {
@@ -197,6 +197,7 @@ describe('eraConfigSchema', () => {
     expect(result.error?.issues[0].path).toEqual([
       'players',
       'playerIdOverrides',
+      1,
     ]);
   });
 
@@ -255,7 +256,7 @@ describe('eraConfigSchema', () => {
     ).toBe('must not be before startDate.');
   });
 
-  it('accepts teams.teamCodeOverrides and rejects a blank entry', () => {
+  it('accepts teams.teamCodeOverrides and rejects a blank entry, naming its index', () => {
     expect(
       eraConfigSchema.parse({
         ...VALID_ERA,
@@ -267,7 +268,7 @@ describe('eraConfigSchema', () => {
         ...VALID_ERA,
         teams: { teamCodeOverrides: [''] },
       }).error?.issues[0].path,
-    ).toEqual(['teams', 'teamCodeOverrides']);
+    ).toEqual(['teams', 'teamCodeOverrides', 0]);
   });
 
   it('carries matches lists through untouched but requires arrays', () => {

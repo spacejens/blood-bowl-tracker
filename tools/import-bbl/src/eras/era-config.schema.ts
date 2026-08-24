@@ -11,6 +11,10 @@ const NOT_A_BOOLEAN = 'must be a boolean.';
 const NOT_A_POSITIVE_INTEGER = 'must be a positive integer.';
 const NOT_A_POSITIVE_INTEGER_WHEN_PRESENT =
   'must be a positive integer when present.';
+const NOT_A_POSITIVE_INTEGER_ARRAY =
+  'must be an array of positive integers when present.';
+const NOT_A_NON_EMPTY_STRING_ARRAY =
+  'must be an array of non-empty strings when present.';
 
 const identitySchema = z.object(
   { name: nonBlankStringSchema, rulesSets: rulesSetsSchema },
@@ -46,16 +50,12 @@ const playersSchema = z
         .positive(NOT_A_POSITIVE_INTEGER_WHEN_PRESENT)
         .optional(),
       playerIdOverrides: z
-        .custom<number[]>(
-          (value) =>
-            Array.isArray(value) &&
-            value.every(
-              (entry) =>
-                typeof entry === 'number' &&
-                Number.isInteger(entry) &&
-                entry > 0,
-            ),
-          'must be an array of positive integers when present.',
+        .array(
+          z
+            .number({ error: NOT_A_POSITIVE_INTEGER_ARRAY })
+            .int(NOT_A_POSITIVE_INTEGER_ARRAY)
+            .positive(NOT_A_POSITIVE_INTEGER_ARRAY),
+          { error: NOT_A_POSITIVE_INTEGER_ARRAY },
         )
         .optional(),
     },
@@ -140,13 +140,14 @@ const teamsSchema = z
   .object(
     {
       teamCodeOverrides: z
-        .custom<string[]>(
-          (value) =>
-            Array.isArray(value) &&
-            value.every(
-              (entry) => typeof entry === 'string' && entry.trim() !== '',
+        .array(
+          z
+            .string({ error: NOT_A_NON_EMPTY_STRING_ARRAY })
+            .refine(
+              (value) => value.trim() !== '',
+              NOT_A_NON_EMPTY_STRING_ARRAY,
             ),
-          'must be an array of non-empty strings when present.',
+          { error: NOT_A_NON_EMPTY_STRING_ARRAY },
         )
         .optional(),
     },
