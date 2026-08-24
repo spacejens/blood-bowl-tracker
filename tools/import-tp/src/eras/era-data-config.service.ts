@@ -1,8 +1,14 @@
-import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
+import {
+  ConfigErrorMessageService,
+  configGroupSchema,
+} from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
-import { eraDataConfigSchema } from './era-data-config.schema';
+import {
+  eraDataConfigSchema,
+  eraDataShellSchema,
+} from './era-data-config.schema';
 
 export interface EraDataConfig {
   /** The era's display name in the database (identity.name). */
@@ -32,8 +38,8 @@ export class EraDataConfigService {
    * Names and subdirs must each be unique across all entries.
    */
   getEras(): EraDataConfig[] {
-    const league = this.config.get<Record<string, unknown>>('league');
-    const raw = league?.eras;
+    const league = configGroupSchema.parse(this.config.get('league'));
+    const raw = league.eras;
     if (raw === undefined) {
       throw new Error(
         'league.eras is not set in import-tp-config.json5. Set it to an ' +
@@ -42,13 +48,14 @@ export class EraDataConfigService {
           "dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }].",
       );
     }
-    if (!Array.isArray(raw) || raw.length === 0) {
+    const shell = eraDataShellSchema.safeParse(raw);
+    if (!shell.success) {
       throw new Error(
         'league.eras in import-tp-config.json5 must be a non-empty array of eras.',
       );
     }
 
-    const eras = raw.map((entry, index) => {
+    const eras = shell.data.map((entry, index) => {
       const parsed = eraDataConfigSchema.safeParse(entry);
       if (!parsed.success) {
         throw new Error(
