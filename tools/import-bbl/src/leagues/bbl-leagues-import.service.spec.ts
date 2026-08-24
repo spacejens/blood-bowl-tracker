@@ -6,7 +6,7 @@ import {
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -44,63 +44,60 @@ interface Mocks {
   importResults: MockProxy<ImportResultService>;
 }
 
-/**
- * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (name resolution, error
- * building) mirror the real production logic so a regression in the service
- * under test still fails these tests.
- */
-async function makeService(): Promise<{
-  service: BblLeaguesImportService;
-  mocks: Mocks;
-}> {
-  const config = mock<LeagueConfigService>();
-
-  const leaguesImport = mock<LeaguesImportService>();
-
-  const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
-
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
-  const nameExternalId = mock<NameExternalIdService>();
-  // `forLeague` is a pure identity passthrough with no branching or
-  // formatting, so there is no algorithm here that can drift out of sync with
-  // the real NameExternalIdService — exempt from the canned-response rule.
-  nameExternalId.forLeague.mockImplementation((name) => name);
-
-  const importResults = mock<ImportResultService>();
-  // `error` is a pure identity field copy with no branching or formatting, so
-  // there is no algorithm here that can drift out of sync with the real
-  // ImportResultService — exempt from the canned-response rule.
-  importResults.error.mockImplementation((args) => ({
-    item: args.item,
-    message: args.message,
-  }));
-  importResults.result.mockReturnValue(CANNED_RESULT);
-
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      BblLeaguesImportService,
-      { provide: LeagueConfigService, useValue: config },
-      { provide: LeaguesImportService, useValue: leaguesImport },
-      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
-      { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: ImportResultService, useValue: importResults },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(BblLeaguesImportService),
-    mocks: { config, leaguesImport, bootstrap, nameConfig, importResults },
-  };
-}
-
 describe('BblLeaguesImportService', () => {
+  let service: BblLeaguesImportService;
+  let mocks: Mocks;
+
+  /**
+   * Builds the service under test through a TestingModule with every
+   * collaborator mocked. Deterministic collaborators (name resolution, error
+   * building) mirror the real production logic so a regression in the service
+   * under test still fails these tests.
+   */
+  beforeEach(async () => {
+    const config = mock<LeagueConfigService>();
+
+    const leaguesImport = mock<LeaguesImportService>();
+
+    const bootstrap = mock<ExternalSystemBootstrapService>();
+    bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+    const nameConfig = mock<ExternalSystemNameConfigService>();
+    nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+    const nameExternalId = mock<NameExternalIdService>();
+    // `forLeague` is a pure identity passthrough with no branching or
+    // formatting, so there is no algorithm here that can drift out of sync with
+    // the real NameExternalIdService — exempt from the canned-response rule.
+    nameExternalId.forLeague.mockImplementation((name) => name);
+
+    const importResults = mock<ImportResultService>();
+    // `error` is a pure identity field copy with no branching or formatting, so
+    // there is no algorithm here that can drift out of sync with the real
+    // ImportResultService — exempt from the canned-response rule.
+    importResults.error.mockImplementation((args) => ({
+      item: args.item,
+      message: args.message,
+    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BblLeaguesImportService,
+        { provide: LeagueConfigService, useValue: config },
+        { provide: LeaguesImportService, useValue: leaguesImport },
+        { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+        { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+        { provide: NameExternalIdService, useValue: nameExternalId },
+        { provide: ImportResultService, useValue: importResults },
+      ],
+    }).compile();
+
+    service = moduleRef.get(BblLeaguesImportService);
+    mocks = { config, leaguesImport, bootstrap, nameConfig, importResults };
+  });
+
   it('bootstraps the BBL and Name external systems once', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
     mocks.leaguesImport.upsertLeague.mockResolvedValue({
       id: 42,
@@ -119,7 +116,6 @@ describe('BblLeaguesImportService', () => {
   });
 
   it('bootstraps the configured BBL system name', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
     mocks.leaguesImport.upsertLeague.mockResolvedValue({
       id: 1,
@@ -138,7 +134,6 @@ describe('BblLeaguesImportService', () => {
   });
 
   it('upserts every configured league', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
     mocks.leaguesImport.upsertLeague
       .mockResolvedValueOnce({
@@ -182,7 +177,6 @@ describe('BblLeaguesImportService', () => {
   });
 
   it('records an error and omits a league whose upsert fails, keeping the others', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
     mocks.leaguesImport.upsertLeague
       .mockResolvedValueOnce({
@@ -202,7 +196,6 @@ describe('BblLeaguesImportService', () => {
   });
 
   it('records one error and imports nothing when leagues config is invalid', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockImplementation(() => {
       throw new Error('leagues is not set in import-bbl-config.json5');
     });
@@ -218,7 +211,6 @@ describe('BblLeaguesImportService', () => {
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
@@ -240,7 +232,6 @@ describe('BblLeaguesImportService', () => {
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const { service, mocks } = await makeService();
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
     mocks.leaguesImport.upsertLeague.mockResolvedValue({
       id: 42,
