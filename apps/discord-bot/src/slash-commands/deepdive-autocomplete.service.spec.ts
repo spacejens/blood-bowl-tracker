@@ -12,68 +12,11 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import type { AutocompleteInteraction } from 'discord.js';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
-
-interface MadeService {
-  service: DeepdiveAutocompleteService;
-  eras: MockProxy<ErasService>;
-  competitions: MockProxy<CompetitionsService>;
-  competitionGroups: MockProxy<CompetitionGroupsService>;
-  coaches: MockProxy<CoachesService>;
-  teams: MockProxy<TeamsService>;
-  players: MockProxy<PlayersService>;
-  races: MockProxy<RacesService>;
-  stars: MockProxy<StarPlayersService>;
-  trophies: MockProxy<TrophiesService>;
-  leagues: MockProxy<LeaguesService>;
-}
-
-async function makeService(): Promise<MadeService> {
-  const eras = mock<ErasService>();
-  const competitions = mock<CompetitionsService>();
-  const competitionGroups = mock<CompetitionGroupsService>();
-  const coaches = mock<CoachesService>();
-  const teams = mock<TeamsService>();
-  const players = mock<PlayersService>();
-  const races = mock<RacesService>();
-  const stars = mock<StarPlayersService>();
-  const trophies = mock<TrophiesService>();
-  const leagues = mock<LeaguesService>();
-
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      DeepdiveAutocompleteService,
-      { provide: ErasService, useValue: eras },
-      { provide: CompetitionsService, useValue: competitions },
-      { provide: CompetitionGroupsService, useValue: competitionGroups },
-      { provide: CoachesService, useValue: coaches },
-      { provide: TeamsService, useValue: teams },
-      { provide: PlayersService, useValue: players },
-      { provide: RacesService, useValue: races },
-      { provide: StarPlayersService, useValue: stars },
-      { provide: TrophiesService, useValue: trophies },
-      { provide: LeaguesService, useValue: leagues },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(DeepdiveAutocompleteService),
-    eras,
-    competitions,
-    competitionGroups,
-    coaches,
-    teams,
-    players,
-    races,
-    stars,
-    trophies,
-    leagues,
-  };
-}
 
 function autocompleteInteraction(
   value: string,
@@ -99,8 +42,49 @@ function autocompleteInteraction(
 }
 
 describe('DeepdiveAutocompleteService', () => {
+  let service: DeepdiveAutocompleteService;
+  let eras: MockProxy<ErasService>;
+  let competitions: MockProxy<CompetitionsService>;
+  let competitionGroups: MockProxy<CompetitionGroupsService>;
+  let coaches: MockProxy<CoachesService>;
+  let teams: MockProxy<TeamsService>;
+  let players: MockProxy<PlayersService>;
+  let races: MockProxy<RacesService>;
+  let stars: MockProxy<StarPlayersService>;
+  let trophies: MockProxy<TrophiesService>;
+  let leagues: MockProxy<LeaguesService>;
+
+  beforeEach(async () => {
+    eras = mock<ErasService>();
+    competitions = mock<CompetitionsService>();
+    competitionGroups = mock<CompetitionGroupsService>();
+    coaches = mock<CoachesService>();
+    teams = mock<TeamsService>();
+    players = mock<PlayersService>();
+    races = mock<RacesService>();
+    stars = mock<StarPlayersService>();
+    trophies = mock<TrophiesService>();
+    leagues = mock<LeaguesService>();
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        DeepdiveAutocompleteService,
+        { provide: ErasService, useValue: eras },
+        { provide: CompetitionsService, useValue: competitions },
+        { provide: CompetitionGroupsService, useValue: competitionGroups },
+        { provide: CoachesService, useValue: coaches },
+        { provide: TeamsService, useValue: teams },
+        { provide: PlayersService, useValue: players },
+        { provide: RacesService, useValue: races },
+        { provide: StarPlayersService, useValue: stars },
+        { provide: TrophiesService, useValue: trophies },
+        { provide: LeaguesService, useValue: leagues },
+      ],
+    }).compile();
+    service = moduleRef.get(DeepdiveAutocompleteService);
+  });
+
   it('returns era choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, eras } = await makeService();
     eras.searchByNamePrefix.mockResolvedValue([
       { id: 3, name: 'BB2020', leagueName: 'Premier League' },
     ]);
@@ -112,7 +96,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns coach choices labelled "<name> (#<id>)" with id values', async () => {
-    const { service, coaches } = await makeService();
     coaches.searchByNamePrefix.mockResolvedValue([{ id: 5, name: 'Roze-El' }]);
 
     await expect(
@@ -121,7 +104,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns team choices labelled "<name> (#<id>)" with id values', async () => {
-    const { service, teams } = await makeService();
     teams.searchByNamePrefix.mockResolvedValue([{ id: 8, name: '40 Thieves' }]);
 
     await expect(
@@ -130,7 +112,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns player choices labelled "<name> (<team>)" with id values', async () => {
-    const { service, players } = await makeService();
     players.searchByNamePrefix.mockResolvedValue([
       { id: 9, name: 'Griff', teamName: 'Reikland Reavers' },
     ]);
@@ -141,7 +122,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns race choices labelled by plain name with id values', async () => {
-    const { service, races } = await makeService();
     races.searchByNamePrefix.mockResolvedValue([{ id: 4, name: 'Orc' }]);
 
     await expect(
@@ -150,7 +130,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns competition choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, competitions } = await makeService();
     competitions.searchByNamePrefix.mockResolvedValue([
       { id: 6, name: 'Major Season 24', leagueName: 'Premier League' },
     ]);
@@ -163,7 +142,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns trophy choices labelled "<name> (<competition group>)" with id values', async () => {
-    const { service, trophies } = await makeService();
     trophies.searchByNamePrefix.mockResolvedValue([
       {
         id: 7,
@@ -181,7 +159,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('labels a league-scoped trophy with its league', async () => {
-    const { service, trophies } = await makeService();
     trophies.searchByNamePrefix.mockResolvedValue([
       {
         id: 3,
@@ -199,7 +176,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns competition group choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, competitionGroups } = await makeService();
     competitionGroups.searchByNamePrefix.mockResolvedValue([
       { id: 4, name: 'Chaos Cup', leagueName: 'The Major' },
     ]);
@@ -214,7 +190,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('offers star player choices by name for the star-player option', async () => {
-    const { service, stars } = await makeService();
     stars.searchByNamePrefix.mockResolvedValue([
       { positionId: 20, name: 'Griff Oberwald' },
       { positionId: 21, name: 'Grim Ironjaw' },
@@ -232,7 +207,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('autocompletes leagues by name prefix', async () => {
-    const { service, leagues } = await makeService();
     leagues.searchByNamePrefix.mockResolvedValue([{ id: 7, name: 'tLoEG' }]);
 
     await expect(
@@ -242,8 +216,6 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('returns no choices for an option it does not handle', async () => {
-    const { service } = await makeService();
-
     await expect(
       service.resolve(
         autocompleteInteraction('x', 'unknown' as unknown as 'era'),

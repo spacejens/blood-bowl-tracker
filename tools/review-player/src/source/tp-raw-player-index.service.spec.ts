@@ -62,22 +62,22 @@ function matchFile(options: {
   };
 }
 
-async function makeService(): Promise<{
-  service: TpRawPlayerIndexService;
-  config: MockProxy<ReviewPlayerConfigService>;
-}> {
-  const config = mock<ReviewPlayerConfigService>();
-  config.getDataDir.mockReturnValue(dir);
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      TpRawPlayerIndexService,
-      { provide: ReviewPlayerConfigService, useValue: config },
-    ],
-  }).compile();
-  return { service: moduleRef.get(TpRawPlayerIndexService), config };
-}
-
 describe('TpRawPlayerIndexService', () => {
+  let service: TpRawPlayerIndexService;
+  let config: MockProxy<ReviewPlayerConfigService>;
+
+  beforeEach(async () => {
+    config = mock<ReviewPlayerConfigService>();
+    config.getDataDir.mockReturnValue(dir);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpRawPlayerIndexService,
+        { provide: ReviewPlayerConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(TpRawPlayerIndexService);
+  });
+
   it('aggregates a player across every match file they appear in', async () => {
     writeMatch(
       1,
@@ -98,7 +98,6 @@ describe('TpRawPlayerIndexService', () => {
         events: [{ lineUpId: 2477481, matchEventType: 4, starPoints: 3 }],
       }),
     );
-    const { service } = await makeService();
 
     const aggregate = await service.aggregateFor('2477481');
 
@@ -116,7 +115,6 @@ describe('TpRawPlayerIndexService', () => {
   it('takes the reported total from the highest match id the player appears in', async () => {
     writeMatch(2, matchFile({ lineUpTotal: 12, events: [] }));
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
-    const { service } = await makeService();
 
     expect((await service.aggregateFor('2477481'))?.totalStarPlayerPoints).toBe(
       12,
@@ -125,14 +123,12 @@ describe('TpRawPlayerIndexService', () => {
 
   it('returns null for a line-up id that appears in no match file', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
-    const { service } = await makeService();
 
     expect(await service.aggregateFor('9999999')).toBeNull();
   });
 
   it('scans the mirror once however many players are asked for', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
-    const { service, config } = await makeService();
 
     await service.aggregateFor('2477481');
     await service.aggregateFor('2616372');
@@ -149,21 +145,17 @@ describe('TpRawPlayerIndexService', () => {
       'utf8',
     );
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
-    const { service } = await makeService();
 
     expect(await service.aggregateFor('2477481')).not.toBeNull();
   });
 
   it('returns null for every player when the data directory is absent', async () => {
     rmSync(dir, { recursive: true, force: true });
-    const { service } = await makeService();
 
     expect(await service.aggregateFor('2477481')).toBeNull();
   });
 
   it('returns null for a non-numeric external id', async () => {
-    const { service } = await makeService();
-
     expect(await service.aggregateFor('not-a-number')).toBeNull();
   });
 
@@ -175,7 +167,6 @@ describe('TpRawPlayerIndexService', () => {
       'utf8',
     );
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
-    const { service } = await makeService();
 
     expect(await service.aggregateFor('2477481')).not.toBeNull();
   });
@@ -188,7 +179,6 @@ describe('TpRawPlayerIndexService', () => {
       inscriptionVisitor: { roster: { lineUps: [] } },
       matchEvents: [],
     });
-    const { service } = await makeService();
 
     expect(await service.aggregateFor('2477481')).toBeNull();
   });
@@ -201,7 +191,6 @@ describe('TpRawPlayerIndexService', () => {
       inscriptionVisitor: { roster: { lineUps: [] } },
       matchEvents: [],
     });
-    const { service } = await makeService();
 
     const aggregate = await service.aggregateFor('2477481');
 
@@ -220,7 +209,6 @@ describe('TpRawPlayerIndexService', () => {
       inscriptionVisitor: { roster: { lineUps: [] } },
       matchEvents: [],
     });
-    const { service } = await makeService();
 
     const aggregate = await service.aggregateFor('2477481');
 
@@ -238,7 +226,6 @@ describe('TpRawPlayerIndexService', () => {
         events: [{ lineUpId: 2477481, matchEventType: 4 }],
       }),
     );
-    const { service } = await makeService();
 
     const aggregate = await service.aggregateFor('2477481');
 
@@ -252,7 +239,6 @@ describe('TpRawPlayerIndexService', () => {
       inscriptionVisitor: { roster: { lineUps: [] } },
       matchEvents: 'nope',
     });
-    const { service } = await makeService();
 
     expect(await service.aggregateFor('2477481')).toBeNull();
   });
@@ -268,7 +254,6 @@ describe('TpRawPlayerIndexService', () => {
     // doesn't block access when the test process runs as root).
     rmSync(dir, { recursive: true, force: true });
     writeFileSync(dir, 'not a directory', 'utf8');
-    const { service } = await makeService();
 
     await expect(service.aggregateFor('2477481')).rejects.toThrow();
   });

@@ -7,7 +7,7 @@ import {
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -66,83 +66,6 @@ function makeEraRecord(overrides: { id: number; name: string }) {
   };
 }
 
-/**
- * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (name resolution, error
- * building, key derivation) mirror the real production logic so a regression
- * in the service under test still fails these tests.
- */
-async function makeService(): Promise<{
-  service: BblErasImportService;
-  mocks: Mocks;
-}> {
-  const eraConfig = mock<EraConfigService>();
-
-  const erasImport = mock<ErasImportService>();
-
-  const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
-
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
-  const nameExternalId = mock<NameExternalIdService>();
-  // `forEra` is a pure identity passthrough with no branching or formatting,
-  // so there is no algorithm here that can drift out of sync with the real
-  // NameExternalIdService — exempt from the canned-response rule.
-  nameExternalId.forEra.mockImplementation((name) => name);
-
-  const importResults = mock<ImportResultService>();
-  // `error` is a pure identity field copy with no branching or formatting, so
-  // there is no algorithm here that can drift out of sync with the real
-  // ImportResultService — exempt from the canned-response rule.
-  importResults.error.mockImplementation((args) => ({
-    item: args.item,
-    message: args.message,
-  }));
-  importResults.result.mockReturnValue(CANNED_RESULT);
-
-  const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
-  lookup.lookupMap.mockImplementation((kind) =>
-    Promise.resolve(
-      kind === 'league'
-        ? new Map([[`${BBL_SYSTEM_ID}\tMy League`, 11]])
-        : new Map([[`${BBL_SYSTEM_ID}\tCRP`, 22]]),
-    ),
-  );
-
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      BblErasImportService,
-      { provide: EraConfigService, useValue: eraConfig },
-      { provide: ErasImportService, useValue: erasImport },
-      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
-      { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: ImportResultService, useValue: importResults },
-      { provide: ReferenceLookupService, useValue: lookup },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(BblErasImportService),
-    mocks: {
-      eraConfig,
-      erasImport,
-      bootstrap,
-      nameConfig,
-      importResults,
-      lookup,
-    },
-  };
-}
-
 const eras: EraConfig[] = [
   {
     leagueName: 'tLoEG',
@@ -172,8 +95,82 @@ const oneEra: EraConfig[] = [
 ];
 
 describe('BblErasImportService', () => {
+  let service: BblErasImportService;
+  let mocks: Mocks;
+
+  /**
+   * Builds the service under test through a TestingModule with every
+   * collaborator mocked. Deterministic collaborators (name resolution, error
+   * building, key derivation) mirror the real production logic so a regression
+   * in the service under test still fails these tests.
+   */
+  beforeEach(async () => {
+    const eraConfig = mock<EraConfigService>();
+
+    const erasImport = mock<ErasImportService>();
+
+    const bootstrap = mock<ExternalSystemBootstrapService>();
+    bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+    const nameConfig = mock<ExternalSystemNameConfigService>();
+    nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+    const nameExternalId = mock<NameExternalIdService>();
+    // `forEra` is a pure identity passthrough with no branching or formatting,
+    // so there is no algorithm here that can drift out of sync with the real
+    // NameExternalIdService — exempt from the canned-response rule.
+    nameExternalId.forEra.mockImplementation((name) => name);
+
+    const importResults = mock<ImportResultService>();
+    // `error` is a pure identity field copy with no branching or formatting, so
+    // there is no algorithm here that can drift out of sync with the real
+    // ImportResultService — exempt from the canned-response rule.
+    importResults.error.mockImplementation((args) => ({
+      item: args.item,
+      message: args.message,
+    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
+
+    const lookup = mock<ReferenceLookupService>();
+    // `keyOf` is a pure, deterministic key derivation with no branching that
+    // could drift from ReferenceLookupService's own real implementation --
+    // exempt from the canned-response rule, same as the other passthroughs.
+    lookup.keyOf.mockImplementation(
+      (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+    );
+    lookup.lookupMap.mockImplementation((kind) =>
+      Promise.resolve(
+        kind === 'league'
+          ? new Map([[`${BBL_SYSTEM_ID}\tMy League`, 11]])
+          : new Map([[`${BBL_SYSTEM_ID}\tCRP`, 22]]),
+      ),
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BblErasImportService,
+        { provide: EraConfigService, useValue: eraConfig },
+        { provide: ErasImportService, useValue: erasImport },
+        { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+        { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+        { provide: NameExternalIdService, useValue: nameExternalId },
+        { provide: ImportResultService, useValue: importResults },
+        { provide: ReferenceLookupService, useValue: lookup },
+      ],
+    }).compile();
+
+    service = moduleRef.get(BblErasImportService);
+    mocks = {
+      eraConfig,
+      erasImport,
+      bootstrap,
+      nameConfig,
+      importResults,
+      lookup,
+    };
+  });
+
   it("resolves each era's league and rules sets through the api", async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.erasImport.upsertEra.mockResolvedValue(
       makeEraRecord({ id: 500, name: 'Era One' }),
@@ -192,7 +189,6 @@ describe('BblErasImportService', () => {
   });
 
   it('upserts each era referencing the resolved league id and rules set ids', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.erasImport.upsertEra.mockResolvedValue(
       makeEraRecord({ id: 500, name: 'Era One' }),
@@ -218,7 +214,6 @@ describe('BblErasImportService', () => {
   });
 
   it('calls lookupMap once per kind even with several eras sharing a league', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue([
       ...oneEra,
       {
@@ -238,7 +233,6 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error and skips an era whose league does not resolve', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.lookup.lookupMap.mockResolvedValue(new Map());
 
@@ -251,7 +245,6 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error and skips an era whose league name is unset', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'No League Era', rulesSets: ['CRP'] },
@@ -272,7 +265,6 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error and skips an era whose rules set does not resolve', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.lookup.lookupMap.mockImplementation((kind) =>
       Promise.resolve(
@@ -291,7 +283,6 @@ describe('BblErasImportService', () => {
   });
 
   it('resolves all rules-set names to ids and passes the array', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue([
       {
         leagueName: 'My League',
@@ -323,7 +314,6 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error when an era upsert fails', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.erasImport.upsertEra.mockImplementation((_data, errors) => {
       errors.push({ item: {}, message: 'era boom' });
@@ -336,7 +326,6 @@ describe('BblErasImportService', () => {
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockImplementation(() => {
       throw new Error('BBL_ERAS is not set.');
     });
@@ -353,7 +342,6 @@ describe('BblErasImportService', () => {
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(eras);
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
@@ -379,7 +367,6 @@ describe('BblErasImportService', () => {
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
     mocks.erasImport.upsertEra.mockResolvedValue(
       makeEraRecord({ id: 500, name: 'Era One' }),
