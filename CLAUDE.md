@@ -255,14 +255,16 @@ constructor, no I/O, no external state) while sitting as *one* dependency of
 a subject that has other, I/O-bearing collaborators — those other
 collaborators are still mocked as normal. Passing the pure one real still
 carries no coupling risk, for the same reason as the carve-outs above: it has
-no concrete behavior to drift from. Example: `UpsertHandlerService`
-(`packages/api-server/src/upsert-handler.service.ts`) — pure exception
-classification and object shaping, no constructor — is a real provider in
-`rpc-router-factory.service.spec.ts` and its
+no I/O or external state to couple to — its concrete classification behavior
+remains intentionally exercised by the test, not sidestepped. Example:
+`UpsertHandlerService` (`packages/api-server/src/upsert-handler.service.ts`)
+— pure exception classification and object shaping, no constructor — is a
+real provider in `rpc-router-factory.service.spec.ts` and its
 `rpc-router-factory.test-helpers.ts` harness, alongside every `game-data`
-entity service mocked normally. The alternative — mocking it — would require
-hand-copying its classification logic into a `mockImplementation`, which then
-risks drifting from the real implementation as new cases are added.
+entity service mocked normally. A mock is free to return canned values as
+usual; the risk is specifically a mock that reimplements the classification
+logic itself, which then risks drifting from the real implementation as new
+cases are added.
 
 ## Function parameter limit
 
