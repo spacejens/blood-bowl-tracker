@@ -88,7 +88,7 @@ describe('DbGenerateService', () => {
       ]);
     });
 
-    it('returns an empty array when there is no previous snapshot and treats all history tables as new', () => {
+    it('treats every history table as new when there is no previous snapshot', () => {
       dir = mkdtempSync(join(tmpdir(), 'db-generate-'));
       const next = join(dir, '20260101000000_first');
       writeSnapshot(next, [
