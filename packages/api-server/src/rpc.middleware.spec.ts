@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-const handleMock = vi.fn();
+let handleMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@orpc/server/node', () => ({
   RPCHandler: vi.fn().mockImplementation(function () {
@@ -25,7 +25,9 @@ import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
   let auth: MockProxy<ApiTokenAuthService>;
-  const next = vi.fn();
+  // Initialized here only so TypeScript infers the callable mock type;
+  // reassigned fresh per test in beforeEach.
+  let next = vi.fn();
 
   type StandardHandleResult = { matched: boolean; response?: unknown };
 
@@ -53,6 +55,8 @@ describe('RpcMiddleware', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    handleMock = vi.fn();
+    next = vi.fn();
     auth = mock<ApiTokenAuthService>();
     auth.authenticate.mockReturnValue({
       authenticated: true,
