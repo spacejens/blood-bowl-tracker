@@ -32,9 +32,9 @@ const SELECT_MENU_CUSTOM_ID_INFIX = 'menu:';
  * Discord rejects a button or select-menu option with an empty label, which
  * fails the whole interaction. Some imported entities genuinely have no name,
  * so blank labels fall back to a zero-width space: valid for Discord (unlike
- * a non-breaking space, which Discord's API rejects as blank too — confirmed
- * against the live API while fixing #350), and visually blank, matching the
- * fact that there is no name to show.
+ * a non-breaking space, which Discord's API rejects as blank too — verified
+ * against the live API), and visually blank, matching the fact that there is
+ * no name to show.
  */
 const BLANK_LABEL = '\u200b';
 
