@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.1.29",
-    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.29",
     "json5": "^2.2.3",
     "puppeteer": "^25.5.0",
