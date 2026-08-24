@@ -4,6 +4,12 @@ import { resolve } from 'node:path';
 import JSON5 from 'json5';
 
 import type { ReviewSource } from './review.types';
+import {
+  configGroupSchema,
+  nonEmptyStringSchema,
+  overrideIdsSchema,
+  positiveIntegerSchema,
+} from './review-config.schema';
 
 const DEFAULT_OUTPUT_PATH = 'output/report.html';
 const DEFAULT_EXTERNAL_SYSTEM_NAMES: Record<ReviewSource, string> = {
@@ -44,35 +50,35 @@ export abstract class ReviewConfigServiceBase {
 
   /** Connection string of the database to read imported data from. */
   getDatabaseUrl(): string {
-    const url = this.group('database').url;
-    if (typeof url !== 'string' || url === '') {
+    const url = nonEmptyStringSchema.safeParse(this.group('database').url);
+    if (!url.success) {
       throw new Error(
         `database.url is not set in ${this.fileName}. Set it to the ` +
           'connection string of the database holding the imported data, e.g. ' +
           "'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl'.",
       );
     }
-    return url;
+    return url.data;
   }
 
   /** Absolute path to a source's downloaded raw data directory. */
   getDataDir(source: ReviewSource): string {
-    const dir = this.group(source).dataDir;
-    if (typeof dir !== 'string' || dir === '') {
+    const dir = nonEmptyStringSchema.safeParse(this.group(source).dataDir);
+    if (!dir.success) {
       throw new Error(
         `${source}.dataDir is not set in ${this.fileName}. Set it to ` +
           `the folder holding the downloaded ${source.toUpperCase()} data.`,
       );
     }
-    return resolve(dir);
+    return resolve(dir.data);
   }
 
   /** Name the source's records are registered under in `external_systems`. */
   getExternalSystemName(source: ReviewSource): string {
-    const name = this.group(source).externalSystemName;
-    return typeof name === 'string' && name !== ''
-      ? name
-      : DEFAULT_EXTERNAL_SYSTEM_NAMES[source];
+    const name = nonEmptyStringSchema.safeParse(
+      this.group(source).externalSystemName,
+    );
+    return name.success ? name.data : DEFAULT_EXTERNAL_SYSTEM_NAMES[source];
   }
 
   /** Source-specific external ids to always include in the report. */
@@ -81,21 +87,20 @@ export abstract class ReviewConfigServiceBase {
     if (raw === undefined) {
       return [];
     }
-    if (!Array.isArray(raw)) {
+    const ids = overrideIdsSchema.safeParse(raw);
+    if (!ids.success) {
       throw new Error(
         `overrides.${source} in ${this.fileName} must be an array of ` +
           `${this.overrideLabel}.`,
       );
     }
-    return raw.map((entry) => String(entry));
+    return ids.data.map((entry) => String(entry));
   }
 
   /** Absolute path the generated HTML report is written to. */
   getOutputPath(): string {
-    const raw = this.config.outputPath;
-    return resolve(
-      typeof raw === 'string' && raw !== '' ? raw : DEFAULT_OUTPUT_PATH,
-    );
+    const raw = nonEmptyStringSchema.safeParse(this.config.outputPath);
+    return resolve(raw.success ? raw.data : DEFAULT_OUTPUT_PATH);
   }
 
   /**
@@ -107,21 +112,19 @@ export abstract class ReviewConfigServiceBase {
     if (raw === undefined) {
       return fallback;
     }
-    if (typeof raw !== 'number' || !Number.isInteger(raw) || raw < 1) {
+    const parsed = positiveIntegerSchema.safeParse(raw);
+    if (!parsed.success) {
       throw new Error(
         `${key} in ${this.fileName} must be a positive ` +
           `integer; got ${JSON.stringify(raw)}.`,
       );
     }
-    return raw;
+    return parsed.data;
   }
 
   /** A top-level object group, or an empty object when absent. */
   private group(key: string): Record<string, unknown> {
-    const value = this.config[key];
-    return typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
+    return configGroupSchema.parse(this.config[key]);
   }
 
   /**
@@ -151,8 +154,6 @@ export abstract class ReviewConfigServiceBase {
       );
     }
 
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return configGroupSchema.parse(parsed);
   }
 }

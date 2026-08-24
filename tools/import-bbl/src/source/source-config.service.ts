@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 
+import { nonEmptyStringSchema } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ImportBblConfigService } from '../config/import-bbl-config.service';
@@ -14,13 +15,13 @@ export class SourceConfigService {
    * working directory; an absolute value is used as-is.
    */
   getDataDir(): string {
-    const dir = this.config.get<string>('dataDir');
-    if (!dir) {
+    const parsed = nonEmptyStringSchema.safeParse(this.config.get('dataDir'));
+    if (!parsed.success) {
       throw new Error(
         'dataDir is not set in import-bbl-config.json5. Set it to the folder ' +
           'containing the BBL default.asp files (e.g. data/tloeg.bbleague.se/).',
       );
     }
-    return resolve(dir);
+    return resolve(parsed.data);
   }
 }

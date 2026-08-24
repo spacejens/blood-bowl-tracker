@@ -1,6 +1,8 @@
+import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
+import { matchMergePairSchema } from './match-config.schema';
 
 export interface MatchMergePair {
   firstMatchId: string;
@@ -9,7 +11,10 @@ export interface MatchMergePair {
 
 @Injectable()
 export class MatchMergeConfigService {
-  constructor(private readonly eraConfig: EraConfigService) {}
+  constructor(
+    private readonly eraConfig: EraConfigService,
+    private readonly messages: ConfigErrorMessageService,
+  ) {}
 
   /**
    * The BBL match-id pairs to merge into a single match, gathered from each
@@ -30,9 +35,18 @@ export class MatchMergeConfigService {
         return;
       }
       merges.forEach((entry, pairIndex) => {
-        const pair = this.parsePair(entry, eraIndex, pairIndex);
         const location = `BBL_ERAS[${eraIndex}].matches.merges[${pairIndex}]`;
-        for (const id of [pair.firstMatchId, pair.secondMatchId]) {
+        const parsed = matchMergePairSchema.safeParse(entry);
+        if (!parsed.success) {
+          throw new Error(this.messages.format(location, parsed.error));
+        }
+        const [firstMatchId, secondMatchId] = parsed.data;
+        if (firstMatchId === secondMatchId) {
+          throw new Error(
+            `${location}: a pair cannot contain the same id twice (${firstMatchId}).`,
+          );
+        }
+        for (const id of [firstMatchId, secondMatchId]) {
           const existing = seenAt.get(id);
           if (existing !== undefined) {
             throw new Error(
@@ -41,38 +55,10 @@ export class MatchMergeConfigService {
           }
           seenAt.set(id, location);
         }
-        pairs.push(pair);
+        pairs.push({ firstMatchId, secondMatchId });
       });
     });
 
     return pairs;
-  }
-
-  private parsePair(
-    entry: unknown,
-    eraIndex: number,
-    pairIndex: number,
-  ): MatchMergePair {
-    const location = `BBL_ERAS[${eraIndex}].matches.merges[${pairIndex}]`;
-    if (!Array.isArray(entry) || entry.length !== 2) {
-      throw new Error(`${location} must be a 2-element array of match ids.`);
-    }
-    const [a, b] = entry as unknown[];
-    if (
-      typeof a !== 'string' ||
-      a.trim() === '' ||
-      typeof b !== 'string' ||
-      b.trim() === ''
-    ) {
-      throw new Error(
-        `${location} must contain two non-empty string match ids.`,
-      );
-    }
-    if (a === b) {
-      throw new Error(
-        `${location}: a pair cannot contain the same id twice (${a}).`,
-      );
-    }
-    return { firstMatchId: a, secondMatchId: b };
   }
 }

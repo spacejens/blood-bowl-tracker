@@ -10,6 +10,18 @@ export {
 export { CoachesImportService } from './coaches-import.service';
 export { CompetitionGroupsImportService } from './competition-groups-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
+export { ConfigErrorMessageService } from './config/config-error-message.service';
+export type { ConnectionConfig } from './config/shared-config.schema';
+export {
+  configGroupSchema,
+  connectionConfigSchema,
+  externalSystemNameSchema,
+  isoDateSchema,
+  nonBlankStringSchema,
+  nonEmptyStringSchema,
+  optionalIsoDateSchema,
+  rulesSetsSchema,
+} from './config/shared-config.schema';
 export { ErasImportService } from './eras-import.service';
 export { ExternalIdResolverService } from './external-id-resolver.service';
 export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.service';

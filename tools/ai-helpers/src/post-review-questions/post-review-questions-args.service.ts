@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import {
-  PostReviewQuestionsInput,
-  ReviewQuestion,
-} from './post-review-questions.service';
+import { PostReviewQuestionsInput } from './post-review-questions.service';
+import { reviewQuestionsSchema } from './review-questions.schema';
 
 /** Shared with `main.ts`'s pre-Nest stdin gate, so both failure paths report identical wording. */
 export const POST_REVIEW_QUESTIONS_USAGE =
@@ -35,37 +33,16 @@ export class PostReviewQuestionsArgsService {
       throw new Error(`${POST_REVIEW_QUESTIONS_USAGE} (bad JSON)`);
     }
 
-    if (!Array.isArray(parsed)) {
-      throw new Error(`${POST_REVIEW_QUESTIONS_USAGE} (not an array)`);
-    }
-
-    const questions = parsed.map((element, index) =>
-      this.parseQuestion(element, index),
-    );
-
-    return { prNumber, questions };
-  }
-
-  private parseQuestion(element: unknown, index: number): ReviewQuestion {
-    if (
-      typeof element !== 'object' ||
-      element === null ||
-      !('file' in element) ||
-      !('line' in element) ||
-      !('body' in element) ||
-      typeof (element as { file: unknown }).file !== 'string' ||
-      (element as { file: string }).file === '' ||
-      typeof (element as { line: unknown }).line !== 'number' ||
-      !Number.isInteger((element as { line: number }).line) ||
-      (element as { line: number }).line < 1 ||
-      typeof (element as { body: unknown }).body !== 'string' ||
-      (element as { body: string }).body === ''
-    ) {
+    const questions = reviewQuestionsSchema.safeParse(parsed);
+    if (!questions.success) {
+      const issue = questions.error.issues[0];
       throw new Error(
-        `${POST_REVIEW_QUESTIONS_USAGE} (bad question at index ${index})`,
+        issue.path.length === 0
+          ? `${POST_REVIEW_QUESTIONS_USAGE} (not an array)`
+          : `${POST_REVIEW_QUESTIONS_USAGE} (bad question at index ${String(issue.path[0])})`,
       );
     }
-    const question = element as { file: string; line: number; body: string };
-    return { file: question.file, line: question.line, body: question.body };
+
+    return { prNumber, questions: questions.data };
   }
 }

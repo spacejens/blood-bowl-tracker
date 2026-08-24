@@ -4,6 +4,14 @@ import { resolve } from 'node:path';
 import { Inject, Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
+import {
+  browserGroupSchema,
+  configFileSchema,
+  connectionGroupSchema,
+  downloadGroupSchema,
+  tournamentsSchema,
+} from './download-tp-config.schema';
+
 /** DI token carrying the absolute path to the JSON5 config file. */
 export const DOWNLOAD_TP_CONFIG_PATH = Symbol('DOWNLOAD_TP_CONFIG_PATH');
 
@@ -65,11 +73,8 @@ export class DownloadTpConfigService {
    * anything other than an explicit `true` means "show the browser".
    */
   isHeadless(): boolean {
-    const browser = this.get<Record<string, unknown>>('browser');
-    if (typeof browser !== 'object' || browser === null) {
-      return false;
-    }
-    return browser.headless === true;
+    const browser = browserGroupSchema.safeParse(this.get('browser'));
+    return browser.success && browser.data.headless === true;
   }
 
   /**
@@ -77,36 +82,35 @@ export class DownloadTpConfigService {
    * `download.tournaments`. Required and non-empty.
    */
   getTournaments(): string[] {
-    const download = this.get<Record<string, unknown>>('download');
-    if (typeof download !== 'object' || download === null) {
+    const download = downloadGroupSchema.safeParse(this.get('download'));
+    if (!download.success) {
       throw new Error(
         'download is not set in download-tp-config.json5. Set it to an ' +
           "object, e.g. { tournaments: ['tloegbbl-sasong-30'] }.",
       );
     }
-    const tournaments = download.tournaments;
-    if (
-      !Array.isArray(tournaments) ||
-      tournaments.length === 0 ||
-      !tournaments.every((name) => typeof name === 'string' && name !== '')
-    ) {
+    const tournaments = tournamentsSchema.safeParse(download.data.tournaments);
+    if (!tournaments.success) {
       throw new Error(
         'download.tournaments is not set in download-tp-config.json5. Set ' +
           'it to a non-empty array of tournament names, e.g. ' +
           "['tloegbbl-sasong-30'].",
       );
     }
-    return tournaments as string[];
+    return tournaments.data;
   }
 
   /** Shared read of a required non-empty string URL under `connection`. */
-  private getConnectionUrl(field: string, example: string): string {
-    const connection = this.get<Record<string, unknown>>('connection');
-    if (typeof connection !== 'object' || connection === null) {
+  private getConnectionUrl(
+    field: 'frontendUrl' | 'backendApiUrl',
+    example: string,
+  ): string {
+    const connection = connectionGroupSchema.safeParse(this.get('connection'));
+    if (!connection.success) {
       throw new Error(CONNECTION_MISSING);
     }
-    const url = connection[field];
-    if (typeof url !== 'string' || url === '') {
+    const url = connection.data[field];
+    if (url === undefined) {
       throw new Error(
         `connection.${field} is not set in download-tp-config.json5. Set it ` +
           `to a non-empty string, e.g. ${example}.`,
@@ -141,8 +145,6 @@ export class DownloadTpConfigService {
       );
     }
 
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, unknown>)
-      : {};
+    return configFileSchema.parse(parsed);
   }
 }
