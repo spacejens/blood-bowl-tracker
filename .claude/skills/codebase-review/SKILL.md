@@ -40,6 +40,7 @@ Dispatch one read-only `Agent` per criterion in the fixed list below, each scann
 ### Subagent dispatch
 
 - Use `subagent_type: "Explore"` — a search agent with no `Write`/`Edit` tools, which rules out the two most direct ways it could change a file. It retains `Bash`, so the explicit "must not fix anything, must not edit any file" instruction below is what actually carries the read-only guarantee.
+- Explicitly request a stronger model and higher reasoning effort for these judgment-heavy dispatches — pass `model: "opus"` and `effort: "high"` on each `Agent` call — rather than leaving both to inherit the invoking session's settings, since this skill is a rare, thorough pass where the extra reasoning quality is worth the cost.
 - Resolve the repo root once, before dispatching, and pass it into every prompt:
   ```bash
   git rev-parse --show-toplevel
