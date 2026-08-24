@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -14,6 +15,7 @@ describe('TeamsService toplist delegation', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
   let statistics: MockProxy<TeamsStatisticsService>;
+  let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   async function build(): Promise<void> {
     const moduleRef = await Test.createTestingModule({
@@ -21,6 +23,7 @@ describe('TeamsService toplist delegation', () => {
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: TeamsStatisticsService, useValue: statistics },
+        { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: mock<Db>() },
       ],
     }).compile();
@@ -30,6 +33,7 @@ describe('TeamsService toplist delegation', () => {
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
     statistics = mock<TeamsStatisticsService>();
+    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 
   it.each([

@@ -23,10 +23,10 @@ import { eq, ilike, sql } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
-import type { TeamTopPlayer } from '../shared/match-event-counts';
+import type { TeamTopPlayer } from '../shared/match-event-counts.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
-import type { TeamRaceAndCoachNames } from '../shared/team-race-coach-names';
-import { getRaceAndCoachNamesByIds as queryRaceAndCoachNamesByIds } from '../shared/team-race-coach-names';
+import type { TeamRaceAndCoachNames } from '../shared/team-race-coach-names.service';
+import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { TeamsStatisticsService } from './teams-statistics.service';
@@ -43,6 +43,7 @@ export class TeamsService {
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
     private readonly statistics: TeamsStatisticsService,
+    private readonly teamRaceCoachNames: TeamRaceCoachNamesService,
   ) {}
 
   async upsert(
@@ -167,7 +168,7 @@ export class TeamsService {
   getRaceAndCoachNamesByIds(
     teamIds: number[],
   ): Promise<Map<number, TeamRaceAndCoachNames>> {
-    return queryRaceAndCoachNamesByIds({ db: this.db, teamIds });
+    return this.teamRaceCoachNames.getRaceAndCoachNamesByIds(teamIds);
   }
 
   countAll(): Promise<number> {

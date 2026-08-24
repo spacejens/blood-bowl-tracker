@@ -8,6 +8,8 @@ import { mock } from 'vitest-mock-extended';
 import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
+import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -31,6 +33,8 @@ describe('PlayersService', () => {
   let service: PlayersService;
   let likePattern: MockProxy<LikePatternService>;
   let deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
+  let matchEventCounts: MockProxy<MatchEventCountsService>;
+  let playerContextNames: MockProxy<PlayerContextNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -43,6 +47,8 @@ describe('PlayersService', () => {
         { provide: LikePatternService, useValue: likePattern },
         { provide: SppTotalsService, useValue: mock<SppTotalsService>() },
         { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
+        { provide: MatchEventCountsService, useValue: matchEventCounts },
+        { provide: PlayerContextNamesService, useValue: playerContextNames },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -53,6 +59,8 @@ describe('PlayersService', () => {
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
     deepdiveCounts = mock<PlayerDeepdiveCountsService>();
+    matchEventCounts = mock<MatchEventCountsService>();
+    playerContextNames = mock<PlayerContextNamesService>();
   });
 
   describe('upsert', () => {
@@ -309,33 +317,27 @@ describe('PlayersService', () => {
   });
 
   describe('getContextNamesByIds', () => {
-    it('returns the context names the query resolves to, keyed by player id', async () => {
-      const { db } = await build([
-        {
-          playerId: 1,
-          positionName: 'Blitzer',
-          teamName: 'Reikland Reavers',
-          raceName: 'Human',
-          eraName: 'First era',
-          coachName: 'Roze Madder',
-        },
+    it('delegates to PlayerContextNamesService', async () => {
+      const names = new Map([
+        [
+          1,
+          {
+            positionName: 'Blitzer',
+            teamName: 'Reikland Reavers',
+            raceName: 'Human',
+            eraName: 'First era',
+            coachName: 'Roze Madder',
+          },
+        ],
       ]);
-      const names = await service.getContextNamesByIds([1]);
-      expect(names.get(1)).toEqual({
-        positionName: 'Blitzer',
-        teamName: 'Reikland Reavers',
-        raceName: 'Human',
-        eraName: 'First era',
-        coachName: 'Roze Madder',
-      });
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
+      playerContextNames.getPlayerContextNamesByIds.mockResolvedValue(names);
+      await build();
 
-    it('returns an empty map without querying when given no ids', async () => {
-      const { db } = await build([]);
-      const names = await service.getContextNamesByIds([]);
-      expect(names.size).toBe(0);
-      expect(db.select).not.toHaveBeenCalled();
+      await expect(service.getContextNamesByIds([1])).resolves.toBe(names);
+
+      expect(
+        playerContextNames.getPlayerContextNamesByIds,
+      ).toHaveBeenCalledWith([1]);
     });
   });
 

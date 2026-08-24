@@ -3,8 +3,8 @@ import { DB, matchEvents } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 
-import type { MatchEventSelector } from '../shared/match-event-counts';
-import { countMatchEventsForPlayer } from '../shared/match-event-counts';
+import type { MatchEventSelector } from '../shared/match-event-counts.service';
+import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import type { ActionType, ConsequenceType } from '../shared/match-event-types';
 import {
   CASUALTY_CAUSED_TYPES,
@@ -80,7 +80,10 @@ export interface PlayerDeepdiveCategoryCounts {
 
 @Injectable()
 export class PlayerDeepdiveCountsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly matchEventCounts: MatchEventCountsService,
+  ) {}
 
   /**
    * Every counter the player deepdive shows, in one round trip. Issued as a
@@ -170,15 +173,19 @@ export class PlayerDeepdiveCountsService {
     playerId: number,
     selector: MatchEventSelector,
   ): Promise<number> {
-    return countMatchEventsForPlayer({ db: this.db, playerId, selector });
+    return this.matchEventCounts.countMatchEventsForPlayer({
+      playerId,
+      selector,
+    });
   }
 
   /**
    * Events this player committed with one of the given action types, no
    * consequence filter. A direct `match_events` filter, with none of the join
-   * graph `countDeepdiveEvents` carries: `countMatchEventsForPlayer` inner-joins
-   * `matchTeams` on `actingMatchTeamId`, a nullable column, so an event with
-   * that column unset would be invisible to it. The casualty/foul group
+   * graph `countDeepdiveEvents` carries: `MatchEventCountsService`'s
+   * `countMatchEventsForPlayer` inner-joins `matchTeams` on
+   * `actingMatchTeamId`, a nullable column, so an event with that column
+   * unset would be invisible to it. The casualty/foul group
    * counters must never drop such a row, because `countFoulOutcome` and
    * `countDeathOutcome` below (their `killed`/`seriousInjuries` siblings) do
    * not join at all —

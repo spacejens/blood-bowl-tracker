@@ -13,6 +13,7 @@ import {
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamsService } from './teams.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
@@ -20,6 +21,7 @@ describe('TeamsService lookups', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
   let statistics: MockProxy<TeamsStatisticsService>;
+  let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -31,6 +33,7 @@ describe('TeamsService lookups', () => {
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: TeamsStatisticsService, useValue: statistics },
+        { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -41,6 +44,7 @@ describe('TeamsService lookups', () => {
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
     statistics = mock<TeamsStatisticsService>();
+    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 
   describe('searchByNamePrefix', () => {
@@ -174,23 +178,33 @@ describe('TeamsService lookups', () => {
   });
 
   describe('getRaceAndCoachNamesByIds', () => {
-    it('returns race and coach names keyed by team id', async () => {
-      const { chains } = await build([
-        { teamId: 1, raceName: 'Orc', coachName: 'Skarsnik' },
+    it('delegates to TeamRaceCoachNamesService and returns its map', async () => {
+      const expected = new Map([
+        [1, { raceName: 'Orc', coachName: 'Skarsnik' }],
       ]);
-      const names = await service.getRaceAndCoachNamesByIds([1]);
-      expect(names.get(1)).toEqual({
-        raceName: 'Orc',
-        coachName: 'Skarsnik',
-      });
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toEqual([1]);
+      teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(expected);
+      await build();
+
+      await expect(service.getRaceAndCoachNamesByIds([1])).resolves.toBe(
+        expected,
+      );
+
+      expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).toHaveBeenCalledWith(
+        [1],
+      );
     });
 
-    it('returns an empty map for an empty id list', async () => {
-      const { db } = await build([]);
-      const names = await service.getRaceAndCoachNamesByIds([]);
-      expect(names.size).toBe(0);
-      expect(db.select).not.toHaveBeenCalled();
+    it('forwards an empty id list unchanged', async () => {
+      teamRaceCoachNames.getRaceAndCoachNamesByIds.mockResolvedValue(new Map());
+      await build();
+
+      await expect(service.getRaceAndCoachNamesByIds([])).resolves.toEqual(
+        new Map(),
+      );
+
+      expect(teamRaceCoachNames.getRaceAndCoachNamesByIds).toHaveBeenCalledWith(
+        [],
+      );
     });
   });
 });

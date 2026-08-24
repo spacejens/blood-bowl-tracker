@@ -13,6 +13,7 @@ import {
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { TeamRaceCoachNamesService } from '../shared/team-race-coach-names.service';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
 import { fakeTeam } from './teams.service.test-helpers';
 import { TeamsStatisticsService } from './teams-statistics.service';
@@ -21,6 +22,7 @@ describe('TeamsService', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
   let statistics: MockProxy<TeamsStatisticsService>;
+  let teamRaceCoachNames: MockProxy<TeamRaceCoachNamesService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -32,6 +34,7 @@ describe('TeamsService', () => {
         TeamsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: TeamsStatisticsService, useValue: statistics },
+        { provide: TeamRaceCoachNamesService, useValue: teamRaceCoachNames },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -42,6 +45,7 @@ describe('TeamsService', () => {
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
     statistics = mock<TeamsStatisticsService>();
+    teamRaceCoachNames = mock<TeamRaceCoachNamesService>();
   });
 
   const baseData = {

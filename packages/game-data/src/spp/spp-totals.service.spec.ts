@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { MockDbResult } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
+import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
   extractAllFilterValues,
   extractJoinColumns,
@@ -15,7 +16,11 @@ import { SppTotalsService } from './spp-totals.service';
 
 async function makeService(db: MockDbResult): Promise<SppTotalsService> {
   const moduleRef = await Test.createTestingModule({
-    providers: [SppTotalsService, { provide: DB, useValue: db.db }],
+    providers: [
+      SppTotalsService,
+      MatchScopeFilterService,
+      { provide: DB, useValue: db.db },
+    ],
   }).compile();
   return moduleRef.get(SppTotalsService);
 }
