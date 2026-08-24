@@ -73,10 +73,10 @@ export {
 } from './rules-sets/rules-sets.service';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
-export type { TeamTopPlayer } from './shared/match-event-counts';
+export type { TeamTopPlayer } from './shared/match-event-counts.service';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
-export type { PlayerContextNames } from './shared/player-context-names';
-export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names';
+export type { PlayerContextNames } from './shared/player-context-names.service';
+export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
