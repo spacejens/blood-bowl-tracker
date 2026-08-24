@@ -13,9 +13,9 @@ export interface MatchDateRange {
 /**
  * Computes the date range of a competition's matches. Both importers collect
  * every match date before creating a competition — to classify its type by
- * date span, and (since #417) to populate the competition's startDate/endDate
- * — so the min/max/span arithmetic lives here once instead of being inlined
- * in each importer.
+ * date span, and to populate the competition's startDate/endDate — so the
+ * min/max/span arithmetic lives here once instead of being inlined in each
+ * importer.
  */
 @Injectable()
 export class MatchDateRangeService {

@@ -31,8 +31,8 @@ const NON_STANDARD_STRATUM = 'spp-non-standard-contribution';
  * it can never disagree with that table by construction and querying BBL here
  * would always return nothing. A TP-sourced event instead carries TP's own
  * reported figure verbatim, which can legitimately differ (race-specific
- * modifiers, random events, special league rules — see issue #431). This
- * stratum surfaces the difference without judging whether it is a bug or
+ * modifiers, random events, special league rules). This stratum surfaces the
+ * difference without judging whether it is a bug or
  * normal TP variation; that judgment is the reviewer's, from the rendered
  * comparison.
  *

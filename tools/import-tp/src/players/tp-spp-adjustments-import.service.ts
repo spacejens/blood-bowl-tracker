@@ -36,7 +36,7 @@ export interface ImportSppAdjustmentsOptions {
  * TP's total is career-wide, including competitions still in progress that have
  * not been downloaded/imported yet, so each player's career action counts are
  * sent along: the server prices the events it has NOT imported and discounts
- * them, instead of misattributing them as unexplained SPP (issue #381).
+ * them, instead of misattributing them as unexplained SPP.
  * Whatever adjustment survives that comes back in `nonzeroAdjustments`, a
  * one-off developer review aid the import run prints at the end.
  *

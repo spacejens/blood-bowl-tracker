@@ -398,7 +398,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   });
 
   it('clamps the corrected total to the imported sum, never below it, when the estimate overshoots the gap', async () => {
-    // Edge case 3 (the #381 "clamps to zero" case, taken further): the
+    // Edge case 3 (the "clamps to zero" case, taken further): the
     // estimate is bigger than the whole gap (reported - estimatedOngoing =
     // 20 - 30 = -10 < importedSum), so correctedTotal clamps up to
     // importedSum rather than dropping below the confirmed-imported figure,

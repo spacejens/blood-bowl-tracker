@@ -257,7 +257,7 @@ describe('curated data files', () => {
     // TrophiesService.upsert() still supports matching a trophy by exact
     // name when externalIds is empty (see its doc comment), but no curated
     // trophy uses that path today -- Ogretoberfest was the last one to, and
-    // gained a tourplay.net id in issue #446. Pinned here so a future edit
+    // gained a tourplay.net id. Pinned here so a future edit
     // that strips a trophy's only external id doesn't silently start relying
     // on the fallback again without anyone noticing.
     const trophies = readPhase('before-other-importers').trophies;

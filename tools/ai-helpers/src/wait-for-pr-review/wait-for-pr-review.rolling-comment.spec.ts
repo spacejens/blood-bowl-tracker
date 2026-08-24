@@ -16,9 +16,9 @@ import {
  * The bounded rate-limit block CodeRabbit edits into its rolling walkthrough
  * comment, as jq extracts it between
  * `<!-- This is an auto-generated comment: rate limited by coderabbit.ai -->`
- * and its matching `<!-- end of ... -->` marker. Real text observed on
- * PR #464 (comment id 5304526638), abridged: every line is blockquoted, so
- * the block contains no blank line of its own.
+ * and its matching `<!-- end of ... -->` marker. A real CodeRabbit rolling
+ * comment, abridged: every line is blockquoted, so the block contains no
+ * blank line of its own.
  */
 const RATE_LIMIT_EDIT_SECTION =
   '\n\n> [!WARNING]\n> ## Review limit reached\n> \n' +

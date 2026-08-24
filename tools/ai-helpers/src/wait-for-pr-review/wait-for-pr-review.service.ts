@@ -267,18 +267,17 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
  * Three exceptions are CodeRabbit-specific, because all three are
  * CodeRabbit's own behaviour rather than anything GitHub models as a review.
  * It answers its per-developer review rate limit either with a top-level PR
- * comment or by editing that same rolling comment in place (issue #465, seen
- * on PR #464), so both shapes are looked for;
- * it can finish a pass with nothing actionable to say and report *that* only
- * by editing its rolling walkthrough comment in place; and it can fail to
- * persist such an edit at all, posting a "couldn't update its existing
- * comment" notice instead while the rolling comment stays stuck mid-pass
- * (observed on PR #408). Each poll therefore also looks for those comments —
- * narrowly, by CodeRabbit's own login and wording — and returns as soon as it
- * finds one, rather than running out the whole timeout with nothing to
- * report. A completion comment comes back shaped like a review, so callers
- * need no new result field: see `CompletionReview`. The other two come back
- * as their own result fields.
+ * comment or by editing that same rolling comment in place, so both shapes
+ * are looked for; it can finish a pass with nothing actionable to say and
+ * report *that* only by editing its rolling walkthrough comment in place;
+ * and it can fail to persist such an edit at all, posting a "couldn't update
+ * its existing comment" notice instead while the rolling comment stays
+ * stuck mid-pass — observed in practice. Each poll therefore also looks for
+ * those comments — narrowly, by CodeRabbit's own login and wording — and
+ * returns as soon as it finds one, rather than running out the whole
+ * timeout with nothing to report. A completion comment comes back shaped
+ * like a review, so callers need no new result field: see
+ * `CompletionReview`. The other two come back as their own result fields.
  */
 @Injectable()
 export class WaitForPrReviewService {
@@ -342,7 +341,7 @@ export class WaitForPrReviewService {
        * failure notice from before this wait's own watermark) are pre-trigger
        * data: returning them would end the wait with the very answer the
        * trigger was posted to move past, and no fresh poll would ever happen
-       * to check (observed on PR #470). Suppression lasts exactly this one
+       * to check — observed in practice. Suppression lasts exactly this one
        * iteration — the next poll's findings are treated like any other
        * iteration's, and nothing here excludes the suppressed comment by id,
        * so an unchanged one is simply re-matched and reported normally next
@@ -505,9 +504,9 @@ export class WaitForPrReviewService {
    *
    * CodeRabbit can submit a formally valid review carrying nothing at all —
    * empty body, no inline comments — while its actual pass was blocked by the
-   * developer's review rate limit (issue #474, PR #469). The jq filter cannot
-   * tell that apart from a real review, so an empty-bodied candidate is
-   * verified with one extra lookup before it is trusted.
+   * developer's review rate limit. The jq filter cannot tell that apart from
+   * a real review, so an empty-bodied candidate is verified with one extra
+   * lookup before it is trusted.
    *
    * Fails closed, matching `coversHeadCommit`'s precedent: a lookup that could
    * not answer (`undefined`) discards the candidate rather than trusting an
@@ -561,9 +560,9 @@ export class WaitForPrReviewService {
   /**
    * CodeRabbit has two outcomes it reports only by editing its rolling
    * walkthrough comment in place, with no formal review object ever
-   * submitted: a pass that finished with nothing actionable, and a re-review
-   * it refused because the developer hit their review rate limit (issue
-   * #465). Detecting either needs the comment's `updated_at`, which
+   * submitted: a pass that finished with nothing actionable, and a
+   * re-review it refused because the developer hit their review rate limit.
+   * Detecting either needs the comment's `updated_at`, which
    * `gh pr view --json comments` does not expose (it carries `createdAt`
    * only, and the comment is created on the *first* pass), so this reads the
    * issue-comments REST endpoint instead — one call, one jq program, both
@@ -768,9 +767,9 @@ export class WaitForPrReviewService {
    * Strips fenced code blocks and inline code spans before testing for a
    * phrase — both the rate-limit warning and the completion notice are
    * prose, not code, so this narrows matching without weakening real
-   * detection. (Real false positive from PR #399: CodeRabbit's status
+   * detection. A real false positive seen in practice: CodeRabbit's status
    * comment echoed a branch name containing "rate-limit" in an inline code
-   * span.)
+   * span.
    */
   private hasProsePhrase(text: string, phrase: RegExp): boolean {
     const prose = text

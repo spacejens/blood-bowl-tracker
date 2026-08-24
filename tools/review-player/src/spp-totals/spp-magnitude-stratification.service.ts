@@ -25,8 +25,7 @@ const LARGE_MIN = 100;
  * with none, players with a little, players with a lot. A player's total can
  * span zero to several hundred, and different magnitudes stress different
  * parts of the SPP pipeline; a single undifferentiated random sample happens
- * to under-cover the extremes, which is where import bugs hide (see issue
- * #431).
+ * to under-cover the extremes, which is where import bugs hide.
  *
  * Reads `players.spp_total` — the stored, displayed figure, the same one
  * `SppDiscrepancyStratificationService` and the Discord bot's deep-dive and

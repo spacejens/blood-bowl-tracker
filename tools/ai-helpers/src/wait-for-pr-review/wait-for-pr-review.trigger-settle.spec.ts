@@ -20,7 +20,7 @@ import {
  * The iteration that posts the `@coderabbitai review` trigger has already
  * polled — before the comment existed — so anything that poll matched is
  * pre-trigger data. Returning it would end the wait with the very answer the
- * trigger was posted to move past (observed on PR #470). These tests pin
+ * trigger was posted to move past — observed in practice. These tests pin
  * that this one iteration suppresses its stale rate-limit /
  * comment-update-failure result and polls again instead.
  */

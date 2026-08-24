@@ -131,7 +131,7 @@ export class SppAdjustmentsService {
     const eraCorrectSums = await this.sppTotals.totalsForPlayers(reportedIds);
     // SPP the source has counted but this database has not imported — events
     // in a competition still in progress. Without this, the whole contribution
-    // of those events is misattributed as unexplained (see issue #381).
+    // of those events is misattributed as unexplained.
     const ongoingEstimates = await this.ongoingEstimate.estimateForPlayers(
       rows.map((row) => ({
         playerId: row.id,
