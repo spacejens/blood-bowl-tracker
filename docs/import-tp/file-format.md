@@ -179,9 +179,8 @@ objective. **Skip-listed codes** — dropped unconditionally, along with any
 unrecognized code, so new/unmapped TP codes never crash the import: `0, 1,
 18, 19, 27` — these are structural markers or per-roll noise with no useful
 modeled payload (e.g. code `27`, "player assigned to line-up", is a
-structural row, not a modeled roll). A `None` `injuryType` is still returned
-by the parser and is now a real, imported event (a genuine "Badly Hurt"
-result — see below).
+structural row, not a modeled roll). A `None` `injuryType` is a real,
+imported event (a genuine "Badly Hurt" result — see below).
 
 `tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
 into zero, one, or two `UpsertMatchEvent`s (see
