@@ -257,9 +257,9 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
 /**
  * Waits until someone other than the PR's author submits a review, or until
  * a timeout elapses. Exists as a single-command CLI subcommand because a
- * worktree-isolated session refuses to run the multi-line shell poll loop
- * this replaces. Silent while polling: the only output is the final JSON
- * result `main.ts` prints.
+ * worktree-isolated session refuses to run a multi-line shell poll loop.
+ * Silent while polling: the only output is the final JSON result `main.ts`
+ * prints.
  *
  * Bot-agnostic by construction — it looks for *some* formal review object
  * from a non-author, never for a particular bot's name.
