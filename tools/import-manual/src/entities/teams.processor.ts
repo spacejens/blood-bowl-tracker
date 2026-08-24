@@ -16,8 +16,7 @@ export class TeamsProcessor {
     for (const entry of ctx.data.teams) {
       const label = `Cannot import team "${entry.name}"`;
       // All three are resolved before any is checked, so a single entry with
-      // several bad references still records one error each -- the behaviour
-      // the previous code had.
+      // several bad references still records one error each.
       const race = await this.refResolver.resolveOptionalRef({
         ref: entry.race,
         systemIds: ctx.systemIds,
