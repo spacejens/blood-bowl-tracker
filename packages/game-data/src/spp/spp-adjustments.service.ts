@@ -81,7 +81,7 @@ export class SppAdjustmentsService {
       const eraCorrect = eraCorrectSums.get(id) ?? 0;
       // No scraped figure means no evidence either way: the adjustment stays
       // NULL ("not computed"), and spp_total falls back to the plain
-      // era-correct sum, which is what it was before this feature.
+      // era-correct sum.
       const adjustment =
         scraped === null
           ? null
