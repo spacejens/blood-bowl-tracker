@@ -7,6 +7,7 @@ import { DiffHunkMembershipService } from './post-review-questions/diff-hunk-mem
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import { PostReviewQuestionsArgsService } from './post-review-questions/post-review-questions-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
+import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 import { ChildProcessService } from './shared/child-process.service';
 import { GitRootsService } from './shared/git-roots.service';
@@ -37,6 +38,7 @@ import { WriteFileService } from './write-file/write-file.service';
     ChildProcessService,
     ProductionTunnelService,
     RunProductionQueryService,
+    ResetProductionSchemaService,
   ],
 })
 export class AppModule {}
