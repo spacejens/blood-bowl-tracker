@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { CheckDriftService } from './check-drift/check-drift.service';
+import { DriftDiffRedactionService } from './check-drift/drift-diff-redaction.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
@@ -35,6 +36,9 @@ describe('AppModule', () => {
       SyncGitignoredService,
     );
     expect(moduleRef.get(CheckDriftService)).toBeInstanceOf(CheckDriftService);
+    expect(moduleRef.get(DriftDiffRedactionService)).toBeInstanceOf(
+      DriftDiffRedactionService,
+    );
     expect(moduleRef.get(WriteFileService)).toBeInstanceOf(WriteFileService);
     expect(moduleRef.get(WaitForPrReviewService)).toBeInstanceOf(
       WaitForPrReviewService,

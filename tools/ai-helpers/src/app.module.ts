@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CheckDriftService } from './check-drift/check-drift.service';
+import { DriftDiffRedactionService } from './check-drift/drift-diff-redaction.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { DiffHunkMembershipService } from './post-review-questions/diff-hunk-membership.service';
@@ -29,6 +30,7 @@ import { WriteFileService } from './write-file/write-file.service';
     PostReviewQuestionsArgsService,
     SyncGitignoredService,
     CheckDriftService,
+    DriftDiffRedactionService,
     WriteFileService,
     WaitForPrReviewService,
     WaitForPrReviewFiltersService,

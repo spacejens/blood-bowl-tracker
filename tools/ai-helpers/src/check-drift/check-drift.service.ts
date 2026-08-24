@@ -6,11 +6,16 @@ import { Injectable } from '@nestjs/common';
 import { GitRootsService } from '../shared/git-roots.service';
 import { GITIGNORED_DRIFT_FILES } from '../shared/gitignored-files';
 import { ProcessRunnerService } from '../shared/process-runner.service';
+import { DriftDiffRedactionService } from './drift-diff-redaction.service';
 
 interface DriftedFile {
   /** Repo-relative path. */
   readonly path: string;
-  /** `diff` output; `<` lines are the main checkout, `>` are the worktree. */
+  /**
+   * Redacted `diff` output; `<` lines are the main checkout, `>` are the
+   * worktree. Secret values are stripped — a changed key is reported by
+   * name only.
+   */
   readonly diff: string;
 }
 
@@ -33,6 +38,7 @@ export class CheckDriftService {
   constructor(
     private readonly gitRoots: GitRootsService,
     private readonly processRunner: ProcessRunnerService,
+    private readonly redaction: DriftDiffRedactionService,
   ) {}
 
   async run(): Promise<CheckDriftResult> {
@@ -61,13 +67,19 @@ export class CheckDriftService {
         worktreeCopy,
       ]);
       if (result.exitCode > 1) {
+        // `diff`'s own stderr only ever carries operational failures (a
+        // missing path, a permission error), never file content, so
+        // forwarding it unredacted here is safe.
         throw new Error(
           `diff of ${path} failed (exit ${result.exitCode}): ` +
             result.stderr.trim(),
         );
       }
       if (result.exitCode === 1) {
-        drifted.push({ path, diff: result.stdout.trimEnd() });
+        drifted.push({
+          path,
+          diff: this.redaction.redact(result.stdout.trimEnd()),
+        });
       }
     }
 

@@ -9,11 +9,13 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 import { GitRootsService } from '../shared/git-roots.service';
 import { ProcessRunnerService } from '../shared/process-runner.service';
 import { CheckDriftService } from './check-drift.service';
+import { DriftDiffRedactionService } from './drift-diff-redaction.service';
 
 describe('CheckDriftService', () => {
   let service: CheckDriftService;
   let gitRoots: MockProxy<GitRootsService>;
   let processRunner: MockProxy<ProcessRunnerService>;
+  let redaction: MockProxy<DriftDiffRedactionService>;
   let fixture: string;
   let mainRoot: string;
   let worktreeRoot: string;
@@ -43,12 +45,15 @@ describe('CheckDriftService', () => {
       stdout: '',
       stderr: '',
     });
+    redaction = mock<DriftDiffRedactionService>();
+    redaction.redact.mockReturnValue('(redacted)');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         CheckDriftService,
         { provide: GitRootsService, useValue: gitRoots },
         { provide: ProcessRunnerService, useValue: processRunner },
+        { provide: DriftDiffRedactionService, useValue: redaction },
       ],
     }).compile();
     service = moduleRef.get(CheckDriftService);
@@ -102,7 +107,30 @@ describe('CheckDriftService', () => {
     });
   });
 
-  it('reports a drifted file with the diff output verbatim', async () => {
+  it('reports a drifted file with the redacted diff, not the raw one', async () => {
+    writeIn(mainRoot, 'apps/discord-bot/.env', 'TOKEN=old');
+    writeIn(worktreeRoot, 'apps/discord-bot/.env', 'TOKEN=new');
+    processRunner.run.mockResolvedValue({
+      exitCode: 1,
+      stdout: '1c1\n< TOKEN=old\n---\n> TOKEN=new\n',
+      stderr: '',
+    });
+    redaction.redact.mockReturnValue(
+      '1c1\n< TOKEN (value changed)\n---\n> TOKEN (value changed)',
+    );
+
+    await expect(service.run()).resolves.toEqual({
+      drifted: [
+        {
+          path: 'apps/discord-bot/.env',
+          diff: '1c1\n< TOKEN (value changed)\n---\n> TOKEN (value changed)',
+        },
+      ],
+      worktreeOnly: [],
+    });
+  });
+
+  it('passes the trailing-newline-trimmed diff stdout to the redaction service', async () => {
     writeIn(mainRoot, 'apps/discord-bot/.env', 'TOKEN=old');
     writeIn(worktreeRoot, 'apps/discord-bot/.env', 'TOKEN=new');
     processRunner.run.mockResolvedValue({
@@ -111,15 +139,20 @@ describe('CheckDriftService', () => {
       stderr: '',
     });
 
-    await expect(service.run()).resolves.toEqual({
-      drifted: [
-        {
-          path: 'apps/discord-bot/.env',
-          diff: '1c1\n< TOKEN=old\n---\n> TOKEN=new',
-        },
-      ],
-      worktreeOnly: [],
-    });
+    await service.run();
+
+    expect(redaction.redact).toHaveBeenCalledWith(
+      '1c1\n< TOKEN=old\n---\n> TOKEN=new',
+    );
+  });
+
+  it('does not redact when the two copies are identical', async () => {
+    writeIn(mainRoot, 'apps/discord-bot/.env', 'TOKEN=same');
+    writeIn(worktreeRoot, 'apps/discord-bot/.env', 'TOKEN=same');
+
+    await service.run();
+
+    expect(redaction.redact).not.toHaveBeenCalled();
   });
 
   it('diffs the main checkout copy first so < lines are the main checkout', async () => {
