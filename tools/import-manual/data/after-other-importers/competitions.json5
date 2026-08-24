@@ -146,10 +146,8 @@
 
     // -- Reserves Rumble: BBL ran three identically-named events (bblIds 7,
     // 16, 23; single match day each, 2013/2014/2015 respectively) and never
-    // numbered any of them. Previously they merged onto a single database row
-    // via the shared "Name" external id, so renaming them was impossible; now
-    // that competitions carry only their source id, the three import as
-    // distinct rows and can be numbered chronologically.
+    // numbered any of them. Competitions carry only their source id, so the
+    // three import as distinct rows and can be numbered chronologically.
     {
       name: 'Reserves Rumble 1',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '7' }],
