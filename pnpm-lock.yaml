@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@discordjs/rest>undici': ^6.27.0
+  '@discordjs/rest>undici': ^8.0.0
 
 importers:
 
@@ -4379,6 +4379,10 @@ packages:
     resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
     engines: {node: '>=20.18.1'}
 
+  undici@8.10.0:
+    resolution: {integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==}
+    engines: {node: '>=22.19.0'}
+
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
@@ -4790,7 +4794,7 @@ snapshots:
       discord-api-types: 0.38.49
       magic-bytes.js: 1.13.0
       tslib: 2.8.1
-      undici: 6.28.0
+      undici: 8.10.0
 
   '@discordjs/rest@2.6.3':
     dependencies:
@@ -4802,7 +4806,7 @@ snapshots:
       discord-api-types: 0.38.50
       magic-bytes.js: 1.13.0
       tslib: 2.8.1
-      undici: 6.28.0
+      undici: 8.10.0
 
   '@discordjs/util@1.2.0':
     dependencies:
@@ -7988,6 +7992,8 @@ snapshots:
   undici@6.28.0: {}
 
   undici@7.29.0: {}
+
+  undici@8.10.0: {}
 
   universalify@2.0.1: {}
 
