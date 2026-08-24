@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { SampledMatch } from '../shared/review.types';
@@ -7,36 +7,6 @@ import { BblMatchEventsRawRendererService } from './bbl-match-events-raw-rendere
 import { MatchEventsDbRendererService } from './match-events-db-renderer.service';
 import { MatchEventsReviewerService } from './match-events-reviewer.service';
 import { TpMatchEventsRawRendererService } from './tp-match-events-raw-renderer.service';
-
-interface Harness {
-  service: MatchEventsReviewerService;
-  bbl: MockProxy<BblMatchEventsRawRendererService>;
-  tp: MockProxy<TpMatchEventsRawRendererService>;
-  db: MockProxy<MatchEventsDbRendererService>;
-}
-
-async function makeHarness(): Promise<Harness> {
-  const bbl = mock<BblMatchEventsRawRendererService>();
-  const tp = mock<TpMatchEventsRawRendererService>();
-  const db = mock<MatchEventsDbRendererService>();
-  bbl.render.mockResolvedValue('<p>bbl raw</p>');
-  tp.render.mockResolvedValue('<p>tp raw</p>');
-  db.render.mockResolvedValue('<p>imported</p>');
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      MatchEventsReviewerService,
-      { provide: BblMatchEventsRawRendererService, useValue: bbl },
-      { provide: TpMatchEventsRawRendererService, useValue: tp },
-      { provide: MatchEventsDbRendererService, useValue: db },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(MatchEventsReviewerService),
-    bbl,
-    tp,
-    db,
-  };
-}
 
 const match = (source: 'bbl' | 'tp'): SampledMatch => ({
   source,
@@ -50,15 +20,34 @@ const match = (source: 'bbl' | 'tp'): SampledMatch => ({
 });
 
 describe('MatchEventsReviewerService', () => {
-  it('identifies itself as the match-events data type', async () => {
-    const { service } = await makeHarness();
+  let service: MatchEventsReviewerService;
+  let bbl: MockProxy<BblMatchEventsRawRendererService>;
+  let tp: MockProxy<TpMatchEventsRawRendererService>;
+  let db: MockProxy<MatchEventsDbRendererService>;
 
+  beforeEach(async () => {
+    bbl = mock<BblMatchEventsRawRendererService>();
+    tp = mock<TpMatchEventsRawRendererService>();
+    db = mock<MatchEventsDbRendererService>();
+    bbl.render.mockResolvedValue('<p>bbl raw</p>');
+    tp.render.mockResolvedValue('<p>tp raw</p>');
+    db.render.mockResolvedValue('<p>imported</p>');
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchEventsReviewerService,
+        { provide: BblMatchEventsRawRendererService, useValue: bbl },
+        { provide: TpMatchEventsRawRendererService, useValue: tp },
+        { provide: MatchEventsDbRendererService, useValue: db },
+      ],
+    }).compile();
+    service = moduleRef.get(MatchEventsReviewerService);
+  });
+
+  it('identifies itself as the match-events data type', () => {
     expect(service.id).toBe('match-events');
   });
 
   it('renders the BBL raw panel for a BBL match', async () => {
-    const { service, bbl, tp } = await makeHarness();
-
     await expect(service.getRawSource(match('bbl'))).resolves.toBe(
       '<p>bbl raw</p>',
     );
@@ -67,8 +56,6 @@ describe('MatchEventsReviewerService', () => {
   });
 
   it('renders both source pages for a BBL match merged from two rows', async () => {
-    const { service, bbl } = await makeHarness();
-
     await service.getRawSource({
       ...match('bbl'),
       secondaryExternalId: '1831',
@@ -79,16 +66,12 @@ describe('MatchEventsReviewerService', () => {
   });
 
   it('renders a single source page for a BBL match with no paired row', async () => {
-    const { service, bbl } = await makeHarness();
-
     await service.getRawSource(match('bbl'));
 
     expect(bbl.render).toHaveBeenCalledWith(['1830']);
   });
 
   it('renders the TP raw panel for a TP match', async () => {
-    const { service, bbl, tp } = await makeHarness();
-
     await expect(service.getRawSource(match('tp'))).resolves.toBe(
       '<p>tp raw</p>',
     );
@@ -97,8 +80,6 @@ describe('MatchEventsReviewerService', () => {
   });
 
   it('renders the imported panel from the database for either source', async () => {
-    const { service, db } = await makeHarness();
-
     await expect(service.getImportedView(match('tp'))).resolves.toBe(
       '<p>imported</p>',
     );

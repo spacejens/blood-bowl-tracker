@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { SampledPlayer } from '../shared/review.types';
 import { ReportBuilderService } from './report-builder.service';
@@ -18,17 +18,17 @@ const player: SampledPlayer = {
 
 const generatedAt = new Date('2026-08-12T10:00:00.000Z');
 
-async function makeService(): Promise<ReportBuilderService> {
-  const moduleRef = await Test.createTestingModule({
-    providers: [ReportBuilderService, HtmlService],
-  }).compile();
-  return moduleRef.get(ReportBuilderService);
-}
-
 describe('ReportBuilderService', () => {
-  it('heads each player section with their identity and why they were picked', async () => {
-    const service = await makeService();
+  let service: ReportBuilderService;
 
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ReportBuilderService, HtmlService],
+    }).compile();
+    service = moduleRef.get(ReportBuilderService);
+  });
+
+  it('heads each player section with their identity and why they were picked', () => {
     const html = service.build({
       players: [
         {
@@ -56,9 +56,7 @@ describe('ReportBuilderService', () => {
     expect(html).toContain('<p>raw</p>');
   });
 
-  it("uses a panel pair's own labels when the reviewer supplied them", async () => {
-    const service = await makeService();
-
+  it("uses a panel pair's own labels when the reviewer supplied them", () => {
     const html = service.build({
       players: [
         {
@@ -82,9 +80,7 @@ describe('ReportBuilderService', () => {
     expect(html).toContain('<h4>Stored player totals (database)</h4>');
   });
 
-  it('lists gaps when there are any', async () => {
-    const service = await makeService();
-
+  it('lists gaps when there are any', () => {
     const html = service.build({
       players: [],
       gaps: [
@@ -99,9 +95,7 @@ describe('ReportBuilderService', () => {
     );
   });
 
-  it('says so when no player was sampled at all', async () => {
-    const service = await makeService();
-
+  it('says so when no player was sampled at all', () => {
     const html = service.build({ players: [], gaps: [], generatedAt });
 
     expect(html).toContain('<p class="note">No players were sampled.</p>');

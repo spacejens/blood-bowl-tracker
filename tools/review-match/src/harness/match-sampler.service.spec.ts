@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { ReviewMatchConfigService } from '../config/review-match-config.service';
@@ -25,45 +25,36 @@ function reviewMatch(
   };
 }
 
-interface Harness {
-  service: MatchSamplerService;
-  stratifier: MockProxy<MatchStratifier>;
-  lookup: MockProxy<MatchLookupService>;
-  config: MockProxy<ReviewMatchConfigService>;
-}
-
-async function makeHarness(): Promise<Harness> {
-  const stratifier = mock<MatchStratifier>();
-  stratifier.listStrata.mockReturnValue([
-    { id: 'foul', label: 'Contains a foul', sources: ['bbl', 'tp'] },
-    { id: 'avoided', label: 'Consequence avoided', sources: ['bbl'] },
-  ]);
-  stratifier.sampleStratum.mockResolvedValue([]);
-  const lookup = mock<MatchLookupService>();
-  lookup.findByExternalIds.mockResolvedValue([]);
-  const config = mock<ReviewMatchConfigService>();
-  config.getMatchesPerStratum.mockReturnValue(3);
-  config.getOverrides.mockReturnValue([]);
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      MatchSamplerService,
-      { provide: MATCH_STRATIFIERS, useValue: [stratifier] },
-      { provide: MatchLookupService, useValue: lookup },
-      { provide: ReviewMatchConfigService, useValue: config },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(MatchSamplerService),
-    stratifier,
-    lookup,
-    config,
-  };
-}
-
 describe('MatchSamplerService', () => {
-  it('samples every stratum for every source it applies to', async () => {
-    const { service, stratifier } = await makeHarness();
+  let service: MatchSamplerService;
+  let stratifier: MockProxy<MatchStratifier>;
+  let lookup: MockProxy<MatchLookupService>;
+  let config: MockProxy<ReviewMatchConfigService>;
 
+  beforeEach(async () => {
+    stratifier = mock<MatchStratifier>();
+    stratifier.listStrata.mockReturnValue([
+      { id: 'foul', label: 'Contains a foul', sources: ['bbl', 'tp'] },
+      { id: 'avoided', label: 'Consequence avoided', sources: ['bbl'] },
+    ]);
+    stratifier.sampleStratum.mockResolvedValue([]);
+    lookup = mock<MatchLookupService>();
+    lookup.findByExternalIds.mockResolvedValue([]);
+    config = mock<ReviewMatchConfigService>();
+    config.getMatchesPerStratum.mockReturnValue(3);
+    config.getOverrides.mockReturnValue([]);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchSamplerService,
+        { provide: MATCH_STRATIFIERS, useValue: [stratifier] },
+        { provide: MatchLookupService, useValue: lookup },
+        { provide: ReviewMatchConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(MatchSamplerService);
+  });
+
+  it('samples every stratum for every source it applies to', async () => {
     await service.sample();
 
     expect(stratifier.sampleStratum.mock.calls.map(([r]) => r)).toEqual([
@@ -74,7 +65,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('tags each sampled match with the stratum label it was picked for', async () => {
-    const { service, stratifier } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source, stratumId }) =>
       Promise.resolve(
         source === 'bbl' && stratumId === 'foul' ? [reviewMatch('bbl', 1)] : [],
@@ -89,7 +79,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('reports a match picked by several strata once, listing every reason', async () => {
-    const { service, stratifier } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source }) =>
       Promise.resolve(source === 'bbl' ? [reviewMatch('bbl', 1)] : []),
     );
@@ -104,7 +93,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('backfills secondaryExternalId when a later stratum finds it for a match already selected', async () => {
-    const { service, stratifier } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source, stratumId }) => {
       if (source !== 'bbl') {
         return Promise.resolve([]);
@@ -127,8 +115,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('records a gap for a stratum with no matching data instead of failing', async () => {
-    const { service } = await makeHarness();
-
     const { gaps } = await service.sample();
 
     expect(gaps).toEqual([
@@ -142,7 +128,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('always includes configured override matches', async () => {
-    const { service, config, lookup } = await makeHarness();
     config.getOverrides.mockImplementation((source) =>
       source === 'tp' ? ['1042'] : [],
     );
@@ -158,7 +143,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('adds "override" to a match the strata already picked', async () => {
-    const { service, stratifier, config, lookup } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source, stratumId }) =>
       Promise.resolve(
         source === 'bbl' && stratumId === 'foul' ? [reviewMatch('bbl', 1)] : [],
@@ -178,7 +162,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('records a gap for an override id that is not in the database', async () => {
-    const { service, config } = await makeHarness();
     config.getOverrides.mockImplementation((source) =>
       source === 'bbl' ? ['9999'] : [],
     );
@@ -196,7 +179,6 @@ describe('MatchSamplerService', () => {
     // even when only its higher (non-primary) id was configured as the
     // override — the match itself is still found, so this must not be
     // reported as a gap.
-    const { service, config, lookup } = await makeHarness();
     config.getOverrides.mockImplementation((source) =>
       source === 'bbl' ? ['1312'] : [],
     );
@@ -214,7 +196,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('does not duplicate a reason already recorded for a match', async () => {
-    const { service, config, lookup } = await makeHarness();
     // Two distinct override ids that both resolve to the same DB match —
     // merge() must not record the 'override' reason twice for it.
     config.getOverrides.mockImplementation((source) =>
@@ -233,7 +214,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('breaks a tie between same-source matches played on the same date by id', async () => {
-    const { service, stratifier } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source, stratumId }) =>
       Promise.resolve(
         source === 'bbl' && stratumId === 'foul'
@@ -251,7 +231,6 @@ describe('MatchSamplerService', () => {
   });
 
   it('orders matches by source, then by play date, then by id', async () => {
-    const { service, stratifier } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source, stratumId }) =>
       Promise.resolve(
         stratumId !== 'foul'

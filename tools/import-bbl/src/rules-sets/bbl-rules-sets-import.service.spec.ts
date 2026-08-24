@@ -6,7 +6,7 @@ import {
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
@@ -58,60 +58,6 @@ function makeRulesSetRecord(id: number) {
   };
 }
 
-/**
- * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (name resolution, error
- * building) mirror the real production logic so a regression in the service
- * under test still fails these tests.
- */
-async function makeService(): Promise<{
-  service: BblRulesSetsImportService;
-  mocks: Mocks;
-}> {
-  const eraConfig = mock<EraConfigService>();
-
-  const rulesSetsImport = mock<RulesSetsImportService>();
-
-  const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
-
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
-  const nameExternalId = mock<NameExternalIdService>();
-  // `forRulesSet` is a pure identity passthrough with no branching or
-  // formatting, so there is no algorithm here that can drift out of sync with
-  // the real NameExternalIdService — exempt from the canned-response rule.
-  nameExternalId.forRulesSet.mockImplementation((name) => name);
-
-  const importResults = mock<ImportResultService>();
-  // `error` is a pure identity field copy with no branching or formatting, so
-  // there is no algorithm here that can drift out of sync with the real
-  // ImportResultService — exempt from the canned-response rule.
-  importResults.error.mockImplementation((args) => ({
-    item: args.item,
-    message: args.message,
-  }));
-  importResults.result.mockReturnValue(CANNED_RESULT);
-
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      BblRulesSetsImportService,
-      { provide: EraConfigService, useValue: eraConfig },
-      { provide: RulesSetsImportService, useValue: rulesSetsImport },
-      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
-      { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: ImportResultService, useValue: importResults },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(BblRulesSetsImportService),
-    mocks: { eraConfig, rulesSetsImport, bootstrap, nameConfig, importResults },
-  };
-}
-
 const twoErasSharingNothing: EraConfig[] = [
   {
     identity: {
@@ -145,8 +91,65 @@ const twoErasSharingNothing: EraConfig[] = [
 ];
 
 describe('BblRulesSetsImportService', () => {
+  let service: BblRulesSetsImportService;
+  let mocks: Mocks;
+
+  /**
+   * Builds the service under test through a TestingModule with every
+   * collaborator mocked. Deterministic collaborators (name resolution, error
+   * building) mirror the real production logic so a regression in the service
+   * under test still fails these tests.
+   */
+  beforeEach(async () => {
+    const eraConfig = mock<EraConfigService>();
+
+    const rulesSetsImport = mock<RulesSetsImportService>();
+
+    const bootstrap = mock<ExternalSystemBootstrapService>();
+    bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+    const nameConfig = mock<ExternalSystemNameConfigService>();
+    nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+    const nameExternalId = mock<NameExternalIdService>();
+    // `forRulesSet` is a pure identity passthrough with no branching or
+    // formatting, so there is no algorithm here that can drift out of sync with
+    // the real NameExternalIdService — exempt from the canned-response rule.
+    nameExternalId.forRulesSet.mockImplementation((name) => name);
+
+    const importResults = mock<ImportResultService>();
+    // `error` is a pure identity field copy with no branching or formatting, so
+    // there is no algorithm here that can drift out of sync with the real
+    // ImportResultService — exempt from the canned-response rule.
+    importResults.error.mockImplementation((args) => ({
+      item: args.item,
+      message: args.message,
+    }));
+    importResults.result.mockReturnValue(CANNED_RESULT);
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BblRulesSetsImportService,
+        { provide: EraConfigService, useValue: eraConfig },
+        { provide: RulesSetsImportService, useValue: rulesSetsImport },
+        { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+        { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+        { provide: NameExternalIdService, useValue: nameExternalId },
+        { provide: ImportResultService, useValue: importResults },
+      ],
+    }).compile();
+
+    service = moduleRef.get(BblRulesSetsImportService);
+    mocks = {
+      eraConfig,
+      rulesSetsImport,
+      bootstrap,
+      nameConfig,
+      importResults,
+    };
+  });
+
   it('upserts each distinct rules set once with its name under BBL and Name', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
     mocks.rulesSetsImport.upsertRulesSet
       .mockResolvedValueOnce(makeRulesSetRecord(100))
@@ -174,7 +177,6 @@ describe('BblRulesSetsImportService', () => {
   });
 
   it('dedupes a rules set shared by multiple eras, upserting it once', async () => {
-    const { service, mocks } = await makeService();
     const eras: EraConfig[] = [
       {
         identity: { name: 'Era A', rulesSets: ['BB2020'] },
@@ -199,7 +201,6 @@ describe('BblRulesSetsImportService', () => {
   });
 
   it('imports the distinct rules-set names across all eras (flattened)', async () => {
-    const { service, mocks } = await makeService();
     const eras: EraConfig[] = [
       {
         identity: { name: 'Era A', rulesSets: ['CRP', 'CRP+'] },
@@ -247,7 +248,6 @@ describe('BblRulesSetsImportService', () => {
   });
 
   it('records an error and maps no id when a rules set upsert fails', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -266,7 +266,6 @@ describe('BblRulesSetsImportService', () => {
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockImplementation(() => {
       throw new Error('BBL_ERAS is not set.');
     });
@@ -282,7 +281,6 @@ describe('BblRulesSetsImportService', () => {
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
@@ -307,7 +305,6 @@ describe('BblRulesSetsImportService', () => {
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const { service, mocks } = await makeService();
     mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
     mocks.rulesSetsImport.upsertRulesSet
       .mockResolvedValueOnce(makeRulesSetRecord(100))
