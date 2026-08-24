@@ -5,6 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.spec.ts'],
+    setupFiles: ['./test/setup.ts'],
     coverage: {
       provider: 'v8',
       all: true,
@@ -15,7 +16,7 @@ export default defineConfig({
         'src/**/*.module.ts',
         'src/schema/**',
         'src/db.ts',
-        'src/scripts/**',
+        'src/scripts/db-generate.ts',
       ],
       thresholds: {
         lines: 90,
