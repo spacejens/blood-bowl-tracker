@@ -78,6 +78,17 @@ describe('EraConfigService', () => {
     expect(eras[1].players.firstPlayerId).toBe(5001);
   });
 
+  it('names the correctly flattened index for a shape error in a later league', async () => {
+    const service = await makeServiceForLeagues([
+      { leagueName: 'tLoEG', eras: [validEras[0], validEras[1]] },
+      {
+        leagueName: 'GBBL',
+        eras: [{ ...validEras[0], identity: { name: '', rulesSets: ['x'] } }],
+      },
+    ]);
+    expect(() => service.getEras()).toThrow('BBL_ERAS[2].identity.name');
+  });
+
   it('throws when leagues is not set', async () => {
     const service = await makeServiceForLeagues(undefined);
     expect(() => service.getEras()).toThrow(

@@ -147,8 +147,10 @@ export class EraConfigService {
     }
 
     const eras: EraConfig[] = [];
+    let flattenedIndex = 0;
     leagues.data.forEach((league) => {
-      league.eras.forEach((entry, eraIndex) => {
+      league.eras.forEach((entry) => {
+        const eraIndex = flattenedIndex++;
         const parsed = eraConfigSchema.safeParse(entry);
         if (!parsed.success) {
           throw new Error(
