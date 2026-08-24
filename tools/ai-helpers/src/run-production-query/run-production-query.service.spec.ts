@@ -181,6 +181,23 @@ describe('RunProductionQueryService', () => {
 
   it('rejects a meta-command query even with leading whitespace before the backslash', async () => {
     await expect(service.run('  \\dt')).rejects.toThrow(/meta-command/i);
+    expect(gitRoots.resolve).not.toHaveBeenCalled();
     expect(processRunner.run).not.toHaveBeenCalled();
+  });
+
+  it('allows a backslash that is not the first character -- psql only treats a leading backslash as a meta-command', async () => {
+    writeEnvFile('DATABASE_URL=postgres://user:pass@host/db\n');
+    processRunner.run.mockResolvedValue({
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    });
+
+    await service.run("SELECT 1; \\! printf 'not actually a meta-command';");
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args).toContain(
+      "SELECT 1; \\! printf 'not actually a meta-command';",
+    );
   });
 });
