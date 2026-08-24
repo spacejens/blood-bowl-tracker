@@ -25,6 +25,8 @@ import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
   let auth: MockProxy<ApiTokenAuthService>;
+  // Initialized here only so TypeScript infers the callable mock type;
+  // reassigned fresh per test in beforeEach.
   let next = vi.fn();
 
   type StandardHandleResult = { matched: boolean; response?: unknown };
