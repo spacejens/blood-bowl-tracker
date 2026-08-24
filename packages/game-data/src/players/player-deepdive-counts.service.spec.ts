@@ -130,10 +130,9 @@ describe('PlayerDeepdiveCountsService', () => {
     it('counts casualty total/serious-injuries and fouls.total as direct acting-type filters, unjoined', async () => {
       // These three go through `countActingEvents`: a direct `match_events`
       // filter with playerId first, then the type list — no join, unlike the
-      // simple-category queries above, which now go through the injected
-      // MatchEventCountsService instead of `db.select`. `casualties.killed`
-      // (chains[2]) no longer goes through this path — see the
-      // `countDeathOutcome` test below.
+      // simple-category queries above, which go through the injected
+      // MatchEventCountsService. `casualties.killed` (chains[2]) is covered
+      // separately — see the `countDeathOutcome` test below.
       const { chains } = await build(
         ...Array.from({ length: DB_COUNTS }, () => [{ count: 0 }]),
       );

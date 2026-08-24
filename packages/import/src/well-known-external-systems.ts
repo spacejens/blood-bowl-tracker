@@ -2,9 +2,9 @@
  * The synthetic name-based external system every importer also registers
  * records under: "Name" (matching by exact name). It is a bookkeeping
  * construct — every entity gets a canonical name to fall back on — not a real
- * data source, so it carries category 'bookkeeping'. Centralized here so
- * game-data no longer needs to know the literal string and every import tool
- * shares one definition.
+ * data source, so it carries category 'bookkeeping'. Centralized here so the
+ * literal string has exactly one definition, shared by game-data and every
+ * import tool.
  */
 export const NAME_EXTERNAL_SYSTEM_NAME = 'Name';
 
