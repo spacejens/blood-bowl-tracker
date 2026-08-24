@@ -15,8 +15,11 @@ async function bootstrap(): Promise<void> {
     logger: false,
   });
   const service = app.get(DbGenerateService);
-  service.generate(process.argv.slice(2), packageRoot);
-  await app.close();
+  try {
+    service.generate(process.argv.slice(2), packageRoot);
+  } finally {
+    await app.close();
+  }
 }
 
 void bootstrap();
