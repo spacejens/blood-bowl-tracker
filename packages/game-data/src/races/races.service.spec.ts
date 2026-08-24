@@ -10,6 +10,7 @@ import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -42,6 +43,7 @@ const fakeRace = {
 describe('RacesService', () => {
   let service: RacesService;
   let likePattern: MockProxy<LikePatternService>;
+  let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -52,6 +54,7 @@ describe('RacesService', () => {
       providers: [
         RacesService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -61,6 +64,7 @@ describe('RacesService', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    matchOutcomeCounts = mock<MatchOutcomeCountsService>();
   });
 
   describe('upsert', () => {
@@ -262,49 +266,28 @@ describe('RacesService', () => {
     });
 
     it.each([
-      ['countMatchesWonByRace'],
-      ['countMatchesLostByRace'],
-      ['countMatchesDrawnByRace'],
-    ] as const)('%s returns the rows the query resolves to', async (method) => {
-      const rows = [
-        { raceId: 1, name: 'Orc', count: 14 },
-        { raceId: 2, name: 'Skaven', count: 5 },
-      ];
-      const { db } = await build(rows);
-      await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
-        rows,
-      );
-      expect(db.select).toHaveBeenCalledTimes(1);
-    });
-
-    it.each([
-      [
-        'countMatchesWonByRace',
-        ['matches.winning_match_team_id', 'match_teams.id'],
-      ],
-      [
-        'countMatchesLostByRace',
-        [
-          'matches.winning_match_team_id',
-          'matches.winning_match_team_id',
-          'match_teams.id',
-        ],
-      ],
-      ['countMatchesDrawnByRace', ['matches.winning_match_team_id']],
+      ['countMatchesWonByRace', 'won'],
+      ['countMatchesLostByRace', 'lost'],
+      ['countMatchesDrawnByRace', 'drawn'],
     ] as const)(
-      '%s forwards the league scope and limit to the outcome query',
-      async (method, expectedOutcomeColumns) => {
-        const { chains } = await build([]);
-        await service[method]({ leagueId: 9 }, 21);
-        expect(chains[0].where).toHaveBeenCalledTimes(1);
-        expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-          9,
-        ]);
-        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
-          ...expectedOutcomeColumns,
-          'eras.league_id',
-        ]);
-        expect(chains[0].limit).toHaveBeenCalledWith(21);
+      '%s asks MatchOutcomeCountsService for the %s outcome and returns the rows',
+      async (method, outcome) => {
+        const rows = [
+          { raceId: 1, name: 'Orc', count: 14 },
+          { raceId: 2, name: 'Skaven', count: 5 },
+        ];
+        matchOutcomeCounts.countMatchesWithOutcomeByRace.mockResolvedValue(
+          rows,
+        );
+        await build();
+
+        await expect(service[method]({ leagueId: 9 }, 21)).resolves.toEqual(
+          rows,
+        );
+
+        expect(
+          matchOutcomeCounts.countMatchesWithOutcomeByRace,
+        ).toHaveBeenCalledWith({ outcome, scope: { leagueId: 9 }, limit: 21 });
       },
     );
   });

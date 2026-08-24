@@ -23,7 +23,7 @@ import { and, countDistinct, desc, eq, ilike } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
-import { countMatchesWithOutcomeByRace } from '../shared/match-outcome-counts';
+import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -39,6 +39,7 @@ export class RacesService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
+    private readonly matchOutcomeCounts: MatchOutcomeCountsService,
   ) {}
 
   async findById(
@@ -238,14 +239,13 @@ export class RacesService {
    * The won/lost/drawn siblings of `countMatchesPlayedByRace`. Like that
    * query these count one participation per participating team, so a drawn
    * match between two teams of the same race adds 2 to that race's total.
-   * See shared/match-outcome-counts.ts.
+   * See `MatchOutcomeCountsService`.
    */
   countMatchesWonByRace(
     scope: FactScope,
     limit: number,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByRace({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'won',
       scope,
       limit,
@@ -256,8 +256,7 @@ export class RacesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByRace({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'lost',
       scope,
       limit,
@@ -268,8 +267,7 @@ export class RacesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
-    return countMatchesWithOutcomeByRace({
-      db: this.db,
+    return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'drawn',
       scope,
       limit,
