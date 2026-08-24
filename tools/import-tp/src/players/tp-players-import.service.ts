@@ -203,7 +203,7 @@ export class TpPlayersImportService {
     // reason maxSppTotalByPlayerId does. Only the standalone roster file
     // carries these counters at all -- match-embedded snapshots do not -- so a
     // player seen only there contributes none and, downstream, gets no
-    // ongoing-competition estimate (i.e. the behaviour before this feature).
+    // ongoing-competition estimate.
     const maxCareerCountsByLineUpId = new Map<number, SppCareerCounts>();
     const noteCareerCounts = (
       lineUpId: number,

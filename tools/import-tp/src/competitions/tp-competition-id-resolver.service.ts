@@ -46,10 +46,9 @@ export interface ResolveCompetitionIdsResult {
  * A competition whose id fails to resolve is recorded as an `ImportError`
  * and omitted from every map here, mirroring how
  * `TpTrophyAwardsImportService` handles the identical kind of miss --
- * silently dropping it, as this logic used to when it lived inline in
- * `main.ts`, would leave match category classification, hired-star era
- * resolution, match events and match outcomes quietly missing data with no
- * indication in the run's reported result.
+ * silently dropping it would leave match category classification,
+ * hired-star era resolution, match events and match outcomes quietly
+ * missing data with no indication in the run's reported result.
  */
 @Injectable()
 export class TpCompetitionIdResolverService {

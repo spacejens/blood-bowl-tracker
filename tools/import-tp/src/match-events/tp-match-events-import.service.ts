@@ -92,9 +92,9 @@ export class TpMatchEventsImportService {
    * and their team.
    *
    * An injury always emits at least a `consequence_type` row on the victim
-   * (`rosterId`/`lineUpId`) — including `injuryType: 'None'`, a real Badly
-   * Hurt result (previously, incorrectly, skipped entirely). Its action side
-   * is credited from `casualtyPairing` when a specific code-6 was correlated
+   * (`rosterId`/`lineUpId`) — including `injuryType: 'None'`, which is a real
+   * Badly Hurt result rather than an absence of injury. Its action side is
+   * credited from `casualtyPairing` when a specific code-6 was correlated
    * to it (the specific acting player + team, severity-bucketed into
    * `badly_hurt`/`serious_injury`/`death`); otherwise, when `turnRosterId`
    * is present and differs from the victim's roster, team-only credit at the
