@@ -353,8 +353,8 @@ export class WaitForPrReviewService {
        * matches (including a stale, still-unexcluded one, e.g. a second
        * failure notice from before this wait's own watermark) are pre-trigger
        * data: returning them would end the wait with the very answer the
-       * trigger was posted to move past, and no fresh poll would ever happen
-       * to check — observed in practice. Suppression lasts exactly this one
+       * trigger was posted to move past, with no fresh poll ever happening
+       * to check. Suppression lasts exactly this one
        * iteration — the next poll's findings are treated like any other
        * iteration's, and nothing here excludes the suppressed comment by id,
        * so an unchanged one is simply re-matched and reported normally next
