@@ -118,7 +118,8 @@ async function run(): Promise<ImportResult> {
     // by the hiring roster id AND the real era the match's
     // competition belongs to (so a roster id spanning multiple eras
     // resolves its team era unambiguously downstream, instead of guessing).
-    // A competition whose eraId can't be resolved is skipped defensively --
+    // Hired-star extraction is skipped when a competition's eraId can't be
+    // resolved (match-embedded player accumulation above still runs) --
     // shouldn't happen in practice.
     //
     // This same pass also builds matchEmbeddedPlayersByRosterId: a standalone
