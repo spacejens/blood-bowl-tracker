@@ -49,6 +49,16 @@ export const COMMENT_UPDATE_FAILED_PHRASES =
   'could not update its existing comment|' +
   "can['’]t update its existing comment|" +
   'cannot update its existing comment';
+/**
+ * Tolerant, deliberately CodeRabbit-specific wording for a fourth
+ * non-review outcome: automatic reviews are disabled repo-wide because it
+ * has fewer stars than CodeRabbit's own free-tier threshold — observed in
+ * practice: "This repository does not receive automatic reviews because it
+ * has fewer than 10 stars." Matches only the stable clause, not the star
+ * count itself, since CodeRabbit could change that threshold independently
+ * of this wording. Same tolerance rationale as `RATE_LIMIT_PHRASES`.
+ */
+export const STAR_GATE_PHRASES = 'does not receive automatic reviews';
 /** Opens the "most recent review" section of CodeRabbit's rolling walkthrough comment. */
 const RECENT_REVIEW_START_MARKER = '<!-- recent_review_start -->';
 /** Closes it. Both markers must be present for the section to be extractable. */
@@ -128,6 +138,7 @@ export class WaitForPrReviewFiltersService {
       `{review: (${this.reviewFilter(options)}), ` +
       `rateLimitComment: (${this.rateLimitFilter(options)}), ` +
       `commentUpdateFailedComment: (${this.commentUpdateFailedFilter(options)}), ` +
+      `starGateComment: (${this.starGateFilter(options)}), ` +
       `headRefOid: .headRefOid}`
     );
   }
@@ -246,6 +257,27 @@ export class WaitForPrReviewFiltersService {
       `select(((.body // "") | test(${JSON.stringify(COMMENT_UPDATE_FAILED_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
+      '{id: .id, body: .body, submittedAt: .createdAt}] | first'
+    );
+  }
+
+  /**
+   * Deliberately CodeRabbit-specific, structurally identical to
+   * `rateLimitFilter` and `commentUpdateFailedFilter` — same `.comments[]`
+   * source, same author-login narrowing, same watermark bound, same
+   * `RECENT_REVIEW_START_MARKER` exclusion. Unlike those two, this signal
+   * never surfaces to a caller as its own result field: `run()` reacts to it
+   * internally by posting the trigger comment once, so there is no exclusion
+   * id to plumb through here — once a review lands, a later wait's watermark
+   * has already advanced past this comment's `createdAt`.
+   */
+  private starGateFilter(options: WaitForPrReviewFilterOptions): string {
+    return (
+      '[.comments[] | select(.createdAt != null) | ' +
+      'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
+      `select(((.body // "") | test(${JSON.stringify(STAR_GATE_PHRASES)}; "i")) and ` +
+      `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}) | ` +
       '{id: .id, body: .body, submittedAt: .createdAt}] | first'
     );
   }

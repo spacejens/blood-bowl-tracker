@@ -63,6 +63,19 @@ export const COMMENT_UPDATE_FAILED_COMMENT = {
 };
 
 /**
+ * CodeRabbit's own wording for the fourth non-review outcome, observed in
+ * practice: automatic reviews are disabled repo-wide because it has fewer
+ * stars than CodeRabbit's own free-tier threshold.
+ */
+export const STAR_GATE_COMMENT = {
+  id: 'IC_stargate1',
+  body:
+    'This repository does not receive automatic reviews because it has ' +
+    'fewer than 10 stars.',
+  submittedAt: '2026-08-11T10:00:00Z',
+};
+
+/**
  * The PR's current head commit, as `gh pr view --json headRefOid` would
  * report it. A real second SHA from the "Reviewing files that changed...
  * between X and Y" sentence, observed in practice.
@@ -131,6 +144,12 @@ export const RATE_LIMITED = {
 export const COMMENT_UPDATE_FAILED = {
   exitCode: 0,
   stdout: `${JSON.stringify({ review: null, rateLimitComment: null, commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
+  stderr: '',
+};
+/** A `gh` invocation that found a star-gate comment and nothing else. */
+export const STAR_GATED = {
+  exitCode: 0,
+  stdout: `${JSON.stringify({ review: null, rateLimitComment: null, commentUpdateFailedComment: null, starGateComment: STAR_GATE_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
   stderr: '',
 };
 
@@ -260,6 +279,20 @@ export function commentUpdateFailedWithBody(body: string) {
       review: null,
       rateLimitComment: null,
       commentUpdateFailedComment: { ...COMMENT_UPDATE_FAILED_COMMENT, body },
+    }),
+    stderr: '',
+  };
+}
+
+/** Builds a `gh` result whose only match is a star-gate comment with the given body. */
+export function starGatedWithBody(body: string) {
+  return {
+    exitCode: 0,
+    stdout: JSON.stringify({
+      review: null,
+      rateLimitComment: null,
+      commentUpdateFailedComment: null,
+      starGateComment: { ...STAR_GATE_COMMENT, body },
     }),
     stderr: '',
   };
