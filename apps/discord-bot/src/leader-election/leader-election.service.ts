@@ -105,9 +105,8 @@ export class LeaderElectionService implements OnApplicationBootstrap {
    * The became-active sequence, split into two failure domains:
    *
    * A `connect()` failure is recoverable — nothing Discord-facing has
-   * happened yet, so releasing the lock and retrying is safe, which is
-   * possible only because this service drives Discord login itself rather
-   * than it being a Nest lifecycle hook.
+   * happened yet, so releasing the lock and retrying is safe: this service
+   * calls `connect()` only after acquiring the lock.
    *
    * A failure in any step AFTER a successful `connect()` is NOT recoverable
    * the same way: the gateway session is already open. Releasing the lock and
