@@ -185,15 +185,13 @@ describe('PlayerDeepdiveCountsService', () => {
 
       // fouls.seriousInjuries: actingPlayerId, actionType = 'foul', then the
       // OR of (consequenceType IN severities) and (consequenceType =
-      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities). This
-      // is also the regression proof for the pre-existing bug where
-      // fouls.seriousInjuries filtered on the literal consequenceType
-      // 'serious_injury', which the imported data never actually uses for a
-      // foul-caused injury — real foul-caused serious injuries are recorded
-      // via niggling_injury, miss_next_game, or a stat_reduction_*
-      // consequence, so the count was always 0. Asserting on
-      // SERIOUS_INJURY_SUFFERED_TYPES here (rather than the literal value)
-      // is what proves the bug is fixed.
+      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities).
+      // Asserting on SERIOUS_INJURY_SUFFERED_TYPES here (rather than a
+      // literal consequenceType) pins the exact filter values, since real
+      // foul-caused serious injuries are recorded under niggling_injury,
+      // miss_next_game, or a stat_reduction_* consequence — never the
+      // literal 'serious_injury', which the imported data never uses for a
+      // foul-caused injury.
       expect(extractAllFilterValues(firstCallArg(chains[4].where))).toEqual([
         1,
         'foul',

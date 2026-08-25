@@ -320,9 +320,7 @@ export class WaitForPrReviewService {
      * develop-feature's watermark exclusion for a review it already handled
      * in a previous iteration — must survive untouched for this wait's whole
      * lifetime, or that already-handled review could match again once a
-     * later discard overwrote the exclusion that was suppressing it. That
-     * was a real bug in an earlier version of this mechanism, caught in
-     * whole-branch review before merge.
+     * later discard overwrote the exclusion that was suppressing it.
      */
     const discardedReviewIds: string[] = [];
     for (;;) {

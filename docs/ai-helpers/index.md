@@ -21,7 +21,7 @@ needs it.
 | `sync-gitignored` | Copy/symlink missing gitignored dev config into a worktree |
 | `check-drift` | Find gitignored config that differs between a worktree and the main checkout |
 | `write-file` | Write a file at a repo-relative path, reading its content from stdin — used to save specs and plans through the `docs/plans` symlink, which the Claude Code Write tool refuses to write through |
-| `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — a single command a worktree-isolated session can run, unlike the inline multi-line poll loop it replaces |
+| `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — one command a worktree-isolated session can run, rather than a multi-line shell poll loop inline |
 
 ## Running it
 

@@ -324,8 +324,9 @@ export class BblTrophyAwardsImportService {
    *      competition group, matching the format TP's own ids already use.
    *      Every curated row for these trophies carries a composite id,
    *      including the Major Season one, so this attempt always succeeds
-   *      for them regardless of which group the award is in — there is no
-   *      Major-Season-specific exception left to be inconsistent about.
+   *      for them regardless of which group the award is in — the composite
+   *      lookup handles Major Season the same as every other multi-group
+   *      trophy, with no special case.
    *   2. the bare `label` — the scheme every self-disambiguating label still
    *      uses: team trophies (`Major 1st`, `Minor 1st`) and the handful of
    *      player trophies whose label is already tied to one specific event

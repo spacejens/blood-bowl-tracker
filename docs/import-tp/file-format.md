@@ -511,15 +511,12 @@ use `lineUpId`), so this map is currently unconsumed downstream — kept for a
 future event type that would need it.
 
 **Embedded roster star players** (permanently on a roster's line-up, as
-opposed to the ones hired for a single match via `inducements_roll`): before
-`starPlayersMasters` was parsed into `starPositions` (above), a `lineUps[]`
-entry whose `lineUpMasterId` pointed into that catalog instead of
-`lineUpMasters` failed position resolution and was silently skipped — which
-in turn left any of that player's match events (touchdown, injury, etc.)
-resolving with a null player, since the player itself was never imported.
-Fixed once `positionIdsByTpPositionId` covers both catalogs' ids; no change
-was needed to `TpPlayersImportService` or match-event resolution, since both
-already resolve generically off that map.
+opposed to the ones hired for a single match via `inducements_roll`):
+`positionIdsByTpPositionId` covers both `lineUpMasters` and
+`starPlayersMasters` ids, so a `lineUps[]` entry whose `lineUpMasterId`
+points into either catalog resolves correctly; no change is needed to
+`TpPlayersImportService` or match-event resolution, since both already
+resolve generically off that map.
 
 **Mercenary Big Guys** (e.g. "Giant"): a small class of `lineUps[]` entries
 whose `lineUpMasterId` isn't present in EITHER `lineUpMasters` or

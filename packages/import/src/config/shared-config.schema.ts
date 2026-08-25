@@ -85,9 +85,10 @@ export const externalSystemNameSchema = z
  * Deliberately lenient: parsing fails only when `connection` is not an
  * object, so each config service keeps throwing its own distinct
  * "connection is not set" and "connection.apiToken is not set" messages.
- * A present-but-unusable field becomes `undefined`, matching the
- * `typeof value === 'string' && value !== ''` reads it replaces. Unknown keys
- * are preserved so a config may carry settings this schema does not name.
+ * A present-but-unusable field becomes `undefined`, equivalent to a
+ * `typeof value === 'string' && value !== ''` check on the raw value. Unknown
+ * keys are preserved so a config may carry settings this schema does not
+ * name.
  */
 export const connectionConfigSchema = z.looseObject({
   apiBaseUrl: z.string().min(1).optional().catch(undefined),

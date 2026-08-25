@@ -224,16 +224,13 @@ export class WaitForPrReviewFiltersService {
    * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
    * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
    * summary, a changes table) can incidentally contain this filter's phrase
-   * — notably on a PR whose diff is *about* rate-limit detection, such as
-   * the one that introduced this guard (the walkthrough comment for this
-   * very guard is itself an example: it summarized the change as
-   * "prioritizes rate-limit results", which matched `rate-limit` and
-   * produced a false `rateLimited: true` despite the same comment already
-   * reporting a clean, completed review) — which would otherwise abort the
-   * wait on a false positive before any real review or genuine rate-limit
-   * notice exists. A genuine rate-limit notice is always a short, separate
-   * comment (or, since this same fix, a bounded section behind its own
-   * distinct markers — see `rateLimitEditFilter`) and never carries the
+   * — notably on a PR whose diff is *about* rate-limit detection, where the
+   * walkthrough's own summary of the change could match `rate-limit` despite
+   * the same comment already reporting a clean, completed review — which
+   * would otherwise abort the wait on a false positive before any real
+   * review or genuine rate-limit notice exists. A genuine rate-limit notice
+   * is always a short, separate comment, or a bounded section behind its own
+   * distinct markers (see `rateLimitEditFilter`), and never carries the
    * walkthrough markers, so this guard costs nothing in real detection.
    * Same rationale as `commentUpdateFailedFilter`'s identical guard below.
    *
