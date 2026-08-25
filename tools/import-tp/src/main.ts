@@ -114,9 +114,8 @@ async function run(): Promise<ImportResult> {
 
     // Star players hired via an inducements_roll event aren't part of any
     // roster's lineUps[], so they're gathered from the already-parsed match
-    // events (a single scan over the same matchesByCompetitionId the
-    // match-events import step walks, so the events are walked once) and
-    // grouped by the hiring roster id AND the real era the match's
+    // events (already-parsed data reused here, not re-scanned) and grouped
+    // by the hiring roster id AND the real era the match's
     // competition belongs to (so a roster id spanning multiple eras
     // resolves its team era unambiguously downstream, instead of guessing).
     // A competition whose eraId can't be resolved is skipped defensively --
