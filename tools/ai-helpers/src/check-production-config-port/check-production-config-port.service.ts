@@ -6,6 +6,7 @@ import JSON5 from 'json5';
 
 import { GitRootsService } from '../shared/git-roots.service';
 import { GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES } from '../shared/gitignored-files';
+import { productionConfigSchema } from './production-config.schema';
 
 interface StaleProductionConfig {
   /** Repo-relative path. */
@@ -59,24 +60,13 @@ export class CheckProductionConfigPortService {
         stale.push({ path, actualApiBaseUrl: undefined, parseError: message });
         continue;
       }
-      const actualApiBaseUrl = this.readApiBaseUrl(parsed);
+      const actualApiBaseUrl =
+        productionConfigSchema.parse(parsed).connection?.apiBaseUrl;
       if (actualApiBaseUrl !== expectedApiBaseUrl) {
         stale.push({ path, actualApiBaseUrl });
       }
     }
 
     return { stale };
-  }
-
-  private readApiBaseUrl(parsed: unknown): string | undefined {
-    if (parsed === null || typeof parsed !== 'object') {
-      return undefined;
-    }
-    const connection = (parsed as Record<string, unknown>).connection;
-    if (connection === null || typeof connection !== 'object') {
-      return undefined;
-    }
-    const apiBaseUrl = (connection as Record<string, unknown>).apiBaseUrl;
-    return typeof apiBaseUrl === 'string' ? apiBaseUrl : undefined;
   }
 }

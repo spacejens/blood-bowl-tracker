@@ -1,3 +1,4 @@
+import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -17,6 +18,9 @@ describe('MatchCategoryConfigService', () => {
       providers: [
         MatchCategoryConfigService,
         { provide: EraConfigService, useValue: eraConfig },
+        // Real, not mocked: a pure, dependency-free formatting service whose
+        // exact output is what this spec's error assertions check.
+        ConfigErrorMessageService,
       ],
     }).compile();
     service = moduleRef.get(MatchCategoryConfigService);

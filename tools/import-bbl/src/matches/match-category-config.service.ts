@@ -1,12 +1,16 @@
 import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
-import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
+import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
+import { matchCategoryOverrideSchema } from './match-config.schema';
 
 @Injectable()
 export class MatchCategoryConfigService {
-  constructor(private readonly eraConfig: EraConfigService) {}
+  constructor(
+    private readonly eraConfig: EraConfigService,
+    private readonly messages: ConfigErrorMessageService,
+  ) {}
 
   /**
    * Explicit BBL match id -> category assignments, gathered from each era's
@@ -24,7 +28,11 @@ export class MatchCategoryConfigService {
     this.eraConfig.getEras().forEach((era, eraIndex) => {
       (era.matches?.categoryOverrides ?? []).forEach((entry, entryIndex) => {
         const location = `BBL_ERAS[${eraIndex}].matches.categoryOverrides[${entryIndex}]`;
-        const { matchId, category } = this.parseEntry(entry, location);
+        const parsed = matchCategoryOverrideSchema.safeParse(entry);
+        if (!parsed.success) {
+          throw new Error(this.messages.format(location, parsed.error));
+        }
+        const { matchId, category } = parsed.data;
         const existing = seenAt.get(matchId);
         if (existing !== undefined) {
           throw new Error(
@@ -38,29 +46,5 @@ export class MatchCategoryConfigService {
     });
 
     return overrides;
-  }
-
-  private parseEntry(
-    entry: unknown,
-    location: string,
-  ): { matchId: string; category: MatchCategory } {
-    if (typeof entry !== 'object' || entry === null) {
-      throw new Error(
-        `${location} must be an object of the form { matchId, category }.`,
-      );
-    }
-    const { matchId, category } = entry as Record<string, unknown>;
-    if (typeof matchId !== 'string' || matchId.trim() === '') {
-      throw new Error(`${location}.matchId must be a non-empty string.`);
-    }
-    if (
-      typeof category !== 'string' ||
-      !(MATCH_CATEGORIES as readonly string[]).includes(category)
-    ) {
-      throw new Error(
-        `${location}.category must be one of: ${MATCH_CATEGORIES.join(', ')}.`,
-      );
-    }
-    return { matchId, category: category as MatchCategory };
   }
 }

@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/main.js",
-  "bin": { "download-tp": "dist/main.js" },
+  "bin": {
+    "download-tp": "dist/main.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
@@ -22,7 +24,8 @@
     "@nestjs/core": "^11.1.29",
     "json5": "^2.2.3",
     "puppeteer": "^25.5.0",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.29",

@@ -19,7 +19,8 @@
     "@blood-bowl-tracker/api-client": "workspace:*",
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@nestjs/common": "^11.1.29",
-    "reflect-metadata": "^0.2.2"
+    "reflect-metadata": "^0.2.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.29",

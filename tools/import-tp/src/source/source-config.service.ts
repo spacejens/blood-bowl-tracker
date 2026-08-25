@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 
+import { nonEmptyStringSchema } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
@@ -14,13 +15,13 @@ export class SourceConfigService {
    * absolute value is used as-is.
    */
   getDataDir(): string {
-    const dir = this.config.get<string>('dataDir');
-    if (!dir) {
+    const parsed = nonEmptyStringSchema.safeParse(this.config.get('dataDir'));
+    if (!parsed.success) {
       throw new Error(
         'dataDir is not set in import-tp-config.json5. Set it to the folder ' +
           'containing one subdirectory per era (e.g. data/).',
       );
     }
-    return resolve(dir);
+    return resolve(parsed.data);
   }
 }
