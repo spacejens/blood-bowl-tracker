@@ -37,12 +37,11 @@ describe('upsertProcedure', () => {
     expect(outputShapeKeysOf(procedure)).toEqual(['id', 'name', 'created']);
   });
 
-  // A bare `TEntity extends z.ZodObject` generic bound previously caused
-  // TypeScript to widen the inferred output schema's shape to
-  // `Record<string, unknown>` once `.extend()` was applied inside the
-  // generic function. `expectTypeOf` fails `pnpm typecheck` if that
-  // widening happens again (vitest's runtime execution does not evaluate
-  // these assertions on its own).
+  // Applying `.extend()` to a generic ZodObject inside a generic function
+  // can make TypeScript widen the inferred output schema's shape to
+  // `Record<string, unknown>` if the generic bound is not tight enough.
+  // `expectTypeOf` fails `pnpm typecheck` if that widening occurs (vitest's
+  // runtime execution does not evaluate these assertions on its own).
   it('preserves the precise output schema shape (type-level)', () => {
     const procedure = upsertProcedure(TestInputSchema, TestEntitySchema);
 

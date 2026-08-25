@@ -16,7 +16,7 @@ export class ErasProcessor {
     for (const entry of ctx.data.eras) {
       const label = `Cannot import era "${entry.name}"`;
       // Both are resolved before either is checked, so one entry with two bad
-      // references still records both errors -- the behaviour the old code had.
+      // references still records both errors.
       const league = await this.refResolver.resolveOptionalRef({
         ref: entry.league,
         systemIds: ctx.systemIds,

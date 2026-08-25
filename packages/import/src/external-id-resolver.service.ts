@@ -23,11 +23,10 @@ interface ResolvableRouter {
  * Resolves an external-id pair to a database id over the API, for any of the
  * nine resolvable entity kinds.
  *
- * This is the shared replacement for the in-memory, same-run-only reference
- * maps each import tool used to build. Because every upsert persists
- * immediately, an entity created earlier — in this run, in the other
- * import-manual phase, or by a different import tool — is already resolvable
- * here.
+ * Shared by every import tool. Because each upsert persists immediately, an
+ * entity created earlier — in this run, in the other import-manual phase, or
+ * by a different import tool — is already resolvable here, so resolution is
+ * never limited to what one process has seen.
  *
  * A miss is `undefined`, never an exception: recording an import error and
  * skipping the entry is the caller's decision (see ReferenceLookupService).

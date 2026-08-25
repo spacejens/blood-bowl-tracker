@@ -130,10 +130,9 @@ describe('PlayerDeepdiveCountsService', () => {
     it('counts casualty total/serious-injuries and fouls.total as direct acting-type filters, unjoined', async () => {
       // These three go through `countActingEvents`: a direct `match_events`
       // filter with playerId first, then the type list — no join, unlike the
-      // simple-category queries above, which now go through the injected
-      // MatchEventCountsService instead of `db.select`. `casualties.killed`
-      // (chains[2]) no longer goes through this path — see the
-      // `countDeathOutcome` test below.
+      // simple-category queries above, which go through the injected
+      // MatchEventCountsService. `casualties.killed` (chains[2]) is covered
+      // separately — see the `countDeathOutcome` test below.
       const { chains } = await build(
         ...Array.from({ length: DB_COUNTS }, () => [{ count: 0 }]),
       );
@@ -186,15 +185,13 @@ describe('PlayerDeepdiveCountsService', () => {
 
       // fouls.seriousInjuries: actingPlayerId, actionType = 'foul', then the
       // OR of (consequenceType IN severities) and (consequenceType =
-      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities). This
-      // is also the regression proof for the pre-existing bug where
-      // fouls.seriousInjuries filtered on the literal consequenceType
-      // 'serious_injury', which the imported data never actually uses for a
-      // foul-caused injury — real foul-caused serious injuries are recorded
-      // via niggling_injury, miss_next_game, or a stat_reduction_*
-      // consequence, so the count was always 0. Asserting on
-      // SERIOUS_INJURY_SUFFERED_TYPES here (rather than the literal value)
-      // is what proves the bug is fixed.
+      // 'casualty_avoided' AND consequenceAvoidedSeverity IN severities).
+      // Asserting on SERIOUS_INJURY_SUFFERED_TYPES here (rather than a
+      // literal consequenceType) pins the exact filter values, since real
+      // foul-caused serious injuries are recorded under niggling_injury,
+      // miss_next_game, or a stat_reduction_* consequence — never the
+      // literal 'serious_injury', which the imported data never uses for a
+      // foul-caused injury.
       expect(extractAllFilterValues(firstCallArg(chains[4].where))).toEqual([
         1,
         'foul',

@@ -105,7 +105,7 @@ export class SppAwardValuesService {
 
     // One transaction around the insert and every update: the caller treats
     // this single call as one batch that either wholly succeeds or wholly
-    // fails, which the previous single statement gave for free.
+    // fails.
     return this.db.transaction(async (tx) => {
       const sppAwardValueIds: number[] = [];
 

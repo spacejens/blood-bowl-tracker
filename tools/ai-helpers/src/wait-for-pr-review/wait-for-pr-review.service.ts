@@ -8,6 +8,7 @@ import {
   COMMENT_UPDATE_FAILED_PHRASES,
   NO_ACTIONABLE_COMMENTS_PHRASES,
   RATE_LIMIT_PHRASES,
+  STAR_GATE_PHRASES,
   WaitForPrReviewFilterOptions,
   WaitForPrReviewFiltersService,
 } from './wait-for-pr-review-filters.service';
@@ -113,6 +114,12 @@ interface PollOutcome {
    * out so `run` can exclude it from later polls in this same wait.
    */
   readonly discardedEmptyReviewId?: string;
+  /**
+   * A CodeRabbit "does not receive automatic reviews" (star-gate) comment,
+   * when found. Never surfaces past `run()`'s own trigger logic — see
+   * `starGateFilter`'s doc comment.
+   */
+  readonly starGateComment?: CodeRabbitComment;
 }
 
 /**
@@ -198,6 +205,8 @@ const COMMENT_UPDATE_FAILED_PHRASE_REGEX = new RegExp(
   COMMENT_UPDATE_FAILED_PHRASES,
   'i',
 );
+/** Mirrors `STAR_GATE_PHRASES` for the stricter TypeScript re-check. */
+const STAR_GATE_PHRASE_REGEX = new RegExp(STAR_GATE_PHRASES, 'i');
 /** A fenced code block: three backticks, any content, three backticks. */
 const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
 /** An inline code span: a backtick, no-backtick content, a backtick. */
@@ -257,27 +266,33 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
 /**
  * Waits until someone other than the PR's author submits a review, or until
  * a timeout elapses. Exists as a single-command CLI subcommand because a
- * worktree-isolated session refuses to run the multi-line shell poll loop
- * this replaces. Silent while polling: the only output is the final JSON
- * result `main.ts` prints.
+ * worktree-isolated session refuses to run a multi-line shell poll loop.
+ * Silent while polling: the only output is the final JSON result `main.ts`
+ * prints.
  *
  * Bot-agnostic by construction — it looks for *some* formal review object
  * from a non-author, never for a particular bot's name.
  *
- * Three exceptions are CodeRabbit-specific, because all three are
+ * Four exceptions are CodeRabbit-specific, because all four are
  * CodeRabbit's own behaviour rather than anything GitHub models as a review.
  * It answers its per-developer review rate limit either with a top-level PR
  * comment or by editing that same rolling comment in place, so both shapes
  * are looked for; it can finish a pass with nothing actionable to say and
  * report *that* only by editing its rolling walkthrough comment in place;
- * and it can fail to persist such an edit at all, posting a "couldn't update
+ * it can fail to persist such an edit at all, posting a "couldn't update
  * its existing comment" notice instead while the rolling comment stays
- * stuck mid-pass — observed in practice. Each poll therefore also looks for
- * those comments — narrowly, by CodeRabbit's own login and wording — and
- * returns as soon as it finds one, rather than running out the whole
- * timeout with nothing to report. A completion comment comes back shaped
- * like a review, so callers need no new result field: see
- * `CompletionReview`. The other two come back as their own result fields.
+ * stuck mid-pass; and, on a repo with too few stars, it posts a one-time
+ * notice that automatic reviews are disabled entirely — all three comment
+ * cases observed in practice. Each poll therefore also looks for those
+ * comments — narrowly, by CodeRabbit's own login and wording — and returns
+ * (or, for the star-gate notice, triggers a manual review and continues)
+ * as soon as it finds one, rather than running out the whole timeout with
+ * nothing to report. A completion comment comes back shaped like a review,
+ * so callers need no new result field: see `CompletionReview`. The
+ * rate-limit and comment-update-failure cases come back as their own result
+ * fields. The star-gate case never reaches a caller as its own field: it is
+ * handled entirely inside `run()`, which posts the same `@coderabbitai
+ * review` trigger a caller-requested retrigger would (see `shouldTrigger`).
  */
 @Injectable()
 export class WaitForPrReviewService {
@@ -305,9 +320,7 @@ export class WaitForPrReviewService {
      * develop-feature's watermark exclusion for a review it already handled
      * in a previous iteration — must survive untouched for this wait's whole
      * lifetime, or that already-handled review could match again once a
-     * later discard overwrote the exclusion that was suppressing it. That
-     * was a real bug in an earlier version of this mechanism, caught in
-     * whole-branch review before merge.
+     * later discard overwrote the exclusion that was suppressing it.
      */
     const discardedReviewIds: string[] = [];
     for (;;) {
@@ -340,15 +353,27 @@ export class WaitForPrReviewService {
        * matches (including a stale, still-unexcluded one, e.g. a second
        * failure notice from before this wait's own watermark) are pre-trigger
        * data: returning them would end the wait with the very answer the
-       * trigger was posted to move past, and no fresh poll would ever happen
-       * to check — observed in practice. Suppression lasts exactly this one
+       * trigger was posted to move past, with no fresh poll ever happening
+       * to check. Suppression lasts exactly this one
        * iteration — the next poll's findings are treated like any other
        * iteration's, and nothing here excludes the suppressed comment by id,
        * so an unchanged one is simply re-matched and reported normally next
        * time.
        */
       let justTriggered = false;
-      if (!triggered && this.shouldTrigger(options)) {
+      // Two independent reasons to trigger: the caller asked for one at a
+      // known instant (`shouldTrigger`), or this poll itself just found the
+      // star-gate comment — automatic reviews are disabled for the whole
+      // repo, so there is nothing to wait out and no reason to hold off
+      // until the caller's own retry logic notices. `outcome.starGateComment`
+      // needs no exclusion id the way rate-limit/comment-update-failure do:
+      // `triggered` already prevents a second trigger within this `run()`
+      // call, and the comment predates any watermark a later wait derives
+      // from an actual review.
+      if (
+        !triggered &&
+        (this.shouldTrigger(options) || outcome?.starGateComment !== undefined)
+      ) {
         // Set before awaiting: a slow or failing post must not be retried on
         // every interval for the rest of the wait.
         triggered = true;
@@ -415,7 +440,8 @@ export class WaitForPrReviewService {
     if (
       outcome.review !== undefined ||
       outcome.rateLimitComment !== undefined ||
-      outcome.commentUpdateFailedComment !== undefined
+      outcome.commentUpdateFailedComment !== undefined ||
+      outcome.starGateComment !== undefined
     ) {
       return outcome;
     }
@@ -483,6 +509,10 @@ export class WaitForPrReviewService {
       parsed.commentUpdateFailedComment,
       COMMENT_UPDATE_FAILED_PHRASE_REGEX,
     );
+    const starGateComment = this.prosePhraseComment(
+      parsed.starGateComment,
+      STAR_GATE_PHRASE_REGEX,
+    );
     const headRefOid =
       typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
     const checked = await this.checkedReview(
@@ -495,6 +525,7 @@ export class WaitForPrReviewService {
       ...(commentUpdateFailedComment === undefined
         ? {}
         : { commentUpdateFailedComment }),
+      ...(starGateComment === undefined ? {} : { starGateComment }),
       ...(headRefOid === undefined ? {} : { headRefOid }),
     };
   }
@@ -767,9 +798,8 @@ export class WaitForPrReviewService {
    * Strips fenced code blocks and inline code spans before testing for a
    * phrase — both the rate-limit warning and the completion notice are
    * prose, not code, so this narrows matching without weakening real
-   * detection. A real false positive seen in practice: CodeRabbit's status
-   * comment echoed a branch name containing "rate-limit" in an inline code
-   * span.
+   * detection. Without this, a status comment that echoes a branch name
+   * containing "rate-limit" inside an inline code span would false-positive.
    */
   private hasProsePhrase(text: string, phrase: RegExp): boolean {
     const prose = text

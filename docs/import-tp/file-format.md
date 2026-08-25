@@ -179,9 +179,8 @@ objective. **Skip-listed codes** — dropped unconditionally, along with any
 unrecognized code, so new/unmapped TP codes never crash the import: `0, 1,
 18, 19, 27` — these are structural markers or per-roll noise with no useful
 modeled payload (e.g. code `27`, "player assigned to line-up", is a
-structural row, not a modeled roll). A `None` `injuryType` is still returned
-by the parser and is now a real, imported event (a genuine "Badly Hurt"
-result — see below).
+structural row, not a modeled roll). A `None` `injuryType` is a real,
+imported event (a genuine "Badly Hurt" result — see below).
 
 `tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
 into zero, one, or two `UpsertMatchEvent`s (see
@@ -217,8 +216,8 @@ An injury's `injuryType` maps to a `consequence_type` via:
 | `PA`             | `stat_reduction_pa` |
 | `AG`             | `stat_reduction_ag` |
 
-`None` used to be skipped entirely (treated as "no injury happened"); it is
-in fact a genuine Badly Hurt result and is now always imported.
+`None` is a genuine Badly Hurt result, not "no injury happened", so it is
+always imported like any other injury type.
 
 `matchEvents[].starPoints` — the [Star Player Points](../glossary.md#star-player-points-spp)
 TP itself says this event awarded its acting player — is carried on every
@@ -461,8 +460,8 @@ the same entity regardless of team), upserted with `isStarPlayer: true` and a
 bare-name TP external id, matching the hired-star-player convention below so
 both paths dedupe onto the same `Position` row. Their ids merge into the same
 `positionIdsByTpPositionId` map the regular positions use — see "Embedded
-roster star players" below for how this closes the gap that used to skip
-these players.
+roster star players" below for how that shared map lets these players
+resolve.
 
 **Teams** (via `TpTeamsImportService`) are keyed by roster `id` and `teamName`
 (one TP and one Name external id). Their race resolves via `raceIdsByTeamRaceCode`
@@ -512,15 +511,12 @@ use `lineUpId`), so this map is currently unconsumed downstream — kept for a
 future event type that would need it.
 
 **Embedded roster star players** (permanently on a roster's line-up, as
-opposed to the ones hired for a single match via `inducements_roll`): before
-`starPlayersMasters` was parsed into `starPositions` (above), a `lineUps[]`
-entry whose `lineUpMasterId` pointed into that catalog instead of
-`lineUpMasters` failed position resolution and was silently skipped — which
-in turn left any of that player's match events (touchdown, injury, etc.)
-resolving with a null player, since the player itself was never imported.
-Fixed once `positionIdsByTpPositionId` covers both catalogs' ids; no change
-was needed to `TpPlayersImportService` or match-event resolution, since both
-already resolve generically off that map.
+opposed to the ones hired for a single match via `inducements_roll`):
+`positionIdsByTpPositionId` covers both `lineUpMasters` and
+`starPlayersMasters` ids, so a `lineUps[]` entry whose `lineUpMasterId`
+points into either catalog resolves correctly; no change is needed to
+`TpPlayersImportService` or match-event resolution, since both already
+resolve generically off that map.
 
 **Mercenary Big Guys** (e.g. "Giant"): a small class of `lineUps[]` entries
 whose `lineUpMasterId` isn't present in EITHER `lineUpMasters` or

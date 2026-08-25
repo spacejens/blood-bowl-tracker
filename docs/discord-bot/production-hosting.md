@@ -149,9 +149,8 @@ for the commit message and `git rev-parse HEAD^2` to detect a merge commit.
 Any field that cannot be resolved is left off the embed rather than shown
 blank; none is required, and none can fail startup.
 
-This is the only message either machine posts on startup — the previous
-behavior of also posting the unfiltered `stats` insight was dropped, since
-the status embed alone already answers "what is running right now."
+This is the only message either machine posts on startup: the status embed
+alone already answers "what is running right now."
 
 ## Configuration and secrets
 
@@ -481,10 +480,6 @@ fly deploy --image <image-ref-from-an-earlier-release>
 ```
 
 `fly releases --json` shows the exact image reference for each release.
-
-This path wasn't exercised during the first deploy — there was no prior
-release to roll back to — so treat it as documented but not yet proven in
-practice.
 
 The `deploy-production` skill automates this: it lists recent releases with
 their image references, asks which one to roll back to, and runs the

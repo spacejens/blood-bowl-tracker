@@ -36,7 +36,7 @@ export class ReferenceLookupService {
    * This is what the high-volume BBL and TP steps use: they collect every
    * reference a step needs, resolve them all at once, then look each record's
    * reference up locally. That keeps the network cost at one round trip per
-   * step — the same as the id-maps this replaces — instead of one per record.
+   * step instead of one per record.
    * Reporting a miss is the caller's job here, because the callers phrase
    * that error in their own source-specific terms.
    *

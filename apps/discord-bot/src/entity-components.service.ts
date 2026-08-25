@@ -45,15 +45,12 @@ const BLANK_LABEL = '\u200b';
  * URL and Premium is for purchases), so some of the ten destination types share colours:
  * the five "container" types (era, competition, competition group, league, trophy)
  * share Secondary, and the three "who played" types (coach, team, race) share
- * Success — race used to be Danger, but red read as a destructive-action
- * colour for routine navigation among these look-alike types. Player is the
- * sole user of Primary. Star player takes Danger, the last unused style: it
- * is the one destination type that is not routine navigation but a single
- * marquee entity (a hired mercenary, not a team/coach/race a coach browses
- * through), so the same red reads as "special/headline" there rather than
- * "destructive" — this is not the same colour being rejected and then
- * re-adopted for the same reason, it is Danger fitting a different kind of
- * button.
+ * Success, because red would read as a destructive-action colour for routine
+ * navigation among these look-alike types. Player is the sole user of
+ * Primary. Star player takes Danger, the last unused style: it is the one
+ * destination type that is not routine navigation but a single marquee entity
+ * (a hired mercenary, not a team/coach/race a coach browses through), so red
+ * reads as "special/headline" there rather than "destructive".
  *
  * The `Record<ButtonCustomIdPrefix, ButtonStyle>` annotation is deliberate:
  * TypeScript requires every member of the union to appear as a key, so adding

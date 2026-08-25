@@ -234,9 +234,8 @@
     },
     {
       // TP-only. No BBL equivalent TEAM trophy exists -- BBL tracks
-      // Ogretoberfest only through its player trophy, Bierhallenführer (below).
-      // Its lone external id is therefore a TP one; it previously
-      // carried none at all and was matched by exact name.
+      // Ogretoberfest only through its player trophy, Bierhallenführer
+      // (below). Its lone external id is therefore a TP one.
       name: 'Ogretoberfest',
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Ogretoberfest' },

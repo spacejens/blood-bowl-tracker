@@ -269,14 +269,12 @@ Where an import step needs the database id of an entity it does not create
 itself — an era's league and rules sets, a competition's era, a team's race
 and coach, a player's position, a competition id — it asks the API to resolve
 that entity's external id (see
-[RPC conventions](../api/rpc-conventions.md#reference-resolution)) rather
-than consulting a map built earlier in the same run. Each step resolves
-everything it needs in one batched call and then looks the records up locally,
-so the network cost is one round trip per step, not per record.
+[RPC conventions](../api/rpc-conventions.md#reference-resolution)). Each step
+resolves everything it needs in one batched call and then looks the records up
+locally, so the network cost is one round trip per step, not per record.
 
-The ordering in `main.ts` still matters — a race has to be upserted before a
-team referencing it can be resolved — but no id map is threaded between the
-steps any more.
+The ordering in `main.ts` matters: a race has to be upserted before a team
+referencing it can be resolved.
 
 Some maps deliberately remain, because no external-id resolve can answer
 them: payload carriers that get re-upserted later (`competitionsByBblId`,
@@ -370,9 +368,9 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
   future work.
-  A pair configured under an era's `matches.merges` (folded from the old
-  top-level `matchMerges` list, now per-era; see Configuration above) is
-  imported as a single match rather than two: BBL cannot record a match with
+  A pair configured under an era's `matches.merges` (per-era; see
+  Configuration above) is imported as a single match rather than two: BBL
+  cannot record a match with
   more than two teams, so each four-team "Bierhallentodball" final exists as
   two two-team rows that this import folds back into one N-team match (both
   external ids, four teams, and the union of both rows' events). A match id

@@ -236,11 +236,10 @@ describe('correlateCasualties', () => {
 
   it('does not pair when instant is not a parseable timestamp (cannot verify the cutoff)', () => {
     // A malformed/placeholder `instant` diffs to NaN, which is never `<=`
-    // MAX_PAIRING_DELAY_MS — so an unmeasurable delta can no longer be
-    // assumed to be within the 120s cutoff window. This is a deliberate
-    // behavior change from the prior "always pair despite NaN" workaround:
-    // without a measurable time delta we can't confirm the pairing is
-    // actually within the window, so the casualty is left unpaired instead.
+    // MAX_PAIRING_DELAY_MS, so an unmeasurable delta is not treated as
+    // being within the 120s cutoff window: without a measurable time delta
+    // we can't confirm the pairing is actually within the window, so the
+    // casualty is left unpaired.
     const casualtyEvent = casualty({
       tpEventId: 1,
       instant: 'not-a-date',

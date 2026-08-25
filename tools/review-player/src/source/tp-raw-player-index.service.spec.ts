@@ -250,8 +250,8 @@ describe('TpRawPlayerIndexService', () => {
     // fail. Only the configured data dir itself is read without a prior
     // isDirectory() check, so replacing it with a file reliably produces an
     // ENOTDIR scan failure regardless of the process's user/permissions
-    // (unlike the chmod-based technique this replaces, which silently
-    // doesn't block access when the test process runs as root).
+    // (a chmod-based technique would not: it silently doesn't block access
+    // when the test process runs as root).
     rmSync(dir, { recursive: true, force: true });
     writeFileSync(dir, 'not a directory', 'utf8');
 

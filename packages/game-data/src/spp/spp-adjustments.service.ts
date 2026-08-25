@@ -81,7 +81,7 @@ export class SppAdjustmentsService {
       const eraCorrect = eraCorrectSums.get(id) ?? 0;
       // No scraped figure means no evidence either way: the adjustment stays
       // NULL ("not computed"), and spp_total falls back to the plain
-      // era-correct sum, which is what it was before this feature.
+      // era-correct sum.
       const adjustment =
         scraped === null
           ? null
@@ -151,9 +151,8 @@ export class SppAdjustmentsService {
       // estimate backed out, never dropping below the confirmed-imported sum
       // (an overshooting estimate must not erase real imported events). The
       // adjustment then falls out as whatever gap the corrected total still
-      // leaves over the imported sum — algebraically identical to the old
-      // max(0, reported - (importedSum + estimatedOngoing)), just restructured
-      // so correctedTotal is available to write back into spp_total.
+      // leaves over the imported sum, so correctedTotal is also available to
+      // write back into spp_total.
       const correctedTotal = Math.max(importedSum, reported - estimatedOngoing);
       const adjustment = Math.max(0, correctedTotal - importedSum);
       writes.set(row.id, {

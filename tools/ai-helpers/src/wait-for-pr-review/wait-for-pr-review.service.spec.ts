@@ -16,6 +16,8 @@ import {
   completionWithSection,
   createHarness,
   EMPTY,
+  extractCommentUpdateFailedFilter,
+  extractRateLimitFilter,
   FOUND,
   HEAD_REF_OID,
   OPTIONS,
@@ -25,48 +27,6 @@ import {
   rateLimitedWithBody,
   REVIEW,
 } from './wait-for-pr-review.test-helpers';
-
-/**
- * Pulls just the `commentUpdateFailedComment: (...)` sub-expression out of
- * the whole `filter()` jq program (`args[6]`). `filter()` concatenates three
- * `{key: (subFilter), ...}` clauses into one string ending in
- * `, headRefOid: .headRefOid}`, so the sub-filter's own closing paren is the
- * one immediately before that fixed literal suffix — this mirrors that
- * construction rather than trying to balance parens generically. Extracting
- * the sub-filter lets assertions target this filter specifically, instead of
- * the whole program where a rate-limit-filter substring could make an
- * assertion pass even if this filter itself lacked it.
- */
-function extractCommentUpdateFailedFilter(program: string): string {
-  const startMarker = 'commentUpdateFailedComment: (';
-  const endMarker = '), headRefOid: .headRefOid}';
-  const start = program.indexOf(startMarker) + startMarker.length;
-  const end = program.indexOf(endMarker, start);
-  if (start < startMarker.length || end === -1) {
-    throw new Error(
-      `could not extract commentUpdateFailedComment sub-filter from: ${program}`,
-    );
-  }
-  return program.slice(start, end);
-}
-
-/**
- * Same extraction as `extractCommentUpdateFailedFilter`, for the
- * `rateLimitComment: (...)` clause instead — its own closing paren is the
- * one immediately before `, commentUpdateFailedComment: (`.
- */
-function extractRateLimitFilter(program: string): string {
-  const startMarker = 'rateLimitComment: (';
-  const endMarker = '), commentUpdateFailedComment: (';
-  const start = program.indexOf(startMarker) + startMarker.length;
-  const end = program.indexOf(endMarker, start);
-  if (start < startMarker.length || end === -1) {
-    throw new Error(
-      `could not extract rateLimitComment sub-filter from: ${program}`,
-    );
-  }
-  return program.slice(start, end);
-}
 
 describe('WaitForPrReviewService', () => {
   let service: WaitForPrReviewService;
@@ -324,14 +284,14 @@ describe('WaitForPrReviewService', () => {
     expect(args[6]).toContain('submittedAt: .createdAt');
     // CodeRabbit's own rolling walkthrough comment can incidentally contain
     // this filter's phrase in prose (a summary, a changes table) — notably
-    // on a PR whose diff is about rate-limit detection itself, which
-    // produced a real false positive in practice — so the filter
-    // must exclude any comment carrying the walkthrough's marker before it
-    // could ever be mistaken for a genuine rate-limit notice. Extracted to
-    // this filter's own sub-expression, not asserted against the whole
-    // program, since `commentUpdateFailedFilter` carries the identical
-    // substring and would make this assertion pass even if this filter
-    // itself lacked the guard.
+    // on a PR whose diff is about rate-limit detection itself, where the
+    // walkthrough's own summary of the change could match this phrase — so
+    // the filter must exclude any comment carrying the walkthrough's marker
+    // before it could ever be mistaken for a genuine rate-limit notice.
+    // Extracted to this filter's own sub-expression, not asserted against
+    // the whole program, since `commentUpdateFailedFilter` carries the
+    // identical substring and would make this assertion pass even if this
+    // filter itself lacked the guard.
     const subFilter = extractRateLimitFilter(args[6]);
     expect(subFilter).toContain(
       'contains("<!-- recent_review_start -->") | not',
@@ -361,9 +321,8 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase match found only inside a code span as a rate limit', async () => {
-    // A real false positive seen in practice: CodeRabbit's own "review in
-    // progress" status comment echoes this branch's name in a checkbox's
-    // inline code, and the branch name happens to contain "rate-limit".
+    // A status comment can echo a branch name in a checkbox's inline code,
+    // and that branch name can itself happen to contain "rate-limit".
     // `gh`/jq's own coarse phrase test can still surface this as a
     // candidate — the service itself must discard it once it strips code
     // formatting and re-checks.
@@ -635,9 +594,10 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('discards a comment-update-failure candidate whose id is missing, not throws', async () => {
-    // prosePhraseComment previously validated only `body`, so a malformed
-    // candidate with a matching phrase but no `id` would have been returned
-    // as-is — leaving a b3 retry with an unusable exclusion value.
+    // prosePhraseComment validates `id` as well as `body`, so a malformed
+    // candidate with a matching phrase but no `id` is discarded rather than
+    // returned — otherwise it would leave a b3 retry with an unusable
+    // exclusion value.
     processRunner.run
       .mockResolvedValueOnce({
         exitCode: 0,
@@ -907,8 +867,7 @@ describe('WaitForPrReviewService', () => {
     // That first poll ran before the trigger comment existed, so its match is
     // suppressed (see wait-for-pr-review.trigger-settle.spec.ts). This mock
     // is steady state, so the fresh poll after the settle pause matches the
-    // same comment and reports it — hence the two polls asserted below, which
-    // are what distinguish this from the old, stale early return.
+    // same comment and reports it — hence the two polls asserted below.
     processRunner.run.mockResolvedValue(RATE_LIMITED);
 
     const result = await runWait({
@@ -1065,9 +1024,9 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase found only inside code formatting as a completion', async () => {
-    // Mirrors the rate-limit false positive seen in practice: jq's own
-    // phrase test is coarse, so the service re-checks the section with
-    // code formatting stripped.
+    // Same class of risk as the rate-limit phrase check: jq's own phrase
+    // test is coarse, so the service re-checks the section with code
+    // formatting stripped.
     mockPoll(
       EMPTY,
       completionWithSection(

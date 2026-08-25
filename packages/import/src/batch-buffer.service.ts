@@ -6,8 +6,8 @@ import type { ImportError } from './types';
 /**
  * How many items accumulate before a chunk is sent. A deliberate starting
  * point, not a benchmarked value: it bounds both the request payload and the
- * blast radius of a transport-level failure (a failed request costs a whole
- * chunk's items, where the old per-item path cost one).
+ * blast radius of a transport-level failure, since a failed request costs a
+ * whole chunk's items.
  */
 export const DEFAULT_BATCH_CHUNK_SIZE = 500;
 

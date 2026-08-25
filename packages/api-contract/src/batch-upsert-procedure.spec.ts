@@ -67,10 +67,10 @@ describe('batchUpsertProcedure', () => {
   });
 
   // Same widening hazard `upsert-procedure.spec.ts` documents: applying
-  // `.extend()` to a generic ZodObject inside a generic function has
-  // previously widened the inferred shape to Record<string, unknown>.
-  // `expectTypeOf` fails `pnpm typecheck` if that happens again (vitest does
-  // not evaluate these assertions at runtime).
+  // `.extend()` to a generic ZodObject inside a generic function can widen
+  // the inferred shape to Record<string, unknown>. `expectTypeOf` fails
+  // `pnpm typecheck` if that occurs (vitest does not evaluate these
+  // assertions at runtime).
   it('preserves the precise per-item output type (type-level)', () => {
     const procedure = batchUpsertProcedure(TestInputSchema, TestEntitySchema);
 
