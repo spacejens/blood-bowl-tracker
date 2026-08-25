@@ -22,12 +22,10 @@ import {
  * command bounced off an already-active rate limit, it states no wait
  * duration of its own — unlike the notice that first reported the limit —
  * so it must never shadow a real, still-governing duration a caller already
- * learned from that earlier notice: observed in practice, a manual trigger
- * posted in response to the star-gate notice produced exactly this reply,
- * with no duration, right after the notice itself had already reported a
- * real 45-minute wait. `rateLimitFilter` and `commentUpdateFailedFilter`
- * exclude any comment carrying this marker entirely, so these command
- * replies simply never reach the wait as a candidate.
+ * learned from that earlier notice. `rateLimitFilter` and
+ * `commentUpdateFailedFilter` exclude any comment carrying this marker
+ * entirely, so these command replies simply never reach the wait as a
+ * candidate.
  */
 describe('WaitForPrReviewService command-reply exclusion', () => {
   let service: WaitForPrReviewService;

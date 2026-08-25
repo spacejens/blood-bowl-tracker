@@ -284,14 +284,14 @@ describe('WaitForPrReviewService', () => {
     expect(args[6]).toContain('submittedAt: .createdAt');
     // CodeRabbit's own rolling walkthrough comment can incidentally contain
     // this filter's phrase in prose (a summary, a changes table) — notably
-    // on a PR whose diff is about rate-limit detection itself, which
-    // produced a real false positive in practice — so the filter
-    // must exclude any comment carrying the walkthrough's marker before it
-    // could ever be mistaken for a genuine rate-limit notice. Extracted to
-    // this filter's own sub-expression, not asserted against the whole
-    // program, since `commentUpdateFailedFilter` carries the identical
-    // substring and would make this assertion pass even if this filter
-    // itself lacked the guard.
+    // on a PR whose diff is about rate-limit detection itself, where the
+    // walkthrough's own summary of the change could match this phrase — so
+    // the filter must exclude any comment carrying the walkthrough's marker
+    // before it could ever be mistaken for a genuine rate-limit notice.
+    // Extracted to this filter's own sub-expression, not asserted against
+    // the whole program, since `commentUpdateFailedFilter` carries the
+    // identical substring and would make this assertion pass even if this
+    // filter itself lacked the guard.
     const subFilter = extractRateLimitFilter(args[6]);
     expect(subFilter).toContain(
       'contains("<!-- recent_review_start -->") | not',
@@ -321,9 +321,8 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase match found only inside a code span as a rate limit', async () => {
-    // A real false positive seen in practice: CodeRabbit's own "review in
-    // progress" status comment echoes this branch's name in a checkbox's
-    // inline code, and the branch name happens to contain "rate-limit".
+    // A status comment can echo a branch name in a checkbox's inline code,
+    // and that branch name can itself happen to contain "rate-limit".
     // `gh`/jq's own coarse phrase test can still surface this as a
     // candidate — the service itself must discard it once it strips code
     // formatting and re-checks.
@@ -1025,9 +1024,9 @@ describe('WaitForPrReviewService', () => {
   });
 
   it('does not treat a phrase found only inside code formatting as a completion', async () => {
-    // Mirrors the rate-limit false positive seen in practice: jq's own
-    // phrase test is coarse, so the service re-checks the section with
-    // code formatting stripped.
+    // Same class of risk as the rate-limit phrase check: jq's own phrase
+    // test is coarse, so the service re-checks the section with code
+    // formatting stripped.
     mockPoll(
       EMPTY,
       completionWithSection(

@@ -798,9 +798,8 @@ export class WaitForPrReviewService {
    * Strips fenced code blocks and inline code spans before testing for a
    * phrase — both the rate-limit warning and the completion notice are
    * prose, not code, so this narrows matching without weakening real
-   * detection. A real false positive seen in practice: CodeRabbit's status
-   * comment echoed a branch name containing "rate-limit" in an inline code
-   * span.
+   * detection. Without this, a status comment that echoes a branch name
+   * containing "rate-limit" inside an inline code span would false-positive.
    */
   private hasProsePhrase(text: string, phrase: RegExp): boolean {
     const prose = text
