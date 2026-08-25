@@ -149,9 +149,8 @@ for the commit message and `git rev-parse HEAD^2` to detect a merge commit.
 Any field that cannot be resolved is left off the embed rather than shown
 blank; none is required, and none can fail startup.
 
-This is the only message either machine posts on startup — the previous
-behavior of also posting the unfiltered `stats` insight was dropped, since
-the status embed alone already answers "what is running right now."
+This is the only message either machine posts on startup: the status embed
+alone already answers "what is running right now."
 
 ## Configuration and secrets
 

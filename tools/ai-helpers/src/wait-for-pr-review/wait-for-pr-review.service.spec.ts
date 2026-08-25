@@ -908,8 +908,7 @@ describe('WaitForPrReviewService', () => {
     // That first poll ran before the trigger comment existed, so its match is
     // suppressed (see wait-for-pr-review.trigger-settle.spec.ts). This mock
     // is steady state, so the fresh poll after the settle pause matches the
-    // same comment and reports it — hence the two polls asserted below, which
-    // are what distinguish this from the old, stale early return.
+    // same comment and reports it — hence the two polls asserted below.
     processRunner.run.mockResolvedValue(RATE_LIMITED);
 
     const result = await runWait({

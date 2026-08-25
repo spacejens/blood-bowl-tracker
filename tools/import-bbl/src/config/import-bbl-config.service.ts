@@ -10,7 +10,7 @@ export const IMPORT_BBL_CONFIG_PATH = Symbol('IMPORT_BBL_CONFIG_PATH');
 /**
  * Default config-file location: `import-bbl-config.json5` in the current
  * working directory. The tool is run from `tools/import-bbl/`, so this resolves
- * to that directory's file — mirroring how the old `.env` was picked up.
+ * to that directory's file.
  */
 export const DEFAULT_IMPORT_BBL_CONFIG_PATH = resolve(
   process.cwd(),

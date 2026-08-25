@@ -370,9 +370,9 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
   future work.
-  A pair configured under an era's `matches.merges` (folded from the old
-  top-level `matchMerges` list, now per-era; see Configuration above) is
-  imported as a single match rather than two: BBL cannot record a match with
+  A pair configured under an era's `matches.merges` (per-era; see
+  Configuration above) is imported as a single match rather than two: BBL
+  cannot record a match with
   more than two teams, so each four-team "Bierhallentodball" final exists as
   two two-team rows that this import folds back into one N-team match (both
   external ids, four teams, and the union of both rows' events). A match id
