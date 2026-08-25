@@ -269,14 +269,12 @@ Where an import step needs the database id of an entity it does not create
 itself — an era's league and rules sets, a competition's era, a team's race
 and coach, a player's position, a competition id — it asks the API to resolve
 that entity's external id (see
-[RPC conventions](../api/rpc-conventions.md#reference-resolution)) rather
-than consulting a map built earlier in the same run. Each step resolves
-everything it needs in one batched call and then looks the records up locally,
-so the network cost is one round trip per step, not per record.
+[RPC conventions](../api/rpc-conventions.md#reference-resolution)). Each step
+resolves everything it needs in one batched call and then looks the records up
+locally, so the network cost is one round trip per step, not per record.
 
-The ordering in `main.ts` still matters — a race has to be upserted before a
-team referencing it can be resolved — but no id map is threaded between the
-steps any more.
+The ordering in `main.ts` matters: a race has to be upserted before a team
+referencing it can be resolved.
 
 Some maps deliberately remain, because no external-id resolve can answer
 them: payload carriers that get re-upserted later (`competitionsByBblId`,

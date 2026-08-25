@@ -481,10 +481,6 @@ fly deploy --image <image-ref-from-an-earlier-release>
 
 `fly releases --json` shows the exact image reference for each release.
 
-This path wasn't exercised during the first deploy — there was no prior
-release to roll back to — so treat it as documented but not yet proven in
-practice.
-
 The `deploy-production` skill automates this: it lists recent releases with
 their image references, asks which one to roll back to, and runs the
 `fly deploy --image` for you. Note that a rollback deploys from a developer
