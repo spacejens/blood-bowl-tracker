@@ -9,9 +9,8 @@ work.
 Every deepdive embed's headline is the subject's name prefixed with its entity
 type's emoji — 🕰️ era, 📋 coach, 🛡️ team, 🎽 player, ⭐ star player, 🧬 race,
 🏟️ competition, 🔁 competition group, 🏛️ league, 🏆 trophy — so the title
-visually matches the button or
-dropdown entry that opened it. These are the same emoji the drill-down
-components carry, read from the single map in
+visually matches the button or dropdown entry that opened it. These are the
+same emoji the drill-down components carry, read from the single map in
 `apps/discord-bot/src/entity-components.service.ts`, so the two can never drift
 apart. Where a target's description below says "the `<x>` name as the title",
 that title carries this prefix too. The not-found and database-timeout replies
@@ -26,12 +25,12 @@ The command takes ten optional string arguments, `era`, `coach`, `team`, `player
 `<name> (#<id>)`; `player` suggestions are labelled `<name> (<team>)`
 because player names are not unique across teams; `star-player` suggestions are
 a bare name with no parenthetical, because a star has no single team to name in
-one; `race` suggestions are a bare
-name with no parenthetical; `competition` suggestions are
-labelled `<competition> (<league>)`; `competition-group` suggestions are
+one; `race` suggestions are a bare name with no parenthetical; `competition`
+suggestions are labelled `<competition> (<league>)`; `competition-group`
+suggestions are
 labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
-(<competition group>)`; `league` suggestions are a bare name with no
-parenthetical):
+(<competition group>)`, or `<name> (<league>)` for a trophy the league awards
+directly; `league` suggestions are a bare name with no parenthetical):
 
 - **No argument** — the bot replies with a short usage prompt, because a
   deepdive needs a target. This is framed as "specify a target", not a hard
@@ -202,8 +201,8 @@ played:` followed by their top five teams by matches played, one line per
 - **`star-player:<star>`** — the bot replies with an embed for that star: the
   star's name as the title, then one line per team that has ever hired them,
   most-hires-first (ties broken by team name — the query itself supplies this
-  order, so the description and the buttons can never disagree), one line per
-  team formatted `<team> (<race>, <coach>) — <N> hire(s)`. Each hire is a
+  order, so the description and the buttons can never disagree), formatted
+  `<team> (<race>, <coach>) — <N> hire(s)`. Each hire is a
   separate signing: a team that brings the same star back counts once per hire,
   and hires are never split by era. Each listed team is rendered as a
   drill-down button to that team. A star that resolves but has never been hired

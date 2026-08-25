@@ -63,8 +63,8 @@ they reached), rather than every competition entered.
   eras, external systems, rules sets, races, positions, coaches, competitions
   (with a season/cup breakdown), teams, players, matches, and match events.
   Supports league, era and competition filtering. When an era is selected the
-  title gains the usual
-  `— <era>` suffix and the body changes: Leagues and Eras both read 1
+  title gains the usual `— <era>` suffix and the body changes: Leagues and Eras
+  both read 1
   (intentionally kept, rather than dropped, for a consistent line set between
   all-time and era-scoped output); External systems becomes the count of
   distinct external systems linked directly to the era whose category is an
@@ -306,7 +306,7 @@ button, in the same order as the list, that opens that player's
   different front offices outranks one repeatedly re-hired by a single team.
   Each listed star also gets a button that opens that star's
   [`/deepdive`](deepdive.md) detail view, where the per-team breakdown showing
-  *which* teams those are lives. Supports none of the `league`, `era`,
+  _which_ teams those are lives. Supports none of the `league`, `era`,
   `competition` or `match-category` filter options, for the same "star player
   exception" reason as `starPlayers.toplist.hires.total` above, so it is
   excluded from every filtered run.
@@ -319,9 +319,10 @@ button, in the same order as the list, that opens that player's
   eras get one button each; past that the links switch to dropdown menus
   (see [`/deepdive`](deepdive.md)), and past 125 the description ends with a
   note counting the eras left without a link. Supports league filtering
-  (narrowing the list to one league's eras). Does not support the `era` filter
-  option (it exists to list all eras), so it is excluded from era-filtered
-  runs, nor the `competition` or `match-category` options.
+  (narrowing the list to one league's eras). Does not support the `era`,
+  `competition` or `match-category` filter options (`era` in particular
+  because it exists to list all eras), so it is excluded from runs scoped by
+  those.
 - `trophies.list` — a single embed listing every trophy in the curated
   catalog (title "Trophies"), ordered by the competition group that awards it
   and then by trophy name. Each line reads `<trophy> (<competition group>)`.
