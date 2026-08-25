@@ -263,8 +263,7 @@ played:` followed by their top five teams by matches played, one line per
   has never scheduled a single fixture." when it has none). Competition groups
   are rendered as drill-down buttons before trophies (groups take priority over
   trophies when the combined list is too long for buttons and switches to
-  select menus — `buildEntityComponents` has no internal prioritization, so
-  entry order decides).
+  select menus).
 - **A league that matches nothing** — the bot replies with a not-found message.
 - **`trophy:<trophy>`** — the bot replies with an embed for that trophy: the
   trophy name as the title, then `Awarded for: <competition group>` and, only
