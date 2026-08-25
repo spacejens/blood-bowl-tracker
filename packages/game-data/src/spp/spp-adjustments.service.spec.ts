@@ -303,8 +303,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   it('computes an independent corrected total and adjustment for each player in a batch', async () => {
     // Edge case: differing reported/importedSum/estimatedOngoing combinations
     // per player must not cross-contaminate each other's written values.
-    // Player 1 repeats the reported-20 / imported-8 / ongoing-9 case asserted
-    // on its own further down, next to two players with different shapes.
+    // Player 1 repeats the reported-20 / imported-8 / ongoing-9 case the
+    // "subtracts the ongoing-competition estimate" test asserts on its own,
+    // next to two players with different shapes.
     const h = await makeService(
       mockDb(
         [
@@ -383,7 +384,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   });
 
   it('clamps the corrected total to the imported sum exactly when the estimate accounts for precisely the gap', async () => {
-    // Edge case 2: reported - estimatedOngoing lands exactly on importedSum
+    // Edge case: reported - estimatedOngoing lands exactly on importedSum
     // (20 - 12 = 8 = importedSum), so correctedTotal = importedSum exactly
     // and adjustment clamps to 0, but the write still happens (absolute set).
     const h = await makeService(
@@ -398,7 +399,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   });
 
   it('clamps the corrected total to the imported sum, never below it, when the estimate overshoots the gap', async () => {
-    // Edge case 3 (the "clamps to zero" case, taken further): the
+    // Edge case (the "clamps to zero" case, taken further): the
     // estimate is bigger than the whole gap (reported - estimatedOngoing =
     // 20 - 30 = -10 < importedSum), so correctedTotal clamps up to
     // importedSum rather than dropping below the confirmed-imported figure,
