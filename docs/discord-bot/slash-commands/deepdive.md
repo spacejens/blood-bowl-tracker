@@ -1,13 +1,15 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports eight targets — an era, a coach, a team, a player, a race, a
-competition, a competition group, and a trophy — and is designed to grow
-further optional, mutually exclusive targets in future work.
+Today it supports ten targets — an era, a coach, a team, a player, a star
+player, a race, a competition, a competition group, a trophy, and a league —
+and is designed to grow further optional, mutually exclusive targets in future
+work.
 
 Every deepdive embed's headline is the subject's name prefixed with its entity
-type's emoji — 🕰️ era, 📋 coach, 🛡️ team, 🎽 player, 🧬 race, 🏟️ competition,
-🔁 competition group, 🏆 trophy — so the title visually matches the button or
+type's emoji — 🕰️ era, 📋 coach, 🛡️ team, 🎽 player, ⭐ star player, 🧬 race,
+🏟️ competition, 🔁 competition group, 🏛️ league, 🏆 trophy — so the title
+visually matches the button or
 dropdown entry that opened it. These are the same emoji the drill-down
 components carry, read from the single map in
 `apps/discord-bot/src/entity-components.service.ts`, so the two can never drift
@@ -17,15 +19,19 @@ are plain messages with no embed, so they have no headline to prefix.
 
 ## Arguments
 
-The command takes eight optional string arguments, `era`, `coach`, `team`, `player`,
-`race`, `competition`, `competition-group`, and `trophy`, each autocompleted by name
+The command takes ten optional string arguments, `era`, `coach`, `team`, `player`,
+`star-player`, `race`, `competition`, `competition-group`, `trophy`, and
+`league`, each autocompleted by name
 (`era` suggestions are labelled `<era> (<league>)`; `coach` and `team` suggestions are labelled
 `<name> (#<id>)`; `player` suggestions are labelled `<name> (<team>)`
-because player names are not unique across teams; `race` suggestions are a bare
+because player names are not unique across teams; `star-player` suggestions are
+a bare name with no parenthetical, because a star has no single team to name in
+one; `race` suggestions are a bare
 name with no parenthetical; `competition` suggestions are
 labelled `<competition> (<league>)`; `competition-group` suggestions are
 labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
-(<competition group>)`):
+(<competition group>)`; `league` suggestions are a bare name with no
+parenthetical):
 
 - **No argument** — the bot replies with a short usage prompt, because a
   deepdive needs a target. This is framed as "specify a target", not a hard
@@ -193,6 +199,21 @@ played:` followed by their top five teams by matches played, one line per
   button, and neither does the killer's own position, race or coach, nor a
   victim's.
 - **A player that matches nothing** — the bot replies with a not-found message.
+- **`star-player:<star>`** — the bot replies with an embed for that star: the
+  star's name as the title, then one line per team that has ever hired them,
+  most-hires-first (ties broken by team name — the query itself supplies this
+  order, so the description and the buttons can never disagree), one line per
+  team formatted `<team> (<race>, <coach>) — <N> hire(s)`. Each hire is a
+  separate signing: a team that brings the same star back counts once per hire,
+  and hires are never split by era. Each listed team is rendered as a
+  drill-down button to that team. A star that resolves but has never been hired
+  by anyone is treated as not found — the same not-found reply as a star
+  matching no name at all — because there is no hire history to show. The
+  description is truncated with a trailing `…` if it would otherwise exceed
+  Discord's embed description limit, mirroring the regular player deepdive's
+  own safety net.
+- **A star player that matches nothing** — the bot replies with a not-found
+  message.
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,
   comma-joined by name, or "None recorded" if it is in none), a blank line, and
@@ -234,6 +255,18 @@ played:` followed by their top five teams by matches played, one line per
   menus).
 - **A competition group that matches nothing** — the bot replies with a
   not-found message.
+- **`league:<league>`** — the bot replies with an embed for that league: the
+  league name as the title, then `Trophies:` followed by every trophy the
+  league itself awards directly — not through one of its competition groups —
+  one line per trophy (or "This league keeps no silverware of its own." when it
+  awards none directly), a blank line, and `Competition groups:` followed by
+  every competition group the league runs, one line per group (or "This league
+  has never scheduled a single fixture." when it has none). Competition groups
+  are rendered as drill-down buttons before trophies (groups take priority over
+  trophies when the combined list is too long for buttons and switches to
+  select menus — `buildEntityComponents` has no internal prioritization, so
+  entry order decides).
+- **A league that matches nothing** — the bot replies with a not-found message.
 - **`trophy:<trophy>`** — the bot replies with an embed for that trophy: the
   trophy name as the title, then `Awarded for: <competition group>` and, only
   when the trophy has one, `Description: <description>`, a blank line, then
@@ -253,7 +286,9 @@ played:` followed by their top five teams by matches played, one line per
   rendered as a drill-down button to whoever actually received the trophy —
   the team for a team trophy, the player for a player trophy — with no button
   for the competition it was awarded at; the embed also offers a drill-up
-  button to the trophy's competition group, last of all.
+  button, last of all, to the trophy's competition group when it has one, or
+  to its league directly when it does not — a trophy is scoped to exactly one
+  or the other, never both.
 - **A trophy that matches nothing** — the bot replies with a not-found
   message.
 
@@ -285,13 +320,19 @@ All five race toplists (`race.toplist.teams`, `race.toplist.matches.played`,
 one button per listed race, opening the same `/deepdive race:<race>` view. With
 this, every `/insights` toplist has button coverage.
 
-Each of the thirteen `player.toplist.*` facts attaches one button per listed
+Each of the fourteen `player.toplist.*` facts attaches one button per listed
 player, opening the same `/deepdive player:<player>` view. Note the button set
 is broader than the deepdive's own category list: the consequence-only toplists
 (`player.toplist.casualties.suffered`, `player.toplist.injuries.serious.suffered`,
 `player.toplist.injuries.lasting.suffered`, `player.toplist.sent_off`) still get
 buttons, even though those "happened to the player" categories are never shown
 in the deepdive embed itself.
+
+`starPlayers.list`, `starPlayers.toplist.hires.total` and
+`starPlayers.toplist.hires.distinctTeams` each attach one button per listed
+star, opening the same `/deepdive star-player:<star>` view. No `/insights`
+fact lists leagues today, so the `league` target has no `/insights` button
+coverage yet.
 
 `trophies.list` attaches one button per listed trophy, opening the same
 `/deepdive trophy:<trophy>` view.
@@ -317,7 +358,9 @@ and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.service.t
 `apps/discord-bot/src/deepdive/facts/coach-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/team-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/player-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/star-player-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/race-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/competition-deepdive.service.ts`,
-`apps/discord-bot/src/deepdive/facts/competition-group-deepdive.service.ts`, and
+`apps/discord-bot/src/deepdive/facts/competition-group-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/league-deepdive.service.ts`, and
 `apps/discord-bot/src/deepdive/facts/trophy-deepdive.service.ts`.
