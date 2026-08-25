@@ -324,17 +324,20 @@ button, in the same order as the list, that opens that player's
   because it exists to list all eras), so it is excluded from runs scoped by
   those.
 - `trophies.list` — a single embed listing every trophy in the curated
-  catalog (title "Trophies"), ordered by the competition group that awards it
-  and then by trophy name. Each line reads `<trophy> (<competition group>)`.
-  Each listed trophy also gets a button that opens that trophy's
+  catalog (title "Trophies"), ordered by the competition group or league that
+  awards it and then by trophy name. Each line reads
+  `<trophy> (<competition group>)` for a trophy awarded through a competition
+  group, or `<trophy> (<league>)` for one the league awards directly. Each
+  listed trophy also gets a button that opens that trophy's
   [`/deepdive`](deepdive.md) detail view, where its criteria and its list of
   recipients live. Up to 25 trophies get one button each; past that the links
   switch to dropdown menus (see [`/deepdive`](deepdive.md)), and past 125 the
   description ends with a note counting the trophies left without a link.
-  Supports league filtering — a trophy has no league of its own, so the filter
-  goes through its competition group's league. Does not support the `era`,
-  `competition` or `match-category` filter options (it exists to list the whole
-  catalog), so it is excluded from runs scoped by those.
+  Supports league filtering — a competition-group trophy is filtered through
+  its group's league, and a league-direct trophy through that league itself.
+  Does not support the `era`, `competition` or `match-category` filter options
+  (it exists to list the whole catalog), so it is excluded from runs scoped by
+  those.
 - `competitionGroups.list` — a single embed listing every recurring
   competition group in the catalog (title "Competition groups"), ordered by
   league and then by group name. Each line reads
