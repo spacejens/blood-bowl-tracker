@@ -4,17 +4,43 @@ import { MockProxy } from 'vitest-mock-extended';
 import { ProcessRunnerService } from '../shared/process-runner.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import {
+  COMMENT_UPDATE_FAILED_COMMENT,
   createHarness,
   EMPTY,
   extractStarGateFilter,
   FOUND,
+  HEAD_REF_OID,
   jqProgramOf,
   OPTIONS,
+  RATE_LIMIT_COMMENT,
+  RATE_LIMITED,
   REVIEW,
   rollingResult,
+  STAR_GATE_COMMENT,
   STAR_GATED,
   starGatedWithBody,
 } from './wait-for-pr-review.test-helpers';
+
+/**
+ * A `gh pr view` result carrying both a star-gate comment and one other
+ * signal in the same poll — the shape a real poll can produce, since
+ * `reviewsCall` runs all four filters independently in one jq program and
+ * each can independently match a different comment.
+ */
+function starGatedAnd(extra: Record<string, unknown>) {
+  return {
+    exitCode: 0,
+    stdout: `${JSON.stringify({
+      review: null,
+      rateLimitComment: null,
+      commentUpdateFailedComment: null,
+      starGateComment: STAR_GATE_COMMENT,
+      headRefOid: HEAD_REF_OID,
+      ...extra,
+    })}\n`,
+    stderr: '',
+  };
+}
 
 /**
  * CodeRabbit's "does not receive automatic reviews" (star-gate) comment is
@@ -214,5 +240,68 @@ describe('WaitForPrReviewService star-gate detection', () => {
 
     expect(result).not.toHaveProperty('starGateComment');
     expect(result).not.toHaveProperty('starGated');
+  });
+
+  it('triggers, and suppresses the stale rate-limit result, when a poll finds both signals at once', async () => {
+    // Poll 1 finds a star-gate comment AND a rate-limit comment together —
+    // two independent jq sub-filters matching two different comments in the
+    // same `gh pr view` call. The trigger fires (nothing has triggered yet),
+    // and the rate-limit result must be suppressed for this iteration, the
+    // same way a caller-requested `--trigger-after` retrigger suppresses a
+    // stale rate-limit/comment-update-failure match found on the very poll
+    // that posts the trigger.
+    mockPolls(starGatedAnd({ rateLimitComment: RATE_LIMIT_COMMENT }), EMPTY);
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 90_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(pollCalls().length).toBeGreaterThan(1);
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('triggers, and suppresses the stale comment-update-failure result, when a poll finds both signals at once', async () => {
+    mockPolls(
+      starGatedAnd({
+        commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT,
+      }),
+      EMPTY,
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 90_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(pollCalls().length).toBeGreaterThan(1);
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('reports the rate-limit comment found on the poll after the concurrent-signal trigger', async () => {
+    // The suppression covers only the iteration that posted the trigger; a
+    // rate-limit comment found by a later, fresh poll is reported normally.
+    mockPolls(
+      starGatedAnd({ rateLimitComment: RATE_LIMIT_COMMENT }),
+      RATE_LIMITED,
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 90_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(pollCalls()).toHaveLength(2);
+    expect(result).toMatchObject({
+      found: false,
+      rateLimited: true,
+      rateLimitComment: RATE_LIMIT_COMMENT,
+    });
   });
 });
