@@ -6,6 +6,7 @@ import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import {
   createHarness,
   EMPTY,
+  extractStarGateFilter,
   FOUND,
   jqProgramOf,
   OPTIONS,
@@ -198,10 +199,8 @@ describe('WaitForPrReviewService star-gate detection', () => {
     await runWait({ ...OPTIONS, timeoutMs: 30_000, intervalMs: 30_000 });
 
     const prViewCalls = pollCalls();
-    expect(jqProgramOf(prViewCalls[0][1])).toContain('starGateComment');
-    expect(jqProgramOf(prViewCalls[0][1])).toContain(
-      'does not receive automatic reviews',
-    );
+    const subFilter = extractStarGateFilter(jqProgramOf(prViewCalls[0][1]));
+    expect(subFilter).toContain('does not receive automatic reviews');
   });
 
   it('never surfaces a starGateComment field in the wait result', async () => {

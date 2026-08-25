@@ -16,6 +16,8 @@ import {
   completionWithSection,
   createHarness,
   EMPTY,
+  extractCommentUpdateFailedFilter,
+  extractRateLimitFilter,
   FOUND,
   HEAD_REF_OID,
   OPTIONS,
@@ -25,48 +27,6 @@ import {
   rateLimitedWithBody,
   REVIEW,
 } from './wait-for-pr-review.test-helpers';
-
-/**
- * Pulls just the `commentUpdateFailedComment: (...)` sub-expression out of
- * the whole `filter()` jq program (`args[6]`). `filter()` concatenates three
- * `{key: (subFilter), ...}` clauses into one string ending in
- * `, headRefOid: .headRefOid}`, so the sub-filter's own closing paren is the
- * one immediately before that fixed literal suffix — this mirrors that
- * construction rather than trying to balance parens generically. Extracting
- * the sub-filter lets assertions target this filter specifically, instead of
- * the whole program where a rate-limit-filter substring could make an
- * assertion pass even if this filter itself lacked it.
- */
-function extractCommentUpdateFailedFilter(program: string): string {
-  const startMarker = 'commentUpdateFailedComment: (';
-  const endMarker = '), headRefOid: .headRefOid}';
-  const start = program.indexOf(startMarker) + startMarker.length;
-  const end = program.indexOf(endMarker, start);
-  if (start < startMarker.length || end === -1) {
-    throw new Error(
-      `could not extract commentUpdateFailedComment sub-filter from: ${program}`,
-    );
-  }
-  return program.slice(start, end);
-}
-
-/**
- * Same extraction as `extractCommentUpdateFailedFilter`, for the
- * `rateLimitComment: (...)` clause instead — its own closing paren is the
- * one immediately before `, commentUpdateFailedComment: (`.
- */
-function extractRateLimitFilter(program: string): string {
-  const startMarker = 'rateLimitComment: (';
-  const endMarker = '), commentUpdateFailedComment: (';
-  const start = program.indexOf(startMarker) + startMarker.length;
-  const end = program.indexOf(endMarker, start);
-  if (start < startMarker.length || end === -1) {
-    throw new Error(
-      `could not extract rateLimitComment sub-filter from: ${program}`,
-    );
-  }
-  return program.slice(start, end);
-}
 
 describe('WaitForPrReviewService', () => {
   let service: WaitForPrReviewService;

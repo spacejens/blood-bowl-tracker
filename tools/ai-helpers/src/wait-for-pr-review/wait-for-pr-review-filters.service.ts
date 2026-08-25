@@ -59,6 +59,25 @@ export const COMMENT_UPDATE_FAILED_PHRASES =
  * of this wording. Same tolerance rationale as `RATE_LIMIT_PHRASES`.
  */
 export const STAR_GATE_PHRASES = 'does not receive automatic reviews';
+/**
+ * Marks CodeRabbit's own auto-generated reply to a slash-style command like
+ * `@coderabbitai review` — distinct from a spontaneous top-level notice.
+ * Excluded from `rateLimitFilter` and `commentUpdateFailedFilter` for the
+ * same reason `RECENT_REVIEW_START_MARKER` is excluded from them: a reply
+ * to a manual trigger that itself bounced off the still-active rate limit
+ * (observed in practice: "⚠️ Action not completed\n\nReview rate
+ * limited.") carries no wait duration of its own, and unlike the notice
+ * that first reported the rate limit, it is not stable-id-excludable by the
+ * caller (each command produces a fresh reply). Matching it as a new,
+ * duration-less rate-limit event would silently discard whatever real
+ * duration the caller already learned from that earlier notice, and would
+ * force a fresh "unknown duration" decision every time a trigger predictably
+ * bounces off an already-known limit. This exclusion applies regardless of
+ * which comment kind's phrase happens to also appear in the reply's own
+ * body — the marker alone is enough to identify it as a command reply.
+ */
+const COMMAND_REPLY_MARKER =
+  '<!-- This is an auto-generated reply by CodeRabbit -->';
 /** Opens the "most recent review" section of CodeRabbit's rolling walkthrough comment. */
 const RECENT_REVIEW_START_MARKER = '<!-- recent_review_start -->';
 /** Closes it. Both markers must be present for the section to be extractable. */
@@ -217,6 +236,10 @@ export class WaitForPrReviewFiltersService {
    * distinct markers — see `rateLimitEditFilter`) and never carries the
    * walkthrough markers, so this guard costs nothing in real detection.
    * Same rationale as `commentUpdateFailedFilter`'s identical guard below.
+   *
+   * Also excludes any comment carrying `COMMAND_REPLY_MARKER` — see that
+   * constant's doc comment for why a manual-trigger command reply must
+   * never be matched here.
    */
   private rateLimitFilter(options: WaitForPrReviewFilterOptions): string {
     const excludeClause =
@@ -227,6 +250,7 @@ export class WaitForPrReviewFiltersService {
       '[.comments[] | select(.createdAt != null) | ' +
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
       `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
+      `select((.body // "") | contains(${JSON.stringify(COMMAND_REPLY_MARKER)}) | not) | ` +
       `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
@@ -238,10 +262,11 @@ export class WaitForPrReviewFiltersService {
    * Deliberately CodeRabbit-specific, and structurally identical to
    * `rateLimitFilter` — same `.comments[]` source, same author-login
    * narrowing, same watermark bound, same `[...] | first` wrapping, same
-   * `RECENT_REVIEW_START_MARKER` exclusion — because this is the same kind
-   * of signal: a top-level comment CodeRabbit posts *instead of* reviewing.
-   * Only the phrase set and the exclusion id differ. See `rateLimitFilter`'s
-   * doc comment for why the marker exclusion is needed.
+   * `RECENT_REVIEW_START_MARKER` and `COMMAND_REPLY_MARKER` exclusions —
+   * because this is the same kind of signal: a top-level comment CodeRabbit
+   * posts *instead of* reviewing. Only the phrase set and the exclusion id
+   * differ. See `rateLimitFilter`'s doc comment for why the marker
+   * exclusions are needed.
    */
   private commentUpdateFailedFilter(
     options: WaitForPrReviewFilterOptions,
@@ -254,6 +279,7 @@ export class WaitForPrReviewFiltersService {
       '[.comments[] | select(.createdAt != null) | ' +
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
       `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
+      `select((.body // "") | contains(${JSON.stringify(COMMAND_REPLY_MARKER)}) | not) | ` +
       `select(((.body // "") | test(${JSON.stringify(COMMENT_UPDATE_FAILED_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +

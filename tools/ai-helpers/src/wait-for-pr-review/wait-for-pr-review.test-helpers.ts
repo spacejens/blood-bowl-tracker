@@ -97,6 +97,66 @@ export function jqProgramOf(args: readonly string[]): string {
   return args[index + 1];
 }
 
+/**
+ * Pulls just the `rateLimitComment: (...)` sub-expression out of the whole
+ * `reviewsCall()` jq program. `reviewsCall` concatenates four
+ * `{key: (subFilter), ...}` clauses into one string, so the sub-filter's own
+ * closing paren is the one immediately before the next clause's key
+ * (`commentUpdateFailedComment: (`) — this mirrors that construction rather
+ * than trying to balance parens generically. Extracting the sub-filter lets
+ * assertions target this filter specifically, instead of the whole program
+ * where a substring shared with another filter could make an assertion pass
+ * even if this filter itself lacked it.
+ */
+export function extractRateLimitFilter(program: string): string {
+  const startMarker = 'rateLimitComment: (';
+  const endMarker = '), commentUpdateFailedComment: (';
+  const start = program.indexOf(startMarker) + startMarker.length;
+  const end = program.indexOf(endMarker, start);
+  if (start < startMarker.length || end === -1) {
+    throw new Error(
+      `could not extract rateLimitComment sub-filter from: ${program}`,
+    );
+  }
+  return program.slice(start, end);
+}
+
+/**
+ * Same extraction as `extractRateLimitFilter`, for the
+ * `commentUpdateFailedComment: (...)` clause instead — its own closing paren
+ * is the one immediately before the next clause's key (`starGateComment: (`).
+ */
+export function extractCommentUpdateFailedFilter(program: string): string {
+  const startMarker = 'commentUpdateFailedComment: (';
+  const endMarker = '), starGateComment: (';
+  const start = program.indexOf(startMarker) + startMarker.length;
+  const end = program.indexOf(endMarker, start);
+  if (start < startMarker.length || end === -1) {
+    throw new Error(
+      `could not extract commentUpdateFailedComment sub-filter from: ${program}`,
+    );
+  }
+  return program.slice(start, end);
+}
+
+/**
+ * Same extraction, for the `starGateComment: (...)` clause — its own closing
+ * paren is the one immediately before the fixed literal suffix
+ * `, headRefOid: .headRefOid}`.
+ */
+export function extractStarGateFilter(program: string): string {
+  const startMarker = 'starGateComment: (';
+  const endMarker = '), headRefOid: .headRefOid}';
+  const start = program.indexOf(startMarker) + startMarker.length;
+  const end = program.indexOf(endMarker, start);
+  if (start < startMarker.length || end === -1) {
+    throw new Error(
+      `could not extract starGateComment sub-filter from: ${program}`,
+    );
+  }
+  return program.slice(start, end);
+}
+
 /** A `gh pr view` invocation whose review half matched the given review. */
 export function foundReview(review: unknown) {
   return {
