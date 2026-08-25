@@ -252,10 +252,13 @@ deduplicated so a team that appears on multiple rows gets a single button.
 - `player.toplist.sent_off` — players ranked by times sent off. Counts match
   events whose consequence is `sent_off`, credited to the sent-off player.
   Supports league, era, competition and match-category filtering.
-- `player.toplist.totalSpp` — players ranked by total star player points, the
-  same total the player's own [`/deepdive`](deepdive.md) shows on its
-  `Total star player points:` line. Supports league, era, competition and
-  match-category filtering.
+- `player.toplist.totalSpp` — players ranked by total star player points. For
+  the unfiltered, league, and era views this is the same stored total the
+  player's own [`/deepdive`](deepdive.md) shows on its
+  `Total star player points:` line; a competition- or match-category-scoped
+  view instead sums only the scoped match events' SPP, which omits any manual
+  adjustment folded into that stored total. Supports league, era, competition
+  and match-category filtering.
 
 Each player listed by the fourteen `player.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that player's
