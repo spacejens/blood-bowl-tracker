@@ -241,9 +241,9 @@ const WAIT_TIME_DURATION = /(\d+)\s*(minute|hour)s?\b/i;
  */
 const RATE_LIMIT_WAIT_BUFFER_SECONDS = 60;
 
-/** 10 minutes — matches develop-feature Phase 6's original wait. */
+/** 10 minutes — how long to wait for a review when the caller sets no timeout. */
 const DEFAULT_TIMEOUT_MS = 600_000;
-/** 30 seconds — matches develop-feature Phase 6's original poll interval. */
+/** 30 seconds — the gap between review-status polls when the caller sets none. */
 const DEFAULT_INTERVAL_MS = 30_000;
 /**
  * 10 seconds — the pause given to CodeRabbit to notice the trigger comment
