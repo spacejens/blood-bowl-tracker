@@ -74,53 +74,18 @@ const MAX_PLAYER_HONORS = 30;
 const MAX_PLAYER_KILLS = 30;
 
 /**
- * Composes the player header (team, era, race, position) and per-category event
- * counts into a single embed. Shared by `/deepdive player:<id>` and the player
- * deepdive buttons. Each DB call is wrapped in `databaseTimeout.run` with a
- * `null` sentinel so a timeout is distinguishable from a genuine "not found"
- * (`undefined`). Only non-zero categories are listed; an all-zero player shows
- * a short placeholder instead of an empty list. Team, era and race each get a
- * drill-down button, in the same order as the header lines; position has no
- * deepdive target, so it gets none.
- * When the player suffered a `death` consequence, a trailing `Status:` header
- * line names whoever was responsible — a specific player, a single team, an
- * "or"-joined list of candidate teams from a multi-team match, or a
- * mysterious-circumstances fallback — and the killer player or team(s) each
- * get a drill-down button, placed after the honors buttons and before the
- * team/era/race header buttons. A player who did not die gets no Status line
- * and no extra buttons.
- * When the player has a computed `sppTotal`, a trailing section shows any
- * manual adjustment and the total.
- * Between the header and the category counts sits an Honors section listing
- * the trophies this player has personally won, newest competition first,
- * capped at `MAX_PLAYER_HONORS` with an exact "…and N more not shown."
- * remainder. Unlike the team deepdive's equivalent it needs neither era
- * grouping nor a per-row team name — a player belongs to exactly one team-era
- * for their whole career, so the header already names both. The section is
- * omitted entirely when the player has won nothing. Each honor adds a
- * drill-down button to its trophy, ahead of the header buttons. Because
- * competition and trophy names carry no length ceiling tight enough to
- * guarantee `MAX_PLAYER_HONORS` rows always fit Discord's own embed
- * description limit, the honors actually rendered may be a further-trimmed
- * prefix of the fetched rows — see `buildHonorLines`. `enforceDescriptionLimit`
- * is a final, independent safety net on the fully-assembled string, so the
- * limit holds even if that budgeting ever falls out of sync with the rest of
- * the description's actual size.
- * After the SPP totals sits a `Kills:` section listing the matches this
- * player killed an opponent in, newest match first, capped at
- * `MAX_PLAYER_KILLS` with an exact "…and N more not shown." note — built by
- * the injected `PlayerKillsSectionService` (extracted purely for this file's
- * size). It is omitted entirely when the player has killed nobody.
- * Because the kills section sits below the honors budget's other content, it
- * is built first and its own lines are folded into `buildHonorLines`'s
- * `otherLines`, so a long kill list is what gets trimmed against, not the
- * other way around — this holds regardless of the kills section's own print
- * position in the final description. Each listed victim adds a drill-down
- * button, placed after the killer entries (if any) and before the
- * team/era/race header buttons.
- * When the player is a hire of a star player, one further drill-down button
- * — labelled with the star's name — opens the star-player deepdive showing
- * every team that has hired them; a regular player gets none.
+ * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
+ * the player deepdive buttons.
+ *
+ * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
+ * timeout stays distinguishable from a genuine "not found" (`undefined`).
+ *
+ * The kills section is built before the honors section and folded into
+ * `buildHonorLines`'s `otherLines`, so a long kill list is what gets trimmed
+ * against the description budget rather than the other way around — regardless
+ * of where either section prints. `enforceDescriptionLimit` is an independent
+ * final net on the assembled string, so Discord's limit holds even if that
+ * budgeting falls out of sync.
  */
 @Injectable()
 export class PlayerDeepdiveService {
