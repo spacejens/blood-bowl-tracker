@@ -286,6 +286,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.11(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.11)
 
   packages/discord-client:
     dependencies:
