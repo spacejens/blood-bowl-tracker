@@ -22,6 +22,12 @@ needs it.
 | `check-drift` | Find gitignored config that differs between a worktree and the main checkout |
 | `write-file` | Write a file at a repo-relative path, reading its content from stdin — used to save specs and plans through the `docs/plans` symlink, which the Claude Code Write tool refuses to write through |
 | `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — one command a worktree-isolated session can run, rather than a multi-line shell poll loop inline |
+| `post-review-questions` | Post drafted review questions as PR comments (inline or top-level) from JSON on stdin |
+| `check-production-config-port` | Verify an import tool's production config `apiBaseUrl` matches the expected tunnel port |
+| `start-production-tunnel` | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process |
+| `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
+| `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
+| `reset-production-schema` | Drop and recreate the production database schemas |
 
 ## Running it
 
