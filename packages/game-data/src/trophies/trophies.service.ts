@@ -227,9 +227,11 @@ export class TrophiesService {
    * `name` instead keeps it idempotent.
    *
    * This is not a shared "Name" external id and creates no auto-merge surface:
-   * the importers always supply real external ids and never reach this branch,
-   * so two different trophies sharing a label (Major "1st" vs. Minor "1st")
-   * cannot be conflated.
+   * the BBL and TP importers always supply real external ids and never reach
+   * this branch, so two different trophies sharing a label (Major "1st" vs.
+   * Minor "1st") cannot be conflated by either of them. The manual importer
+   * does reach this branch (an entry may declare no external ids — see
+   * `TrophiesProcessor`), so it relies on the conflict guard below instead.
    *
    * The lookup throws `TrophyUpsertConflictError` on more than one match
    * rather than picking arbitrarily. Any importer that gives an existing
