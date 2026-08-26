@@ -291,7 +291,7 @@ real-world entity differently:
   importers attach a `Name` external id equal to the star's bare name across
   all three star-position code paths (the roster-catalog path, the
   inducement-hire path, and the Big Guy mercenary fallback — see
-  [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)).
+  [file-format.md](../import-tp/file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)).
   Star players whose names match verbatim between the two systems therefore
   dedupe automatically via that shared `Name` external id, so this file is
   needed only for genuine spelling mismatches where BBL and TP disagree —
