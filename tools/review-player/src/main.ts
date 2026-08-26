@@ -23,7 +23,7 @@ run()
       console.warn(`Warning [${gap.source.toUpperCase()}]: ${gap.reason}`);
     }
     console.log(
-      `Reviewed ${outcome.playerCount} player(s); report written to ${outcome.reportPath}.`,
+      `Reviewed ${outcome.itemCount} player(s); report written to ${outcome.reportPath}.`,
     );
     // The postgres client keeps its socket (and the event loop) alive, and
     // DbModule has no shutdown hook, so a read-only CLI has to exit explicitly.

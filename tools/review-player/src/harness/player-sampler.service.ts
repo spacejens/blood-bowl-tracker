@@ -12,7 +12,7 @@ import { REVIEW_SOURCES } from '../shared/review.types';
 import { PlayerLookupService } from './player-lookup.service';
 
 export interface SampleResult {
-  players: SampledPlayer[];
+  items: SampledPlayer[];
   /** Strata and overrides that produced nothing — reported, never fatal. */
   gaps: ReviewGap[];
 }
@@ -83,7 +83,7 @@ export class PlayerSamplerService {
     }
 
     return {
-      players: [...selected.values()].sort((a, b) => this.compare(a, b)),
+      items: [...selected.values()].sort((a, b) => this.compare(a, b)),
       gaps,
     };
   }
