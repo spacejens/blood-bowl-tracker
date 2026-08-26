@@ -40,10 +40,19 @@ packages/
   api-client/         — NestJS module wrapping an oRPC RPCLink client for
                         calling a deployed api-server's /rpc endpoint; owns
                         its own @nestjs/config-backed base URL configuration
+  discord-client/     — NestJS module wrapping discord.js for connecting to
+                        Discord, registering slash commands, and posting
+                        messages; consumed by apps/discord-bot
   import/             — NestJS module with import orchestration logic:
-                        generic upsert-bookkeeping (ImportRunnerService) plus
-                        entity-specific services (CoachesImportService,
-                        ExternalSystemsImportService) that call api-client
+                        generic upsert bookkeeping (ImportRunnerService,
+                        BatchBufferService, ExternalIdResolverService) plus
+                        roughly 18 entity-specific import services (coaches,
+                        teams, players, matches, trophies, and so on) that
+                        call api-client
+  parse-tp/           — library package for reusable TP JSON-parsing logic
+                        (matches, rosters, awards, tournaments); consumed
+                        today by tools/import-tp only, though intended to be
+                        shared with apps/discord-bot as well
   review-harness/     — NestJS module with the domain-agnostic half of the
                         review tools: HTML fragment assembly, timestamped
                         report writing, JSON5 config loading, and the plug-in
@@ -52,6 +61,9 @@ packages/
                         logic
 
 tools/
+  download-tp/        — NestJS CLI application that scrapes TP with puppeteer
+                        and records the site's API responses as local JSON
+                        files for later import by tools/import-tp
   import-<source>/    — one NestJS CLI application per upstream data source; uses
                         packages/import to call a deployed api-server instance
   import-manual/      — NestJS CLI application for hand-authored supplementary
@@ -62,6 +74,22 @@ tools/
                         packages/db and renders raw source data side by side with
                         imported match events as a static HTML report; a
                         developer review aid, not part of any import path
+  review-player/      — NestJS CLI application that renders raw BBL and TP
+                        source data beside imported player records (identity,
+                        team, position, era) and star player point totals as a
+                        static HTML report; sibling of review-match, likewise a
+                        developer review aid
+  db-diagram/         — shell script (db-diagram.sh, not an npm workspace
+                        package) that generates a SchemaSpy ER diagram and
+                        browsable schema docs for the local docker-compose
+                        database
+  eslint-rules/       — custom ESLint rules shared across the repo (currently
+                        max-function-params, no-direct-service-instantiation,
+                        and no-test-helper-imports), imported directly by the
+                        root eslint.config.ts
+  ai-helpers/         — NestJS CLI application providing helpers the Claude
+                        Code skills in .claude/skills/ call instead of
+                        hand-rolling the equivalent shell
 ```
 
 ## Data flow
