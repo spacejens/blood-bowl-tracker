@@ -52,6 +52,13 @@ describe('BblRawPageLoaderService', () => {
     await expect(service.loadMatchPage('7')).resolves.toBe('Bräk');
   });
 
+  it('preserves 0x80-0x9F bytes as their identical code points, not Windows-1252', async () => {
+    await writeFile(join(dir, 'default.asp?p=m&m=8'), Buffer.from([0x80]));
+    const service = await makeService();
+
+    await expect(service.loadMatchPage('8')).resolves.toBe('');
+  });
+
   it('returns null when the page file does not exist', async () => {
     const service = await makeService();
 
