@@ -88,7 +88,12 @@ describe('mockDb', () => {
     const { db, chains } = mockDb([]);
     // A real drizzle Column is used here (not a plain object) so the captured
     // value is the same shape service specs assert against.
-    // @ts-expect-error - drizzle-orm types conflict with nodenext ESM resolution
+    // @ts-expect-error - drizzle-orm ships separate type entry points for
+    // `import` (index.d.ts) and `require` (index.d.cts). `teamEras` (from the
+    // CJS `../schema/`) resolves its PgColumn through index.d.cts, while
+    // `eq`/`and` imported here (this ESM test-helpers directory) resolve
+    // through index.d.ts — two structurally distinct branded types for the
+    // same nominal type, so overload resolution fails.
     const condition = and(eq(teamEras.eraId, 42));
     await (db as never as { select: () => Chainable })
       .select()
