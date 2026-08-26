@@ -231,10 +231,12 @@ externalIds }`: `recipientKind` is either `team` or `player`, and
 applicable for; `league` names the league it is awarded across instead, when
 it is not tied to one competition group. `league` is optional and mutually
 exclusive with `competitionGroup` — the database's own check constraint
-enforces that exactly one is set. An entry that omits both leaves the
-trophy's stored classification alone, while an entry naming an unknown group
-or league is skipped and recorded as an import error. This section is
-processed after the leagues and competition groups it references.
+enforces that exactly one is set. An entry that omits both leaves an
+existing trophy's stored classification alone, but a new trophy declaring
+neither (or, impossibly, both) is rejected by that constraint at write time;
+an entry naming an unknown group or league is likewise recorded as an
+import error. This section is processed after the leagues and competition
+groups it references.
 
 Trophies deliberately carry no shared `Name` external id, the same precedent
 set for competitions in issue #285: labels like `1st` are ambiguous across

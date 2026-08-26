@@ -43,13 +43,13 @@ export class ManualImportService {
    * competitionGroups, competitions, sppAwardValues, trophies — with
    * competitionGroups running after leagues (whose external ids its entries
    * reference) and before competitions and trophies (which resolve the groups
-   * it upserts, by their "Name"-system external id), and sppAwardValues
-   * running before trophies because it references both rulesSets and races,
-   * and trophies running last, after the leagues and competition groups it
-   * may reference — sharing one error collector so one bad entry
-   * never aborts the rest. Reference-resolution and upsert failures are
-   * collected; a missing directory, malformed file, or unreachable API
-   * throws out of here to be reported as an unexpected failure. A same-kind
+   * it upserts, by their "Name"-system external id), sppAwardValues running
+   * after rulesSets and races (which it references), and trophies running
+   * last, after the leagues it may also reference — sharing one error
+   * collector so one bad entry never aborts the rest. Reference-resolution
+   * and upsert failures are collected; a missing directory, malformed file,
+   * or unreachable API throws out of here to be reported as an unexpected
+   * failure. A same-kind
    * external-id collision is detected server-side: the API's upsert reports
    * it as a CONFLICT, collected like any other ImportError.
    */
