@@ -108,47 +108,27 @@ const MAX_UPSERT_ATTEMPTS = 3;
 const MAX_CAUSE_UNWRAP_DEPTH = 3;
 
 /**
- * True only for the specific violation a lost external-id race raises: a
- * unique-constraint violation (SQLSTATE 23505) on the entity's own
- * external-id join table.
+ * True only for the specific violation a lost external-id race raises: a 23505
+ * on the entity's own external-id join table.
  *
- * Two things make this harder than it looks:
+ * The caught value never carries the fields to test. drizzle-orm wraps every
+ * query failure in a `DrizzleQueryError` that sets `cause` but copies neither
+ * `code` nor `table_name`, so the `postgres` driver's `PostgresError` is only
+ * reachable by walking `.cause` — bounded here defensively.
  *
- * 1. **The real driver error is never the caught value.** drizzle-orm
- *    1.0.0-rc.4's pg-core session wraps every query failure in a
- *    `DrizzleQueryError(sql, params, e)`
- *    (`drizzle-orm/pg-core/async/session.js`), which sets `this.cause = e`
- *    but does not copy `code`/`table_name` onto itself
- *    (`drizzle-orm/errors.js`). The `postgres` driver's `PostgresError` —
- *    which does carry those fields — is only reachable via `.cause` on the
- *    caught error. So the caught value's own `code`/`table_name` are always
- *    undefined in production; this walks `.cause` (bounded, defensively) to
- *    find the object that actually carries them.
- * 2. **Matching by constraint name is fragile.** The constraint's name is
- *    `<table>_external_system_id_external_id_unique`, but Postgres truncates
- *    any identifier to 63 bytes (`NAMEDATALEN`) at creation time. For
- *    `competition_groups_external_ids` that name is 69 bytes, so the stored
- *    (and driver-reported) constraint name is silently truncated and would
- *    never match a hand-reconstructed full name. Every entity's join table
- *    (`packages/db/src/schema/external-ids-table.ts`) carries exactly one
- *    unique constraint besides its primary key — the one on
- *    `(external_system_id, external_id)` — so matching by `table_name`
- *    alone unambiguously identifies "this is the race this code is designed
- *    to catch", and is immune to truncation or any future rename of the
- *    constraint itself.
+ * Matching is on `table_name`, not the constraint name: Postgres truncates
+ * identifiers to 63 bytes (`NAMEDATALEN`), and
+ * `competition_groups_external_ids`' full constraint name is 69, so a
+ * hand-reconstructed name would silently never match. Every external-id join
+ * table has exactly one unique constraint besides its primary key, so the
+ * table name identifies the race unambiguously and survives any rename.
  *
- * The SQLSTATE check is kept alongside the table-name check deliberately: a
- * bare table-name match would retry on that table's *other* future
- * constraints too (e.g. a NOT NULL violation), hiding a real bug behind
- * three attempts and a confusing final error. The same reasoning excludes the
- * table's primary key: a 23505 on `<table>_pkey` (e.g. a desynced `serial`
- * sequence after a restore that didn't reset it) is a real infrastructure bug,
- * not the external-id race this code retries, and must not be silently
- * retried three times and then misreported as "a concurrent writer kept
- * winning the race." `constraint_name` is not affected by the truncation
- * problem the constraint-name approach was rejected for above: `<table>_pkey`
- * is always well under 63 bytes, so a plain equality check is safe here even
- * though it wasn't safe for the full unique-constraint name.
+ * The SQLSTATE check stays alongside it so a future NOT NULL violation on the
+ * same table is not retried three times and misreported. The primary key is
+ * excluded for the same reason: a 23505 on `<table>_pkey` (a desynced
+ * sequence, say) is an infrastructure bug, not this race. Comparing
+ * `constraint_name` is safe there specifically because `<table>_pkey` is
+ * always well under 63 bytes.
  */
 function isExternalIdUniqueViolation(
   error: unknown,
@@ -314,37 +294,22 @@ async function runUpsertAttempt<
 }
 
 /**
- * The resolve -> conflict-guard -> insert-or-update -> insert-missing-external-ids
- * preamble shared by every game-data upsert(). Callers keep only their
- * genuinely-divergent tail (join-table syncs, return shape) and pass the
- * one-per-entity pieces (conflict class, label, column wiring, buildRow) in.
+ * The shared preamble of every game-data `upsert()`; callers keep only their
+ * divergent tail.
  *
- * The whole sequence runs in one transaction. The entity row and its
- * external-id row(s) must commit or roll back together: committing the entity
- * row on its own and only then failing to insert the external-id row leaves an
- * entity nothing points at, which no later upsert can ever find and reuse.
+ * The whole sequence runs in one transaction because the entity row and its
+ * external-id rows must commit or roll back together — committing the entity
+ * alone leaves a row nothing points at, which no later upsert can ever find
+ * or reuse.
  *
- * Losing the race on the external-id unique constraint is not an error the
- * caller should see: the transaction rolls back and the whole attempt is
- * re-run, up to MAX_UPSERT_ATTEMPTS times. Only if every attempt loses is the
- * last violation rethrown, as the `cause` of a descriptive error, rather than
- * being retried forever or silently swallowed. `created` on a successful
- * retry is `false`, correctly reporting that this call did not create the row.
- *
- * `insertMissingExternalIds` always runs immediately after the insert/update,
- * before any caller tail. Both are independent inserts into unrelated tables,
- * so the order is not observable.
+ * Losing the external-id unique-constraint race is not the caller's problem:
+ * the transaction rolls back and the attempt re-runs up to
+ * `MAX_UPSERT_ATTEMPTS` times, rethrowing the last violation only if every
+ * attempt loses. `created` is `false` on a successful retry.
  *
  * `values` is partial: keys whose value is `undefined` are stripped before the
  * database sees them, so an update never overwrites a column the payload said
- * nothing about. An explicit `null` still writes `null`. If every key is
- * stripped the update is skipped and the row is re-selected instead;
- * on the insert path a payload missing a required column throws
- * `MissingRequiredFieldError` rather than surfacing a raw Postgres NOT NULL
- * violation naming a database column instead of the sync field.
- *
- * Kept internal to this package (not re-exported from index.ts), like
- * resolve-existing-by-external-ids.ts and sync-external-ids.ts.
+ * nothing about, while an explicit `null` still writes `null`.
  */
 export async function upsertByExternalIds<
   TEntityTable extends PgTable,
