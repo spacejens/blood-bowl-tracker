@@ -54,9 +54,10 @@ as a normal RPC error and fails the whole batch, because a partial import
 must never be reported as a complete one.
 
 A handful of entities deliberately expose `upsert` without `upsertBatch`. The
-reason is always the same shape of reason: the entity is a small, curated,
-low-volume dataset, so collapsing round trips would save nothing worth the
-extra procedure. Which entities those are shifts as the data model grows, so
+reason is always the same shape of reason: the entity is a small, low-volume
+dataset — often hand-curated, sometimes just naturally small — so collapsing
+round trips would save nothing worth the extra procedure. Which entities those
+are shifts as the data model grows, so
 this document does not name them — each exempt router carries its own comment
 in `packages/api-contract/src/contract.ts` explaining why that particular
 entity is exempt.
@@ -90,15 +91,17 @@ references them by external id across files, phases or tools.
 
 ## Other procedures
 
-Not every procedure is upsert-shaped. Some entities also expose a custom
-procedure that recomputes or syncs already-imported data in place rather than
-importing new records — `sppAwardValues.sync`, `matches.resolveOutcomes`,
+Not every procedure is upsert-shaped. Some entities instead — or in addition —
+expose a custom procedure that recomputes or syncs already-imported data in
+place rather than importing new records — `sppAwardValues.sync`,
+`matches.resolveOutcomes`,
 `positions.syncRaceEras` and
 `players.syncScrapedSppAdjustments`/`syncReportedSppAdjustments` are current
 examples of the pattern, not an exhaustive list. Because nothing is being newly
 identified or created, these have no external-id conflict to detect and no
-`created` boolean to return: they answer with what was actually written — the
-resulting row or record ids. Where the recomputation can fail for individual
+`created` boolean to return: they answer with what was actually written — at
+minimum the resulting row or record ids, occasionally alongside a small
+summary of what changed. Where the recomputation can fail for individual
 entries, those failures come back in the same response rather than as a thrown
 error, so one bad entry never costs its siblings their results;
 `matches.resolveOutcomes` returns `unresolvedMatchIds` for the matches whose
