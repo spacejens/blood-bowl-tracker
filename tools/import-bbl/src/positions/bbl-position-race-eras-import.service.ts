@@ -36,10 +36,12 @@ export class BblPositionRaceErasImportService {
    * Phase 2 of the positions_race_eras heuristic, deciding availability per
    * (position, race, era) after players are imported.
    *
-   * Two branches are not self-evident: a star player counts as available in
-   * every era regardless of use, and a race that fielded no teams at all in an
-   * era counts as available too — its absence carries no information either
-   * way, so treating it as unavailable would invent a restriction.
+   * A config override for a (position, race, era) wins outright. Absent one,
+   * two fallback branches are not self-evident: a star player counts as
+   * available in every era regardless of use, and a race that fielded no
+   * teams at all in an era counts as available too — its absence carries no
+   * information either way, so treating it as unavailable would invent a
+   * restriction.
    */
   async syncPositionRaceEras({
     positionRaceCandidates,
