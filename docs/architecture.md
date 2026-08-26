@@ -10,7 +10,7 @@ Overview of the technical stack and package structure for this project.
 - **API contract:** [oRPC](https://orpc.dev/) — a typed contract shared between server and client, dispatched over oRPC's native RPC transport (not REST/OpenAPI), enforced at compile time
 - **Testing:** Vitest
 - **Package manager:** pnpm 11 with workspaces
-- **Deployment:** Docker, with a root `compose.yaml` for local development and on Fly.io + Neon in production (see `docs/discord-bot/production-hosting.md`)
+- **Deployment:** Docker, with a root `docker-compose.yml` for local development and on Fly.io + Neon in production (see `docs/discord-bot/production-hosting.md`)
 
 ## Repository structure
 
@@ -272,4 +272,4 @@ string constant.
 
 ## Docker
 
-Each app in `apps/` has its own `Dockerfile`. The root `compose.yaml` defines services for PostgreSQL and each app, enabling a full local environment with a single `docker compose up`.
+Each app in `apps/` has its own `Dockerfile`. The root `docker-compose.yml` defines services for PostgreSQL and each app, enabling a full local environment with a single `docker compose up`.

@@ -242,7 +242,7 @@ A code-6 `casualty_caused` event is the ACTION of a specific player breaking
 armor; a code-8 `injury` event is the roll reporting the VICTIM and severity.
 They are TP's one exception to "no correlation needed": the specific
 attacker can only be recovered by pairing the two events after the fact,
-implemented in `tools/import-tp/src/match-events/tp-match-events-correlation.ts`
+implemented in `tools/import-tp/src/match-events/tp-match-events-correlation.service.ts`
 (mirroring where BBL's action/consequence correlation lives), computed once
 per match before its events are dispatched.
 
