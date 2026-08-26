@@ -1,6 +1,6 @@
 import { DB } from '@blood-bowl-tracker/db';
-import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
+import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';

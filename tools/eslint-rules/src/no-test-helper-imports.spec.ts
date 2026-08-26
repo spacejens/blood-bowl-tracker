@@ -35,6 +35,18 @@ describe('no-test-helper-imports', () => {
         code: "export { CoachesService } from './coaches.service';",
         filename: 'coaches.controller.ts',
       },
+      // A specifier that merely ends with similar letters, but isn't a
+      // test-helpers path segment, is not a false positive.
+      {
+        code: "import { thing } from './not-test-helpers';",
+        filename: 'coaches.controller.ts',
+      },
+      // A spec file importing a package's test-helpers subpath export is
+      // legitimate.
+      {
+        code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
+        filename: 'coaches.service.spec.ts',
+      },
     ],
     invalid: [
       // A production file importing a test helper is exactly what the rule
@@ -63,6 +75,14 @@ describe('no-test-helper-imports', () => {
       },
       {
         code: "export * from './coach-mock.test-helpers';",
+        filename: 'coaches.service.ts',
+        errors: [{ message: MESSAGE }],
+      },
+      // A production file importing a package's test-helpers subpath export
+      // (a bare specifier, not a relative `.test-helpers` file) is caught
+      // too.
+      {
+        code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
         filename: 'coaches.service.ts',
         errors: [{ message: MESSAGE }],
       },

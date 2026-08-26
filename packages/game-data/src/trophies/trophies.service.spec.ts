@@ -1,12 +1,12 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, trophies } from '@blood-bowl-tracker/db';
+import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { QueryChain } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractAllFilterValues,

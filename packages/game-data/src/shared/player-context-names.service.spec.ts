@@ -1,10 +1,10 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
+import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import type { QueryChain } from './db-mock.test-helpers';
-import { mockDb } from './db-mock.test-helpers';
 import { PlayerContextNamesService } from './player-context-names.service';
 import {
   extractFilterValues,
