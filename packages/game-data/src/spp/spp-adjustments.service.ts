@@ -20,34 +20,22 @@ interface AdjustmentWrite {
 }
 
 /**
- * Computes and persists `players.spp_adjustment` — the SPP a player holds
- * that their recorded match events cannot explain — one batch of players at
- * a time.
+ * Computes and persists `players.spp_adjustment` — the SPP a player holds that
+ * their recorded match events cannot explain.
  *
- * Two sources, two shapes:
- *  - BBL ({@link syncScrapedAdjustments}) supplies the career total scraped
- *    off the site, whose award rates are post-migration, so the gap is
- *    measured against the forced-rate replay. BBL's `spp_total` is then
- *    rebuilt as `era-correct event sum + adjustment` — the site's own mixed
- *    -rate figure is never stored.
- *  - TP ({@link syncReportedAdjustments}) already reports an independently
- *    trusted, era-correct total in `players.spp_total`, so the gap is
- *    measured against the era-correct event sum PLUS an estimate of the SPP
- *    the player earned in competitions that have not been imported yet (see
- *    SppOngoingEstimateService). `spp_total` is then rewritten to the
- *    corrected total — the reported figure with that ongoing-competition
- *    estimate backed out, floored at the era-correct event sum — so the two
- *    consumers that read `spp_total` directly (the Discord bot's player
- *    deep-dive display and the all-time/league/era leaderboard ranking) see
- *    a figure consistent with what's actually explainable from imported data
- *    plus any genuine remaining adjustment, not the raw TP total.
- *    Every remaining nonzero adjustment comes back in `nonzeroAdjustments` as
- *    a developer review aid.
+ * The two sources need different baselines. BBL's scraped career total uses
+ * post-migration award rates, so the gap is measured against the forced-rate
+ * replay and `spp_total` is rebuilt as era-correct event sum plus adjustment;
+ * the site's own mixed-rate figure is never stored. TP already reports an
+ * era-correct total, so the gap is measured against the era-correct event sum
+ * plus an estimate of SPP earned in competitions not yet imported, and
+ * `spp_total` is rewritten with that estimate backed out — otherwise the
+ * deep-dive display and the leaderboards would rank on a figure that imported
+ * data cannot account for.
  *
- * Both write an absolute `set`, never an increment, so re-running a sync is
- * idempotent, and both group the write-back by written VALUE rather than
- * issuing one update per player: a BBL run passes hundreds of ids but only a
- * handful of distinct (adjustment, total) pairs.
+ * Both write an absolute value rather than an increment, so re-running a sync
+ * is idempotent, and group the write-back by written value: a BBL run touches
+ * hundreds of players but only a handful of distinct pairs.
  */
 @Injectable()
 export class SppAdjustmentsService {

@@ -22,31 +22,22 @@ import type { ReviewPlayer, ReviewStratum } from '../shared/review.types';
 const DISCREPANCY_STRATUM = 'spp-discrepancy';
 
 /**
- * Every player whose event-derived SPP sum — plus `players.spp_adjustment`,
- * per `packages/game-data`'s `SppAdjustmentsService` invariant that
- * `spp_total` is the event sum adjusted by that column — disagrees with the
- * stored `players.spp_total`. Comparing the raw event sum instead would flag
- * almost every experienced player, since a nonzero adjustment is the normal
- * case, not a data problem. Includes players with no stored total at all
- * (`IS DISTINCT FROM` treats NULL as a disagreement, which is what a reviewer
- * wants to see): the adjusted sum is always a non-null number thanks to the
- * `coalesce`s on both terms, so `IS DISTINCT FROM` against a NULL
- * `spp_total` is guaranteed true by standard SQL semantics.
+ * Every player whose event-derived SPP sum plus `players.spp_adjustment`
+ * disagrees with the stored `players.spp_total` — `is distinct from`, so a
+ * player with no stored total at all counts as a disagreement too. The
+ * adjustment is added because a nonzero one is the normal case, so comparing
+ * the raw event sum would flag almost every experienced player.
  *
  * Deliberately ignores the caller's `limit`: this stratum exists so a real
- * problem is never sampled away. A run against a badly-imported database can
- * therefore produce a very large report — that is the honest signal, and the
- * fix is to repair the import, not to truncate the list.
+ * problem is never sampled away. A badly-imported database therefore produces
+ * a very large report — that is the honest signal, and the fix is to repair
+ * the import.
  *
  * Excludes only a star player with no stored total at all: an induced star
- * player often has no source-reported SPP total (`spp_total` is NULL), which
- * would always disagree — that's the expected, unavoidable state for such a
- * player, not a real discrepancy worth an uncapped stratum flooding the
- * report with. `StarPlayerStratificationService` covers that expected case
- * separately, in its own bounded stratum. A star player who DOES carry a real
- * stored total stays in scope here: excluding every star
- * player outright would hide a genuine, fixable mismatch behind whatever
- * `StarPlayerStratificationService` happens to sample.
+ * often has none, which would always disagree, and
+ * `StarPlayerStratificationService` covers that expected case in its own
+ * bounded stratum. A star that does carry a real total stays in scope, since
+ * excluding stars outright would hide a genuine mismatch.
  */
 @Injectable()
 export class SppDiscrepancyStratificationService implements PlayerStratifier {

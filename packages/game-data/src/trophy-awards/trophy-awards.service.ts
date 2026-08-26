@@ -230,31 +230,17 @@ export class TrophyAwardsService {
   }
 
   /**
-   * Every trophy handed out in one competition, team awards first (season
-   * placements, wooden spoon) and player awards after (MVP, best stunty), each
-   * group ordered by trophy name — a clearer hall-of-fame narrative than
-   * mixing the two kinds together.
+   * Every trophy handed out in one competition, team awards before player
+   * awards, each group by trophy name.
    *
-   * `asc(trophies.recipientKind)` is what puts team before player: Postgres
-   * orders an enum by its declaration order, and `trophy_recipient_kind` is
-   * declared `['team', 'player']` (see `packages/db/src/schema/trophies.ts`),
-   * so no `CASE` expression is needed.
+   * `asc(trophies.recipientKind)` is what orders team before player: Postgres
+   * orders an enum by declaration order and `trophy_recipient_kind` is
+   * declared `['team', 'player']`, so no `CASE` is needed.
    *
-   * `players` is left-joined because a team trophy's award row carries no
-   * player at all; `team_eras` is only a stepping stone to the team's id and
-   * name, since the deepdive links to the team, not the era. There is
-   * deliberately no `limit` and no era grouping (unlike `listRecipients`): a
-   * competition belongs to exactly one era, so there is nothing to group by,
-   * and one competition only ever awards a small, bounded number of trophies.
-   *
-   * `trophies.id`, `teams.name`/`teams.id` and `players.name`/`players.id`
-   * are appended as tiebreakers: neither `recipientKind` nor `trophies.name`
-   * is unique (a tie, or one trophy covering several podium places, means
-   * several award rows share both), and team/player *names* are not unique
-   * either, so the trailing `teams.id`/`players.id` pair is what actually
-   * guarantees a fully deterministic order — without them, two same-named
-   * teams or players tied for one trophy could still return in arbitrary
-   * order on every call.
+   * The trailing `teams.id`/`players.id` tiebreakers are what actually
+   * guarantee a deterministic order: neither `recipientKind` nor a trophy,
+   * team, or player *name* is unique, so without them two same-named teams
+   * tied for one trophy could return in any order on each call.
    */
   listForCompetition(competitionId: number): Promise<CompetitionTrophyAward[]> {
     return (
@@ -432,27 +418,15 @@ export class TrophyAwardsService {
    * links, so "already recorded" means "identical" and the existing row is
    * returned untouched.
    *
-   * Insert-first, not select-first: `trophy_awards` carries a unique
-   * constraint on exactly this natural key (see
-   * `packages/db/src/schema/trophy-awards.ts`), so letting the database
-   * arbitrate leaves no window between a lookup and an insert for a
-   * concurrent importer to slip a duplicate through. The SELECT runs only on
-   * the conflict path, to fetch the row that won. There is deliberately no
-   * "more than one row matched" branch any more — the constraint makes that
-   * state unreachable.
+   * Insert-first rather than select-first, so the natural-key unique
+   * constraint arbitrates and leaves no window for a concurrent importer to
+   * slip a duplicate through; the SELECT runs only on the conflict path. The
+   * conflict target is NULLS NOT DISTINCT, which is what makes a team award
+   * (always `playerId === null`) dedup at all.
    *
-   * The conflict target is NULLS NOT DISTINCT on the database side, which is
-   * what makes a team award (always `playerId === null`) dedup at all.
-   *
-   * A tie is not a special case: two players winning the same trophy in the
-   * same competition differ in `playerId`, so each simply gets its own row.
-   * No cutoff on tie size is applied — real BBL data has ties of up to four.
-   *
-   * Two things are checked before anything is written: the award's recipient
-   * must fit the trophy's `recipientKind`, and the competition must fall
-   * inside the trophy's curated scope — its competition group, or its league
-   * when the trophy is league-scoped. Either failure throws instead of
-   * writing.
+   * A tie is not a special case: two players winning the same trophy in one
+   * competition differ in `playerId` and each gets a row. No cutoff on tie
+   * size is applied — real BBL data has ties of up to four.
    */
   async upsert(
     data: UpsertTrophyAward,

@@ -70,33 +70,19 @@ export class BblTeamParticipationImportService {
   ) {}
 
   /**
-   * Derive team_eras, competition_teams, and race_eras from two sources of
-   * competition membership, unioned per competition:
-   *   1. Real match participation — for each competition, the distinct team ids
-   *      of its completed matches, read from each match's own detail page
-   *      (`p=m&m=<id>`) rather than the truncatable match-list names.
-   *   2. The competition's standings page (`p=se&s=<id>`), which lists every
-   *      registered team — including teams with a 0-0 record that played no
-   *      matches, which source 1 alone can never surface.
-   * Each resulting team id is resolved to an imported team by page id; each
-   * team's era is synced (yielding a team_eras id) and collected into the
-   * competition's teamEraIds; the team's race is recorded against the
-   * competition's era. The competition is then re-upserted with its
-   * teamEraIds (writing competition_teams), and a final pass re-upserts each
-   * race with the accumulated era ids (writing race_eras). All three syncs are
-   * append-only. A registered-but-unplayed team simply contributes no
-   * match_teams rows, which is correct. An unresolvable team id is recorded as
-   * an error and skipped; it does not block the rest of the competition. A
-   * competition with neither matches nor registered teams has nothing to
-   * sync here and is skipped entirely; its own row (with an empty
-   * teamEraIds) was already created upstream by BblCompetitionsImportService,
-   * so this is not a missing import.
+   * Competition membership is unioned from two sources because neither is
+   * complete alone: match participation misses a registered team with a 0-0
+   * record that played nothing, which only the standings page (`p=se&s=<id>`)
+   * lists. Team ids come from each match's own detail page (`p=m&m=<id>`)
+   * rather than the match-list names, which BBL truncates.
    *
-   * `teamEraIdsByCompetitionBblId` exposes the per-competition team code ->
-   * team era mapping this step already builds, so the outcome step can turn
-   * a trophy placement or a configured override's team code into the team era
-   * that identifies the winning match team.
-   * Idempotent.
+   * All three syncs are append-only. A competition with neither matches nor
+   * registered teams is skipped entirely — its row was already created
+   * upstream with an empty teamEraIds, so this is not a missing import.
+   *
+   * `teamEraIdsByCompetitionBblId` exposes the mapping this step already
+   * builds so the outcome step can turn a trophy placement or a configured
+   * override's team code into a team era.
    */
   async importTeamParticipation({
     competitionsByBblId,

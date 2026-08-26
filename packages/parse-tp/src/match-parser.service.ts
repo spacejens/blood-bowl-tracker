@@ -21,44 +21,20 @@ const MatchLineUpSchema = LineUpSchema.partial({ rosterId: true });
 /**
  * The subset of a TP `match_<id>.json` body this tool cares about.
  *
- * `playedDate` is the resolved play date, preferring the closest available
- * signal for when the match was actually played: `scoreResume.startInstant`
- * (a completed match's own recorded start time — the most direct "actually
- * played" signal TP exposes) when present and non-null, else TP's own
- * `scheduledDate` field (the agreed play date — typically tracks
- * `scoreResume.startInstant` closely when both exist, and the best available
- * signal for a match with no scoreResume yet — see
- * docs/import-tp/file-format.md), else `createdInstant` (always present in
- * the data, but only a record-setup timestamp — it can predate the actual
- * play date by months, so it is a last-resort fallback, not a proxy for
- * "played"). It is named `playedDate`, not `scheduledDate`, because that is
- * what the fallback logic resolves to — TP's own `scheduledDate` field is
- * only one of its three candidate sources, not always the winner. It is
- * always a Date because the required `createdInstant` fallback guarantees
- * one.
+ * `playedDate` prefers `scoreResume.startInstant` (a completed match's own
+ * recorded start — the most direct "actually played" signal TP exposes), then
+ * `scheduledDate`, then `createdInstant`. The last is a record-setup timestamp
+ * that can predate the real play date by months, so it is a last resort rather
+ * than a proxy; it is also always present, which is what makes `playedDate`
+ * non-optional. The field is named for what the chain resolves to, not for
+ * TP's own `scheduledDate`, which is only one candidate.
  *
- * The home/away team roster ids come from `inscriptionLocal.roster.id` /
- * `inscriptionVisitor.roster.id`. Other match fields (state, turn, the rest
- * of the nested roster bodies, etc.) are intentionally ignored until a
- * future sub-issue needs them — the same "parse only what's needed"
- * convention as TournamentParserService. `matchEvents` is the exception: it
- * is decoded via `MatchEventParserService.parse`.
- *
- * `inscriptionLocal.roster.lineUps[]` / `inscriptionVisitor.roster.lineUps[]`
- * are also parsed, into `homeRosterPlayers`/`awayRosterPlayers`: each embeds
- * a per-match snapshot of that side's full roster at match time, in
- * (almost) the same shape as the standalone `rosters_<id>.json` file's own
- * `lineUps[]` -- except a match-embedded entry does NOT carry its own
- * `rosterId` field in real TP data (unlike the standalone file), so it
- * defaults to the parent roster's own `id` (`inscriptionLocal.roster.id` /
- * `inscriptionVisitor.roster.id`), which is what it would be anyway. This
- * exists because the standalone roster file only reflects a roster's CURRENT
- * composition as of when the local TP data mirror was downloaded — a player
- * who has since left/been replaced is silently absent from it, even though
- * historical `matchEvents[]` in this and other matches can still reference
- * them by `lineUpId`. `TpPlayersImportService` unions these per-match
- * snapshots into player import (see `tools/import-tp`) so departed players
- * are still importable and resolvable.
+ * `homeRosterPlayers`/`awayRosterPlayers` capture each side's per-match roster
+ * snapshot because the standalone roster file reflects only the roster's
+ * composition as of the data mirror — a player who has since left is absent
+ * from it even though match events still reference them by `lineUpId`. A
+ * match-embedded entry carries no `rosterId` of its own, so it defaults to the
+ * parent roster's id, which is what it would be anyway.
  */
 export interface TpMatch {
   id: number;

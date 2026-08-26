@@ -26,36 +26,25 @@ const NON_STANDARD_STRATUM = 'spp-non-standard-contribution';
  * Players with at least one match event whose recorded SPP contribution
  * disagrees with the standardised award table.
  *
- * TP-only. Per `match_events.spp_value`'s own doc comment in `packages/db`, a
- * BBL-sourced event's value is computed directly from `spp_award_values`, so
- * it can never disagree with that table by construction and querying BBL here
- * would always return nothing. A TP-sourced event instead carries TP's own
- * reported figure verbatim, which can legitimately differ (race-specific
- * modifiers, random events, special league rules). This stratum surfaces the
- * difference without judging whether it is a bug or
- * normal TP variation; that judgment is the reviewer's, from the rendered
- * comparison.
+ * TP-only: a BBL-sourced event's `spp_value` is computed from
+ * `spp_award_values` by construction and can never disagree, while a
+ * TP-sourced one carries TP's own reported figure verbatim, which may
+ * legitimately differ. Whether a difference is a bug or normal TP variation is
+ * the reviewer's judgment, not this stratum's.
  *
- * The expected award is re-derived here rather than borrowed: review-player
- * must never depend on `packages/game-data` (see docs/review-player/index.md),
- * because code under review agreeing with itself is exactly what this tool
- * exists to prevent. The lookup mirrors the chain
- * `SppAwardValuesService.resolveSppValue` uses — player → team era → team →
- * era rules sets → award values, matched on `(rules_set_id, action_type)` with
- * either a NULL race (the baseline) or the team's own race — expressed as a
- * correlated subquery that orders NULL races last so a race-specific row wins
- * over the baseline it overrides.
+ * The expected award is re-derived here rather than borrowed, because
+ * review-player must never depend on `packages/game-data` (see
+ * docs/review-player/index.md) — code under review agreeing with itself is
+ * what this tool exists to prevent. The correlated subquery orders NULL races
+ * last so a race-specific row wins over the baseline it overrides.
  *
- * An action type with no matching row at all (`foul` never gets one — see
- * `spp_award_values`' own doc comment) is an expected award of 0, not "no
- * answer", hence the outer `coalesce`. A NULL `spp_value` is likewise read as
- * 0, so a touchdown recorded with no value is flagged while a `foul` with no
- * value is not.
+ * An action type with no matching row (`foul` never has one) is an expected
+ * award of 0, not "no answer", hence the outer `coalesce`; a NULL `spp_value`
+ * reads as 0 too, so a valueless touchdown is flagged and a valueless foul is
+ * not.
  *
  * Bounded by the caller's limit, unlike the discrepancy stratum: the match
- * definition is deliberately broad, so an uncapped version could flag a large
- * share of TP players and flood the report instead of giving a reviewable
- * sample.
+ * definition is deliberately broad and would otherwise flood the report.
  */
 @Injectable()
 export class SppNonStandardContributionStratificationService implements PlayerStratifier {

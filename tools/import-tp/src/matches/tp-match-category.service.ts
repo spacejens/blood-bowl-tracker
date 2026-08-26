@@ -24,57 +24,23 @@ interface Stage {
 
 /**
  * Classifies a TP match's category from its `(phaseOrder, round)` position
- * within its competition's bracket -- TP names no stage in text (`roundName`
- * is only ever DAY/MATCHDAY/ROUND).
+ * within its competition's bracket — TP names no stage in text (`roundName` is
+ * only ever DAY/MATCHDAY/ROUND).
  *
- * ## The mapping (derived from real fixture data, developer-confirmed)
- *
- * `phaseOrder === 1` is always the main phase (the regular season, or a
- * cup's pool play) -- `normal`, for both `season` and `cup` competitions.
- *
- * Everything else only occurs in `season` competitions in the local fixture
- * data (no cup competition has more than one phase there), so a `cup` match
- * with `phaseOrder !== 1` has no confirmed mapping and throws.
- *
- * For a `season` competition, gather every match with `phaseOrder !== 1`
- * ("non-main matches") and sort their distinct `(phaseOrder, round)` pairs
- * ascending -- this reconstructs the true playoff sequence, because
- * `phaseType`'s literal value (30 vs 110 in the fixtures) is NOT stable
- * across seasons: which numeric phase hosts which stage flips from season to
- * season, but the `(phaseOrder, round)` pair's ascending *position* always
- * matches chronological (`playedDate`) order. Confirmed shapes:
- *
- * - **6 non-main matches** (3 stages of 2, e.g. `tloegbbl-major-season-25`):
- *   stage 1 = `season_qualifier`, stage 2 = `season_semi_final`, stage 3 is
- *   the terminal stage (final + bronze, split below). `tloegbbl-sasong-28`
- *   is also this 6-match shape, but with an inverted grouping: its qualifier
- *   AND semifinal both fall under `phaseOrder 2` (rounds 1 and 2) and its
- *   terminal stage sits alone under `phaseOrder 3`, the reverse of every
- *   other season's `(2,1)`/`(3,1)`/`(3,2)` grouping -- proof that ascending
- *   `(phaseOrder, round)` *position*, not the literal phase numbers, is what
- *   identifies a stage.
- * - **4 non-main matches** (2 stages of 2, no qualifying round that season):
- *   stage 1 = `season_semi_final`, stage 2 is the terminal stage. No local
- *   fixture has this shape; it's a developer-stated rule for a season that
- *   skips qualifying entirely.
- * - Any other non-main match count (not 4 or 6), or a stage whose bucket
- *   doesn't have exactly 2 matches, is an unanticipated shape -- throws
- *   rather than guessing.
+ * Stages are identified by the ascending *position* of the distinct
+ * `(phaseOrder, round)` pairs, never by their literal values: which numeric
+ * phase hosts which stage flips from season to season, and one observed season
+ * even groups its qualifier and semifinal under a single `phaseOrder`. The
+ * ascending position, unlike the numbers, always tracks `playedDate` order.
  *
  * The terminal stage's two matches share an identical `(phaseOrder, round)`
- * tuple -- TP exposes no per-match signal distinguishing a final from a
- * bronze match. They are told apart by tracing which two teams *won* the
- * immediately preceding (semifinal) stage's two matches, via each match's
- * `winner`/`homeTeamTpId`/`awayTeamTpId`: the terminal match pairing the two
- * semifinal winners is `season_final`; the one pairing the two semifinal
- * losers is `season_bronze`. When one semifinal match is itself a drawn tie
- * (`winner: 'draw'`, as in the `tloegbbl-sasong-29` fixture), its winner is
- * inferred transitively: whichever terminal match contains the *other*
- * semifinal's confirmed winner is the final (since exactly one terminal
- * match can), so the remaining terminal match is bronze regardless of the
- * drawn semifinal's own result. If *both* semifinal matches are drawn there
- * is no confirmed winner to anchor that inference on, and the split is
- * genuinely unresolvable -- throws (never observed in local data).
+ * tuple — TP exposes no per-match signal separating a final from a bronze
+ * match. They are told apart by which two teams won the preceding semifinal
+ * stage. A drawn semifinal is resolved transitively: exactly one terminal
+ * match can contain the other semifinal's confirmed winner, so that one is the
+ * final. Two drawn semifinals leave nothing to anchor on and throw, as does
+ * any bracket shape not seen in real data — guessing would silently mislabel a
+ * final.
  */
 @Injectable()
 export class TpMatchCategoryService {

@@ -74,29 +74,16 @@ export class BblPositionsImportService {
   ) {}
 
   /**
-   * Import every position found on the BBL `p=pt` pages.
+   * A `p=pt` page's own race links are incomplete, so player pages are also
+   * scanned to reverse-engineer additional races fielding the position
+   * (matched by typId), deduped against the listed ones. Extra races follow
+   * the zero-listed-races convention: one row with a bare-name `Name` external
+   * id when the page carries the `None (star player)` marker, otherwise one
+   * row per race.
    *
-   * - Pages that list race(s) via `p=tl#` links import one position row per
-   *   race (isStarPlayer false), keyed by the composite `<typId>-<raceBblId>`
-   *   (BBL) and `<raceName>: <positionName>` (Name), as before.
-   * - Regardless of whether races are listed, player pages are scanned to
-   *   reverse-engineer any ADDITIONAL race(s) that field the position (matched
-   *   by typId via `teamRaceIdsByCode`), deduped against the listed races. Any
-   *   extra race imports under the zero-listed-races convention: if the page
-   *   carries the `None (star player)` marker, ONE row with a bare-name Name
-   *   external id plus the composite external ids for every extra race;
-   *   otherwise duplicate rows, one per extra race.
-   * - Positions that list no race and resolve to none from player history are
-   *   skipped with a recorded error, as before.
-   * - No relation is recorded as deleted at import time any more: every race
-   *   a position row is upserted for (listed or reverse-engineered) is
-   *   instead accumulated into `positionRaceCandidates`, keyed by the
-   *   upserted DB position id, for a later era-availability heuristic
-   *   (Phase 2) to decide which candidate races are actually available.
-   *
-   * `racesByBblId` (from the races import) resolves a listed race's BBL id and
-   * gives, inverted, the BBL id + name for a DB race id resolved via players.
-   * Idempotent.
+   * No relation is marked deleted here. Every race a row is upserted for is
+   * accumulated into `positionRaceCandidates` for the era-availability
+   * heuristic in Phase 2 to rule on.
    */
   async importPositions(
     racesByBblId: Map<string, { id: number; name: string }>,

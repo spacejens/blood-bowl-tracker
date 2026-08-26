@@ -61,34 +61,11 @@ export class TpCompetitionsImportService {
   ) {}
 
   /**
-   * Import every competition found under the configured era directories. A
-   * competition is one `<era>/<competition>` subdirectory: its base
-   * `tournament_<slug>.json` gives its name and TP id; its `match_*.json`
-   * files give the dates whose span classifies it (span <= 3 days => cup, else
-   * season). Its era is the directory's own era, resolved server-side, by
-   * external id, against whatever TpErasImportService upserted moments
-   * earlier in the same run (one batched lookup for the whole run, not one
-   * per competition) — no date-range matching is needed, unlike BBL. Each
-   * competition is keyed by its numeric TP id (stringified) under the TP
-   * external system.
-   * Competitions with no base tournament file, an unparsable one, no dated
-   * matches, or an era with no known id are skipped with a recorded error.
-   * Idempotent.
-   *
-   * Also returns `matchesByCompetitionId` (each imported competition's DB id
-   * to every TpMatch parsed for it during this scan) and `competitionsByTpId`
-   * (each imported competition's TP id to the exact UpsertCompetition object
-   * built for it, plus its era/competition directory strings). Match files
-   * carry no tournament id, so matchesByCompetitionId is the only association
-   * between a match and its competition; TpMatchesImportService consumes it to
-   * set each match's competitionId (mirroring BBL's competitionIdsByBblId).
-   * competitionsByTpId is consumed by TpTeamParticipationImportService to
-   * re-upsert each competition with its teamEraIds (competition_teams) — the
-   * UpsertCompetition is needed in full because UpsertCompetitionSchema has no
-   * partial update, and the directory strings match the competition's rosters.
-   * A caller that needs a competition's DB id resolves it itself, server-side,
-   * by external id (its TP id, stringified, under `competitionsByTpId`'s own
-   * `upsert.externalIds[0].externalSystemId`) via `ReferenceLookupService`.
+   * TP's match files carry no tournament id, so `matchesByCompetitionId` is
+   * the only association between a match and its competition.
+   * `competitionsByTpId` returns each whole `UpsertCompetition` because
+   * `UpsertCompetitionSchema` has no partial update, so a later step that adds
+   * team era ids must re-send the entire object.
    */
   async importCompetitions(): Promise<{
     result: ImportResult;

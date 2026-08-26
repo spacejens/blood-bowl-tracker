@@ -33,44 +33,19 @@ export interface PlayerDeepdiveEventGroup {
 }
 
 /**
- * The player deepdive's event counters. The `simple` categories are plain
- * label/count rows; casualties and fouls each carry a severity breakdown so
- * the embed can render them as one line apiece.
+ * The player deepdive's event counters.
  *
- * `casualties.killed` and `fouls.killed`/`fouls.seriousInjuries` now mean
- * "attempted", not merely "confirmed" — they fold in a prevented (saved)
- * attempt alongside a confirmed one, and, for `casualties.killed` only, a
- * `'death'`-actioned row with no consequence recorded at all.
+ * `casualties.killed`, `fouls.killed` and `fouls.seriousInjuries` mean
+ * *attempted*, not confirmed: a prevented (saved) attempt counts alongside a
+ * confirmed one. `casualties.killed` additionally counts a `'death'`-actioned
+ * row with no consequence at all, because `actionType = 'death'` already
+ * certifies the severity of what the player did; `actionType = 'foul'` carries
+ * no severity of its own, so fouls have no such case.
  *
- * `casualties.killed` counts via `countDeathOutcome`, which matches a
- * confirmed death (`consequenceType = 'death'`), a prevented one
- * (`consequenceType = 'casualty_avoided'` with `consequenceAvoidedSeverity =
- * 'death'`), or a `'death'`-actioned row with no consequence recorded at all
- * — `actionType = 'death'` alone already certifies the severity of what the
- * player did, so the unpaired case belongs here too. `fouls.killed` and
- * `fouls.seriousInjuries` count via `countFoulOutcome`, which matches a
- * confirmed outcome
- * (`consequenceType` in the target severity set) OR a prevented one
- * (`consequenceType = 'casualty_avoided'` with `consequenceAvoidedSeverity`
- * in that set) — `actionType = 'foul'` carries no severity of its own, unlike
- * `'death'`, so there is no unpaired/no-consequence case to fold in for
- * fouls.
- *
- * Since every event with `actionType = 'death'` or `actionType = 'foul'` AND
- * `consequenceType = 'death'` OR (`consequenceType = 'casualty_avoided'` AND
- * `consequenceAvoidedSeverity = 'death'`) OR (`actionType = 'death'` AND
- * `consequenceType IS NULL`) is exactly what `fouls.killed` plus
- * `casualties.killed` counts, and `PlayerDeathService`'s `killFilter` is
- * built from literally these same conditions ORed together, the two totals
- * are exactly the number of kills the deepdive's Kills section lists. This is
- * true by construction, not merely typical.
- *
- * `casualties.total` (via `countActingEvents` below) can also disagree with
- * the toplist's `countCasualtiesCausedByPlayer` (which goes through the
- * joined `countMatchEventsByPlayer`) for a player with a casualty event whose
- * `actingMatchTeamId` is null — the deepdive number can come out higher than
- * the leaderboard number for that same player. This divergence is
- * intentional: see `countActingEvents`'s doc comment for why.
+ * `casualties.total` can exceed the toplist's
+ * `countCasualtiesCausedByPlayer` for a player with a casualty event whose
+ * `actingMatchTeamId` is null. That divergence is intentional — see
+ * `countActingEvents`.
  */
 export interface PlayerDeepdiveCategoryCounts {
   simple: { label: string; count: number }[];

@@ -76,29 +76,18 @@ export class TpTrophyAwardsImportService {
   ) {}
 
   /**
-   * Record every team award TP's per-competition awards files list: the
-   * 1st/2nd/3rd placements and, where a competition has them, Best Stunty and
-   * Wooden Spoon. TP records no individual player awards, so every row here
-   * is a team award (`playerId: null`).
+   * TP records no individual player awards, so every row here is a team award
+   * (`playerId: null`).
    *
-   * A trophy is *resolved, never created*: the upsert carries only the
-   * award's lookup key as a `tourplay.net` external id, matching the curated
-   * catalog seeded by tools/import-manual. TP's raw `awardType` codes are not
-   * globally unique per trophy -- the same code means a different trophy in a
-   * different competition group -- so the key is
-   * `${disambiguator}-${groupName}`: the award's own `name` when it has one
-   * ("Best Stunty"/"Wooden Spoon", which share a numeric code within a file),
-   * its numeric `awardType` otherwise, joined with the competition's curated
-   * group name. The group comes from the competition's own
-   * `competitionGroupId` (set by tools/import-manual's before-other-importers
-   * phase and returned by its upsert), mapped to a name via the group catalog
-   * read once here rather than once per award.
+   * A trophy is resolved, never created — the upsert carries only a lookup key
+   * matching the curated catalog. That key is `${disambiguator}-${groupName}`
+   * because TP's raw `awardType` codes are not globally unique: the same code
+   * means a different trophy in a different competition group. The
+   * disambiguator is the award's own `name` where it has one (Best Stunty and
+   * Wooden Spoon share a numeric code within a file), else the numeric code.
    *
-   * Resolutions are memoized per run -- successes and failures alike -- so an
-   * unknown key is reported once and its further rows are summarized at the
-   * end, mirroring BblTrophyAwardsImportService. Every unresolvable row
-   * (unknown competition, group, trophy key or team era) is recorded as an
-   * error and skipped; nothing is inferred or defaulted.
+   * Resolutions are memoized per run, failures included, so an unknown key is
+   * reported once and its further rows summarized at the end.
    */
   async importTrophyAwards(
     options: ImportTpTrophyAwardsOptions,

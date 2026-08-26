@@ -39,30 +39,15 @@ export class BblMatchesImportService {
   ) {}
 
   /**
-   * Import every completed match from the ma match-list rows. Each match is
-   * keyed by its numeric BBL id (m=<id>) under the same BBL external system the
-   * competition is keyed under; its competitionId is the competition's DB id,
-   * resolved in one batched call against every competition referenced by
-   * `competitionsByBblId`. A competition whose matches exist but whose DB id
-   * could not be resolved (its import failed) has all its matches skipped
-   * with one recorded error.
+   * A configured merge pair (see `MatchMergeService`) imports as a single
+   * match: the primary member is upserted once carrying BOTH members' external
+   * ids, which is what links both source matches to one DB row via
+   * `MatchesService.upsert`'s any-external-id matching.
    *
-   * A configured merge pair (see MatchMergeService) is imported as a single
-   * match: the primary member is upserted once with BOTH members' external ids
-   * and the pair's canonical playedAt, which links both source matches to the
-   * same DB row via MatchesService.upsert's any-external-id matching; the
-   * secondary member is skipped, and both bblIds are mapped to that one DB id.
-   * Idempotent.
-   *
-   * Every upsert also carries an explicit category, resolved (see
-   * resolveCategory) from a configured override for the match or its merge
-   * partner, else the keyword classifier. A category that cannot be resolved
-   * — a classifier refusal, or a competition with no type — records a
-   * per-match error and skips that match, rather than aborting the run.
-   *
-   * The returned `categoriesByBblId` carries each imported match's resolved
-   * category (under both ids of a merged pair) so the outcome step can tell a
-   * final from a bronze match without reclassifying.
+   * A category that cannot be resolved records a per-match error and skips
+   * that match rather than aborting the run. The resolved categories come back
+   * in `categoriesByBblId` so the outcome step can tell a final from a bronze
+   * match without reclassifying.
    */
   async importMatches(
     competitionsByBblId: Map<string, UpsertCompetition>,

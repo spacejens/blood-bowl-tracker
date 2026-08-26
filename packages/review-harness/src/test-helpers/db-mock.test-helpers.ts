@@ -3,32 +3,23 @@ import type { Mock } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 /**
- * A stand-in for a drizzle fluent query builder. Every builder method
- * (`from`, `innerJoin`, `where`, `orderBy`, `limit`, ...) is auto-created on
- * demand as a `vi.fn()` returning the same chain, so specs never have to
- * enumerate them. Tests read `chain.where.mock.calls` to assert on the
- * captured drizzle condition objects.
+ * A stand-in for a drizzle fluent query builder: builder methods are
+ * auto-created on demand as `vi.fn()`s returning the same chain, so specs read
+ * `chain.where.mock.calls` to assert on captured drizzle conditions.
  *
- * `then` is defined explicitly rather than auto-created: drizzle builders are
- * thenables, and awaiting an auto-created `then` mock never settles.
+ * `then` is defined explicitly because drizzle builders are thenables and
+ * awaiting an auto-created `then` mock never settles.
  *
- * Shared by every review tool spec that needs a drizzle mock. Reachable as
- * `@blood-bowl-tracker/review-harness/test-helpers` — kept off the package's
- * main barrel so importing the harness never pulls Vitest into a tool's
- * runtime graph. Test-only; excluded from coverage.
+ * Reachable as `@blood-bowl-tracker/review-harness/test-helpers`, kept off the
+ * package's main barrel so importing the harness never pulls Vitest into a
+ * tool's runtime graph.
  *
- * Lives under `test-helpers/` alongside a sibling `package.json` declaring
- * `"type": "module"`. Without it, TypeScript's `nodenext` module setting
- * (driven by the *source* file's nearest `package.json`, which for the rest
- * of this package has no `"type"` field and so defaults to CommonJS) would
- * compile this file's `import { mock } from 'vitest-mock-extended'` down to
- * `require('vitest-mock-extended')`. That package's CJS entry point in turn
- * `require()`s `vitest` itself, which vitest deliberately refuses ("Vitest
- * cannot be imported in a CommonJS module using require()"). The sibling
- * `package.json` is copied next to the compiled output by this package's
- * `build` script, so `dist/test-helpers/` is recognized as ESM too and the
- * compiled file uses real `import` statements, resolving `vitest-mock-extended`
- * to its ESM build instead of tripping the CJS guard.
+ * The sibling `package.json` declaring `"type": "module"` is required: without
+ * it TypeScript's `nodenext` resolution (driven by the source file's nearest
+ * `package.json`, which defaults this package to CommonJS) compiles the
+ * `vitest-mock-extended` import to a `require()`, whose CJS entry point
+ * `require()`s vitest — which vitest refuses. The build script copies that
+ * file next to the compiled output so `dist/test-helpers/` is ESM too.
  */
 type QueryChain = Record<string, Mock> & {
   then: <TResult1 = unknown, TResult2 = never>(

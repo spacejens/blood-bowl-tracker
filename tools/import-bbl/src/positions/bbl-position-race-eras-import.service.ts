@@ -33,29 +33,15 @@ export class BblPositionRaceErasImportService {
   ) {}
 
   /**
-   * Phase 2 of the positions_race_eras heuristic: runs after players are
-   * imported, over the candidate (position, race) pairs Phase 1
-   * (`BblPositionsImportService`) collected. Era identities come from
-   * `EraConfigService.getEras()`; era and position ids are then resolved
-   * server-side via `ReferenceLookupService` round trips (each era by its
-   * name, each position by its composite typId-raceBblId external id) before
-   * the availability decision below runs, rather than entirely client-side.
+   * Phase 2 of the positions_race_eras heuristic, deciding availability per
+   * (position, race, era) after players are imported.
    *
-   * For each candidate position and each race it was seen fielding, and each
-   * era the race spans (`eraIdsByRaceId`), decides availability:
-   *
-   * 1. A config override for that (position, race, era) wins outright.
-   * 2. Else a star player is always available (star player exception).
-   * 3. Else a player actually used the position that era
-   *    (`positionsUsedByEra`) -> available.
-   * 4. Else the race fielded no teams at all that era
-   *    (`racesActiveByEra` says no) -> available (absence isn't meaningful).
-   * 5. Else the race was active that era but no player used the position ->
-   *    unavailable.
-   *
-   * The final decided list per position is persisted with one
-   * `PositionsImportService.syncRaceEras` call (the generic write endpoint;
-   * all decision-making lives here, not there). Idempotent.
+   * A config override for a (position, race, era) wins outright. Absent one,
+   * two fallback branches are not self-evident: a star player counts as
+   * available in every era regardless of use, and a race that fielded no
+   * teams at all in an era counts as available too — its absence carries no
+   * information either way, so treating it as unavailable would invent a
+   * restriction.
    */
   async syncPositionRaceEras({
     positionRaceCandidates,

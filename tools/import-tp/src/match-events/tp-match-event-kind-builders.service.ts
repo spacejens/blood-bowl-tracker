@@ -274,33 +274,15 @@ export class TpMatchEventKindBuildersService {
   }
 
   /**
-   * Build an `injury` (code 8) event. The consequence side (the victim +
-   * severity) is always emitted, including `injuryType: 'None'` (a real Badly
-   * Hurt result, not "nothing happened"). The action side is credited three
-   * ways, in priority order:
+   * `injuryType: 'None'` is a real Badly Hurt result, not "nothing happened",
+   * so the consequence side is emitted for it like any other.
    *
-   * 1. Paired via `casualtyPairing` (a specific code-6 event correlated by
-   *    turnNumber) — full credit: the specific acting player and their team,
-   *    with the severity bucketed via {@link INJURY_ACTION_SEVERITY_BY_TYPE}.
-   * 2. Paired via `foulPairing` (a specific code-31 foul correlated by
-   *    turnNumber) — full credit to the fouler and their team, but with
-   *    `actionType: 'foul'` rather than a severity bucket: Blood Bowl awards
-   *    no casualty credit for a foul, and this one row is what makes a
-   *    foul-caused casualty mean the same thing here as it does in the BBL
-   *    importer.
-   * 3. Not paired, but `turnRosterId` differs from the victim's roster —
-   *    opponent-caused per TP's turn-owner field, but the specific player
-   *    couldn't be pinned down (e.g. a cross-turn logging quirk); falls back
-   *    to team-only credit with the same severity bucketing.
-   * 4. Neither — self-inflicted or otherwise unattributable (a player falling
-   *    on their own, or a random event); consequence-only, exactly as before.
+   * A foul-paired injury is credited with `actionType: 'foul'` rather than a
+   * severity bucket: Blood Bowl awards no casualty credit for a foul.
    *
-   * A paired casualty or foul is a genuinely separate TP event with its own
-   * `tpEventId` — unlike case 3's team-only inference, which names no
-   * specific event — so a merged row carries an external id from each side
-   * (action first, then consequence), the same convention `tools/import-bbl`
-   * uses for its own merged events, so a re-import can reconcile the row from
-   * either side even if a pairing decision changes.
+   * A merged row carries one external id from each paired side (action first,
+   * then consequence), so a re-import can reconcile the row from either side
+   * even if the pairing decision changes.
    */
   buildInjuryEvent(
     options: BuildEventDataOptions & {
