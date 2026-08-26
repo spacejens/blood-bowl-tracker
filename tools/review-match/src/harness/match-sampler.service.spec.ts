@@ -71,7 +71,7 @@ describe('MatchSamplerService', () => {
       ),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches).toEqual([
       { ...reviewMatch('bbl', 1), selectedFor: ['Contains a foul'] },
@@ -83,7 +83,7 @@ describe('MatchSamplerService', () => {
       Promise.resolve(source === 'bbl' ? [reviewMatch('bbl', 1)] : []),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches).toHaveLength(1);
     expect(matches[0].selectedFor).toEqual([
@@ -108,7 +108,7 @@ describe('MatchSamplerService', () => {
       return Promise.resolve([]);
     });
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches).toHaveLength(1);
     expect(matches[0].secondaryExternalId).toBe('2001');
@@ -135,7 +135,7 @@ describe('MatchSamplerService', () => {
       Promise.resolve(source === 'tp' ? [reviewMatch('tp', 42)] : []),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches).toEqual([
       { ...reviewMatch('tp', 42), selectedFor: ['override'] },
@@ -155,7 +155,7 @@ describe('MatchSamplerService', () => {
       Promise.resolve(source === 'bbl' ? [reviewMatch('bbl', 1)] : []),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches).toHaveLength(1);
     expect(matches[0].selectedFor).toEqual(['Contains a foul', 'override']);
@@ -207,7 +207,7 @@ describe('MatchSamplerService', () => {
       ),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches).toHaveLength(1);
     expect(matches[0].selectedFor).toEqual(['override']);
@@ -225,7 +225,7 @@ describe('MatchSamplerService', () => {
       ),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches.map((match) => match.matchId)).toEqual([1, 2]);
   });
@@ -244,7 +244,7 @@ describe('MatchSamplerService', () => {
       ),
     );
 
-    const { matches } = await service.sample();
+    const { items: matches } = await service.sample();
 
     expect(matches.map((match) => match.matchId)).toEqual([1, 2, 3]);
   });

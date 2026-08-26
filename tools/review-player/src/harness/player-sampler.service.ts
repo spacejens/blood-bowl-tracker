@@ -1,3 +1,4 @@
+import type { ReviewSampler } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
@@ -12,7 +13,7 @@ import { REVIEW_SOURCES } from '../shared/review.types';
 import { PlayerLookupService } from './player-lookup.service';
 
 export interface SampleResult {
-  players: SampledPlayer[];
+  items: SampledPlayer[];
   /** Strata and overrides that produced nothing — reported, never fatal. */
   gaps: ReviewGap[];
 }
@@ -27,7 +28,7 @@ const OVERRIDE_REASON = 'override';
  * reason it was picked for.
  */
 @Injectable()
-export class PlayerSamplerService {
+export class PlayerSamplerService implements ReviewSampler<SampledPlayer> {
   constructor(
     @Inject(PLAYER_STRATIFIERS)
     private readonly stratifiers: PlayerStratifier[],
@@ -83,7 +84,7 @@ export class PlayerSamplerService {
     }
 
     return {
-      players: [...selected.values()].sort((a, b) => this.compare(a, b)),
+      items: [...selected.values()].sort((a, b) => this.compare(a, b)),
       gaps,
     };
   }

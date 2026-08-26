@@ -64,7 +64,7 @@ describe('PlayerSamplerService', () => {
     config.getOverrides.mockReturnValue([]);
     const service = await makeService({ stratifier, config });
 
-    const { players, gaps } = await service.sample();
+    const { items: players, gaps } = await service.sample();
 
     expect(players.map((player) => player.playerId)).toEqual([42, 43]);
     expect(players[0].selectedFor).toEqual(['Random sample']);
@@ -106,7 +106,7 @@ describe('PlayerSamplerService', () => {
     config.getOverrides.mockReturnValue([]);
     const service = await makeService({ stratifier, config });
 
-    const { players } = await service.sample();
+    const { items: players } = await service.sample();
 
     expect(players).toHaveLength(1);
     expect(players[0].selectedFor).toEqual([
@@ -127,7 +127,7 @@ describe('PlayerSamplerService', () => {
     );
     const service = await makeService({ stratifier, lookup, config });
 
-    const { players } = await service.sample();
+    const { items: players } = await service.sample();
 
     expect(players[0].selectedFor).toEqual(['override']);
   });
@@ -153,7 +153,7 @@ describe('PlayerSamplerService', () => {
     config.getOverrides.mockReturnValue([]);
     const service = await makeService({ stratifier, config });
 
-    const { players } = await service.sample();
+    const { items: players } = await service.sample();
 
     expect(
       players.map((player) => [
