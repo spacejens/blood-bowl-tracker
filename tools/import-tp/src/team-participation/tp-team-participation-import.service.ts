@@ -71,34 +71,13 @@ export class TpTeamParticipationImportService {
   ) {}
 
   /**
-   * Populate match_teams and competition_teams for the already-imported TP
-   * competitions and matches. Unlike BBL — which scrapes match-detail and
-   * standings pages to infer membership — TP embeds both teams' roster ids in
-   * each match file, and a roster file only appears under the competition
-   * directories its team actually played in, so both joins resolve from data
-   * earlier steps already produced (no new file scanning here).
+   * Both joins resolve from data earlier steps already produced, with no new
+   * file scanning: TP embeds both teams' roster ids in each match file, and a
+   * roster file only appears under the competition directories its team
+   * actually played in.
    *
-   * Per competition (iterating `competitionsByTpId`):
-   *  1. competition_teams — the distinct roster ids whose era/competition
-   *     directory strings match this competition's, each resolved to a
-   *     team_eras id via `teamErasByRosterId` + this competition's `eraId`.
-   *     If any resolve, the competition is re-upserted with those teamEraIds
-   *     (additive; UpsertCompetitionSchema has no partial update, so the full
-   *     original UpsertCompetition is reused). An unresolvable roster id is
-   *     recorded as an error and skipped without aborting the competition.
-   *  2. match_teams — each already-imported match's home/away roster ids are
-   *     resolved the same way; if both resolve, the match is re-upserted (by
-   *     its existing TP external id) with [home, away] teamEraIds. If either
-   *     side does not resolve, an error is recorded and the match is skipped
-   *     (its row, created upstream, is untouched).
-   *
-   * `imported` counts each competition successfully re-upserted with a
-   * non-empty teamEraIds (match re-upserts do not increment it). The TP
-   * external system id for a match's external id is read from the competition's
-   * own `upsert.externalIds[0]` (as BBL's syncMatchTeams does) — no bootstrap.
-   * Each competition's DB id is resolved once, up front, server-side by
-   * external id (its TP id, stringified) via ReferenceLookupService — one
-   * batched call for the whole run, not one per competition. Idempotent.
+   * A competition is re-upserted with its full original `UpsertCompetition`
+   * because `UpsertCompetitionSchema` has no partial update.
    */
   async importTeamParticipation(
     options: ImportTeamParticipationOptions,

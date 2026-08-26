@@ -93,54 +93,24 @@ export class TpPlayersImportService {
   ) {}
 
   /**
-   * Import every player instance from the TP roster files' `lineUps[]`. Each
-   * player resolves to a team era (via its roster's `teamErasByRosterId`
-   * entry whose `eraId` matches the roster's era) and a position (via its
-   * `lineUpMasterId`, resolved server-side, by external id, against whatever
-   * TpPositionsImportService upserted moments earlier in the same run --
-   * one batched lookup for the whole run, not one per player). A player whose
-   * team era or position cannot be resolved is recorded as a non-fatal error
-   * and skipped rather than upserted with an invalid foreign key (mirrors
-   * BblPlayersImportService). Players get NO Name external id -- only the TP
-   * lineUpId -- since player names are not guaranteed unique. Returns
-   * `playerIdsByLineUpId`, consumed by the match-events step to resolve a
-   * `matchEvents[].lineUpId` to a player's DB id.
+   * Players carry only their TP `lineUpId` as an external id, never a `Name`
+   * one: player names are not unique.
    *
-   * Each roster's player list is first merged with any entry in
-   * `matchEmbeddedPlayersByRosterId` for that roster id: the match-embedded
-   * snapshot fills in player ids absent from the standalone roster file (a
-   * departed player), while the standalone file's own data wins for any id
-   * it lists (presumed freshest). See `matchEmbeddedPlayersByRosterId`'s doc
-   * comment for why this union is needed.
+   * Each roster's player list is unioned with the per-match snapshots in
+   * `matchEmbeddedPlayersByRosterId`, because a standalone roster file reflects
+   * only the roster's composition as of the data mirror — a player who has
+   * since left is absent from it while match events still reference them. The
+   * standalone file wins for any id it does list, being the freshest.
    *
-   * Also returns `careerSppCountsByPlayerId` (DB player id -> TP's career-wide
-   * per-action-type counts), consumed by the SPP-adjustment step so it can
-   * discount SPP earned in competitions that have not been imported yet.
-   * Players whose source entry carried no counters are simply absent.
+   * A player whose `lineUpMasterId` is in neither catalog falls back to
+   * `fallbackPositionName` only when flagged `isBigGuy` (a mercenary hire has
+   * no catalog entry at all); the gate keeps the fallback from masking a
+   * genuine regular-position catalog gap.
    *
-   * A player whose `lineUpMasterId` resolves neither via the regular nor the
-   * star catalog, but is flagged `isBigGuy: true` (e.g. a mercenary Big Guy
-   * hire like "Giant", which has no catalog entry in either
-   * `rosterMaster` array at all), falls back to `player.fallbackPositionName`
-   * instead of being skipped: a reused `isStarPlayer: true` Position, keyed
-   * by that inline name (bare-name TP external id), the same treatment a
-   * star player gets. A non-`isBigGuy` player whose position still can't be
-   * resolved is skipped as before -- the fallback is deliberately gated on
-   * `isBigGuy` so it never masks a genuine regular-position catalog gap.
-   *
-   * Also imports every star player named in `inducedStarPlayerHireGroups`
-   * (hired via an `inducements_roll` event, not part of a roster's permanent
-   * `lineUps[]`): each named star player gets one reused `isStarPlayer: true`
-   * Position (bare-name external id, mirroring
-   * `BblPositionsImportService`'s star-player handling) and a Player scoped
-   * to the hiring roster's team-era, resolved directly from the group's own
-   * `eraId` (the real era the hiring match's competition belongs to) --
-   * mirroring how `TpTeamParticipationImportService.resolveTeamEraId`
-   * resolves a roster id + era id to its team_eras id. Returns
-   * `starPlayerIdsByRosterAndMaster`, keyed by `` `${rosterId}:${lineUpMasterId}` ``
-   * (star players are referenced in match events by `lineUpMasterId` within
-   * a roster, not by a `lineUps[].id`), consumed by the match-events step
-   * when a `lineUpId` doesn't resolve via `playerIdsByLineUpId`. Idempotent.
+   * `starPlayerIdsByRosterAndMaster` is keyed by roster and `lineUpMasterId`
+   * because match events reference a star by master id within a roster, never
+   * by a `lineUps[].id`. `careerSppCountsByPlayerId` feeds the SPP-adjustment
+   * step, which discounts SPP earned in competitions not yet imported.
    */
   async importPlayers({
     rosters,

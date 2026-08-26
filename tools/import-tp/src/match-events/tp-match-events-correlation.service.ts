@@ -2,39 +2,18 @@ import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Pairs a code-6 (`casualty_caused`) event — the ACTION of a specific player
- * breaking armor — with its code-8 (`injury`) event — the roll reporting the
- * VICTIM and severity.
+ * Pairs a code-6 (`casualty_caused`) action with the code-8 (`injury`) roll
+ * naming the victim.
  *
- * This correlation step is a deliberate, confirmed exception to this
- * project's original TP-import design assumption that "TP embeds the
- * acting/victim player and team directly on each event, so no correlation
- * step is needed" (see `TpMatchEventsImportService`'s doc comment). That
- * assumption holds for every other TP event kind, but not for casualties:
- * TP logs the causing action and the resulting injury roll as two
- * independent events with no shared id, so the specific attacker can only be
- * recovered by pairing them up after the fact — the same kind of
- * action/consequence correlation `tools/import-bbl`'s
- * `match-event-correlation.ts` already does for BBL, just keyed differently.
+ * TP logs the two as independent events with no shared id, so the attacker can
+ * only be recovered by pairing them after the fact. Pairing is on `turnNumber`
+ * equality, not time: TP registers events asynchronously, so a code-8 can be
+ * logged — or timestamped — before its code-6. A code-6 with no same-turn
+ * candidate stays unpaired rather than being force-matched to a plausible
+ * candidate on another turn.
  *
- * Time-based pairing was explicitly rejected: TP's event registration is
- * asynchronous, so a code-8 can be logged before its corresponding code-6 in
- * the raw `matchEvents[]` array, or carry an earlier `instant` timestamp — a
- * player might also simply get hurt for unrelated reasons shortly after a
- * casualty-causing action elsewhere in the same match. Real local data
- * confirms `turnNumber` equality is a far more reliable, order-independent
- * pairing key: of code-6 events with at least one valid-direction candidate
- * injury, 86.4% (1329/1538) share the exact same `turnNumber` as that
- * candidate. `turnNumber` equality is therefore used as the hard pairing
- * requirement; a code-6 with no same-`turnNumber` candidate stays unpaired
- * rather than being force-matched to a plausible-but-uncertain candidate on
- * a different turn.
- *
- * A casualty erased by an apothecary (or similar effect) never gets a code-8
- * counterpart at all — the code-6 action still fired, but there is genuinely
- * no injury consequence to pair it with. An unpaired code-8 is likewise
- * normal and expected (e.g. a player falling down on their own, or a random
- * event) — neither case is treated as an error.
+ * Unpaired events on either side are normal, not errors: an apothecary erases
+ * the injury a code-6 caused, and a player can fall on their own.
  */
 export interface CasualtyPairing {
   /** Injury event tpEventId -> the casualty event that caused it, when paired. */
@@ -51,30 +30,17 @@ export interface CasualtyPairing {
 }
 
 /**
- * Pairs a code-31 (`foul`) event with the code-8 (`injury`) event it caused.
+ * Pairs a code-31 (`foul`) event with the code-8 (`injury`) it caused.
  *
- * TP never logs a `casualty_caused` (code 6) for a foul-caused injury — real
- * local data confirms it (of 1637 code-6 events, exactly 1 shares its acting
- * player and turn with any foul), which is correct: Blood Bowl awards no
- * casualty credit for a foul. But that also left the fouler unconnected to the
- * player they hurt, so a foul and its injury imported as two unrelated rows.
+ * TP never logs a `casualty_caused` (code 6) for a foul-caused injury — which
+ * is correct, since Blood Bowl awards no casualty credit for a foul — so
+ * without this the fouler is unconnected to the player they hurt.
  *
- * The pairing rule is deliberately identical in shape to
- * {@link TpMatchEventsCorrelationService.correlateCasualties}: `turnNumber`
- * equality as the hard, order-independent key, correct direction, and
- * `instant` proximity (within {@link MAX_PAIRING_DELAY_MS}) only as a
- * tiebreak. Real local data shows the same reliability profile: of 659
- * unattributed injuries, 138 share a turn with a same-acting-team foul, 135 of
- * those (97.8%) have exactly one candidate foul, and 86.7% of those are within
- * 120s (median 17s).
- *
- * Only injuries left UNATTRIBUTED by `correlateCasualties` are eligible — an
- * injury already credited to a specific code-6 attacker is never re-credited
- * to a fouler. An unpaired foul is normal (most fouls hurt nobody) and stays a
- * standalone `'foul'` action row. The residual ~13% of same-turn candidates
- * that fall outside the 120s window are the one case where a foul-caused
- * casualty still imports as an ordinary (team-only or unattributed) casualty
- * on TP — an accepted gap given TP's foul events carry no stronger signal.
+ * Only injuries left unattributed by `correlateCasualties` are eligible; an
+ * injury already credited to a specific attacker is never re-credited to a
+ * fouler. Same-turn candidates outside {@link MAX_PAIRING_DELAY_MS} stay
+ * unpaired and import as ordinary casualties — an accepted gap, since TP's
+ * foul events carry no stronger signal.
  */
 export interface FoulPairing {
   /** Injury event tpEventId -> the foul event that caused it, when paired. */

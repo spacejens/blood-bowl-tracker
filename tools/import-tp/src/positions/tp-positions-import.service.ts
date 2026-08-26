@@ -48,39 +48,20 @@ export class TpPositionsImportService {
   ) {}
 
   /**
-   * Import every position on the TP roster files. Positions are grouped by
-   * `(unified raceId, position name)`: identically-named positions across the
-   * rule-set-variant codes of one logical race collapse to one row, collecting
-   * every distinct `tpPositionId` as a TP external id (all in one upsert call).
-   * Regular positions also carry a `Name` external id in
-   * `` `${raceName}: ${positionName}` `` format, resolved via `raceNamesById`
-   * (position names are not globally unique, so they are scoped by race name);
-   * if a group's raceId is missing from `raceNamesById` this is recorded as a
-   * non-fatal error and the position falls back to its TP-only external ids.
-   * Both the TP and Name external systems are bootstrapped up front. After each
-   * upsert, the observed `{ raceId, eraId }` availability is recorded via
-   * syncRaceEras. A roster whose race cannot be resolved is recorded as an
-   * error and its positions skipped. Regular positions import with
-   * `isStarPlayer: false`. Star positions (from `roster.starPositions`) are
-   * grouped by name only, upserted with `isStarPlayer: true` and a
-   * TP-system bare-name external id (`group.name`, preserving TP's own
-   * catalog-independent star id), a Name-system bare-name external id
-   * (deduping onto the same row the inducement-hire path and the BBL
-   * importer's star positions use), AND one TP-system external id per
-   * distinct numeric `tpPositionId` seen for that star across roster files
-   * (resolving roster-embedded stars, e.g. Mighty Zug, that would otherwise
-   * be skipped as "could not resolve position"). A star external id
-   * colliding with an already-upserted regular position's external id (or
-   * vice versa) is caught server-side by the position upsert itself: `PositionsService`
-   * passes `upsertByExternalIds` a `detectSemanticConflict` hook that
-   * compares the matched row's `isStarPlayer` against the incoming value and
-   * throws `PositionUpsertConflictError` (reported as a CONFLICT) when they
-   * disagree, rather than silently overwriting the existing row's
-   * `isStarPlayer` (and other fields). No client-side collision guard is
-   * needed here.
-   * `rosters` is the already-collected roster list (via
-   * `RosterCollectionService`, run once for all three imports); this service
-   * only groups and upserts. Idempotent.
+   * Positions are grouped by `(unified raceId, position name)` so that
+   * identically-named positions across one logical race's rule-set variants
+   * collapse to a single row collecting every `tpPositionId`. A regular
+   * position's `Name` external id is scoped as `` `${raceName}: ${positionName}` ``
+   * because position names are not globally unique.
+   *
+   * Star positions are grouped by name alone and take a bare-name `Name`
+   * external id, which is what dedupes them onto the same row as the
+   * inducement-hire path and the BBL importer's stars.
+   *
+   * A star external id colliding with a regular position's is caught
+   * server-side: `PositionsService` passes `upsertByExternalIds` a
+   * `detectSemanticConflict` hook that throws on an `isStarPlayer` mismatch
+   * instead of overwriting the row, so no client-side guard is needed here.
    */
   async importPositions(
     rosters: RosterEntry[],
