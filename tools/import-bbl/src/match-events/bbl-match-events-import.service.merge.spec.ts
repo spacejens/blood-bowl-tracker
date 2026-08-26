@@ -142,7 +142,7 @@ describe('BblMatchEventsImportService merge scenarios', () => {
         ],
       ]),
       teamsByCode,
-      // Both source ids point at the same DB match id, per Task 3.
+      // Both source ids point at the same DB match id.
       matchIdsByBblId: new Map([
         [PRIMARY, MATCH_DB_ID],
         [SECONDARY, MATCH_DB_ID],

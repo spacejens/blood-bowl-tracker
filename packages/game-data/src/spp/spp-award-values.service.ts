@@ -35,8 +35,8 @@ export interface ResolveSppValueOptions {
  * (`tools/import-bbl/import-bbl-config.json5`,
  * `tools/import-tp/import-tp-config.json5`) all of an era's rules sets carry
  * identical SPP values, so any matching row is the right answer. A genuinely
- * mixed-value era is deliberately not modelled — see the spec's "Resolving a
- * match event's rules set".
+ * mixed-value era, where an event's award would depend on which of the
+ * era's rules sets it resolved to, is deliberately not modelled.
  *
  * No caching: an import re-resolves per event, which is a single indexed
  * query against a table of a few dozen rows, and a long-lived cache in a
