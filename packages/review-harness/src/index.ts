@@ -3,6 +3,13 @@ export { DATA_TYPE_REVIEWERS } from './data-type-reviewer';
 export type { TableCell, TableRow } from './html.service';
 export { HtmlService } from './html.service';
 export { createRegistryProvider } from './registry-provider';
+export type {
+  ReportEntityNoun,
+  ReviewedItem,
+  ReviewPanel,
+  ReviewReport,
+} from './report-builder-base.service';
+export { ReportBuilderBase } from './report-builder-base.service';
 export type { ReportOutputPathProvider } from './report-writer.service';
 export {
   REPORT_OUTPUT_PATH,
