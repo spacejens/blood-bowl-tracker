@@ -108,9 +108,10 @@ export class TpMatchEventsImportService {
    *
    * Administrative events (weather, inducements, winnings, fan factor,
    * journeyman signing, expensive mistake, dedicated fans, secret objective,
-   * prayers to Nuffle, concession) each set exactly one typed payload column
-   * and use the team scope from the Task 9 mapping table; "both-sides"
-   * events emit two records with `-home`/`-away` suffixed external ids.
+   * prayers to Nuffle, concession) each set their event-specific typed
+   * payload fields and take the team scope `TpAdminMatchEventBuilderService`
+   * assigns each event type; "both-sides" events emit two records with
+   * `-home`/`-away` suffixed external ids.
    * Every event's external id is `tp-<tpEventId>` (or its suffixed variant).
    *
    * A roster id that doesn't resolve to a team era under the match's era, or

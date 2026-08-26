@@ -214,8 +214,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   it('stores the clamped gap and the corrected total, unchanged from before when nothing is ongoing', async () => {
     // query 0: the reported totals select; query 1: the update. No ongoing
     // estimate (the mock default resolves an empty map), so correctedTotal
-    // collapses to max(importedSum, reported) = reported here, matching the
-    // pre-Task-9 behaviour (edge case 1 in the Task 9 brief).
+    // collapses to max(importedSum, reported) = reported here.
     const h = await makeService(
       mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
     );
@@ -304,7 +303,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   it('computes an independent corrected total and adjustment for each player in a batch', async () => {
     // Edge case: differing reported/importedSum/estimatedOngoing combinations
     // per player must not cross-contaminate each other's written values.
-    // Player 1 is the Karcheres worked example from the Task 9 brief.
+    // Player 1 repeats the reported-20 / imported-8 / ongoing-9 case the
+    // "subtracts the ongoing-competition estimate" test asserts on its own,
+    // next to two players with different shapes.
     const h = await makeService(
       mockDb(
         [
@@ -367,8 +368,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   it('subtracts the ongoing-competition estimate before measuring the gap, and writes the corrected total', async () => {
     // TP reports 20; imported events explain 8; 3 touchdowns in an ongoing
     // competition explain another 9 → correctedTotal = max(8, 20-9) = 11,
-    // adjustment = max(0, 11-8) = 3. This is the Karcheres worked example
-    // from the Task 9 brief: spp_total becomes 11, not 20.
+    // adjustment = max(0, 11-8) = 3, so spp_total becomes 11, not the
+    // reported 20.
     const h = await makeService(
       mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
     );
@@ -383,7 +384,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   });
 
   it('clamps the corrected total to the imported sum exactly when the estimate accounts for precisely the gap', async () => {
-    // Edge case 2: reported - estimatedOngoing lands exactly on importedSum
+    // Edge case: reported - estimatedOngoing lands exactly on importedSum
     // (20 - 12 = 8 = importedSum), so correctedTotal = importedSum exactly
     // and adjustment clamps to 0, but the write still happens (absolute set).
     const h = await makeService(
@@ -398,8 +399,8 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
   });
 
   it('clamps the corrected total to the imported sum, never below it, when the estimate overshoots the gap', async () => {
-    // Edge case 3 (the "clamps to zero" case, taken further): the
-    // estimate is bigger than the whole gap (reported - estimatedOngoing =
+    // Edge case: like a negative gap clamping to 0, but here the estimate
+    // is bigger than the whole gap (reported - estimatedOngoing =
     // 20 - 30 = -10 < importedSum), so correctedTotal clamps up to
     // importedSum rather than dropping below the confirmed-imported figure,
     // and the adjustment is written as an explicit 0 (an absolute write, so

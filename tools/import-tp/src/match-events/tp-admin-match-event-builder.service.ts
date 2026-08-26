@@ -43,9 +43,8 @@ export class TpAdminMatchEventBuilderService {
   /**
    * Build the administrative TP match events (weather, inducements, winnings,
    * fan factor, journeyman signing, expensive mistake, dedicated fans, secret
-   * objective, prayers to Nuffle, concession) for one event, per the mapping
-   * table in the Task 9 plan (as amended by the round-1 review brief). Weather
-   * has no actor or consequence recipient, so it's classified via `eventType`
+   * objective, prayers to Nuffle, concession) for one event. Weather has no
+   * actor or consequence recipient, so it's classified via `eventType`
    * rather than `actionType`, and stays team-less/neutral. Single-team-scoped
    * events resolve their team era via `rosterId` under the match's era;
    * "both-sides" events (winnings, fan factor, dedicated fans) emit up to two

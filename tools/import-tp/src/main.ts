@@ -114,12 +114,13 @@ async function run(): Promise<ImportResult> {
 
     // Star players hired via an inducements_roll event aren't part of any
     // roster's lineUps[], so they're gathered from the already-parsed match
-    // events (one scan, shared with Task 8's match-events step reusing the
-    // same matchesByCompetitionId) and grouped by the hiring roster id AND
-    // the real era the match's competition belongs to (so a roster id spanning
-    // multiple eras resolves its team era unambiguously downstream, instead of
-    // guessing). A competition whose eraId can't be resolved is skipped
-    // defensively -- shouldn't happen in practice.
+    // events (already-parsed data reused here, not re-scanned) and grouped
+    // by the hiring roster id AND the real era the match's
+    // competition belongs to (so a roster id spanning multiple eras
+    // resolves its team era unambiguously downstream, instead of guessing).
+    // Hired-star extraction is skipped when a competition's eraId can't be
+    // resolved (match-embedded player accumulation above still runs) --
+    // shouldn't happen in practice.
     //
     // This same pass also builds matchEmbeddedPlayersByRosterId: a standalone
     // rosters_<id>.json file only reflects a roster's CURRENT composition as

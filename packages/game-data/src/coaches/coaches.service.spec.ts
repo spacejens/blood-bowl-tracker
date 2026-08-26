@@ -603,8 +603,8 @@ describe('CoachesService', () => {
     });
 
     it('includes a tie group at the cutoff (relies on a generous limit)', async () => {
-      // The service returns whatever the query yields; ranking/tie-cutoff is the
-      // resolver's job (Task 5). This asserts the limit is passed through so a
+      // The service returns whatever the query yields; ranking/tie-cutoff is
+      // the resolver's job. This asserts the limit is passed through so a
       // tie at the 5th place can be detected downstream.
       const rows = Array.from({ length: 8 }, (_, i) => ({
         id: i + 1,
