@@ -54,10 +54,12 @@ export class TpMatchEventsImportService {
   ) {}
 
   /**
-   * TP embeds the acting/victim player and team directly on every event kind
-   * except casualties, whose action and consequence are two independent events
-   * — hence the single correlation step (see
-   * `tp-match-events-correlation.service.ts`).
+   * TP embeds the acting/victim player and team directly on every
+   * attribution-bearing gameplay event, except casualties, whose action and
+   * consequence are two independent events — hence the single correlation
+   * step (see `tp-match-events-correlation.service.ts`). Administrative
+   * events (weather, inducements, winnings, …) carry only a team scope, never
+   * player attribution.
    *
    * A roster id that resolves to no team era, or a `lineUpId` with no imported
    * player, is a non-fatal error: the field is omitted and the event still
