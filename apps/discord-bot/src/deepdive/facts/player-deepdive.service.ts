@@ -80,12 +80,13 @@ const MAX_PLAYER_KILLS = 30;
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
  * timeout stays distinguishable from a genuine "not found" (`undefined`).
  *
- * The kills section is built before the honors section and folded into
- * `buildHonorLines`'s `otherLines`, so a long kill list is what gets trimmed
- * against the description budget rather than the other way around — regardless
- * of where either section prints. `enforceDescriptionLimit` is an independent
- * final net on the assembled string, so Discord's limit holds even if that
- * budgeting falls out of sync.
+ * The kills section is built before honors and folded into
+ * `buildHonorLines`'s `otherLines`, so honors — not kills — is what shrinks
+ * when the kill list is long: kills is trimmed against its own fixed budget
+ * first, then honors gets whatever space remains, regardless of where either
+ * section prints in the final embed. `enforceDescriptionLimit` is an
+ * independent final net on the assembled string, so Discord's limit holds
+ * even if that budgeting falls out of sync.
  */
 @Injectable()
 export class PlayerDeepdiveService {
