@@ -180,7 +180,7 @@ type — a foul, for example, earns no SPP), and `sppValue` is the SPP
 awarded. An entry that
 omits `race` is that rules set's baseline, applying to every race with no more
 specific entry; an entry naming a race overrides the baseline for it. This
-section is processed last, since it references both rules sets and races.
+section is processed after the rules sets and races it references.
 
 ### Competition groups
 
@@ -225,13 +225,18 @@ carries a name, because that phase creates the rows.
 ### Trophies
 
 `trophies` entries seed the curated trophy catalog (issue #342). Each entry
-is `{ name, recipientKind, description?, competitionGroup?, externalIds }`:
-`recipientKind` is either `team` or `player`, and `competitionGroup` names the
-competition group (see above) the trophy is applicable for. `competitionGroup`
-is optional — an entry that omits it leaves the trophy's stored classification
-alone, while an entry naming an unknown group is skipped and recorded as an
-import error. Trophies reference no other entity besides their group, so this
-section is processed last, after `competitionGroups`.
+is `{ name, recipientKind, description?, competitionGroup?, league?,
+externalIds }`: `recipientKind` is either `team` or `player`, and
+`competitionGroup` names the competition group (see above) the trophy is
+applicable for; `league` names the league it is awarded across instead, when
+it is not tied to one competition group. `league` is optional and mutually
+exclusive with `competitionGroup` — the database's own check constraint
+enforces that exactly one is set. An entry that omits both leaves an
+existing trophy's stored classification alone, but a new trophy declaring
+neither (or, impossibly, both) is rejected by that constraint at write time;
+an entry naming an unknown group or league is likewise recorded as an
+import error. This section is processed after the leagues and competition
+groups it references.
 
 Trophies deliberately carry no shared `Name` external id, the same precedent
 set for competitions in issue #285: labels like `1st` are ambiguous across
@@ -412,12 +417,13 @@ See [Running import tools against production](../discord-bot/production-hosting.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
 - **Entity processors** (rules sets, leagues, eras, races, positions, coaches,
-  teams, competitions) — each resolves its references and calls the shared
-  `*ImportService` from `packages/import`. The positions processor additionally calls
-  `syncRaceEras` to set race/era availability. The competitions processor runs
-  last (it depends on eras) and always sends an empty `teamEraIds` list, which
-  the API treats additively and so never detaches an imported competition's
-  teams.
+  teams, competition groups, competitions, SPP award values, trophies) — each
+  resolves its references and calls the shared `*ImportService` from
+  `packages/import`. The positions processor additionally calls `syncRaceEras`
+  to set race/era availability. The competitions processor depends on eras and
+  competition groups, so it runs after both, and always sends an empty
+  `teamEraIds` list, which the API treats additively and so never detaches an
+  imported competition's teams.
 - **ManualImportService** — orchestrates the reader, the bootstrap, and the
   entity processors in dependency order, aggregating one `ImportResult`.
 
