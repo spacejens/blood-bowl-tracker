@@ -104,10 +104,11 @@ minimum the resulting row or record ids, occasionally alongside a small
 summary of what changed. Where the recomputation can fail for individual
 entries, those failures come back in the same response rather than as a thrown
 error, so one bad entry never costs its siblings their results;
-`matches.resolveOutcomes` returns `unresolvedMatchIds` for the matches whose
-outcome it could not work out. As with the batching exceptions above, the
-router's own comment in `packages/api-contract/src/contract.ts` explains why a
-given procedure is shaped this way instead of as an upsert.
+`matches.resolveOutcomes` reports which matches it could not resolve an
+outcome for, rather than throwing. As with the batching exceptions above, the
+router's own comment and result schema in
+`packages/api-contract/src/contract.ts` explain why a given procedure is
+shaped this way instead of as an upsert, and its exact result shape.
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. `competitionGroups.list`
