@@ -10,17 +10,36 @@ Start here: [glossary.md](glossary.md)
 docs/
   glossary.md              # Brief definition of every named concept
   spec-conventions.md      # This file
-  game-concepts/           # Blood Bowl domain concepts
+  architecture.md          # Repo-meta: technical stack and package structure
+  development-workflow.md  # Repo-meta: how development work is structured
+  game-concepts/           # Spec style: Blood Bowl domain concepts
     teams/
     players/
     ...
-  insights/                # Statistics, top lists, and other derived or human-submitted content
-  api/                     # General API concepts (REST conventions, imports); not per-entity docs
-  discord-bot/             # Discord bot app specs
-  <future-app>/            # Future apps get their own top-level subfolder
+  insights/                # Spec style: statistics, top lists, and other derived or human-submitted content
+  api/                     # Spec style: general API concepts (REST conventions, imports); not per-entity docs
+  discord-bot/             # Spec style: Discord bot app specs (with how-to exceptions, see below)
+  <future-app>/            # Spec style: future apps get their own top-level subfolder
+  ai-helpers/              # Tool/how-to: internal CLI helpers used by Claude Code skills
+  download-tp/             # Tool/how-to: TP data downloader
+  import-bbl/              # Tool/how-to: BBL data importer
+  import-manual/           # Tool/how-to: hand-authored data importer
+  import-tp/               # Tool/how-to: TP data importer
+  review-match/            # Tool/how-to: match-data review aid
+  review-player/           # Tool/how-to: player-data review aid
 ```
 
 `game-concepts/` is the parent for all domain entities. Each app gets its own top-level subfolder. `insights/` covers anything derived from collected data or submitted by users — the term is intentionally broad to cover both objective stats and subjective content.
+
+## Doc styles
+
+`docs/` holds three kinds of document, and different expectations apply to each:
+
+- **Spec docs** — `game-concepts/`, `insights/`, `api/`, `discord-bot/`, and future app subfolders. These are governed by [Spec file conventions](#spec-file-conventions) below: describe why and what, and leave implementation detail to the code.
+- **Tool/how-to docs** — `ai-helpers/`, `download-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `review-match/`, `review-player/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
+- **Repo-meta docs** — `architecture.md` and `development-workflow.md`. These describe the project's own technical stack, structure, and development process. No fixed rule set applies; follow the existing style of each file.
+
+One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, and `discord-bot/production-hosting.md` are how-to content (Discord app creation, local development, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.
 
 ## Glossary
 
@@ -33,6 +52,8 @@ docs/
 The glossary contains brief definitions (one paragraph or less). Deeper explanation belongs in a domain spec.
 
 ## Spec file conventions
+
+These conventions apply to spec-style docs as categorized under [Doc styles](#doc-styles) above — not to tool/how-to docs or repo-meta docs.
 
 Each spec file should:
 
