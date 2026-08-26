@@ -86,4 +86,14 @@ describe('ReportBuilderService', () => {
     expect(html).toContain('<title>Player import review</title>');
     expect(html).toContain('<p class="note">No players were sampled.</p>');
   });
+
+  it('uses the singular noun when exactly one player is sampled', () => {
+    const html = service.build({
+      items: [{ item: player, panels: [] }],
+      gaps: [],
+      generatedAt,
+    });
+
+    expect(html).toContain('1 player.');
+  });
 });

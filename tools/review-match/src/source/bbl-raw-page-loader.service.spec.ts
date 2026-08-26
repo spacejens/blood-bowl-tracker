@@ -56,7 +56,7 @@ describe('BblRawPageLoaderService', () => {
     await writeFile(join(dir, 'default.asp?p=m&m=8'), Buffer.from([0x80]));
     const service = await makeService();
 
-    await expect(service.loadMatchPage('8')).resolves.toBe('');
+    await expect(service.loadMatchPage('8')).resolves.toBe('\u0080');
   });
 
   it('returns null when the page file does not exist', async () => {

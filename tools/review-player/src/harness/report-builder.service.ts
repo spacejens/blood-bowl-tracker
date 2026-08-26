@@ -20,16 +20,16 @@ export type ReviewReport = HarnessReviewReport<SampledPlayer>;
  */
 @Injectable()
 export class ReportBuilderService extends ReportBuilderBase<SampledPlayer> {
-  constructor(html: HtmlService) {
-    super(html);
-  }
-
   protected readonly title = 'Player import review';
 
   protected readonly entityNoun: ReportEntityNoun = {
     singular: 'player',
     plural: 'players',
   };
+
+  constructor(html: HtmlService) {
+    super(html);
+  }
 
   protected renderSection(
     player: SampledPlayer,

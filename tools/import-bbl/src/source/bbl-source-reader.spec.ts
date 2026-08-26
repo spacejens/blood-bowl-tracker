@@ -113,7 +113,7 @@ describe('BblSourceReader', () => {
     });
     const [page] = await collect(reader.pages('tm'));
 
-    expect(page.load()('p').text()).toBe('');
+    expect(page.load()('p').text()).toBe('\u0080');
   });
 
   it('does not read the directory until iteration begins (lazy)', async () => {

@@ -29,19 +29,19 @@ export type ReviewReport = HarnessReviewReport<ReviewedMatch>;
  */
 @Injectable()
 export class ReportBuilderService extends ReportBuilderBase<ReviewedMatch> {
-  constructor(
-    html: HtmlService,
-    private readonly categoryLabel: MatchCategoryLabelService,
-  ) {
-    super(html);
-  }
-
   protected readonly title = 'Match import review';
 
   protected readonly entityNoun: ReportEntityNoun = {
     singular: 'match',
     plural: 'matches',
   };
+
+  constructor(
+    html: HtmlService,
+    private readonly categoryLabel: MatchCategoryLabelService,
+  ) {
+    super(html);
+  }
 
   protected renderSection(match: ReviewedMatch, panels: ReviewPanel[]): string {
     const heading = this.html.escape(

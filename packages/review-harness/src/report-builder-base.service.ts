@@ -40,8 +40,7 @@ const STYLES = `
   body { font-family: system-ui, sans-serif; margin: 2rem; color: #222; }
   h1 { font-size: 1.5rem; }
   h2 { font-size: 1.1rem; margin-bottom: 0.25rem; }
-  section.match { border-top: 2px solid #ccc; padding-top: 1rem; margin-top: 2rem; }
-  section.player { border-top: 2px solid #ccc; padding-top: 1rem; margin-top: 2rem; }
+  section { border-top: 2px solid #ccc; padding-top: 1rem; margin-top: 2rem; }
   .reasons { color: #555; font-size: 0.9rem; margin: 0 0 0.75rem; }
   .result { font-size: 0.95rem; margin: 0 0 0.25rem; font-weight: 600; }
   .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
@@ -66,6 +65,9 @@ const STYLES = `
  *
  * A tool subclasses this and supplies only what differs between reports: the
  * title, the noun for the reviewed entity, and how one entity's section looks.
+ *
+ * Deliberately not `@Injectable()`: it is never a provider itself — each
+ * tool's concrete subclass carries the decorator.
  */
 export abstract class ReportBuilderBase<TReviewed> {
   constructor(protected readonly html: HtmlService) {}

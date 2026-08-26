@@ -36,6 +36,9 @@ export interface ReviewSampler<TSampled> {
  *
  * A tool subclasses this and supplies only `prepare()`: whatever extra data
  * the report needs alongside each sampled entity.
+ *
+ * Deliberately not `@Injectable()`: it is never a provider itself — each
+ * tool's concrete subclass carries the decorator.
  */
 export abstract class ReviewServiceBase<
   TSampled extends Sampled<unknown>,
@@ -86,6 +89,9 @@ export abstract class ReviewServiceBase<
       dataTypeId: reviewer.id,
       rawHtml: await this.fragment(() => reviewer.getRawSource(item)),
       importedHtml: await this.fragment(() => reviewer.getImportedView(item)),
+      // Reviewers arrive through an `unknown[]` registry provider (see
+      // `registry-provider.ts`), so TypeScript never checks the array's
+      // element shape here — these optional labels are narrowed at runtime.
       rawLabel:
         typeof reviewer.rawPanelLabel === 'string'
           ? reviewer.rawPanelLabel

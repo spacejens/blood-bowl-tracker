@@ -1,3 +1,4 @@
+import type { ReviewSampler } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ReviewMatchConfigService } from '../config/review-match-config.service';
@@ -26,7 +27,7 @@ const OVERRIDE_REASON = 'override';
  * every reason it was picked for.
  */
 @Injectable()
-export class MatchSamplerService {
+export class MatchSamplerService implements ReviewSampler<SampledMatch> {
   constructor(
     @Inject(MATCH_STRATIFIERS)
     private readonly stratifiers: MatchStratifier[],
