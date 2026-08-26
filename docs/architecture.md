@@ -154,11 +154,14 @@ These files:
 
 Helpers live in the workspace that uses them. A helper is promoted to a shared
 package only if the same helper is genuinely needed in two or more workspaces —
-`mockDb` is one such helper, shared by every review tool and living in
-`packages/review-harness`, reachable as
-`@blood-bowl-tracker/review-harness/test-helpers` (a separate export subpath, so
-importing the package's main entry point never pulls Vitest into a tool's
-runtime graph).
+`mockDb` is one such helper, living in `packages/db` and used by
+`packages/game-data`, `tools/review-match` and `tools/review-player`. It is
+reachable as `@blood-bowl-tracker/db/test-helpers` (a separate export subpath
+whose compiled output carries its own `{"type": "module"}` marker, so importing
+the package's main entry point never pulls Vitest into a consumer's runtime
+graph). `packages/db` is the shared home because it is the one package all three
+consumers already depend on and it carries nothing network-facing, so promoting
+the helper there crosses no dependency-direction rule.
 
 ## Database
 
