@@ -1,11 +1,11 @@
 import { DATABASE_URL, DB } from '@blood-bowl-tracker/db';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import type { DynamicModule } from '@nestjs/common';
 import { Global, Injectable, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { createReviewAppModule } from './review-app-module';
-import { mockDb } from './test-helpers/db-mock.test-helpers';
 
 @Injectable()
 class FakeConfigService {
