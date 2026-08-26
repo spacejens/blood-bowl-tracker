@@ -225,13 +225,16 @@ carries a name, because that phase creates the rows.
 ### Trophies
 
 `trophies` entries seed the curated trophy catalog (issue #342). Each entry
-is `{ name, recipientKind, description?, competitionGroup?, externalIds }`:
-`recipientKind` is either `team` or `player`, and `competitionGroup` names the
-competition group (see above) the trophy is applicable for. `competitionGroup`
-is optional — an entry that omits it leaves the trophy's stored classification
-alone, while an entry naming an unknown group is skipped and recorded as an
-import error. Trophies reference no other entity besides their group, so this
-section has no other processors it needs to run before.
+is `{ name, recipientKind, description?, competitionGroup?, league?,
+externalIds }`: `recipientKind` is either `team` or `player`, and
+`competitionGroup` names the competition group (see above) the trophy is
+applicable for; `league` names the league it is awarded across instead, when
+it is not tied to one competition group. `league` is optional and mutually
+exclusive with `competitionGroup` — the database's own check constraint
+enforces that exactly one is set. An entry that omits both leaves the
+trophy's stored classification alone, while an entry naming an unknown group
+or league is skipped and recorded as an import error. This section is
+processed after the leagues and competition groups it references.
 
 Trophies deliberately carry no shared `Name` external id, the same precedent
 set for competitions in issue #285: labels like `1st` are ambiguous across

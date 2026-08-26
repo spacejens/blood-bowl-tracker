@@ -45,8 +45,8 @@ export class ManualImportService {
    * reference) and before competitions and trophies (which resolve the groups
    * it upserts, by their "Name"-system external id), and sppAwardValues
    * running before trophies because it references both rulesSets and races,
-   * and trophies running last because it references nothing, so its position
-   * in the order is free — sharing one error collector so one bad entry
+   * and trophies running last, after the leagues and competition groups it
+   * may reference — sharing one error collector so one bad entry
    * never aborts the rest. Reference-resolution and upsert failures are
    * collected; a missing directory, malformed file, or unreachable API
    * throws out of here to be reported as an unexpected failure. A same-kind
