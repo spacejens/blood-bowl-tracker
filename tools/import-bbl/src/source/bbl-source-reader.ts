@@ -33,8 +33,12 @@ export class BblSourceReader {
       }
       const buffer = await readFile(join(dir, entry.name));
       // ISO-8859-1 maps every byte to a code point, so decoding never throws
-      // on the mirror's stray/extended-ASCII bytes.
-      const html = new TextDecoder('latin1').decode(buffer);
+      // on the mirror's stray/extended-ASCII bytes. `Buffer#toString('latin1')`
+      // is a true byte-preserving decode; `TextDecoder`'s `'latin1'` label is
+      // actually an alias for Windows-1252 per the WHATWG Encoding Standard,
+      // which remaps bytes 0x80-0x9F to different characters instead of
+      // preserving them.
+      const html = buffer.toString('latin1');
       yield {
         type: parsed.type,
         params: parsed.params,
