@@ -28,10 +28,11 @@ writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in
 contracts and the app-module wiring) is shared on purpose with
 `tools/review-player` via `packages/review-harness`: a bug there cannot "agree
 with itself" against a raw source, because that code never touches a source's
-meaning. `report-builder.service.ts` and `harness.module.ts` stay local — the
-first because the two tools' documents differ enough that sharing would need
-more hooks than it saves, the second because it *is* this tool's own
-composition.
+meaning. The report document is shared the same way: `report-builder.service.ts` and
+`review.service.ts` are thin subclasses of the harness's
+`ReportBuilderBase`/`ReviewServiceBase`, adding only the per-match section and
+the match-result lookup. `harness.module.ts` stays local because it *is* this
+tool's own composition.
 
 Scope today is match events; the tool is structured so a future data type
 (rosters, standings) plugs in as another module without touching the harness

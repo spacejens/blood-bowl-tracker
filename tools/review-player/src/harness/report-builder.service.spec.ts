@@ -30,9 +30,9 @@ describe('ReportBuilderService', () => {
 
   it('heads each player section with their identity and why they were picked', () => {
     const html = service.build({
-      players: [
+      items: [
         {
-          player,
+          item: player,
           panels: [
             {
               dataTypeId: 'player-info',
@@ -58,9 +58,9 @@ describe('ReportBuilderService', () => {
 
   it("uses a panel pair's own labels when the reviewer supplied them", () => {
     const html = service.build({
-      players: [
+      items: [
         {
-          player,
+          item: player,
           panels: [
             {
               dataTypeId: 'spp-totals',
@@ -80,27 +80,20 @@ describe('ReportBuilderService', () => {
     expect(html).toContain('<h4>Stored player totals (database)</h4>');
   });
 
-  it('lists gaps when there are any', () => {
+  it('titles the document for player review', () => {
+    const html = service.build({ items: [], gaps: [], generatedAt });
+
+    expect(html).toContain('<title>Player import review</title>');
+    expect(html).toContain('<p class="note">No players were sampled.</p>');
+  });
+
+  it('uses the singular noun when exactly one player is sampled', () => {
     const html = service.build({
-      players: [],
-      gaps: [
-        { source: 'tp', reason: 'No player found for stratum "Random sample"' },
-      ],
+      items: [{ item: player, panels: [] }],
+      gaps: [],
       generatedAt,
     });
 
-    expect(html).toContain('<h2>Gaps</h2>');
-    expect(html).toContain(
-      'No player found for stratum &quot;Random sample&quot;',
-    );
-  });
-
-  it('says so when no player was sampled at all', () => {
-    const html = service.build({ players: [], gaps: [], generatedAt });
-
-    expect(html).toContain('<p class="note">No players were sampled.</p>');
-    expect(html).toContain(
-      'No gaps: every stratum and override produced at least one player.',
-    );
+    expect(html).toContain('1 player.');
   });
 });

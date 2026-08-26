@@ -100,6 +100,22 @@ describe('BblSourceReader', () => {
     expect($('td').text()).toContain('Åke');
   });
 
+  it('preserves 0x80-0x9F bytes as their identical code points, not Windows-1252', async () => {
+    const bytes = Buffer.from([
+      ...Buffer.from('<html><body><p>'),
+      0x80,
+      ...Buffer.from('</p></body></html>'),
+    ]);
+    await writeFile(join(dir, 'byte-page'), bytes);
+
+    const reader = await makeReader(dir, {
+      'byte-page': { type: 'tm', params: { t: 'abc' } },
+    });
+    const [page] = await collect(reader.pages('tm'));
+
+    expect(page.load()('p').text()).toBe('\u0080');
+  });
+
   it('does not read the directory until iteration begins (lazy)', async () => {
     const reader = await makeReader('/no/such/bbl/dir');
     // Obtaining the iterable must not throw synchronously.
