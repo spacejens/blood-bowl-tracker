@@ -84,8 +84,9 @@ tools/
                         browsable schema docs for the local docker-compose
                         database
   eslint-rules/       — custom ESLint rules shared across the repo (currently
-                        max-function-params), imported directly by the root
-                        eslint.config.ts
+                        max-function-params, no-direct-service-instantiation,
+                        and no-test-helper-imports), imported directly by the
+                        root eslint.config.ts
   ai-helpers/         — NestJS CLI application providing helpers the Claude
                         Code skills in .claude/skills/ call instead of
                         hand-rolling the equivalent shell
