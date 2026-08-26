@@ -37,7 +37,7 @@ record with an added `created` boolean field, distinguishing "a new record
 was created" from "an existing record was found and updated" without
 relying on a status code.
 
-Every entity that exposes `upsert` also exposes `upsertBatch`, which takes a
+Most entities that expose `upsert` also expose `upsertBatch`, which takes a
 non-empty array of the same inputs and answers with an array of per-item
 results, index-aligned with the request. Batching exists because the import
 tools otherwise make one network round trip per record — hours of wall-clock
@@ -52,6 +52,14 @@ failure modes are per-item, so one bad item never costs its siblings their
 upserts. An unexpected server error is not downgraded that way — it is thrown
 as a normal RPC error and fails the whole batch, because a partial import
 must never be reported as a complete one.
+
+A handful of entities deliberately expose `upsert` without `upsertBatch`. The
+reason is always the same shape of reason: the entity is a small, curated,
+low-volume dataset, so collapsing round trips would save nothing worth the
+extra procedure. Which entities those are shifts as the data model grows, so
+this document does not name them — each exempt router carries its own comment
+in `packages/api-contract/src/contract.ts` explaining why that particular
+entity is exempt.
 
 ## Reference resolution
 
@@ -79,6 +87,32 @@ already resolvable.
 Matches, players, match events, trophies, trophy awards, SPP award values
 and external systems deliberately have no resolve procedure: nothing
 references them by external id across files, phases or tools.
+
+## Other procedures
+
+Not every procedure is upsert-shaped. Some entities also expose a custom
+procedure that recomputes or syncs already-imported data in place rather than
+importing new records — `sppAwardValues.sync`, `matches.resolveOutcomes`,
+`positions.syncRaceEras` and
+`players.syncScrapedSppAdjustments`/`syncReportedSppAdjustments` are current
+examples of the pattern, not an exhaustive list. Because nothing is being newly
+identified or created, these have no external-id conflict to detect and no
+`created` boolean to return: they answer with what was actually written — the
+resulting row or record ids. Where the recomputation can fail for individual
+entries, those failures come back in the same response rather than as a thrown
+error, so one bad entry never costs its siblings their results;
+`matches.resolveOutcomes` returns `unresolvedMatchIds` for the matches whose
+outcome it could not work out. As with the batching exceptions above, the
+router's own comment in `packages/api-contract/src/contract.ts` explains why a
+given procedure is shaped this way instead of as an upsert.
+
+A procedure may also be plainly read-only, existing because a caller needs data
+that no `upsert` call's input or output can give it. `competitionGroups.list`
+is the current example: `tools/import-tp` already holds a competition's
+`competitionGroupId` from its own competition upsert's response, but needs that
+group's curated _name_ to build a trophy's TP external id — and `upsert` cannot
+answer that, because the name is the input it was given. Such a procedure
+writes nothing, and declares no contract errors.
 
 ## Error responses
 
