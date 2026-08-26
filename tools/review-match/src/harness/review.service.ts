@@ -1,88 +1,49 @@
 import {
   HtmlService,
   ReportWriterService,
+  ReviewServiceBase,
 } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { DataTypeReviewer } from '../shared/data-type-reviewer';
 import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
-import type { ReviewGap, SampledMatch } from '../shared/review.types';
+import type { SampledMatch } from '../shared/review.types';
 import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
-import type { ReviewedMatch, ReviewPanel } from './report-builder.service';
+import type { ReviewedMatch } from './report-builder.service';
 import { ReportBuilderService } from './report-builder.service';
 
-export interface ReviewOutcome {
-  /** Absolute path of the written report. */
-  reportPath: string;
-  matchCount: number;
-  /** Strata/overrides that produced nothing — printed as warnings by main. */
-  gaps: ReviewGap[];
-}
+export type { ReviewOutcome } from '@blood-bowl-tracker/review-harness';
 
 /**
- * The whole run: sample matches, ask every registered reviewer for its two
- * panels per match, assemble the document, write it.
- *
- * A reviewer that throws for one match yields an inline note in that panel and
- * the run continues — a single unreadable source file must not cost the
- * developer the rest of the report.
+ * The match tool's one addition to the shared review run: every sampled
+ * match's score and winner, looked up for the whole sample at once.
  */
 @Injectable()
-export class ReviewService {
+export class ReviewService extends ReviewServiceBase<
+  SampledMatch,
+  ReviewedMatch
+> {
   constructor(
-    private readonly sampler: MatchSamplerService,
-    @Inject(DATA_TYPE_REVIEWERS)
-    private readonly reviewers: DataTypeReviewer[],
-    private readonly builder: ReportBuilderService,
-    private readonly writer: ReportWriterService,
-    private readonly html: HtmlService,
+    sampler: MatchSamplerService,
+    @Inject(DATA_TYPE_REVIEWERS) reviewers: DataTypeReviewer[],
+    builder: ReportBuilderService,
+    writer: ReportWriterService,
+    html: HtmlService,
     private readonly results: MatchResultLookupService,
-  ) {}
+  ) {
+    super(sampler, reviewers, builder, writer, html);
+  }
 
-  async run(): Promise<ReviewOutcome> {
-    const { matches, gaps } = await this.sampler.sample();
+  protected async prepare(
+    matches: SampledMatch[],
+  ): Promise<(match: SampledMatch) => ReviewedMatch> {
     const resultsByMatchId = await this.results.findByMatchIds(
       matches.map((match) => match.matchId),
     );
-
-    const reviewed: ReviewedMatch[] = [];
-    for (const match of matches) {
-      const panels: ReviewPanel[] = [];
-      for (const reviewer of this.reviewers) {
-        panels.push(await this.panel(reviewer, match));
-      }
-      reviewed.push({
-        match,
-        panels,
-        result: resultsByMatchId.get(match.matchId),
-      });
-    }
-
-    const generatedAt = new Date();
-    const html = this.builder.build({ matches: reviewed, gaps, generatedAt });
-    const reportPath = await this.writer.write(html, generatedAt);
-    return { reportPath, matchCount: reviewed.length, gaps };
-  }
-
-  private async panel(
-    reviewer: DataTypeReviewer,
-    match: SampledMatch,
-  ): Promise<ReviewPanel> {
-    return {
-      dataTypeId: reviewer.id,
-      rawHtml: await this.fragment(() => reviewer.getRawSource(match)),
-      importedHtml: await this.fragment(() => reviewer.getImportedView(match)),
-    };
-  }
-
-  private async fragment(render: () => Promise<string>): Promise<string> {
-    try {
-      return await render();
-    } catch (error) {
-      return this.html.note(
-        `Rendering failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
+    return (match) => ({
+      ...match,
+      result: resultsByMatchId.get(match.matchId),
+    });
   }
 }

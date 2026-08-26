@@ -12,7 +12,7 @@ import { REVIEW_SOURCES } from '../shared/review.types';
 import { MatchLookupService } from './match-lookup.service';
 
 export interface SampleResult {
-  matches: SampledMatch[];
+  items: SampledMatch[];
   /** Strata and overrides that produced nothing — reported, never fatal. */
   gaps: ReviewGap[];
 }
@@ -91,7 +91,7 @@ export class MatchSamplerService {
     }
 
     return {
-      matches: [...selected.values()].sort((a, b) => this.compare(a, b)),
+      items: [...selected.values()].sort((a, b) => this.compare(a, b)),
       gaps,
     };
   }
