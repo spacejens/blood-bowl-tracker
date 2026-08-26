@@ -26,6 +26,7 @@
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
+    "@blood-bowl-tracker/db": "workspace:*",
     "@nestjs/testing": "^11.1.29",
     "@swc/core": "^1.15.47",
     "@types/node": "^24.13.3",

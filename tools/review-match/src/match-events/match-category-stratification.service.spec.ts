@@ -1,6 +1,6 @@
 import { competitions, DB, matches } from '@blood-bowl-tracker/db';
-import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
+import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
