@@ -1,13 +1,13 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, raceEras, races } from '@blood-bowl-tracker/db';
+import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { QueryChain } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';

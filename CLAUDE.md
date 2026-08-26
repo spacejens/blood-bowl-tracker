@@ -214,11 +214,12 @@ the compile happens:
 - `moduleRef.get(TheService)` means every test also verifies the service's own DI
   metadata.
 
-**drizzle queries.** `packages/game-data` services build fluent drizzle chains,
-and an auto-mock cannot self-chain builder methods. Use
-`mockDb(...rowsPerQuery)` from
-`packages/game-data/src/shared/db-mock.test-helpers.ts` — see that file for the
-exact shape it returns and how to assert on captured query calls.
+**drizzle queries.** Services that build fluent drizzle chains cannot be tested
+with a plain auto-mock, which does not self-chain builder methods. Use
+`mockDb(...rowsPerQuery)` from `@blood-bowl-tracker/db/test-helpers` (source:
+`packages/db/src/test-helpers/db-mock.test-helpers.ts`) — see that file for the
+exact shape it returns, how to assert on captured query calls, and how to assert
+on transactional writes via the returned `transaction` mock.
 
 **Module composition is one deliberate exception.** A handful of
 `*.module.spec.ts` files (e.g. `packages/import/src/import.module.spec.ts` and

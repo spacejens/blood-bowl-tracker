@@ -2,11 +2,14 @@ import type { Rule } from 'eslint';
 
 /**
  * Matches a module source ending in `.test-helpers`, `.test-helpers.js`, or
- * `.test-helpers.ts`. Imports in this repo are typically extensionless
- * relative specifiers (e.g. `'./foo-mock.test-helpers'`), but the suffixed
- * forms are handled too.
+ * `.test-helpers.ts` (relative specifiers, e.g. `'./foo-mock.test-helpers'`),
+ * or ending in a bare `test-helpers` path segment (a package subpath export,
+ * e.g. `'@blood-bowl-tracker/db/test-helpers'`). The `(^|[./])` prefix
+ * requires the match to start a path segment, so it doesn't fire on an
+ * unrelated specifier that merely ends with those letters (e.g.
+ * `'./not-test-helpers'`).
  */
-const TEST_HELPER_SOURCE = /\.test-helpers(\.[jt]s)?$/;
+const TEST_HELPER_SOURCE = /(^|[./])test-helpers(\.[jt]s)?$/;
 
 /**
  * A file is itself a test file — and therefore allowed to import test

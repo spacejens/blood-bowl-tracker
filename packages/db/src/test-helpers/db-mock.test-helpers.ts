@@ -1,19 +1,32 @@
-import type { Db } from '@blood-bowl-tracker/db';
 import type { Mock } from 'vitest';
 import { vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
+
+import type { Db } from '../db.js';
 
 /**
  * A stand-in for a drizzle fluent query builder. Every builder method
  * (`from`, `innerJoin`, `where`, `groupBy`, `orderBy`, `limit`, `values`,
  * `set`, `onConflictDoUpdate`, `returning`, ...) is auto-created on demand as a
  * `vi.fn()` that returns the same chain, so specs never have to enumerate them.
- * Tests read `chain.where.mock.calls` (usually via the `query-assertions`
- * helpers) to assert on the captured drizzle condition objects.
+ * Tests read `chain.where.mock.calls` (usually via a workspace's own
+ * `query-assertions` helpers) to assert on the captured drizzle condition
+ * objects.
  *
  * `then` is defined explicitly rather than auto-created: drizzle builders are
  * thenables, and awaiting an auto-created `then` mock never settles, so the
  * await would hang forever. Test-only; excluded from coverage.
+ *
+ * Reachable as `@blood-bowl-tracker/db/test-helpers`, kept off the package's
+ * main barrel so importing `@blood-bowl-tracker/db` never pulls Vitest into a
+ * consumer's runtime graph.
+ *
+ * The sibling `package.json` declaring `"type": "module"` is required: without
+ * it TypeScript's `nodenext` resolution (driven by the source file's nearest
+ * `package.json`, which defaults this package to CommonJS) compiles the
+ * `vitest-mock-extended` import to a `require()`, whose CJS entry point
+ * `require()`s vitest — which vitest refuses. The build script copies that file
+ * next to the compiled output so `dist/test-helpers/` is ESM too.
  */
 export type QueryChain = Record<string, Mock> & {
   then: <TResult1 = unknown, TResult2 = never>(
