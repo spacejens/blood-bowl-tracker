@@ -8,8 +8,8 @@ Start here: [glossary.md](glossary.md)
 
 ```
 docs/
-  glossary.md              # Brief definition of every named concept
-  spec-conventions.md      # This file
+  glossary.md              # Docs-about-docs: brief definition of every named concept
+  spec-conventions.md      # Docs-about-docs: this file
   architecture.md          # Repo-meta: technical stack and package structure
   development-workflow.md  # Repo-meta: how development work is structured
   game-concepts/           # Spec style: Blood Bowl domain concepts
@@ -33,7 +33,7 @@ docs/
 
 ## Doc styles
 
-Besides `glossary.md` and this file, which describe the docs themselves, `docs/` holds three kinds of document, and different expectations apply to each:
+Besides `glossary.md` and this file — tagged `Docs-about-docs` above, since they describe the docs themselves rather than fitting one of the three styles below — `docs/` holds three kinds of document, and different expectations apply to each:
 
 - **Spec docs** — `game-concepts/`, `insights/`, `api/`, `discord-bot/`, and future app subfolders. These are governed by [Spec file conventions](#spec-file-conventions) below: describe why and what, and leave implementation detail to the code.
 - **Tool/how-to docs** — `ai-helpers/`, `download-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `review-match/`, `review-player/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
