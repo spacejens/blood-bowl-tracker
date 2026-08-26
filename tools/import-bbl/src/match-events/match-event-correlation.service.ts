@@ -253,8 +253,9 @@ export class MatchEventCorrelationService {
    *
    * Everything else falls through to independent action-only and
    * consequence-only events rather than guessing a pairing, so no occurrence
-   * is ever dropped. Emission order — merged, then leftover actions, then
-   * leftover consequences, each in occurrence order — is what fixes the
+   * is ever dropped. Emission order is merged events (acting-team, then
+   * severity-group order), then leftover actions and leftover consequences
+   * each in their own occurrence order — that order is what fixes the
    * external-id occurrence indices deterministically.
    *
    * A `viaFoul` casualty matches by severity tier like any other but emits
