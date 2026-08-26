@@ -314,47 +314,22 @@ export class BblTrophyAwardsImportService {
   }
 
   /**
-   * The catalog trophy this label refers to *in this competition's group*, or
-   * `undefined` when it cannot be resolved (in which case
-   * TrophiesImportService has already recorded the failure on `errors`).
+   * Resolves a label to its catalog trophy by trying the composite external id
+   * `${label}-${groupName}` first, then the bare `label`. Both are needed: a
+   * label BBL awards in more than one competition group only exists in the
+   * catalog group-scoped, while a self-disambiguating label (team placements,
+   * and player trophies tied to one event) has no group-scoped row at all.
    *
-   * Two external ids are tried, in order:
-   *   1. `${label}-${groupName}` — the composite id the curated catalog uses
-   *      for every player-trophy label BBL awards in more than one
-   *      competition group, matching the format TP's own ids already use.
-   *      Every curated row for these trophies carries a composite id,
-   *      including the Major Season one, so this attempt always succeeds
-   *      for them regardless of which group the award is in — the composite
-   *      lookup handles Major Season the same as every other multi-group
-   *      trophy, with no special case.
-   *   2. the bare `label` — the scheme every self-disambiguating label still
-   *      uses: team trophies (`Major 1st`, `Minor 1st`) and the handful of
-   *      player trophies whose label is already tied to one specific event
-   *      (`Bierhallenführer`, `Gudarnas Förkämpe`). These have no
-   *      group-scoped row at all, so the composite attempt above is expected
-   *      to miss and this is the attempt that actually resolves them.
+   * The composite attempt gets a throwaway `errors` array because its failure
+   * is the *expected* outcome for the second group, and recording it would
+   * report a spurious failure for almost every award. Only the fallback's
+   * failure is real.
    *
-   * The composite attempt gets its own throwaway `errors` array: a failed
-   * lookup there is the *expected* outcome for every trophy that has no
-   * group-scoped row, and letting TrophiesImportService record it on the run's
-   * real error list would report a spurious failure for almost every award.
-   * Only the fallback's failure is a real one, so only it writes to `errors`.
-   * A bare-label fallback that resolves the *wrong* group's trophy is not
-   * silently accepted either: the server-side group check in
-   * TrophyAwardsService rejects that award at write time.
-   *
-   * Discarding the composite attempt's errors also means a transient failure
-   * on that attempt (e.g. a network blip) is indistinguishable from "no such
-   * group-scoped row" and falls through to the bare-label attempt just the
-   * same. This is an accepted trade-off, not a bug: the server-side group
-   * check above still protects correctness even if that fallback ends up
-   * matching the wrong group's trophy.
-   *
-   * Memoized per run under `${label}::${groupName}`, failures included, so
-   * the same label in two different groups gets its own cache entry.
-   * Every row after the first that hits an already-known-bad key is counted
-   * in `context.run.droppedRowCountsByKey` rather than reported individually,
-   * so the caller can add one summary error per key once the run ends.
+   * The cost is that a transient failure on the composite attempt is
+   * indistinguishable from "no group-scoped row" and falls through to the bare
+   * label. That is accepted rather than a defect: `TrophyAwardsService`'s
+   * server-side group check rejects a bare-label match that resolved the wrong
+   * group's trophy at write time.
    */
   private async resolveTrophyId(
     label: string,

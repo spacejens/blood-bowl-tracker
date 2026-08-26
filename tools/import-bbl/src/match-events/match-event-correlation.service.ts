@@ -245,42 +245,20 @@ export class MatchEventCorrelationService {
   }
 
   /**
-   * Correlate raw occurrences into events. For a given acting team code and
-   * severity group, the N action candidates on that team and the N matching
-   * consequence candidates on ANY other team (one other team for a normal
-   * 2-team match, three for a merged 4-team match) merge into N events, paired
-   * by index, when the counts are equal AND at least one of the two sides'
-   * candidates are pairwise identical to each other (see `actionKey` /
-   * `consequenceKey`). Identical candidates on one side make the pairing
-   * irrelevant: any permutation yields the same set of events, so no
-   * attribution can be wrong. N = 1 is the common instance of this rule, since
-   * a single candidate is vacuously identical to itself.
+   * Action and consequence candidates merge only when their counts are equal
+   * AND one side's candidates are pairwise identical (see `actionKey` /
+   * `consequenceKey`): identical candidates make the pairing irrelevant, since
+   * any permutation yields the same events and no attribution can be wrong.
+   * A single candidate satisfies this vacuously.
    *
-   * Everything else — unequal counts, or equal counts where both sides'
-   * candidates differ internally so the pairing would be a guess — falls
-   * through to independent action-only and consequence-only events, so no
-   * occurrence is ever dropped. Emission order is merged events first, then
-   * leftover actions in occurrence order, then leftover consequences in
-   * occurrence order; that order fixes the external-id occurrence indices
-   * deterministically.
+   * Everything else falls through to independent action-only and
+   * consequence-only events rather than guessing a pairing, so no occurrence
+   * is ever dropped. Emission order — merged, then leftover actions, then
+   * leftover consequences, each in occurrence order — is what fixes the
+   * external-id occurrence indices deterministically.
    *
-   * A prevented casualty (`avoidedBy` set) is an ordinary candidate in that
-   * pool alongside real consequences, merging or not by exactly the rule
-   * above; `avoidedBy` is one of the fields compared when deciding whether the
-   * consequence side is pairwise identical. A merged prevented casualty still
-   * carries `consequenceType: 'casualty_avoided'` with the prevented severity
-   * in `consequenceAvoidedSeverity`.
-   *
-   * A casualty occurrence marked `viaFoul` keeps matching by its severity tier
-   * like any other, but the event finally emitted for it carries
-   * `actionType: 'foul'` — so a foul that caused a casualty becomes one
-   * `'foul'` action + `<severity>` consequence row, counting as a foul and
-   * (correctly, per Blood Bowl's rules) not as a casualty caused. Under
-   * ambiguity (2+ same-severity actions on one side) that single merged row
-   * degrades to the usual action-only/consequence-only fallback — a `viaFoul`
-   * action still emits as `actionType: 'foul'`, just without a linked
-   * consequence, unlike TP where an unpaired foul stays entirely separate
-   * from its casualty rather than half-merging.
+   * A `viaFoul` casualty matches by severity tier like any other but emits
+   * `actionType: 'foul'`: Blood Bowl awards no casualty credit for a foul.
    */
   correlateEvents(combined: CombinedOccurrences): EmittedEvent[] {
     const actionConsumed = combined.actions.map(() => false);
