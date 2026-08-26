@@ -27,6 +27,8 @@ export type {
   ReviewDatabaseUrlProvider,
 } from './review-app-module';
 export { createReviewAppModule } from './review-app-module';
+export type { ReviewOutcome, ReviewSampler } from './review-base.service';
+export { ReviewServiceBase } from './review-base.service';
 export type { ReviewConfigOptions } from './review-config-base.service';
 export { ReviewConfigServiceBase } from './review-config-base.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
