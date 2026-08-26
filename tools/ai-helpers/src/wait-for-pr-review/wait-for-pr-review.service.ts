@@ -282,8 +282,9 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
  * through comments GitHub does not model as reviews at all: its rate limit, a
  * pass that finished with nothing to say, a failure to persist that edit, and
  * a star-gate notice that automatic reviews are off. Each is matched narrowly
- * by CodeRabbit's own login and wording so the poll can return instead of
- * running out the whole timeout with nothing to report.
+ * by CodeRabbit's own login and wording so the poll can act on it — returning,
+ * or in the star-gate case triggering a review — instead of running out the
+ * whole timeout with nothing to report.
  */
 @Injectable()
 export class WaitForPrReviewService {

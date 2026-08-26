@@ -23,9 +23,10 @@ const DISCREPANCY_STRATUM = 'spp-discrepancy';
 
 /**
  * Every player whose event-derived SPP sum plus `players.spp_adjustment`
- * disagrees with the stored `players.spp_total`. The adjustment is added
- * because a nonzero one is the normal case, so comparing the raw event sum
- * would flag almost every experienced player.
+ * disagrees with the stored `players.spp_total` — `is distinct from`, so a
+ * player with no stored total at all counts as a disagreement too. The
+ * adjustment is added because a nonzero one is the normal case, so comparing
+ * the raw event sum would flag almost every experienced player.
  *
  * Deliberately ignores the caller's `limit`: this stratum exists so a real
  * problem is never sampled away. A badly-imported database therefore produces

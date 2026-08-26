@@ -61,9 +61,6 @@ export class TpCompetitionsImportService {
   ) {}
 
   /**
-   * A competition's type comes from the date span of its match files: three
-   * days or fewer is a cup, longer is a season.
-   *
    * TP's match files carry no tournament id, so `matchesByCompetitionId` is
    * the only association between a match and its competition.
    * `competitionsByTpId` returns each whole `UpsertCompetition` because
