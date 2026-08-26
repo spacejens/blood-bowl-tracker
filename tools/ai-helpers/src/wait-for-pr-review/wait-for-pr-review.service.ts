@@ -270,35 +270,20 @@ const TRIGGER_SETTLE_MS = 10_000;
 const TRIGGER_REVIEW_BODY = '@coderabbitai review';
 
 /**
- * Waits until someone other than the PR's author submits a review, or until
- * a timeout elapses. Exists as a single-command CLI subcommand because a
+ * Waits until someone other than the PR's author submits a review, or until a
+ * timeout elapses. Exists as a single-command CLI subcommand because a
  * worktree-isolated session refuses to run a multi-line shell poll loop.
- * Silent while polling: the only output is the final JSON result `main.ts`
- * prints.
+ * Silent while polling: the only output is the final JSON `main.ts` prints.
  *
- * Bot-agnostic by construction — it looks for *some* formal review object
- * from a non-author, never for a particular bot's name.
+ * Bot-agnostic by construction — it looks for *some* formal review object from
+ * a non-author, never for a particular bot's name.
  *
- * Four exceptions are CodeRabbit-specific, because all four are
- * CodeRabbit's own behaviour rather than anything GitHub models as a review.
- * It answers its per-developer review rate limit either with a top-level PR
- * comment or by editing that same rolling comment in place, so both shapes
- * are looked for; it can finish a pass with nothing actionable to say and
- * report *that* only by editing its rolling walkthrough comment in place;
- * it can fail to persist such an edit at all, posting a "couldn't update
- * its existing comment" notice instead while the rolling comment stays
- * stuck mid-pass; and, on a repo with too few stars, it posts a one-time
- * notice that automatic reviews are disabled entirely — all three comment
- * cases observed in practice. Each poll therefore also looks for those
- * comments — narrowly, by CodeRabbit's own login and wording — and returns
- * (or, for the star-gate notice, triggers a manual review and continues)
- * as soon as it finds one, rather than running out the whole timeout with
- * nothing to report. A completion comment comes back shaped like a review,
- * so callers need no new result field: see `CompletionReview`. The
- * rate-limit and comment-update-failure cases come back as their own result
- * fields. The star-gate case never reaches a caller as its own field: it is
- * handled entirely inside `run()`, which posts the same `@coderabbitai
- * review` trigger a caller-requested retrigger would (see `shouldTrigger`).
+ * The CodeRabbit-specific cases are the exception, because CodeRabbit reports
+ * through comments GitHub does not model as reviews at all: its rate limit, a
+ * pass that finished with nothing to say, a failure to persist that edit, and
+ * a star-gate notice that automatic reviews are off. Each is matched narrowly
+ * by CodeRabbit's own login and wording so the poll can return instead of
+ * running out the whole timeout with nothing to report.
  */
 @Injectable()
 export class WaitForPrReviewService {
@@ -646,28 +631,18 @@ export class WaitForPrReviewService {
   /**
    * A rate-limit edit, kept only if its section really says so in prose (jq's
    * phrase test is a coarse first pass — see `hasProsePhrase`) and it is not
-   * the very signal the caller already surfaced.
+   * the signal the caller already surfaced.
    *
-   * The composite id hashes the section's own *content*, not its
-   * `updated_at` as the completion half does. GitHub gives one `updated_at`
-   * for the whole rolling comment, so an unrelated later edit (refreshing the
-   * commits list, say) advances it while a stale rate-limit block sits
-   * unchanged underneath; an `updated_at`-based id would read that as a brand
-   * new rate limit forever. A content hash keeps the id stable for as long as
-   * the block's text is, so `excludeCommentId` suppresses it correctly, while
-   * a genuinely new block (a fresh wait duration, a different reviewed file
-   * list) hashes differently and reads as fresh.
+   * The composite id hashes the section's own *content*, not its `updated_at`:
+   * GitHub reports one `updated_at` for the whole rolling comment, so an
+   * unrelated later edit advances it while a stale rate-limit block sits
+   * unchanged underneath, and an `updated_at`-based id would read that as a
+   * brand new rate limit forever.
    *
-   * Cost of that choice: a byte-identical *repeat* rate-limit block is
-   * silently unreportable. If CodeRabbit re-emits a block whose content
-   * exactly matches one the caller already excluded (same quota wording, same
-   * file list, same SHAs), the hash — and so the id — is unchanged, and this
-   * method returns `undefined` even though the caller has no way to know the
-   * repeat happened. The caller then just runs out its timeout instead of
-   * getting a second rate-limit report. This is the correct side of the
-   * tradeoff (a false timeout is far better than the original bug this
-   * method exists to fix — a stale block read as fresh forever), so it is
-   * accepted deliberately, not a defect to fix.
+   * The accepted cost is that a byte-identical repeat block hashes the same,
+   * so `excludeCommentId` suppresses it and the caller runs out its timeout
+   * instead of getting a second report. A false timeout is the better side of
+   * that trade against a stale block read as fresh forever.
    */
   private rateLimitEditComment(
     candidate: SectionCandidate | undefined,
