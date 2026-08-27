@@ -76,11 +76,7 @@ async function run(): Promise<unknown> {
     logger: false,
   });
   try {
-    return await dispatch({
-      app,
-      subcommand,
-      writeFile,
-    });
+    return await dispatch({ app, subcommand, writeFile });
   } finally {
     await app.close();
   }

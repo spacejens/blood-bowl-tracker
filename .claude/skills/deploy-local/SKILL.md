@@ -42,8 +42,8 @@ Run this once, before any of the selected sections below, whenever at least one 
 The config and `.env` files these actions need — `apps/discord-bot/.env`, each importer's `*-config.json5`, `tools/review-match/review-match-config.json5`, `tools/review-player/review-player-config.json5` — and the large `tools/import-bbl/data` and `tools/import-tp/data` directories are all gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session).
 
 ```bash
-pnpm --filter @blood-bowl-tracker/ai-helpers run build
-node tools/ai-helpers/dist/main.js sync-gitignored
+pnpm --filter @blood-bowl-tracker/fs-utils-cli run build
+node tools/fs-utils-cli/dist/main.js sync-gitignored
 ```
 
 The build is needed because a fresh worktree may only have run `pnpm install`, not `pnpm build`; if the build fails because dependencies are missing, run `pnpm install` first. The sync only fills in what is missing — it never overwrites a file or symlink already present, in case the developer deliberately set one up differently — and it is a no-op outside a worktree. It prints `{"copied": [...], "symlinked": [...], "skipped": [...]}`; report the counts and continue. The canonical lists live in `tools/cli-shared/src/gitignored-files.ts`, so a new tool's config is added there, not here.

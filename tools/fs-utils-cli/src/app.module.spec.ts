@@ -10,7 +10,7 @@ import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service
 import { WriteFileService } from './write-file/write-file.service';
 
 describe('AppModule', () => {
-  it('wires every subcommand service with its dependencies resolved', async () => {
+  it('wires every fs-utils subcommand service with its dependencies resolved', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

@@ -33,7 +33,7 @@ This applies to every subagent dispatched from any phase below while working in 
 
 A worktree-isolated session's safety check can refuse to run a shell command it judges too complex to verify stays inside the worktree — even a read-only one that touches no git state. In practice this reliably rejects multi-statement blocks (several commands chained by newlines/`;`, or `if`/loop constructs), and can — inconsistently, session to session — also reject a single heredoc invocation (`cmd <<'EOF' ... EOF`). A `cd <worktree-path> && <single command>` prefix, as required throughout this skill for every subagent dispatch, is accepted.
 
-When a step's logic doesn't reduce to one plain command, put it behind **one** command invocation instead: a subcommand of one of the `tools/*-cli` helper packages (`node tools/<package>/dist/main.js <subcommand> ...` — build it first with `pnpm --filter @blood-bowl-tracker/<package> run build` if `dist/main.js` is missing) or a script file invoked as a single command. This is why Phase 6's review wait is a single `wait-for-pr-review` invocation instead of an inline poll loop. `docs/plans` writes go through the same `write-file` subcommand for a different reason (Phases 2 and 3 below — the Write tool refuses to write through the `docs/plans` symlink), fed via a heredoc; if that heredoc form is refused in a given session, fall back to writing the content to a plain file first and piping it in, e.g. `cat <file> | node tools/ai-helpers/dist/main.js write-file <path>`.
+When a step's logic doesn't reduce to one plain command, put it behind **one** command invocation instead: a subcommand of one of the `tools/*-cli` helper packages (`node tools/<package>/dist/main.js <subcommand> ...` — build it first with `pnpm --filter @blood-bowl-tracker/<package> run build` if `dist/main.js` is missing) or a script file invoked as a single command. This is why Phase 6's review wait is a single `wait-for-pr-review` invocation instead of an inline poll loop. `docs/plans` writes go through the same `write-file` subcommand for a different reason (Phases 2 and 3 below — the Write tool refuses to write through the `docs/plans` symlink), fed via a heredoc; if that heredoc form is refused in a given session, fall back to writing the content to a plain file first and piping it in, e.g. `cat <file> | node tools/fs-utils-cli/dist/main.js write-file <path>`.
 
 ---
 
@@ -100,7 +100,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
@@ -108,7 +108,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
 10. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
    The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 8. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
@@ -151,7 +151,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
@@ -159,7 +159,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
 7. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
    The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 5. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
@@ -188,12 +188,12 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 3. **Override the brainstorming skill's default spec save location, and save the spec with the `write-file` CLI:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. **Do not use the Write tool for this** — in a worktree, `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it (it looks like escaping the worktree) and errors instead. Write the spec by piping it into the `write-file` subcommand:
 
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<spec-filename>.md <<'SPECEOF'
+   cd <worktree-path> && node tools/fs-utils-cli/dist/main.js write-file docs/plans/<spec-filename>.md <<'SPECEOF'
    ...full spec markdown...
    SPECEOF
    ```
 
-   It prints `{"written": "...", "bytes": N}` on success. If `dist/main.js` is missing, build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Note the exact saved filename — Phase 3 needs it. Then verify the save actually went through: run `test -s "<worktree-path>/docs/plans/<spec-filename>.md"` (checks the file exists AND is non-empty). If that check fails, the save did not go through — do not proceed to the next step as if it succeeded; investigate and re-save instead.
+   It prints `{"written": "...", "bytes": N}` on success. If `dist/main.js` is missing, build it first with `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`. Note the exact saved filename — Phase 3 needs it. Then verify the save actually went through: run `test -s "<worktree-path>/docs/plans/<spec-filename>.md"` (checks the file exists AND is non-empty). If that check fails, the save did not go through — do not proceed to the next step as if it succeeded; investigate and re-save instead.
 4. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
@@ -205,7 +205,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - Follow `superpowers:writing-plans`, saving the plan to `docs/plans/` (gitignored) instead of that skill's own default location. Tell the agent explicitly **not to use its Write tool** for that save — `docs/plans` is a symlink to the main checkout and the Write tool refuses to write through it — and to use the `write-file` subcommand instead:
 
      ```bash
-     cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<plan-filename>.md <<'PLANEOF'
+     cd <worktree-path> && node tools/fs-utils-cli/dist/main.js write-file docs/plans/<plan-filename>.md <<'PLANEOF'
      ...full plan markdown...
      PLANEOF
      ```

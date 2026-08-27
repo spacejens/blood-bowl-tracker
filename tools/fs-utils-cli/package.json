@@ -1,10 +1,10 @@
 {
-  "name": "@blood-bowl-tracker/ai-helpers",
+  "name": "@blood-bowl-tracker/fs-utils-cli",
   "version": "0.0.1",
   "private": true,
   "main": "dist/main.js",
   "bin": {
-    "ai-helpers": "dist/main.js"
+    "fs-utils-cli": "dist/main.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

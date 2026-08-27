@@ -100,7 +100,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    fi
    ```
 
-5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/ai-helpers` exists as compiled output for step 6:
+5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/fs-utils-cli` exists as compiled output for step 6:
    ```bash
    pnpm install
    ```
@@ -111,9 +111,9 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
 
 6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 10:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
+   If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
 
 7. Print a brief status line — worktree path, branch, whether `pnpm install`/`pnpm build` succeeded, and the sync counts — then continue immediately into Phase 2.
 
@@ -164,11 +164,11 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
    **Do not use the Write tool for this** — in a worktree `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it. Use the `write-file` subcommand, exactly as `develop-feature`'s Phases 2 and 3 do:
    ```bash
-   node tools/ai-helpers/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
+   node tools/fs-utils-cli/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
    ...full summary markdown...
    SUMMARYEOF
    ```
-   It prints `{"written": "...", "bytes": N}`. If `dist/main.js` is missing, build it with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`; if the heredoc form is refused in this session, write the content to a plain file first and pipe it in (`cat <file> | node tools/ai-helpers/dist/main.js write-file <path>`). Then confirm the save actually landed:
+   It prints `{"written": "...", "bytes": N}`. If `dist/main.js` is missing, build it with `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`; if the heredoc form is refused in this session, write the content to a plain file first and pipe it in (`cat <file> | node tools/fs-utils-cli/dist/main.js write-file <path>`). Then confirm the save actually landed:
    ```bash
    test -s "docs/plans/<summary-filename>.md"
    ```

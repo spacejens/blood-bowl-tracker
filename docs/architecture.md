@@ -89,9 +89,22 @@ tools/
                         max-function-params, no-direct-service-instantiation,
                         and no-test-helper-imports), imported directly by the
                         root eslint.config.ts
-  ai-helpers/         — NestJS CLI application providing helpers the Claude
-                        Code skills in .claude/skills/ call instead of
-                        hand-rolling the equivalent shell
+  cli-shared/         — library package with the plumbing the three CLI
+                        packages below share: git main-checkout/worktree
+                        resolution, child-process running and spawning, and
+                        the canonical gitignored file/directory lists; no CLI
+                        entry point of its own
+  dev-workflow-cli/   — NestJS CLI application providing the developer/PR
+                        workflow helpers the Claude Code skills in
+                        .claude/skills/ call instead of hand-rolling the
+                        equivalent shell
+  production-ops-cli/ — NestJS CLI application providing the production
+                        database and tunnel operations deploy-production
+                        invokes
+  fs-utils-cli/       — NestJS CLI application providing the worktree-aware
+                        filesystem helpers (gitignored-config sync, writing a
+                        file through the docs/plans symlink) the Claude Code
+                        skills call
 ```
 
 ## Data flow
