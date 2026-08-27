@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { CompetitionSchema, UpsertCompetitionSchema } from './competition';
+import {
+  COMPETITION_TYPES,
+  CompetitionSchema,
+  UpsertCompetitionSchema,
+} from './competition';
 
 describe('competition schemas', () => {
   it('CompetitionSchema parses a competition with both dates set', () => {
@@ -139,5 +143,49 @@ describe('competition schemas', () => {
         externalIds: [{ externalSystemId: 1, externalId: '7' }],
       }).competitionGroupId,
     ).toBeUndefined();
+  });
+});
+
+describe('COMPETITION_TYPES', () => {
+  it('lists every competition type, in the same order as the db enum', () => {
+    expect(COMPETITION_TYPES).toEqual(['season', 'cup']);
+  });
+
+  it('is the vocabulary CompetitionSchema.type accepts', () => {
+    for (const type of COMPETITION_TYPES) {
+      expect(
+        CompetitionSchema.parse({
+          id: 1,
+          name: 'Major Season 24',
+          type,
+          eraId: 20,
+          teamEraIds: [],
+          startDate: '2024-01-15',
+          endDate: null,
+          competitionGroupId: 3,
+          createdAt: '2024-01-01T00:00:00.000Z',
+        }).type,
+      ).toBe(type);
+    }
+  });
+
+  it('is the vocabulary UpsertCompetitionSchema.type accepts', () => {
+    for (const type of COMPETITION_TYPES) {
+      expect(
+        UpsertCompetitionSchema.parse({
+          type,
+          externalIds: [{ externalSystemId: 1, externalId: 'c-1' }],
+        }).type,
+      ).toBe(type);
+    }
+  });
+
+  it('rejects a type outside the tuple', () => {
+    expect(() =>
+      UpsertCompetitionSchema.parse({
+        type: 'friendly',
+        externalIds: [{ externalSystemId: 1, externalId: 'c-1' }],
+      }),
+    ).toThrow();
   });
 });
