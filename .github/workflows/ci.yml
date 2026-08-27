@@ -68,6 +68,25 @@ jobs:
       - name: Test
         run: pnpm test
 
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+      - name: Format
+        run: pnpm format
+
   docker-build:
     runs-on: ubuntu-latest
     steps:
@@ -125,7 +144,7 @@ jobs:
         run: docker compose down
 
   gatekeeper:
-    needs: [lint, typecheck, test, docker-build, schemaspy-build]
+    needs: [lint, typecheck, test, format, docker-build, schemaspy-build]
     if: always()
     runs-on: ubuntu-latest
     steps:
