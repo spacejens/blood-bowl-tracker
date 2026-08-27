@@ -99,7 +99,7 @@ function makeTeamRecord(overrides: {
 }
 
 /**
- * The full upsertRace result record (RacesImportService.upsertRace resolves
+ * The full upsert result record (RacesImportService.upsert resolves
  * the API's Race + created shape). The subject under test only reads `.id`,
  * so the other fields are unremarkable defaults.
  */
@@ -285,7 +285,7 @@ describe('BblTeamParticipationImportService', () => {
       ),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     const { eraIdsByRaceId } = await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -305,11 +305,11 @@ describe('BblTeamParticipationImportService', () => {
       { ...competition, teamEraIds: [1001, 1002] },
       expect.any(Array),
     );
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       { ...orcRace, eras: [200] },
       expect.any(Array),
     );
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       { ...vampireRace, eras: [200] },
       expect.any(Array),
     );
@@ -334,7 +334,7 @@ describe('BblTeamParticipationImportService', () => {
       ),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     const { teamEraIdsByCompetitionBblId } =
       await service.importTeamParticipation({
@@ -376,7 +376,7 @@ describe('BblTeamParticipationImportService', () => {
       );
     });
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([
@@ -387,7 +387,7 @@ describe('BblTeamParticipationImportService', () => {
       racesByRaceId,
     });
 
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       { ...orcRace, eras: [200, 999] },
       expect.any(Array),
     );
@@ -402,7 +402,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -441,7 +441,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -474,7 +474,7 @@ describe('BblTeamParticipationImportService', () => {
     expect(resultArgs(mocks.importResults).imported).toBe(0);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(mocks.competitionsImport.upsertCompetition).not.toHaveBeenCalled();
-    expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
+    expect(mocks.racesImport.upsert).not.toHaveBeenCalled();
   });
 
   it('does not collect a team era id when a team upsert yields no result', async () => {
@@ -490,7 +490,7 @@ describe('BblTeamParticipationImportService', () => {
       ),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -525,7 +525,7 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
+    expect(mocks.racesImport.upsert).not.toHaveBeenCalled();
   });
 
   it('does not upsert a competition when none of its match team ids resolve', async () => {
@@ -553,7 +553,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(false);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -578,7 +578,7 @@ describe('BblTeamParticipationImportService', () => {
       ),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -614,7 +614,7 @@ describe('BblTeamParticipationImportService', () => {
       ),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatch>;
     const captured: UpsertMatch[] = [];
@@ -653,7 +653,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -679,7 +679,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -766,7 +766,7 @@ describe('BblTeamParticipationImportService', () => {
       ),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
     // Both pair members resolve to the earliest of the pair's two dates.
     mocks.matchMerge.resolve.mockResolvedValue({
       ...noMergeResolution(),
@@ -807,7 +807,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 3, eras: [{ id: 1003, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),
@@ -836,7 +836,7 @@ describe('BblTeamParticipationImportService', () => {
       makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] }),
     );
     mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
-    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+    mocks.racesImport.upsert.mockResolvedValue(makeRaceRecord(1));
 
     await service.importTeamParticipation({
       competitionsByBblId: new Map([['1', competition]]),

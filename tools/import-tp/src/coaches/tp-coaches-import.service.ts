@@ -75,7 +75,7 @@ export class TpCoachesImportService {
         continue;
       }
       seen.add(coach.id);
-      const upserted = await this.coachesImport.upsertCoach(
+      const upserted = await this.coachesImport.upsert(
         {
           name: coach.name,
           externalIds: this.buildExternalIds(coach, systemIds),
