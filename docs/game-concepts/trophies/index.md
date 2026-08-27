@@ -1,6 +1,6 @@
 # Trophies
 
-A [trophy](../../glossary.md#trophy) is a curated, named award a [team](../../glossary.md#team) or an individual [player](../../glossary.md#player) can win.
+A [trophy](../../glossary.md#trophy) is a curated, named award a [team](../teams/index.md) or an individual [player](../players/index.md) can win.
 
 - A trophy has a name and an optional free-text description of its award criteria — the description is optional because a trophy may be known by name well before its criteria are documented.
 - A trophy is scoped to exactly one of a [competition group](../competitions/index.md#competition-groups) or a [league](../leagues/index.md), never both and never neither. A group-scoped trophy (e.g. "Major Gold") is awarded through every competition in that recurring group; a league-scoped trophy is a lifetime-achievement style award that any competition in the league can grant.

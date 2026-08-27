@@ -90,7 +90,7 @@ See [game-concepts/players](game-concepts/players/index.md).
 
 ## Position
 
-A player's designated role within their [team](#team), ordinarily determined by their [race](#race) (e.g. Lineman, Blitzer, Thrower) — except a [star player](#star-player), which several races may hire. Positions define base statistics and starting skills.
+A player's designated role within their [team](#team), ordinarily determined by their [race](#race) (e.g. Lineman, Blitzer, Thrower) — except a [star player](#star-player), which teams of several races may hire. Positions define base statistics and starting skills.
 
 See [game-concepts/positions](game-concepts/positions/index.md).
 
