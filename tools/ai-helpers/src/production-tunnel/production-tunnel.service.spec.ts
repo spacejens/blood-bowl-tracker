@@ -9,12 +9,14 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+import {
+  ChildProcessService,
+  GitRootsService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { ChildProcessService } from '../shared/child-process.service';
-import { GitRootsService } from '../shared/git-roots.service';
 import { ProductionTunnelService } from './production-tunnel.service';
 
 describe('ProductionTunnelService', () => {

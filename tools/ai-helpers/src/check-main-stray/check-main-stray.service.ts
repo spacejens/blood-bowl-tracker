@@ -1,7 +1,8 @@
+import {
+  GitRootsService,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { GitRootsService } from '../shared/git-roots.service';
-import { ProcessRunnerService } from '../shared/process-runner.service';
 
 /** One commit present on the main checkout but not on its upstream. */
 export interface StrayCommit {

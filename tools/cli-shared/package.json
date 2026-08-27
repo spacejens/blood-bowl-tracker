@@ -1,14 +1,12 @@
 {
-  "name": "@blood-bowl-tracker/ai-helpers",
+  "name": "@blood-bowl-tracker/cli-shared",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/main.js",
-  "bin": {
-    "ai-helpers": "dist/main.js"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -19,12 +17,8 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@nestjs/common": "^11.1.29",
-    "@nestjs/core": "^11.1.29",
-    "json5": "^2.2.3",
-    "reflect-metadata": "^0.2.2",
-    "zod": "^4.4.3"
+    "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.29",

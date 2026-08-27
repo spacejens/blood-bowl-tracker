@@ -1,9 +1,11 @@
+import {
+  GitRootsService,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { GitRootsService } from '../shared/git-roots.service';
-import { ProcessRunnerService } from '../shared/process-runner.service';
 import { CheckMainStrayService } from './check-main-stray.service';
 
 describe('CheckMainStrayService', () => {

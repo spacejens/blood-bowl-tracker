@@ -1,7 +1,7 @@
+import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockProxy } from 'vitest-mock-extended';
 
-import { ProcessRunnerService } from '../shared/process-runner.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import {
   COMPLETION_CANDIDATE,

@@ -10,9 +10,8 @@ import {
 } from 'node:fs';
 import { dirname, isAbsolute, join, sep } from 'node:path';
 
+import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { GitRootsService } from '../shared/git-roots.service';
 
 /** Outcome of a single `write-file` run. */
 export interface WriteFileResult {

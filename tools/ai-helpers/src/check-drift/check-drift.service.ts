@@ -1,11 +1,13 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import {
+  GITIGNORED_DRIFT_FILES,
+  GitRootsService,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
-import { GitRootsService } from '../shared/git-roots.service';
-import { GITIGNORED_DRIFT_FILES } from '../shared/gitignored-files';
-import { ProcessRunnerService } from '../shared/process-runner.service';
 import { DriftDiffRedactionService } from './drift-diff-redaction.service';
 
 interface DriftedFile {

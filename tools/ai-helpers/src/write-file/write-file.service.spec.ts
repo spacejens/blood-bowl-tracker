@@ -11,11 +11,11 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { GitRootsService } from '../shared/git-roots.service';
 import { WriteFileService } from './write-file.service';
 
 describe('WriteFileService', () => {

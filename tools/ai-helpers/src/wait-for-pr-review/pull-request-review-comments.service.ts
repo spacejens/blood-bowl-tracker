@@ -1,6 +1,5 @@
+import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { ProcessRunnerService } from '../shared/process-runner.service';
 
 /**
  * `gh pr view --json reviews` reports a review's `body` but no count of its

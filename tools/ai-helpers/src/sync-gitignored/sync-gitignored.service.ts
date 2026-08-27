@@ -1,13 +1,12 @@
 import { copyFileSync, existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { Injectable } from '@nestjs/common';
-
-import { GitRootsService } from '../shared/git-roots.service';
 import {
   GITIGNORED_DATA_DIRS,
   GITIGNORED_SYNC_FILES,
-} from '../shared/gitignored-files';
+  GitRootsService,
+} from '@blood-bowl-tracker/cli-shared';
+import { Injectable } from '@nestjs/common';
 
 export interface SyncGitignoredResult {
   /** Repo-relative paths copied from the main checkout into the worktree. */

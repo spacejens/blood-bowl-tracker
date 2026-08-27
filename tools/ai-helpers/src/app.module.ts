@@ -1,3 +1,8 @@
+import {
+  ChildProcessService,
+  GitRootsService,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
 import { CheckDriftService } from './check-drift/check-drift.service';
@@ -10,9 +15,6 @@ import { PostReviewQuestionsArgsService } from './post-review-questions/post-rev
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
-import { ChildProcessService } from './shared/child-process.service';
-import { GitRootsService } from './shared/git-roots.service';
-import { ProcessRunnerService } from './shared/process-runner.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
 import { PullRequestReviewCommentsService } from './wait-for-pr-review/pull-request-review-comments.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';

@@ -2,15 +2,15 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+import {
+  GitRootsService,
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { GitRootsService } from '../shared/git-roots.service';
-import {
-  ProcessRunnerService,
-  TIMED_OUT_EXIT_CODE,
-} from '../shared/process-runner.service';
 import { RunProductionQueryService } from './run-production-query.service';
 
 describe('RunProductionQueryService', () => {

@@ -2,6 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 
+import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -17,7 +18,6 @@ import {
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
-import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
 import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';

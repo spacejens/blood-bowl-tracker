@@ -51,6 +51,8 @@ export default tseslint.config(
             'tools/eslint-rules/vitest.config.ts',
             'tools/ai-helpers/test/*.ts',
             'tools/ai-helpers/vitest.config.ts',
+            'tools/cli-shared/test/*.ts',
+            'tools/cli-shared/vitest.config.ts',
             'tools/import-bbl/test/*.ts',
             'tools/import-bbl/vitest.config.ts',
             'tools/import-manual/test/*.ts',

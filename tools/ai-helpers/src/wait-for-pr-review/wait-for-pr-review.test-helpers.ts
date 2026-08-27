@@ -1,7 +1,7 @@
+import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { ProcessRunnerService } from '../shared/process-runner.service';
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import { WaitForPrReviewFiltersService } from './wait-for-pr-review-filters.service';

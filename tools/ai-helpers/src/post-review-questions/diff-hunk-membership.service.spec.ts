@@ -1,11 +1,11 @@
+import {
+  ProcessResult,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import {
-  ProcessResult,
-  ProcessRunnerService,
-} from '../shared/process-runner.service';
 import { DiffHunkMembershipService } from './diff-hunk-membership.service';
 
 describe('DiffHunkMembershipService', () => {

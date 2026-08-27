@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 
+import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
-import { ProcessRunnerService } from '../shared/process-runner.service';
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
 import {
   COMMENT_UPDATE_FAILED_PHRASES,

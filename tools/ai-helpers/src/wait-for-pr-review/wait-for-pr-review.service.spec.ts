@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MockProxy } from 'vitest-mock-extended';
-
 import {
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
-} from '../shared/process-runner.service';
+} from '@blood-bowl-tracker/cli-shared';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MockProxy } from 'vitest-mock-extended';
+
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import {
   COMMENT_UPDATE_FAILED,

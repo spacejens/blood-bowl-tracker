@@ -1,11 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import {
+  GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES,
+  GitRootsService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
-import { GitRootsService } from '../shared/git-roots.service';
-import { GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES } from '../shared/gitignored-files';
 import { productionConfigSchema } from './production-config.schema';
 
 interface StaleProductionConfig {

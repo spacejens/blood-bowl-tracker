@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import {
+  GitRootsService,
+  ProcessRunnerService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { GitRootsService } from '../shared/git-roots.service';
-import { ProcessRunnerService } from '../shared/process-runner.service';
 
 const ENV_PRODUCTION_PATH = 'apps/discord-bot/.env.production';
 

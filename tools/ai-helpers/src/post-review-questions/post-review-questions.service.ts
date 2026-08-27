@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-
 import {
   ProcessResult,
   ProcessRunnerService,
-} from '../shared/process-runner.service';
+} from '@blood-bowl-tracker/cli-shared';
+import { Injectable } from '@nestjs/common';
+
 import { DiffHunkMembershipService } from './diff-hunk-membership.service';
 
 /** One question to post, in the caller's own words — untagged, unformatted. */

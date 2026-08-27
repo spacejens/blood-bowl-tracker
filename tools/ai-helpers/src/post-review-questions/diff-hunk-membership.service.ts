@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
-
 import {
   ProcessResult,
   ProcessRunnerService,
-} from '../shared/process-runner.service';
+} from '@blood-bowl-tracker/cli-shared';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Timeout for git diff operations, in milliseconds.

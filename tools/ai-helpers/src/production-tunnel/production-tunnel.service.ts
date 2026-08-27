@@ -7,10 +7,11 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+import {
+  ChildProcessService,
+  GitRootsService,
+} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { ChildProcessService } from '../shared/child-process.service';
-import { GitRootsService } from '../shared/git-roots.service';
 
 /**
  * Worktree-relative, gitignored path recording the tunnel's own pid across
