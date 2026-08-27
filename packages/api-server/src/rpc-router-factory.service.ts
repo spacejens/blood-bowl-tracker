@@ -1,4 +1,8 @@
-import { contract } from '@blood-bowl-tracker/api-contract';
+import {
+  contract,
+  type ExternalId,
+  type ResolveResult,
+} from '@blood-bowl-tracker/api-contract';
 import {
   CoachesService,
   CoachUpsertConflictError,
@@ -38,6 +42,22 @@ import { implement } from '@orpc/server';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
+ * Every entity's resolve procedure is built by the same resolveProcedure()
+ * helper in packages/api-contract, so they are all this one type; coaches is
+ * simply the representative the alias is taken from.
+ */
+type ResolveProcedure = (typeof contract.coaches)['resolve'];
+
+/** The batch counterpart, likewise identical across every entity. */
+type ResolveBatchProcedure = (typeof contract.coaches)['resolveBatch'];
+
+/** The two members a game-data entity service exposes for external-id lookup. */
+interface ResolvableService {
+  resolve(externalId: ExternalId): Promise<ResolveResult>;
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]>;
+}
+
+/**
  * Assembles the oRPC router and supplies it through DI (the `RPC_ROUTER`
  * token) rather than composing it inside `RpcMiddleware`'s constructor. The
  * many-arg constructor is allowed: NestJS DI constructors are exempt from the
@@ -66,6 +86,38 @@ export class RpcRouterFactoryService {
     private readonly trophyAwardsService: TrophyAwardsService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
+
+  /**
+   * One entity's resolve route, as a one-key object to spread into its block
+   * in build(). Resolve handlers call the entity service directly rather than
+   * through UpsertHandlerService: a resolve has no domain error to translate
+   * into a contract error — a miss is a normal result. Takes two positional
+   * parameters rather than an options object: the max-function-params rule
+   * only requires one beyond three parameters, and the options-object form
+   * pushed this already-500-line-capped file over budget.
+   */
+  private buildResolveRoute(
+    procedure: ResolveProcedure,
+    service: Pick<ResolvableService, 'resolve'>,
+  ) {
+    return {
+      resolve: implement(procedure).handler(({ input }) =>
+        service.resolve(input),
+      ),
+    };
+  }
+
+  /** The batch counterpart of buildResolveRoute. */
+  private buildResolveBatchRoute(
+    procedure: ResolveBatchProcedure,
+    service: Pick<ResolvableService, 'resolveBatch'>,
+  ) {
+    return {
+      resolveBatch: implement(procedure).handler(({ input }) =>
+        service.resolveBatch(input),
+      ),
+    };
+  }
 
   build() {
     return {
@@ -96,11 +148,13 @@ export class RpcRouterFactoryService {
         // Resolve handlers call the entity service directly rather than
         // through UpsertHandlerService: a resolve has no domain error to
         // translate into a contract error — a miss is a normal result.
-        resolve: implement(contract.coaches.resolve).handler(({ input }) =>
-          this.coachesService.resolve(input),
+        ...this.buildResolveRoute(
+          contract.coaches.resolve,
+          this.coachesService,
         ),
-        resolveBatch: implement(contract.coaches.resolveBatch).handler(
-          ({ input }) => this.coachesService.resolveBatch(input),
+        ...this.buildResolveBatchRoute(
+          contract.coaches.resolveBatch,
+          this.coachesService,
         ),
       },
       leagues: {
@@ -127,11 +181,13 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        resolve: implement(contract.leagues.resolve).handler(({ input }) =>
-          this.leaguesService.resolve(input),
+        ...this.buildResolveRoute(
+          contract.leagues.resolve,
+          this.leaguesService,
         ),
-        resolveBatch: implement(contract.leagues.resolveBatch).handler(
-          ({ input }) => this.leaguesService.resolveBatch(input),
+        ...this.buildResolveBatchRoute(
+          contract.leagues.resolveBatch,
+          this.leaguesService,
         ),
       },
       races: {
@@ -151,11 +207,10 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        resolve: implement(contract.races.resolve).handler(({ input }) =>
-          this.racesService.resolve(input),
-        ),
-        resolveBatch: implement(contract.races.resolveBatch).handler(
-          ({ input }) => this.racesService.resolveBatch(input),
+        ...this.buildResolveRoute(contract.races.resolve, this.racesService),
+        ...this.buildResolveBatchRoute(
+          contract.races.resolveBatch,
+          this.racesService,
         ),
       },
       players: {
@@ -223,11 +278,13 @@ export class RpcRouterFactoryService {
         syncRaceEras: implement(contract.positions.syncRaceEras).handler(
           async ({ input }) => this.positionsService.syncRaceEras(input),
         ),
-        resolve: implement(contract.positions.resolve).handler(({ input }) =>
-          this.positionsService.resolve(input),
+        ...this.buildResolveRoute(
+          contract.positions.resolve,
+          this.positionsService,
         ),
-        resolveBatch: implement(contract.positions.resolveBatch).handler(
-          ({ input }) => this.positionsService.resolveBatch(input),
+        ...this.buildResolveBatchRoute(
+          contract.positions.resolveBatch,
+          this.positionsService,
         ),
       },
       rulesSets: {
@@ -254,11 +311,13 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        resolve: implement(contract.rulesSets.resolve).handler(({ input }) =>
-          this.rulesSetsService.resolve(input),
+        ...this.buildResolveRoute(
+          contract.rulesSets.resolve,
+          this.rulesSetsService,
         ),
-        resolveBatch: implement(contract.rulesSets.resolveBatch).handler(
-          ({ input }) => this.rulesSetsService.resolveBatch(input),
+        ...this.buildResolveBatchRoute(
+          contract.rulesSets.resolveBatch,
+          this.rulesSetsService,
         ),
       },
       sppAwardValues: {
@@ -286,11 +345,10 @@ export class RpcRouterFactoryService {
             }),
           ),
         ),
-        resolve: implement(contract.eras.resolve).handler(({ input }) =>
-          this.erasService.resolve(input),
-        ),
-        resolveBatch: implement(contract.eras.resolveBatch).handler(
-          ({ input }) => this.erasService.resolveBatch(input),
+        ...this.buildResolveRoute(contract.eras.resolve, this.erasService),
+        ...this.buildResolveBatchRoute(
+          contract.eras.resolveBatch,
+          this.erasService,
         ),
       },
       competitionGroups: {
@@ -306,13 +364,13 @@ export class RpcRouterFactoryService {
               },
             ),
         ),
-        resolve: implement(contract.competitionGroups.resolve).handler(
-          ({ input }) => this.competitionGroupsService.resolve(input),
+        ...this.buildResolveRoute(
+          contract.competitionGroups.resolve,
+          this.competitionGroupsService,
         ),
-        resolveBatch: implement(
+        ...this.buildResolveBatchRoute(
           contract.competitionGroups.resolveBatch,
-        ).handler(({ input }) =>
-          this.competitionGroupsService.resolveBatch(input),
+          this.competitionGroupsService,
         ),
         list: implement(contract.competitionGroups.list).handler(async () => {
           const groups = await this.competitionGroupsService.listAll();
@@ -351,11 +409,13 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        resolve: implement(contract.competitions.resolve).handler(({ input }) =>
-          this.competitionsService.resolve(input),
+        ...this.buildResolveRoute(
+          contract.competitions.resolve,
+          this.competitionsService,
         ),
-        resolveBatch: implement(contract.competitions.resolveBatch).handler(
-          ({ input }) => this.competitionsService.resolveBatch(input),
+        ...this.buildResolveBatchRoute(
+          contract.competitions.resolveBatch,
+          this.competitionsService,
         ),
       },
       matches: {
@@ -432,11 +492,10 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        resolve: implement(contract.teams.resolve).handler(({ input }) =>
-          this.teamsService.resolve(input),
-        ),
-        resolveBatch: implement(contract.teams.resolveBatch).handler(
-          ({ input }) => this.teamsService.resolveBatch(input),
+        ...this.buildResolveRoute(contract.teams.resolve, this.teamsService),
+        ...this.buildResolveBatchRoute(
+          contract.teams.resolveBatch,
+          this.teamsService,
         ),
       },
       trophies: {
