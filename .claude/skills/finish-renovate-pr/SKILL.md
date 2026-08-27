@@ -230,9 +230,9 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist:
    ```bash
-   node tools/ai-helpers/dist/main.js check-main-stray
+   node tools/dev-workflow-cli/dist/main.js check-main-stray
    ```
-   `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/ai-helpers/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
+   `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/dev-workflow-cli/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
 
 2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
    ```bash
@@ -252,7 +252,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 4. **Post pending self-review questions, if any.** If the Self-review step's pending-questions list is empty, skip this step entirely and silently — the common case. Otherwise build a JSON array of `{ "file": "<repo-relative path>", "line": <integer>, "body": "<question text>" }` objects (do **not** prepend `**Comment by Claude**` — the subcommand does that itself) and post them with one command:
    ```bash
-   node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
+   node tools/dev-workflow-cli/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
    [
      { "file": "path/to/file.ts", "line": 42, "body": "..." }
    ]
@@ -270,7 +270,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
    a. Wait for a non-author review with a single backgrounded command:
    ```bash
-   node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
+   node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
    ```
    The **first** iteration's `<watermark-epoch>` is the epoch captured in step 2 above — not the PR's `createdAt` — and omits `--exclude-review-id` entirely (there is nothing to exclude yet). Every later iteration uses the previous iteration's found `review.submittedAt` converted to epoch seconds, and passes that review's `id` as `--exclude-review-id`. Run it with `run_in_background: true` and branch on the JSON it prints at exit; never use `ScheduleWakeup` for this wait.
 

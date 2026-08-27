@@ -53,6 +53,8 @@ export default tseslint.config(
             'tools/ai-helpers/vitest.config.ts',
             'tools/cli-shared/test/*.ts',
             'tools/cli-shared/vitest.config.ts',
+            'tools/dev-workflow-cli/test/*.ts',
+            'tools/dev-workflow-cli/vitest.config.ts',
             'tools/import-bbl/test/*.ts',
             'tools/import-bbl/vitest.config.ts',
             'tools/import-manual/test/*.ts',
