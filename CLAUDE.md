@@ -49,7 +49,7 @@ pnpm lint:fix         # ESLint with auto-fix
 pnpm typecheck        # tsc --noEmit across all workspaces
 pnpm format           # Prettier check (no write)
 pnpm format:fix       # Prettier write
-pnpm verify           # build + lint + typecheck + test in one command
+pnpm verify           # build + lint + typecheck + format + test in one command
 ```
 
 Run from inside a specific workspace (e.g. `apps/discord-bot`) for targeted work:
@@ -64,7 +64,7 @@ pnpm run lint:fix     # ESLint with auto-fix
 pnpm run typecheck    # tsc --noEmit
 pnpm run format       # Prettier check (no write)
 pnpm run format:fix   # Prettier write
-pnpm run verify       # build + lint + typecheck + test for this workspace only
+pnpm run verify       # build + lint + typecheck + format + test for this workspace only
 ```
 
 Run a single test file: `pnpm exec vitest run src/path/to/file.spec.ts`
