@@ -77,21 +77,14 @@ const contractValuesByDbEnum: Record<string, readonly string[]> = {
 };
 
 describe('db enum discovery', () => {
-  it('finds every known db enum', () => {
+  it('finds exactly the db enums the mapping expects', () => {
+    // Deriving the expected list from contractValuesByDbEnum's own keys
+    // (rather than a second hard-coded list) keeps this a single source of
+    // truth: a new db enum with no mapping line fails here with a clear
+    // "add it to contractValuesByDbEnum" signal, instead of failing a
+    // separately-maintained list that would read like a discovery bug.
     expect(dbEnums.map(([name]) => name)).toEqual(
-      [
-        'actionTypeEnum',
-        'competitionTypeEnum',
-        'consequenceAvoidedByEnum',
-        'consequenceTypeEnum',
-        'eventTypeEnum',
-        'externalSystemCategoryEnum',
-        'matchCategoryEnum',
-        'secretObjectiveEnum',
-        'trophyRecipientKindEnum',
-        'unidentifiedParticipantKindEnum',
-        'weatherTypeEnum',
-      ].sort(),
+      Object.keys(contractValuesByDbEnum).sort((a, b) => a.localeCompare(b)),
     );
   });
 });
@@ -104,16 +97,11 @@ describe('db enums are mirrored in api-contract', () => {
     expect(unmapped).toEqual([]);
   });
 
-  it.each(dbEnums.map(([name]) => name))(
-    '%s has the same values on both sides',
-    (name) => {
-      const dbEnum = dbEnums.find(([entry]) => entry === name)?.[1];
-      const contractValues = contractValuesByDbEnum[name];
-      expect(dbEnum).toBeDefined();
-      expect(contractValues).toBeDefined();
-      expect([...(dbEnum?.enumValues ?? [])].sort()).toEqual(
-        [...(contractValues ?? [])].sort(),
-      );
-    },
-  );
+  it.each(dbEnums)('%s has the same values on both sides', (name, dbEnum) => {
+    const contractValues = contractValuesByDbEnum[name];
+    expect(contractValues).toBeDefined();
+    expect([...dbEnum.enumValues].sort()).toEqual(
+      [...(contractValues ?? [])].sort(),
+    );
+  });
 });
