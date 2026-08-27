@@ -88,7 +88,7 @@ export function makeEvents(
 /**
  * Test-only helper. Do not import from production code.
  *
- * The full upsertTeam result record (TeamsImportService.upsertTeam resolves
+ * The full upsert result record (TeamsImportService.upsert resolves
  * the API's Team + created shape). The subject under test only reads `.eras`,
  * so the other fields are unremarkable defaults.
  */
@@ -296,7 +296,7 @@ export async function runImport(
     return Promise.resolve(1);
   });
   mocks.matchEventsImport.flushBatch.mockResolvedValue(0);
-  mocks.teamsImport.upsertTeam.mockImplementation(
+  mocks.teamsImport.upsert.mockImplementation(
     overrides.upsertTeam ??
       ((data) => {
         const id = data.name === 'Home' ? HOME_TEAM_ERA_ID : AWAY_TEAM_ERA_ID;

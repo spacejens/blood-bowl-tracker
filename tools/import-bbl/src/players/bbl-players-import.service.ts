@@ -233,7 +233,7 @@ export class BblPlayersImportService {
           continue;
         }
 
-        const upsertedTeam = await this.teamsImport.upsertTeam(
+        const upsertedTeam = await this.teamsImport.upsert(
           { ...team, eras: [eraId] },
           errors,
         );

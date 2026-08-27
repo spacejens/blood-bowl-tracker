@@ -362,7 +362,7 @@ export class BblMatchEventsImportService {
       return undefined;
     }
 
-    const upsertedTeam = await this.teamsImport.upsertTeam(
+    const upsertedTeam = await this.teamsImport.upsert(
       {
         ...team,
         eras: [this.upsertFieldNarrowing.resolveDefiniteEraId(competition)],

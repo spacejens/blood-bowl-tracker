@@ -6,19 +6,30 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
 import { TeamsImportService } from './teams-import.service';
-import type { ImportError } from './types';
 
+/**
+ * The success/failure plumbing lives in `createUpsertImportServiceBase` and is
+ * covered by `upsert-import-service-base.spec.ts`. What is entity-specific
+ * here — and all this suite asserts — is which client resource the service
+ * upserts through and how it words a failure.
+ */
 describe('TeamsImportService', () => {
   let service: TeamsImportService;
   let client: DeepMockProxy<ApiClient>;
   let runner: MockProxy<ImportRunnerService>;
 
+  const data = {
+    name: '40 grinders',
+    raceId: 5,
+    coachId: 9,
+    eras: [],
+    externalIds: [{ externalSystemId: 1, externalId: '40g' }],
+  };
+
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsImportService,
@@ -29,68 +40,26 @@ describe('TeamsImportService', () => {
     service = moduleRef.get(TeamsImportService);
   });
 
-  const data = {
-    name: '40 grinders',
-    raceId: 5,
-    coachId: 9,
-    eras: [],
-    externalIds: [{ externalSystemId: 1, externalId: '40g' }],
-  };
+  it('upserts through the teams resource', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-  it('returns the upserted team on success', async () => {
-    client.teams.upsert.mockResolvedValue({
-      id: 1,
-      name: '40 grinders',
-      raceId: 5,
-      coachId: 9,
-      eras: [{ id: 100, eraId: 20 }],
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
-    const errors: ImportError[] = [];
+    await service.upsert(data, []);
 
-    const result = await service.upsertTeam(data, errors);
-
-    expect(result).toEqual({
-      id: 1,
-      name: '40 grinders',
-      raceId: 5,
-      coachId: 9,
-      eras: [{ id: 100, eraId: 20 }],
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    await runner.recordUpsertResult.mock.calls[0][0].upsert();
     expect(client.teams.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('returns false and records an error when the client call fails', async () => {
-    client.teams.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('names the team in its error message', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertTeam(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import team "40 grinders": conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) when the client rejects with a non-Error value', async () => {
-    client.teams.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertTeam(data, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import team "40 grinders": boom',
-      },
-    ]);
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import team "40 grinders": conflict',
+    );
+    expect(options.buildErrorMessage('boom')).toBe(
+      'Failed to import team "40 grinders": boom',
+    );
   });
 });
