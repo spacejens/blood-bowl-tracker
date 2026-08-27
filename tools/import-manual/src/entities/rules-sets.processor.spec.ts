@@ -54,7 +54,7 @@ describe('RulesSetsProcessor', () => {
   });
 
   it('upserts each rules set and counts it', async () => {
-    rulesSets.upsertRulesSet.mockResolvedValue({
+    rulesSets.upsert.mockResolvedValue({
       id: 7,
       name: 'CRP',
       createdAt: new Date(),
@@ -77,14 +77,14 @@ describe('RulesSetsProcessor', () => {
       data.rulesSets[0].externalIds,
       ctx.systemIds,
     );
-    expect(rulesSets.upsertRulesSet).toHaveBeenCalledWith(
+    expect(rulesSets.upsert).toHaveBeenCalledWith(
       { name: 'CRP', externalIds: cannedExternalIds },
       ctx.errors,
     );
   });
 
   it('does not count when the upsert fails', async () => {
-    rulesSets.upsertRulesSet.mockImplementation(
+    rulesSets.upsert.mockImplementation(
       (_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'boom' });
         return Promise.resolve(undefined);

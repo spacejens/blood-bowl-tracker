@@ -53,7 +53,7 @@ describe('ErasProcessor', () => {
   });
 
   it('resolves league and rules-set refs and upserts', async () => {
-    eras.upsertEra.mockResolvedValue({
+    eras.upsert.mockResolvedValue({
       id: 50,
       name: 'Season 12',
       leagueId: 3,
@@ -95,7 +95,7 @@ describe('ErasProcessor', () => {
     );
     // The processor must wire each canned resolver output into the exact
     // field the upsert call expects -- not just pass some id through.
-    expect(eras.upsertEra).toHaveBeenCalledWith(
+    expect(eras.upsert).toHaveBeenCalledWith(
       {
         name: 'Season 12',
         leagueId: 3,
@@ -109,7 +109,7 @@ describe('ErasProcessor', () => {
   });
 
   it('passes endDate through when present', async () => {
-    eras.upsertEra.mockResolvedValue({
+    eras.upsert.mockResolvedValue({
       id: 50,
       name: 'E',
       leagueId: 3,
@@ -136,7 +136,7 @@ describe('ErasProcessor', () => {
 
     await processor.process(makeContext(data));
 
-    expect(eras.upsertEra.mock.calls[0][0]).toMatchObject({
+    expect(eras.upsert.mock.calls[0][0]).toMatchObject({
       endDate: '2024-12-31',
     });
   });
@@ -164,12 +164,12 @@ describe('ErasProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(eras.upsertEra).not.toHaveBeenCalled();
+    expect(eras.upsert).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
   it('passes leagueId, dates and an empty rules-set list through for a rename-only entry', async () => {
-    eras.upsertEra.mockResolvedValue({
+    eras.upsert.mockResolvedValue({
       id: 55,
       name: 'First era',
       leagueId: 0,
@@ -199,7 +199,7 @@ describe('ErasProcessor', () => {
 
     expect(count).toBe(1);
     expect(refResolver.resolveRef).not.toHaveBeenCalled();
-    expect(eras.upsertEra).toHaveBeenCalledWith(
+    expect(eras.upsert).toHaveBeenCalledWith(
       {
         name: 'First era',
         leagueId: undefined,

@@ -14,7 +14,7 @@ export class RulesSetsProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.rulesSets) {
-      const upserted = await this.rulesSetsImport.upsertRulesSet(
+      const upserted = await this.rulesSetsImport.upsert(
         {
           name: entry.name,
           externalIds: this.refResolver.toExternalIds(

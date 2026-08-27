@@ -58,9 +58,7 @@ async function makeService({
   const eraDataConfig = mock<EraDataConfigService>();
   eraDataConfig.getEras.mockImplementation(getEras);
   const rulesSetsImport = mock<RulesSetsImportService>();
-  rulesSetsImport.upsertRulesSet.mockImplementation(
-    asProviderMethod(upsertRulesSet),
-  );
+  rulesSetsImport.upsert.mockImplementation(asProviderMethod(upsertRulesSet));
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),

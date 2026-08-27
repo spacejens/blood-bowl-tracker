@@ -132,7 +132,7 @@ export class BblErasImportService {
         continue;
       }
 
-      const upsertedEra = await this.erasImport.upsertEra(
+      const upsertedEra = await this.erasImport.upsert(
         {
           name: era.identity.name,
           leagueId,

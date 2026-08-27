@@ -50,7 +50,7 @@ interface Mocks {
 }
 
 /**
- * The full upsertEra result record (ErasImportService.upsertEra resolves the
+ * The full upsert result record (ErasImportService.upsert resolves the
  * API's Era + created shape). Pass overrides for the fields each test cares
  * about; the rest are filled with unremarkable defaults.
  */
@@ -172,7 +172,7 @@ describe('BblErasImportService', () => {
 
   it("resolves each era's league and rules sets through the api", async () => {
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsertEra.mockResolvedValue(
+    mocks.erasImport.upsert.mockResolvedValue(
       makeEraRecord({ id: 500, name: 'Era One' }),
     );
 
@@ -190,14 +190,14 @@ describe('BblErasImportService', () => {
 
   it('upserts each era referencing the resolved league id and rules set ids', async () => {
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsertEra.mockResolvedValue(
+    mocks.erasImport.upsert.mockResolvedValue(
       makeEraRecord({ id: 500, name: 'Era One' }),
     );
 
     await service.importEras();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
+    expect(mocks.erasImport.upsert).toHaveBeenCalledWith(
       {
         name: 'Era One',
         leagueId: 11,
@@ -223,7 +223,7 @@ describe('BblErasImportService', () => {
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ]);
-    mocks.erasImport.upsertEra.mockResolvedValue(
+    mocks.erasImport.upsert.mockResolvedValue(
       makeEraRecord({ id: 1, name: 'x' }),
     );
 
@@ -241,7 +241,7 @@ describe('BblErasImportService', () => {
     expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'could not be resolved',
     );
-    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
   });
 
   it('records an error and skips an era whose league name is unset', async () => {
@@ -261,7 +261,7 @@ describe('BblErasImportService', () => {
         (e) => e.message.includes('(unset)') && e.message.includes('league'),
       ),
     ).toBe(true);
-    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
   });
 
   it('records an error and skips an era whose rules set does not resolve', async () => {
@@ -279,7 +279,7 @@ describe('BblErasImportService', () => {
     expect(resultArgs(mocks.importResults).errors[0].message).toContain(
       'could not be resolved',
     );
-    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
   });
 
   it('resolves all rules-set names to ids and passes the array', async () => {
@@ -301,13 +301,13 @@ describe('BblErasImportService', () => {
             ]),
       ),
     );
-    mocks.erasImport.upsertEra.mockResolvedValue(
+    mocks.erasImport.upsert.mockResolvedValue(
       makeEraRecord({ id: 1, name: 'CRP era' }),
     );
 
     await service.importEras();
 
-    expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
+    expect(mocks.erasImport.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ rulesSetIds: [20, 21] }),
       expect.anything(),
     );
@@ -315,7 +315,7 @@ describe('BblErasImportService', () => {
 
   it('records an error when an era upsert fails', async () => {
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsertEra.mockImplementation((_data, errors) => {
+    mocks.erasImport.upsert.mockImplementation((_data, errors) => {
       errors.push({ item: {}, message: 'era boom' });
       return Promise.resolve(undefined);
     });
@@ -337,7 +337,7 @@ describe('BblErasImportService', () => {
         e.message.includes('BBL_ERAS'),
       ),
     ).toBe(true);
-    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
     expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
   });
 
@@ -362,13 +362,13 @@ describe('BblErasImportService', () => {
     expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
     expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsertEra.mockResolvedValue(
+    mocks.erasImport.upsert.mockResolvedValue(
       makeEraRecord({ id: 500, name: 'Era One' }),
     );
 

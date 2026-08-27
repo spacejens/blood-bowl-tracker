@@ -45,7 +45,7 @@ interface Mocks {
 }
 
 /**
- * The full upsertRulesSet result record (RulesSetsImportService.upsertRulesSet
+ * The full upsert result record (RulesSetsImportService.upsert
  * resolves the API's RulesSet + created shape). Only `id` varies across these
  * tests; the rest are filled with unremarkable defaults.
  */
@@ -151,7 +151,7 @@ describe('BblRulesSetsImportService', () => {
 
   it('upserts each distinct rules set once with its name under BBL and Name', async () => {
     mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
-    mocks.rulesSetsImport.upsertRulesSet
+    mocks.rulesSetsImport.upsert
       .mockResolvedValueOnce(makeRulesSetRecord(100))
       .mockResolvedValueOnce(makeRulesSetRecord(200));
 
@@ -162,8 +162,8 @@ describe('BblRulesSetsImportService', () => {
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(2);
-    expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenNthCalledWith(
+    expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(2);
+    expect(mocks.rulesSetsImport.upsert).toHaveBeenNthCalledWith(
       1,
       {
         name: 'Living rulebook',
@@ -190,13 +190,11 @@ describe('BblRulesSetsImportService', () => {
       },
     ];
     mocks.eraConfig.getEras.mockReturnValue(eras);
-    mocks.rulesSetsImport.upsertRulesSet.mockResolvedValue(
-      makeRulesSetRecord(200),
-    );
+    mocks.rulesSetsImport.upsert.mockResolvedValue(makeRulesSetRecord(200));
 
     await service.importRulesSets();
 
-    expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(1);
+    expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 
@@ -222,7 +220,7 @@ describe('BblRulesSetsImportService', () => {
       },
     ];
     mocks.eraConfig.getEras.mockReturnValue(eras);
-    mocks.rulesSetsImport.upsertRulesSet
+    mocks.rulesSetsImport.upsert
       .mockResolvedValueOnce(makeRulesSetRecord(10))
       .mockResolvedValueOnce(makeRulesSetRecord(20))
       .mockResolvedValueOnce(makeRulesSetRecord(30));
@@ -233,13 +231,13 @@ describe('BblRulesSetsImportService', () => {
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(3);
-    const upsertedNames = mocks.rulesSetsImport.upsertRulesSet.mock.calls.map(
+    expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(3);
+    const upsertedNames = mocks.rulesSetsImport.upsert.mock.calls.map(
       (c) => (c[0] as { name: string }).name,
     );
     expect(new Set(upsertedNames)).toEqual(new Set(['CRP', 'CRP+', 'BB2016']));
     expect(
-      mocks.rulesSetsImport.upsertRulesSet.mock.calls.every(
+      mocks.rulesSetsImport.upsert.mock.calls.every(
         (c) => !('races' in (c[0] as Record<string, unknown>)),
       ),
     ).toBe(true);
@@ -255,7 +253,7 @@ describe('BblRulesSetsImportService', () => {
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ]);
-    mocks.rulesSetsImport.upsertRulesSet.mockImplementation((_data, errors) => {
+    mocks.rulesSetsImport.upsert.mockImplementation((_data, errors) => {
       errors.push({ item: {}, message: 'boom' });
       return Promise.resolve(undefined);
     });
@@ -277,7 +275,7 @@ describe('BblRulesSetsImportService', () => {
         e.message.includes('BBL_ERAS'),
       ),
     ).toBe(true);
-    expect(mocks.rulesSetsImport.upsertRulesSet).not.toHaveBeenCalled();
+    expect(mocks.rulesSetsImport.upsert).not.toHaveBeenCalled();
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
@@ -301,12 +299,12 @@ describe('BblRulesSetsImportService', () => {
     expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(mocks.rulesSetsImport.upsertRulesSet).not.toHaveBeenCalled();
+    expect(mocks.rulesSetsImport.upsert).not.toHaveBeenCalled();
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
-    mocks.rulesSetsImport.upsertRulesSet
+    mocks.rulesSetsImport.upsert
       .mockResolvedValueOnce(makeRulesSetRecord(100))
       .mockResolvedValueOnce(makeRulesSetRecord(200));
 
