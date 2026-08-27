@@ -6,10 +6,19 @@ const IsoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be an ISO date (YYYY-MM-DD)');
 
+/**
+ * Every competition type, in the same order as `game_data.competition_type`
+ * (packages/db). Exported as a tuple so consumers can iterate the values as
+ * well as use the inferred union type.
+ */
+export const COMPETITION_TYPES = ['season', 'cup'] as const;
+
+export type CompetitionType = (typeof COMPETITION_TYPES)[number];
+
 export const CompetitionSchema = z.object({
   id: z.number(),
   name: z.string(),
-  type: z.enum(['season', 'cup']),
+  type: z.enum(COMPETITION_TYPES),
   eraId: z.number(),
   teamEraIds: z.array(z.number()),
   startDate: z.string(),
@@ -20,7 +29,7 @@ export const CompetitionSchema = z.object({
 
 export const UpsertCompetitionSchema = z.object({
   name: z.string().min(1).optional(),
-  type: z.enum(['season', 'cup']).optional(),
+  type: z.enum(COMPETITION_TYPES).optional(),
   eraId: z.number().int().optional(),
   teamEraIds: z.array(z.number().int()).default([]),
   // startDate is optional but not nullable: omitting it on an update leaves
