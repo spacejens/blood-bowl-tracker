@@ -1,5 +1,4 @@
 import {
-  ChildProcessService,
   GitRootsService,
   ProcessRunnerService,
 } from '@blood-bowl-tracker/cli-shared';
@@ -7,10 +6,6 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
-import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
-import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
-import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
-import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
 import { WriteFileService } from './write-file/write-file.service';
 
@@ -28,20 +23,5 @@ describe('AppModule', () => {
       SyncGitignoredService,
     );
     expect(moduleRef.get(WriteFileService)).toBeInstanceOf(WriteFileService);
-    expect(moduleRef.get(CheckProductionConfigPortService)).toBeInstanceOf(
-      CheckProductionConfigPortService,
-    );
-    expect(moduleRef.get(ChildProcessService)).toBeInstanceOf(
-      ChildProcessService,
-    );
-    expect(moduleRef.get(ProductionTunnelService)).toBeInstanceOf(
-      ProductionTunnelService,
-    );
-    expect(moduleRef.get(RunProductionQueryService)).toBeInstanceOf(
-      RunProductionQueryService,
-    );
-    expect(moduleRef.get(ResetProductionSchemaService)).toBeInstanceOf(
-      ResetProductionSchemaService,
-    );
   });
 });

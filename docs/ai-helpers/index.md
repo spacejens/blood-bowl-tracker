@@ -18,11 +18,6 @@ needs it.
 |---|---|
 | `sync-gitignored` | Copy/symlink missing gitignored dev config into a worktree |
 | `write-file` | Write a file at a repo-relative path, reading its content from stdin — used to save specs and plans through the `docs/plans` symlink, which the Claude Code Write tool refuses to write through |
-| `check-production-config-port` | Verify an import tool's production config `apiBaseUrl` matches the expected tunnel port |
-| `start-production-tunnel` | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process |
-| `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
-| `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
-| `reset-production-schema` | Drop and recreate the production database schemas |
 
 ## Running it
 

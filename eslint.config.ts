@@ -55,6 +55,8 @@ export default tseslint.config(
             'tools/cli-shared/vitest.config.ts',
             'tools/dev-workflow-cli/test/*.ts',
             'tools/dev-workflow-cli/vitest.config.ts',
+            'tools/production-ops-cli/test/*.ts',
+            'tools/production-ops-cli/vitest.config.ts',
             'tools/import-bbl/test/*.ts',
             'tools/import-bbl/vitest.config.ts',
             'tools/import-manual/test/*.ts',
