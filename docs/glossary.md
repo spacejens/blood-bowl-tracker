@@ -84,13 +84,13 @@ See [game-concepts/match-events](game-concepts/match-events/index.md).
 
 ## Player
 
-An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [race](#race)-specific [position](#position), a set of skills, and personal statistics that persist across [matches](#match) within that era.
+An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [position](#position) (ordinarily [race](#race)-specific, but see [star player](#star-player) for the exception), a set of skills, and personal statistics that persist across [matches](#match) within that era.
 
 See [game-concepts/players](game-concepts/players/index.md).
 
 ## Position
 
-A player's designated role within their [team](#team), determined by their [race](#race) (e.g. Lineman, Blitzer, Thrower). Positions define base statistics and starting skills.
+A player's designated role within their [team](#team), ordinarily determined by their [race](#race) (e.g. Lineman, Blitzer, Thrower) — except a [star player](#star-player), which several races may hire. Positions define base statistics and starting skills.
 
 See [game-concepts/positions](game-concepts/positions/index.md).
 

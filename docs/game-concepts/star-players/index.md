@@ -1,8 +1,8 @@
 # Star Players
 
-A star player is a special [position](../positions/index.md) that, unlike an
-ordinary race-specific position, is playable by several
-[races](../races/index.md).
+A [star player](../../glossary.md#star-player) is a special
+[position](../positions/index.md) that, unlike an ordinary race-specific
+position, is playable by several [races](../races/index.md).
 
 - A star player's identity is its position, not any individual hire: each
   time a team hires a given star, a new [player](../players/index.md) on
