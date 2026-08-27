@@ -22,7 +22,7 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Competition Group
 
-The recurring track a [competition](#competition) instance belongs to — e.g. Major Season, Minor Season, Chaos Cup, or Ogretoberfest. Groups are curated data, not inferred from a source system: they are what distinguishes a Major season's 1st place from a Minor season's 1st place when both sources label them identically. Each group belongs to one [league](#league), and each [trophy](#trophy) records the group it is applicable for.
+The recurring track a [competition](#competition) instance belongs to — e.g. Major Season, Minor Season, Chaos Cup, or Ogretoberfest. Groups are curated data, not inferred from a source system: they are what distinguishes a Major season's 1st place from a Minor season's 1st place when both sources label them identically. Each group belongs to one [league](#league), and a [trophy](#trophy) scoped to a group (rather than directly to a league) records which group it is applicable for.
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
