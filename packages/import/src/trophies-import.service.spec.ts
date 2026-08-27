@@ -7,7 +7,6 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
 import { TrophiesImportService } from './trophies-import.service';
-import type { ImportError } from './types';
 
 describe('TrophiesImportService', () => {
   let service: TrophiesImportService;
@@ -34,23 +33,10 @@ describe('TrophiesImportService', () => {
     externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
   };
 
-  it('delegates to the import runner and returns its result', async () => {
-    const errors: ImportError[] = [];
-    runner.recordUpsertResult.mockResolvedValue({ id: 12 });
-
-    const result = await service.upsertTrophy(data, errors);
-
-    expect(result).toEqual({ id: 12 });
-    expect(runner.recordUpsertResult).toHaveBeenCalledWith(
-      expect.objectContaining({ item: data, errors }),
-    );
-  });
-
   it('names the trophy in its error message', async () => {
-    const errors: ImportError[] = [];
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertTrophy(data, errors);
+    await service.upsert(data, []);
 
     const options = runner.recordUpsertResult.mock.calls[0][0];
     expect(options.buildErrorMessage(new Error('boom'))).toBe(
@@ -64,7 +50,7 @@ describe('TrophiesImportService', () => {
   it('calls the API client through the runner upsert callback', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertTrophy(data, []);
+    await service.upsert(data, []);
 
     await runner.recordUpsertResult.mock.calls[0][0].upsert();
     expect(client.trophies.upsert).toHaveBeenCalledWith(data);
@@ -73,7 +59,7 @@ describe('TrophiesImportService', () => {
   it('falls back to the external id when the payload has no name', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertTrophy(
+    await service.upsert(
       { externalIds: [{ externalSystemId: 1, externalId: 'Top Scorer' }] },
       [],
     );
@@ -87,7 +73,7 @@ describe('TrophiesImportService', () => {
   it('falls back to a placeholder when the payload has neither', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertTrophy({ externalIds: [] }, []);
+    await service.upsert({ externalIds: [] }, []);
 
     const options = runner.recordUpsertResult.mock.calls[0][0];
     expect(options.buildErrorMessage(new Error('boom'))).toBe(

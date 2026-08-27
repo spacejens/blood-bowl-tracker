@@ -49,7 +49,7 @@ export class TrophiesProcessor {
       if (!league.ok) {
         continue;
       }
-      const upserted = await this.trophiesImport.upsertTrophy(
+      const upserted = await this.trophiesImport.upsert(
         {
           name: entry.name,
           recipientKind: entry.recipientKind,
