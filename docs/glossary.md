@@ -22,7 +22,7 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Competition Group
 
-The recurring track a [competition](#competition) instance belongs to — e.g. Major Season, Minor Season, Chaos Cup, or Ogretoberfest. Groups are curated data, not inferred from a source system: they are what distinguishes a Major season's 1st place from a Minor season's 1st place when both sources label them identically. Each group belongs to one [league](#league), and each trophy records the group it is applicable for.
+The recurring track a [competition](#competition) instance belongs to — e.g. Major Season, Minor Season, Chaos Cup, or Ogretoberfest. Groups are curated data, not inferred from a source system: they are what distinguishes a Major season's 1st place from a Minor season's 1st place when both sources label them identically. Each group belongs to one [league](#league), and a [trophy](#trophy) scoped to a group (rather than directly to a league) records which group it is applicable for.
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
@@ -84,13 +84,13 @@ See [game-concepts/match-events](game-concepts/match-events/index.md).
 
 ## Player
 
-An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [race](#race)-specific [position](#position), a set of skills, and personal statistics that persist across [matches](#match) within that era.
+An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [position](#position) (ordinarily [race](#race)-specific, but see [star player](#star-player) for the exception), a set of skills, and personal statistics that persist across [matches](#match) within that era.
 
 See [game-concepts/players](game-concepts/players/index.md).
 
 ## Position
 
-A player's designated role within their [team](#team), determined by their [race](#race) (e.g. Lineman, Blitzer, Thrower). Positions define base statistics and starting skills.
+A player's designated role within their [team](#team), ordinarily determined by their [race](#race) (e.g. Lineman, Blitzer, Thrower) — except a [star player](#star-player), which teams of several races may hire. Positions define base statistics and starting skills.
 
 See [game-concepts/positions](game-concepts/positions/index.md).
 
@@ -116,6 +116,12 @@ A subtype of [competition](#competition) — a complete round of play within a [
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
+## Star Player
+
+A [position](#position) playable across several [races](#race), unlike an ordinary race-specific position. Hiring a star creates a new [player](#player) each time, rather than reusing or transferring one.
+
+See [game-concepts/star-players](game-concepts/star-players/index.md).
+
 ## Star Player Points (SPP)
 
 Experience points earned by individual [players](#player) during [matches](#match) for scoring [touchdowns](#touchdown), completing passes, causing [casualties](#casualty), and similar achievements. Accumulated SPP allow a player to level up and gain new skills. The tracker stores each award on the [match event](game-concepts/match-events/index.md) that earned it, so a player's total is a running sum rather than a live re-derivation; see [architecture.md](architecture.md#star-player-points) for how the standardised award values and each source's own reported figures are reconciled.
@@ -135,6 +141,18 @@ See [game-concepts/teams](game-concepts/teams/index.md).
 ## Touchdown
 
 A score achieved by carrying the ball into the opponent's end zone. Ends the current [drive](#drive).
+
+## Trophy
+
+A curated, named award for a [team](#team) or an individual [player](#player), scoped to either one [competition group](#competition-group) or one [league](#league).
+
+See [game-concepts/trophies](game-concepts/trophies/index.md).
+
+## Trophy Award
+
+One concrete instance of a [trophy](#trophy) being given out, in one [competition](#competition), to one recipient.
+
+See [game-concepts/trophies](game-concepts/trophies/index.md#trophy-award).
 
 ## Turn
 
