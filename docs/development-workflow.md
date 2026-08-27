@@ -28,6 +28,14 @@ It takes a **pull request** number rather than an issue number, and handles one 
 
 Verifies that work the developer says is finished is actually finished — checks the PR really merged on GitHub and that nothing was left uncommitted or unpushed outside the worktree — then offers to stop local Docker containers, remove the git worktree, and delete the local branch. Most often triggered conversationally (e.g. "that's merged"), though the developer can also run `/wrap-up` directly; run this after a `develop-feature` or `handle-pr-reviews` cycle's PR has merged.
 
+## deploy-local
+
+Builds and starts the full stack locally via Docker Compose, confirms both containers come up healthy, and can also run the `tools/import-bbl` and `tools/import-tp` data imports (and the manual import, the match/player review tools, and SchemaSpy diagram generation) against the running instance, so a developer can see a change running end to end (`/deploy-local`). Invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes. It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
+
+## deploy-production
+
+Operates the already-deployed production Discord bot on Fly.io and Neon (`/deploy-production`): check deployment status, restart the machine, roll back to a previous release, trigger a redeploy of current `main` without a new merge, drop and recreate the production database, run read-only queries against the production database, and run the manual/BBL/TP importers against production. It does not perform normal deploys — those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`. See `docs/discord-bot/production-hosting.md` for the underlying commands this skill wraps.
+
 ## write-issue
 
 Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitHub issues, through a short clarifying dialogue on purpose and scope. Can produce several issues from one request (e.g. "find the remaining gaps in X and write an issue for each"). Matches this repo's existing issue style — plain-text intent, not overly specific — so issues stay a durable statement of need rather than a stale implementation spec. Independent of the `develop-feature` cycle; the issues it creates are picked up by `develop-feature` later.
@@ -38,15 +46,23 @@ Reviews the whole codebase against a fixed list of criteria — repo conventions
 
 ## Continuous integration
 
-Every pull request triggers the GitHub Actions workflow in `.github/workflows/ci.yml`. It runs the same checks as the local `pnpm verify` script, but as separate, individually visible jobs so a failure points straight at the check that broke:
+Every pull request triggers the GitHub Actions workflow in `.github/workflows/ci.yml`. Four of its jobs run the same checks as the local `pnpm verify` script, but as separate, individually visible jobs so a failure points straight at the check that broke:
 
 - **`lint`** — `pnpm build` then `pnpm lint`
 - **`typecheck`** — `pnpm build` then `pnpm typecheck`
 - **`test`** — `pnpm build` then `pnpm test`
+- **`format`** — `pnpm build` then `pnpm format`
 
-Each job is self-contained: it checks out the code, provisions pnpm via Corepack and Node via `.nvmrc`, installs with `--frozen-lockfile`, and rebuilds the workspace before running its check. The three jobs run in parallel.
+Each of those four is self-contained: it checks out the code, provisions pnpm via Corepack and Node via `.nvmrc`, installs with `--frozen-lockfile`, and rebuilds the workspace before running its check.
 
-A fourth job, **`gatekeeper`**, depends on all three and fails if any of them failed or was cancelled. It is the single status check branch protection requires — so the internal `lint`/`typecheck`/`test` jobs can be added, removed, or renamed later by editing only the workflow file, without ever touching the branch protection ruleset.
+Two further jobs have no `pnpm verify` counterpart — they check things only CI is set up to check:
+
+- **`docker-build`** — builds the `apps/discord-bot` Docker image, so a broken Dockerfile surfaces on the PR rather than on the deploy that follows a merge.
+- **`schemaspy-build`** — starts postgres, runs the `packages/db` migrations against it, and generates the diagram with `pnpm run db:diagram`. SchemaSpy has no Dockerfile of its own, so what this validates is that the prebuilt public image pulls and runs successfully against this repo's actual schema and config.
+
+All six jobs run in parallel.
+
+A seventh job, **`gatekeeper`**, depends on all six and fails if any of them failed or was cancelled. It is the single status check branch protection requires — so the six jobs behind it can be added, removed, or renamed later by editing only the workflow file, without ever touching the branch protection ruleset.
 
 ### Requiring the gatekeeper check (one-time, manual)
 
@@ -59,7 +75,7 @@ Branch protection is configured by hand in the GitHub UI via **Rulesets** (Setti
 5. Also under **Rules**, enable **Require status checks to pass**, add the **`gatekeeper`** check as a required status check, and enable **Require branches to be up to date before merging**.
 6. **Save changes.**
 
-Require only `gatekeeper` — not the individual `lint`/`typecheck`/`test` checks — so the pipeline's internal structure can change without a ruleset edit.
+Require only `gatekeeper` — not the individual jobs behind it — so the pipeline's internal structure can change without a ruleset edit.
 
 ## Automated PR review (CodeRabbit)
 
