@@ -296,7 +296,7 @@ Reply content:
 - Fixed items reference the commit's short SHA and summarize the change.
 - Rejected items state the technical reasoning plainly — no performative agreement, no thanks (see `superpowers:receiving-code-review`).
 - Answered items just answer the question.
-- CI-failure items name the check that failed (`lint`/`typecheck`/`test`), summarize the diagnosis, and reference the fixing commit's short SHA.
+- CI-failure items name the check that failed (e.g. `lint`, `format`), summarize the diagnosis, and reference the fixing commit's short SHA.
 - Review-body findings get one paragraph each inside the single aggregated comment, led by that finding's file/line (or a short quoted phrase if no line applies) so multiple findings stay distinguishable, then following the rule above for its own outcome — fixed paragraphs reference the fixing commit's short SHA, rejected paragraphs state the reasoning plainly, answered paragraphs just answer.
 
 ---
