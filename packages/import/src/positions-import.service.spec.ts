@@ -35,51 +35,24 @@ describe('PositionsImportService', () => {
     externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
   };
 
-  it('returns true and calls the client with the given data on success', async () => {
-    client.positions.upsert.mockResolvedValue({
-      id: 1,
-      name: 'Lineman',
-      isStarPlayer: false,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
-    const errors: ImportError[] = [];
+  it('upserts through the positions resource', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertPosition(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Lineman',
-      isStarPlayer: false,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    await runner.recordUpsertResult.mock.calls[0][0].upsert();
     expect(client.positions.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('returns false and records an error when the client call fails', async () => {
-    client.positions.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('names the position in its error message', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertPosition(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to import position "Lineman": conflict' },
-    ]);
-  });
-
-  it('records an error using String(err) when the client rejects with a non-Error value', async () => {
-    client.positions.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertPosition(data, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to import position "Lineman": boom' },
-    ]);
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import position "Lineman": conflict',
+    );
   });
 
   describe('syncRaceEras', () => {

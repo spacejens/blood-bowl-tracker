@@ -53,7 +53,7 @@ describe('PositionsProcessor', () => {
   });
 
   it('upserts the position and syncs resolved race-eras', async () => {
-    positions.upsertPosition.mockResolvedValue({
+    positions.upsert.mockResolvedValue({
       id: 80,
       name: 'Zombie',
       isStarPlayer: false,
@@ -91,7 +91,7 @@ describe('PositionsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(positions.upsertPosition).toHaveBeenCalledWith(
+    expect(positions.upsert).toHaveBeenCalledWith(
       { name: 'Zombie', isStarPlayer: false, externalIds: cannedExternalIds },
       ctx.errors,
     );
@@ -116,7 +116,7 @@ describe('PositionsProcessor', () => {
   });
 
   it('makes no syncRaceEras call for a position without raceEras', async () => {
-    positions.upsertPosition.mockResolvedValue({
+    positions.upsert.mockResolvedValue({
       id: 81,
       name: 'Blitzer',
       isStarPlayer: false,
@@ -146,7 +146,7 @@ describe('PositionsProcessor', () => {
   // the processor's own logic: an unresolved pair must still count the
   // already-successful upsert but must not call syncRaceEras.
   it('records the count but skips syncRaceEras when a race-era ref is unresolved', async () => {
-    positions.upsertPosition.mockResolvedValue({
+    positions.upsert.mockResolvedValue({
       id: 82,
       name: 'Zombie',
       isStarPlayer: false,
@@ -180,7 +180,7 @@ describe('PositionsProcessor', () => {
   });
 
   it('does not sync or count when the position upsert fails', async () => {
-    positions.upsertPosition.mockResolvedValue(undefined);
+    positions.upsert.mockResolvedValue(undefined);
     const data = emptyData();
     data.positions = [
       {
@@ -198,7 +198,7 @@ describe('PositionsProcessor', () => {
   });
 
   it('passes isStarPlayer through as undefined when the entry omits it', async () => {
-    positions.upsertPosition.mockResolvedValue({
+    positions.upsert.mockResolvedValue({
       id: 12,
       name: 'Blitzer',
       isStarPlayer: false,
@@ -217,7 +217,7 @@ describe('PositionsProcessor', () => {
 
     await processor.process(makeContext(data));
 
-    expect(positions.upsertPosition.mock.calls[0][0]).toEqual({
+    expect(positions.upsert.mock.calls[0][0]).toEqual({
       name: 'Blitzer',
       isStarPlayer: undefined,
       externalIds: [],

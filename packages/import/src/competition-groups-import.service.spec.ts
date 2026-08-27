@@ -32,36 +32,24 @@ describe('CompetitionGroupsImportService', () => {
     externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
   };
 
-  it('delegates the upsert to the import runner', async () => {
-    runner.recordUpsertResult.mockResolvedValue({ id: 5 });
-
-    await expect(service.upsertCompetitionGroup(data, [])).resolves.toEqual({
-      id: 5,
-    });
-    expect(runner.recordUpsertResult).toHaveBeenCalledWith(
-      expect.objectContaining({ item: data }),
-    );
-  });
-
-  it('builds an error message naming the group', async () => {
+  it('upserts through the competitionGroups resource', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertCompetitionGroup(data, []);
+    await service.upsert(data, []);
 
-    const [options] = runner.recordUpsertResult.mock.calls[0];
-    expect(options.buildErrorMessage(new Error('boom'))).toBe(
-      'Failed to import competition group "Chaos Cup": boom',
-    );
+    await runner.recordUpsertResult.mock.calls[0][0].upsert();
+    expect(client.competitionGroups.upsert).toHaveBeenCalledWith(data);
   });
 
-  it('calls the API client competitionGroups.upsert procedure', async () => {
-    runner.recordUpsertResult.mockResolvedValue({ id: 5 });
+  it('names the group in its error message', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertCompetitionGroup(data, []);
+    await service.upsert(data, []);
 
-    const [options] = runner.recordUpsertResult.mock.calls[0];
-    await options.upsert();
-    expect(client.competitionGroups.upsert).toHaveBeenCalledWith(data);
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import competition group "Chaos Cup": conflict',
+    );
   });
 
   describe('listCompetitionGroups', () => {

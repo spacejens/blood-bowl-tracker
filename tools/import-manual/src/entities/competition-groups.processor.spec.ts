@@ -58,7 +58,7 @@ describe('CompetitionGroupsProcessor', () => {
       system: 'Name',
       id: 'Chaos Cup',
     });
-    groups.upsertCompetitionGroup.mockResolvedValue({
+    groups.upsert.mockResolvedValue({
       id: 6,
       name: 'Chaos Cup',
       leagueId: 9,
@@ -77,7 +77,7 @@ describe('CompetitionGroupsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(groups.upsertCompetitionGroup).toHaveBeenCalledWith(
+    expect(groups.upsert).toHaveBeenCalledWith(
       {
         name: 'Chaos Cup',
         leagueId: 9,
@@ -151,7 +151,7 @@ describe('CompetitionGroupsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(groups.upsertCompetitionGroup).not.toHaveBeenCalled();
+    expect(groups.upsert).not.toHaveBeenCalled();
   });
 
   it('does not count when the upsert fails', async () => {
@@ -160,7 +160,7 @@ describe('CompetitionGroupsProcessor', () => {
       system: 'Name',
       id: 'Chaos Cup',
     });
-    groups.upsertCompetitionGroup.mockResolvedValue(undefined);
+    groups.upsert.mockResolvedValue(undefined);
     const data = emptyData();
     data.competitionGroups = [
       {

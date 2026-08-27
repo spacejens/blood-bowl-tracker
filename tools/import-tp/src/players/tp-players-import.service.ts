@@ -436,7 +436,7 @@ export class TpPlayersImportService {
           }
           seenStarPlayerKeys.add(key);
 
-          const position = await this.positionsImport.upsertPosition(
+          const position = await this.positionsImport.upsert(
             {
               name: starPlayer.name,
               isStarPlayer: true,
@@ -522,7 +522,7 @@ export class TpPlayersImportService {
       return cached;
     }
 
-    const position = await this.positionsImport.upsertPosition(
+    const position = await this.positionsImport.upsert(
       {
         name: player.fallbackPositionName,
         isStarPlayer: true,
