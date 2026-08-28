@@ -40,6 +40,12 @@ packages/
   api-client/         — NestJS module wrapping an oRPC RPCLink client for
                         calling a deployed api-server's /rpc endpoint; owns
                         its own @nestjs/config-backed base URL configuration
+  config-loader/      — library package with the generic JSON5 config-file
+                        loading shared by the import tools (through
+                        packages/import) and tools/download-tp: read the file,
+                        treat a missing file as an empty config, parse JSON5
+                        with an error naming the path, and validate against a
+                        caller-supplied top-level schema
   discord-client/     — NestJS module wrapping discord.js for connecting to
                         Discord, registering slash commands, and posting
                         messages; consumed by apps/discord-bot
@@ -48,11 +54,15 @@ packages/
                         BatchBufferService, ExternalIdResolverService) plus
                         roughly 18 entity-specific import services (coaches,
                         teams, players, matches, trophies, and so on) that
-                        call api-client
+                        call api-client; also owns the config-service factories the import
+                        tools' own config, external-system-name and source
+                        services are built from
   parse-tp/           — library package for reusable TP JSON-parsing logic
                         (matches, rosters, awards, tournaments); consumed
                         today by tools/import-tp only, though intended to be
-                        shared with apps/discord-bot as well
+                        shared with apps/discord-bot as well for a future live TP
+                        import — which is why TP parsing is a package while
+                        BBL's stays inside tools/import-bbl
   review-harness/     — NestJS module with the domain-agnostic half of the
                         review tools: the review-run orchestration
                         (ReviewServiceBase) and report document shell
@@ -123,11 +133,12 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 `tools/db-diagram`, `tools/eslint-rules`) are omitted.
 
 - **`tools/download-tp`** (downloader) — scrapes TP into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
-- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot
+- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot. It is a package while the equivalent BBL parsing lives inside `tools/import-bbl` because TP data is expected to be read live by the bot in a future TP-data-import feature, which needs the decoding outside the CLI tool; BBL data has no such planned second consumer, so extracting its parsing would buy nothing today. Treat that asymmetry as deliberate, not as an extraction that was forgotten
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other
 - **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity
 - **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data
-- **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once. It owns the shared upsert plumbing (`createUpsertImportServiceBase`) alongside the runner and batch helpers; for entities with exactly one upsert call, the import service is a declarative subclass supplying only the client resource it upserts through and the wording of its per-item error message, giving it the base class's shared `upsert(data, errors)` method — a subclass may still add its own entity-specific extra method alongside it. Entities with more than one *upsert* entry point stay hand-written, since the base class's single `upsert` method can't express two upsert entry points; `ExternalSystems` and `SppAwardValues` stay hand-written for a different reason — an underlying resource that isn't shaped like a plain upsert. This uses a config-object factory rather than `review-harness`'s abstract-class pattern because what varies per entity here is only *data* (which client resource, what error wording), not *behavior* — a factory taking a config object fits that better than an abstract class with template methods to override.
+- **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once. It owns the shared upsert plumbing (`createUpsertImportServiceBase`) alongside the runner and batch helpers; for entities with exactly one upsert call, the import service is a declarative subclass supplying only the client resource it upserts through and the wording of its per-item error message, giving it the base class's shared `upsert(data, errors)` method — a subclass may still add its own entity-specific extra method alongside it. Entities with more than one *upsert* entry point stay hand-written, since the base class's single `upsert` method can't express two upsert entry points; `ExternalSystems` and `SppAwardValues` stay hand-written for a different reason — an underlying resource that isn't shaped like a plain upsert. This uses a config-object factory rather than `review-harness`'s abstract-class pattern because what varies per entity here is only *data* (which client resource, what error wording), not *behavior* — a factory taking a config object fits that better than an abstract class with template methods to override. It owns the same kind of factory for the import tools' config services — `createImportConfigServiceBase` (connection getters plus the `IMPORT_CONFIG_ENV` production-file swap, over `packages/config-loader`), `createExternalSystemNameConfigServiceBase` and `createSourceConfigServiceBase` — so each tool's config, external-system-name and source-config services are declarative subclasses supplying only their own file name, env var, default system name and DI token. Per-entity *parsing* logic stays out: the BBL and TP entity import services look similar but genuinely differ in what they extract, so they stay per-tool.
+- **`packages/config-loader`** (shared config loading) — the source-agnostic JSON5 config-file loading (`createConfigLoaderServiceBase`) behind every import tool's config service (via `packages/import`'s `createImportConfigServiceBase`) and `tools/download-tp`'s. It knows nothing about what a config file contains: each caller supplies its own top-level schema, DI path token and getters, so a change here changes *how* config files are read for all four tools at once, never *what* any of them accepts. It deliberately depends on no other workspace package, keeping the `tools/* → packages/*` direction intact. `packages/review-harness` keeps its own copy of this loading in `ReviewConfigServiceBase` — the review tools' config base is an abstract class with its own getters, not one of these factory call sites
 - **`packages/review-harness`** (shared review scaffolding) — used by every review tool (`tools/review-match`, `tools/review-player`); a change here reaches all review tools at once. It owns the review-run orchestration (`ReviewServiceBase`) and the report document shell (`ReportBuilderBase`) alongside the leaf helpers, so each tool's `ReviewService`/`ReportBuilderService` is a thin subclass supplying only what differs. It deliberately carries no BBL/TP parsing or interpretation logic — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the review-tool entries below
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, and import together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight
