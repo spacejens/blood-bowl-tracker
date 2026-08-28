@@ -242,10 +242,10 @@ const WAIT_TIME_DURATION = /(\d+)\s*(minute|hour)s?\b/i;
 const RATE_LIMIT_WAIT_BUFFER_SECONDS = 60;
 
 /**
- * 10 minutes — the wait when the caller sets no timeout; `develop-feature`
+ * 20 minutes — the wait when the caller sets no timeout; `develop-feature`
  * Phase 6 relies on this default and documents it.
  */
-const DEFAULT_TIMEOUT_MS = 600_000;
+const DEFAULT_TIMEOUT_MS = 1_200_000;
 /**
  * 30 seconds — the poll gap when the caller sets none; `develop-feature`
  * Phase 6 relies on this default and documents it.
@@ -393,7 +393,7 @@ export class WaitForPrReviewService {
       // around it apply unchanged either way: if fewer than TRIGGER_SETTLE_MS
       // remain when a result was just suppressed above, waking past the
       // deadline reports `timedOut` rather than the suppressed comment. Every
-      // caller today budgets at least a 10-minute window after a trigger, so
+      // caller today budgets at least a 20-minute window after a trigger, so
       // this cannot happen in practice — see develop-feature Phase 6 steps
       // b2/b3's `--timeout-ms` computation.
       await this.sleep(justTriggered ? TRIGGER_SETTLE_MS : intervalMs);
