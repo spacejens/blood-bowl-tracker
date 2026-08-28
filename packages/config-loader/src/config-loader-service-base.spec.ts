@@ -76,6 +76,12 @@ describe('createConfigLoaderServiceBase', () => {
     expect(service.get('connection')).toBeUndefined();
   });
 
+  it('does not leak Object.prototype members for keys the file does not carry', async () => {
+    const service = await makeService(writeConfig(`{ dataDir: 'data/' }`));
+    expect(service.get('toString')).toBeUndefined();
+    expect(service.get('constructor')).toBeUndefined();
+  });
+
   it('throws with the file path when the file is not valid JSON5', async () => {
     const path = writeConfig('{ this is : not valid');
     await expect(makeService(path)).rejects.toThrow(path);

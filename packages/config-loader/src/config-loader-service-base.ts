@@ -51,7 +51,9 @@ export function createConfigLoaderServiceBase(
     }
 
     get<T>(key: string): T | undefined {
-      return this.values[key] as T | undefined;
+      return Object.hasOwn(this.values, key)
+        ? (this.values[key] as T)
+        : undefined;
     }
 
     private load(): Record<string, unknown> {
