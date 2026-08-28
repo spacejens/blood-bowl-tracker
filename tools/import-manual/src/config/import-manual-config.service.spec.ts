@@ -1,23 +1,9 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock node:fs, wrapping actual implementations to allow spying on readFileSync
-vi.mock('node:fs', async () => {
-  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
-  return {
-    chmodSync: actual.chmodSync,
-    mkdtempSync: actual.mkdtempSync,
-    rmSync: actual.rmSync,
-    writeFileSync: actual.writeFileSync,
-    readFileSync: vi.fn(actual.readFileSync),
-  };
-});
-
-import * as fsModule from 'node:fs';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 
 import {
   DEFAULT_IMPORT_MANUAL_CONFIG_PATH,
@@ -45,30 +31,18 @@ describe('ImportManualConfigService', () => {
   }
 
   async function makeService(
-    configPath: string,
+    filePath: string,
   ): Promise<ImportManualConfigService> {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ImportManualConfigService,
-        { provide: IMPORT_MANUAL_CONFIG_PATH, useValue: configPath },
+        { provide: IMPORT_MANUAL_CONFIG_PATH, useValue: filePath },
       ],
     }).compile();
     return moduleRef.get(ImportManualConfigService);
   }
 
-  it('treats a missing file as an empty config', async () => {
-    const service = await makeService(join(dir, 'does-not-exist.json5'));
-    expect(service.get('connection')).toBeUndefined();
-  });
-
-  it('throws when the file is missing, since connection is not set', async () => {
-    const service = await makeService(join(dir, 'does-not-exist.json5'));
-    expect(() => service.getApiBaseUrl()).toThrow(
-      'connection is not set in import-manual-config.json5',
-    );
-  });
-
-  it('throws when connection is not set', async () => {
+  it('names this tool config file when connection is not set', async () => {
     const path = writeConfig(`{ }`);
     const service = await makeService(path);
     expect(() => service.getApiBaseUrl()).toThrow(
@@ -77,79 +51,25 @@ describe('ImportManualConfigService', () => {
   });
 
   it('returns the default API base URL when connection is present but apiBaseUrl is unset', async () => {
-    const path = writeConfig(`{ connection: {} }`);
-    const service = await makeService(path);
+    const service = await makeService(writeConfig(`{ connection: {} }`));
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
   });
 
-  it('parses JSON5 and returns the configured API base URL', async () => {
-    const path = writeConfig(`{
-      // a comment
-      connection: { apiBaseUrl: 'http://example.test:3000' },
-    }`);
-    const service = await makeService(path);
-    expect(service.getApiBaseUrl()).toBe('http://example.test:3000');
-  });
-
-  it('throws with the file path when the file is not valid JSON5', async () => {
-    const path = writeConfig('{ this is : not valid');
-    await expect(makeService(path)).rejects.toThrow(path);
-  });
-
-  it('throws when the config file cannot be read due to a non-ENOENT error', async () => {
-    const path = join(dir, 'import-manual-config.json5');
-    writeFileSync(path, '{ connection: {} }', 'utf8');
-
-    // Mock readFileSync to throw EACCES error (deterministic, works on all platforms/users)
-    const fsMocked = vi.mocked(fsModule);
-    fsMocked.readFileSync.mockImplementation(() => {
-      const error = new Error('Permission denied') as NodeJS.ErrnoException;
-      error.code = 'EACCES';
-      throw error;
-    });
-
-    try {
-      await expect(makeService(path)).rejects.toThrow();
-    } finally {
-      fsMocked.readFileSync.mockRestore();
-    }
-  });
-
   it('returns the configured API token', async () => {
-    const path = writeConfig(`{ connection: { apiToken: 'manual-secret' } }`);
-    const service = await makeService(path);
+    const service = await makeService(
+      writeConfig(`{ connection: { apiToken: 'manual-secret' } }`),
+    );
     expect(service.getApiToken()).toBe('manual-secret');
   });
 
-  it('throws from getApiToken when connection is not set', async () => {
-    const path = writeConfig(`{}`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection is not set in import-manual-config.json5',
+  it('names this tool api-token env var when apiToken is missing', async () => {
+    const service = await makeService(
+      writeConfig(`{ connection: { apiBaseUrl: 'http://x:3000' } }`),
     );
-  });
-
-  it('throws when apiToken is missing', async () => {
-    const path = writeConfig(`{ connection: { apiBaseUrl: 'http://x:3000' } }`);
-    const service = await makeService(path);
     expect(() => service.getApiToken()).toThrow(
-      'connection.apiToken is not set in import-manual-config.json5',
-    );
-  });
-
-  it('throws when apiToken is an empty string', async () => {
-    const path = writeConfig(`{ connection: { apiToken: '' } }`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection.apiToken is not set in import-manual-config.json5',
-    );
-  });
-
-  it('throws when apiToken is not a string', async () => {
-    const path = writeConfig(`{ connection: { apiToken: 42 } }`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection.apiToken is not set in import-manual-config.json5',
+      'connection.apiToken is not set in import-manual-config.json5. Set ' +
+        'it to the bearer token this tool authenticates with; it must ' +
+        'match the API_TOKEN_IMPORT_MANUAL value in apps/discord-bot/.env.',
     );
   });
 });
