@@ -1,16 +1,13 @@
-import { resolve } from 'node:path';
-
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
 import { SourceConfigService } from './source-config.service';
 
 describe('SourceConfigService', () => {
-  let config: MockProxy<ImportTpConfigService>;
   let service: SourceConfigService;
+  let config: MockProxy<ImportTpConfigService>;
 
   beforeEach(async () => {
     config = mock<ImportTpConfigService>();
@@ -23,26 +20,23 @@ describe('SourceConfigService', () => {
     service = moduleRef.get(SourceConfigService);
   });
 
-  function withDataDir(dataDir: unknown): void {
+  function stub(dataDir: string | undefined): void {
     config.get.mockImplementation((key: string) =>
       key === 'dataDir' ? dataDir : undefined,
     );
   }
 
-  it('resolves a relative dataDir against the current working directory', () => {
-    withDataDir('data');
-    expect(service.getDataDir()).toBe(resolve('data'));
+  it('returns the configured dataDir', () => {
+    stub('/srv/tp/data');
+    expect(service.getDataDir()).toBe('/srv/tp/data');
+    expect(config.get).toHaveBeenCalledWith('dataDir');
   });
 
-  it('returns an absolute dataDir unchanged', () => {
-    withDataDir('/abs/data');
-    expect(service.getDataDir()).toBe('/abs/data');
-  });
-
-  it('throws when dataDir is not set', () => {
-    withDataDir(undefined);
+  it('throws a TP-specific message when dataDir is not set', () => {
+    stub(undefined);
     expect(() => service.getDataDir()).toThrow(
-      'dataDir is not set in import-tp-config.json5',
+      'dataDir is not set in import-tp-config.json5. Set it to the folder ' +
+        'containing one subdirectory per era (e.g. data/).',
     );
   });
 });

@@ -36,6 +36,12 @@ export {
   optionalIsoDateSchema,
   rulesSetsSchema,
 } from './config/shared-config.schema';
+export type {
+  SourceConfig,
+  SourceConfigServiceConfig,
+  SourceConfigServiceConstructor,
+} from './config/source-config-service-base';
+export { createSourceConfigServiceBase } from './config/source-config-service-base';
 export { ErasImportService } from './eras-import.service';
 export { ExternalIdResolverService } from './external-id-resolver.service';
 export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.service';
