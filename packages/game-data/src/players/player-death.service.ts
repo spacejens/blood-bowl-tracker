@@ -14,6 +14,8 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, isNull, or, type SQL } from 'drizzle-orm';
 
+import type { ConsequenceAvoidedBy } from '../shared/match-event-types';
+
 /** The team a killer belongs to, with the race and coach shown alongside it. */
 export interface PlayerKillerTeam {
   teamId: number;
@@ -82,7 +84,7 @@ export type PlayerKillEntry =
   | PlayerKillerInfo
   | (PlayerKillerTeam & {
       kind: 'prevented';
-      avoidedBy: 'apothecary' | 'regeneration';
+      avoidedBy: ConsequenceAvoidedBy;
       viaFoul: boolean;
     });
 
@@ -94,7 +96,7 @@ interface KillEvent {
   consequenceType: string | null;
   consequencePlayerId: number | null;
   consequenceMatchTeamId: number | null;
-  consequenceAvoidedBy: 'apothecary' | 'regeneration' | null;
+  consequenceAvoidedBy: ConsequenceAvoidedBy | null;
 }
 
 /** One `match_teams` row of the death's match, resolved to display names. */
