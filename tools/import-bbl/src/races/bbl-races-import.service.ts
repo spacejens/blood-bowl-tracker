@@ -170,7 +170,7 @@ export class BblRacesImportService {
         },
       ],
     };
-    const upsertedRace = await this.racesImport.upsertRace(data, errors);
+    const upsertedRace = await this.racesImport.upsert(data, errors);
     if (!upsertedRace) {
       return false;
     }

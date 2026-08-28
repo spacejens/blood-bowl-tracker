@@ -94,7 +94,7 @@ async function makeService({
   const eraDataConfig = mock<EraDataConfigService>();
   eraDataConfig.getEras.mockImplementation(getEras);
   const erasImport = mock<ErasImportService>();
-  erasImport.upsertEra.mockImplementation(asProviderMethod(upsertEra));
+  erasImport.upsert.mockImplementation(asProviderMethod(upsertEra));
   const sourceReader = mock<TpSourceReader>();
   sourceReader.files.mockImplementation(files);
   sourceReader.isBaseTournamentFile.mockImplementation((filename: string) =>

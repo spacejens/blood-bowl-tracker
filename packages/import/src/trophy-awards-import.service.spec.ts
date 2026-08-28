@@ -7,7 +7,6 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
 import { TrophyAwardsImportService } from './trophy-awards-import.service';
-import type { ImportError } from './types';
 
 describe('TrophyAwardsImportService', () => {
   let service: TrophyAwardsImportService;
@@ -34,22 +33,19 @@ describe('TrophyAwardsImportService', () => {
     playerId: 4,
   };
 
-  it('delegates to the import runner and returns its result', async () => {
-    const errors: ImportError[] = [];
-    runner.recordUpsertResult.mockResolvedValue({ id: 9 });
+  it('calls the API client through the runner upsert callback', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertTrophyAward(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toEqual({ id: 9 });
-    expect(runner.recordUpsertResult).toHaveBeenCalledWith(
-      expect.objectContaining({ item: data, errors }),
-    );
+    await runner.recordUpsertResult.mock.calls[0][0].upsert();
+    expect(client.trophyAwards.upsert).toHaveBeenCalledWith(data);
   });
 
   it('names the trophy, competition and recipient in its error message', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertTrophyAward(data, []);
+    await service.upsert(data, []);
 
     const options = runner.recordUpsertResult.mock.calls[0][0];
     expect(options.buildErrorMessage(new Error('boom'))).toBe(
@@ -63,20 +59,11 @@ describe('TrophyAwardsImportService', () => {
   it('says "no player" for a team award', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertTrophyAward({ ...data, playerId: null }, []);
+    await service.upsert({ ...data, playerId: null }, []);
 
     const options = runner.recordUpsertResult.mock.calls[0][0];
     expect(options.buildErrorMessage(new Error('boom'))).toBe(
       'Failed to import trophy award (trophy 1, competition 2, team era 3, no player): boom',
     );
-  });
-
-  it('calls the API client through the runner upsert callback', async () => {
-    runner.recordUpsertResult.mockResolvedValue(undefined);
-
-    await service.upsertTrophyAward(data, []);
-
-    await runner.recordUpsertResult.mock.calls[0][0].upsert();
-    expect(client.trophyAwards.upsert).toHaveBeenCalledWith(data);
   });
 });

@@ -119,7 +119,7 @@ interface Mocks {
 }
 
 /**
- * The full upsertTeam result record (TeamsImportService.upsertTeam resolves
+ * The full upsert result record (TeamsImportService.upsert resolves
  * the API's Team + created shape). The subject under test only reads `.eras`,
  * so the other fields are unremarkable defaults.
  */
@@ -160,7 +160,7 @@ async function makeService(
   playersImport.upsertPlayerResult.mockResolvedValue({ id: 900 });
 
   const teamsImport = mock<TeamsImportService>();
-  teamsImport.upsertTeam.mockResolvedValue(
+  teamsImport.upsert.mockResolvedValue(
     makeTeamRecord([{ id: 5000, eraId: 500 }]),
   );
 
@@ -300,7 +300,7 @@ describe('BblPlayersImportService', () => {
       'Failed to upsert external system: ',
     );
     expect(playerIdsByPid.get('42')).toBe(900);
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
@@ -337,7 +337,7 @@ describe('BblPlayersImportService', () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 999 }]),
     );
 
@@ -382,7 +382,7 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
@@ -419,7 +419,7 @@ describe('BblPlayersImportService', () => {
       ],
       otherEraIdsByName,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
@@ -428,7 +428,7 @@ describe('BblPlayersImportService', () => {
       racesByBblId,
     });
 
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
     );
@@ -468,7 +468,7 @@ describe('BblPlayersImportService', () => {
       ],
       overrideEraIds,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
@@ -478,7 +478,7 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
     );
@@ -520,7 +520,7 @@ describe('BblPlayersImportService', () => {
       ],
       overrideEraIds,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 7000, eraId: 700 }]),
     );
 
@@ -532,7 +532,7 @@ describe('BblPlayersImportService', () => {
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     // Pinned to the GBBL era's team era (eraId 700), not the tLoEG pid-range
     // era (500).
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [700] },
       expect.any(Array),
     );
@@ -572,7 +572,7 @@ describe('BblPlayersImportService', () => {
       ],
       overrideEraIds,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
@@ -582,7 +582,7 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
     );
@@ -621,7 +621,7 @@ describe('BblPlayersImportService', () => {
       ],
       overrideEraIds,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
     );
 
@@ -632,7 +632,7 @@ describe('BblPlayersImportService', () => {
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     // Pinned to Side (eraId 500), not Main, via team code.
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
@@ -673,7 +673,7 @@ describe('BblPlayersImportService', () => {
       ],
       overrideEraIds,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
     );
 
@@ -685,7 +685,7 @@ describe('BblPlayersImportService', () => {
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     // Lands in "Enabled" (eraId 500), proving "Disabled" was genuinely
     // skipped by the range scan rather than merely checked-and-not-matching.
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
@@ -710,7 +710,7 @@ describe('BblPlayersImportService', () => {
       ],
       overrideEraIds,
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
     );
 
@@ -720,7 +720,7 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
@@ -912,7 +912,7 @@ describe('BblPlayersImportService', () => {
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -920,7 +920,7 @@ describe('BblPlayersImportService', () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(undefined);
+    mocks.teamsImport.upsert.mockResolvedValue(undefined);
 
     await service.importPlayers({
       teamsByCode,
@@ -935,7 +935,7 @@ describe('BblPlayersImportService', () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
-    mocks.teamsImport.upsertTeam.mockResolvedValue(
+    mocks.teamsImport.upsert.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 999 }]),
     );
 

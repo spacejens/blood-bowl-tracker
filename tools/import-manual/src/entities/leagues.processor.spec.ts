@@ -53,7 +53,7 @@ describe('LeaguesProcessor', () => {
   });
 
   it('upserts each league and counts it', async () => {
-    leagues.upsertLeague.mockResolvedValue({
+    leagues.upsert.mockResolvedValue({
       id: 3,
       name: 'My League',
       createdAt: new Date(),
@@ -79,14 +79,14 @@ describe('LeaguesProcessor', () => {
       data.leagues[0].externalIds,
       ctx.systemIds,
     );
-    expect(leagues.upsertLeague).toHaveBeenCalledWith(
+    expect(leagues.upsert).toHaveBeenCalledWith(
       { name: 'My League', externalIds: cannedExternalIds },
       ctx.errors,
     );
   });
 
   it('does not count when the upsert fails', async () => {
-    leagues.upsertLeague.mockResolvedValue(undefined);
+    leagues.upsert.mockResolvedValue(undefined);
     const data = emptyData();
     data.leagues = [
       {

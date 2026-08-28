@@ -187,7 +187,7 @@ export class TpPositionsImportService {
         isStarPlayer: false,
         externalIds,
       };
-      const upserted = await this.positionsImport.upsertPosition(data, errors);
+      const upserted = await this.positionsImport.upsert(data, errors);
       if (!upserted) {
         continue;
       }
@@ -246,7 +246,7 @@ export class TpPositionsImportService {
           },
         ],
       };
-      const upserted = await this.positionsImport.upsertPosition(data, errors);
+      const upserted = await this.positionsImport.upsert(data, errors);
       if (!upserted) {
         continue;
       }

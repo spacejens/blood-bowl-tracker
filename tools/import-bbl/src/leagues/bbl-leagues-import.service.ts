@@ -67,7 +67,7 @@ export class BblLeaguesImportService {
     const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     for (const name of names) {
-      const league = await this.leaguesImport.upsertLeague(
+      const league = await this.leaguesImport.upsert(
         {
           name,
           externalIds: [

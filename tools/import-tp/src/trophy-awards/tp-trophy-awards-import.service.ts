@@ -293,7 +293,7 @@ export class TpTrophyAwardsImportService {
     if (trophyId === undefined) {
       return false;
     }
-    const awarded = await this.trophyAwardsImport.upsertTrophyAward(
+    const awarded = await this.trophyAwardsImport.upsert(
       {
         trophyId,
         competitionId: context.competitionId,
@@ -329,7 +329,7 @@ export class TpTrophyAwardsImportService {
       }
       return trophyId;
     }
-    const trophy = await this.trophiesImport.upsertTrophy(
+    const trophy = await this.trophiesImport.upsert(
       { externalIds: [{ externalSystemId: run.tpSystemId, externalId: key }] },
       errors,
     );

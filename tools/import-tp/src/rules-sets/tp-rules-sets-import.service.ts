@@ -79,10 +79,7 @@ export class TpRulesSetsImportService {
           },
         ],
       };
-      const rulesSet = await this.rulesSetsImport.upsertRulesSet(
-        rulesSetData,
-        errors,
-      );
+      const rulesSet = await this.rulesSetsImport.upsert(rulesSetData, errors);
       if (rulesSet) {
         imported += 1;
       }

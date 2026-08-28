@@ -53,7 +53,7 @@ describe('CoachesProcessor', () => {
   });
 
   it('upserts each coach and counts it', async () => {
-    coaches.upsertCoach.mockResolvedValue({
+    coaches.upsert.mockResolvedValue({
       id: 12,
       name: 'Bob',
       createdAt: new Date(),
@@ -76,14 +76,14 @@ describe('CoachesProcessor', () => {
       data.coaches[0].externalIds,
       ctx.systemIds,
     );
-    expect(coaches.upsertCoach).toHaveBeenCalledWith(
+    expect(coaches.upsert).toHaveBeenCalledWith(
       { name: 'Bob', externalIds: cannedExternalIds },
       ctx.errors,
     );
   });
 
   it('does not count when the upsert fails', async () => {
-    coaches.upsertCoach.mockResolvedValue(undefined);
+    coaches.upsert.mockResolvedValue(undefined);
     const data = emptyData();
     data.coaches = [
       { name: 'Bob', externalIds: [{ system: 'Name', id: 'name:bob' }] },

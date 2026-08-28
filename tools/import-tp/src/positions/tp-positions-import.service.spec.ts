@@ -85,9 +85,7 @@ async function makeService({
   lookup: MockProxy<ReferenceLookupService>;
 }> {
   const positionsImport = mock<PositionsImportService>();
-  positionsImport.upsertPosition.mockImplementation(
-    asProviderMethod(upsertPosition),
-  );
+  positionsImport.upsert.mockImplementation(asProviderMethod(upsertPosition));
   positionsImport.syncRaceEras.mockImplementation(
     asProviderMethod(syncRaceEras),
   );

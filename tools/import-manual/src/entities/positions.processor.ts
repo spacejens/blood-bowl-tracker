@@ -16,7 +16,7 @@ export class PositionsProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.positions) {
-      const upserted = await this.positionsImport.upsertPosition(
+      const upserted = await this.positionsImport.upsert(
         {
           name: entry.name,
           isStarPlayer: entry.isStarPlayer,

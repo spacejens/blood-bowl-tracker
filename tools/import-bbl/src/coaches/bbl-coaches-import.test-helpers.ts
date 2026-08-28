@@ -1,4 +1,4 @@
-/** The upsertCoach result record repeated across the coach import specs. */
+/** The upsert result record repeated across the coach import specs. */
 export interface CoachRecord {
   id: number;
   name: string;
@@ -9,7 +9,7 @@ export interface CoachRecord {
 /**
  * Test-only helper. Do not import from production code.
  *
- * Builds the `upsertCoach` result record. Defaults match the value repeated
+ * Builds the coach `upsert` result record. Defaults match the value repeated
  * verbatim across the coach import specs; pass overrides for id/name.
  */
 export function makeCoachRecord(

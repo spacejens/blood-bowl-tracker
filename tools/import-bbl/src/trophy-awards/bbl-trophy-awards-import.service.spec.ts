@@ -98,10 +98,10 @@ async function makeService(
   mocks.importResults.error.mockImplementation((args) => args);
   mocks.importResults.result.mockReturnValue(CANNED_RESULT);
   // Default: every label resolves to trophy 100, every award write succeeds.
-  mocks.trophiesImport.upsertTrophy.mockResolvedValue({
+  mocks.trophiesImport.upsert.mockResolvedValue({
     id: 100,
   } as never);
-  mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue({
+  mocks.trophyAwardsImport.upsert.mockResolvedValue({
     id: 500,
   } as never);
   mockReferenceLookup(mocks.lookup, { competition: competitionIdsByBblId });
@@ -173,7 +173,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     const outcome = await service.importTrophyAwards(options());
 
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+    expect(mocks.trophiesImport.upsert).toHaveBeenCalledWith(
       {
         externalIds: [
           {
@@ -184,7 +184,7 @@ describe('BblTrophyAwardsImportService', () => {
       },
       [],
     );
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 100, competitionId: 11, teamEraId: 21, playerId: null },
       expect.anything(),
     );
@@ -199,7 +199,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 100, competitionId: 11, teamEraId: 41, playerId: 31 },
       expect.anything(),
     );
@@ -218,14 +218,12 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledTimes(2);
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledTimes(2);
     expect(
-      mocks.trophyAwardsImport.upsertTrophyAward.mock.calls.map(
-        ([data]) => data.playerId,
-      ),
+      mocks.trophyAwardsImport.upsert.mock.calls.map(([data]) => data.playerId),
     ).toEqual([31, 32]);
     // The label is resolved once and reused for both rows.
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(1);
+    expect(mocks.trophiesImport.upsert).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(2);
   });
 
@@ -238,7 +236,7 @@ describe('BblTrophyAwardsImportService', () => {
       options({ competitionEntriesByBblId: new Map() }),
     );
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
   });
 
@@ -255,7 +253,7 @@ describe('BblTrophyAwardsImportService', () => {
       }),
     );
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toEqual([
       {
         item: { competition: '1' },
@@ -277,7 +275,7 @@ describe('BblTrophyAwardsImportService', () => {
     const outcome = await service.importTrophyAwards(options());
 
     expect(outcome.result).toBe(CANNED_RESULT);
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     expect(mocks.trophyReader.getRowsByCompetitionId).not.toHaveBeenCalled();
   });
 
@@ -288,7 +286,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     const { errors, imported } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
@@ -307,7 +305,7 @@ describe('BblTrophyAwardsImportService', () => {
       options({ teamEraIdsByCompetitionBblId: new Map() }),
     );
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     const { errors, imported } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
     expect(errors).toHaveLength(2);
@@ -322,7 +320,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
   });
 
@@ -338,14 +336,14 @@ describe('BblTrophyAwardsImportService', () => {
     );
     // TrophiesImportService records its own error and answers undefined when
     // the label matches no curated trophy.
-    mocks.trophiesImport.upsertTrophy.mockResolvedValue(undefined);
+    mocks.trophiesImport.upsert.mockResolvedValue(undefined);
 
     await service.importTrophyAwards(options());
 
     // Resolved once per row-group (memoized), which is one composite attempt
     // plus one bare-label fallback since neither matches a curated trophy.
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(2);
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophiesImport.upsert).toHaveBeenCalledTimes(2);
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).imported).toBe(0);
   });
 
@@ -353,7 +351,7 @@ describe('BblTrophyAwardsImportService', () => {
     const { service, mocks } = await makeService(
       rows([{ label: 'Major 1st', teamCode: 'sew' }]),
     );
-    mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue(undefined);
+    mocks.trophyAwardsImport.upsert.mockResolvedValue(undefined);
 
     await service.importTrophyAwards(options());
 
@@ -387,7 +385,7 @@ describe('BblTrophyAwardsImportService', () => {
     // Every label resolves to trophy 100 except the made-up one (composite or
     // bare), which TrophiesImportService answers undefined for (as it would
     // for any external id matching no curated trophy).
-    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
+    mocks.trophiesImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         data.externalIds[0].externalId.startsWith('Made Up Prize')
           ? undefined
@@ -412,13 +410,13 @@ describe('BblTrophyAwardsImportService', () => {
     // per competition that references it: one composite attempt plus one
     // bare-label fallback, both memoized under the same group-scoped key.
     expect(
-      mocks.trophiesImport.upsertTrophy.mock.calls.filter(([data]) =>
+      mocks.trophiesImport.upsert.mock.calls.filter(([data]) =>
         data.externalIds[0].externalId.startsWith('Made Up Prize'),
       ),
     ).toHaveLength(2);
     // Competition 2's other, resolvable row still got written, proving the
     // loop moved on after competition 1's (and competition 2's own) skip.
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 100, competitionId: 12, teamEraId: 42, playerId: 32 },
       expect.anything(),
     );
@@ -451,7 +449,7 @@ describe('BblTrophyAwardsImportService', () => {
         ['2', 12],
       ]),
     );
-    mocks.trophiesImport.upsertTrophy.mockResolvedValue(undefined);
+    mocks.trophiesImport.upsert.mockResolvedValue(undefined);
 
     await service.importTrophyAwards(
       options({
@@ -470,7 +468,7 @@ describe('BblTrophyAwardsImportService', () => {
     // fallback, whose failure TrophiesImportService records) once; the two
     // later rows that also referenced it are dropped silently unless a
     // summary error is added for them.
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(2);
+    expect(mocks.trophiesImport.upsert).toHaveBeenCalledTimes(2);
     const { errors } = resultArgs(mocks.importResults);
     const summaryErrors = errors.filter((error) =>
       error.message.includes('2 further'),
@@ -485,7 +483,7 @@ describe('BblTrophyAwardsImportService', () => {
     const { service, mocks } = await makeService(
       rows([], [{ label: 'Deadliest Player', pid: '102' }]),
     );
-    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
+    mocks.trophiesImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         data.externalIds?.[0].externalId === 'Deadliest Player-Major Season'
           ? ({ id: 201 } as never)
@@ -495,7 +493,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledWith(
+    expect(mocks.trophiesImport.upsert).toHaveBeenCalledWith(
       {
         externalIds: [
           {
@@ -506,7 +504,7 @@ describe('BblTrophyAwardsImportService', () => {
       },
       expect.any(Array),
     );
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 201, competitionId: 11, teamEraId: 41, playerId: 31 },
       expect.any(Array),
     );
@@ -516,7 +514,7 @@ describe('BblTrophyAwardsImportService', () => {
     const { service, mocks } = await makeService(
       rows([{ label: 'Major 1st', teamCode: 'sew' }]),
     );
-    mocks.trophiesImport.upsertTrophy.mockImplementation((data) =>
+    mocks.trophiesImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         data.externalIds?.[0].externalId === 'Major 1st'
           ? ({ id: 300 } as never)
@@ -526,7 +524,7 @@ describe('BblTrophyAwardsImportService', () => {
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 300, competitionId: 11, teamEraId: 21, playerId: null },
       expect.any(Array),
     );
@@ -558,7 +556,7 @@ describe('BblTrophyAwardsImportService', () => {
         ['2', 12],
       ]),
     );
-    mocks.trophiesImport.upsertTrophy.mockImplementation((data) => {
+    mocks.trophiesImport.upsert.mockImplementation((data) => {
       const externalId = data.externalIds?.[0].externalId;
       if (externalId === 'Deadliest Player-Major Season') {
         return Promise.resolve({ id: 201 } as never);
@@ -582,11 +580,11 @@ describe('BblTrophyAwardsImportService', () => {
       }),
     );
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 201, competitionId: 11, teamEraId: 41, playerId: 31 },
       expect.any(Array),
     );
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+    expect(mocks.trophyAwardsImport.upsert).toHaveBeenCalledWith(
       { trophyId: 202, competitionId: 12, teamEraId: 42, playerId: 32 },
       expect.any(Array),
     );
@@ -602,11 +600,11 @@ describe('BblTrophyAwardsImportService', () => {
         ],
       ),
     );
-    mocks.trophiesImport.upsertTrophy.mockResolvedValue(undefined);
+    mocks.trophiesImport.upsert.mockResolvedValue(undefined);
 
     await service.importTrophyAwards(options());
 
-    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    expect(mocks.trophyAwardsImport.upsert).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toContainEqual({
       item: { trophy: 'Unknown Prize' },
       message:

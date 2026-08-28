@@ -98,9 +98,7 @@ export async function makeService({
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const positionsImport = mock<PositionsImportService>();
-  positionsImport.upsertPosition.mockImplementation(
-    asProviderMethod(upsertPosition),
-  );
+  positionsImport.upsert.mockImplementation(asProviderMethod(upsertPosition));
   const nameExternalId = mockNameExternalIdService();
   const rosterCollection = mock<RosterCollectionService>();
   rosterCollection.unknownEraError.mockReturnValue(CANNED_UNKNOWN_ERA_ERROR);

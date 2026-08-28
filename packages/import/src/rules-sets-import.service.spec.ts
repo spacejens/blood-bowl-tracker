@@ -6,19 +6,27 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
 import { RulesSetsImportService } from './rules-sets-import.service';
-import type { ImportError } from './types';
 
+/**
+ * The success/failure plumbing lives in `createUpsertImportServiceBase` and is
+ * covered by `upsert-import-service-base.spec.ts`. What is entity-specific
+ * here — and all this suite asserts — is which client resource the service
+ * upserts through and how it words a failure.
+ */
 describe('RulesSetsImportService', () => {
   let service: RulesSetsImportService;
   let client: DeepMockProxy<ApiClient>;
   let runner: MockProxy<ImportRunnerService>;
 
+  const data = {
+    name: 'BB2020',
+    externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+  };
+
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         RulesSetsImportService,
@@ -29,56 +37,26 @@ describe('RulesSetsImportService', () => {
     service = moduleRef.get(RulesSetsImportService);
   });
 
-  it('returns the upserted rules set and calls the client with the given data', async () => {
-    const response = {
-      id: 1,
-      name: 'BB2020',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    };
-    client.rulesSets.upsert.mockResolvedValue(response);
-    const errors: ImportError[] = [];
-    const data = {
-      name: 'BB2020',
-      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
-    };
+  it('upserts through the rules sets resource', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertRulesSet(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toEqual(response);
+    await runner.recordUpsertResult.mock.calls[0][0].upsert();
     expect(client.rulesSets.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('returns undefined and records an error when the client call fails', async () => {
-    client.rulesSets.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
-    const data = {
-      name: 'BB2020',
-      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
-    };
+  it('names the rules set in its error message', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertRulesSet(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to import rules set "BB2020": conflict' },
-    ]);
-  });
-
-  it('records an error using String(err) for a non-Error rejection', async () => {
-    client.rulesSets.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-    const data = {
-      name: 'BB2020',
-      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
-    };
-
-    const result = await service.upsertRulesSet(data, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      { item: data, message: 'Failed to import rules set "BB2020": boom' },
-    ]);
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import rules set "BB2020": conflict',
+    );
+    expect(options.buildErrorMessage('boom')).toBe(
+      'Failed to import rules set "BB2020": boom',
+    );
   });
 });

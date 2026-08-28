@@ -39,7 +39,7 @@ export class ErasProcessor {
       if (!league.ok || rulesSetIds === undefined) {
         continue;
       }
-      const upserted = await this.erasImport.upsertEra(
+      const upserted = await this.erasImport.upsert(
         {
           name: entry.name,
           leagueId: league.id,

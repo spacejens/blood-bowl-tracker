@@ -1,25 +1,11 @@
-import type { ApiClient } from '@blood-bowl-tracker/api-client';
-import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type { UpsertLeague } from '@blood-bowl-tracker/api-contract';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import { ImportRunnerService } from './import-runner.service';
-import type { ImportError } from './types';
+import { createUpsertImportServiceBase } from './upsert-import-service-base';
 
 @Injectable()
-export class LeaguesImportService {
-  constructor(
-    @Inject(API_CLIENT) private readonly client: ApiClient,
-    private readonly importRunner: ImportRunnerService,
-  ) {}
-
-  upsertLeague(data: UpsertLeague, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult({
-      upsert: () => this.client.leagues.upsert(data),
-      item: data,
-      errors,
-      buildErrorMessage: (err) =>
-        `Failed to import league "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    });
-  }
-}
+export class LeaguesImportService extends createUpsertImportServiceBase({
+  resource: (client) => client.leagues,
+  buildErrorMessage: (data: UpsertLeague, err) =>
+    `Failed to import league "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+}) {}

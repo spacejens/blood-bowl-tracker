@@ -60,7 +60,7 @@ describe('BblMatchEventsImportService merge scenarios', () => {
     };
 
     const { service, mocks } = await makeService();
-    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+    mocks.teamsImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         makeTeamRecord([
           {
@@ -204,7 +204,7 @@ describe('BblMatchEventsImportService merge scenarios', () => {
     };
 
     const { service, mocks } = await makeService();
-    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+    mocks.teamsImport.upsert.mockImplementation((data) =>
       Promise.resolve(
         makeTeamRecord([
           {

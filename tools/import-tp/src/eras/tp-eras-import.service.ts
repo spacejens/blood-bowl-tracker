@@ -153,7 +153,7 @@ export class TpErasImportService {
 
       this.checkRuleSetConsistency(era, scan, errors);
 
-      const upsertedEra = await this.erasImport.upsertEra(
+      const upsertedEra = await this.erasImport.upsert(
         {
           name: era.name,
           leagueId,

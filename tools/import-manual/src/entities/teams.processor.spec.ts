@@ -53,7 +53,7 @@ describe('TeamsProcessor', () => {
   });
 
   it('resolves race, coach, and era refs and upserts', async () => {
-    teams.upsertTeam.mockResolvedValue({
+    teams.upsert.mockResolvedValue({
       id: 99,
       name: 'Grave Diggers',
       raceId: 40,
@@ -88,7 +88,7 @@ describe('TeamsProcessor', () => {
     expect(count).toBe(1);
     // Each canned resolver output must land in the field the processor
     // says it belongs to (raceId vs coachId), not just be passed through.
-    expect(teams.upsertTeam).toHaveBeenCalledWith(
+    expect(teams.upsert).toHaveBeenCalledWith(
       {
         name: 'Grave Diggers',
         raceId: 40,
@@ -110,7 +110,7 @@ describe('TeamsProcessor', () => {
   });
 
   it('upserts a team with no eras', async () => {
-    teams.upsertTeam.mockResolvedValue({
+    teams.upsert.mockResolvedValue({
       id: 100,
       name: 'T',
       raceId: 40,
@@ -138,7 +138,7 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
-    expect(teams.upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
+    expect(teams.upsert.mock.calls[0][0]).toMatchObject({ eras: [] });
   });
 
   // Resolution-failure error counting is the resolver's own behaviour and is
@@ -163,12 +163,12 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(teams.upsertTeam).not.toHaveBeenCalled();
+    expect(teams.upsert).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
   it('passes raceId and coachId through as undefined for a rename-only entry', async () => {
-    teams.upsertTeam.mockResolvedValue({
+    teams.upsert.mockResolvedValue({
       id: 42,
       name: 'Gyttjevrålarna FC',
       raceId: 0,
@@ -197,7 +197,7 @@ describe('TeamsProcessor', () => {
 
     expect(count).toBe(1);
     expect(refResolver.resolveRef).not.toHaveBeenCalled();
-    expect(teams.upsertTeam).toHaveBeenCalledWith(
+    expect(teams.upsert).toHaveBeenCalledWith(
       {
         name: 'Gyttjevrålarna FC',
         raceId: undefined,
@@ -229,6 +229,6 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(teams.upsertTeam).not.toHaveBeenCalled();
+    expect(teams.upsert).not.toHaveBeenCalled();
   });
 });

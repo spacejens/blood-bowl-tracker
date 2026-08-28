@@ -86,7 +86,7 @@ async function makeService({
   lookup: MockProxy<ReferenceLookupService>;
 }> {
   const teamsImport = mock<TeamsImportService>();
-  teamsImport.upsertTeam.mockImplementation(asProviderMethod(upsertTeam));
+  teamsImport.upsert.mockImplementation(asProviderMethod(upsertTeam));
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),

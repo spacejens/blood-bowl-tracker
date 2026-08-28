@@ -61,7 +61,7 @@ export class BblCoachesImportService {
         }
         seen.add(coach.name);
 
-        const upsertedCoach = await this.coachesImport.upsertCoach(
+        const upsertedCoach = await this.coachesImport.upsert(
           {
             name: coach.name,
             externalIds: [
