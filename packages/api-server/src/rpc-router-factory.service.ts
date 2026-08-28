@@ -1,8 +1,4 @@
-import {
-  contract,
-  type ExternalId,
-  type ResolveResult,
-} from '@blood-bowl-tracker/api-contract';
+import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   CoachesService,
   CoachUpsertConflictError,
@@ -39,23 +35,11 @@ import {
 import { Injectable } from '@nestjs/common';
 import { implement } from '@orpc/server';
 
+import type {
+  ResolveBatchRouteOptions,
+  ResolveRouteOptions,
+} from './rpc-router-factory-types';
 import { UpsertHandlerService } from './upsert-handler.service';
-
-/**
- * Every entity's resolve procedure is built by the same resolveProcedure()
- * helper in packages/api-contract, so they are all this one type; coaches is
- * simply the representative the alias is taken from.
- */
-type ResolveProcedure = (typeof contract.coaches)['resolve'];
-
-/** The batch counterpart, likewise identical across every entity. */
-type ResolveBatchProcedure = (typeof contract.coaches)['resolveBatch'];
-
-/** The two members a game-data entity service exposes for external-id lookup. */
-interface ResolvableService {
-  resolve(externalId: ExternalId): Promise<ResolveResult>;
-  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]>;
-}
 
 /**
  * Assembles the oRPC router and supplies it through DI (the `RPC_ROUTER`
@@ -87,34 +71,21 @@ export class RpcRouterFactoryService {
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
-  /**
-   * One entity's resolve route, as a one-key object to spread into its block
-   * in build(). Resolve handlers call the entity service directly rather than
-   * through UpsertHandlerService: a resolve has no domain error to translate
-   * into a contract error — a miss is a normal result. Takes two positional
-   * parameters rather than an options object: the max-function-params rule
-   * only requires one beyond three parameters, and the options-object form
-   * pushed this already-500-line-capped file over budget.
-   */
-  private buildResolveRoute(
-    procedure: ResolveProcedure,
-    service: Pick<ResolvableService, 'resolve'>,
-  ) {
+  // One entity's resolve route, as a one-key object to spread into its block
+  // in build(). No domain error to translate — a miss is a normal result.
+  private buildResolveRoute(options: ResolveRouteOptions) {
     return {
-      resolve: implement(procedure).handler(({ input }) =>
-        service.resolve(input),
+      resolve: implement(options.procedure).handler(({ input }) =>
+        options.service.resolve(input),
       ),
     };
   }
 
-  /** The batch counterpart of buildResolveRoute. */
-  private buildResolveBatchRoute(
-    procedure: ResolveBatchProcedure,
-    service: Pick<ResolvableService, 'resolveBatch'>,
-  ) {
+  // The batch counterpart of buildResolveRoute.
+  private buildResolveBatchRoute(options: ResolveBatchRouteOptions) {
     return {
-      resolveBatch: implement(procedure).handler(({ input }) =>
-        service.resolveBatch(input),
+      resolveBatch: implement(options.procedure).handler(({ input }) =>
+        options.service.resolveBatch(input),
       ),
     };
   }
@@ -145,17 +116,14 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        // Resolve handlers call the entity service directly rather than
-        // through UpsertHandlerService: a resolve has no domain error to
-        // translate into a contract error — a miss is a normal result.
-        ...this.buildResolveRoute(
-          contract.coaches.resolve,
-          this.coachesService,
-        ),
-        ...this.buildResolveBatchRoute(
-          contract.coaches.resolveBatch,
-          this.coachesService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.coaches.resolve,
+          service: this.coachesService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.coaches.resolveBatch,
+          service: this.coachesService,
+        }),
       },
       leagues: {
         upsert: implement(contract.leagues.upsert).handler(
@@ -181,14 +149,14 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        ...this.buildResolveRoute(
-          contract.leagues.resolve,
-          this.leaguesService,
-        ),
-        ...this.buildResolveBatchRoute(
-          contract.leagues.resolveBatch,
-          this.leaguesService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.leagues.resolve,
+          service: this.leaguesService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.leagues.resolveBatch,
+          service: this.leaguesService,
+        }),
       },
       races: {
         upsert: implement(contract.races.upsert).handler(({ input, errors }) =>
@@ -207,11 +175,14 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        ...this.buildResolveRoute(contract.races.resolve, this.racesService),
-        ...this.buildResolveBatchRoute(
-          contract.races.resolveBatch,
-          this.racesService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.races.resolve,
+          service: this.racesService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.races.resolveBatch,
+          service: this.racesService,
+        }),
       },
       players: {
         upsert: implement(contract.players.upsert).handler(
@@ -278,14 +249,14 @@ export class RpcRouterFactoryService {
         syncRaceEras: implement(contract.positions.syncRaceEras).handler(
           async ({ input }) => this.positionsService.syncRaceEras(input),
         ),
-        ...this.buildResolveRoute(
-          contract.positions.resolve,
-          this.positionsService,
-        ),
-        ...this.buildResolveBatchRoute(
-          contract.positions.resolveBatch,
-          this.positionsService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.positions.resolve,
+          service: this.positionsService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.positions.resolveBatch,
+          service: this.positionsService,
+        }),
       },
       rulesSets: {
         upsert: implement(contract.rulesSets.upsert).handler(
@@ -311,14 +282,14 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        ...this.buildResolveRoute(
-          contract.rulesSets.resolve,
-          this.rulesSetsService,
-        ),
-        ...this.buildResolveBatchRoute(
-          contract.rulesSets.resolveBatch,
-          this.rulesSetsService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.rulesSets.resolve,
+          service: this.rulesSetsService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.rulesSets.resolveBatch,
+          service: this.rulesSetsService,
+        }),
       },
       sppAwardValues: {
         // Not routed through the upsert handler: award values are keyed by
@@ -345,11 +316,14 @@ export class RpcRouterFactoryService {
             }),
           ),
         ),
-        ...this.buildResolveRoute(contract.eras.resolve, this.erasService),
-        ...this.buildResolveBatchRoute(
-          contract.eras.resolveBatch,
-          this.erasService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.eras.resolve,
+          service: this.erasService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.eras.resolveBatch,
+          service: this.erasService,
+        }),
       },
       competitionGroups: {
         upsert: implement(contract.competitionGroups.upsert).handler(
@@ -364,14 +338,14 @@ export class RpcRouterFactoryService {
               },
             ),
         ),
-        ...this.buildResolveRoute(
-          contract.competitionGroups.resolve,
-          this.competitionGroupsService,
-        ),
-        ...this.buildResolveBatchRoute(
-          contract.competitionGroups.resolveBatch,
-          this.competitionGroupsService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.competitionGroups.resolve,
+          service: this.competitionGroupsService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.competitionGroups.resolveBatch,
+          service: this.competitionGroupsService,
+        }),
         list: implement(contract.competitionGroups.list).handler(async () => {
           const groups = await this.competitionGroupsService.listAll();
           // Mapped explicitly rather than returned raw: the drizzle row also
@@ -409,14 +383,14 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        ...this.buildResolveRoute(
-          contract.competitions.resolve,
-          this.competitionsService,
-        ),
-        ...this.buildResolveBatchRoute(
-          contract.competitions.resolveBatch,
-          this.competitionsService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.competitions.resolve,
+          service: this.competitionsService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.competitions.resolveBatch,
+          service: this.competitionsService,
+        }),
       },
       matches: {
         upsert: implement(contract.matches.upsert).handler(
@@ -492,11 +466,14 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        ...this.buildResolveRoute(contract.teams.resolve, this.teamsService),
-        ...this.buildResolveBatchRoute(
-          contract.teams.resolveBatch,
-          this.teamsService,
-        ),
+        ...this.buildResolveRoute({
+          procedure: contract.teams.resolve,
+          service: this.teamsService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.teams.resolveBatch,
+          service: this.teamsService,
+        }),
       },
       trophies: {
         // Only `upsert`: the contract defines no `upsertBatch` for trophies
