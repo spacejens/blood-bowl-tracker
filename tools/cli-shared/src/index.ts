@@ -1,4 +1,5 @@
 export { ChildProcessService } from './child-process.service';
+export { CliSharedModule } from './cli-shared.module';
 export type { GitRoots } from './git-roots.service';
 export { GitRootsService } from './git-roots.service';
 export {

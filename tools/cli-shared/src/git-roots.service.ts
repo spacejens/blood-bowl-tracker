@@ -15,9 +15,8 @@ export interface GitRoots {
 }
 
 /**
- * Resolves the main-checkout / worktree pair. This is both the
- * `resolve-main-root` subcommand's implementation and the shared collaborator
- * the other three subcommands inject.
+ * Resolves the main-checkout / worktree pair. Shared library plumbing
+ * consumed by multiple CLI packages — not tied to any single subcommand.
  */
 @Injectable()
 export class GitRootsService {

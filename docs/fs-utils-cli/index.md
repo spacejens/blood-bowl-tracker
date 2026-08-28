@@ -7,8 +7,8 @@ this: a worktree-isolated session refuses to run shell commands complex
 enough that it cannot verify they stay inside the worktree — see
 [develop-feature/SKILL.md's "Worktree isolation and shell commands" section](../../.claude/skills/develop-feature/SKILL.md#worktree-isolation-and-shell-commands)
 for what that means in practice. But the pattern is also useful on its own merits, independent of
-that constraint: packaging multi-step logic (a poll loop, a directory sync,
-a stray-work check) behind one tested command is more repeatable and
+that constraint: packaging multi-step logic (a directory sync,
+a symlink-safe file write) behind one tested command is more repeatable and
 reliable than re-deriving the equivalent shell inline every time a skill
 needs it. `write-file` in particular exists because the Claude Code Write
 tool refuses to write through the `docs/plans` symlink.

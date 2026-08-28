@@ -1,8 +1,4 @@
-import {
-  ChildProcessService,
-  GitRootsService,
-  ProcessRunnerService,
-} from '@blood-bowl-tracker/cli-shared';
+import { CliSharedModule } from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
@@ -11,10 +7,8 @@ import { ResetProductionSchemaService } from './reset-production-schema/reset-pr
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 @Module({
+  imports: [CliSharedModule],
   providers: [
-    ProcessRunnerService,
-    GitRootsService,
-    ChildProcessService,
     CheckProductionConfigPortService,
     ProductionTunnelService,
     RunProductionQueryService,

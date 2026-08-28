@@ -228,7 +228,7 @@ Identical to `develop-feature`'s Phase 5, with no changes:
 
 The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync merge step and no `gh pr create`** — the PR already exists, and merging `main` into Renovate's branch would put commits on it that Renovate never made and that the developer did not ask for. Leave the branch exactly as far behind `main` as Renovate left it; GitHub's merge button handles the rest.
 
-1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist:
+1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist. This depends on `tools/dev-workflow-cli` already being built — Phase 1 step 5's `pnpm build` builds it, so no separate build command is normally needed here; if that build failed, build just this package first: `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`.
    ```bash
    node tools/dev-workflow-cli/dist/main.js check-main-stray
    ```

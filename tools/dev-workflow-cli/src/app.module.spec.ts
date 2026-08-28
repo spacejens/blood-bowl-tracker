@@ -1,5 +1,4 @@
 import {
-  ChildProcessService,
   GitRootsService,
   ProcessRunnerService,
 } from '@blood-bowl-tracker/cli-shared';
@@ -56,6 +55,5 @@ describe('AppModule', () => {
     expect(moduleRef.get(WaitForPrReviewArgsService)).toBeInstanceOf(
       WaitForPrReviewArgsService,
     );
-    expect(() => moduleRef.get(ChildProcessService)).toThrow();
   });
 });

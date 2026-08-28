@@ -1,7 +1,4 @@
-import {
-  GitRootsService,
-  ProcessRunnerService,
-} from '@blood-bowl-tracker/cli-shared';
+import { CliSharedModule } from '@blood-bowl-tracker/cli-shared';
 import { Module } from '@nestjs/common';
 
 import { CheckDriftService } from './check-drift/check-drift.service';
@@ -16,9 +13,8 @@ import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-rev
 import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-review-filters.service';
 
 @Module({
+  imports: [CliSharedModule],
   providers: [
-    ProcessRunnerService,
-    GitRootsService,
     CheckMainStrayService,
     CheckDriftService,
     DriftDiffRedactionService,
