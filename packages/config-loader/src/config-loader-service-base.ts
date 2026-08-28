@@ -75,7 +75,14 @@ export function createConfigLoaderServiceBase(
         );
       }
 
-      return config.schema.parse(parsed);
+      const result = config.schema.safeParse(parsed);
+      if (!result.success) {
+        throw new Error(
+          `Failed to validate ${this.filePath}: ${result.error.message}`,
+          { cause: result.error },
+        );
+      }
+      return result.data;
     }
   }
 

@@ -115,7 +115,7 @@ describe('createConfigLoaderServiceBase', () => {
           { provide: TEST_CONFIG_PATH, useValue: path },
         ],
       }).compile(),
-    ).rejects.toThrow();
+    ).rejects.toThrow(`Failed to validate ${path}`);
   });
 
   it('accepts a value the caller-supplied schema allows', async () => {
