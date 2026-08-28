@@ -132,6 +132,41 @@ export class RpcRouterFactoryService {
     };
   }
 
+  /**
+   * The batch counterpart of buildUpsertRoute. A per-item domain failure
+   * becomes that item's failure entry rather than a thrown contract error --
+   * see UpsertHandlerService.runBatch. The casts are the same
+   * deferred-generic ones buildUpsertRoute explains.
+   */
+  private buildUpsertBatchRoute<
+    TInputSchema extends AnySchema,
+    TOutputSchema extends AnySchema,
+    TErrorMap extends ErrorMap,
+    TMeta extends Meta,
+    TInput,
+    TResult,
+    TEntity extends object,
+  >(options: {
+    procedure: ContractProcedure<TInputSchema, TOutputSchema, TErrorMap, TMeta>;
+    service: { upsert(input: TInput): Promise<TResult> };
+    conflictError: abstract new (...args: never[]) => Error;
+    unwrap: (result: TResult) => { entity: TEntity; created: boolean };
+  }) {
+    return {
+      upsertBatch: implement(options.procedure).handler(async ({ input }) => {
+        const items = input as unknown as TInput[];
+        const results = await this.upsertHandler.runBatch(
+          options.conflictError,
+          items.map(
+            (item) => async () =>
+              options.unwrap(await options.service.upsert(item)),
+          ),
+        );
+        return results as unknown as InferSchemaInput<TOutputSchema>;
+      }),
+    };
+  }
+
   // One entity's resolve route, as a one-key object to spread into its block
   // in build(). No domain error to translate — a miss is a normal result.
   private buildResolveRoute(options: ResolveRouteOptions) {
@@ -160,17 +195,12 @@ export class RpcRouterFactoryService {
           conflictError: CoachUpsertConflictError,
           unwrap: (r) => ({ entity: r.coach, created: r.created }),
         }),
-        upsertBatch: implement(contract.coaches.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              CoachUpsertConflictError,
-              input.map((item) => async () => {
-                const { coach, created } =
-                  await this.coachesService.upsert(item);
-                return { entity: coach, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.coaches.upsertBatch,
+          service: this.coachesService,
+          conflictError: CoachUpsertConflictError,
+          unwrap: (r) => ({ entity: r.coach, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.coaches.resolve,
           service: this.coachesService,
@@ -187,17 +217,12 @@ export class RpcRouterFactoryService {
           conflictError: LeagueUpsertConflictError,
           unwrap: (r) => ({ entity: r.league, created: r.created }),
         }),
-        upsertBatch: implement(contract.leagues.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              LeagueUpsertConflictError,
-              input.map((item) => async () => {
-                const { league, created } =
-                  await this.leaguesService.upsert(item);
-                return { entity: league, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.leagues.upsertBatch,
+          service: this.leaguesService,
+          conflictError: LeagueUpsertConflictError,
+          unwrap: (r) => ({ entity: r.league, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.leagues.resolve,
           service: this.leaguesService,
@@ -214,16 +239,12 @@ export class RpcRouterFactoryService {
           conflictError: RaceUpsertConflictError,
           unwrap: (r) => ({ entity: r.race, created: r.created }),
         }),
-        upsertBatch: implement(contract.races.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              RaceUpsertConflictError,
-              input.map((item) => async () => {
-                const { race, created } = await this.racesService.upsert(item);
-                return { entity: race, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.races.upsertBatch,
+          service: this.racesService,
+          conflictError: RaceUpsertConflictError,
+          unwrap: (r) => ({ entity: r.race, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.races.resolve,
           service: this.racesService,
@@ -240,17 +261,12 @@ export class RpcRouterFactoryService {
           conflictError: PlayerUpsertConflictError,
           unwrap: (r) => ({ entity: r.player, created: r.created }),
         }),
-        upsertBatch: implement(contract.players.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              PlayerUpsertConflictError,
-              input.map((item) => async () => {
-                const { player, created } =
-                  await this.playersService.upsert(item);
-                return { entity: player, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.players.upsertBatch,
+          service: this.playersService,
+          conflictError: PlayerUpsertConflictError,
+          unwrap: (r) => ({ entity: r.player, created: r.created }),
+        }),
         ...buildPlayerSppAdjustmentRoutes(this.sppAdjustmentsService),
       },
       positions: {
@@ -260,17 +276,12 @@ export class RpcRouterFactoryService {
           conflictError: PositionUpsertConflictError,
           unwrap: (r) => ({ entity: r.position, created: r.created }),
         }),
-        upsertBatch: implement(contract.positions.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              PositionUpsertConflictError,
-              input.map((item) => async () => {
-                const { position, created } =
-                  await this.positionsService.upsert(item);
-                return { entity: position, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.positions.upsertBatch,
+          service: this.positionsService,
+          conflictError: PositionUpsertConflictError,
+          unwrap: (r) => ({ entity: r.position, created: r.created }),
+        }),
         ...buildPositionSyncRaceErasRoute(this.positionsService),
         ...this.buildResolveRoute({
           procedure: contract.positions.resolve,
@@ -288,17 +299,12 @@ export class RpcRouterFactoryService {
           conflictError: RulesSetUpsertConflictError,
           unwrap: (r) => ({ entity: r.rulesSet, created: r.created }),
         }),
-        upsertBatch: implement(contract.rulesSets.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              RulesSetUpsertConflictError,
-              input.map((item) => async () => {
-                const { rulesSet, created } =
-                  await this.rulesSetsService.upsert(item);
-                return { entity: rulesSet, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.rulesSets.upsertBatch,
+          service: this.rulesSetsService,
+          conflictError: RulesSetUpsertConflictError,
+          unwrap: (r) => ({ entity: r.rulesSet, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.rulesSets.resolve,
           service: this.rulesSetsService,
@@ -316,15 +322,12 @@ export class RpcRouterFactoryService {
           conflictError: EraUpsertConflictError,
           unwrap: (r) => ({ entity: r.era, created: r.created }),
         }),
-        upsertBatch: implement(contract.eras.upsertBatch).handler(({ input }) =>
-          this.upsertHandler.runBatch(
-            EraUpsertConflictError,
-            input.map((item) => async () => {
-              const { era, created } = await this.erasService.upsert(item);
-              return { entity: era, created };
-            }),
-          ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.eras.upsertBatch,
+          service: this.erasService,
+          conflictError: EraUpsertConflictError,
+          unwrap: (r) => ({ entity: r.era, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.eras.resolve,
           service: this.erasService,
@@ -358,17 +361,12 @@ export class RpcRouterFactoryService {
           conflictError: CompetitionUpsertConflictError,
           unwrap: (r) => ({ entity: r.competition, created: r.created }),
         }),
-        upsertBatch: implement(contract.competitions.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              CompetitionUpsertConflictError,
-              input.map((item) => async () => {
-                const { competition, created } =
-                  await this.competitionsService.upsert(item);
-                return { entity: competition, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.competitions.upsertBatch,
+          service: this.competitionsService,
+          conflictError: CompetitionUpsertConflictError,
+          unwrap: (r) => ({ entity: r.competition, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.competitions.resolve,
           service: this.competitionsService,
@@ -385,17 +383,12 @@ export class RpcRouterFactoryService {
           conflictError: MatchUpsertConflictError,
           unwrap: (r) => ({ entity: r.match, created: r.created }),
         }),
-        upsertBatch: implement(contract.matches.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              MatchUpsertConflictError,
-              input.map((item) => async () => {
-                const { match, created } =
-                  await this.matchesService.upsert(item);
-                return { entity: match, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.matches.upsertBatch,
+          service: this.matchesService,
+          conflictError: MatchUpsertConflictError,
+          unwrap: (r) => ({ entity: r.match, created: r.created }),
+        }),
         ...buildMatchResolveOutcomesRoute(this.matchOutcomes),
       },
       matchEvents: {
@@ -405,17 +398,12 @@ export class RpcRouterFactoryService {
           conflictError: MatchEventUpsertConflictError,
           unwrap: (r) => ({ entity: r.matchEvent, created: r.created }),
         }),
-        upsertBatch: implement(contract.matchEvents.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              MatchEventUpsertConflictError,
-              input.map((item) => async () => {
-                const { matchEvent, created } =
-                  await this.matchEventsService.upsert(item);
-                return { entity: matchEvent, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.matchEvents.upsertBatch,
+          service: this.matchEventsService,
+          conflictError: MatchEventUpsertConflictError,
+          unwrap: (r) => ({ entity: r.matchEvent, created: r.created }),
+        }),
       },
       teams: {
         ...this.buildUpsertRoute({
@@ -424,16 +412,12 @@ export class RpcRouterFactoryService {
           conflictError: TeamUpsertConflictError,
           unwrap: (r) => ({ entity: r.team, created: r.created }),
         }),
-        upsertBatch: implement(contract.teams.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              TeamUpsertConflictError,
-              input.map((item) => async () => {
-                const { team, created } = await this.teamsService.upsert(item);
-                return { entity: team, created };
-              }),
-            ),
-        ),
+        ...this.buildUpsertBatchRoute({
+          procedure: contract.teams.upsertBatch,
+          service: this.teamsService,
+          conflictError: TeamUpsertConflictError,
+          unwrap: (r) => ({ entity: r.team, created: r.created }),
+        }),
         ...this.buildResolveRoute({
           procedure: contract.teams.resolve,
           service: this.teamsService,

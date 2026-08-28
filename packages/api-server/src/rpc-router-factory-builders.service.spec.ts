@@ -72,4 +72,65 @@ describe('route builders', () => {
       'db unavailable',
     );
   });
+
+  it('answers a batch index-aligned with the request', async () => {
+    const { router, mocks } = await createRouterHarness();
+    mocks.leaguesService.upsert
+      .mockResolvedValueOnce({ league, created: true })
+      .mockResolvedValueOnce({
+        league: { ...league, id: 2, name: 'Other League' },
+        created: false,
+      });
+
+    await expect(
+      call(router.leagues.upsertBatch, [
+        input,
+        {
+          name: 'Other League',
+          externalIds: [{ externalSystemId: 1, externalId: 'e2' }],
+        },
+      ]),
+    ).resolves.toEqual([
+      {
+        id: 1,
+        name: 'Test League',
+        createdAt: new Date('2026-01-01'),
+        success: true,
+        created: true,
+      },
+      {
+        id: 2,
+        name: 'Other League',
+        createdAt: new Date('2026-01-01'),
+        success: true,
+        created: false,
+      },
+    ]);
+  });
+
+  it('turns one item conflict into that item failing, not the batch', async () => {
+    const { router, mocks } = await createRouterHarness();
+    mocks.leaguesService.upsert
+      .mockRejectedValueOnce(new LeagueUpsertConflictError('matched 1, 2'))
+      .mockResolvedValueOnce({ league, created: true });
+
+    await expect(
+      call(router.leagues.upsertBatch, [
+        {
+          name: 'Bad League',
+          externalIds: [{ externalSystemId: 1, externalId: 'e3' }],
+        },
+        input,
+      ]),
+    ).resolves.toEqual([
+      { success: false, error: 'matched 1, 2' },
+      {
+        id: 1,
+        name: 'Test League',
+        createdAt: new Date('2026-01-01'),
+        success: true,
+        created: true,
+      },
+    ]);
+  });
 });
