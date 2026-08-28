@@ -51,6 +51,13 @@ export { TeamsImportService } from './teams-import.service';
 export { TrophiesImportService } from './trophies-import.service';
 export { TrophyAwardsImportService } from './trophy-awards-import.service';
 export * from './types';
+export type {
+  UpsertImportService,
+  UpsertImportServiceConfig,
+  UpsertImportServiceConstructor,
+  UpsertResource,
+} from './upsert-import-service-base';
+export { createUpsertImportServiceBase } from './upsert-import-service-base';
 export {
   NAF_EXTERNAL_SYSTEM,
   NAF_EXTERNAL_SYSTEM_NAME,

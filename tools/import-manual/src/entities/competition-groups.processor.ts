@@ -62,17 +62,14 @@ export class CompetitionGroupsProcessor {
         continue;
       }
       const ref = this.refResolver.competitionGroupRef(entry.name);
-      const upserted =
-        await this.competitionGroupsImport.upsertCompetitionGroup(
-          {
-            name: entry.name,
-            leagueId,
-            externalIds: [
-              { externalSystemId: nameSystemId, externalId: ref.id },
-            ],
-          },
-          ctx.errors,
-        );
+      const upserted = await this.competitionGroupsImport.upsert(
+        {
+          name: entry.name,
+          leagueId,
+          externalIds: [{ externalSystemId: nameSystemId, externalId: ref.id }],
+        },
+        ctx.errors,
+      );
       if (upserted) {
         imported += 1;
       }

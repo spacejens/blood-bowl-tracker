@@ -178,7 +178,7 @@ export class BblTeamsImportService {
           },
         ],
       };
-      const upserted = await this.teamsImport.upsertTeam(teamData, errors);
+      const upserted = await this.teamsImport.upsert(teamData, errors);
       if (upserted) {
         teamsByCode.set(team.id, teamData);
         imported += 1;

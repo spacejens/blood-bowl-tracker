@@ -197,7 +197,7 @@ export class TpTeamsImportService {
           },
         ],
       };
-      const upserted = await this.teamsImport.upsertTeam(data, errors);
+      const upserted = await this.teamsImport.upsert(data, errors);
       if (upserted) {
         teamErasByRosterId.set(group.id, upserted.eras);
         imported += 1;

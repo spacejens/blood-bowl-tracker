@@ -136,7 +136,7 @@ async function makeService(
   listParser.extractRaces.mockReturnValue([]);
 
   const racesImport = mock<RacesImportService>();
-  racesImport.upsertRace.mockImplementation(upsertRaceOk());
+  racesImport.upsert.mockImplementation(upsertRaceOk());
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
@@ -228,7 +228,7 @@ describe('BblRacesImportService', () => {
     await service.importRaces();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       {
         name: 'Orc',
         eras: [],
@@ -252,7 +252,7 @@ describe('BblRacesImportService', () => {
 
     await service.importRaces();
 
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(2);
+    expect(mocks.racesImport.upsert).toHaveBeenCalledTimes(2);
     expect(resultArgs(mocks.importResults).imported).toBe(2);
   });
 
@@ -263,7 +263,7 @@ describe('BblRacesImportService', () => {
 
     await service.importRaces();
 
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsert).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 
@@ -271,7 +271,7 @@ describe('BblRacesImportService', () => {
     const { service, mocks } = await makeService(
       mockBblSourceReader([page('Orc'), page('Elf')]),
     );
-    mocks.racesImport.upsertRace.mockImplementationOnce((_data, errors) => {
+    mocks.racesImport.upsert.mockImplementationOnce((_data, errors) => {
       errors.push({ item: {}, message: 'Failed to import race "Orc"' });
       return Promise.resolve(undefined);
     });
@@ -295,7 +295,7 @@ describe('BblRacesImportService', () => {
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(1);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsert).toHaveBeenCalledTimes(1);
     expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
     expect(mocks.pageParseError.build).toHaveBeenCalledWith(
       { race: 'Orc', raceId: 'id-Orc' },
@@ -346,14 +346,14 @@ describe('BblRacesImportService', () => {
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({ externalSystems: ['BBL', 'Name'] });
-    expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
+    expect(mocks.racesImport.upsert).not.toHaveBeenCalled();
   });
 
   it('returns a map from each race BBL id to its local id and name', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReader([page('Orc', '16'), page('Elf', '6')]),
     );
-    mocks.racesImport.upsertRace.mockImplementation((data) =>
+    mocks.racesImport.upsert.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
         name: data.name!, // fixtures always supply a race name
@@ -373,7 +373,7 @@ describe('BblRacesImportService', () => {
     const { service, mocks } = await makeService(
       mockBblSourceReader([page('Orc', '16'), page('Elf', '6')]),
     );
-    mocks.racesImport.upsertRace.mockImplementation((data) =>
+    mocks.racesImport.upsert.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
         name: data.name!, // fixtures always supply a race name
@@ -417,7 +417,7 @@ describe('BblRacesImportService', () => {
     await service.importRaces();
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       {
         name: 'College of Shadow',
         eras: [],
@@ -444,8 +444,8 @@ describe('BblRacesImportService', () => {
     await service.importRaces();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Orc' }),
       expect.any(Array),
     );
@@ -465,7 +465,7 @@ describe('BblRacesImportService', () => {
     await service.importRaces();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Retired Race' }),
       expect.any(Array),
     );
@@ -486,7 +486,7 @@ describe('BblRacesImportService', () => {
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(1);
-    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsert).toHaveBeenCalledTimes(1);
     expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
     expect(mocks.pageParseError.build).toHaveBeenCalledWith(
       { races: '[]' },

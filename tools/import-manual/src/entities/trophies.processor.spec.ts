@@ -60,7 +60,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('upserts a trophy', async () => {
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 31,
       name: 'Chaos Cup',
       recipientKind: 'team',
@@ -88,7 +88,7 @@ describe('TrophiesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+    expect(trophies.upsert).toHaveBeenCalledWith(
       {
         name: 'Chaos Cup',
         recipientKind: 'team',
@@ -100,7 +100,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('upserts a trophy that declares no external ids', async () => {
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 32,
       name: 'Ogretoberfest',
       recipientKind: 'team',
@@ -119,7 +119,7 @@ describe('TrophiesProcessor', () => {
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
-    expect(trophies.upsertTrophy.mock.calls[0][0]).toEqual({
+    expect(trophies.upsert.mock.calls[0][0]).toEqual({
       name: 'Ogretoberfest',
       recipientKind: 'team',
       description: undefined,
@@ -128,7 +128,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('does not count when the upsert fails', async () => {
-    trophies.upsertTrophy.mockResolvedValue(undefined);
+    trophies.upsert.mockResolvedValue(undefined);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.trophies = [
@@ -145,7 +145,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('imports every trophy in the section', async () => {
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 1,
       name: 'Major 1st',
       recipientKind: 'team',
@@ -170,7 +170,7 @@ describe('TrophiesProcessor', () => {
   it('resolves the named competition group into the upsert payload', async () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
     refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 4 });
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 8,
       name: 'Major Gold',
       recipientKind: 'team',
@@ -200,14 +200,14 @@ describe('TrophiesProcessor', () => {
         kind: 'competitionGroup',
       }),
     );
-    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+    expect(trophies.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: 4 }),
       ctx.errors,
     );
   });
 
   it('passes no group ref through for a trophy that names none', async () => {
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 9,
       name: 'Ungrouped',
       recipientKind: 'team',
@@ -227,7 +227,7 @@ describe('TrophiesProcessor', () => {
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: undefined, kind: 'competitionGroup' }),
     );
-    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+    expect(trophies.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: undefined }),
       expect.anything(),
     );
@@ -246,7 +246,7 @@ describe('TrophiesProcessor', () => {
     ];
 
     expect(await processor.process(makeContext(data))).toBe(0);
-    expect(trophies.upsertTrophy).not.toHaveBeenCalled();
+    expect(trophies.upsert).not.toHaveBeenCalled();
   });
 
   it('resolves a league reference and passes its id to the upsert', async () => {
@@ -257,7 +257,7 @@ describe('TrophiesProcessor', () => {
           : { ok: true, id: undefined },
       ),
     );
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 3,
       name: 'Legendary Player',
       recipientKind: 'player',
@@ -283,7 +283,7 @@ describe('TrophiesProcessor', () => {
     );
 
     expect(imported).toBe(1);
-    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+    expect(trophies.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: undefined, leagueId: 7 }),
       expect.anything(),
     );
@@ -311,7 +311,7 @@ describe('TrophiesProcessor', () => {
     );
 
     expect(imported).toBe(0);
-    expect(trophies.upsertTrophy).not.toHaveBeenCalled();
+    expect(trophies.upsert).not.toHaveBeenCalled();
   });
 
   it('passes both scope ids through undefined when an entry names neither', async () => {
@@ -322,7 +322,7 @@ describe('TrophiesProcessor', () => {
       ok: true,
       id: undefined,
     });
-    trophies.upsertTrophy.mockResolvedValue({
+    trophies.upsert.mockResolvedValue({
       id: 3,
       name: 'Orphan',
       recipientKind: 'team',
@@ -340,7 +340,7 @@ describe('TrophiesProcessor', () => {
       }),
     );
 
-    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+    expect(trophies.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         competitionGroupId: undefined,
         leagueId: undefined,

@@ -99,7 +99,7 @@ describe('BblLeaguesImportService', () => {
 
   it('bootstraps the BBL and Name external systems once', async () => {
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
-    mocks.leaguesImport.upsertLeague.mockResolvedValue({
+    mocks.leaguesImport.upsert.mockResolvedValue({
       id: 42,
       name: 'tLoEG',
       createdAt: new Date('2026-01-01'),
@@ -117,7 +117,7 @@ describe('BblLeaguesImportService', () => {
 
   it('bootstraps the configured BBL system name', async () => {
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
-    mocks.leaguesImport.upsertLeague.mockResolvedValue({
+    mocks.leaguesImport.upsert.mockResolvedValue({
       id: 1,
       name: 'x',
       createdAt: new Date('2026-01-01'),
@@ -135,7 +135,7 @@ describe('BblLeaguesImportService', () => {
 
   it('upserts every configured league', async () => {
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
-    mocks.leaguesImport.upsertLeague
+    mocks.leaguesImport.upsert
       .mockResolvedValueOnce({
         id: 42,
         name: 'tLoEG',
@@ -152,7 +152,7 @@ describe('BblLeaguesImportService', () => {
     await service.importLeagues();
 
     expect(resultArgs(mocks.importResults).imported).toBe(2);
-    expect(mocks.leaguesImport.upsertLeague).toHaveBeenNthCalledWith(
+    expect(mocks.leaguesImport.upsert).toHaveBeenNthCalledWith(
       1,
       {
         name: 'tLoEG',
@@ -163,7 +163,7 @@ describe('BblLeaguesImportService', () => {
       },
       expect.any(Array),
     );
-    expect(mocks.leaguesImport.upsertLeague).toHaveBeenNthCalledWith(
+    expect(mocks.leaguesImport.upsert).toHaveBeenNthCalledWith(
       2,
       {
         name: 'GBBL',
@@ -178,7 +178,7 @@ describe('BblLeaguesImportService', () => {
 
   it('records an error and omits a league whose upsert fails, keeping the others', async () => {
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
-    mocks.leaguesImport.upsertLeague
+    mocks.leaguesImport.upsert
       .mockResolvedValueOnce({
         id: 42,
         name: 'tLoEG',
@@ -207,7 +207,7 @@ describe('BblLeaguesImportService', () => {
         e.message.includes('leagues'),
       ),
     ).toBe(true);
-    expect(mocks.leaguesImport.upsertLeague).not.toHaveBeenCalled();
+    expect(mocks.leaguesImport.upsert).not.toHaveBeenCalled();
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
@@ -228,12 +228,12 @@ describe('BblLeaguesImportService', () => {
     expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(mocks.leaguesImport.upsertLeague).not.toHaveBeenCalled();
+    expect(mocks.leaguesImport.upsert).not.toHaveBeenCalled();
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
-    mocks.leaguesImport.upsertLeague.mockResolvedValue({
+    mocks.leaguesImport.upsert.mockResolvedValue({
       id: 42,
       name: 'tLoEG',
       createdAt: new Date('2026-01-01'),

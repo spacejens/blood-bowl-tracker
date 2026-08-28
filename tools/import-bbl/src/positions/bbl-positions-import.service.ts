@@ -197,7 +197,7 @@ export class BblPositionsImportService {
             );
             continue;
           }
-          const upserted = await this.positionsImport.upsertPosition(
+          const upserted = await this.positionsImport.upsert(
             {
               name: position.name,
               isStarPlayer: false,
@@ -253,7 +253,7 @@ export class BblPositionsImportService {
               }),
             ),
           ];
-          const upserted = await this.positionsImport.upsertPosition(
+          const upserted = await this.positionsImport.upsert(
             {
               name: position.name,
               isStarPlayer: true,
@@ -271,7 +271,7 @@ export class BblPositionsImportService {
           }
         } else {
           for (const race of resolved) {
-            const upserted = await this.positionsImport.upsertPosition(
+            const upserted = await this.positionsImport.upsert(
               {
                 name: position.name,
                 isStarPlayer: false,

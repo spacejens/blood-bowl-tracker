@@ -159,7 +159,7 @@ export class BblTeamParticipationImportService {
 
           const competitionEraId =
             this.upsertFieldNarrowing.resolveDefiniteEraId(competition);
-          const upsertedTeam = await this.teamsImport.upsertTeam(
+          const upsertedTeam = await this.teamsImport.upsert(
             { ...team, eras: [competitionEraId] },
             errors,
           );
@@ -218,7 +218,7 @@ export class BblTeamParticipationImportService {
       if (!race) {
         continue;
       }
-      await this.racesImport.upsertRace({ ...race, eras: [...eraIds] }, errors);
+      await this.racesImport.upsert({ ...race, eras: [...eraIds] }, errors);
     }
 
     return {

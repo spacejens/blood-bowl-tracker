@@ -301,7 +301,7 @@ export class BblTrophyAwardsImportService {
     if (trophyId === undefined) {
       return false;
     }
-    const awarded = await this.trophyAwardsImport.upsertTrophyAward(
+    const awarded = await this.trophyAwardsImport.upsert(
       {
         trophyId,
         competitionId: options.context.competitionId,
@@ -351,7 +351,7 @@ export class BblTrophyAwardsImportService {
       return memoized;
     }
 
-    const composite = await this.trophiesImport.upsertTrophy(
+    const composite = await this.trophiesImport.upsert(
       {
         externalIds: [
           {
@@ -365,7 +365,7 @@ export class BblTrophyAwardsImportService {
     );
     let trophyId = composite?.id;
     if (trophyId === undefined) {
-      const fallback = await this.trophiesImport.upsertTrophy(
+      const fallback = await this.trophiesImport.upsert(
         {
           externalIds: [
             { externalSystemId: run.bblSystemId, externalId: label },

@@ -137,7 +137,7 @@ export class TpRacesImportService {
           },
         ],
       };
-      const upserted = await this.racesImport.upsertRace(data, errors);
+      const upserted = await this.racesImport.upsert(data, errors);
       if (upserted) {
         imported += 1;
         raceNamesById.set(upserted.id, group.raceName);

@@ -25,7 +25,7 @@ export class RacesProcessor {
       if (eras === undefined) {
         continue;
       }
-      const upserted = await this.racesImport.upsertRace(
+      const upserted = await this.racesImport.upsert(
         {
           name: entry.name,
           eras,

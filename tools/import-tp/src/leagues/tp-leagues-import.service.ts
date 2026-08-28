@@ -58,7 +58,7 @@ export class TpLeaguesImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    const league = await this.leaguesImport.upsertLeague(
+    const league = await this.leaguesImport.upsert(
       {
         name,
         externalIds: [

@@ -97,7 +97,7 @@ interface Mocks {
 }
 
 /**
- * The full upsertTeam result record (TeamsImportService.upsertTeam resolves
+ * The full upsert result record (TeamsImportService.upsert resolves
  * the API's Team + created shape). This service only checks the result's
  * truthiness, so the field values are unremarkable defaults.
  */
@@ -138,7 +138,7 @@ async function makeService(
   );
 
   const teamsImport = mock<TeamsImportService>();
-  teamsImport.upsertTeam.mockResolvedValue(makeTeamRecord());
+  teamsImport.upsert.mockResolvedValue(makeTeamRecord());
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
@@ -271,7 +271,7 @@ describe('BblTeamsImportService', () => {
     const { teamsByCode } = await service.importTeams();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledWith(
       {
         name: '40 grinders',
         raceId: 500,
@@ -339,7 +339,7 @@ describe('BblTeamsImportService', () => {
 
     await service.importTeams();
 
-    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
+    expect(mocks.teamsImport.upsert).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 
@@ -350,7 +350,7 @@ describe('BblTeamsImportService', () => {
 
     await service.importTeams();
 
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).imported).toBe(0);
   });
 
@@ -369,7 +369,7 @@ describe('BblTeamsImportService', () => {
     await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
     expect(
       errors.some((e) => e.message.includes('could not resolve race')),
     ).toBe(true);
@@ -385,7 +385,7 @@ describe('BblTeamsImportService', () => {
     await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
     expect(
       errors.some((e) => e.message.includes('could not resolve race')),
     ).toBe(true);
@@ -406,7 +406,7 @@ describe('BblTeamsImportService', () => {
     await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
     expect(
       errors.some((e) => e.message.includes('could not resolve coach')),
     ).toBe(true);
@@ -422,7 +422,7 @@ describe('BblTeamsImportService', () => {
     await service.importTeams();
 
     const { errors } = resultArgs(mocks.importResults);
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
     expect(
       errors.some((e) => e.message.includes('could not resolve coach')),
     ).toBe(true);
@@ -439,7 +439,7 @@ describe('BblTeamsImportService', () => {
         }),
       ]),
     );
-    mocks.teamsImport.upsertTeam.mockImplementationOnce((_data, errors) => {
+    mocks.teamsImport.upsert.mockImplementationOnce((_data, errors) => {
       errors.push({
         item: {},
         message: 'Failed to import team "40 grinders"',
@@ -525,7 +525,7 @@ describe('BblTeamsImportService', () => {
     expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
+    expect(mocks.teamsImport.upsert).not.toHaveBeenCalled();
   });
 
   it('returns a map from each team page code to its resolved race id', async () => {

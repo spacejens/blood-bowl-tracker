@@ -14,7 +14,7 @@ export class LeaguesProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.leagues) {
-      const upserted = await this.leaguesImport.upsertLeague(
+      const upserted = await this.leaguesImport.upsert(
         {
           name: entry.name,
           externalIds: this.refResolver.toExternalIds(

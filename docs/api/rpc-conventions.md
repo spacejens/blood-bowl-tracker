@@ -62,6 +62,24 @@ this document does not name them — each exempt router carries its own comment
 in `packages/api-contract/src/contract.ts` explaining why that particular
 entity is exempt.
 
+**Standard entity routes are built, not written.** `RpcRouterFactoryService`
+composes each entity's block from `buildUpsertRoute`, `buildUpsertBatchRoute`,
+`buildResolveRoute` and `buildResolveBatchRoute`; an entity whose contract is
+exactly those four procedures uses the composite `buildStandardEntityRoutes`
+instead. An entity that adds a procedure (`positions.syncRaceEras`,
+`matches.resolveOutcomes`, the players SPP-adjustment syncs,
+`competitionGroups.list`) spreads only the builders that apply and
+hand-writes the rest, so the extra procedure stays visible at its own block.
+`sppAwardValues`, `trophyAwards` and `externalSystems` stay fully
+hand-written — they use a different upsert handler method or return a
+different result shape, and each carries a comment saying so. Those
+permanently hand-written blocks, plus the players SPP-sync procedures,
+`positions.syncRaceEras`, `matches.resolveOutcomes` and
+`competitionGroups.list`, live in
+`rpc-router-factory-hand-written-routes.ts`, which `build()` calls into
+directly, keeping `rpc-router-factory.service.ts` itself under its line
+budget.
+
 ## Reference resolution
 
 Nine entity kinds — coaches, leagues, races, positions, rules sets, eras,

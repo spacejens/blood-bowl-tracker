@@ -89,7 +89,7 @@ async function makeService(
   );
 
   const coachesImport = mock<CoachesImportService>();
-  coachesImport.upsertCoach.mockResolvedValue(makeCoachRecord());
+  coachesImport.upsert.mockResolvedValue(makeCoachRecord());
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
   bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
@@ -180,7 +180,7 @@ describe('BblCoachesImportService', () => {
     await service.importCoaches();
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledWith(
+    expect(mocks.coachesImport.upsert).toHaveBeenCalledWith(
       {
         name: 'Hugo E',
         externalIds: [
@@ -199,7 +199,7 @@ describe('BblCoachesImportService', () => {
 
     await service.importCoaches();
 
-    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(2);
+    expect(mocks.coachesImport.upsert).toHaveBeenCalledTimes(2);
     expect(resultArgs(mocks.importResults).imported).toBe(2);
   });
 
@@ -210,7 +210,7 @@ describe('BblCoachesImportService', () => {
 
     await service.importCoaches();
 
-    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
+    expect(mocks.coachesImport.upsert).toHaveBeenCalledTimes(1);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 
@@ -218,7 +218,7 @@ describe('BblCoachesImportService', () => {
     const { service, mocks } = await makeService(
       mockBblSourceReader([page('Hugo E'), page('Tommy')]),
     );
-    mocks.coachesImport.upsertCoach.mockImplementationOnce((_data, errors) => {
+    mocks.coachesImport.upsert.mockImplementationOnce((_data, errors) => {
       errors.push({ item: {}, message: 'Failed to import coach "Hugo E"' });
       return Promise.resolve(undefined);
     });
@@ -242,7 +242,7 @@ describe('BblCoachesImportService', () => {
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(1);
-    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
+    expect(mocks.coachesImport.upsert).toHaveBeenCalledTimes(1);
     expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
     expect(mocks.pageParseError.build).toHaveBeenCalledWith(
       { coach: 'Hugo E' },
@@ -293,7 +293,7 @@ describe('BblCoachesImportService', () => {
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({ externalSystems: ['BBL', 'Name'] });
-    expect(mocks.coachesImport.upsertCoach).not.toHaveBeenCalled();
+    expect(mocks.coachesImport.upsert).not.toHaveBeenCalled();
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {

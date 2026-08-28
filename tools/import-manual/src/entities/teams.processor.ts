@@ -46,7 +46,7 @@ export class TeamsProcessor {
       if (!race.ok || !coach.ok || eras === undefined) {
         continue;
       }
-      const upserted = await this.teamsImport.upsertTeam(
+      const upserted = await this.teamsImport.upsert(
         {
           name: entry.name,
           raceId: race.id,

@@ -87,7 +87,7 @@ async function makeService({
     );
   }
   const coachesImport = mock<CoachesImportService>();
-  coachesImport.upsertCoach.mockImplementation(asProviderMethod(upsertCoach));
+  coachesImport.upsert.mockImplementation(asProviderMethod(upsertCoach));
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),

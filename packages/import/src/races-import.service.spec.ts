@@ -6,19 +6,28 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ImportRunnerService } from './import-runner.service';
-import { stubImportRunner } from './import-runner.test-helpers';
 import { RacesImportService } from './races-import.service';
-import type { ImportError } from './types';
 
+/**
+ * The success/failure plumbing lives in `createUpsertImportServiceBase` and is
+ * covered by `upsert-import-service-base.spec.ts`. What is entity-specific
+ * here — and all this suite asserts — is which client resource the service
+ * upserts through and how it words a failure.
+ */
 describe('RacesImportService', () => {
   let service: RacesImportService;
   let client: DeepMockProxy<ApiClient>;
   let runner: MockProxy<ImportRunnerService>;
 
+  const data = {
+    name: 'Orc',
+    eras: [],
+    externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
+  };
+
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    stubImportRunner(runner);
     const moduleRef = await Test.createTestingModule({
       providers: [
         RacesImportService,
@@ -29,73 +38,26 @@ describe('RacesImportService', () => {
     service = moduleRef.get(RacesImportService);
   });
 
-  const data = {
-    name: 'Orc',
-    eras: [],
-    externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-  };
-  const upsertResult = {
-    id: 1,
-    name: 'Orc',
-    eras: [],
-    createdAt: new Date('2026-01-01'),
-    created: true,
-  };
+  it('upserts through the races resource', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-  it('returns the upsert result and calls the client with the given data on success', async () => {
-    client.races.upsert.mockResolvedValue(upsertResult);
-    const errors: ImportError[] = [];
+    await service.upsert(data, []);
 
-    const result = await service.upsertRace(data, errors);
-
-    expect(result).toEqual(upsertResult);
+    await runner.recordUpsertResult.mock.calls[0][0].upsert();
     expect(client.races.upsert).toHaveBeenCalledWith(data);
-    expect(errors).toHaveLength(0);
   });
 
-  it('returns undefined and records an error when the client call fails', async () => {
-    client.races.upsert.mockRejectedValue(new Error('conflict'));
-    const errors: ImportError[] = [];
+  it('names the race in its error message', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const result = await service.upsertRace(data, errors);
+    await service.upsert(data, []);
 
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import race "Orc": conflict',
-      },
-    ]);
-  });
-
-  it('records an error using String(err) when the client rejects with a non-Error value', async () => {
-    client.races.upsert.mockRejectedValue('boom');
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertRace(data, errors);
-
-    expect(result).toBeUndefined();
-    expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import race "Orc": boom',
-      },
-    ]);
-  });
-
-  it('forwards eras field to client.races.upsert when provided', async () => {
-    client.races.upsert.mockResolvedValue(upsertResult);
-    const errors: ImportError[] = [];
-    const dataWithEras = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-      eras: [1, 2],
-    };
-
-    const result = await service.upsertRace(dataWithEras, errors);
-
-    expect(result).toEqual(upsertResult);
-    expect(client.races.upsert).toHaveBeenCalledWith(dataWithEras);
-    expect(errors).toHaveLength(0);
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('conflict'))).toBe(
+      'Failed to import race "Orc": conflict',
+    );
+    expect(options.buildErrorMessage('boom')).toBe(
+      'Failed to import race "Orc": boom',
+    );
   });
 });

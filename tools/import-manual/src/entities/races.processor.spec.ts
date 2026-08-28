@@ -56,7 +56,7 @@ describe('RacesProcessor', () => {
   });
 
   it('resolves era refs and upserts', async () => {
-    races.upsertRace.mockResolvedValue({
+    races.upsert.mockResolvedValue({
       id: 40,
       name: 'Necromantic Horror',
       eras: [50],
@@ -88,7 +88,7 @@ describe('RacesProcessor', () => {
     expect(refResolver.resolveRefs).toHaveBeenCalledWith(
       expect.objectContaining({ refs: data.races[0].eras, kind: 'era' }),
     );
-    expect(races.upsertRace).toHaveBeenCalledWith(
+    expect(races.upsert).toHaveBeenCalledWith(
       {
         name: 'Necromantic Horror',
         eras: [50],
@@ -99,7 +99,7 @@ describe('RacesProcessor', () => {
   });
 
   it('upserts a race with no eras (empty list)', async () => {
-    races.upsertRace.mockResolvedValue({
+    races.upsert.mockResolvedValue({
       id: 41,
       name: 'Amazon',
       eras: [],
@@ -120,7 +120,7 @@ describe('RacesProcessor', () => {
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
-    expect(races.upsertRace.mock.calls[0][0]).toMatchObject({ eras: [] });
+    expect(races.upsert.mock.calls[0][0]).toMatchObject({ eras: [] });
   });
 
   // Resolution-failure error counting is the resolver's own behaviour and is
@@ -142,13 +142,13 @@ describe('RacesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(races.upsertRace).not.toHaveBeenCalled();
+    expect(races.upsert).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
   it('does not count when upsert returns null', async () => {
-    races.upsertRace.mockResolvedValue(
-      null as unknown as Awaited<ReturnType<RacesImportService['upsertRace']>>,
+    races.upsert.mockResolvedValue(
+      null as unknown as Awaited<ReturnType<RacesImportService['upsert']>>,
     );
     refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
@@ -167,7 +167,7 @@ describe('RacesProcessor', () => {
   });
 
   it('upserts a rename-only race with an empty, additive era list', async () => {
-    races.upsertRace.mockResolvedValue({
+    races.upsert.mockResolvedValue({
       id: 21,
       name: 'Ogre',
       eras: [],
@@ -184,7 +184,7 @@ describe('RacesProcessor', () => {
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
-    expect(races.upsertRace.mock.calls[0][0]).toEqual({
+    expect(races.upsert.mock.calls[0][0]).toEqual({
       name: 'Ogre',
       eras: [],
       externalIds: [],
