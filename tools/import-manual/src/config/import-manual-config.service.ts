@@ -26,13 +26,8 @@ export const DEFAULT_IMPORT_MANUAL_CONFIG_PATH = paths.defaultPath;
 export const PRODUCTION_IMPORT_MANUAL_CONFIG_PATH = paths.productionPath;
 
 /**
- * Pick the config file for this run: the `.production.json5` variant when
- * `IMPORT_CONFIG_ENV` is exactly `production`, the default file otherwise
- * (including when the variable is unset or holds any other value).
- *
- * A loose function rather than a service because it is a module `useFactory`
- * that bootstraps the very provider DI would otherwise inject — see
- * CLAUDE.md, "Service vs. loose function", case 3.
+ * Pick the config file for this run — see `createImportConfigPaths` in
+ * `@blood-bowl-tracker/import` for the resolution rules.
  */
 export const resolveImportManualConfigPath = paths.resolvePath;
 

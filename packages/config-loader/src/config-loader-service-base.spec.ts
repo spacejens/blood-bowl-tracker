@@ -4,7 +4,8 @@ import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import JSON5 from 'json5';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createConfigLoaderServiceBase } from './config-loader-service-base';
@@ -83,6 +84,21 @@ describe('createConfigLoaderServiceBase', () => {
   it('names the failing file in the wrapped parse error', async () => {
     const path = writeConfig('{ this is : not valid');
     await expect(makeService(path)).rejects.toThrow(`Failed to parse ${path}`);
+  });
+
+  it('stringifies a non-Error thrown while parsing', async () => {
+    const path = writeConfig(`{ dataDir: 'data/' }`);
+    const parseSpy = vi.spyOn(JSON5, 'parse').mockImplementation(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- exercising the non-Error branch of the parse-error handler
+      throw 'boom';
+    });
+    try {
+      await expect(makeService(path)).rejects.toThrow(
+        `Failed to parse ${path}: boom`,
+      );
+    } finally {
+      parseSpy.mockRestore();
+    }
   });
 
   it('rethrows a read failure that is not ENOENT', async () => {

@@ -70,7 +70,7 @@ export function createConfigLoaderServiceBase(
         parsed = JSON5.parse(raw);
       } catch (error) {
         throw new Error(
-          `Failed to parse ${this.filePath}: ${(error as Error).message}`,
+          `Failed to parse ${this.filePath}: ${error instanceof Error ? error.message : String(error)}`,
           { cause: error },
         );
       }
