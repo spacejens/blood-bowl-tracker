@@ -26,9 +26,9 @@ Most often triggered conversationally — when the developer says something like
    ```
    This only updates the remote-tracking ref `origin/main`. It never checks out or otherwise touches the developer's local `main` branch.
 
-   Steps 3 and 4 below invoke `tools/ai-helpers`, so make sure it is compiled before running them:
+   Steps 3 and 4 below invoke `tools/dev-workflow-cli`, so make sure it is compiled before running them:
    ```bash
-   pnpm --filter @blood-bowl-tracker/ai-helpers run build
+   pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build
    ```
    If this fails because dependencies are not installed in this checkout, run `pnpm install` first. A build failure here blocks steps 3 and 4 — report it and stop rather than skipping those checks.
 3. Check for stranded work: commits on `headRefName` or uncommitted changes in the worktree that never made it into the merged PR (can happen if a developer commits directly in the worktree outside the normal task flow). Compare the merged PR's final commit against the local branch tip:
@@ -40,7 +40,7 @@ Most often triggered conversationally — when the developer says something like
 
    Then also check the **main checkout** (the repo's primary working tree, distinct from this worktree) for stray commits **and** uncommitted changes left behind by an accidental edit outside the worktree:
    ```bash
-   node tools/ai-helpers/dist/main.js check-main-stray
+   node tools/dev-workflow-cli/dist/main.js check-main-stray
    ```
    It prints `{"isWorktree": false}` outside a worktree — nothing to check, move on. Inside one it prints:
    ```json
@@ -50,12 +50,12 @@ Most often triggered conversationally — when the developer says something like
      "strayCommits": [{ "sha": "abc1234", "subject": "commit subject" }]
    }
    ```
-   `status` is the raw 2-character `git status --porcelain` code (e.g. `" M"`, `"??"`, `"A "`) — needed below to tell a restorable edit apart from an untracked file. Apply the same logic as `develop-feature`'s and `handle-pr-reviews`' pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main; if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. To clean up, resolve the main checkout's path first with `node tools/ai-helpers/dist/main.js resolve-main-root` and use its `mainRoot` value: for an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly with `rm "<main-root>/<path>"`; for every other status code, use `git -C "<main-root>" restore <paths>` (reset redundant commits the same way). If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation). This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
+   `status` is the raw 2-character `git status --porcelain` code (e.g. `" M"`, `"??"`, `"A "`) — needed below to tell a restorable edit apart from an untracked file. Apply the same logic as `develop-feature`'s and `handle-pr-reviews`' pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main; if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. To clean up, resolve the main checkout's path first with `node tools/dev-workflow-cli/dist/main.js resolve-main-root` and use its `mainRoot` value: for an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly with `rm "<main-root>/<path>"`; for every other status code, use `git -C "<main-root>" restore <paths>` (reset redundant commits the same way). If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation). This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
 4. Check for gitignored config drift — changes to gitignored config/env files that live only inside this worktree and would be lost when it is removed. `git status` never surfaces these, so they need their own check.
    ```bash
-   node tools/ai-helpers/dist/main.js check-drift
+   node tools/dev-workflow-cli/dist/main.js check-drift
    ```
-   The command detects worktree context itself and reports nothing outside a worktree (in a plain main checkout there is no second copy to compare against), so there is no separate detection step here. It compares a fixed list of gitignored files — the dev configs `develop-feature`'s Phase 1 syncs *into* a worktree, plus the `.production` variants — between this worktree and the main checkout. That list lives in `tools/ai-helpers/src/shared/gitignored-files.ts` (`GITIGNORED_DRIFT_FILES`); when a new tool config appears, add it there, in one place, rather than to a copy in this file. The `tools/import-bbl/data` and `tools/import-tp/data` directories are deliberately excluded: they are symlinked into the worktree rather than copied, so they always read through to the main checkout's files and cannot drift. A listed file that is absent from this worktree is not checked — there is nothing here to lose.
+   The command detects worktree context itself and reports nothing outside a worktree (in a plain main checkout there is no second copy to compare against), so there is no separate detection step here. It compares a fixed list of gitignored files — the dev configs `develop-feature`'s Phase 1 syncs *into* a worktree, plus the `.production` variants — between this worktree and the main checkout. That list lives in `tools/cli-shared/src/gitignored-files.ts` (`GITIGNORED_DRIFT_FILES`); when a new tool config appears, add it there, in one place, rather than to a copy in this file. The `tools/import-bbl/data` and `tools/import-tp/data` directories are deliberately excluded: they are symlinked into the worktree rather than copied, so they always read through to the main checkout's files and cannot drift. A listed file that is absent from this worktree is not checked — there is nothing here to lose.
 
    Output:
    ```json
@@ -73,7 +73,7 @@ Most often triggered conversationally — when the developer says something like
 
    Then ask via `AskUserQuestion`, **one question per flagged file**, with these two genuine options (recommended first, per this project's `AskUserQuestion` convention):
 
-   1. **"Copy into main checkout"** (recommended) — overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied. Resolve both roots first with `node tools/ai-helpers/dist/main.js resolve-main-root` and use its `mainRoot` and `worktreeRoot` values:
+   1. **"Copy into main checkout"** (recommended) — overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied. Resolve both roots first with `node tools/dev-workflow-cli/dist/main.js resolve-main-root` and use its `mainRoot` and `worktreeRoot` values:
       ```bash
       mkdir -p "$(dirname "<main-root>/<file>")"
       cp "<worktree-root>/<file>" "<main-root>/<file>"

@@ -33,7 +33,7 @@ This applies to every subagent dispatched from any phase below while working in 
 
 A worktree-isolated session's safety check can refuse to run a shell command it judges too complex to verify stays inside the worktree — even a read-only one that touches no git state. In practice this reliably rejects multi-statement blocks (several commands chained by newlines/`;`, or `if`/loop constructs), and can — inconsistently, session to session — also reject a single heredoc invocation (`cmd <<'EOF' ... EOF`). A `cd <worktree-path> && <single command>` prefix, as required throughout this skill for every subagent dispatch, is accepted.
 
-When a step's logic doesn't reduce to one plain command, put it behind **one** command invocation instead: a `tools/ai-helpers` subcommand (`node tools/ai-helpers/dist/main.js <subcommand> ...` — build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build` if `dist/main.js` is missing) or a script file invoked as a single command. This is why Phase 6's review wait is a single `wait-for-pr-review` invocation instead of an inline poll loop. `docs/plans` writes go through the same `write-file` subcommand for a different reason (Phases 2 and 3 below — the Write tool refuses to write through the `docs/plans` symlink), fed via a heredoc; if that heredoc form is refused in a given session, fall back to writing the content to a plain file first and piping it in, e.g. `cat <file> | node tools/ai-helpers/dist/main.js write-file <path>`.
+When a step's logic doesn't reduce to one plain command, put it behind **one** command invocation instead: a subcommand of one of the `tools/*-cli` helper packages (`node tools/<package>/dist/main.js <subcommand> ...` — build it first with `pnpm --filter @blood-bowl-tracker/<package> run build` if `dist/main.js` is missing) or a script file invoked as a single command. This is why Phase 6's review wait is a single `wait-for-pr-review` invocation instead of an inline poll loop. `docs/plans` writes go through the same `write-file` subcommand for a different reason (Phases 2 and 3 below — the Write tool refuses to write through the `docs/plans` symlink), fed via a heredoc; if that heredoc form is refused in a given session, fall back to writing the content to a plain file first and piping it in, e.g. `cat <file> | node tools/fs-utils-cli/dist/main.js write-file <path>`.
 
 ---
 
@@ -100,7 +100,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
@@ -108,9 +108,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
 10. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   The canonical file and directory lists live in `tools/ai-helpers/src/shared/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 8. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 8. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
    It prints JSON to stdout, e.g.:
    ```json
@@ -151,7 +151,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
@@ -159,9 +159,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
 7. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   The canonical file and directory lists live in `tools/ai-helpers/src/shared/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 5. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 5. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
    It prints JSON to stdout, e.g.:
    ```json
@@ -188,12 +188,12 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 3. **Override the brainstorming skill's default spec save location, and save the spec with the `write-file` CLI:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. **Do not use the Write tool for this** — in a worktree, `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it (it looks like escaping the worktree) and errors instead. Write the spec by piping it into the `write-file` subcommand:
 
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<spec-filename>.md <<'SPECEOF'
+   cd <worktree-path> && node tools/fs-utils-cli/dist/main.js write-file docs/plans/<spec-filename>.md <<'SPECEOF'
    ...full spec markdown...
    SPECEOF
    ```
 
-   It prints `{"written": "...", "bytes": N}` on success. If `dist/main.js` is missing, build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Note the exact saved filename — Phase 3 needs it. Then verify the save actually went through: run `test -s "<worktree-path>/docs/plans/<spec-filename>.md"` (checks the file exists AND is non-empty). If that check fails, the save did not go through — do not proceed to the next step as if it succeeded; investigate and re-save instead.
+   It prints `{"written": "...", "bytes": N}` on success. If `dist/main.js` is missing, build it first with `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`. Note the exact saved filename — Phase 3 needs it. Then verify the save actually went through: run `test -s "<worktree-path>/docs/plans/<spec-filename>.md"` (checks the file exists AND is non-empty). If that check fails, the save did not go through — do not proceed to the next step as if it succeeded; investigate and re-save instead.
 4. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
@@ -205,7 +205,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - Follow `superpowers:writing-plans`, saving the plan to `docs/plans/` (gitignored) instead of that skill's own default location. Tell the agent explicitly **not to use its Write tool** for that save — `docs/plans` is a symlink to the main checkout and the Write tool refuses to write through it — and to use the `write-file` subcommand instead:
 
      ```bash
-     cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<plan-filename>.md <<'PLANEOF'
+     cd <worktree-path> && node tools/fs-utils-cli/dist/main.js write-file docs/plans/<plan-filename>.md <<'PLANEOF'
      ...full plan markdown...
      PLANEOF
      ```
@@ -227,7 +227,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - **Commit:** One commit per completed task; message explains what changed and why
 3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
-5. After each task: check whether the task's diff touches any file under `apps/`, `packages/`, or `tools/` (`git diff --name-only <task-base-sha>..HEAD`, where `<task-base-sha>` is the commit recorded before dispatching that task's implementer). If it does, run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, test) — when lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve. If the diff touches only files outside those three directories (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note in the task's status line that it was skipped and why — none of `pnpm verify`'s scripts (`build`, `lint`, `typecheck`, `test`) run against paths outside `apps/`, `packages/`, `tools/`, so there is nothing for them to check.
+5. After each task: check whether the task's diff touches any file under `apps/`, `packages/`, or `tools/` (`git diff --name-only <task-base-sha>..HEAD`, where `<task-base-sha>` is the commit recorded before dispatching that task's implementer). If it does, run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, format, test) — when lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve. If the diff touches only files outside those three directories (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note in the task's status line that it was skipped and why — none of `pnpm verify`'s scripts (`build`, `lint`, `typecheck`, `format`, `test`) run against paths outside `apps/`, `packages/`, `tools/`, so there is nothing for them to check.
 6. Print a brief status line confirming all tasks are complete and that `pnpm verify` is green for every task that ran it (noting any tasks that skipped it per step 5), then continue immediately into Phase 5.
 
 ---
@@ -258,7 +258,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - **Conflict:** attempt an automated resolution — read both sides of each conflicting hunk, resolve, then run `pnpm verify`. If the correct resolution isn't clear from the diffs, or `pnpm verify` doesn't come back clean afterward, **stop**, report the conflicting files, and wait for the developer to resolve manually before continuing.
 2. **Pre-push check — no stray work in the main checkout.** Before `gh pr create` pushes the branch, verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`.
    ```bash
-   node tools/ai-helpers/dist/main.js check-main-stray
+   node tools/dev-workflow-cli/dist/main.js check-main-stray
    ```
    This prints JSON. If it prints `{"isWorktree": false}`, work is happening in place — **skip the rest of this step**. Otherwise it prints:
    ```json
@@ -274,7 +274,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      - **Committed on main** (an entry in `strayCommits`) — the commit's patch is already present on the worktree branch (cherry-pick-equivalent — `git cherry` / patch-id match, or the identical diff already committed here).
    - Act on each item. Cleanup runs against the main checkout, so first resolve its path:
      ```bash
-     node tools/ai-helpers/dist/main.js resolve-main-root
+     node tools/dev-workflow-cli/dist/main.js resolve-main-root
      ```
      and use the printed `mainRoot` value as `<main-root>` below.
      - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
@@ -323,9 +323,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    Otherwise, build a JSON array from the list, one object per question: `file` (repo-relative path), `line` (integer), and `body` (the question text exactly as Phase 5 drafted it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
 
-   Post them with a single command, in the same heredoc-stdin form this skill already uses for `write-file` in Phases 2 and 3 (see "Worktree isolation and shell commands" above for why this must be one command, and its two fallbacks: build `tools/ai-helpers` first if `dist/main.js` is missing, and if the heredoc form is refused in a given session, write the JSON to a plain file first and feed that file into the same command instead):
+   Post them with a single command, in the same heredoc-stdin form this skill already uses for `write-file` in Phases 2 and 3 (see "Worktree isolation and shell commands" above for why this must be one command, and its two fallbacks: build `tools/dev-workflow-cli` first if `dist/main.js` is missing, and if the heredoc form is refused in a given session, write the JSON to a plain file first and feed that file into the same command instead):
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
    [
      { "file": "path/to/file.ts", "line": 42, "body": "..." }
    ]
@@ -369,9 +369,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
       Then wait for a submitted review by someone other than the developer, posted at or after that watermark, with a single command:
       ```bash
-      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
+      cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
       ```
-      Substitute the PR number from step 3, the login captured before the loop, and the watermark epoch and previous review id from above. Omit `--exclude-review-id` entirely on the first iteration (nothing to exclude yet). The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
+      Substitute the PR number from step 3, the login captured before the loop, and the watermark epoch and previous review id from above. Omit `--exclude-review-id` entirely on the first iteration (nothing to exclude yet). The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`. It prints one JSON object:
       - `{"found": true, "review": {...}}` — a qualifying review exists. Record both `review.submittedAt` and `review.id` for the next iteration, stop waiting, and go to (c).
       - `{"found": false, "rateLimited": true, "rateLimitComment": {...}}` — CodeRabbit answered with a rate-limit warning comment instead of a review, so the wait returned early rather than running out its remaining time. The result may also carry `availableAtEpochSeconds`, a best-effort epoch parsed from the comment. Go to (b2).
       - `{"found": false, "commentUpdateFailed": true, "commentUpdateFailedComment": {...}}` — CodeRabbit failed to persist an update to its rolling walkthrough comment and posted a failure notice as a separate top-level comment instead, submitting no review, so the wait returned early rather than running out its remaining time. Unlike the rate-limit case there is no wait time to parse. Go to (b3).
@@ -429,7 +429,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
       Then re-run `wait-for-pr-review` with that as the watermark and the same `--exclude-review-id` as before, plus the flags below. Like "Keep waiting" in (b), this does **not** consume a loop iteration — whether it was entered automatically or by the developer's choice.
       ```bash
-      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-id=<rateLimitComment.id> --trigger-after=<trigger-epoch> --timeout-ms=<timeout>
+      cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-id=<rateLimitComment.id> --trigger-after=<trigger-epoch> --timeout-ms=<timeout>
       ```
       - Include `--exclude-review-id` only when a previous review's `id` already exists to exclude (i.e. this isn't the very first iteration's wait). Omit it entirely when the rate limit was hit on step (a)'s first iteration, consistent with how (a) itself omits it there.
       - `--exclude-comment-update-failure-id` is deliberately **not** part of this command by default, but if a comment-update-failure comment was also excluded earlier in this loop (a prior (b3) round), keep passing its id alongside this retry — same reasoning as (b3)'s own note about carrying `--exclude-comment-id` forward.
@@ -453,7 +453,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
         Then re-run `wait-for-pr-review` with that watermark and the flags below. Like "Keep waiting" in (b) and "Wait for it" in (b2), this does **not** consume a loop iteration.
         ```bash
-        cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-update-failure-id=<commentUpdateFailedComment.id> --trigger-after=<now-epoch> --timeout-ms=600000
+        cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-update-failure-id=<commentUpdateFailedComment.id> --trigger-after=<now-epoch> --timeout-ms=600000
         ```
         - Include `--exclude-review-id` only when a previous review's `id` already exists to exclude (i.e. this isn't the very first iteration's wait). Omit it entirely when the failure hit on step (a)'s first iteration, consistent with how (a) itself omits it there — the same condition (b2) applies.
         - `<comment-watermark-epoch>` is the value just computed above, not the watermark from (a). Advancing it matters for the same reason as in (b2): `--exclude-comment-update-failure-id` only ever excludes one id and the jq filter picks the chronologically-*first* qualifying comment, so a repeated failure on a later poll must be detected as new rather than swallowed by a stale watermark.

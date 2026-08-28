@@ -100,7 +100,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    fi
    ```
 
-5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/ai-helpers` exists as compiled output for step 6:
+5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/fs-utils-cli` exists as compiled output for step 6:
    ```bash
    pnpm install
    ```
@@ -111,9 +111,9 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
 
 6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 10:
    ```bash
-   node tools/ai-helpers/dist/main.js sync-gitignored
+   node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
+   If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
 
 7. Print a brief status line — worktree path, branch, whether `pnpm install`/`pnpm build` succeeded, and the sync counts — then continue immediately into Phase 2.
 
@@ -142,7 +142,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
    ```bash
    gh run view <run-id> --log-failed
    ```
-   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, `docker-build`, and `schemaspy-build` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other five.
+   `<run-id>` is the number after `/runs/` in that URL. This repo's CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, `format`, `docker-build`, and `schemaspy-build` as separate jobs behind a `gatekeeper` job, so the failing job's *name* already narrows what broke before you read a single log line. Ignore a `gatekeeper` failure on its own — it only aggregates the other six.
 
    If the logs are inconclusive, reproduce locally in the worktree — the dependency is already installed there by Phase 1:
    ```bash
@@ -164,11 +164,11 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
 
    **Do not use the Write tool for this** — in a worktree `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it. Use the `write-file` subcommand, exactly as `develop-feature`'s Phases 2 and 3 do:
    ```bash
-   node tools/ai-helpers/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
+   node tools/fs-utils-cli/dist/main.js write-file docs/plans/<summary-filename>.md <<'SUMMARYEOF'
    ...full summary markdown...
    SUMMARYEOF
    ```
-   It prints `{"written": "...", "bytes": N}`. If `dist/main.js` is missing, build it with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`; if the heredoc form is refused in this session, write the content to a plain file first and pipe it in (`cat <file> | node tools/ai-helpers/dist/main.js write-file <path>`). Then confirm the save actually landed:
+   It prints `{"written": "...", "bytes": N}`. If `dist/main.js` is missing, build it with `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`; if the heredoc form is refused in this session, write the content to a plain file first and pipe it in (`cat <file> | node tools/fs-utils-cli/dist/main.js write-file <path>`). Then confirm the save actually landed:
    ```bash
    test -s "docs/plans/<summary-filename>.md"
    ```
@@ -228,11 +228,11 @@ Identical to `develop-feature`'s Phase 5, with no changes:
 
 The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync merge step and no `gh pr create`** — the PR already exists, and merging `main` into Renovate's branch would put commits on it that Renovate never made and that the developer did not ask for. Leave the branch exactly as far behind `main` as Renovate left it; GitHub's merge button handles the rest.
 
-1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist:
+1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist. This depends on `tools/dev-workflow-cli` already being built — Phase 1 step 5's `pnpm build` builds it, so no separate build command is normally needed here; if that build failed, build just this package first: `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`.
    ```bash
-   node tools/ai-helpers/dist/main.js check-main-stray
+   node tools/dev-workflow-cli/dist/main.js check-main-stray
    ```
-   `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/ai-helpers/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
+   `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/dev-workflow-cli/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
 
 2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
    ```bash
@@ -252,7 +252,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 4. **Post pending self-review questions, if any.** If the Self-review step's pending-questions list is empty, skip this step entirely and silently — the common case. Otherwise build a JSON array of `{ "file": "<repo-relative path>", "line": <integer>, "body": "<question text>" }` objects (do **not** prepend `**Comment by Claude**` — the subcommand does that itself) and post them with one command:
    ```bash
-   node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
+   node tools/dev-workflow-cli/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
    [
      { "file": "path/to/file.ts", "line": 42, "body": "..." }
    ]
@@ -270,7 +270,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
    a. Wait for a non-author review with a single backgrounded command:
    ```bash
-   node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
+   node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
    ```
    The **first** iteration's `<watermark-epoch>` is the epoch captured in step 2 above — not the PR's `createdAt` — and omits `--exclude-review-id` entirely (there is nothing to exclude yet). Every later iteration uses the previous iteration's found `review.submittedAt` converted to epoch seconds, and passes that review's `id` as `--exclude-review-id`. Run it with `run_in_background: true` and branch on the JSON it prints at exit; never use `ScheduleWakeup` for this wait.
 

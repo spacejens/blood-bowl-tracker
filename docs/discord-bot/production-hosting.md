@@ -283,8 +283,8 @@ deploys queue rather than race — cancelling a deploy mid-flight can leave
 a machine half-replaced.
 
 Nothing about CI gates the deploy. `.github/workflows/ci.yml` runs on pull
-requests, so lint, typecheck, and tests have already passed on the branch
-before the merge that triggers a deploy.
+requests, so CI has already passed on the branch before the merge that
+triggers a deploy.
 
 The workflow also accepts `workflow_dispatch`, which redeploys the current
 `main` without a new commit — useful after pushing changed secrets, or to

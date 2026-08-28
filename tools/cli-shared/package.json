@@ -1,0 +1,34 @@
+{
+  "name": "@blood-bowl-tracker/cli-shared",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --check \"src/**/*.ts\"",
+    "format:fix": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.29",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.1.29",
+    "@swc/core": "^1.15.47",
+    "@types/node": "^24.13.3",
+    "@vitest/coverage-v8": "^4.1.10",
+    "typescript": "^6.0.3",
+    "unplugin-swc": "^1.5.10",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10",
+    "vitest-mock-extended": "^5.1.1"
+  }
+}
