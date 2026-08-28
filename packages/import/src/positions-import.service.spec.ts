@@ -53,6 +53,9 @@ describe('PositionsImportService', () => {
     expect(options.buildErrorMessage(new Error('conflict'))).toBe(
       'Failed to import position "Lineman": conflict',
     );
+    expect(options.buildErrorMessage('boom')).toBe(
+      'Failed to import position "Lineman": boom',
+    );
   });
 
   describe('syncRaceEras', () => {

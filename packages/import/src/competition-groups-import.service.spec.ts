@@ -50,6 +50,9 @@ describe('CompetitionGroupsImportService', () => {
     expect(options.buildErrorMessage(new Error('conflict'))).toBe(
       'Failed to import competition group "Chaos Cup": conflict',
     );
+    expect(options.buildErrorMessage('boom')).toBe(
+      'Failed to import competition group "Chaos Cup": boom',
+    );
   });
 
   describe('listCompetitionGroups', () => {
