@@ -226,17 +226,19 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
-  it('defaults to a 10-minute timeout and a 30-second interval', async () => {
+  it('defaults to a 20-minute timeout and a 30-second interval', async () => {
     processRunner.run.mockResolvedValue(EMPTY);
 
-    const result = await runWait(OPTIONS);
+    // The helper's default 15-minute advance is shorter than the 20-minute
+    // default timeout, so this wait needs the clock pushed past its deadline.
+    const result = await runWait(OPTIONS, 25 * 60 * 1000);
 
     expect(result).toEqual({ found: false, timedOut: true });
-    // Default timeout 600_000ms / interval 30_000ms: polls at
-    // 0/30s/60s/.../570s — 20 polls. Sleeping after the 20th poll resumes
-    // exactly at the 600s deadline, which is reported as a timeout rather
-    // than issuing a 21st `gh` call. 20 polls, two calls each.
-    expect(processRunner.run).toHaveBeenCalledTimes(40);
+    // Default timeout 1_200_000ms / interval 30_000ms: polls at
+    // 0/30s/60s/.../1170s — 40 polls. Sleeping after the 40th poll resumes
+    // exactly at the 1200s deadline, which is reported as a timeout rather
+    // than issuing a 41st `gh` call. 40 polls, two calls each.
+    expect(processRunner.run).toHaveBeenCalledTimes(80);
   });
 
   it('returns immediately when a qualifying rate-limit comment is found', async () => {

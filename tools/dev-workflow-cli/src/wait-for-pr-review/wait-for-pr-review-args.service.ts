@@ -5,7 +5,7 @@ import { WaitForPrReviewOptions } from './wait-for-pr-review.service';
 const WAIT_FOR_PR_REVIEW_USAGE =
   'Usage: node dist/main.js wait-for-pr-review <pr-number> ' +
   '<developer-login> <since-epoch-seconds> ' +
-  '[--timeout-ms=600000] [--interval-ms=30000] [--exclude-review-id=<id>] ' +
+  '[--timeout-ms=1200000] [--interval-ms=30000] [--exclude-review-id=<id>] ' +
   '[--exclude-comment-id=<id>] [--exclude-comment-update-failure-id=<id>] ' +
   '[--trigger-after=<epoch-seconds>]';
 

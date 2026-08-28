@@ -260,12 +260,12 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```
    Report from its printed `posted`/`failed` arrays how many went inline, how many went top-level, and how many failed (naming each failure's file, line, and error). Any failure here is a one-line warning and never a stop — the push already landed regardless.
 
-5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, skip the loop with a one-line warning and go to step 6), then repeat for at most **5 iterations**. Record how the loop ends — step 8's final report names this outcome rather than assuming a bot pass always completed:
+5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, skip the loop with a one-line warning and go to step 6), then repeat for at most **10 iterations**. Record how the loop ends — step 8's final report names this outcome rather than assuming a bot pass always completed:
    - **Clean** — a `handle-pr-reviews` run reported "No unhandled review comments or failing CI checks found." A completed independent bot pass.
    - **Handled without code changes** — a `handle-pr-reviews` run completed a full triage pass (per its own Phase 7 summary) but pushed no fix commits, because every outstanding item was a question it answered or a suggestion it rejected — this is the third exit condition step (d) below and `develop-feature`'s own exit check both name alongside the clean verdict and the ambiguous-item stop. Also a completed independent bot pass: everything the bot raised was addressed, just none of it needed a code change.
    - **Skipped** — the `gh api user` call above failed, so the loop never ran at all. No bot pass happened.
    - **Timed out and skipped** — the developer chose to skip ahead after a wait timeout (step (b) below). No bot pass completed for the latest push.
-   - **Iteration cap reached** — all 5 iterations ran without reaching a clean verdict (e.g. CodeRabbit stayed mid-review, or kept surfacing new findings each pass). A bot pass may have partially run, but did not conclude clean.
+   - **Iteration cap reached** — all 10 iterations ran without reaching a clean verdict (e.g. CodeRabbit stayed mid-review, or kept surfacing new findings each pass). A bot pass may have partially run, but did not conclude clean.
    - **Ambiguous item surfaced** — a `handle-pr-reviews` run stopped mid-triage on an item needing developer judgment. The loop exited before a clean verdict.
 
    a. Wait for a non-author review with a single backgrounded command:
@@ -284,7 +284,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
 6. **Offer a local look.** **REQUIRED SUB-SKILL:** Use the `deploy-local` skill, exactly as `develop-feature`'s Phase 6 step 6 does — this is the only `deploy-local` offer this skill produces, since step 5c suppresses `handle-pr-reviews`' own. It is worth making even for a dependency bump: an updated runtime library can break at startup in ways no unit test covers. Do not ask the developer separately before invoking it — `deploy-local` asks which of its actions to run.
 
-7. **Re-check mergeability before the final report.** The review loop above can run long (up to 5 iterations, each waiting up to 10 minutes), and `main` may have advanced or the branch may have gone stale in that time — the mergeability check in Phase 2 step 6 only covers the "No code changes needed" exit, not this pushed-fix path. Re-run it now:
+7. **Re-check mergeability before the final report.** The review loop above can run long (up to 10 iterations, each waiting up to 20 minutes), and `main` may have advanced or the branch may have gone stale in that time — the mergeability check in Phase 2 step 6 only covers the "No code changes needed" exit, not this pushed-fix path. Re-run it now:
    ```bash
    gh pr view <PR> --json mergeable,mergeStateStatus,isDraft
    ```
