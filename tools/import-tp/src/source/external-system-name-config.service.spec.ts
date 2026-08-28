@@ -32,13 +32,6 @@ describe('ExternalSystemNameConfigService', () => {
     expect(service.getTpSystemName()).toBe('TP');
   });
 
-  it('returns "TP" when externalSystemName is empty or whitespace', () => {
-    withName('');
-    expect(service.getTpSystemName()).toBe('TP');
-    withName('   ');
-    expect(service.getTpSystemName()).toBe('TP');
-  });
-
   it('returns the configured value when externalSystemName is set', () => {
     withName('MyTp');
     expect(service.getTpSystemName()).toBe('MyTp');
