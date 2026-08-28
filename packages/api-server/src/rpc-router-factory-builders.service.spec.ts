@@ -12,6 +12,16 @@ import { createRouterHarness } from './rpc-router-factory.test-helpers';
  * are exercised the only way they are ever used: through the router build()
  * returns. This suite pins the behaviour the builders are responsible for --
  * per-entity wiring is covered entity by entity in the sibling spec files.
+ *
+ * That per-entity coverage is not a convenience duplicate of this suite: the
+ * generic builders erase the compile-time link between a procedure, its
+ * game-data service, and its conflict-error class (each is just a
+ * concretely-typed argument at a generic call site), so the sibling specs
+ * (rpc-router-factory.service.spec.ts, rpc-router-factory-batch.service.spec.ts,
+ * rpc-router-factory-competition-groups.service.spec.ts, and
+ * rpc-router-factory-trophy-awards.service.spec.ts) are the only check that a
+ * given entity's procedure/service/conflict-error triple is actually wired
+ * correctly. Do not trim them as redundant once this suite exists.
  */
 describe('route builders', () => {
   const league = {

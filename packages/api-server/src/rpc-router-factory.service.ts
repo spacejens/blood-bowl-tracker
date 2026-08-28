@@ -58,7 +58,6 @@ import type {
   ResolveProcedure,
   ResolveRouteOptions,
 } from './rpc-router-factory-types';
-import type { ConflictErrors } from './upsert-handler.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
@@ -97,17 +96,32 @@ export class RpcRouterFactoryService {
    * service's own differently-named result shape without any game-data
    * return shape changing.
    *
-   * The two casts are unavoidable and safe: inside a generic body TypeScript
-   * cannot resolve InferSchemaInput<TOutputSchema> or the handler's
-   * error-constructor map, but every call site instantiates them concretely,
-   * so the router type build() returns is exactly what a hand-written
-   * implement(...).handler(...) would produce, and oRPC still validates the
-   * handler's output against the contract's schema at runtime.
+   * The remaining cast is unavoidable and safe: inside a generic body
+   * TypeScript cannot resolve InferSchemaInput<TOutputSchema>, but every call
+   * site instantiates it concretely, so the router type build() returns is
+   * exactly what a hand-written implement(...).handler(...) would produce,
+   * and oRPC still validates the handler's output against the contract's
+   * schema at runtime.
+   *
+   * TErrorMap requires CONFLICT and BAD_REQUEST because the handler body
+   * below unconditionally hands `errors` to UpsertHandlerService.run, which
+   * calls `errors.CONFLICT(...)` on a conflict and `errors.BAD_REQUEST(...)`
+   * on the other known domain failures -- without the constraint, a
+   * procedure built by `upsertProcedureBadRequestOnly()` (no CONFLICT) would
+   * still type-check here and only fail at runtime, the first time a real
+   * conflict occurred. Once the constraint is in place, `errors` already
+   * satisfies ConflictErrors structurally, so no cast is needed to pass it to
+   * UpsertHandlerService.run. This is deliberately narrower than
+   * buildUpsertBatchRoute's TErrorMap: runBatch never touches `errors` (a
+   * per-item domain failure becomes that item's `{success: false}` entry,
+   * not a thrown contract error), so an upsertBatch procedure legitimately
+   * declares no CONFLICT/BAD_REQUEST at all -- see
+   * `batchUpsertProcedure` in packages/api-contract.
    */
   private buildUpsertRoute<
     TInputSchema extends AnySchema,
     TOutputSchema extends AnySchema,
-    TErrorMap extends ErrorMap,
+    TErrorMap extends ErrorMap & { CONFLICT: unknown; BAD_REQUEST: unknown },
     TMeta extends Meta,
     TInput,
     TResult,
@@ -122,7 +136,7 @@ export class RpcRouterFactoryService {
       upsert: implement(options.procedure).handler(
         async ({ input, errors }) => {
           const result = await this.upsertHandler.run(
-            errors as unknown as ConflictErrors,
+            errors,
             options.conflictError,
             async () =>
               options.unwrap(
@@ -140,6 +154,14 @@ export class RpcRouterFactoryService {
    * becomes that item's failure entry rather than a thrown contract error --
    * see UpsertHandlerService.runBatch. The casts are the same
    * deferred-generic ones buildUpsertRoute explains.
+   *
+   * TErrorMap here is left as plain ErrorMap, unlike buildUpsertRoute's
+   * CONFLICT/BAD_REQUEST-carrying constraint: the handler below never reads
+   * `errors` -- runBatch reports a domain failure as that item's
+   * `{success: false}` entry, so a procedure's error map isn't consulted at
+   * all. Tightening this constraint to match buildUpsertRoute would
+   * incorrectly reject the real upsertBatch procedures, which are built by
+   * `batchUpsertProcedure()` and deliberately declare no errors.
    */
   private buildUpsertBatchRoute<
     TInputSchema extends AnySchema,
@@ -199,11 +221,23 @@ export class RpcRouterFactoryService {
    *
    * The resolve procedures are one concrete type across every entity, so only
    * the two upsert procedures need their schema generics carried through.
+   *
+   * This builder (and buildUpsertRoute/buildUpsertBatchRoute underneath it)
+   * erases the compile-time link between one entity's procedure, its
+   * game-data service, and its conflict-error class -- each is just a
+   * concretely-typed value passed to a generic body. TErrorMap's
+   * CONFLICT/BAD_REQUEST constraint (see buildUpsertRoute) catches a
+   * procedure/handler-shape mismatch, but nothing here checks that
+   * `conflictError` is actually *this* entity's conflict class, or that
+   * `unwrap` reads the right key off `service.upsert`'s result. That
+   * per-entity triple is verified only by each entity's own spec file
+   * exercising build()'s output end to end -- see the note on
+   * rpc-router-factory-builders.service.spec.ts.
    */
   private buildStandardEntityRoutes<
     TUpsertIn extends AnySchema,
     TUpsertOut extends AnySchema,
-    TUpsertErr extends ErrorMap,
+    TUpsertErr extends ErrorMap & { CONFLICT: unknown; BAD_REQUEST: unknown },
     TUpsertMeta extends Meta,
     TBatchIn extends AnySchema,
     TBatchOut extends AnySchema,
