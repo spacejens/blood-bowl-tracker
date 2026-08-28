@@ -33,13 +33,29 @@ import {
   TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
+import type {
+  AnySchema,
+  ContractProcedure,
+  ErrorMap,
+  InferSchemaInput,
+  Meta,
+} from '@orpc/contract';
 import { implement } from '@orpc/server';
 
+import {
+  buildCompetitionGroupsListRoute,
+  buildExternalSystemsRoutes,
+  buildMatchResolveOutcomesRoute,
+  buildPlayerSppAdjustmentRoutes,
+  buildPositionSyncRaceErasRoute,
+  buildSppAwardValuesRoutes,
+  buildTrophyAwardsRoutes,
+} from './rpc-router-factory-hand-written-routes';
 import type {
   ResolveBatchRouteOptions,
   ResolveRouteOptions,
 } from './rpc-router-factory-types';
-import { buildUpsertRoute } from './rpc-router-factory-upsert-builder';
+import type { ConflictErrors } from './upsert-handler.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
@@ -71,6 +87,50 @@ export class RpcRouterFactoryService {
     private readonly trophyAwardsService: TrophyAwardsService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
+
+  /**
+   * One entity's upsert route, as a one-key object to spread into its block
+   * in build(). unwrap pulls the entity and its created flag out of the
+   * service's own differently-named result shape without any game-data
+   * return shape changing.
+   *
+   * The two casts are unavoidable and safe: inside a generic body TypeScript
+   * cannot resolve InferSchemaInput<TOutputSchema> or the handler's
+   * error-constructor map, but every call site instantiates them concretely,
+   * so the router type build() returns is exactly what a hand-written
+   * implement(...).handler(...) would produce, and oRPC still validates the
+   * handler's output against the contract's schema at runtime.
+   */
+  private buildUpsertRoute<
+    TInputSchema extends AnySchema,
+    TOutputSchema extends AnySchema,
+    TErrorMap extends ErrorMap,
+    TMeta extends Meta,
+    TInput,
+    TResult,
+    TEntity extends object,
+  >(options: {
+    procedure: ContractProcedure<TInputSchema, TOutputSchema, TErrorMap, TMeta>;
+    service: { upsert(input: TInput): Promise<TResult> };
+    conflictError: abstract new (...args: never[]) => Error;
+    unwrap: (result: TResult) => { entity: TEntity; created: boolean };
+  }) {
+    return {
+      upsert: implement(options.procedure).handler(
+        async ({ input, errors }) => {
+          const result = await this.upsertHandler.run(
+            errors as unknown as ConflictErrors,
+            options.conflictError,
+            async () =>
+              options.unwrap(
+                await options.service.upsert(input as unknown as TInput),
+              ),
+          );
+          return result as unknown as InferSchemaInput<TOutputSchema>;
+        },
+      ),
+    };
+  }
 
   // One entity's resolve route, as a one-key object to spread into its block
   // in build(). No domain error to translate — a miss is a normal result.
@@ -127,7 +187,7 @@ export class RpcRouterFactoryService {
         }),
       },
       leagues: {
-        ...buildUpsertRoute(this.upsertHandler, {
+        ...this.buildUpsertRoute({
           procedure: contract.leagues.upsert,
           service: this.leaguesService,
           conflictError: LeagueUpsertConflictError,
@@ -203,19 +263,7 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        // Not routed through the upsert handler, for the same reason
-        // sppAwardValues.sync is not: no external-id conflict to map and no
-        // entity+created shape to return.
-        syncScrapedSppAdjustments: implement(
-          contract.players.syncScrapedSppAdjustments,
-        ).handler(({ input }) =>
-          this.sppAdjustmentsService.syncScrapedAdjustments(input),
-        ),
-        syncReportedSppAdjustments: implement(
-          contract.players.syncReportedSppAdjustments,
-        ).handler(({ input }) =>
-          this.sppAdjustmentsService.syncReportedAdjustments(input),
-        ),
+        ...buildPlayerSppAdjustmentRoutes(this.sppAdjustmentsService),
       },
       positions: {
         upsert: implement(contract.positions.upsert).handler(
@@ -241,9 +289,7 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        syncRaceEras: implement(contract.positions.syncRaceEras).handler(
-          async ({ input }) => this.positionsService.syncRaceEras(input),
-        ),
+        ...buildPositionSyncRaceErasRoute(this.positionsService),
         ...this.buildResolveRoute({
           procedure: contract.positions.resolve,
           service: this.positionsService,
@@ -286,15 +332,7 @@ export class RpcRouterFactoryService {
           service: this.rulesSetsService,
         }),
       },
-      sppAwardValues: {
-        // Not routed through the upsert handler: award values are keyed by
-        // (rulesSetId, raceId, actionType) rather than external ids, so there
-        // is no CONFLICT error to map and no entity+created shape to return
-        // — same shape as positions.syncRaceEras.
-        sync: implement(contract.sppAwardValues.sync).handler(({ input }) =>
-          this.sppAwardValuesService.sync(input),
-        ),
-      },
+      sppAwardValues: buildSppAwardValuesRoutes(this.sppAwardValuesService),
       eras: {
         upsert: implement(contract.eras.upsert).handler(({ input, errors }) =>
           this.upsertHandler.run(errors, EraUpsertConflictError, async () => {
@@ -341,18 +379,7 @@ export class RpcRouterFactoryService {
           procedure: contract.competitionGroups.resolveBatch,
           service: this.competitionGroupsService,
         }),
-        list: implement(contract.competitionGroups.list).handler(async () => {
-          const groups = await this.competitionGroupsService.listAll();
-          // Mapped explicitly rather than returned raw: the drizzle row also
-          // carries the history-tracking columns, which are not part of the
-          // contract's CompetitionGroupSchema.
-          return groups.map((group) => ({
-            id: group.id,
-            name: group.name,
-            leagueId: group.leagueId,
-            createdAt: group.createdAt,
-          }));
-        }),
+        ...buildCompetitionGroupsListRoute(this.competitionGroupsService),
       },
       competitions: {
         upsert: implement(contract.competitions.upsert).handler(
@@ -411,13 +438,7 @@ export class RpcRouterFactoryService {
               }),
             ),
         ),
-        // Not routed through the upsert handler: this procedure has no
-        // CONFLICT/BAD_REQUEST error to map — a match whose outcome cannot be
-        // determined comes back in `unresolvedMatchIds` for the caller to
-        // report, rather than as a thrown error.
-        resolveOutcomes: implement(contract.matches.resolveOutcomes).handler(
-          async ({ input }) => this.matchOutcomes.resolveForCompetition(input),
-        ),
+        ...buildMatchResolveOutcomesRoute(this.matchOutcomes),
       },
       matchEvents: {
         upsert: implement(contract.matchEvents.upsert).handler(
@@ -486,52 +507,14 @@ export class RpcRouterFactoryService {
             ),
         ),
       },
-      trophyAwards: {
-        // Only `upsert`, matching the contract: award rows are few enough
-        // that batching buys nothing. No conflict class: `trophy_awards` has
-        // a database unique constraint on its natural key, so the dedup
-        // lookup can never match more than one row. `runWithoutConflict`
-        // still maps a recipient-kind mismatch to BAD_REQUEST.
-        upsert: implement(contract.trophyAwards.upsert).handler(
-          ({ input, errors }) =>
-            this.upsertHandler.runWithoutConflict(errors, async () => {
-              const { trophyAward, created } =
-                await this.trophyAwardsService.upsert(input);
-              return { entity: trophyAward, created };
-            }),
-        ),
-      },
-      externalSystems: {
-        // The only upsert with no CONFLICT error in the contract: an external
-        // system is looked up and matched by its name alone (see
-        // ExternalSystemsService.upsert), so there is no ambiguity between
-        // multiple existing rows for it to catch. Hand-written rather than
-        // run through the upsert handler so the absence is deliberate and
-        // visible.
-        upsert: implement(contract.externalSystems.upsert).handler(
-          async ({ input }) => {
-            const { system, created } =
-              await this.externalSystemsService.upsert(input);
-            return { ...system, created };
-          },
-        ),
-        // No conflict-error class, for the same reason its single-item
-        // sibling declares no CONFLICT error: an external system is matched
-        // by name alone, so there is no ambiguity between existing rows.
-        // Passing `undefined` keeps that omission explicit while still
-        // reusing the shared per-item failure handling.
-        upsertBatch: implement(contract.externalSystems.upsertBatch).handler(
-          ({ input }) =>
-            this.upsertHandler.runBatch(
-              undefined,
-              input.map((item) => async () => {
-                const { system, created } =
-                  await this.externalSystemsService.upsert(item);
-                return { entity: system, created };
-              }),
-            ),
-        ),
-      },
+      trophyAwards: buildTrophyAwardsRoutes(
+        this.upsertHandler,
+        this.trophyAwardsService,
+      ),
+      externalSystems: buildExternalSystemsRoutes(
+        this.upsertHandler,
+        this.externalSystemsService,
+      ),
     };
   }
 }
