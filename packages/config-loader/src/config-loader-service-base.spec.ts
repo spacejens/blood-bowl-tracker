@@ -90,22 +90,6 @@ describe('createConfigLoaderServiceBase', () => {
     await expect(makeService(dir)).rejects.toThrow();
   });
 
-  it('handles non-ENOENT read errors via direct instantiation', () => {
-    // Test the branch directly without NestJS Test module to ensure coverage
-    const Loader = createConfigLoaderServiceBase({
-      pathToken: TEST_CONFIG_PATH,
-      schema: z.looseObject({}).catch(() => ({})),
-    });
-    let thrownError: unknown;
-    try {
-      new Loader(dir);
-    } catch (error) {
-      thrownError = error;
-    }
-    expect(thrownError).toBeDefined();
-    expect(thrownError).toBeInstanceOf(Error);
-  });
-
   it('applies the caller-supplied schema to the parsed value', async () => {
     const path = writeConfig(`{ league: 42 }`);
     await expect(
