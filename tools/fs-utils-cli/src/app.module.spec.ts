@@ -1,4 +1,5 @@
 import {
+  ChildProcessService,
   GitRootsService,
   ProcessRunnerService,
 } from '@blood-bowl-tracker/cli-shared';
@@ -23,5 +24,13 @@ describe('AppModule', () => {
       SyncGitignoredService,
     );
     expect(moduleRef.get(WriteFileService)).toBeInstanceOf(WriteFileService);
+  });
+
+  it('does not resolve ChildProcessService, which is production-ops-only', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    expect(() => moduleRef.get(ChildProcessService)).toThrow();
   });
 });
