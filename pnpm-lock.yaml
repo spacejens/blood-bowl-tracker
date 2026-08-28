@@ -209,9 +209,6 @@ importers:
       '@nestjs/config':
         specifier: ^4.0.4
         version: 4.0.4(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(rxjs@7.8.2)
-      '@orpc/contract':
-        specifier: ^1.15.0
-        version: 1.15.0
       '@orpc/server':
         specifier: ^1.15.0
         version: 1.15.0(ws@8.21.0)
@@ -225,6 +222,9 @@ importers:
       '@nestjs/testing':
         specifier: ^11.1.29
         version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.3)(@nestjs/platform-express@11.2.3)
+      '@orpc/contract':
+        specifier: ^1.15.0
+        version: 1.15.0
       '@swc/core':
         specifier: ^1.15.47
         version: 1.16.1

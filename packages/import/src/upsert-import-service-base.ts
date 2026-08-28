@@ -23,7 +23,13 @@ export interface UpsertImportServiceConfig<TData, TResult> {
  * exposed (rather than private) so a subclass that adds one entity-specific
  * method — `PositionsImportService.syncRaceEras`,
  * `CompetitionGroupsImportService.listCompetitionGroups` — can reach the same
- * injected collaborators without redeclaring the DI constructor.
+ * injected collaborators without redeclaring the DI constructor. This
+ * widening to public (rather than `protected`) is a structural consequence
+ * of the factory shape, not an oversight: TypeScript's structural typing
+ * means `protected` members declared on a class aren't visible through a
+ * `new (...) => T` constructor type/interface the way
+ * `UpsertImportServiceConstructor` needs to express them, so the interface
+ * must declare them, and interface members must be public.
  */
 export interface UpsertImportService<TData, TResult> {
   readonly client: ApiClient;

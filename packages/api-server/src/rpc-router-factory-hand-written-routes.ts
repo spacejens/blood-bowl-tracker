@@ -21,7 +21,12 @@ import type { UpsertHandlerService } from './upsert-handler.service';
  * positions.syncRaceEras). Pulled out of rpc-router-factory.service.ts (as
  * opposed to the generic builder methods themselves) purely to keep that
  * file under its 500-line ESLint cap; the WHY-hand-written rationale in each
- * comment below is unchanged from when it lived there.
+ * comment below is unchanged from when it lived there. This fits CLAUDE.md's
+ * "Service vs. loose function" exemption 2 — pure assembly wrapped by a
+ * factory service — the same pattern as `buildFactTree`/`FactTreeFactoryService`:
+ * each function here is pure declarative assembly of a route object, invoked
+ * only from `RpcRouterFactoryService.build()`, itself a thin `@Injectable()`
+ * factory that supplies the real, already-injected dependencies once.
  */
 
 // sppAwardValues: not routed through the upsert handler. Award values are
