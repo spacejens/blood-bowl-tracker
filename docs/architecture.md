@@ -148,6 +148,8 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 
 **One import tool per source.** Importing data from different upstream applications requires different extraction and transformation logic. Separate tools keep each integration self-contained, sharing common upsert/client-wrapping logic via `packages/import`.
 
+**Client packages stay separate from their single consumers.** `packages/api-client` and `packages/discord-client` each have exactly one consumer today — `packages/import` and `apps/discord-bot` respectively — and are kept as their own packages on purpose. They hold reusable technical plumbing (API transport, Discord client lifecycle) that is deliberately separated from the business logic built on top of it, so a second consumer can be added without any untangling work first.
+
 ## Testing
 
 Unit tests run under Vitest as `*.spec.ts` files alongside the code they cover,
