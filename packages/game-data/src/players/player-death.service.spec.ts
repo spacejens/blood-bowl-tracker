@@ -6,7 +6,6 @@ import { Test } from '@nestjs/testing';
 import { desc } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
-import type { ConsequenceAvoidedBy } from '../shared/match-event-types';
 import {
   extractAllFilterValues,
   extractJoinColumns,
@@ -73,7 +72,7 @@ function killEvent(
     consequenceType: string | null;
     consequencePlayerId: number | null;
     consequenceMatchTeamId: number | null;
-    consequenceAvoidedBy: ConsequenceAvoidedBy | null;
+    consequenceAvoidedBy: 'apothecary' | 'regeneration' | null;
   }> = {},
 ) {
   return {
