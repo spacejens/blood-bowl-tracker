@@ -127,7 +127,7 @@ export function buildPositionSyncRaceErasRoute(
 ) {
   return {
     syncRaceEras: implement(contract.positions.syncRaceEras).handler(
-      async ({ input }) => positionsService.syncRaceEras(input),
+      ({ input }) => positionsService.syncRaceEras(input),
     ),
   };
 }
@@ -141,7 +141,7 @@ export function buildMatchResolveOutcomesRoute(
 ) {
   return {
     resolveOutcomes: implement(contract.matches.resolveOutcomes).handler(
-      async ({ input }) => matchOutcomes.resolveForCompetition(input),
+      ({ input }) => matchOutcomes.resolveForCompetition(input),
     ),
   };
 }
