@@ -220,7 +220,7 @@ git merge origin/main
 - **Clean merge** (no conflicts): run `pnpm verify` from the repo root. If it fails, fix the regression the merge introduced, commit, and continue. If it passes, continue directly.
 - **Conflict:** attempt an automated resolution — read both sides of each conflicting hunk, resolve, then run `pnpm verify`. If the correct resolution isn't clear from the diffs, or `pnpm verify` doesn't come back clean afterward, **stop**, report the conflicting files, and wait for the developer to resolve manually before continuing.
 
-Before pushing, run the **pre-push main-checkout check**: verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`. This depends on `tools/dev-workflow-cli` already being built — the "Sync with `main`" step above always runs `pnpm verify` first, which builds it, so no separate build command is needed here.
+Before pushing, run the **pre-push main-checkout check**: verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`. This depends on `tools/dev-workflow-cli` already being built — the "Sync with `main`" step above always runs `pnpm verify` first, which builds it, so no separate build command is normally needed here; if that build failed, build just this package first: `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`.
 
 ```bash
 node tools/dev-workflow-cli/dist/main.js check-main-stray

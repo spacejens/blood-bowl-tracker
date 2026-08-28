@@ -7,10 +7,10 @@ reason for this: a worktree-isolated session refuses to run shell commands
 complex enough that it cannot verify they stay inside the worktree — see
 [develop-feature/SKILL.md's "Worktree isolation and shell commands" section](../../.claude/skills/develop-feature/SKILL.md#worktree-isolation-and-shell-commands)
 for what that means in practice. But the pattern is also useful on its own merits, independent of
-that constraint: packaging multi-step logic (a detached tunnel process,
-a validated read-only query, a schema reset) behind one tested command is more repeatable and
-reliable than re-deriving the equivalent shell inline every time a skill
-needs it.
+that constraint: packaging multi-step logic (a detached tunnel process, a
+validated read-only query, a schema reset) behind one tested command is more
+repeatable and reliable than re-deriving the equivalent shell inline every
+time a skill needs it.
 
 ## Subcommands
 
