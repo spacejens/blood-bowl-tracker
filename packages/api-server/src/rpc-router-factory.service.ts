@@ -39,6 +39,7 @@ import type {
   ResolveBatchRouteOptions,
   ResolveRouteOptions,
 } from './rpc-router-factory-types';
+import { buildUpsertRoute } from './rpc-router-factory-upsert-builder';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
@@ -126,18 +127,12 @@ export class RpcRouterFactoryService {
         }),
       },
       leagues: {
-        upsert: implement(contract.leagues.upsert).handler(
-          ({ input, errors }) =>
-            this.upsertHandler.run(
-              errors,
-              LeagueUpsertConflictError,
-              async () => {
-                const { league, created } =
-                  await this.leaguesService.upsert(input);
-                return { entity: league, created };
-              },
-            ),
-        ),
+        ...buildUpsertRoute(this.upsertHandler, {
+          procedure: contract.leagues.upsert,
+          service: this.leaguesService,
+          conflictError: LeagueUpsertConflictError,
+          unwrap: (r) => ({ entity: r.league, created: r.created }),
+        }),
         upsertBatch: implement(contract.leagues.upsertBatch).handler(
           ({ input }) =>
             this.upsertHandler.runBatch(
