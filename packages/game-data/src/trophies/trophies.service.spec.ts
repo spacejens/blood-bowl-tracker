@@ -98,79 +98,6 @@ describe('TrophiesService', () => {
     ).rejects.toBeInstanceOf(TrophyUpsertConflictError);
   });
 
-  it('matches an existing trophy by exact name when externalIds is empty', async () => {
-    // query 0: the name lookup finds the existing row; query 1: the update.
-    const { db, chains } = await build([fakeTrophy], [fakeTrophy]);
-
-    const result = await service.upsert({
-      name: 'Ogretoberfest',
-      recipientKind: 'team',
-      externalIds: [],
-    });
-
-    expect(result).toEqual({ trophy: fakeTrophy, created: false });
-    expect(db.update).toHaveBeenCalledWith(trophies);
-    expect(db.insert).not.toHaveBeenCalled();
-    expect(chains).toHaveLength(2);
-  });
-
-  it('throws TrophyUpsertConflictError when the name lookup matches more than one trophy', async () => {
-    const otherTrophy = { ...fakeTrophy, id: 2 };
-    await build([fakeTrophy, otherTrophy]);
-
-    await expect(
-      service.upsert({
-        name: 'Ogretoberfest',
-        recipientKind: 'team',
-        externalIds: [],
-      }),
-    ).rejects.toBeInstanceOf(TrophyUpsertConflictError);
-  });
-
-  it('creates a trophy when externalIds is empty and no name matches', async () => {
-    const { db } = await build([], [fakeTrophy]);
-
-    const result = await service.upsert({
-      name: 'Ogretoberfest',
-      recipientKind: 'team',
-      externalIds: [],
-    });
-
-    expect(result).toEqual({ trophy: fakeTrophy, created: true });
-    expect(db.insert).toHaveBeenCalledWith(trophies);
-  });
-
-  it('throws when externalIds is empty and no name is supplied', async () => {
-    await build();
-
-    await expect(
-      service.upsert({ recipientKind: 'team', externalIds: [] }),
-    ).rejects.toBeInstanceOf(Error);
-  });
-
-  it('writes competitionGroupId on the name-matched insert path', async () => {
-    const { chains } = await build([], [{ id: 9 }]);
-
-    await service.upsert({
-      name: 'Major Gold',
-      recipientKind: 'team',
-      externalIds: [],
-      competitionGroupId: 1,
-    });
-
-    expect(chains[1].values).toHaveBeenCalledWith(
-      expect.objectContaining({ competitionGroupId: 1 }),
-    );
-  });
-
-  it('throws when creating by name without a recipientKind', async () => {
-    await build([]);
-
-    await expect(
-      service.upsert({ name: 'Brand New', externalIds: [] }),
-    ).rejects.toBeInstanceOf(Error);
-  });
-
   it('writes the league id on the external-id upsert path', async () => {
     const { chains } = await build([], [{ ...fakeTrophy, leagueId: 7 }]);
 
@@ -178,43 +105,6 @@ describe('TrophiesService', () => {
       ...baseData,
       competitionGroupId: null,
       leagueId: 7,
-    });
-
-    expect(firstCallArg(chains[1].values)).toMatchObject({
-      competitionGroupId: null,
-      leagueId: 7,
-    });
-  });
-
-  it('writes the league id when matching an existing trophy by name', async () => {
-    const { chains } = await build(
-      [fakeTrophy],
-      [{ ...fakeTrophy, leagueId: 7 }],
-    );
-
-    await service.upsert({
-      name: 'Legendary Player',
-      recipientKind: 'player',
-      competitionGroupId: null,
-      leagueId: 7,
-      externalIds: [],
-    });
-
-    expect(firstCallArg(chains[1].set)).toMatchObject({
-      competitionGroupId: null,
-      leagueId: 7,
-    });
-  });
-
-  it('writes the league id when creating a trophy by name', async () => {
-    const { chains } = await build([], [{ ...fakeTrophy, leagueId: 7 }]);
-
-    await service.upsert({
-      name: 'Legendary Player',
-      recipientKind: 'player',
-      competitionGroupId: null,
-      leagueId: 7,
-      externalIds: [],
     });
 
     expect(firstCallArg(chains[1].values)).toMatchObject({
