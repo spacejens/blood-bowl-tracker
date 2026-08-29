@@ -79,7 +79,10 @@ externalSystems: [
 
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
-again). External IDs and cross-references are written as
+again), with one exception: a `competitionGroups` entry declares no
+`externalIds` of its own — the importer derives one for it instead (see the
+Competition groups subsection below). External IDs and cross-references are
+written as
 `{ system, id }`
 pairs, where `system` is an external-system name and `id` follows the
 `id:`/`name:` namespacing convention (see
@@ -104,8 +107,9 @@ An entry only has to supply the fields it actually changes. Every
 as the database has it, so a rename-only entry carries just `name` and the
 `externalIds` that match the existing row — no redeclaring the entity's era,
 league or race purely to have something to reference. `externalIds` is how the
-row is matched (or, failing that, created) — the one always-required field. A
-field written as explicit `null` is different from an omitted one:
+row is matched (or, failing that, created) — the one always-required field for
+every entity except `competitionGroups` (see above). A field written as
+explicit `null` is different from an omitted one:
 it clears a nullable value (e.g. reopening an era by setting `endDate: null`).
 
 If an entry's `externalIds` match no existing row, the API creates one — and
