@@ -24,6 +24,14 @@ Turns a free-form prompt into one or more GitHub issues that match this repo's e
 
 Carry which mode applies (if any), and the parent issue number or which candidate is the to-be-created parent, through Phases 2 and 3.
 
+**Any existing issue named as a parent must be checked first.** Renovate's Dependency Dashboard is a live status page it rewrites itself and cannot hold sub-issues, so before creating or attaching anything under a parent that already exists, run:
+
+```bash
+gh issue view <parent> --json number,title,author | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
+```
+
+Build `tools/dev-workflow-cli` first with `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build` if `dist/main.js` is missing. If `isDependencyDashboard` is `true`, report "Issue #<parent> is Renovate's Dependency Dashboard and cannot be used as a sub-issue parent." and stop that operation. If the check itself fails (build failure, non-zero exit, or output carrying no `isDependencyDashboard` field), report the error and stop that operation too — it fails closed. Only the operation needing that parent is blocked; other independent candidates in the same run continue unaffected. A parent this run is about to create itself needs no check — it cannot be the Dependency Dashboard.
+
 ## Phase 1: Enumerate candidates
 
 If `<text>` describes a single concrete idea (a single issue, or a single sub-issue of a named parent), the only candidate is that idea — skip to Phase 2.
@@ -45,7 +53,15 @@ Explicitly avoid drilling into implementation details or asking for code — thi
 
 Then run the cross-tool/app impact review for this candidate by following `develop-feature`'s step exactly (`.claude/skills/develop-feature/SKILL.md`, Phase 2 step 1) — don't duplicate that logic here, so the two skills can't drift out of sync. Read "the issue (issue mode) or provided text (ad-hoc mode)" there as this candidate, and ignore its `cd <worktree-path> &&` dispatch note: this skill creates no worktree, so the `Explore` agent runs against the current checkout. Any questions it produces join this candidate's one-at-a-time dialogue above and are asked before drafting; when it skips silently, so does this step. The answers set this candidate's scope — which related tools/apps it covers, or whether a related one becomes its own separate candidate — they do not become implementation detail written into the drafted issue body, consistent with this phase's rule against drilling into implementation details.
 
-Before drafting, check `gh issue list --state open` for issues that look like likely duplicates or heavy overlap with the candidate. If found, flag it to the developer via `AskUserQuestion` with two genuine options: "Create anyway" (a new, sufficiently distinct issue) and "Skip this one" (the existing issue already covers it).
+Before drafting, check the open issues for ones that look like likely duplicates of, or heavy overlap with, the candidate. Fetch them with `author` included and filter out Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, which must never be offered or matched as a duplicate:
+
+```bash
+gh issue list --state open --json number,title,body,author | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
+```
+
+Build `tools/dev-workflow-cli` first with `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build` if `dist/main.js` is missing. Compare the candidate only against the returned items whose `isDependencyDashboard` is `false`, and drop the rest. If the check itself fails (build failure, non-zero exit, or output carrying no `isDependencyDashboard` field), report the error and **stop** — it fails closed rather than comparing against an unfiltered list.
+
+If a likely duplicate is found, flag it to the developer via `AskUserQuestion` with two genuine options: "Create anyway" (a new, sufficiently distinct issue) and "Skip this one" (the existing issue already covers it).
 
 ## Phase 3: Draft and create
 
@@ -55,7 +71,7 @@ For each candidate that passes Phase 2:
 1. Draft a title and a plain-text body describing the need and its purpose (no code blocks, no implementation prescriptions), matching the tone of this repo's existing issues.
 2. Present the draft to the developer via `AskUserQuestion` with two genuine options: "Create it" and "Revise the draft" (loop back into Phase 2's dialogue for this candidate, then re-draft).
 3. Determine the kind label(s) by following `develop-feature`'s ad-hoc-mode kind-label step exactly (`.claude/skills/develop-feature/SKILL.md`, ad-hoc mode step 2) — don't duplicate that logic here, so the two skills can't drift out of sync.
-4. Create the issue. If this candidate is a sub-issue (of an existing parent, or of one just created earlier in this run), add `--parent <parent issue number or URL>`:
+4. Create the issue. If this candidate is a sub-issue (of an existing parent, or of one just created earlier in this run), add `--parent <parent issue number or URL>`. If the parent is an existing issue rather than one created earlier in this run, run the Dependency Dashboard parent check from the "Sub-issues" section first, and stop this candidate if it reports `true` or errors.
    ```bash
    gh issue create --title "<title>" --label "<kind label 1>" --label "<kind label 2 if applicable>" --parent <parent issue number> --body "$(cat <<'EOF'
    <body>
@@ -64,7 +80,7 @@ For each candidate that passes Phase 2:
    ```
 5. Report the created issue's URL to the developer.
 
-If sub-issues are being attached to an existing parent one at a time rather than created fresh (e.g. the developer wants an already-open issue turned into a sub-issue), use `gh issue edit <parent number> --add-sub-issue <existing issue number>` instead of the `--parent` flag on create.
+If sub-issues are being attached to an existing parent one at a time rather than created fresh (e.g. the developer wants an already-open issue turned into a sub-issue), run the Dependency Dashboard parent check from the "Sub-issues" section against `<parent number>` first — stopping this attachment if it reports `true` or errors — then use `gh issue edit <parent number> --add-sub-issue <existing issue number>` instead of the `--parent` flag on create.
 
 ## Non-goals
 
