@@ -28,7 +28,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 - Skip its text-description step (there is no free-form feature description) and its branch-name confirmation step (there is no slug to derive or confirm — see branch name below). Go straight to worktree creation.
 - **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree, exactly as develop-feature's Setup phase does.
 - Skip develop-feature's `docs/plans/` symlink step — this skill produces no spec or plan document.
-- Branch name is always `code-hygiene-{YYYY-MM-DD}` using today's date, e.g. `code-hygiene-2026-07-03` — no confirmation prompt.
+- Branch slug is always `code-hygiene-{YYYY-MM-DD}` using today's date — no confirmation prompt. As in `develop-feature`, `EnterWorktree` applies its `worktree-` prefix, so the branch created is `worktree-code-hygiene-{YYYY-MM-DD}` (e.g. `worktree-code-hygiene-2026-07-03`) and that is its permanent name — do not rename it.
 - Print a brief status line confirming the worktree path and baseline test result, then continue immediately into the fixed task list below (standing in for develop-feature's Development phase).
 
 ### Development, Self-review, Integration — same as develop-feature, with these differences
