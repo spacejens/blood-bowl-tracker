@@ -79,10 +79,7 @@ externalSystems: [
 
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
-again), with one exception: a trophy may declare an empty `externalIds` list,
-in which case the API matches it on its exact name instead. No curated trophy
-currently does — see the Trophies subsection below. External IDs and
-cross-references are written as
+again). External IDs and cross-references are written as
 `{ system, id }`
 pairs, where `system` is an external-system name and `id` follows the
 `id:`/`name:` namespacing convention (see
@@ -107,10 +104,8 @@ An entry only has to supply the fields it actually changes. Every
 as the database has it, so a rename-only entry carries just `name` and the
 `externalIds` that match the existing row — no redeclaring the entity's era,
 league or race purely to have something to reference. `externalIds` is how the
-row is matched (or, failing that, created) — the one always-required field,
-except for a trophy with no external id at all, which is matched by exact
-`name` instead (see the Trophies subsection below). A field written as explicit
-`null` is different from an omitted one:
+row is matched (or, failing that, created) — the one always-required field. A
+field written as explicit `null` is different from an omitted one:
 it clears a nullable value (e.g. reopening an era by setting `endDate: null`).
 
 If an entry's `externalIds` match no existing row, the API creates one — and
@@ -196,8 +191,11 @@ competition entry's `competitionGroup` field (see below) names explicitly.
 
 ```jsonc
 {
-  competitionGroups: [
-    { name: 'Major Season', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+  "competitionGroups": [
+    {
+      "name": "Major Season",
+      "league": { "system": "tloeg.bbleague.se", "id": "tLoEG" },
+    },
   ],
 }
 ```
@@ -242,12 +240,6 @@ Trophies deliberately carry no shared `Name` external id, the same precedent
 set for competitions in issue #285: labels like `1st` are ambiguous across
 competition tiers, so identity is a curation decision rather than something
 inferred from label text alone.
-
-A trophy is the one entity that may declare no external id at all (see
-`## Data files` above for the otherwise-universal rule): it is then identified
-by its exact `name` instead, so re-running the import never duplicates it. No
-curated trophy relies on this today, but the mechanism stays supported for any
-future trophy with no stable external id to key on.
 
 Every trophy TP has been observed to award carries a `tourplay.net` external
 id (issue #446), keyed `${disambiguator}-${groupName}`: the raw TP award's
@@ -330,10 +322,10 @@ systems could not supply:
   before-other-importers phase (see above). Its 36 entries normalize the
   recurring numbered competitions the two source systems named inconsistently
   (`Season N` / `Major Season N` / `tLoEGBBL Säsong N` all become `Major
-  Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
+Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
   Dungeon Bowl entries; each track's unnumbered first instalment — e.g. bare
   `Chaos Cup` — is numbered `1`; and BBL's three identically-named `Reserves
-  Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
+Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   earlier phase: it can only run once the importers have (re-)created their
   rows under the raw source names.
 

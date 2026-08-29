@@ -101,7 +101,9 @@ describe('TrophiesProcessor', () => {
 
   it('does not count when the upsert fails', async () => {
     trophies.upsert.mockResolvedValue(undefined);
-    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 1, externalId: 'name:broken' },
+    ]);
     const data = emptyData();
     data.trophies = [
       {
