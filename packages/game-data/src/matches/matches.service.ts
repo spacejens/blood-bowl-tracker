@@ -16,6 +16,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { count, countDistinct, eq } from 'drizzle-orm';
 
+import type { CompetitionType } from '../shared/competition-types';
 import { countRows } from '../shared/count-all';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -34,7 +35,7 @@ export class MatchCategoryMismatchError extends Error {}
 /** Competition types each category is allowed on. `normal` fits both. */
 const ALLOWED_COMPETITION_TYPES: Record<
   MatchCategory,
-  readonly ('season' | 'cup')[]
+  readonly CompetitionType[]
 > = {
   normal: ['season', 'cup'],
   cup_final: ['cup'],

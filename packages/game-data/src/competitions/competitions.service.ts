@@ -19,6 +19,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, ilike, sql } from 'drizzle-orm';
 
+import type { CompetitionType } from '../shared/competition-types';
 import { countRows } from '../shared/count-all';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
@@ -136,7 +137,7 @@ export class CompetitionsService {
   }
 
   async countByType(
-    type: 'season' | 'cup',
+    type: CompetitionType,
     eraId?: number,
     leagueId?: number,
   ): Promise<number> {
@@ -162,7 +163,7 @@ export class CompetitionsService {
   async findById(
     id: number,
   ): Promise<
-    | { id: number; name: string; type: 'season' | 'cup'; eraId: number }
+    | { id: number; name: string; type: CompetitionType; eraId: number }
     | undefined
   > {
     const rows = await this.db
@@ -181,7 +182,7 @@ export class CompetitionsService {
     | {
         id: number;
         name: string;
-        type: 'season' | 'cup';
+        type: CompetitionType;
         eraId: number;
         eraName: string;
         competitionGroupId: number;
@@ -231,7 +232,7 @@ export class CompetitionsService {
     {
       id: number;
       name: string;
-      type: 'season' | 'cup';
+      type: CompetitionType;
       startDate: string;
       endDate: string | null;
     }[]
