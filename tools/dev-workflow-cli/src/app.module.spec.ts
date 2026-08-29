@@ -7,6 +7,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { CheckDependencyDashboardService } from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { DriftDiffRedactionService } from './check-drift/drift-diff-redaction.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
@@ -30,6 +31,9 @@ describe('AppModule', () => {
     expect(moduleRef.get(GitRootsService)).toBeInstanceOf(GitRootsService);
     expect(moduleRef.get(CheckMainStrayService)).toBeInstanceOf(
       CheckMainStrayService,
+    );
+    expect(moduleRef.get(CheckDependencyDashboardService)).toBeInstanceOf(
+      CheckDependencyDashboardService,
     );
     expect(moduleRef.get(CheckDriftService)).toBeInstanceOf(CheckDriftService);
     expect(moduleRef.get(DriftDiffRedactionService)).toBeInstanceOf(

@@ -47,21 +47,35 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 **Issue mode:**
 1. Fetch the issue:
    ```bash
-   gh issue view <N> --json title,body,labels,state,assignees,url,comments
+   gh issue view <N> --json title,body,labels,state,assignees,author,url,comments
    ```
    If the issue does not exist, `gh` will error — report the error and **stop**.
-2. Surface any existing comments so prior investigation notes (e.g. "blocked on issue #X, see findings below") are read before Phase 1 makes any decision. Using the `comments` array from the step 1 fetch:
+2. Check whether `<N>` is Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, listing pending dependency updates. It is not a piece of work, and branching against it would clobber Renovate's own content. Re-fetch just the fields the check needs, rather than hand-assembling JSON from the step 1 fetch — an issue title containing a quote or apostrophe would otherwise break inline shell interpolation and, because this gate fails closed, wrongly refuse a legitimate issue:
+
+   ```bash
+   gh issue view <N> --json number,title,author | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
+   ```
+
+   Build `tools/dev-workflow-cli` first with `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build` if `dist/main.js` is missing, matching this skill's convention for its other CLI subcommand calls. This step runs in the main checkout, before any worktree exists (Setup step 8 creates it) — unlike this skill's later `cd <worktree-path> &&`-prefixed invocations, the relative path here is correct as written.
+
+   - If `isDependencyDashboard` is `true`, report "Issue #N is Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, not a piece of work to pick up. Nothing to do." and **stop** — before comments are surfaced, before the PR check, before the state check, before claiming or assigning, before branch naming, and before any worktree work.
+   - If the invocation fails because the built artifact predates this subcommand (a `dist/main.js` present but not yet rebuilt after this check was added — its error names `check-dependency-dashboard` as an unrecognized subcommand), rebuild with the same `pnpm --filter` command above and retry once before giving up. A file-existence check alone cannot tell an up-to-date build apart from a stale one left over from before this command existed.
+   - If the check itself fails for any other reason (a build failure, a non-zero exit not explained by the retry above, or output carrying no `isDependencyDashboard` field), report the error and **stop**. This is a safety gate, so a broken check fails closed rather than falling through to normal issue handling.
+   - If `isDependencyDashboard` is `false`, continue to step 3 exactly as today.
+
+   Detection is by title and author, never by issue number — Renovate can recreate the issue under a new number. Ad-hoc mode has no issue number and so needs no equivalent step.
+3. Surface any existing comments so prior investigation notes (e.g. "blocked on issue #X, see findings below") are read before Phase 1 makes any decision. Using the `comments` array from the step 1 fetch:
    - If it is non-empty, print each comment's author and body — one line per comment, e.g. `Existing comments on #N: — @<author>: <body>`.
    - If it is empty, skip silently — print nothing and change no behavior.
    This is informational only: it never gates, pauses, or alters the PR-check / state-check / claim / branch flow that follows.
-3. Check whether `<N>` is actually a pull request, not an issue: if the returned `url` contains `/pull/` (issue URLs are `.../issues/<N>`; PR URLs are `.../pull/<N>`), report "Issue #N is a pull request, not an issue. Nothing to do." and **stop** — do not proceed to the state check, assignment, branch naming, or worktree creation.
-4. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
-5. Claim the issue:
+4. Check whether `<N>` is actually a pull request, not an issue: if the returned `url` contains `/pull/` (issue URLs are `.../issues/<N>`; PR URLs are `.../pull/<N>`), report "Issue #N is a pull request, not an issue. Nothing to do." and **stop** — do not proceed to the state check, assignment, branch naming, or worktree creation.
+5. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
+6. Claim the issue:
    - Determine the current `gh` user:
      ```bash
      gh api user --jq .login
      ```
-     If this command fails, report a one-line warning and **continue** — skip the assign/label step but still determine and record the kind label below (it does not depend on the current user), then proceed to step 6 to derive the branch name.
+     If this command fails, report a one-line warning and **continue** — skip the assign/label step but still determine and record the kind label below (it does not depend on the current user), then proceed to step 7 to derive the branch name.
    - If the issue's `assignees` array is non-empty and does not include the current user's login, report "Issue #N is already assigned to `<assignee login(s)>`. Stopping." and **stop** — do not derive a branch name or create a worktree.
    - Otherwise (unassigned, or already assigned to the current user), assign and label it:
      ```bash
@@ -75,15 +89,15 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      - If it's genuinely unclear which applies, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
      - Apply any newly-determined label(s) with one `gh issue edit <N> --add-label "<name>"` call per label (separate from the "in progress" call above, so a failure in one doesn't mask the other). On failure, report a one-line warning and **continue**, matching the existing assign/label failure handling.
    - Record the final kind-label set (whether reused from the existing labels or newly applied) — Phase 6 reuses it when creating the PR.
-6. **Pause** — derive **two** distinct candidate branch slugs of the form `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped) and ask the developer to choose one via `AskUserQuestion` (single-select, one question, two options). Present each option as the **full literal branch name that will be created** — the slug with the `worktree-` prefix already applied (`worktree-issue-{N}-{kebab-slug}`). The worktree tooling always applies that prefix and this skill never renames the branch, so what the developer approves here is byte-for-byte what lands on GitHub. If a full name is too long for an option label, put the full literal name in that option's description. Wait for the answer before proceeding; the chosen — or free-text — slug, **without** the `worktree-` prefix, is the confirmed branch name (`<confirmed-name>`) used in step 7.
+7. **Pause** — derive **two** distinct candidate branch slugs of the form `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped) and ask the developer to choose one via `AskUserQuestion` (single-select, one question, two options). Present each option as the **full literal branch name that will be created** — the slug with the `worktree-` prefix already applied (`worktree-issue-{N}-{kebab-slug}`). The worktree tooling always applies that prefix and this skill never renames the branch, so what the developer approves here is byte-for-byte what lands on GitHub. If a full name is too long for an option label, put the full literal name in that option's description. Wait for the answer before proceeding; the chosen — or free-text — slug, **without** the `worktree-` prefix, is the confirmed branch name (`<confirmed-name>`) used in step 8.
    - **Option 1** — a full slug that closely follows the issue title.
    - **Option 2** — a shortened or rephrased variant of that same slug.
    - If both heuristics would produce the identical string, vary option 2 further (shorten or rephrase again) so the two options are always genuinely distinct. Never collapse to a single option — `AskUserQuestion` requires at least two.
    - Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
    - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped), strip a leading `worktree-` if they included it, and prepend the `issue-{N}-` prefix if missing, before treating it as the confirmed branch name.
    - Example: issue 42 "Add player stats endpoint" → offer `worktree-issue-42-add-player-stats-endpoint` and `worktree-issue-42-player-stats-endpoint`, giving a confirmed branch name of `issue-42-add-player-stats-endpoint` or `issue-42-player-stats-endpoint` respectively
-7. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name — `EnterWorktree(name: <confirmed-name>)`, where `<confirmed-name>` is the slug confirmed with the developer in step 6 (e.g. `issue-66-development-process-improvements`). The tool always applies a `worktree-` prefix, so the branch it creates is `worktree-<confirmed-name>` (e.g. `worktree-issue-66-development-process-improvements`) — and that is its **permanent** name. **Do not rename it.** `EnterWorktree`/`ExitWorktree` track the branch by its creation-time name, so renaming it breaks `wrap-up`'s branch cleanup and `ExitWorktree`'s merge check; the prefix appearing in the PR's branch name is purely cosmetic and nothing depends on its absence. Every later phase derives the branch name dynamically (`git branch --show-current`, `gh pr view --json headRefName`), so no other step needs adjusting.
-8. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+8. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name — `EnterWorktree(name: <confirmed-name>)`, where `<confirmed-name>` is the slug confirmed with the developer in step 7 (e.g. `issue-66-development-process-improvements`). The tool always applies a `worktree-` prefix, so the branch it creates is `worktree-<confirmed-name>` (e.g. `worktree-issue-66-development-process-improvements`) — and that is its **permanent** name. **Do not rename it.** `EnterWorktree`/`ExitWorktree` track the branch by its creation-time name, so renaming it breaks `wrap-up`'s branch cleanup and `ExitWorktree`'s merge check; the prefix appearing in the PR's branch name is purely cosmetic and nothing depends on its absence. Every later phase derives the branch name dynamically (`git branch --show-current`, `gh pr view --json headRefName`), so no other step needs adjusting.
+9. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
@@ -96,17 +110,17 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+10. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 11 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
-10. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+11. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
    node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 8. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 9. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
    It prints JSON to stdout, e.g.:
    ```json
@@ -116,8 +130,8 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      "skipped": ["tools/review-match/review-match-config.json5"]
    }
    ```
-   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 11's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
-11. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 12's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
+12. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -288,7 +302,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    EOF
    )"
    ```
-   Use the kind label(s) recorded in Phase 1 step 5 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
+   Use the kind label(s) recorded in Phase 1 step 6 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
 
    **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
    ```bash
