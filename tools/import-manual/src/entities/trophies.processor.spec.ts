@@ -129,9 +129,9 @@ describe('TrophiesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.toExternalIds.mockReturnValue([
-      { externalSystemId: 1, externalId: 'Major 1st' },
-    ]);
+    refResolver.toExternalIds
+      .mockReturnValueOnce([{ externalSystemId: 1, externalId: 'Major 1st' }])
+      .mockReturnValueOnce([{ externalSystemId: 1, externalId: 'Season MVP' }]);
     const data = emptyData();
     data.trophies = [
       {
@@ -149,6 +149,22 @@ describe('TrophiesProcessor', () => {
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(2);
+    expect(trophies.upsert).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        name: 'Major 1st',
+        externalIds: [{ externalSystemId: 1, externalId: 'Major 1st' }],
+      }),
+      expect.anything(),
+    );
+    expect(trophies.upsert).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        name: 'Season MVP',
+        externalIds: [{ externalSystemId: 1, externalId: 'Season MVP' }],
+      }),
+      expect.anything(),
+    );
   });
 
   it('resolves the named competition group into the upsert payload', async () => {
