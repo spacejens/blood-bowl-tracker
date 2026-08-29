@@ -42,20 +42,7 @@ describe('ImportBblConfigService', () => {
     return moduleRef.get(ImportBblConfigService);
   }
 
-  it('treats a missing file as an empty config', async () => {
-    const service = await makeService(join(dir, 'does-not-exist.json5'));
-    expect(service.get('league')).toBeUndefined();
-    expect(service.get('connection')).toBeUndefined();
-  });
-
-  it('throws when the file is missing, since connection is not set', async () => {
-    const service = await makeService(join(dir, 'does-not-exist.json5'));
-    expect(() => service.getApiBaseUrl()).toThrow(
-      'connection is not set in import-bbl-config.json5',
-    );
-  });
-
-  it('throws when connection is not set', async () => {
+  it('names this tool config file when connection is not set', async () => {
     const path = writeConfig(`{
       league: { leagueName: 'tLoEG', eras: [] },
     }`);
@@ -66,77 +53,36 @@ describe('ImportBblConfigService', () => {
   });
 
   it('returns the default API base URL when connection is present but apiBaseUrl is unset', async () => {
-    const path = writeConfig(`{ connection: {} }`);
-    const service = await makeService(path);
+    const service = await makeService(writeConfig(`{ connection: {} }`));
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
   });
 
-  it('parses JSON5 (comments, trailing commas, unquoted keys) and returns parsed values', async () => {
+  it('returns the configured API token', async () => {
+    const service = await makeService(
+      writeConfig(`{ connection: { apiToken: 'bbl-secret' } }`),
+    );
+    expect(service.getApiToken()).toBe('bbl-secret');
+  });
+
+  it('names this tool api-token env var when apiToken is missing', async () => {
+    const service = await makeService(
+      writeConfig(`{ connection: { apiBaseUrl: 'http://x:3000' } }`),
+    );
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-bbl-config.json5. Set it to ' +
+        'the bearer token this tool authenticates with; it must match the ' +
+        'API_TOKEN_IMPORT_BBL value in apps/discord-bot/.env.',
+    );
+  });
+
+  it('reads top-level config values from the file', async () => {
     const path = writeConfig(`{
-      // a comment
-      connection: { apiBaseUrl: 'http://example.test:3000' },
-      league: {
-        leagueName: 'tLoEG',
-        eras: [
-          { identity: { name: 'First era', rulesSets: ['CRP'] } },
-        ],
-      },
+      league: { leagueName: 'tLoEG', eras: [] },
+      connection: {},
     }`);
     const service = await makeService(path);
     expect(service.get<{ leagueName: string }>('league')?.leagueName).toBe(
       'tLoEG',
-    );
-    expect(service.get<{ eras: unknown[] }>('league')?.eras).toHaveLength(1);
-    expect(service.getApiBaseUrl()).toBe('http://example.test:3000');
-  });
-
-  it('throws with the file path when the file is not valid JSON5', async () => {
-    const path = writeConfig('{ this is : not valid');
-    await expect(
-      Test.createTestingModule({
-        providers: [
-          ImportBblConfigService,
-          { provide: IMPORT_BBL_CONFIG_PATH, useValue: path },
-        ],
-      }).compile(),
-    ).rejects.toThrow(path);
-  });
-
-  it('returns the configured API token', async () => {
-    const path = writeConfig(`{ connection: { apiToken: 'bbl-secret' } }`);
-    const service = await makeService(path);
-    expect(service.getApiToken()).toBe('bbl-secret');
-  });
-
-  it('throws from getApiToken when connection is not set', async () => {
-    const path = writeConfig(`{ league: { leagueName: 'tLoEG', eras: [] } }`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection is not set in import-bbl-config.json5',
-    );
-  });
-
-  it('throws when apiToken is missing', async () => {
-    const path = writeConfig(`{ connection: { apiBaseUrl: 'http://x:3000' } }`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection.apiToken is not set in import-bbl-config.json5',
-    );
-  });
-
-  it('throws when apiToken is an empty string', async () => {
-    const path = writeConfig(`{ connection: { apiToken: '' } }`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection.apiToken is not set in import-bbl-config.json5',
-    );
-  });
-
-  it('throws when apiToken is not a string', async () => {
-    const path = writeConfig(`{ connection: { apiToken: 42 } }`);
-    const service = await makeService(path);
-    expect(() => service.getApiToken()).toThrow(
-      'connection.apiToken is not set in import-bbl-config.json5',
     );
   });
 });

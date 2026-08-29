@@ -1,5 +1,3 @@
-import { resolve } from 'node:path';
-
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -28,21 +26,17 @@ describe('SourceConfigService', () => {
     );
   }
 
-  it('resolves a relative dataDir against the current working directory', () => {
-    stub('data/tloeg.bbleague.se');
-    expect(service.getDataDir()).toBe(resolve('data/tloeg.bbleague.se'));
+  it('returns the configured dataDir', () => {
+    stub('/srv/bbl/data');
+    expect(service.getDataDir()).toBe('/srv/bbl/data');
     expect(config.get).toHaveBeenCalledWith('dataDir');
   });
 
-  it('returns an absolute dataDir unchanged', () => {
-    stub('/srv/bbl/data');
-    expect(service.getDataDir()).toBe('/srv/bbl/data');
-  });
-
-  it('throws when dataDir is not set', () => {
+  it('throws a BBL-specific message when dataDir is not set', () => {
     stub(undefined);
     expect(() => service.getDataDir()).toThrow(
-      'dataDir is not set in import-bbl-config.json5',
+      'dataDir is not set in import-bbl-config.json5. Set it to the folder ' +
+        'containing the BBL default.asp files (e.g. data/tloeg.bbleague.se/).',
     );
   });
 });

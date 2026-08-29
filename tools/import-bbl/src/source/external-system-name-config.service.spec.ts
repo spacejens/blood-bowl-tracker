@@ -32,13 +32,6 @@ describe('ExternalSystemNameConfigService', () => {
     expect(config.get).toHaveBeenCalledWith('externalSystemName');
   });
 
-  it('returns "BBL" when externalSystemName is empty or whitespace', () => {
-    stub('');
-    expect(service.getBblSystemName()).toBe('BBL');
-    stub('   ');
-    expect(service.getBblSystemName()).toBe('BBL');
-  });
-
   it('returns the configured value when externalSystemName is set', () => {
     stub('MyLeague');
     expect(service.getBblSystemName()).toBe('MyLeague');

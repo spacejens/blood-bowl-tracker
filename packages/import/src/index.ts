@@ -11,6 +11,20 @@ export { CoachesImportService } from './coaches-import.service';
 export { CompetitionGroupsImportService } from './competition-groups-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export { ConfigErrorMessageService } from './config/config-error-message.service';
+export type {
+  ExternalSystemNameConfig,
+  ExternalSystemNameConfigServiceConfig,
+  ExternalSystemNameConfigServiceConstructor,
+} from './config/external-system-name-config-service-base';
+export { createExternalSystemNameConfigServiceBase } from './config/external-system-name-config-service-base';
+export type { ImportConfigPaths } from './config/import-config-paths';
+export { createImportConfigPaths } from './config/import-config-paths';
+export type {
+  ImportConfigService,
+  ImportConfigServiceConfig,
+  ImportConfigServiceConstructor,
+} from './config/import-config-service-base';
+export { createImportConfigServiceBase } from './config/import-config-service-base';
 export type { ConnectionConfig } from './config/shared-config.schema';
 export {
   configGroupSchema,
@@ -22,6 +36,12 @@ export {
   optionalIsoDateSchema,
   rulesSetsSchema,
 } from './config/shared-config.schema';
+export type {
+  SourceConfig,
+  SourceConfigServiceConfig,
+  SourceConfigServiceConstructor,
+} from './config/source-config-service-base';
+export { createSourceConfigServiceBase } from './config/source-config-service-base';
 export { ErasImportService } from './eras-import.service';
 export { ExternalIdResolverService } from './external-id-resolver.service';
 export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.service';

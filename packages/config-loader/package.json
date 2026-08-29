@@ -1,5 +1,5 @@
 {
-  "name": "@blood-bowl-tracker/import",
+  "name": "@blood-bowl-tracker/config-loader",
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
@@ -16,10 +16,8 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@blood-bowl-tracker/api-client": "workspace:*",
-    "@blood-bowl-tracker/api-contract": "workspace:*",
-    "@blood-bowl-tracker/config-loader": "workspace:*",
     "@nestjs/common": "^11.1.29",
+    "json5": "^2.2.3",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },

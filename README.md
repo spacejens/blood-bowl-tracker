@@ -24,11 +24,12 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`packages/api-client`** — NestJS module wrapping an oRPC RPC client for calling the api-server over the network
 - **`packages/api-contract`** — oRPC contract (coaches.upsert, externalSystems.upsert) shared between api-server and api-client
 - **`packages/api-server`** — Thin NestJS transport layer dispatching RPC calls into packages/game-data; hosted in-process by apps/discord-bot
+- **`packages/config-loader`** — library package with the generic JSON5 config-file loading shared by the import tools (via `packages/import`) and `tools/download-tp`: read the file, treat a missing file as an empty config, parse JSON5 with a friendly path-naming error, and validate against a caller-supplied top-level schema
 - **`packages/db`** — Drizzle ORM schema and migrations for PostgreSQL
 - **`packages/discord-client`** — NestJS module wrapping discord.js for connecting to Discord and posting messages
 - **`packages/game-data`** — Server-side business logic and DB access for core game entities (coaches, external systems); used directly by api-server and available to other apps
 - **`packages/import`** — NestJS module with shared import/ingestion result types, upsert-handling bookkeeping, and entity-specific import services (calling api-client) used across import tools
-- **`packages/parse-tp`** — library package for reusable TP JSON-parsing logic, currently consumed by `tools/import-tp`; intended to also be shared with `apps/discord-bot`
+- **`packages/parse-tp`** — library package for reusable TP JSON-parsing logic, currently consumed by `tools/import-tp`; intended to also be shared with `apps/discord-bot` for a future live TP import — which is why TP parsing is a package while BBL's stays inside tools/import-bbl
 - **`packages/review-harness`** — NestJS module with the scaffolding behind the review tools, generic across BBL/TP: HTML fragment assembly, timestamped report writing, JSON5 config loading, and the plug-in interfaces and DI wiring a data-type module registers through; it carries no BBL/TP parsing or interpretation logic, shared by `tools/review-match` and `tools/review-player`
 
 ### Tools
