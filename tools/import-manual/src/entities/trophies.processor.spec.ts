@@ -99,37 +99,11 @@ describe('TrophiesProcessor', () => {
     );
   });
 
-  it('upserts a trophy that declares no external ids', async () => {
-    trophies.upsert.mockResolvedValue({
-      id: 32,
-      name: 'Ogretoberfest',
-      recipientKind: 'team',
-      description: null,
-      competitionGroupId: 1,
-      leagueId: null,
-      createdAt: new Date(),
-      created: true,
-    });
-    refResolver.toExternalIds.mockReturnValue([]);
-    const data = emptyData();
-    data.trophies = [
-      { name: 'Ogretoberfest', recipientKind: 'team', externalIds: [] },
-    ];
-
-    const count = await processor.process(makeContext(data));
-
-    expect(count).toBe(1);
-    expect(trophies.upsert.mock.calls[0][0]).toEqual({
-      name: 'Ogretoberfest',
-      recipientKind: 'team',
-      description: undefined,
-      externalIds: [],
-    });
-  });
-
   it('does not count when the upsert fails', async () => {
     trophies.upsert.mockResolvedValue(undefined);
-    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 1, externalId: 'name:broken' },
+    ]);
     const data = emptyData();
     data.trophies = [
       {
@@ -155,16 +129,42 @@ describe('TrophiesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.toExternalIds
+      .mockReturnValueOnce([{ externalSystemId: 1, externalId: 'Major 1st' }])
+      .mockReturnValueOnce([{ externalSystemId: 1, externalId: 'Season MVP' }]);
     const data = emptyData();
     data.trophies = [
-      { name: 'Major 1st', recipientKind: 'team', externalIds: [] },
-      { name: 'Season MVP', recipientKind: 'player', externalIds: [] },
+      {
+        name: 'Major 1st',
+        recipientKind: 'team',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 1st' }],
+      },
+      {
+        name: 'Season MVP',
+        recipientKind: 'player',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
+      },
     ];
 
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(2);
+    expect(trophies.upsert).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        name: 'Major 1st',
+        externalIds: [{ externalSystemId: 1, externalId: 'Major 1st' }],
+      }),
+      expect.anything(),
+    );
+    expect(trophies.upsert).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        name: 'Season MVP',
+        externalIds: [{ externalSystemId: 1, externalId: 'Season MVP' }],
+      }),
+      expect.anything(),
+    );
   });
 
   it('resolves the named competition group into the upsert payload', async () => {
@@ -180,13 +180,15 @@ describe('TrophiesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 1, externalId: 'Major Gold' },
+    ]);
     const data = emptyData();
     data.trophies = [
       {
         name: 'Major Gold',
         recipientKind: 'team',
-        externalIds: [],
+        externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major Gold' }],
         competitionGroup: groupRef,
       },
     ];
@@ -217,10 +219,16 @@ describe('TrophiesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([
+      { externalSystemId: 1, externalId: 'Ungrouped' },
+    ]);
     const data = emptyData();
     data.trophies = [
-      { name: 'Ungrouped', recipientKind: 'team', externalIds: [] },
+      {
+        name: 'Ungrouped',
+        recipientKind: 'team',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: 'Ungrouped' }],
+      },
     ];
 
     expect(await processor.process(makeContext(data))).toBe(1);
@@ -240,7 +248,7 @@ describe('TrophiesProcessor', () => {
       {
         name: 'Major Gold',
         recipientKind: 'team',
-        externalIds: [],
+        externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major Gold' }],
         competitionGroup: { system: 'Name', id: 'Nonexistent' },
       },
     ];
@@ -276,7 +284,9 @@ describe('TrophiesProcessor', () => {
             name: 'Legendary Player',
             recipientKind: 'player',
             league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
-            externalIds: [],
+            externalIds: [
+              { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
+            ],
           },
         ],
       }),
@@ -304,7 +314,9 @@ describe('TrophiesProcessor', () => {
             name: 'Legendary Player',
             recipientKind: 'player',
             league: { system: 'tloeg.bbleague.se', id: 'nope' },
-            externalIds: [],
+            externalIds: [
+              { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
+            ],
           },
         ],
       }),
@@ -336,7 +348,13 @@ describe('TrophiesProcessor', () => {
     await processor.process(
       makeContext({
         ...emptyData(),
-        trophies: [{ name: 'Orphan', recipientKind: 'team', externalIds: [] }],
+        trophies: [
+          {
+            name: 'Orphan',
+            recipientKind: 'team',
+            externalIds: [{ system: 'tloeg.bbleague.se', id: 'Orphan' }],
+          },
+        ],
       }),
     );
 

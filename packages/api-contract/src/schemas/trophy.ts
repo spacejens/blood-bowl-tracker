@@ -14,17 +14,6 @@ export const TrophySchema = z.object({
   createdAt: z.coerce.date(),
 });
 
-/**
- * Unlike every other curated entity, `externalIds` is NOT `.min(1)` and
- * defaults to `[]`. A trophy can legitimately have no external id at all: TP's
- * own `awardType` codes are not globally unique per trophy, so seeding them
- * required scoping by competition group first. The curated catalog now gives
- * every trophy — including the TP-only "Ogretoberfest" — an explicit external
- * id, so no curated trophy currently takes this path, but it stays supported
- * for a future trophy that has no source system to key on yet.
- * `TrophiesService.upsert` matches such a trophy by exact name instead, so an
- * empty list stays idempotent across import runs.
- */
 export const UpsertTrophySchema = z.object({
   name: z.string().min(1).optional(),
   recipientKind: TrophyRecipientKindSchema.optional(),
@@ -39,7 +28,7 @@ export const UpsertTrophySchema = z.object({
   // enforced by the database's own check constraint, not here.
   competitionGroupId: z.number().int().nullable().optional(),
   leagueId: z.number().int().nullable().optional(),
-  externalIds: z.array(ExternalIdSchema).default([]),
+  externalIds: z.array(ExternalIdSchema).min(1),
 });
 
 export type TrophyRecipientKind = z.infer<typeof TrophyRecipientKindSchema>;

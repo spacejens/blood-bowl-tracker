@@ -957,7 +957,7 @@ describe('RpcRouterFactoryService', () => {
       const result = await call(router.trophies.upsert, {
         name: 'Chaos Cup',
         recipientKind: 'team',
-        externalIds: [],
+        externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
       });
 
       expect(result).toEqual({
@@ -978,7 +978,9 @@ describe('RpcRouterFactoryService', () => {
       );
 
       await expect(
-        call(router.trophies.upsert, { externalIds: [] }),
+        call(router.trophies.upsert, {
+          externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
+        }),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
@@ -988,7 +990,9 @@ describe('RpcRouterFactoryService', () => {
       );
 
       await expect(
-        call(router.trophies.upsert, { externalIds: [] }),
+        call(router.trophies.upsert, {
+          externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
+        }),
       ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     });
   });

@@ -119,15 +119,6 @@ const SppAwardValueEntrySchema = z.object({
   sppValue: z.number().int(),
 });
 
-/**
- * One curated trophy. Unlike every other entity section, `externalIds` is
- * NOT `.min(1)` and defaults to `[]`: a trophy may genuinely have none yet
- * (the TP-only "Ogretoberfest" has no BBL equivalent, and TP's own
- * `awardType` codes are not globally unique per trophy, so they cannot be
- * seeded until a competition-classification concept exists). Such a trophy is
- * matched on its exact name instead, by `TrophiesService.upsert`, so
- * re-running the import never duplicates it.
- */
 const TrophyEntrySchema = z.object({
   name: z.string().min(1),
   recipientKind: TrophyRecipientKindSchema,
@@ -145,7 +136,7 @@ const TrophyEntrySchema = z.object({
   // league. Optional and mutually exclusive with `competitionGroup`; the
   // database's own check constraint is what enforces that exactly one is set.
   league: ExternalRefSchema.optional(),
-  externalIds: z.array(ExternalRefSchema).default([]),
+  externalIds,
 });
 
 /**

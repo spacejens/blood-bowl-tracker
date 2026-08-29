@@ -12,7 +12,6 @@ import { eq, ilike, or } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
-import { MissingRequiredFieldError } from '../shared/missing-required-field-error';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -187,10 +186,6 @@ export class TrophiesService {
   async upsert(
     data: UpsertTrophy,
   ): Promise<{ trophy: Trophy; created: boolean }> {
-    if (data.externalIds.length === 0) {
-      return this.upsertByName(data);
-    }
-
     const { row: trophy, created } = await upsertByExternalIds<
       typeof trophies,
       typeof trophyExternalIds
@@ -216,79 +211,5 @@ export class TrophiesService {
     });
 
     return { trophy, created };
-  }
-
-  /**
-   * The empty-`externalIds` path, which no other entity has.
-   *
-   * A trophy is allowed to carry no external id at all, and
-   * `upsertByExternalIds` resolves rows purely from external ids — such a
-   * payload would insert a fresh duplicate on every run. Matching on exact
-   * `name` instead keeps it idempotent.
-   *
-   * This is not a shared "Name" external id and creates no auto-merge surface:
-   * the BBL and TP importers always supply real external ids and never reach
-   * this branch, so two different trophies sharing a label (Major "1st" vs.
-   * Minor "1st") cannot be conflated by either of them. The manual importer
-   * does reach this branch (an entry may declare no external ids — see
-   * `TrophiesProcessor`), so it relies on the conflict guard below instead.
-   *
-   * The lookup throws `TrophyUpsertConflictError` on more than one match
-   * rather than picking arbitrarily. Any importer that gives an existing
-   * trophy an external id must attach it to the row found by name, not create
-   * a second row, or that conflict fires on the next manual-import run.
-   */
-  private async upsertByName(
-    data: UpsertTrophy,
-  ): Promise<{ trophy: Trophy; created: boolean }> {
-    if (data.name === undefined) {
-      throw new MissingRequiredFieldError(
-        'Cannot upsert a trophy with no external ids and no name: there is nothing to match or create it by.',
-      );
-    }
-
-    const existing = await this.db
-      .select()
-      .from(trophies)
-      .where(eq(trophies.name, data.name));
-
-    if (existing.length > 1) {
-      throw new TrophyUpsertConflictError(
-        `Multiple trophies named "${data.name}"`,
-      );
-    }
-
-    if (existing[0]) {
-      const updated = await this.db
-        .update(trophies)
-        .set({
-          name: data.name,
-          recipientKind: data.recipientKind,
-          description: data.description,
-          competitionGroupId: data.competitionGroupId,
-          leagueId: data.leagueId,
-        })
-        .where(eq(trophies.id, existing[0].id))
-        .returning();
-      return { trophy: updated[0], created: false };
-    }
-
-    if (data.recipientKind === undefined) {
-      throw new MissingRequiredFieldError(
-        'Cannot create new trophies: missing required field(s): recipientKind',
-      );
-    }
-
-    const inserted = await this.db
-      .insert(trophies)
-      .values({
-        name: data.name,
-        recipientKind: data.recipientKind,
-        description: data.description,
-        competitionGroupId: data.competitionGroupId,
-        leagueId: data.leagueId,
-      })
-      .returning();
-    return { trophy: inserted[0], created: true };
   }
 }
