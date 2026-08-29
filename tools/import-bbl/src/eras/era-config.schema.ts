@@ -1,3 +1,4 @@
+import { COMPETITION_TYPES } from '@blood-bowl-tracker/api-contract';
 import {
   isoDateSchema,
   nonBlankStringSchema,
@@ -93,7 +94,7 @@ const competitionOverrideSchema = z
   .object(
     {
       bblId: nonBlankStringSchema,
-      type: z.enum(['season', 'cup'], { error: 'must be "season" or "cup".' }),
+      type: z.enum(COMPETITION_TYPES, { error: 'must be "season" or "cup".' }),
       startDate: optionalIsoDateSchema,
       endDate: optionalIsoDateSchema,
     },
