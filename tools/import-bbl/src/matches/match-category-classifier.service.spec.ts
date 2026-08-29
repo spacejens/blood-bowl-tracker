@@ -1,3 +1,4 @@
+import type { CompetitionType } from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -13,7 +14,7 @@ describe('MatchCategoryClassifierService', () => {
     service = moduleRef.get(MatchCategoryClassifierService);
   });
 
-  const classify = (name: string, competitionType: 'season' | 'cup') =>
+  const classify = (name: string, competitionType: CompetitionType) =>
     service.classify({ bblId: '1830', name, competitionType });
 
   it.each([

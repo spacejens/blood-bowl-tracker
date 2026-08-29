@@ -1,4 +1,5 @@
 import type {
+  CompetitionType,
   MatchCategory,
   UpsertCompetition,
 } from '@blood-bowl-tracker/api-contract';
@@ -19,7 +20,7 @@ import { MatchMergeService } from './match-merge.service';
 interface ResolveCategoryOptions {
   match: { bblId: string };
   details: { name: string };
-  competitionType: 'season' | 'cup' | undefined;
+  competitionType: CompetitionType | undefined;
   partnerBblId: string | undefined;
   categoryOverrides: Map<string, MatchCategory>;
   errors: ImportError[];

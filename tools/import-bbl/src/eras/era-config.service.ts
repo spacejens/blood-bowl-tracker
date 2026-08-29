@@ -1,3 +1,4 @@
+import type { CompetitionType } from '@blood-bowl-tracker/api-contract';
 import { ConfigErrorMessageService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -17,7 +18,7 @@ import { eraConfigSchema, leaguesShellSchema } from './era-config.schema';
  */
 export interface CompetitionOverride {
   bblId: string;
-  type: 'season' | 'cup';
+  type: CompetitionType;
   startDate?: string;
   endDate?: string;
 }
