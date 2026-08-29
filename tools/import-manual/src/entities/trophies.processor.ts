@@ -20,9 +20,6 @@ export class TrophiesProcessor {
    * passes `undefined` through leaving the stored value alone, and an entry
    * supplying neither or both is caught by the database's check constraint
    * at write time rather than here.
-   *
-   * An entry may declare an empty `externalIds` list; the API then matches it
-   * on its exact name instead (see `TrophiesService.upsert`).
    */
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;

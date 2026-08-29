@@ -41,18 +41,18 @@ describe('trophy schemas', () => {
     expect(parsed.success).toBe(false);
   });
 
-  it('accepts an upsert with an EMPTY externalIds array', () => {
-    const parsed = UpsertTrophySchema.parse({
-      name: 'Ogretoberfest',
-      recipientKind: 'team',
-      externalIds: [],
-    });
-    expect(parsed.externalIds).toEqual([]);
+  it('rejects an upsert with an empty externalIds array', () => {
+    expect(() =>
+      UpsertTrophySchema.parse({
+        name: 'Ogretoberfest',
+        recipientKind: 'team',
+        externalIds: [],
+      }),
+    ).toThrow();
   });
 
-  it('defaults externalIds to an empty array when omitted', () => {
-    const parsed = UpsertTrophySchema.parse({ name: 'Korpen' });
-    expect(parsed.externalIds).toEqual([]);
+  it('rejects an upsert that omits externalIds', () => {
+    expect(() => UpsertTrophySchema.parse({ name: 'Korpen' })).toThrow();
   });
 
   it('accepts a rename-only upsert carrying just externalIds and a name', () => {
@@ -74,11 +74,17 @@ describe('trophy schemas', () => {
 
   it('accepts an optional competitionGroupId on upsert', () => {
     expect(
-      UpsertTrophySchema.parse({ name: 'Major Gold', competitionGroupId: 2 })
-        .competitionGroupId,
+      UpsertTrophySchema.parse({
+        name: 'Major Gold',
+        competitionGroupId: 2,
+        externalIds: [{ externalSystemId: 1, externalId: 'Major Gold' }],
+      }).competitionGroupId,
     ).toBe(2);
     expect(
-      UpsertTrophySchema.parse({ name: 'Major Gold' }).competitionGroupId,
+      UpsertTrophySchema.parse({
+        name: 'Major Gold',
+        externalIds: [{ externalSystemId: 1, externalId: 'Major Gold' }],
+      }).competitionGroupId,
     ).toBeUndefined();
   });
 
@@ -101,20 +107,28 @@ describe('trophy schemas', () => {
       name: 'Legendary Player',
       competitionGroupId: null,
       leagueId: 7,
+      externalIds: [{ externalSystemId: 1, externalId: 'Legendary Player' }],
     });
     expect(parsed.competitionGroupId).toBeNull();
     expect(parsed.leagueId).toBe(7);
   });
 
   it('leaves both scope fields undefined when an upsert omits them', () => {
-    const parsed = UpsertTrophySchema.parse({ name: 'Legendary Player' });
+    const parsed = UpsertTrophySchema.parse({
+      name: 'Legendary Player',
+      externalIds: [{ externalSystemId: 1, externalId: 'Legendary Player' }],
+    });
     expect(parsed.competitionGroupId).toBeUndefined();
     expect(parsed.leagueId).toBeUndefined();
   });
 
   it('rejects a non-integer league id on upsert', () => {
     expect(() =>
-      UpsertTrophySchema.parse({ name: 'Legendary Player', leagueId: 1.5 }),
+      UpsertTrophySchema.parse({
+        name: 'Legendary Player',
+        leagueId: 1.5,
+        externalIds: [{ externalSystemId: 1, externalId: 'Legendary Player' }],
+      }),
     ).toThrow();
   });
 });

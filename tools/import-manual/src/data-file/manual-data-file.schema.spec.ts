@@ -341,20 +341,20 @@ describe('ManualDataFileSchema', () => {
     );
   });
 
-  it('accepts a trophy with NO external ids', () => {
-    const parsed = ManualDataFileSchema.parse({
+  it('rejects a trophy with an empty externalIds array', () => {
+    const parsed = ManualDataFileSchema.safeParse({
       trophies: [
         { name: 'Ogretoberfest', recipientKind: 'team', externalIds: [] },
       ],
     });
-    expect(parsed.trophies[0].externalIds).toEqual([]);
+    expect(parsed.success).toBe(false);
   });
 
-  it('defaults a trophy externalIds to an empty array when omitted', () => {
-    const parsed = ManualDataFileSchema.parse({
+  it('rejects a trophy that omits externalIds', () => {
+    const parsed = ManualDataFileSchema.safeParse({
       trophies: [{ name: 'Ogretoberfest', recipientKind: 'team' }],
     });
-    expect(parsed.trophies[0].externalIds).toEqual([]);
+    expect(parsed.success).toBe(false);
   });
 
   it('accepts a player trophy with no description', () => {
@@ -372,14 +372,25 @@ describe('ManualDataFileSchema', () => {
 
   it('rejects a trophy with an unknown recipient kind', () => {
     const parsed = ManualDataFileSchema.safeParse({
-      trophies: [{ name: 'Nope', recipientKind: 'coach', externalIds: [] }],
+      trophies: [
+        {
+          name: 'Nope',
+          recipientKind: 'coach',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Nope' }],
+        },
+      ],
     });
     expect(parsed.success).toBe(false);
   });
 
   it('rejects a trophy with no recipient kind', () => {
     const parsed = ManualDataFileSchema.safeParse({
-      trophies: [{ name: 'Nope', externalIds: [] }],
+      trophies: [
+        {
+          name: 'Nope',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Nope' }],
+        },
+      ],
     });
     expect(parsed.success).toBe(false);
   });
@@ -415,6 +426,7 @@ describe('ManualDataFileSchema', () => {
           name: 'Major Gold',
           recipientKind: 'team',
           competitionGroup: { system: 'Name', id: 'Major Season' },
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major Gold' }],
         },
       ],
       competitions: [
@@ -442,6 +454,9 @@ describe('ManualDataFileSchema', () => {
           name: 'Legendary Player',
           recipientKind: 'player',
           league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+          externalIds: [
+            { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
+          ],
         },
       ],
     });
