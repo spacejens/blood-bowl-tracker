@@ -120,7 +120,13 @@ Each of the following is its own `AskUserQuestion` checkpoint — offer them in 
    - **This session did not enter the worktree via `EnterWorktree`** (isolation was declined, or `/wrap-up` was invoked in a fresh session that never itself entered the worktree — `ExitWorktree` is a documented no-op outside an active `EnterWorktree` session, so it cannot help here) — offer a plain `git worktree remove <path>`; no session-relocation step is needed.
 
    When the current session's history can't distinguish cases 1 and 2 (the fresh-session situation above), fall back to what's always safe: `ExitWorktree(action: "keep")` (a documented no-op if no `EnterWorktree` session is active in this fresh session) followed by a plain `git worktree remove <path>` — this works correctly in all three cases. The `name`-mode bullet's `ExitWorktree(action: "remove", discard_changes: true)` is an optimization, not a strict requirement — it also deletes the branch atomically, but step 3 below deletes the local branch independently anyway, so falling back costs nothing but that atomicity.
-3. **Branch deletion.** Offer to delete the local branch (`headRefName` from Phase 1). Verify and delete against `origin/main` — **not** against the developer's local `main`, which may be stale or never fetched (the failure mode `git branch -d` would hit). First confirm the branch's work is genuinely present in `origin/main`:
+3. **Branch deletion.** Offer to delete the local branch (`headRefName` from Phase 1). First check whether it still exists — the `name`-mode bullet's `ExitWorktree(action: "remove", discard_changes: true)` may already have deleted it atomically along with the worktree:
+   ```bash
+   git branch --list <branch>
+   ```
+   If this prints nothing, the branch is already gone — report that it was removed atomically as part of worktree removal and **skip the rest of this step**. Running `git merge-base --is-ancestor` against a branch ref that no longer exists fails the same way as "not merged" would, which would misreport an already-cleaned-up branch as unmerged.
+
+   Otherwise, verify and delete against `origin/main` — **not** against the developer's local `main`, which may be stale or never fetched (the failure mode `git branch -d` would hit). First confirm the branch's work is genuinely present in `origin/main`:
    ```bash
    git merge-base --is-ancestor <branch> origin/main
    ```
