@@ -50,10 +50,10 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    gh issue view <N> --json title,body,labels,state,assignees,author,url,comments
    ```
    If the issue does not exist, `gh` will error — report the error and **stop**.
-2. Check whether `<N>` is Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, listing pending dependency updates. It is not a piece of work, and branching against it would clobber Renovate's own content. Using the `title` and `author` from the step 1 fetch:
+2. Check whether `<N>` is Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, listing pending dependency updates. It is not a piece of work, and branching against it would clobber Renovate's own content. Re-fetch just the fields the check needs, rather than hand-assembling JSON from the step 1 fetch — an issue title containing a quote or apostrophe would otherwise break inline shell interpolation and, because this gate fails closed, wrongly refuse a legitimate issue:
 
    ```bash
-   echo '{"title": "<title>", "author": {"login": "<author login>"}}' | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
+   gh issue view <N> --json number,title,author | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
    ```
 
    Build `tools/dev-workflow-cli` first with `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build` if `dist/main.js` is missing, matching this skill's convention for its other CLI subcommand calls.
