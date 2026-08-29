@@ -71,6 +71,7 @@ export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
+export type { CompetitionType } from './shared/competition-types';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export type { TeamTopPlayer } from './shared/match-event-counts.service';

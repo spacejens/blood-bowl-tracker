@@ -1,4 +1,7 @@
-import type { CompetitionTrophyAward } from '@blood-bowl-tracker/game-data';
+import type {
+  CompetitionTrophyAward,
+  CompetitionType,
+} from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
   TrophyAwardsService,
@@ -34,7 +37,7 @@ import { PlayerRowButtonService } from '../player-row-button.service';
 type CompetitionHeader = {
   id: number;
   name: string;
-  type: 'season' | 'cup';
+  type: CompetitionType;
   eraId: number;
   eraName: string;
   competitionGroupId: number;
