@@ -1,3 +1,4 @@
+import type { CompetitionType } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
   ErasService,
@@ -33,7 +34,7 @@ type EraHeader = {
 type Competition = {
   id: number;
   name: string;
-  type: 'season' | 'cup';
+  type: CompetitionType;
   startDate: string;
   endDate: string | null;
 };

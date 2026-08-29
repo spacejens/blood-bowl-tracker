@@ -1,4 +1,7 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type {
+  CompetitionType,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
@@ -360,7 +363,7 @@ export class TpCompetitionsImportService {
   }
 
   /** span <= 3 days => cup, else season (see CUP_MAX_SPAN_DAYS). */
-  private classifyType(spanDays: number): 'season' | 'cup' {
+  private classifyType(spanDays: number): CompetitionType {
     return spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
   }
 

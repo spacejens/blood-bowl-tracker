@@ -1,4 +1,7 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import type {
+  CompetitionType,
+  MatchCategory,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 export interface ClassifyMatchNameOptions {
@@ -7,7 +10,7 @@ export interface ClassifyMatchNameOptions {
   /** The free-text match name extracted by MatchTeamsPageParser. */
   name: string;
   /** The owning competition's type, which disambiguates a bare "Final". */
-  competitionType: 'season' | 'cup';
+  competitionType: CompetitionType;
 }
 
 /**

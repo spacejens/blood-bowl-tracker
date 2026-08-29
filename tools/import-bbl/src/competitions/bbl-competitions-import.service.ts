@@ -1,4 +1,7 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type {
+  CompetitionType,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
@@ -59,7 +62,7 @@ interface ResolveTypeAndEraOptions {
 }
 
 interface ResolvedCompetition {
-  type: 'season' | 'cup';
+  type: CompetitionType;
   eraId: number;
   startDate: string;
   endDate: string | undefined;

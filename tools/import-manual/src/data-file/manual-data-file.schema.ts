@@ -1,4 +1,5 @@
 import {
+  COMPETITION_TYPES,
   ExternalSystemCategorySchema,
   SppEarningActionTypeSchema,
   TrophyRecipientKindSchema,
@@ -85,7 +86,7 @@ const CompetitionEntrySchema = z.object({
   // competition into its group, and restating a scraped name they do not
   // intend to change would risk renaming it by accident.
   name: z.string().min(1).optional(),
-  type: z.enum(['season', 'cup']).optional(),
+  type: z.enum(COMPETITION_TYPES).optional(),
   era: ExternalRefSchema.optional(),
   // competitions.start_date is NOT NULL with no default, so an entry that
   // creates a competition row -- which is exactly what

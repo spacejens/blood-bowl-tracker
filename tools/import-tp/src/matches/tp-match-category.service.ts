@@ -1,11 +1,14 @@
-import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import type {
+  CompetitionType,
+  MatchCategory,
+} from '@blood-bowl-tracker/api-contract';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 export interface ClassifyTpMatchOptions {
   match: TpMatch;
   /** The owning competition's type -- cups never get a season_* category. */
-  competitionType: 'season' | 'cup';
+  competitionType: CompetitionType;
   /**
    * Every match in the same TP competition as `match` (including `match`
    * itself). A single match's own `(phaseOrder, round)` tuple cannot tell a

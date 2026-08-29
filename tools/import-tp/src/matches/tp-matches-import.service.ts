@@ -1,4 +1,5 @@
 import type {
+  CompetitionType,
   MatchCategory,
   UpsertMatch,
 } from '@blood-bowl-tracker/api-contract';
@@ -17,7 +18,7 @@ import { TpMatchCategoryService } from './tp-match-category.service';
 export interface ImportTpMatchesOptions {
   matchesByCompetitionId: Map<number, TpMatch[]>;
   /** Each imported competition's DB id to its type, for category classification. */
-  competitionTypesByCompetitionId: Map<number, 'season' | 'cup'>;
+  competitionTypesByCompetitionId: Map<number, CompetitionType>;
 }
 
 @Injectable()
