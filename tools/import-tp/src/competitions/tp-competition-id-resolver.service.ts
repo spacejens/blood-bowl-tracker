@@ -1,4 +1,7 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type {
+  CompetitionType,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
@@ -30,7 +33,7 @@ export interface ResolveCompetitionIdsResult {
    */
   competitionIdsByTpId: Map<number, number>;
   /** Each competition's database id to its cup/season type. */
-  competitionTypesByCompetitionId: Map<number, 'season' | 'cup'>;
+  competitionTypesByCompetitionId: Map<number, CompetitionType>;
   /** Each competition's database id to the era it belongs to. */
   eraIdByCompetitionId: Map<number, number>;
 }
@@ -63,7 +66,7 @@ export class TpCompetitionIdResolverService {
     const { competitionsByTpId } = options;
     const errors: ImportError[] = [];
     const competitionIdsByTpId = new Map<number, number>();
-    const competitionTypesByCompetitionId = new Map<number, 'season' | 'cup'>();
+    const competitionTypesByCompetitionId = new Map<number, CompetitionType>();
     const eraIdByCompetitionId = new Map<number, number>();
 
     // Each entry's TP external system id is read out of its own upsert once
