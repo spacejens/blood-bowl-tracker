@@ -7,6 +7,10 @@ import { INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import {
+  CHECK_DEPENDENCY_DASHBOARD_USAGE,
+  CheckDependencyDashboardService,
+} from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
@@ -21,6 +25,7 @@ const SUBCOMMANDS = [
   'resolve-main-root',
   'check-main-stray',
   'check-drift',
+  'check-dependency-dashboard',
   'wait-for-pr-review',
   'post-review-questions',
 ] as const;
@@ -34,10 +39,19 @@ function isSubcommand(value: string | undefined): value is Subcommand {
 interface DispatchOptions {
   readonly app: INestApplicationContext;
   readonly subcommand: Subcommand;
-  readonly postReviewQuestionsStdin?: string;
+  /** Present only for the subcommands that take JSON on stdin. */
+  readonly stdin?: string;
 }
 
-function readPostReviewQuestionsStdin(): string {
+/** The subcommands whose input arrives as JSON on stdin. */
+function readsStdin(subcommand: Subcommand): boolean {
+  return (
+    subcommand === 'post-review-questions' ||
+    subcommand === 'check-dependency-dashboard'
+  );
+}
+
+function readStdin(): string {
   // fd 0 is stdin: read it fully before the Nest context is created.
   return readFileSync(0, 'utf8');
 }
@@ -57,13 +71,21 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .parse(process.argv);
       return app.get(WaitForPrReviewService).run(waitOptions);
     }
+    case 'check-dependency-dashboard': {
+      if (options.stdin === undefined) {
+        throw new Error(CHECK_DEPENDENCY_DASHBOARD_USAGE);
+      }
+      return Promise.resolve(
+        app.get(CheckDependencyDashboardService).run(options.stdin),
+      );
+    }
     case 'post-review-questions': {
-      if (options.postReviewQuestionsStdin === undefined) {
+      if (options.stdin === undefined) {
         throw new Error(POST_REVIEW_QUESTIONS_USAGE);
       }
       const postReviewQuestionsInput = app
         .get(PostReviewQuestionsArgsService)
-        .parse(process.argv, options.postReviewQuestionsStdin);
+        .parse(process.argv, options.stdin);
       return app.get(PostReviewQuestionsService).run(postReviewQuestionsInput);
     }
   }
@@ -80,16 +102,13 @@ async function run(): Promise<unknown> {
     );
   }
 
-  const postReviewQuestionsStdin =
-    subcommand === 'post-review-questions'
-      ? readPostReviewQuestionsStdin()
-      : undefined;
+  const stdin = readsStdin(subcommand) ? readStdin() : undefined;
 
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
   });
   try {
-    return await dispatch({ app, subcommand, postReviewQuestionsStdin });
+    return await dispatch({ app, subcommand, stdin });
   } finally {
     await app.close();
   }
