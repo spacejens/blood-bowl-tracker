@@ -1,12 +1,15 @@
-import { externalSystemNameSchema } from '@blood-bowl-tracker/import';
+import { createExternalSystemNameConfigServiceBase } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
 
 @Injectable()
-export class ExternalSystemNameConfigService {
-  constructor(private readonly config: ImportTpConfigService) {}
-
+export class ExternalSystemNameConfigService extends createExternalSystemNameConfigServiceBase(
+  {
+    configService: ImportTpConfigService,
+    defaultSystemName: 'TP',
+  },
+) {
   /**
    * The name of the external system TP records are registered under (the
    * canonical external system for imported leagues, rule sets, and eras).
@@ -15,9 +18,6 @@ export class ExternalSystemNameConfigService {
    * yields the default "TP".
    */
   getTpSystemName(): string {
-    const parsed = externalSystemNameSchema.safeParse(
-      this.config.get('externalSystemName'),
-    );
-    return parsed.success ? parsed.data : 'TP';
+    return this.getSystemName();
   }
 }

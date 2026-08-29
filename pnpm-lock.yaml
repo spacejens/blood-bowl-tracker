@@ -250,6 +250,43 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(typescript@6.0.3)(vitest@4.1.11)
 
+  packages/config-loader:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.1.29
+        version: 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.1.29
+        version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.2.3)(@nestjs/platform-express@11.2.3)
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      '@vitest/coverage-v8':
+        specifier: ^4.1.10
+        version: 4.1.11(vitest@4.1.11)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.2.1
+        version: 8.2.2(@types/node@24.13.3)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.11(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.11)
+
   packages/db:
     dependencies:
       '@nestjs/common':
@@ -384,6 +421,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../api-contract
+      '@blood-bowl-tracker/config-loader':
+        specifier: workspace:*
+        version: link:../config-loader
       '@nestjs/common':
         specifier: ^11.1.29
         version: 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -575,15 +615,15 @@ importers:
 
   tools/download-tp:
     dependencies:
+      '@blood-bowl-tracker/config-loader':
+        specifier: workspace:*
+        version: link:../../packages/config-loader
       '@nestjs/common':
         specifier: ^11.1.29
         version: 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core':
         specifier: ^11.1.29
         version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.2.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       puppeteer:
         specifier: ^25.5.0
         version: 25.9.0(yauzl@2.10.0)
@@ -706,9 +746,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -819,9 +856,6 @@ importers:
       '@nestjs/core':
         specifier: ^11.1.29
         version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.2.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

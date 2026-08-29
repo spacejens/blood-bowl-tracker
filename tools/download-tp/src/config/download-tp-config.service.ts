@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { Inject, Injectable } from '@nestjs/common';
-import JSON5 from 'json5';
+import { createConfigLoaderServiceBase } from '@blood-bowl-tracker/config-loader';
+import { Injectable } from '@nestjs/common';
 
 import {
   browserGroupSchema,
@@ -31,20 +30,10 @@ const CONNECTION_MISSING =
   "backendApiUrl: 'https://tourplay.net/api/' }.";
 
 @Injectable()
-export class DownloadTpConfigService {
-  private readonly config: Record<string, unknown>;
-
-  constructor(
-    @Inject(DOWNLOAD_TP_CONFIG_PATH) private readonly filePath: string,
-  ) {
-    this.config = this.load();
-  }
-
-  /** Raw parsed value for a top-level key, or undefined when absent. */
-  get<T>(key: string): T | undefined {
-    return this.config[key] as T | undefined;
-  }
-
+export class DownloadTpConfigService extends createConfigLoaderServiceBase({
+  pathToken: DOWNLOAD_TP_CONFIG_PATH,
+  schema: configFileSchema,
+}) {
   /**
    * Base URL of the TP frontend, including a trailing slash, from
    * `connection.frontendUrl`. Required.
@@ -117,34 +106,5 @@ export class DownloadTpConfigService {
       );
     }
     return url;
-  }
-
-  /**
-   * Read and parse the JSON5 file once. A missing file is treated as an empty
-   * config so each getter can still throw its own friendly per-field error
-   * lazily; a syntactically invalid file throws immediately with the path.
-   */
-  private load(): Record<string, unknown> {
-    let raw: string;
-    try {
-      raw = readFileSync(this.filePath, 'utf8');
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return {};
-      }
-      throw error;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON5.parse(raw);
-    } catch (error) {
-      throw new Error(
-        `Failed to parse ${this.filePath}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
-    }
-
-    return configFileSchema.parse(parsed);
   }
 }
