@@ -68,7 +68,7 @@ Prints one of four JSON outcomes:
 gh issue view <N> --json number,title,author | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
 ```
 
-Reads JSON on stdin, either a single issue object (as `gh issue view` prints) or an array of them (as `gh issue list` prints). Each item needs a `title` and an `author.login`; any other fields — `number`, `url`, `state` — pass through to the output untouched, so a caller can carry identifying data through the check without a second lookup.
+Reads JSON on stdin, either a single issue object (as `gh issue view` prints) or an array of them (as `gh issue list` prints). Each item needs a `title` and an `author.login`; any other fields — `number`, `url`, `state` — pass through to the output with their values unchanged (key order may differ), so a caller can carry identifying data through the check without a second lookup.
 
 Prints the same shape back (object in, object out; array in, array out) with `isDependencyDashboard` added to each item. It is `true` only when the title is exactly `Dependency Dashboard` **and** the author's login is exactly `app/renovate` — Renovate's standing status issue, which it rewrites itself and which is never a piece of work to pick up. Both conditions are required, so a coincidentally-titled human-authored issue does not match, and detection survives Renovate recreating the issue under a new number.
 

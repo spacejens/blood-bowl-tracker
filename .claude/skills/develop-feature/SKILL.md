@@ -56,7 +56,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    gh issue view <N> --json number,title,author | node tools/dev-workflow-cli/dist/main.js check-dependency-dashboard
    ```
 
-   Build `tools/dev-workflow-cli` first with `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build` if `dist/main.js` is missing, matching this skill's convention for its other CLI subcommand calls.
+   Build `tools/dev-workflow-cli` first with `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build` if `dist/main.js` is missing, matching this skill's convention for its other CLI subcommand calls. This step runs in the main checkout, before any worktree exists (Setup step 8 creates it) — unlike this skill's later `cd <worktree-path> &&`-prefixed invocations, the relative path here is correct as written.
 
    - If `isDependencyDashboard` is `true`, report "Issue #N is Renovate's Dependency Dashboard — a live status page Renovate rewrites itself, not a piece of work to pick up. Nothing to do." and **stop** — before comments are surfaced, before the PR check, before the state check, before claiming or assigning, before branch naming, and before any worktree work.
    - If the check itself fails (build failure, non-zero exit, or output carrying no `isDependencyDashboard` field), report the error and **stop**. This is a safety gate, so a broken check fails closed rather than falling through to normal issue handling.
