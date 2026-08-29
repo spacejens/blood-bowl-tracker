@@ -21,6 +21,12 @@ export interface DeploymentInfo {
    * line (the PR title) when there is one, otherwise the subject line.
    */
   commitMessage?: string;
+  /**
+   * When the running commit was made, as the raw ISO-8601 committer date
+   * (`git log -1 --format=%cI`), carrying whatever UTC offset the machine
+   * that made the commit had. `describe()` renders it in UTC.
+   */
+  commitTimestamp?: string;
 }
 
 /** How many leading characters of the commit SHA the message shows. */
@@ -116,6 +122,10 @@ export class DeploymentInfoService {
       const commitMessage = this.deriveCommitMessage(rawMessage);
       if (commitMessage) info.commitMessage = commitMessage;
     }
+    const commitTimestamp =
+      this.env('GIT_COMMIT_TIMESTAMP') ??
+      this.git(['log', '-1', '--format=%cI']);
+    if (commitTimestamp) info.commitTimestamp = commitTimestamp;
     return info;
   }
 

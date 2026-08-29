@@ -54,6 +54,7 @@ describe('DeploymentInfoService', () => {
       GIT_SHA: 'abcdef1234567890',
       GIT_BRANCH: 'main',
       GIT_COMMIT_MESSAGE: 'Add the thing\n',
+      GIT_COMMIT_TIMESTAMP: '2026-08-30T16:05:22+02:00',
       GIT_IS_MERGE_COMMIT: 'false',
     });
 
@@ -63,6 +64,7 @@ describe('DeploymentInfoService', () => {
       branch: 'main',
       commitSha: 'abcdef1234567890',
       commitMessage: 'Add the thing',
+      commitTimestamp: '2026-08-30T16:05:22+02:00',
     });
     expect(execFileSync).not.toHaveBeenCalled();
   });
@@ -72,12 +74,14 @@ describe('DeploymentInfoService', () => {
       'branch --show-current': 'my-branch\n',
       'rev-parse HEAD': 'fedcba9876543210\n',
       'log -1 --pretty=%B': 'Tidy up the importer\n',
+      'log -1 --format=%cI': '2026-08-30T14:05:22+00:00\n',
     });
 
     expect(service.getDeploymentInfo()).toEqual({
       branch: 'my-branch',
       commitSha: 'fedcba9876543210',
       commitMessage: 'Tidy up the importer',
+      commitTimestamp: '2026-08-30T14:05:22+00:00',
     });
   });
 
@@ -87,6 +91,28 @@ describe('DeploymentInfoService', () => {
     });
 
     expect(service.getDeploymentInfo()).toEqual({});
+  });
+
+  it('prefers GIT_COMMIT_TIMESTAMP over the git committer-date lookup', () => {
+    withEnv({ GIT_COMMIT_TIMESTAMP: '  2026-08-30T16:05:22+02:00  ' });
+    gitReturns({ 'log -1 --format=%cI': '1999-01-01T00:00:00+00:00\n' });
+
+    expect(service.getDeploymentInfo().commitTimestamp).toBe(
+      '2026-08-30T16:05:22+02:00',
+    );
+    expect(execFileSync).not.toHaveBeenCalledWith(
+      'git',
+      ['log', '-1', '--format=%cI'],
+      expect.anything(),
+    );
+  });
+
+  it('omits the commit timestamp when neither the env var nor git answers', () => {
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error('not a git repository');
+    });
+
+    expect(service.getDeploymentInfo().commitTimestamp).toBeUndefined();
   });
 
   it('shows a merge commit body line instead of its subject', () => {
@@ -146,14 +172,16 @@ describe('DeploymentInfoService', () => {
       'branch --show-current': 'main\n',
       'rev-parse HEAD': 'deadbeef\n',
       'log -1 --pretty=%B': 'Add the thing\n',
+      'log -1 --format=%cI': '2026-08-30T14:05:22+00:00\n',
     });
 
     service.getDeploymentInfo();
     service.getDeploymentInfo();
 
-    // Branch, SHA, and message — on the first call only. The commit message
-    // has no body line, so the merge check is never reached.
-    expect(execFileSync).toHaveBeenCalledTimes(3);
+    // Branch, SHA, message, and commit timestamp — on the first call only.
+    // The commit message has no body line, so the merge check is never
+    // reached.
+    expect(execFileSync).toHaveBeenCalledTimes(4);
   });
 
   it('describes an active machine as an embed with one line per field', () => {
