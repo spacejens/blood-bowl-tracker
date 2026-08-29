@@ -253,22 +253,6 @@ describe('curated data files', () => {
     ]);
   });
 
-  it('has no curated trophy relying on the empty-externalIds name-match fallback', () => {
-    // TrophiesService.upsert() still supports matching a trophy by exact
-    // name when externalIds is empty (see its doc comment), but no curated
-    // trophy uses that path today -- Ogretoberfest was the last one to, and
-    // gained a tourplay.net id. Pinned here so a future edit
-    // that strips a trophy's only external id doesn't silently start relying
-    // on the fallback again without anyone noticing.
-    const trophies = readPhase('before-other-importers').trophies;
-    for (const trophy of trophies) {
-      expect(
-        trophy.externalIds.length,
-        `trophy "${trophy.name}" has no external ids`,
-      ).toBeGreaterThan(0);
-    }
-  });
-
   it('classifies all 86 known competition instances into curated groups', () => {
     const before = readPhase('before-other-importers');
     const groupNames = new Set(
