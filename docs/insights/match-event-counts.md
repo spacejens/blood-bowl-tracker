@@ -25,6 +25,14 @@ Not every count exists for both grouping entities, and that is by design — not
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.
 
+## Date-scoped counts
+
+The [on-this-date](on-this-date.md) insight counts these same event
+categories again, but with no grouping entity at all: one total per category
+over every event of the scoped population, narrowed by a calendar month and
+day rather than by a player, team, or coach. It deliberately omits MVP
+awards, for the same reason the team grouping does above.
+
 ## Expensive-mistake money queries
 
 Two `/insights` team toplists rank money rather than counting events, but reuse

@@ -1,7 +1,4 @@
-import type {
-  PlayerKillEntry,
-  PlayerKillerTeam,
-} from '@blood-bowl-tracker/game-data';
+import type { PlayerKillEntry } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
 import {
@@ -10,7 +7,7 @@ import {
 } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
-import { PlayerRowButtonService } from '../player-row-button.service';
+import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 
 export interface PlayerKillsSectionOptions {
   /** The fetched kills, newest match first, already capped by the caller. */
@@ -31,16 +28,14 @@ export interface PlayerKillsSection {
 /**
  * Builds the player deepdive's `Kills:` section: its lines and its drill-down
  * entries. Extracted from `PlayerDeepdiveService` purely for size — that file
- * is close to the repo's 500-line source ceiling. It also owns the two
- * killer-text helpers (`formatTeam` and `joinWithOr`) that the deepdive's own
- * `Status:` line needs, so the same team rendering and the same "or"-joining
- * exist in exactly one place. It injects `PlayerRowButtonService` so a star
- * victim's row opens the star player deepdive rather than the per-team player
- * deepdive.
+ * is close to the repo's 500-line source ceiling. It delegates the victim
+ * text and drill-down entries for every kind but `prevented` to
+ * `PlayerKillerInfoFormatterService`: only `PlayerKillEntry` has a
+ * `prevented` kind, so that one case stays here.
  */
 @Injectable()
 export class PlayerKillsSectionService {
-  constructor(private readonly playerRowButton: PlayerRowButtonService) {}
+  constructor(private readonly killerInfo: PlayerKillerInfoFormatterService) {}
   /**
    * Selects a prefix of `kills` that keeps the whole description within
    * Discord's `MAX_DESCRIPTION_LENGTH` and renders it, plus an exact overflow
@@ -93,22 +88,6 @@ export class PlayerKillsSectionService {
     };
   }
 
-  /** A team with the same `(race, coach)` context toplist rows use. */
-  formatTeam(team: PlayerKillerTeam): string {
-    return `${team.teamName} (${team.raceName}, ${team.coachName})`;
-  }
-
-  /**
-   * A natural "or"-joined list: `X or Y` for two, and an Oxford comma before
-   * the final `or` for three or more.
-   */
-  joinWithOr(parts: string[]): string {
-    if (parts.length <= 2) {
-      return parts.join(' or ');
-    }
-    return `${parts.slice(0, -1).join(', ')}, or ${parts[parts.length - 1]}`;
-  }
-
   /** One kill's row, at whatever precision the victim was resolved to. */
   private formatKill(kill: PlayerKillEntry): string {
     const note = kill.viaFoul ? ' (via a foul)' : '';
@@ -117,22 +96,11 @@ export class PlayerKillsSectionService {
 
   /** The victim clause of a kill row, without the foul note. */
   private formatVictim(kill: PlayerKillEntry): string {
-    switch (kill.kind) {
-      case 'player':
-        return `${kill.playerName} (${kill.positionName}, ${kill.teamName}, ${kill.raceName}, ${kill.coachName})`;
-      case 'team':
-        return `An unidentified player from ${this.formatTeam(kill)}`;
-      case 'ambiguousTeams':
-        return `An unidentified player from ${this.joinWithOr(
-          kill.teams.map((team) => this.formatTeam(team)),
-        )}`;
-      case 'unknown':
-        return 'An opponent, in mysterious circumstances';
-      case 'prevented':
-        return `An unidentified player from ${this.formatTeam(kill)}, saved by ${
+    return kill.kind === 'prevented'
+      ? `An unidentified player from ${this.killerInfo.formatTeam(kill)}, saved by ${
           kill.avoidedBy === 'apothecary' ? 'an apothecary' : 'regeneration'
-        }`;
-    }
+        }`
+      : this.killerInfo.describe(kill);
   }
 
   /**
@@ -141,34 +109,14 @@ export class PlayerKillsSectionService {
    * victim entity itself is offered — never its position, race or coach.
    */
   private buildVictimEntries(kill: PlayerKillEntry): EntityComponentEntry[] {
-    switch (kill.kind) {
-      case 'player':
-        return [
-          this.playerRowButton.buildPlayerRowButton({
-            playerId: kill.playerId,
-            playerName: kill.playerName,
-            positionId: kill.positionId,
-            positionName: kill.positionName,
-            isStarPlayer: kill.isStarPlayer,
-          }),
-        ];
-      case 'team':
-      case 'prevented':
-        return [
+    return kill.kind === 'prevented'
+      ? [
           {
             customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
             entityId: String(kill.teamId),
             label: kill.teamName,
           },
-        ];
-      case 'ambiguousTeams':
-        return kill.teams.map((team) => ({
-          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(team.teamId),
-          label: team.teamName,
-        }));
-      case 'unknown':
-        return [];
-    }
+        ]
+      : this.killerInfo.buildEntries(kill);
   }
 }

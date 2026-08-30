@@ -75,6 +75,14 @@ they reached), rather than every competition entered.
   name list); and Races, Positions,
   Coaches, Competitions, Teams, Players, Matches, and Match events are each
   scoped to the selected era.
+- `onThisDate` — an embed for today's calendar date carrying the match count
+  for that month and day across every recorded year, the event breakdown, and
+  the most notable players who died on it with who killed them. Always
+  resolved against today, because the phrase means nothing relative to any
+  other moment. Supports league, era, competition and match-category
+  filtering. Available for any date through the
+  [`/onthisdate`](on-this-date.md) command. See
+  [On this date](../../insights/on-this-date.md) for the underlying rules.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
   Supports league, era and match-category filtering, but not competition
   filtering (like the other `coach.toplist.*` facts).

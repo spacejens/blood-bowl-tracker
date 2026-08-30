@@ -1,6 +1,5 @@
 import type {
   PlayerDeepdiveCategoryCounts,
-  PlayerDeepdiveEventGroup,
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
@@ -32,6 +31,7 @@ import {
   DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -40,7 +40,7 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { PlayerRowButtonService } from '../player-row-button.service';
+import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 
 type Player = {
@@ -98,7 +98,8 @@ export class PlayerDeepdiveService {
     private readonly playerDeath: PlayerDeathService,
     private readonly playerKills: PlayerKillsSectionService,
     private readonly stars: StarPlayersService,
-    private readonly playerRowButton: PlayerRowButtonService,
+    private readonly killerInfo: PlayerKillerInfoFormatterService,
+    private readonly eventCountLines: EventCountLinesService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -204,7 +205,10 @@ export class PlayerDeepdiveService {
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),
     ];
 
-    const categoryLines = this.buildCategoryLines(counts);
+    const categoryLines = this.eventCountLines.build(
+      counts,
+      DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
+    );
 
     // No placeholder when the player has no trophies — the section is simply
     // absent, rather than reported empty. This also covers the case where the
@@ -304,47 +308,6 @@ export class PlayerDeepdiveService {
       ],
       components,
     };
-  }
-
-  /**
-   * The counter block: the five simple categories in their fixed order (zero
-   * ones omitted), then the casualty and foul lines, each carrying its own
-   * severity breakdown. A player with nothing at all in any counter gets a
-   * short placeholder rather than an empty block.
-   */
-  private buildCategoryLines(counts: PlayerDeepdiveCategoryCounts): string[] {
-    const lines = [
-      ...counts.simple
-        .filter((category) => category.count > 0)
-        .map((category) => `${category.label}: ${category.count}`),
-      ...this.buildGroupLine('Casualties inflicted', counts.casualties),
-      ...this.buildGroupLine('Fouls committed', counts.fouls),
-    ];
-    return lines.length === 0 ? [DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE] : lines;
-  }
-
-  /**
-   * One counter line with a severity breakdown, e.g.
-   * `Fouls committed: 7 (3 serious injuries, 2 killed)`. A zero sub-count is
-   * dropped from the parenthetical along with its comma, the parenthetical
-   * disappears when both are zero, and a zero total drops the line entirely —
-   * matching this embed's "no placeholder for zero" convention throughout.
-   */
-  private buildGroupLine(
-    label: string,
-    group: PlayerDeepdiveEventGroup,
-  ): string[] {
-    if (group.total === 0) {
-      return [];
-    }
-    const parts = [
-      ...(group.seriousInjuries === 0
-        ? []
-        : [`${group.seriousInjuries} serious injuries`]),
-      ...(group.killed === 0 ? [] : [`${group.killed} killed`]),
-    ];
-    const breakdown = parts.length === 0 ? '' : ` (${parts.join(', ')})`;
-    return [`${label}: ${group.total}${breakdown}`];
   }
 
   /**
@@ -470,20 +433,23 @@ export class PlayerDeepdiveService {
     return `Status: ${this.formatKiller(killer)}${note}`;
   }
 
-  /** The killer clause of the `Status:` line, without the foul note. */
+  /**
+   * The killer clause of the `Status:` line, without the foul note. A
+   * `'player'` killer's name is a proper noun and stays capitalized as
+   * `describe` returns it; every other kind's phrasing ("An unidentified
+   * player from...") is written to stand alone as its own sentence, so its
+   * leading capital is lowered to fit mid-sentence after "Killed by ".
+   */
   private formatKiller(killer: PlayerKillerInfo): string {
-    switch (killer.kind) {
-      case 'player':
-        return `Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
-      case 'team':
-        return `Killed by ${this.playerKills.formatTeam(killer)}`;
-      case 'ambiguousTeams':
-        return `Killed by ${this.playerKills.joinWithOr(
-          killer.teams.map((team) => this.playerKills.formatTeam(team)),
-        )}`;
-      case 'unknown':
-        return 'Killed in mysterious circumstances';
+    if (killer.kind === 'unknown') {
+      return 'Killed in mysterious circumstances';
     }
+    const described = this.killerInfo.describe(killer);
+    const clause =
+      killer.kind === 'player'
+        ? described
+        : described.charAt(0).toLowerCase() + described.slice(1);
+    return `Killed by ${clause}`;
   }
 
   /**
@@ -495,36 +461,6 @@ export class PlayerDeepdiveService {
   private buildKillerEntries(
     killer: PlayerKillerInfo | null,
   ): EntityComponentEntry[] {
-    if (killer === null) {
-      return [];
-    }
-    switch (killer.kind) {
-      case 'player':
-        return [
-          this.playerRowButton.buildPlayerRowButton({
-            playerId: killer.playerId,
-            playerName: killer.playerName,
-            positionId: killer.positionId,
-            positionName: killer.positionName,
-            isStarPlayer: killer.isStarPlayer,
-          }),
-        ];
-      case 'team':
-        return [
-          {
-            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(killer.teamId),
-            label: killer.teamName,
-          },
-        ];
-      case 'ambiguousTeams':
-        return killer.teams.map((team) => ({
-          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(team.teamId),
-          label: team.teamName,
-        }));
-      case 'unknown':
-        return [];
-    }
+    return killer === null ? [] : this.killerInfo.buildEntries(killer);
   }
 }

@@ -146,6 +146,8 @@ effect immediately.
   and top teams), or a single team (race, coach, career span, and top players
   by match events), reachable both directly and via the buttons on `/insights`'
   era list, coach toplists, and team toplists.
+- [`/onthisdate`](slash-commands/on-this-date.md) — what happened on one
+  calendar date across every recorded year.
 
 ### Drill-down buttons and blank entity names
 

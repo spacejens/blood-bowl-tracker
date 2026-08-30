@@ -759,7 +759,9 @@ describe('PlayerDeepdiveService', () => {
       viaFoul: false,
     });
 
-    expect(description).toContain('Status: Killed by Gouged Eye (Orc, Grimly)');
+    expect(description).toContain(
+      'Status: Killed by an unidentified player from Gouged Eye (Orc, Grimly)',
+    );
   });
 
   it('offers a team drill-down for a team killer', async () => {
@@ -791,7 +793,7 @@ describe('PlayerDeepdiveService', () => {
     });
 
     expect(description).toContain(
-      'Status: Killed by Gouged Eye (Orc, Grimly) or Champions of Death (Undead, Mortis)',
+      'Status: Killed by an unidentified player from Gouged Eye (Orc, Grimly) or Champions of Death (Undead, Mortis)',
     );
   });
 
@@ -803,7 +805,7 @@ describe('PlayerDeepdiveService', () => {
     });
 
     expect(description).toContain(
-      'Status: Killed by Gouged Eye (Orc, Grimly), Champions of Death (Undead, Mortis), or Chaos All-Stars (Chaos, Nurgle)',
+      'Status: Killed by an unidentified player from Gouged Eye (Orc, Grimly), Champions of Death (Undead, Mortis), or Chaos All-Stars (Chaos, Nurgle)',
     );
   });
 
@@ -873,7 +875,7 @@ describe('PlayerDeepdiveService', () => {
     });
 
     expect(description).toContain(
-      'Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)',
+      'Status: Killed by an unidentified player from Gouged Eye (Orc, Grimly) (via a foul)',
     );
   });
 

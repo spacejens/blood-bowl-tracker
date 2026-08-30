@@ -26,6 +26,7 @@ import { CompetitionGroupsListService } from '../insights/facts/competition-grou
 import { ErasListService } from '../insights/facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from '../insights/facts/expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
+import { OnThisDateFactsService } from '../insights/facts/on-this-date.service';
 import { PlayerToplistService } from '../insights/facts/player-toplist.service';
 import { RaceToplistService } from '../insights/facts/race-toplist.service';
 import { StarPlayerToplistService } from '../insights/facts/star-player-toplist.service';
@@ -42,7 +43,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
  *
  * `InsightsCommandService`'s FACT_TREE dependency is built with the real,
  * pure `buildFactTree` (a loose function, not a service — CLAUDE.md case 2
- * exemption) wired to eleven MOCKED fact services. This keeps the real tree
+ * exemption) wired to twelve MOCKED fact services. This keeps the real tree
  * topology (paths, supportsLeague/Era/Competition flags per leaf — already
  * verified against production by `fact-tree.spec.ts`) while every leaf's
  * actual computation is a controlled mock, so these specs never construct
@@ -138,10 +139,11 @@ export interface FactTreeMocks {
   starPlayerToplist: MockProxy<StarPlayerToplistService>;
   starPlayersList: MockProxy<StarPlayersListService>;
   trophiesList: MockProxy<TrophiesListService>;
+  onThisDate: MockProxy<OnThisDateFactsService>;
 }
 
 /**
- * The eleven fact services `buildFactTree` wires into leaves, each a
+ * The twelve fact services `buildFactTree` wires into leaves, each a
  * `MockProxy` with a default resolved reply — the same title/description
  * content the pre-migration game-data-fake-driven tree produced via real
  * computation, now canned directly since that computation belongs to these
@@ -374,6 +376,11 @@ function makeFactTreeMocks(): FactTreeMocks {
     embeds: [{ title: 'Trophies', description: TROPHIES_LIST_NO_DATA_MESSAGE }],
   });
 
+  const onThisDate = mock<OnThisDateFactsService>();
+  onThisDate.resolveToday.mockResolvedValue(
+    sampleEmbedReply('On this date', 'sample on this date'),
+  );
+
   return {
     coachToplist,
     teamToplist,
@@ -386,6 +393,7 @@ function makeFactTreeMocks(): FactTreeMocks {
     starPlayerToplist,
     starPlayersList,
     trophiesList,
+    onThisDate,
   };
 }
 

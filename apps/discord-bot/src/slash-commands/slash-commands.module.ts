@@ -15,12 +15,12 @@ import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
-import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { InsightsModule } from '../insights/insights.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
 import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { InsightsCommandService } from './insights-command.service';
+import { OnThisDateCommandService } from './on-this-date-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 @Module({
@@ -29,14 +29,17 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
   // directly rather than widening the insights surface. Competition groups
   // now arrive transitively through InsightsModule (it needs
   // CompetitionGroupsService itself, for the competitionGroups.list fact).
+  // PlayerRowButtonService and PlayerKillerInfoFormatterService also arrive
+  // transitively through InsightsModule, which provides and exports both for
+  // its own on-this-date insight, so neither is redeclared here.
   imports: [InsightsModule, TrophiesModule, TrophyAwardsModule],
   providers: [
     InsightsCommandService,
+    OnThisDateCommandService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
     SlashCommandRegistryService,
-    PlayerRowButtonService,
     CoachDeepdiveService,
     TeamDeepdiveService,
     RaceDeepdiveService,

@@ -9,6 +9,7 @@ import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
@@ -31,6 +32,7 @@ describe('FactTreeFactoryService', () => {
   let starPlayerToplist: MockProxy<StarPlayerToplistService>;
   let starPlayersList: MockProxy<StarPlayersListService>;
   let trophiesList: MockProxy<TrophiesListService>;
+  let onThisDate: MockProxy<OnThisDateFactsService>;
 
   beforeEach(async () => {
     coachToplist = mock<CoachToplistService>();
@@ -44,6 +46,7 @@ describe('FactTreeFactoryService', () => {
     starPlayerToplist = mock<StarPlayerToplistService>();
     starPlayersList = mock<StarPlayersListService>();
     trophiesList = mock<TrophiesListService>();
+    onThisDate = mock<OnThisDateFactsService>();
 
     coachToplist.resolveMatchesPlayed.mockResolvedValue(
       'coach matches played toplist',
@@ -77,6 +80,7 @@ describe('FactTreeFactoryService', () => {
         { provide: StarPlayerToplistService, useValue: starPlayerToplist },
         { provide: StarPlayersListService, useValue: starPlayersList },
         { provide: TrophiesListService, useValue: trophiesList },
+        { provide: OnThisDateFactsService, useValue: onThisDate },
       ],
     }).compile();
     factory = moduleRef.get(FactTreeFactoryService);
@@ -85,8 +89,8 @@ describe('FactTreeFactoryService', () => {
 
   it('build() returns the fully assembled fact tree', () => {
     const tree = factory.build();
-    // buildFactTree currently produces 59 leaves (see fact-tree.spec.ts).
-    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(59);
+    // buildFactTree currently produces 60 leaves (see fact-tree.spec.ts).
+    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(60);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {

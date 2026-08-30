@@ -23,6 +23,18 @@ export const STAR_PLAYERS_LIST_TIMEOUT_MESSAGE =
 export const STAR_PLAYERS_LIST_NO_DATA_MESSAGE =
   'No star players have made a name for themselves yet.';
 
+// --- On this date (insights/facts/on-this-date.service.ts) ---
+export const ON_THIS_DATE_TIMEOUT_MESSAGE =
+  'The archivist is still digging this day out of the old match reports.';
+export const ON_THIS_DATE_NO_MATCHES_MESSAGE =
+  'Not a single boot has ever touched the pitch on this date.';
+export const ON_THIS_DATE_NO_EVENTS_MESSAGE =
+  'Matches were played, but nothing happened worth putting in the paper.';
+
+// --- On this date command (slash-commands/on-this-date-command.service.ts) ---
+export const ON_THIS_DATE_INVALID_DATE_MESSAGE =
+  "The scoreboard scribe can't find that day on any calendar - give it as MM-DD, like 02-29.";
+
 // --- Star player toplist (insights/facts/star-player-toplist.service.ts) ---
 export const STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE =
   'The agents are still arguing over whose star has signed the most contracts.';

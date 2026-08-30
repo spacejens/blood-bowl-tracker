@@ -18,6 +18,14 @@ export { ErasModule } from './eras/eras.module';
 export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
+export { OnThisDateModule } from './insights/on-this-date.module';
+export type {
+  OnThisDateKilledPlayer,
+  OnThisDateOptions,
+  OnThisDateTopKilledOptions,
+  OnThisDateVictim,
+} from './insights/on-this-date.service';
+export { OnThisDateService } from './insights/on-this-date.service';
 export { LeaguesModule } from './leagues/leagues.module';
 export {
   LeaguesService,
