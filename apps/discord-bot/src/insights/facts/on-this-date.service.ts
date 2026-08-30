@@ -9,7 +9,6 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
-import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PlayerKillerInfoFormatterService } from '../../deepdive/facts/player-killer-info-formatter.service';
 import { PlayerRowButtonService } from '../../deepdive/player-row-button.service';
 import {
@@ -17,7 +16,10 @@ import {
   OVERFLOW_NOTE_BUDGET,
 } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
-import { EntityComponentsService } from '../../entity-components.service';
+import {
+  CALENDAR_EMOJI,
+  EntityComponentsService,
+} from '../../entity-components.service';
 import {
   ON_THIS_DATE_NO_EVENTS_MESSAGE,
   ON_THIS_DATE_NO_MATCHES_MESSAGE,
@@ -94,7 +96,7 @@ export class OnThisDateFactsService {
     }
     const [matchCount, counts, victims] = result;
 
-    const title = `${this.entityComponents.getEmojiForPrefix(PLAYER_BUTTON_CUSTOM_ID_PREFIX)} On this date: ${this.monthDay.format(monthDay)}`;
+    const title = `${CALENDAR_EMOJI} On this date: ${this.monthDay.format(monthDay)}`;
 
     if (matchCount === 0) {
       return {

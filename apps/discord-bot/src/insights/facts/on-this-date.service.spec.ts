@@ -20,7 +20,10 @@ import { PlayerKillerInfoFormatterService } from '../../deepdive/facts/player-ki
 import { PlayerRowButtonService } from '../../deepdive/player-row-button.service';
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
-import { EntityComponentsService } from '../../entity-components.service';
+import {
+  CALENDAR_EMOJI,
+  EntityComponentsService,
+} from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   ON_THIS_DATE_NO_EVENTS_MESSAGE,
@@ -178,6 +181,16 @@ describe('OnThisDateFactsService.resolve', () => {
     });
     expect(embed(result).title).toContain('On this date: February 29');
     expect(monthDay.format).toHaveBeenCalledWith(MONTH_DAY);
+  });
+
+  it('titles the embed with the calendar emoji, not the player one', async () => {
+    const result = await service.resolve({
+      monthDay: MONTH_DAY,
+      scope: {},
+    });
+    expect(embed(result).title).toBe(
+      `${CALENDAR_EMOJI} On this date: February 29`,
+    );
   });
 
   it('passes the same date and scope to all three queries', async () => {

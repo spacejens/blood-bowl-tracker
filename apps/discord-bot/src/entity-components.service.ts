@@ -108,6 +108,15 @@ const ENTITY_EMOJI_BY_PREFIX: Record<ButtonCustomIdPrefix, string> = {
   [TROPHY_BUTTON_CUSTOM_ID_PREFIX]: '🏆',
 };
 
+/**
+ * Emoji for a feature scoped to a specific calendar date rather than to one
+ * entity — the on-this-date insight's title today, and planned for
+ * day-by-day deepdives (and their buttons) in a future feature. Kept
+ * outside `ENTITY_EMOJI_BY_PREFIX`, which is exhaustively keyed by
+ * drill-down button routing prefix, because a date isn't one.
+ */
+export const CALENDAR_EMOJI = '📅';
+
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */
 export interface EntityComponentEntry {
   customIdPrefix: ButtonCustomIdPrefix;
