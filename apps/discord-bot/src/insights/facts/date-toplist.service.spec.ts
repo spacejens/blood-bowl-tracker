@@ -38,7 +38,7 @@ describe('DateToplistFactsService', () => {
   /** The options the service handed LeaderboardService on the last call. */
   function capturedOptions(): ResolveToplistOptions<DateRow> {
     return leaderboard.resolveToplist.mock
-      .calls[0][0] as ResolveToplistOptions<DateRow>;
+      .calls[0][0] as unknown as ResolveToplistOptions<DateRow>;
   }
 
   beforeEach(async () => {
