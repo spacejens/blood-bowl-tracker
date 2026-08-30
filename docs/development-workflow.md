@@ -94,7 +94,7 @@ Like branch protection, this can't be configured by code in this repo — a GitH
 3. Sign in to the [CodeRabbit dashboard](https://app.coderabbit.ai) with the same GitHub account and confirm the repository is listed and enabled.
 4. Confirm auto-review-on-PR-open is on. This is CodeRabbit's default, and `.coderabbit.yaml` sets it explicitly, so the committed config wins — no dashboard change should be needed.
 
-Nothing else is required to *use* the reviews: `develop-feature`'s Phase 6 waits for the review after it opens a PR and drives it to completion through `handle-pr-reviews` automatically (see the `develop-feature` section above). If the app is not installed, that wait simply times out after 20 minutes and asks you whether to keep waiting or skip ahead.
+Nothing else is required to _use_ the reviews: `develop-feature`'s Phase 6 waits for the review after it opens a PR and drives it to completion through `handle-pr-reviews` automatically (see the `develop-feature` section above). If the app is not installed, that wait simply times out after 20 minutes and asks you whether to keep waiting or skip ahead.
 
 ## How they fit together
 
@@ -106,9 +106,9 @@ A typical cycle: `develop-feature` takes an issue to a PR → the automated revi
 
 Every issue, and every pull request opened by `develop-feature`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `develop-feature` decide the kind label(s) by applying the tests below; this section is the reference they check against.
 
-- **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). *Test: would a user of the app notice a difference, or be able to do something they couldn't before?*
-- **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. *Test: is something an end user can see or use currently broken or incorrect?*
-- **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. *Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new.* Newness is not the test; end-user visibility is.
+- **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). _Test: would a user of the app notice a difference, or be able to do something they couldn't before?_
+- **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
+- **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. _Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new._ Newness is not the test; end-user visibility is.
 
 More than one kind label may apply — e.g. a fix for an incorrect stat shown to users that also requires updating the import tooling that produced the bad data gets both `bug` (the user-visible stat was wrong) and `development` (the tooling that produced it also needed fixing).
 

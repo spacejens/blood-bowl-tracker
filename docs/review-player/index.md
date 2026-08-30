@@ -20,7 +20,7 @@ The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-player section — the
 per-entity preparation hook is a pass-through here. `harness.module.ts` stays local
-because it *is* this tool's own composition.
+because it _is_ this tool's own composition.
 
 Scope today is player info and [Star Player Points](../glossary.md#star-player-points-spp)
 totals. Skills, injuries and characteristics are deliberately deferred — each will plug
@@ -91,11 +91,11 @@ in as another data-type module without touching the harness services.
      events, and a per-event-code breakdown. Right: the stored identity, team, position,
      era and every external id.
    - **spp-totals** — left: the SPP this tool computes by summing the per-event values
-     over the events where the player is the *acting* participant. Right: the stored
+     over the events where the player is the _acting_ participant. Right: the stored
      total and the stored adjustment. Both panels are database-derived, so they carry
      their own headings rather than the harness's raw/imported wording, and a
      `MISMATCH` — highlighted row, explicit label in both panels — is shown when the
-     stored total disagrees with the computed sum *plus* the stored adjustment (not
+     stored total disagrees with the computed sum _plus_ the stored adjustment (not
      the raw computed sum), or has no stored total at all.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.

@@ -1,5 +1,7 @@
 # Checking on the deployment
 
+See [Production hosting](production-hosting.md) for the other pages.
+
 ```bash
 fly status    # should show two machines, both in state "started"
 fly logs      # live log stream from both running machines

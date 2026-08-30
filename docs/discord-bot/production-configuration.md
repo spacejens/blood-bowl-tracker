@@ -1,5 +1,7 @@
 # Configuration and secrets
 
+See [Production hosting](production-hosting.md) for the other pages.
+
 Production values live in `apps/discord-bot/.env.production`, which is
 git-ignored and never committed. It uses the same variables as local
 development — see `apps/discord-bot/.env.example`, which documents both

@@ -6,7 +6,7 @@
 export const MAX_MARKDOWN_LINES = 500;
 
 /** The subset of markdownlint's rule-function parameters this rule reads. */
-export interface MarkdownlintRuleParams {
+interface MarkdownlintRuleParams {
   readonly name: string;
   readonly lines: readonly string[];
 }
@@ -17,9 +17,7 @@ export interface MarkdownlintRuleErrorInfo {
   readonly detail: string;
 }
 
-export type MarkdownlintRuleOnError = (
-  error: MarkdownlintRuleErrorInfo,
-) => void;
+type MarkdownlintRuleOnError = (error: MarkdownlintRuleErrorInfo) => void;
 
 /**
  * A markdownlint custom rule. Declared locally rather than imported from the

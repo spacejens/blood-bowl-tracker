@@ -1,5 +1,7 @@
 # `match_<id>.json` (play date and name parsed)
 
+See [file-format.md](./file-format.md) for the other pages.
+
 `packages/parse-tp`'s `MatchParserService.parse()` extracts
 `{ id: number, playedDate: Date, name: string }` — mapping `matchId` to `id`,
 building `name` from `group.phase.roundName` title-cased plus `round` (e.g.

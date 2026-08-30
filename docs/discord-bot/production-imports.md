@@ -1,5 +1,7 @@
 # Running import tools against production
 
+See [Production hosting](production-hosting.md) for the other pages.
+
 The `tools/import-*` importers write to the api-server hosted in-process by
 the bot, and that server is not published to the internet. Reach it with a
 private tunnel instead: `flyctl proxy` connects over Fly's WireGuard network

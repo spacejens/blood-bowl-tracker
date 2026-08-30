@@ -1,5 +1,7 @@
 # Dropping and recreating the production database
 
+See [Production hosting](production-hosting.md) for the other pages.
+
 Production data is fully reproducible by re-running the importers, so the
 recovery path for a corrupt or schema-drifted production database is to wipe
 it and re-import rather than to restore a backup — there are no backups.

@@ -1,5 +1,7 @@
 # `tournament_<slug>.json` (base file — parsed)
 
+See [file-format.md](./file-format.md) for the other pages.
+
 Fully handled in code: `packages/parse-tp`'s `parseTournament()` extracts
 only `{ id: number, name: string, ruleSet: number }`. The body carries much
 more — `nameNormalized` (the slug used for the competition subdirectory

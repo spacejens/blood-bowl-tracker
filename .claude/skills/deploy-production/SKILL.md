@@ -77,7 +77,7 @@ Run this section only if "Check deployment status" was selected in step 0 above.
    ```bash
    fly status
    ```
-   A healthy deployment shows **two** machines, both in state `started` — one active (connected to Discord), one standby. If only one machine is listed, this app hasn't been scaled to the 2-machine setup yet; see the note at the top of `docs/discord-bot/production-topology.md` (`fly scale count 2`, a one-time step) rather than treating it as a fault.
+   A healthy deployment shows **two** machines, both in state `started` — one active (connected to Discord), one standby. If only one machine is listed, this app hasn't been scaled to the 2-machine setup yet; see the "Active and standby" section of `docs/discord-bot/production-topology.md` rather than treating it as a fault (`fly scale count 2`, a one-time step).
 2. Read a bounded slice of recent logs from both machines. Do **not** run bare `fly logs` — it streams forever and will hang:
    ```bash
    fly logs --no-tail

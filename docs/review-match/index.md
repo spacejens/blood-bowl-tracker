@@ -31,7 +31,7 @@ with itself" against a raw source, because that code never touches a source's
 meaning. The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-match section and
-the match-result lookup. `harness.module.ts` stays local because it *is* this
+the match-result lookup. `harness.module.ts` stays local because it _is_ this
 tool's own composition.
 
 Scope today is match events; the tool is structured so a future data type
@@ -45,7 +45,7 @@ services.
    1. contains a foul
    2. contains a casualty or death
    3. an action paired with a matched consequence
-   4. an action *without* a matched consequence
+   4. an action _without_ a matched consequence
    5. a journeyman, star or mercenary participant (BBL only)
    6. a consequence avoided by apothecary or regeneration (BBL only)
    7. a four-team match merged from two BBL source rows (BBL only)
@@ -82,7 +82,7 @@ services.
      an importer bug shows up as a difference instead of being mirrored. TP's
      raw panel also shows hand-written `(label)` hints next to the
      numeric event code and, for a weather event, next to the weather code
-     (which TP only makes unique *within* its weather table, so both numbers
+     (which TP only makes unique _within_ its weather table, so both numbers
      are read together) — treat the codes as the authoritative data and the
      labels as reading aids only; the label tables necessarily describe the
      same meanings as `packages/parse-tp`'s real decoders, so they can't

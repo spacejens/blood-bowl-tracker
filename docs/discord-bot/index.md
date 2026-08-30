@@ -131,7 +131,7 @@ so it always answers within Discord's response window.
 
 Global registration is what makes DM use possible, and it trades away the
 near-instant propagation that per-server registration had. After a deploy that
-changes what a command *looks* like — its name, description, or options —
+changes what a command _looks_ like — its name, description, or options —
 Discord can take up to about an hour to show the new definition, and the old
 definition keeps working in the meantime. An unchanged `/insights` or
 `/deepdive` listing shortly after such a deploy is normal, not a sign the deploy

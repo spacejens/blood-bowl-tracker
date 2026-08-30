@@ -1,5 +1,7 @@
 # `inscriptions_<slug>_inscriptions.json` (coaches parsed)
 
+See [file-format.md](./file-format.md) for the other pages.
+
 `packages/parse-tp`'s `InscriptionsParserService.parseCoaches()` extracts every
 registered coach. The file is an object keyed by category id (a string, e.g.
 `"22494"` — matches `tournament.categories[].id` from the base tournament

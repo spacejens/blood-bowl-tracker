@@ -1,5 +1,7 @@
 # `awards_<slug>_awards.json`
 
+See [file-format.md](./file-format.md) for the other pages.
+
 An object keyed by TP category id (a string, e.g. `"22494"`), each value an
 array — one entry per award given. The parser carries `id`, `awardType`
 (numeric — see the code table below), the optional `name` (present only on

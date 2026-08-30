@@ -262,7 +262,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   overwrite.
 - **TpTrophyAwardsImportService** — records every team award from TP's
   per-competition awards files: the 1st/2nd/3rd placements and, where present,
-  Best Stunty and Wooden Spoon. A trophy is *resolved, never created*: the
+  Best Stunty and Wooden Spoon. A trophy is _resolved, never created_: the
   upsert carries only the award's lookup key
   (`` `${disambiguator}-${groupName}` ``, where the disambiguator is the
   award's own `name` when present and its numeric `awardType` otherwise) as a

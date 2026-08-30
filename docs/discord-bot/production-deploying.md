@@ -1,5 +1,7 @@
 # Deploying
 
+See [Production hosting](production-hosting.md) for the other pages.
+
 Deploys run automatically in GitHub Actions.
 `.github/workflows/deploy.yml` triggers on every push to `main` — in
 practice, every pull request merged with GitHub's merge-commit button — and

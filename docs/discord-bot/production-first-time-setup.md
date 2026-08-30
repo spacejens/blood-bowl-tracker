@@ -1,5 +1,7 @@
 # First-time setup
 
+See [Production hosting](production-hosting.md) for the other pages.
+
 Done once, by a developer with accounts on both providers:
 
 1. Install `flyctl` and sign in:

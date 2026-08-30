@@ -183,7 +183,16 @@ section is processed after the rules sets and races it references.
 
 ### Competition groups
 
-`competitionGroups` entries seed the curated competition-group catalog (issue #445) — the recurring track a competition instance belongs to (Major Season, Chaos Cup, Ogretoberfest, etc.). Each entry is `{ name, league }`: `league` is an external-id pair pointing at the group's owning league. An entry declares no `externalIds` of its own, but the importer derives one for it: the group's `name` under the synthetic `Name` external system, exactly as the BBL importer derives a league's. That derived id is what the group upsert matches on, like every other entity's upsert, and it is also the external-id pair a trophy or competition entry's `competitionGroup` field (see below) names explicitly.
+`competitionGroups` entries seed the curated competition-group catalog
+(issue #445) — the recurring track a competition instance belongs to (Major
+Season, Chaos Cup, Ogretoberfest, etc.). Each entry is `{ name, league }`:
+`league` is an external-id pair pointing at the group's owning league. An
+entry declares no `externalIds` of its own, but the importer derives one for
+it: the group's `name` under the synthetic `Name` external system, exactly
+as the BBL importer derives a league's. That derived id is what the group
+upsert matches on, like every other entity's upsert, and it is also the
+external-id pair a trophy or competition entry's `competitionGroup` field
+(see below) names explicitly.
 
 ```jsonc
 {

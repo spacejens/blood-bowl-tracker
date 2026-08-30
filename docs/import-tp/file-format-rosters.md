@@ -1,5 +1,7 @@
 # `rosters_<id>.json` (races, positions, teams and players parsed)
 
+See [file-format.md](./file-format.md) for the other pages.
+
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
 teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 
