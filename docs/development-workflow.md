@@ -119,6 +119,7 @@ Worked examples:
 - A stat shown to users that was computing an incorrect value, now fixed → `bug`.
 - A new CLI subcommand for a local-dev-only import tool → `development`.
 - A refactor of internal skill or CLI code with no behavior change visible to app users → `development`.
+- A refactor of `apps/discord-bot` or `tools/import-bbl` internals (e.g. restructuring services, no behavior change) → `development`.
 
 The remaining labels are **state or meta labels**. They are never chosen at issue-creation time and are not part of the kind-label decision:
 
