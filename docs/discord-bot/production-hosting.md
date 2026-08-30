@@ -92,7 +92,9 @@ drizzle's pool, because advisory locks are session-scoped) and calls
 
 The loser posts a standby startup message — a single plain REST call to
 Discord's API, never a gateway session — and retries the lock every 15
-seconds, doing nothing else.
+seconds, doing nothing else. Setting `STANDBY_STARTUP_MESSAGE_ENABLED=false`
+suppresses that message; the machine still stands by exactly as before. It is
+enabled whenever the variable is unset.
 
 **Failover** needs no heartbeat or timeout bookkeeping. If the active machine
 crashes, is killed, or loses connectivity, its lock connection drops and

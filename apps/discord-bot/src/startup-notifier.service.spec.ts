@@ -19,6 +19,7 @@ describe('StartupNotifierService', () => {
     config = mock<DiscordBotConfigService>();
     config.getStartupMessageDiscordChannel.mockReturnValue('42');
     config.getDiscordBotToken.mockReturnValue('the-token');
+    config.getStandbyStartupMessageEnabled.mockReturnValue(true);
     deploymentInfo = mock<DeploymentInfoService>();
     deploymentInfo.describe.mockReturnValue({
       embeds: [{ title: 'Bot starting as active' }],
@@ -126,6 +127,19 @@ describe('StartupNotifierService', () => {
         service.postStandbyStartupMessage(),
       ).resolves.toBeUndefined();
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('skips the announcement entirely when the toggle is disabled', async () => {
+      config.getStandbyStartupMessageEnabled.mockReturnValue(false);
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+
+      await expect(
+        service.postStandbyStartupMessage(),
+      ).resolves.toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(deploymentInfo.describe).not.toHaveBeenCalled();
+      expect(discordClient.sendMessage).not.toHaveBeenCalled();
     });
   });
 });
