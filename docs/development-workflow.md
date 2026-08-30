@@ -101,3 +101,29 @@ Nothing else is required to *use* the reviews: `develop-feature`'s Phase 6 waits
 Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
 
 A typical cycle: `develop-feature` takes an issue to a PR → the automated review bot reviews it and `develop-feature` drives that feedback to completion through `handle-pr-reviews` before it finishes → a human reviews what's left → `handle-pr-reviews` addresses any further feedback → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` and `codebase-review` both run on their own schedule, whenever a developer chooses, unrelated to any specific feature PR — `code-hygiene` keeps the Node version current and the codebase free of dead code and lint/format drift, while `codebase-review` files issues for the convention and documentation drift that no tool can fix on its own. Renovate's own dependency PRs run on a third track, outside all of these: `finish-renovate-pr` picks up whichever of them got stuck and drives it to merge-ready, reusing `handle-pr-reviews` (with `--skip-deploy-local`, offering `deploy-local` separately at the end) and `wrap-up` the same way a `develop-feature` cycle does — without opening a new PR or syncing `main` in, since Renovate's PR and branch already exist.
+
+## Issue labels
+
+Every issue, and every pull request opened by `develop-feature`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `develop-feature` decide the kind label(s) by applying the tests below; this section is the reference they check against.
+
+- **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). _Test: would a user of the app notice a difference, or be able to do something they couldn't before?_
+- **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
+- **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. _Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new._ Newness is not the test; end-user visibility is.
+
+More than one kind label may apply — e.g. a fix for an incorrect stat shown to users that also requires updating the import tooling that produced the bad data gets both `bug` (the user-visible stat was wrong) and `development` (the tooling that produced it also needed fixing).
+
+Worked examples:
+
+- A linting or dev-tooling change with no end-user-visible behavior → `development`, **not** `feature`.
+- A new Discord slash command → `feature`.
+- A stat shown to users that was computing an incorrect value, now fixed → `bug`.
+- A new CLI subcommand for a local-dev-only import tool → `development`.
+- A refactor of internal skill or CLI code with no behavior change visible to app users → `development`.
+- A refactor of `apps/discord-bot` or `tools/import-bbl` internals (e.g. restructuring services, no behavior change) → `development`.
+
+The remaining labels are **state or meta labels**. They are never chosen at issue-creation time and are not part of the kind-label decision:
+
+- **`in progress`** — applied automatically by `develop-feature` when it claims an issue to start work. It means the issue is actively being worked on, or already completed if the issue is closed; it is not removed when the issue closes.
+- **`duplicate`** — applied by a human when closing an issue that duplicates another.
+- **`wontfix`** — applied by a human when closing an issue with no intent to address it.
+- **`renovate:minor`** / **`renovate:major`** / **`renovate:patch`** — applied automatically by the Renovate GitHub App to its own dependency-update PRs, by update type. Never applied manually.
