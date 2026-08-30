@@ -46,6 +46,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`tools/cli-shared`** — library package with the plumbing the three CLI packages above share: git main-checkout/worktree resolution, child-process running and spawning, and the canonical gitignored file/directory lists; no CLI entry point of its own
 - **`tools/db-diagram/db-diagram.sh`** — generates a [SchemaSpy](https://schemaspy.org/) ER diagram and browsable schema docs for the local docker-compose database into `docs/schemaspy-output/` (run via `pnpm run db:diagram`; requires the stack to be running — start it with `deploy-local` or `docker compose up -d --build`)
 - **`tools/eslint-rules`** — custom ESLint rules shared across the repo (currently `max-function-params`, imported directly by the root `eslint.config.ts`)
+- **`tools/markdownlint-rules`** — custom markdownlint rules shared across the repo (currently `max-file-lines`, which flags any markdown file over 500 lines), built to `dist/` and loaded by the root `.markdownlint-cli2.jsonc`'s `customRules`
 
 ## Getting started
 

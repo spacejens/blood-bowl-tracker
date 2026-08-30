@@ -99,6 +99,9 @@ tools/
                         max-function-params, no-direct-service-instantiation,
                         and no-test-helper-imports), imported directly by the
                         root eslint.config.ts
+  markdownlint-rules/ — custom markdownlint rules shared across the repo
+                        (currently max-file-lines), built to dist/ and loaded
+                        by the root .markdownlint-cli2.jsonc
   cli-shared/         — library package with the plumbing the three CLI
                         packages below share: git main-checkout/worktree
                         resolution, child-process running and spawning, and
@@ -130,7 +133,7 @@ Which tools and apps feed each other along the download → import → consume
 pipeline. Use this to judge whether a change in one place needs a matching
 change — or opens an opportunity — somewhere else. Only participants in that
 pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
-`tools/db-diagram`, `tools/eslint-rules`) are omitted.
+`tools/db-diagram`, `tools/eslint-rules`, `tools/markdownlint-rules`) are omitted.
 
 - **`tools/download-tp`** (downloader) — scrapes TP into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot. It is a package while the equivalent BBL parsing lives inside `tools/import-bbl` because TP data is expected to be read live by the bot in a future TP-data-import feature, which needs the decoding outside the CLI tool; BBL data has no such planned second consumer, so extracting its parsing would buy nothing today. Treat that asymmetry as deliberate, not as an extraction that was forgotten
