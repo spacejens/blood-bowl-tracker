@@ -177,7 +177,7 @@ importers:
         version: 1.15.0
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@types/node':
         specifier: ^24.13.3
@@ -263,7 +263,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -297,7 +297,7 @@ importers:
         version: 11.2.3(@nestjs/common@11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.2.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       drizzle-orm:
         specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.3)
+        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
@@ -386,7 +386,7 @@ importers:
         version: 11.2.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       drizzle-orm:
         specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.3)
+        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -432,7 +432,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -466,7 +466,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -506,7 +506,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -583,7 +583,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -632,7 +632,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -751,7 +751,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -806,7 +806,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -861,7 +861,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -910,7 +910,7 @@ importers:
         version: 0.2.2
       zod:
         specifier: ^4.4.3
-        version: 4.5.3
+        version: 4.5.4
     devDependencies:
       '@nestjs/testing':
         specifier: ^11.1.29
@@ -959,7 +959,7 @@ importers:
         version: 1.2.0
       drizzle-orm:
         specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.3)
+        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1011,7 +1011,7 @@ importers:
         version: 1.2.0
       drizzle-orm:
         specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.3)
+        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -4851,8 +4851,8 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.5.3:
-    resolution: {integrity: sha512-DVADDs2rc+nEbqt+Lsd1ESk6FokySOACfLuon6MNrLnFfE4EBdgb3DcXrnHmngIZBBdPz2PJMPBtgzaMIk59ZA==}
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 
 snapshots:
 
@@ -6691,10 +6691,10 @@ snapshots:
       get-tsconfig: 4.14.0
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4(postgres@3.4.9)(zod@4.5.3):
+  drizzle-orm@1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4):
     optionalDependencies:
       postgres: 3.4.9
-      zod: 4.5.3
+      zod: 4.5.4
 
   dunder-proto@1.0.1:
     dependencies:
@@ -7255,7 +7255,7 @@ snapshots:
       tinyglobby: 0.2.17
       unbash: 4.0.10
       yaml: 2.9.0
-      zod: 4.5.3
+      zod: 4.5.4
 
   levn@0.4.1:
     dependencies:
@@ -8404,4 +8404,4 @@ snapshots:
 
   zod@3.25.76: {}
 
-  zod@4.5.3: {}
+  zod@4.5.4: {}
