@@ -47,10 +47,11 @@ To run an import against production:
    cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.production.json5
    ```
 
-   Then edit each newly created file: fill in the production `apiToken`
-   value, **and** change `apiBaseUrl` to `http://localhost:3001`. The shared
-   template ships `http://localhost:3000`, which is correct for the local
-   config but wrong for the production one — the tunnel listens on `3001`.
+   Then edit each newly created file: fill in the production
+   `connection.apiToken` value, **and** change `connection.apiBaseUrl` to
+   `http://localhost:3001`. The shared template ships `http://localhost:3000`,
+   which is correct for the local config but wrong for the production one —
+   the tunnel listens on `3001`.
 2. Build the tools:
 
    ```bash
