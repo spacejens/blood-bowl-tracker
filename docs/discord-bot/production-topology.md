@@ -108,7 +108,7 @@ title names the role; the description has one `Label: value` line per field
 that resolved, then the commit message as its own paragraph below a blank
 line:
 
-```
+```text
 Bot starting as active
 ────────────────────────
 Machine: 148e123456
@@ -120,15 +120,15 @@ Committed: 2026-08-30 14:05 UTC
 Show team records on the standings page
 ```
 
-| Field          | Source in production                                                                                                                                                  |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Machine id     | `FLY_MACHINE_ID`, injected by Fly                                                                                                                                     |
-| App name       | `FLY_APP_NAME`, injected by Fly                                                                                                                                       |
-| Branch         | `GIT_BRANCH` build arg, from `$GITHUB_REF_NAME`                                                                                                                       |
-| Commit SHA     | `GIT_SHA` build arg, from `$GITHUB_SHA` (shown as the first 7 characters)                                                                                             |
-| Commit time    | `GIT_COMMIT_TIMESTAMP` build arg, from `git log -1 --format=%cI` on the runner — the ISO-8601 committer date, rendered in UTC to the minute                         |
+| Field          | Source in production                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Machine id     | `FLY_MACHINE_ID`, injected by Fly                                                                                                                                                                                  |
+| App name       | `FLY_APP_NAME`, injected by Fly                                                                                                                                                                                    |
+| Branch         | `GIT_BRANCH` build arg, from `$GITHUB_REF_NAME`                                                                                                                                                                    |
+| Commit SHA     | `GIT_SHA` build arg, from `$GITHUB_SHA` (shown as the first 7 characters)                                                                                                                                          |
+| Commit time    | `GIT_COMMIT_TIMESTAMP` build arg, from `git log -1 --format=%cI` on the runner — the ISO-8601 committer date, rendered in UTC to the minute                                                                        |
 | Commit message | `GIT_COMMIT_MESSAGE` build arg, from `git log -1 --pretty=%B` on the runner — the merge commit's PR-title body line when there is one, otherwise its subject line; a separate paragraph, not a `Label: value` line |
-| Active/standby | which side of the election this machine ended up on, shown in the title                                                                                               |
+| Active/standby | which side of the election this machine ended up on, shown in the title                                                                                                                                            |
 
 An unusually long commit message can push the assembled description past
 Discord's length limit; `DeploymentInfoService` truncates it rather than

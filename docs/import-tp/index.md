@@ -67,7 +67,7 @@ misplaced under the wrong era subdirectory, not a source of truth for naming.
 
 The tool expects, under `dataDir`:
 
-```
+```text
 <dataDir>/
   <era.dataSubdir>/
     <competition>/
@@ -86,21 +86,27 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 ## Run it
 
 1. Copy the template and fill in real values:
+
    ```bash
    cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.json5
    ```
+
    `tools/import-tp/import-tp-config.json5` is git-ignored, so your
    configuration is never committed.
 2. Build and run the tool so the config file is picked up automatically:
+
    ```bash
    pnpm --filter @blood-bowl-tracker/import-tp run build
    pnpm --filter @blood-bowl-tracker/import-tp run start
    ```
+
    This performs a real import against a running api-server (see
    `connection.apiBaseUrl`). Sample success output:
-   ```
+
+   ```text
    Imported 5 record(s) successfully.
    ```
+
    On failure, the tool exits with a non-zero status and prints each error.
 3. To import into the production api-server instead, keep a second config file
    `tools/import-tp/import-tp-config.production.json5` (copied from the same

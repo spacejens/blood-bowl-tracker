@@ -106,9 +106,9 @@ A typical cycle: `develop-feature` takes an issue to a PR → the automated revi
 
 Every issue, and every pull request opened by `develop-feature`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `develop-feature` decide the kind label(s) by applying the tests below; this section is the reference they check against.
 
-- **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). _Test: would a user of the app notice a difference, or be able to do something they couldn't before?_
-- **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
-- **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. _Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new._ Newness is not the test; end-user visibility is.
+- **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). *Test: would a user of the app notice a difference, or be able to do something they couldn't before?*
+- **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. *Test: is something an end user can see or use currently broken or incorrect?*
+- **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. *Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new.* Newness is not the test; end-user visibility is.
 
 More than one kind label may apply — e.g. a fix for an incorrect stat shown to users that also requires updating the import tooling that produced the bad data gets both `bug` (the user-visible stat was wrong) and `development` (the tooling that produced it also needed fixing).
 

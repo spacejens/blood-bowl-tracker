@@ -54,9 +54,11 @@ application.
 Configuration is supplied through an environment file in the app directory.
 
 1. Copy the template:
+
    ```bash
    cp apps/discord-bot/.env.example apps/discord-bot/.env
    ```
+
 2. Edit `apps/discord-bot/.env` and set:
    - `DISCORD_BOT_TOKEN` — the token from step 1.
    - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from section 3. The

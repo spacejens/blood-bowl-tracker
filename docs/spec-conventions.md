@@ -6,7 +6,7 @@ Start here: [glossary.md](glossary.md)
 
 ## Directory structure
 
-```
+```text
 docs/
   glossary.md              # Docs-about-docs: brief definition of every named concept
   spec-conventions.md      # Docs-about-docs: this file

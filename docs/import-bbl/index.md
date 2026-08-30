@@ -140,13 +140,16 @@ camelCase, grouped into nested objects by concern:
 ## Run it
 
 1. Copy the template and fill in real values:
+
    ```bash
    cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.json5
    ```
+
    `tools/import-bbl/import-bbl-config.json5` is git-ignored, so your
    configuration is never committed.
 2. Run the tool from the `tools/import-bbl/` directory so the config file is
    picked up automatically:
+
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```

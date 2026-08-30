@@ -48,7 +48,7 @@ The tool reads every `.json5` file directly inside the target directory
 together before importing. A single file may mix any of these optional
 top-level sections:
 
-```
+```text
 externalSystems
 rulesSets
 leagues
@@ -183,15 +183,7 @@ section is processed after the rules sets and races it references.
 
 ### Competition groups
 
-`competitionGroups` entries seed the curated competition-group catalog (issue
-#445) — the recurring track a competition instance belongs to (Major Season,
-Chaos Cup, Ogretoberfest, etc.). Each entry is `{ name, league }`: `league` is
-an external-id pair pointing at the group's owning league. An entry declares no
-`externalIds` of its own, but the importer derives one for it: the group's
-`name` under the synthetic `Name` external system, exactly as the BBL importer
-derives a league's. That derived id is what the group upsert matches on, like
-every other entity's upsert, and it is also the external-id pair a trophy or
-competition entry's `competitionGroup` field (see below) names explicitly.
+`competitionGroups` entries seed the curated competition-group catalog (issue #445) — the recurring track a competition instance belongs to (Major Season, Chaos Cup, Ogretoberfest, etc.). Each entry is `{ name, league }`: `league` is an external-id pair pointing at the group's owning league. An entry declares no `externalIds` of its own, but the importer derives one for it: the group's `name` under the synthetic `Name` external system, exactly as the BBL importer derives a league's. That derived id is what the group upsert matches on, like every other entity's upsert, and it is also the external-id pair a trophy or competition entry's `competitionGroup` field (see below) names explicitly.
 
 ```jsonc
 {
@@ -337,7 +329,7 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
 
 The tool works from two well-known subdirectories:
 
-```
+```text
 tools/import-manual/data/before-other-importers/
 tools/import-manual/data/after-other-importers/
 ```
@@ -367,20 +359,26 @@ point the tool at any other directory by passing its path.
 ## Run it
 
 1. Copy the template and fill in real values:
+
    ```bash
    cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.json5
    ```
+
    `tools/import-manual/import-manual-config.json5` is git-ignored.
 2. Build the tool, then run it against a directory (the sole argument):
+
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
    ( cd tools/import-manual && node dist/main.js data/before-other-importers )
    ```
+
    This performs a real import against a running api-server (see
    `connection.apiBaseUrl`). Sample success output:
-   ```
+
+   ```text
    Imported 5 record(s) successfully.
    ```
+
    On failure the tool exits with a non-zero status. Collected errors (an
    unresolved reference, a rejected upsert) are printed one per line under
    `Import completed with <N> errors:`; an unexpected failure (missing argument,

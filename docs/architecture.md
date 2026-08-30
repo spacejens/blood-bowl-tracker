@@ -14,7 +14,7 @@ Overview of the technical stack and package structure for this project.
 
 ## Repository structure
 
-```
+```text
 apps/
   discord-bot/        — NestJS Discord bot; currently the only deployed app;
                         hosts packages/api-server's /rpc endpoint in-process
@@ -214,7 +214,7 @@ Every table in `packages/db/src/schema` is built with `historyTrackedTable()`
 (`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
 call. It automatically adds `created_at`, `updated_at`, `history_version`,
 and `history_period` columns, derives a companion `<table>_history` table
-that mirrors the tracked table's _current_ columns (name, type, and
+that mirrors the tracked table's *current* columns (name, type, and
 nullability), and registers the table so `pnpm run db:generate` can finish
 its DDL automatically.
 
@@ -328,7 +328,7 @@ string constant.
   …). It never describes the underlying failure (a database timeout, a missing
   row) in technical terms.
 - **Out of scope.** Internal-only log/console output, startup/config-validation
-  errors thrown before the bot can reply, and embed _titles_ for successful
+  errors thrown before the bot can reply, and embed *titles* for successful
   results are not messages of this kind and stay where they are.
 
 ## Docker

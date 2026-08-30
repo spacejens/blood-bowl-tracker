@@ -22,7 +22,7 @@ Each importer therefore keeps a second, git-ignored config file next to its
 default one:
 
 | Tool                  | Local config                 | Production config                       |
-| --------------------- | ----------------------------- | ---------------------------------------- |
+| --------------------- | ---------------------------- | --------------------------------------- |
 | `tools/import-bbl`    | `import-bbl-config.json5`    | `import-bbl-config.production.json5`    |
 | `tools/import-tp`     | `import-tp-config.json5`     | `import-tp-config.production.json5`     |
 | `tools/import-manual` | `import-manual-config.json5` | `import-manual-config.production.json5` |
@@ -38,36 +38,44 @@ To run an import against production:
 
 1. Create the production config files once, from the same templates as the
    local ones:
+
    ```bash
    cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.production.json5
    cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.production.json5
    cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.production.json5
    ```
+
    Then edit each newly created file: fill in the production `apiToken`
    value, **and** change `apiBaseUrl` to `http://localhost:3001`. The shared
    template ships `http://localhost:3000`, which is correct for the local
    config but wrong for the production one — the tunnel listens on `3001`.
 2. Build the tools:
+
    ```bash
    pnpm build
    ```
+
 3. Open the tunnel in its own terminal, from the repository root where
    `fly.toml` lives, and leave it running:
+
    ```bash
    flyctl proxy 3001:3000
    ```
+
    `3001` is the local port the tunnel listens on; `3000` after the colon is
    the production machine's own listening port (see `fly.toml`), which is
    unrelated to this change and stays `3000`.
 4. In a second terminal, run the importers in the same order the
    `deploy-local` skill uses locally — manual "before", BBL, TP, manual
    "after" — each from its own tool directory:
+
    ```bash
    ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
    ( cd tools/import-bbl    && IMPORT_CONFIG_ENV=production node dist/main.js )
    ( cd tools/import-tp     && IMPORT_CONFIG_ENV=production node dist/main.js )
    ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/after-other-importers )
    ```
+
 5. Stop the tunnel (Ctrl-C) when the imports are done.
 
 **If you already have `*-config.production.json5` files** from before the

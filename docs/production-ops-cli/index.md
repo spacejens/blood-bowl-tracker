@@ -15,7 +15,7 @@ time a skill needs it.
 ## Subcommands
 
 | Subcommand | Purpose |
-|---|---|
+| --- | --- |
 | `check-production-config-port` | Verify an import tool's production config `apiBaseUrl` matches the expected tunnel port |
 | `start-production-tunnel` | Start `deploy-production`'s `flyctl proxy` tunnel as a detached, pid-tracked process |
 | `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
