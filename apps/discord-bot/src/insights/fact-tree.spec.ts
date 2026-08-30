@@ -749,7 +749,7 @@ describe('buildFactTree', () => {
 
   it('wires onThisDate to OnThisDateFactsService.resolveToday', async () => {
     const d = deps();
-    const leaf = factTreeUtils.resolvePath(buildFactTree(d), 'onThisDate');
+    const leaf = factTreeUtils.resolvePath(buildFactTree(d), 'date.onThisDate');
     await (leaf as FactLeaf).resolve({ eraId: 20 });
     expect(d.onThisDate.resolveToday).toHaveBeenCalledWith({ eraId: 20 });
   });
@@ -757,7 +757,7 @@ describe('buildFactTree', () => {
   it('declares all four scopes supported for onThisDate', () => {
     const leaf = factTreeUtils.resolvePath(
       buildFactTree(deps()),
-      'onThisDate',
+      'date.onThisDate',
     ) as FactLeaf;
     expect(leaf.supportsLeague).toBe(true);
     expect(leaf.supportsEra).toBe(true);
@@ -913,7 +913,7 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'player.toplist.sent_off'),
         factTreeUtils.resolvePath(tree, 'player.toplist.totalSpp'),
         factTreeUtils.resolvePath(tree, 'stats'),
-        factTreeUtils.resolvePath(tree, 'onThisDate'),
+        factTreeUtils.resolvePath(tree, 'date.onThisDate'),
         factTreeUtils.resolvePath(tree, 'date.toplist.matches.ascending'),
         factTreeUtils.resolvePath(tree, 'date.toplist.matches.descending'),
       ]),
