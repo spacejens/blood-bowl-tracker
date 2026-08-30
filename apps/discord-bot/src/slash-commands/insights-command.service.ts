@@ -9,6 +9,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import type {
+  ApplicationCommandOptionData,
   AutocompleteInteraction,
   ChatInputCommandInteraction,
   InteractionReplyOptions,
@@ -72,47 +73,65 @@ export class InsightsCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
-        {
-          name: 'league',
-          description: 'Scope the insight to a single league (optional)',
-          type: ApplicationCommandOptionType.String,
-          autocomplete: true,
-        },
-        {
-          name: 'era',
-          description: 'Scope the insight to a single era (optional)',
-          type: ApplicationCommandOptionType.String,
-          autocomplete: true,
-        },
-        {
-          name: 'competition',
-          description: 'Scope the insight to a single competition (optional)',
-          type: ApplicationCommandOptionType.String,
-          autocomplete: true,
-        },
-        {
-          name: 'match-category',
-          description:
-            'Scope the insight to a single match category (optional)',
-          type: ApplicationCommandOptionType.String,
-          // Static choices rather than autocomplete: MATCH_CATEGORIES is a
-          // fixed six-value enum, so Discord can present the whole list and
-          // only ever sends one of these values back.
-          choices: MATCH_CATEGORIES.map((category) => ({
-            name: this.categoryLabel.label(category),
-            value: category,
-          })),
-        },
+        ...this.buildScopeOptions(),
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
     };
   }
 
-  async execute(
+  /**
+   * The four scope options shared by every command that can be narrowed to a
+   * single league, era, competition or match category. Extracted so other
+   * commands (e.g. `/onthisdate`) scope identically by construction, rather
+   * than by convention.
+   */
+  buildScopeOptions(): ApplicationCommandOptionData[] {
+    return [
+      {
+        name: 'league',
+        description: 'Scope the insight to a single league (optional)',
+        type: ApplicationCommandOptionType.String,
+        autocomplete: true,
+      },
+      {
+        name: 'era',
+        description: 'Scope the insight to a single era (optional)',
+        type: ApplicationCommandOptionType.String,
+        autocomplete: true,
+      },
+      {
+        name: 'competition',
+        description: 'Scope the insight to a single competition (optional)',
+        type: ApplicationCommandOptionType.String,
+        autocomplete: true,
+      },
+      {
+        name: 'match-category',
+        description: 'Scope the insight to a single match category (optional)',
+        type: ApplicationCommandOptionType.String,
+        // Static choices rather than autocomplete: MATCH_CATEGORIES is a
+        // fixed six-value enum, so Discord can present the whole list and
+        // only ever sends one of these values back.
+        choices: MATCH_CATEGORIES.map((category) => ({
+          name: this.categoryLabel.label(category),
+          value: category,
+        })),
+      },
+    ];
+  }
+
+  /**
+   * Resolves the shared league/era/competition/match-category options from a
+   * slash-command interaction: at most one may be given, and a given option
+   * must name something that exists. Extracted from `execute()` so other
+   * commands can reuse the exact same scoping rules and not-found messages.
+   */
+  async resolveScopeOptions(
     interaction: ChatInputCommandInteraction,
-  ): Promise<string | InteractionReplyOptions> {
-    const category = interaction.options.getString('category');
+  ): Promise<
+    { kind: 'ok'; resolved: ResolvedScope } | { kind: 'error'; message: string }
+  > {
     const leagueOption = interaction.options.getString('league');
     const eraOption = interaction.options.getString('era');
     const competitionOption = interaction.options.getString('competition');
@@ -125,44 +144,60 @@ export class InsightsCommandService implements OnModuleInit {
       matchCategoryOption,
     ].filter((option) => option !== null).length;
     if (givenCount > 1) {
-      return INSIGHTS_SCOPE_CONFLICT_MESSAGE;
+      return { kind: 'error', message: INSIGHTS_SCOPE_CONFLICT_MESSAGE };
     }
 
     const leagueResult = await this.resolveScopeOption(leagueOption, (id) =>
       this.leagues.findById(id),
     );
     if (leagueResult.kind === 'notFound') {
-      return INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE;
+      return { kind: 'error', message: INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE };
     }
     const eraResult = await this.resolveScopeOption(eraOption, (id) =>
       this.eras.findById(id),
     );
     if (eraResult.kind === 'notFound') {
-      return INSIGHTS_ERA_NOT_FOUND_MESSAGE;
+      return { kind: 'error', message: INSIGHTS_ERA_NOT_FOUND_MESSAGE };
     }
     const competitionResult = await this.resolveScopeOption(
       competitionOption,
       (id) => this.competitions.findById(id),
     );
     if (competitionResult.kind === 'notFound') {
-      return INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE;
+      return {
+        kind: 'error',
+        message: INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
+      };
     }
 
-    const resolved: ResolvedScope = {
-      league: leagueResult.kind === 'found' ? leagueResult.value : undefined,
-      era: eraResult.kind === 'found' ? eraResult.value : undefined,
-      competition:
-        competitionResult.kind === 'found'
-          ? competitionResult.value
-          : undefined,
-      matchCategory: this.resolveMatchCategory(matchCategoryOption),
+    return {
+      kind: 'ok',
+      resolved: {
+        league: leagueResult.kind === 'found' ? leagueResult.value : undefined,
+        era: eraResult.kind === 'found' ? eraResult.value : undefined,
+        competition:
+          competitionResult.kind === 'found'
+            ? competitionResult.value
+            : undefined,
+        matchCategory: this.resolveMatchCategory(matchCategoryOption),
+      },
     };
+  }
 
-    if (!category) {
-      return this.resolveRandomFact(resolved);
+  async execute(
+    interaction: ChatInputCommandInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const scopeResult = await this.resolveScopeOptions(interaction);
+    if (scopeResult.kind === 'error') {
+      return scopeResult.message;
     }
 
-    return this.resolveCategory(category, resolved);
+    const category = interaction.options.getString('category');
+    if (!category) {
+      return this.resolveRandomFact(scopeResult.resolved);
+    }
+
+    return this.resolveCategory(category, scopeResult.resolved);
   }
 
   /**
@@ -272,26 +307,42 @@ export class InsightsCommandService implements OnModuleInit {
     resolved: ResolvedScope,
   ): Promise<string | InteractionReplyOptions> {
     const picked = this.pickRandom(leaves);
-    const scope: FactScope = {
+    const reply = await picked.resolve(this.toFactScope(resolved));
+    return picked.supportsLeague ||
+      picked.supportsEra ||
+      picked.supportsCompetition ||
+      picked.supportsMatchCategory
+      ? this.applyScopeSuffix(reply, resolved)
+      : reply;
+  }
+
+  /** The `FactScope` a resolved scope corresponds to, for fact leaves. */
+  toFactScope(resolved: ResolvedScope): FactScope {
+    return {
       leagueId: resolved.league?.id,
       eraId: resolved.era?.id,
       competitionId: resolved.competition?.id,
       category: resolved.matchCategory?.value,
     };
-    const reply = await picked.resolve(scope);
-    return picked.supportsLeague ||
-      picked.supportsEra ||
-      picked.supportsCompetition ||
-      picked.supportsMatchCategory
-      ? this.applyTitleSuffix(
-          reply,
-          resolved.league?.name ??
-            resolved.era?.name ??
-            resolved.competition?.name ??
-            resolved.matchCategory?.label ??
-            'All time',
-        )
-      : reply;
+  }
+
+  /**
+   * Suffixes a reply's embed title with the name of whichever scope was
+   * resolved (league, era, competition or match category), or `'All time'`
+   * when none was.
+   */
+  applyScopeSuffix(
+    reply: string | InteractionReplyOptions,
+    resolved: ResolvedScope,
+  ): string | InteractionReplyOptions {
+    return this.applyTitleSuffix(
+      reply,
+      resolved.league?.name ??
+        resolved.era?.name ??
+        resolved.competition?.name ??
+        resolved.matchCategory?.label ??
+        'All time',
+    );
   }
 
   private applyTitleSuffix(
@@ -319,6 +370,25 @@ export class InsightsCommandService implements OnModuleInit {
   async autocomplete(
     interaction: AutocompleteInteraction,
   ): Promise<{ name: string; value: string }[]> {
+    const scopeChoices = await this.autocompleteScopeOption(interaction);
+    if (scopeChoices !== null) {
+      return scopeChoices;
+    }
+    const focused = interaction.options.getFocused(true);
+    return this.factTreeUtils
+      .nextSegmentCompletions(this.factTree, focused.value)
+      .slice(0, MAX_AUTOCOMPLETE_CHOICES)
+      .map((path) => ({ name: path, value: path }));
+  }
+
+  /**
+   * Autocomplete for the shared league/era/competition scope options, or
+   * `null` when the focused option is not one of them (the fact category
+   * path, or a command-specific option like `/onthisdate`'s free-text date).
+   */
+  async autocompleteScopeOption(
+    interaction: AutocompleteInteraction,
+  ): Promise<{ name: string; value: string }[] | null> {
     const focused = interaction.options.getFocused(true);
     if (focused.name === 'league') {
       const leagues = await this.leagues.searchByNamePrefix(
@@ -341,10 +411,7 @@ export class InsightsCommandService implements OnModuleInit {
       );
       return this.toScopeChoices(competitions);
     }
-    return this.factTreeUtils
-      .nextSegmentCompletions(this.factTree, focused.value)
-      .slice(0, MAX_AUTOCOMPLETE_CHOICES)
-      .map((path) => ({ name: path, value: path }));
+    return null;
   }
 
   private pickRandom(leaves: FactLeaf[]): FactLeaf {

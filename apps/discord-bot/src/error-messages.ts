@@ -31,6 +31,10 @@ export const ON_THIS_DATE_NO_MATCHES_MESSAGE =
 export const ON_THIS_DATE_NO_EVENTS_MESSAGE =
   'Matches were played, but nothing happened worth putting in the paper.';
 
+// --- On this date command (slash-commands/on-this-date-command.service.ts) ---
+export const ON_THIS_DATE_INVALID_DATE_MESSAGE =
+  "The scoreboard scribe can't find that day on any calendar - give it as MM-DD, like 02-29.";
+
 // --- Star player toplist (insights/facts/star-player-toplist.service.ts) ---
 export const STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE =
   'The agents are still arguing over whose star has signed the most contracts.';

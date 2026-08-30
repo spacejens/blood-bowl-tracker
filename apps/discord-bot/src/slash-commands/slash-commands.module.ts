@@ -20,6 +20,7 @@ import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
 import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { InsightsCommandService } from './insights-command.service';
+import { OnThisDateCommandService } from './on-this-date-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 @Module({
@@ -34,6 +35,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
   imports: [InsightsModule, TrophiesModule, TrophyAwardsModule],
   providers: [
     InsightsCommandService,
+    OnThisDateCommandService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
