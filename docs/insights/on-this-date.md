@@ -69,3 +69,21 @@ match category):
   actually mixing two populations.
 - **A missing SPP total ranks as zero**, not ahead of everyone else, when
   ordering the players who died on the date.
+
+## Date toplist drill-down buttons
+
+The `date.toplist.matches.ascending` and `date.toplist.matches.descending`
+[`/insights`](../discord-bot/slash-commands/insights.md) facts rank calendar
+dates by match count, and give each listed date a button that opens this
+insight for that date.
+
+Those buttons are the only drill-down buttons that carry a scope. Every other
+one encodes just an entity id, but a date is not an entity: the same February
+29 means something different under one league than under another, so a button
+that dropped the toplist's scope would answer a different question from the one
+the reader was looking at. Each button preserves the one selected scope, if
+any — the drill-down applies the same filter as the toplist it came from.
+
+Resolving the scope happens when the button is clicked, not when the toplist is
+posted, so a league, era or competition deleted in between replies with the
+same not-found message the equivalent `/insights` option gives.

@@ -8,6 +8,7 @@ import type { FactLeaf, FactTreeDeps } from './fact-tree.types';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
+import { DateToplistFactsService } from './facts/date-toplist.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { OnThisDateFactsService } from './facts/on-this-date.service';
@@ -155,6 +156,14 @@ function deps(): FactTreeDeps {
   const onThisDate = mock<OnThisDateFactsService>();
   onThisDate.resolveToday.mockResolvedValue('on this date');
 
+  const dateToplist = mock<DateToplistFactsService>();
+  dateToplist.resolveMatchesDescending.mockResolvedValue(
+    'dates by matches played descending',
+  );
+  dateToplist.resolveMatchesAscending.mockResolvedValue(
+    'dates by matches played ascending',
+  );
+
   return {
     coachToplist,
     teamToplist,
@@ -168,12 +177,13 @@ function deps(): FactTreeDeps {
     starPlayersList,
     trophiesList,
     onThisDate,
+    dateToplist,
   };
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly sixty leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(60);
+  it('exposes exactly sixty-two leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(62);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -754,6 +764,44 @@ describe('buildFactTree', () => {
     expect(leaf.supportsCompetition).toBe(true);
     expect(leaf.supportsMatchCategory).toBe(true);
   });
+
+  it('wires date.toplist.matches.descending to DateToplistFactsService.resolveMatchesDescending', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'date.toplist.matches.descending',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.dateToplist.resolveMatchesDescending).toHaveBeenCalledWith(
+      FACT_SCOPE_ALL_TIME,
+    );
+  });
+
+  it('wires date.toplist.matches.ascending to DateToplistFactsService.resolveMatchesAscending', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'date.toplist.matches.ascending',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.dateToplist.resolveMatchesAscending).toHaveBeenCalledWith(
+      FACT_SCOPE_ALL_TIME,
+    );
+  });
+
+  it('declares all four scopes for both date toplists', () => {
+    const tree = buildFactTree(deps());
+    for (const path of [
+      'date.toplist.matches.descending',
+      'date.toplist.matches.ascending',
+    ]) {
+      const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsLeague).toBe(true);
+      expect(leaf.supportsEra).toBe(true);
+      expect(leaf.supportsCompetition).toBe(true);
+      expect(leaf.supportsMatchCategory).toBe(true);
+    }
+  });
 });
 
 describe('buildFactTree leaf capabilities', () => {
@@ -866,9 +914,11 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'player.toplist.totalSpp'),
         factTreeUtils.resolvePath(tree, 'stats'),
         factTreeUtils.resolvePath(tree, 'onThisDate'),
+        factTreeUtils.resolvePath(tree, 'date.toplist.matches.ascending'),
+        factTreeUtils.resolvePath(tree, 'date.toplist.matches.descending'),
       ]),
     );
-    expect(supported).toHaveLength(32);
+    expect(supported).toHaveLength(34);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -966,7 +1016,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeUtils
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(48);
+    expect(supported).toHaveLength(50);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {

@@ -2,6 +2,7 @@ import {
   CoachesModule,
   CompetitionGroupsModule,
   CompetitionsModule,
+  DateToplistModule,
   ErasModule,
   ExternalSystemsModule,
   LeaguesModule,
@@ -21,6 +22,7 @@ import { PlayerKillerInfoFormatterService } from '../deepdive/facts/player-kille
 import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { EntityComponentsService } from '../entity-components.service';
 import { ClockService } from '../shared/clock.service';
+import { DateButtonIdService } from '../shared/date-button-id.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../shared/era-section-grouper.service';
 import { EventCountLinesService } from '../shared/event-count-lines.service';
@@ -32,6 +34,7 @@ import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
+import { DateToplistFactsService } from './facts/date-toplist.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from './facts/match-category-label.service';
@@ -59,6 +62,7 @@ const GAME_DATA_MODULES = [
   LeaguesModule,
   RulesSetsModule,
   ErasModule,
+  DateToplistModule,
   OnThisDateModule,
   PlayersModule,
   PositionsModule,
@@ -85,6 +89,7 @@ const GAME_DATA_MODULES = [
     ListDescriptionService,
     ClockService,
     MonthDayService,
+    DateButtonIdService,
     FactTreeFactoryService,
     FactTreeUtilsService,
     RandomSourceService,
@@ -102,6 +107,7 @@ const GAME_DATA_MODULES = [
     StarPlayersListService,
     TrophiesListService,
     OnThisDateFactsService,
+    DateToplistFactsService,
     {
       provide: FACT_TREE,
       useFactory: (factory: FactTreeFactoryService) => factory.build(),
@@ -125,6 +131,7 @@ const GAME_DATA_MODULES = [
     ListDescriptionService,
     ClockService,
     MonthDayService,
+    DateButtonIdService,
     FactTreeUtilsService,
     RandomSourceService,
     RandomInsightsScopeService,
@@ -141,6 +148,7 @@ const GAME_DATA_MODULES = [
     StarPlayersListService,
     TrophiesListService,
     OnThisDateFactsService,
+    DateToplistFactsService,
     FACT_TREE,
   ],
 })

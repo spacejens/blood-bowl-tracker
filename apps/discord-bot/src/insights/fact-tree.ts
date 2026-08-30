@@ -542,6 +542,27 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         },
       },
     },
+    date: {
+      toplist: {
+        matches: {
+          ascending: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: true,
+            supportsMatchCategory: true,
+            resolve: (scope) => deps.dateToplist.resolveMatchesAscending(scope),
+          },
+          descending: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: true,
+            supportsMatchCategory: true,
+            resolve: (scope) =>
+              deps.dateToplist.resolveMatchesDescending(scope),
+          },
+        },
+      },
+    },
     stats: {
       supportsLeague: true,
       supportsEra: true,

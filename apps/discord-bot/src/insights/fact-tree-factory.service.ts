@@ -4,6 +4,7 @@ import { buildFactTree } from './fact-tree';
 import type { FactNode } from './fact-tree.types';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
+import { DateToplistFactsService } from './facts/date-toplist.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { OnThisDateFactsService } from './facts/on-this-date.service';
@@ -25,6 +26,7 @@ import { TrophiesListService } from './facts/trophies-list.service';
 export class FactTreeFactoryService {
   constructor(
     private readonly coachToplist: CoachToplistService,
+    private readonly dateToplist: DateToplistFactsService,
     private readonly teamToplist: TeamToplistService,
     private readonly playerToplist: PlayerToplistService,
     private readonly raceToplist: RaceToplistService,
@@ -41,6 +43,7 @@ export class FactTreeFactoryService {
   build(): FactNode {
     return buildFactTree({
       coachToplist: this.coachToplist,
+      dateToplist: this.dateToplist,
       teamToplist: this.teamToplist,
       playerToplist: this.playerToplist,
       raceToplist: this.raceToplist,

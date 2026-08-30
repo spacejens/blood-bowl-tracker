@@ -35,6 +35,12 @@ export const ON_THIS_DATE_NO_EVENTS_MESSAGE =
 export const ON_THIS_DATE_INVALID_DATE_MESSAGE =
   "The scoreboard scribe can't find that day on any calendar - give it as MM-DD, like 02-29.";
 
+// --- Date toplist (insights/facts/date-toplist.service.ts) ---
+export const DATE_TOPLIST_TIMEOUT_MESSAGE =
+  'The groundskeeper is still counting bootprints, one day at a time.';
+export const DATE_TOPLIST_NO_DATA_MESSAGE =
+  'No date on the calendar has ever seen a match.';
+
 // --- Star player toplist (insights/facts/star-player-toplist.service.ts) ---
 export const STAR_PLAYER_TOPLIST_TIMEOUT_MESSAGE =
   'The agents are still arguing over whose star has signed the most contracts.';

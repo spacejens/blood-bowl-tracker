@@ -18,6 +18,9 @@ export { ErasModule } from './eras/eras.module';
 export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
+export { DateToplistModule } from './insights/date-toplist.module';
+export type { DateMatchCount } from './insights/date-toplist.service';
+export { DateToplistService } from './insights/date-toplist.service';
 export { OnThisDateModule } from './insights/on-this-date.module';
 export type {
   OnThisDateKilledPlayer,

@@ -31,6 +31,7 @@ import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
+import type { DateButtonScopeToken } from '../shared/date-button-id.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
@@ -182,6 +183,55 @@ export class InsightsCommandService implements OnModuleInit {
         matchCategory: this.resolveMatchCategory(matchCategoryOption),
       },
     };
+  }
+
+  /**
+   * Resolves a scope that arrived as a bare id rather than as slash-command
+   * options — the scope a drill-down button carried in its customId. Returns
+   * the same result shape `resolveScopeOptions` does, so both entry points
+   * feed the same reply path.
+   *
+   * A not-found result is genuinely reachable: the scoped entity can be
+   * deleted between the toplist being posted and someone clicking one of its
+   * buttons.
+   */
+  async resolveScopeById(
+    token: DateButtonScopeToken | null,
+  ): Promise<
+    { kind: 'ok'; resolved: ResolvedScope } | { kind: 'error'; message: string }
+  > {
+    if (token === null) {
+      return { kind: 'ok', resolved: {} };
+    }
+    if (token.kind === 'matchCategory') {
+      // No lookup that can fail: a match category is a fixed enum value, not
+      // a stored row, so there is no not-found message for this branch.
+      return {
+        kind: 'ok',
+        resolved: {
+          matchCategory: {
+            value: token.value,
+            label: this.categoryLabel.label(token.value),
+          },
+        },
+      };
+    }
+    if (token.kind === 'league') {
+      const league = await this.leagues.findById(token.id);
+      return league === undefined
+        ? { kind: 'error', message: INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE }
+        : { kind: 'ok', resolved: { league } };
+    }
+    if (token.kind === 'era') {
+      const era = await this.eras.findById(token.id);
+      return era === undefined
+        ? { kind: 'error', message: INSIGHTS_ERA_NOT_FOUND_MESSAGE }
+        : { kind: 'ok', resolved: { era } };
+    }
+    const competition = await this.competitions.findById(token.id);
+    return competition === undefined
+      ? { kind: 'error', message: INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE }
+      : { kind: 'ok', resolved: { competition } };
   }
 
   async execute(

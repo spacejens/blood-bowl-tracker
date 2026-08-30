@@ -3,6 +3,7 @@ import type { InteractionReplyOptions } from 'discord.js';
 
 import type { CoachToplistService } from './facts/coach-toplist.service';
 import type { CompetitionGroupsListService } from './facts/competition-groups-list.service';
+import type { DateToplistFactsService } from './facts/date-toplist.service';
 import type { ErasListService } from './facts/eras-list.service';
 import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import type { OnThisDateFactsService } from './facts/on-this-date.service';
@@ -17,6 +18,7 @@ import type { TrophiesListService } from './facts/trophies-list.service';
 /** `buildFactTree`'s dependency bag: the fact services it wires into leaves. */
 export interface FactTreeDeps {
   coachToplist: CoachToplistService;
+  dateToplist: DateToplistFactsService;
   competitionGroupsList: CompetitionGroupsListService;
   teamToplist: TeamToplistService;
   playerToplist: PlayerToplistService;

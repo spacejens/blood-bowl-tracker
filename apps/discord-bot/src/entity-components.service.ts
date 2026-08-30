@@ -8,6 +8,7 @@ import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+  ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -39,6 +40,15 @@ const SELECT_MENU_CUSTOM_ID_INFIX = 'menu:';
 const BLANK_LABEL = '\u200b';
 
 /**
+ * Emoji for a feature scoped to a specific calendar date rather than to one
+ * entity: the on-this-date insight's embed title, and the date drill-down
+ * buttons the date toplists render. Exported separately as well as keyed into
+ * `ENTITY_EMOJI_BY_PREFIX`, because the embed title uses it outside any button
+ * context.
+ */
+export const CALENDAR_EMOJI = '📅';
+
+/**
  * The button colour each destination type gets, so a coach can tell coach
  * buttons from team buttons from player buttons at a glance without reading
  * every label. Discord offers only four usable styles (Link navigates to a
@@ -64,6 +74,7 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
   [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [LEAGUE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [TROPHY_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
+  [ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
   [COACH_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
   [TEAM_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
   [PLAYER_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Primary,
@@ -86,8 +97,8 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
  * helix for species/ancestry (race), a stadium for a single event
  * (competition), a repeat symbol for a recurring series (competition group),
  * a classical building for the institution a whole league is, one level above
- * the competition group's repeat symbol (league), and a trophy cup for an
- * award (trophy).
+ * the competition group's repeat symbol (league), a trophy cup for an award
+ * (trophy), and a calendar for a recurring calendar date (on-this-date).
  *
  * The `Record<ButtonCustomIdPrefix, string>` annotation is deliberate, exactly
  * as it is for the colour map above: TypeScript requires every member of the
@@ -106,16 +117,8 @@ const ENTITY_EMOJI_BY_PREFIX: Record<ButtonCustomIdPrefix, string> = {
   [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX]: '🔁',
   [LEAGUE_BUTTON_CUSTOM_ID_PREFIX]: '🏛️',
   [TROPHY_BUTTON_CUSTOM_ID_PREFIX]: '🏆',
+  [ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX]: CALENDAR_EMOJI,
 };
-
-/**
- * Emoji for a feature scoped to a specific calendar date rather than to one
- * entity — the on-this-date insight's title today, and planned for
- * day-by-day deepdives (and their buttons) in a future feature. Kept
- * outside `ENTITY_EMOJI_BY_PREFIX`, which is exhaustively keyed by
- * drill-down button routing prefix, because a date isn't one.
- */
-export const CALENDAR_EMOJI = '📅';
 
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */
 export interface EntityComponentEntry {
