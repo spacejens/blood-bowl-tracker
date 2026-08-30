@@ -1,11 +1,11 @@
 ---
 name: deploy-production
-description: Use to operate the blood-bowl-tracker production deployment on Fly.io and Neon — check deployment status, restart the machine, roll back to a previous release, trigger a redeploy of current main without a new merge, drop and recreate the production database, run read-only queries against the production database, or run the manual/BBL/TP importers against production
+description: Use to operate the blood-bowl-tracker production deployment on Fly.io and Neon — check deployment status, apply the production configuration file to Fly as secrets, restart the machine, roll back to a previous release, trigger a redeploy of current main without a new merge, drop and recreate the production database, run read-only queries against the production database, or run the manual/BBL/TP importers against production
 ---
 
 # deploy-production
 
-Operates the already-deployed production Discord bot described in `docs/discord-bot/production-hosting.md`: status and log inspection, machine restarts, rollbacks, on-demand redeploys, a destructive database reset, read-only queries against the production database, and the four production import runs. Every action here is a wrapper around commands that page already documents by hand — when an action fails, that page is the fallback.
+Operates the already-deployed production Discord bot described in `docs/discord-bot/production-hosting.md`: status and log inspection, applying the already-authored production configuration file to Fly as secrets, machine restarts, rollbacks, on-demand redeploys, a destructive database reset, read-only queries against the production database, and the four production import runs. Every action here is a wrapper around commands that page already documents by hand — when an action fails, that page is the fallback.
 
 This skill does **not** perform normal deploys. Those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
 
@@ -19,7 +19,7 @@ Takes no arguments.
 
 ## Preconditions
 
-Preconditions 1 and 3 are true blocking preconditions for every action below — check them once, before step 0's question, and stop with a clear message if one fails. Precondition 2 (`gh` authentication) is needed only by the "Trigger a redeploy without a new merge" action; check it once step 0's selections are known, and only if that action was selected. An unauthenticated `gh` CLI must never block a status check, restart, rollback, database reset, or import run — those don't use `gh` at all, and this matters most during an incident, when the developer may just want `fly status` and shouldn't be stopped by an unrelated tool.
+Preconditions 1 and 3 are true blocking preconditions for every action below — check them once, before step 0's question, and stop with a clear message if one fails. Precondition 2 (`gh` authentication) is needed only by the "Trigger a redeploy without a new merge" action; check it once step 0's selections are known, and only if that action was selected. An unauthenticated `gh` CLI must never block a status check, applying production configuration, a restart, a rollback, a database reset, or an import run — none of those use `gh` at all, and this matters most during an incident, when the developer may just want `fly status` and shouldn't be stopped by an unrelated tool. Precondition 4 (main checkout only) is likewise scoped to four specific actions and checked inside each of their own sections, not globally.
 
 1. `flyctl` is installed and authenticated:
    ```bash
@@ -31,20 +31,22 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    gh auth status
    ```
 3. Commands run from the repository root of the current checkout or worktree, where `fly.toml` lives. `fly.toml` is committed, so a worktree has it; the gitignored production files each action needs are synced by that action's own steps.
+4. Four actions are restricted to the **main checkout** and refuse to run from a worktree: **"Apply production configuration"**, **"Restart the machine"**, **"Roll back to a previous release"**, and **"Trigger a redeploy without a new merge"**. Each is a repo-wide, branch-independent operation on the whole deployment, and none is about the current branch's code (a redeploy dispatch always targets `main` regardless of what is checked out; a restart and a rollback do not touch code at all) — and the one whose command pushes a file from disk, "Apply production configuration", must push the main checkout's own `apps/discord-bot/.env.production`, not a worktree's possibly-stale synced copy of it. Like precondition 2, this is not checked globally before step 0: each of those four sections performs the check itself as its own first step, so an unrelated action selected alongside one of them (e.g. "Check deployment status") is never blocked by it, and refusing one section never abandons the others. Every other action stays unrestricted and is deliberately worktree-friendly — the database reset, the four production imports, and read-only queries each copy the gitignored production files they need into the worktree, because they are commonly run from a feature's own worktree to validate that feature's data end-to-end, and "Check deployment status" is read-only.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform. There are ten actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+0. Ask the developer which action(s) to perform. There are eleven actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
    All three questions are one decision split in three, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, `Run what 3`.
 
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Check deployment status** — run `fly status` and a recent log tail, and summarize the machine's state.
-   - **Restart the machine** — start a stopped machine, or restart a running one.
-   - **Roll back to a previous release** — pick from Fly's release history and redeploy that image.
+   - **Apply production configuration** — main checkout only. Push `apps/discord-bot/.env.production` to Fly as secrets; this restarts the machines automatically.
+   - **Restart the machine** — main checkout only. Start a stopped machine, or restart a running one.
+   - **Roll back to a previous release** — main checkout only. Pick from Fly's release history and redeploy that image.
 
    **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
-   - **Trigger a redeploy without a new merge** — dispatch the GitHub Actions deploy workflow against the current `main`.
+   - **Trigger a redeploy without a new merge** — main checkout only. Dispatch the GitHub Actions deploy workflow against the current `main`.
    - **Drop and recreate the production database** — DESTRUCTIVE: wipe the Neon schema and let the bot's startup migrations rebuild it.
    - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
 
@@ -54,7 +56,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    - **Run the manual import (after other importers) against production** — run `tools/import-manual/` against `data/after-other-importers` over a `flyctl proxy` tunnel.
    - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
-   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the ten options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
+   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the eleven options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
 
 ### Check deployment status
 
@@ -74,18 +76,66 @@ Run this section only if "Check deployment status" was selected in step 0 above.
    - Each machine's id, state, and role (active or standby — see below), and the release version `fly status` reports.
    - Whether the logs show a healthy startup on each machine: drizzle migrations applying (or nothing pending), then either `Acquired the leader lock; becoming active` → Discord gateway login → `Posted active startup message`, or `Another machine holds the leader lock; standing by` → the standby message. A machine is active if its logs show the former; standby if the latter. Exactly one of the two machines should be active — flag it explicitly if both or neither are (see `docs/discord-bot/production-hosting.md`'s "Common failures" entry "Both machines standby, none active").
    - Any of the failure signatures documented in `docs/discord-bot/production-hosting.md`'s "Checking on the deployment" section, named explicitly when matched:
-     - **Crash loop from missing or invalid configuration** — a thrown startup error such as `DATABASE_URL is not configured`, with `fly status` showing repeated restarts. The fix is to correct `apps/discord-bot/.env.production` and re-run `fly secrets import < apps/discord-bot/.env.production` by hand; this skill does not push secrets (see Non-goals).
+     - **Crash loop from missing or invalid configuration** — a thrown startup error such as `DATABASE_URL is not configured`, with `fly status` showing repeated restarts. The fix is to correct `apps/discord-bot/.env.production` — a manual, developer-only edit (see Non-goals) — and then push it with the "Apply production configuration" action, which runs `fly secrets import < apps/discord-bot/.env.production` and restarts the machines. That action is main-checkout only (see Preconditions); if this session is in a worktree, say so when offering it, so the developer knows to re-invoke from the main checkout rather than selecting it here and hitting a refusal. This section never changes anything itself: report the finding and offer that action rather than running it unasked.
      - **Stopped after max restarts** — `fly status` shows `stopped` and the logs show "machine has reached its max restart count". Fixing the secret alone does not bring it back; offer the "Restart the machine" action.
      - **Database unreachable** — a connection error during migration. Note that Neon's free tier autosuspends its compute after inactivity, so the first connection after a quiet period is slow by design and is not itself a failure.
      - **`Lost the leader lock while active; exiting`** or **`Failed to complete startup after connecting to Discord; exiting`** — the active machine exited by design after losing the advisory lock or failing a step after connecting. A single occurrence is the intended reaction, and the standby should already have taken over; a repeating loop on the same machine points at the database dropping connections or a persistent Discord-side error worth reading from the surrounding log lines.
 4. This section never changes anything. If it finds a problem, report it and let the developer decide — do not restart, redeploy, or reset on your own initiative.
 
+### Apply production configuration
+
+Run this section only if "Apply production configuration" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
+
+This pushes the current contents of `apps/discord-bot/.env.production` to Fly as the app's secrets — the manual step `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section documents. It **applies** a file the developer has already authored; it never creates, edits, or fills in that file (see Non-goals). Pushing secrets makes Fly restart the machines automatically, so there is no need to chain the "Restart the machine" action after this one — this section does not invoke that one, and steps 4–5 below verify the automatic restart directly.
+
+0. This action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — it is a repo-wide, branch-independent operation, and the file it pushes belongs to the main checkout):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
+   ```
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop **this section only**, reporting that applying production configuration is a repo-wide, branch-independent operation restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout to run it. Any other section selected in step 0 still runs normally.
+1. Confirm the file to push actually exists:
+   ```bash
+   ls apps/discord-bot/.env.production
+   ```
+   If it is missing, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section. **Do not create it**, do not copy one from anywhere, and do not generate one from a template — authoring production credentials is a developer's job, not this skill's (see Non-goals). Never manually inspect this file yourself — no `Read` tool, `cat`, `grep`, or print of it or any individual value from it, at any point in this section, not even to diagnose a failed push: it holds every production credential. This does not forbid step 3's `fly secrets import < apps/discord-bot/.env.production`, which pipes the file straight to `fly` without its contents ever passing through you.
+2. Warn and get an explicit confirmation before pushing anything. Use a plain conversational prompt rather than `AskUserQuestion` — this is a yes/no gate on a single path forward, which `CLAUDE.md`'s "Developer prompts" section explicitly allows a plain prompt for. Say plainly, in one message, that:
+   - this sets or replaces, on Fly, every key present in the file — any value in the file that is stale or wrong becomes live — but it is **not** wholesale replacement: `fly secrets import` only sets the keys it's given and never unsets anything, so a secret already on Fly but absent from the file stays configured and untouched;
+   - **this restarts the machines automatically** — Fly restarts on a secrets change, so the bot goes through a full reboot and leader re-election as a direct result of this action;
+   - unlike the database reset, this is correctable: a wrong push is fixed by correcting the file and pushing again, which is why no typed phrase is required here.
+
+   Only proceed on a clear affirmative. Anything else — a hesitation, a question, a request to see the file — is not a yes: stop this section, report that nothing was pushed, and continue with any other selected sections.
+3. Push the secrets:
+   ```bash
+   fly secrets import < apps/discord-bot/.env.production
+   ```
+   `fly secrets import` reads `KEY=value` lines from stdin. Report only the command's own output — never echo the file into the transcript to "show what was pushed". If it fails on a malformed line, `fly`'s own parser error quotes that line verbatim, which can itself be a raw `KEY=VALUE` pair from the file: report only that the import failed and, if the error names a line number or a bare key, that much — never the parser's quoted line text itself, since it may carry a credential. For any other failure (an auth error), report the command's output as-is. Either way, do not assume nothing changed: `fly secrets import` can set the secrets before a deploy step it triggers afterward fails, so a non-zero exit does not guarantee production is unchanged. Continue to steps 4–5 to check the actual machine state before concluding anything, rather than stopping here.
+4. Wait for the automatic restart to settle, polling rather than sleeping blindly:
+   ```bash
+   fly status
+   ```
+   Retry every few seconds up to about 60 seconds, until both machines report `started`. A healthy deployment has **two** machines (see "Check deployment status"); if fewer are listed, report that as a scaling gap, not as a failure of this action. If any machine instead reports `stopped` — the max-restart-count case documented in "Check deployment status" — stop polling immediately rather than waiting out the rest of the 60 seconds: correcting the secrets does not start a machine Fly has already stopped. Report that state explicitly and point the developer at the "Restart the machine" action (main checkout only) to bring it back.
+5. Confirm the restart produced a healthy boot on both machines:
+   ```bash
+   fly logs --no-tail
+   ```
+   Look for the same healthy-startup markers as the "Check deployment status" section on each machine (migrations applying or nothing pending, then either `Acquired the leader lock; becoming active` or `Another machine holds the leader lock; standing by`). Because both machines restart at once, expect exactly one to win the lock; which one is not deterministic. A machine in state `started` whose logs show a thrown startup error — most likely `DATABASE_URL is not configured` or a similar missing/invalid value — means the file that was just pushed is wrong, not that the push failed: say so explicitly, and point at correcting `apps/discord-bot/.env.production` and re-running this action.
+6. Report the outcome. State the import result on its own terms, separately from machine health — a machine ending up `started` does not mean the import itself succeeded (see step 4's note on stopped machines and step 3's note on partial application): say **"secrets pushed"** only if step 3 actually exited zero; otherwise say the import **failed** (or, in the rare case where step 3's own exit status couldn't be observed — e.g. the command timed out or the run was otherwise interrupted before it reported — **indeterminate**) and do not claim the file's contents are now live. Report that alongside each machine's final state and role (active/standby) and what the logs showed. If the logs show a configuration crash loop on one or both machines, say so precisely rather than assuming an outage: with **two** machines, one can crash-loop on the bad configuration while the other becomes active and keeps serving — that is reduced redundancy, not downtime. Say plainly that production is **down** only if neither machine can serve (both crash-looping, or the only other one already `stopped`/absent); otherwise report which machine is crash-looping and that the other is active. Either way, name only the failing configuration **key** (e.g. `DATABASE_URL`) and a sanitized description of the validation error — never the value itself, or any other logged line that could carry a credential.
+
 ### Restart the machine
 
-Run this section only if "Restart the machine" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
+Run this section only if "Restart the machine" was selected in step 0 above. Runs after the "Check deployment status" and "Apply production configuration" sections if those were also selected; runs standalone if it is the only one picked. If "Apply production configuration" already ran, its own push restarted both machines — check whether a second restart is actually wanted before running this one.
 
 A healthy deployment has **two** machines (active + standby, see "Check deployment status"). This section restarts either a single stopped machine or all machines, never a subset chosen arbitrarily — a partial restart of "just the active one" isn't offered here because killing the active machine is exactly the leader-election failover path already exercised automatically (see `docs/discord-bot/production-hosting.md`'s "Active and standby"); use that machine's own crash/restart, not a manual restart of only it, if the intent is to force a handover.
 
+0. This action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — restarting the deployment is a repo-wide, branch-independent operation that has nothing to do with the current branch's code):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
+   ```
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop **this section only**, reporting that a restart is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
 1. Find every machine and its current state, in machine-readable form:
    ```bash
    fly status --json
@@ -114,8 +164,15 @@ A healthy deployment has **two** machines (active + standby, see "Check deployme
 
 ### Roll back to a previous release
 
-Run this section only if "Roll back to a previous release" was selected in step 0 above. Runs after the "Check deployment status" and "Restart the machine" sections if those were also selected; runs standalone if it is the only one picked.
+Run this section only if "Roll back to a previous release" was selected in step 0 above. Runs after the "Check deployment status", "Apply production configuration", and "Restart the machine" sections if those were also selected; runs standalone if it is the only one picked.
 
+0. This action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — a rollback redeploys an image Fly already built, so it is a repo-wide operation independent of whatever branch is checked out):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
+   ```
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop **this section only**, reporting that a rollback is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
 1. List the release history with image references:
    ```bash
    fly releases --json
@@ -139,11 +196,21 @@ Run this section only if "Roll back to a previous release" was selected in step 
 
 ### Trigger a redeploy without a new merge
 
-Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
+Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Apply production configuration", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
 
-This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after pushing changed Fly secrets, after a rollback that needs undoing, or to retry a deploy that failed transiently. It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
+This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after a rollback that needs undoing, or to retry a deploy that failed transiently. (Applying changed Fly secrets does not need this: "Apply production configuration" already restarts the machines to pick them up on its own.) It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
 
-0. Check that `gh` is installed and authenticated — this is the one action in this skill that needs it (see the Preconditions section):
+0. Two checks before anything else, both stopping **this section only** if they fail (any other section selected in step 0 still runs normally):
+
+   First, this action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — the workflow always builds the ref it is dispatched against and this skill always dispatches `main`, so the dispatch is entirely independent of whatever branch is checked out):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
+   ```
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop, reporting that a redeploy dispatch is restricted to the main checkout, that nothing was dispatched, and that the developer can re-invoke this skill from the main checkout.
+
+   Second, check that `gh` is installed and authenticated — this is the one action in this skill that needs it (see the Preconditions section):
    ```bash
    gh auth status
    ```
@@ -413,7 +480,7 @@ This action answers a question the developer asks about live production data. Th
 ## Non-goals
 
 - **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an _older_ image.
-- **No credential management.** The skill never runs `fly tokens create`, `gh secret set`, or `fly secrets import`. Creating the `FLY_API_TOKEN` secret and pushing `.env.production` to Fly stay manual, documented steps in `docs/discord-bot/production-hosting.md`.
+- **No credential authoring.** The skill never runs `fly tokens create` or `gh secret set`, and never authors, edits, or generates `apps/discord-bot/.env.production`'s content. Creating the `FLY_API_TOKEN` secret and deciding what goes in `.env.production` stay manual, documented steps in `docs/discord-bot/production-hosting.md`. Copying that file byte-for-byte from the main checkout into a worktree (see the database reset and read-only-queries actions) is not authoring and remains allowed — it moves an already-authored file without changing its contents. The "Apply production configuration" action does run `fly secrets import < apps/discord-bot/.env.production`, but only to *apply* a file the developer already authored — pushing an existing file is a narrower, reversible operation than authoring credentials, and it never reads or prints the values it pushes.
 - **No creating of gitignored production config.** `apps/discord-bot/.env.production` and the `tools/import-*/import-*-config.production.json5` files are authored once by a developer. This skill syncs them into a worktree and checks them, but never generates one from a template — same stance `deploy-local` takes on the local equivalents.
 - **No backups.** There is no backup or restore of the Neon database; production data is reproducible by re-import, as `docs/discord-bot/production-hosting.md` documents.
 - **No teardown.** The skill never stops or destroys the Fly machine or the Neon project.

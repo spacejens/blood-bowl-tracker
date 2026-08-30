@@ -192,7 +192,9 @@ quotes — `fly secrets import` stores each value verbatim, so
 `RANDOM_INSIGHTS_CRON="0 * * * *"` would push the literal quote characters
 and make the bot fail to start on an invalid cron expression.
 
-Push the file to Fly as secrets:
+Push the file to Fly as secrets. The `deploy-production` skill automates
+this via its "Apply production configuration" action (main checkout
+only); the equivalent command by hand is:
 
 ```bash
 fly secrets import < apps/discord-bot/.env.production
@@ -303,10 +305,11 @@ A manual `fly deploy` from a developer machine still works, and rolling
 back uses it (see [Rolling back](#rolling-back)), but it is not the normal
 path: whatever it deploys is replaced by the next merge to `main`.
 
-For status checks, restarts, rollbacks, dispatching a redeploy, resetting
-the database, and running the importers against production, use the
-`deploy-production` skill (`.claude/skills/deploy-production/SKILL.md`),
-which wraps the commands documented on this page.
+For status checks, applying configuration, restarts, rollbacks,
+dispatching a redeploy, resetting the database, and running the importers
+against production, use the `deploy-production` skill
+(`.claude/skills/deploy-production/SKILL.md`), which wraps the commands
+documented on this page.
 
 ## Running import tools against production
 
