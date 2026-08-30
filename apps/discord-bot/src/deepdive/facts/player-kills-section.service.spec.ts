@@ -10,6 +10,7 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { PlayerRowButtonService } from '../player-row-button.service';
+import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 
 const gougedEye = {
@@ -62,6 +63,7 @@ describe('PlayerKillsSectionService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerKillsSectionService,
+        PlayerKillerInfoFormatterService,
         { provide: PlayerRowButtonService, useValue: playerRowButton },
       ],
     }).compile();

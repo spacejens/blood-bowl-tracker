@@ -40,7 +40,7 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { PlayerRowButtonService } from '../player-row-button.service';
+import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 
 type Player = {
@@ -98,7 +98,7 @@ export class PlayerDeepdiveService {
     private readonly playerDeath: PlayerDeathService,
     private readonly playerKills: PlayerKillsSectionService,
     private readonly stars: StarPlayersService,
-    private readonly playerRowButton: PlayerRowButtonService,
+    private readonly killerInfo: PlayerKillerInfoFormatterService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -472,18 +472,9 @@ export class PlayerDeepdiveService {
 
   /** The killer clause of the `Status:` line, without the foul note. */
   private formatKiller(killer: PlayerKillerInfo): string {
-    switch (killer.kind) {
-      case 'player':
-        return `Killed by ${killer.playerName} (${killer.positionName}, ${killer.teamName}, ${killer.raceName}, ${killer.coachName})`;
-      case 'team':
-        return `Killed by ${this.playerKills.formatTeam(killer)}`;
-      case 'ambiguousTeams':
-        return `Killed by ${this.playerKills.joinWithOr(
-          killer.teams.map((team) => this.playerKills.formatTeam(team)),
-        )}`;
-      case 'unknown':
-        return 'Killed in mysterious circumstances';
-    }
+    return killer.kind === 'unknown'
+      ? 'Killed in mysterious circumstances'
+      : `Killed by ${this.killerInfo.describe(killer)}`;
   }
 
   /**
@@ -495,36 +486,6 @@ export class PlayerDeepdiveService {
   private buildKillerEntries(
     killer: PlayerKillerInfo | null,
   ): EntityComponentEntry[] {
-    if (killer === null) {
-      return [];
-    }
-    switch (killer.kind) {
-      case 'player':
-        return [
-          this.playerRowButton.buildPlayerRowButton({
-            playerId: killer.playerId,
-            playerName: killer.playerName,
-            positionId: killer.positionId,
-            positionName: killer.positionName,
-            isStarPlayer: killer.isStarPlayer,
-          }),
-        ];
-      case 'team':
-        return [
-          {
-            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(killer.teamId),
-            label: killer.teamName,
-          },
-        ];
-      case 'ambiguousTeams':
-        return killer.teams.map((team) => ({
-          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(team.teamId),
-          label: team.teamName,
-        }));
-      case 'unknown':
-        return [];
-    }
+    return killer === null ? [] : this.killerInfo.buildEntries(killer);
   }
 }

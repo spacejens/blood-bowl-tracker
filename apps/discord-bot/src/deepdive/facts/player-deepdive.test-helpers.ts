@@ -20,6 +20,7 @@ import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
+import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
@@ -33,11 +34,12 @@ import { makePlayerRowButton } from './team-deepdive.test-helpers';
  * ceiling — see `CLAUDE.md`'s "Maximum file size".
  *
  * `makeService` compiles `PlayerDeepdiveService` alongside the *real*
- * `PlayerKillsSectionService` (a documented exception — see `CLAUDE.md`'s
- * "Testing services"). Since `PlayerKillsSectionService` itself injects
- * `PlayerRowButtonService`, that same testing module must also supply
- * `PlayerRowButtonService` — as the mock below — or Nest fails to resolve the
- * real kills section's own dependency.
+ * `PlayerKillsSectionService` and `PlayerKillerInfoFormatterService` (a
+ * documented exception — see `CLAUDE.md`'s "Testing services"): both are pure
+ * apart from `PlayerRowButtonService`, itself a pure decision service, so the
+ * whole chain stays pure end to end. That same testing module must also
+ * supply `PlayerRowButtonService` — as the mock below — or Nest fails to
+ * resolve the real formatter's own dependency.
  */
 
 export const griff = {
@@ -149,6 +151,7 @@ export async function makeService({
     providers: [
       PlayerDeepdiveService,
       PlayerKillsSectionService,
+      PlayerKillerInfoFormatterService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },

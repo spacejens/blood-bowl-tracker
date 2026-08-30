@@ -16,6 +16,8 @@ import {
 import { Module } from '@nestjs/common';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
+import { PlayerKillerInfoFormatterService } from '../deepdive/facts/player-killer-info-formatter.service';
+import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { EntityComponentsService } from '../entity-components.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../shared/era-section-grouper.service';
@@ -64,6 +66,8 @@ const GAME_DATA_MODULES = [
   providers: [
     DatabaseTimeoutService,
     EntityComponentsService,
+    PlayerRowButtonService,
+    PlayerKillerInfoFormatterService,
     LeaderboardService,
     ToplistFactoryService,
     TeamContextService,
@@ -98,6 +102,8 @@ const GAME_DATA_MODULES = [
     ...GAME_DATA_MODULES,
     DatabaseTimeoutService,
     EntityComponentsService,
+    PlayerRowButtonService,
+    PlayerKillerInfoFormatterService,
     LeaderboardService,
     ToplistFactoryService,
     TeamContextService,
