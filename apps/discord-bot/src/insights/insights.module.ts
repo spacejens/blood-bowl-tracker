@@ -6,6 +6,7 @@ import {
   ExternalSystemsModule,
   LeaguesModule,
   MatchesModule,
+  OnThisDateModule,
   PlayersModule,
   PositionsModule,
   RacesModule,
@@ -34,6 +35,7 @@ import { CompetitionGroupsListService } from './facts/competition-groups-list.se
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from './facts/match-category-label.service';
+import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
@@ -57,6 +59,7 @@ const GAME_DATA_MODULES = [
   LeaguesModule,
   RulesSetsModule,
   ErasModule,
+  OnThisDateModule,
   PlayersModule,
   PositionsModule,
   RacesModule,
@@ -98,6 +101,7 @@ const GAME_DATA_MODULES = [
     StarPlayerToplistService,
     StarPlayersListService,
     TrophiesListService,
+    OnThisDateFactsService,
     {
       provide: FACT_TREE,
       useFactory: (factory: FactTreeFactoryService) => factory.build(),
@@ -136,6 +140,7 @@ const GAME_DATA_MODULES = [
     StarPlayerToplistService,
     StarPlayersListService,
     TrophiesListService,
+    OnThisDateFactsService,
     FACT_TREE,
   ],
 })
