@@ -61,12 +61,19 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
 
   it('resolves a competition id to its name', async () => {
     const { service, competitions } = await makeService();
-    competitions.findById.mockResolvedValue({ id: 7, name: 'Spike Cup' });
+    competitions.findById.mockResolvedValue({
+      id: 7,
+      name: 'Spike Cup',
+      type: 'cup',
+      eraId: 1,
+    });
     await expect(
       service.resolveScopeById({ kind: 'competition', id: 7 }),
     ).resolves.toEqual({
       kind: 'ok',
-      resolved: { competition: { id: 7, name: 'Spike Cup' } },
+      resolved: {
+        competition: { id: 7, name: 'Spike Cup', type: 'cup', eraId: 1 },
+      },
     });
   });
 
