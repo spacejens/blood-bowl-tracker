@@ -35,12 +35,13 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
 
 ## Steps
 
-0. Ask the developer which action(s) to perform. There are ten actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+0. Ask the developer which action(s) to perform. There are eleven actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **three `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees all three in sequence and answers once. Ask exactly these three questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
    All three questions are one decision split in three, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what`, `Run what 2`, `Run what 3`.
 
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Check deployment status** — run `fly status` and a recent log tail, and summarize the machine's state.
+   - **Apply production configuration** — push `apps/discord-bot/.env.production` to Fly as secrets; this restarts the machines automatically.
    - **Restart the machine** — start a stopped machine, or restart a running one.
    - **Roll back to a previous release** — pick from Fly's release history and redeploy that image.
 
@@ -55,7 +56,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    - **Run the manual import (after other importers) against production** — run `tools/import-manual/` against `data/after-other-importers` over a `flyctl proxy` tunnel.
    - **Run read-only queries against production** — open a read-only `psql` session against the production database to answer a question the developer describes.
 
-   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the ten options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
+   The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the eleven options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
 
 ### Check deployment status
 
