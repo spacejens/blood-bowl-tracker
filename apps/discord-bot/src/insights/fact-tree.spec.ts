@@ -10,6 +10,7 @@ import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
@@ -151,6 +152,9 @@ function deps(): FactTreeDeps {
   const trophiesList = mock<TrophiesListService>();
   trophiesList.resolve.mockResolvedValue('trophies list');
 
+  const onThisDate = mock<OnThisDateFactsService>();
+  onThisDate.resolveToday.mockResolvedValue('on this date');
+
   return {
     coachToplist,
     teamToplist,
@@ -163,12 +167,13 @@ function deps(): FactTreeDeps {
     starPlayerToplist,
     starPlayersList,
     trophiesList,
+    onThisDate,
   };
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly fifty-nine leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(59);
+  it('exposes exactly sixty leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(60);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -731,6 +736,24 @@ describe('buildFactTree', () => {
     expect(leaf.supportsCompetition).toBe(false);
     expect(leaf.supportsMatchCategory).toBe(false);
   });
+
+  it('wires onThisDate to OnThisDateFactsService.resolveToday', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(buildFactTree(d), 'onThisDate');
+    await (leaf as FactLeaf).resolve({ eraId: 20 });
+    expect(d.onThisDate.resolveToday).toHaveBeenCalledWith({ eraId: 20 });
+  });
+
+  it('declares all four scopes supported for onThisDate', () => {
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(deps()),
+      'onThisDate',
+    ) as FactLeaf;
+    expect(leaf.supportsLeague).toBe(true);
+    expect(leaf.supportsEra).toBe(true);
+    expect(leaf.supportsCompetition).toBe(true);
+    expect(leaf.supportsMatchCategory).toBe(true);
+  });
 });
 
 describe('buildFactTree leaf capabilities', () => {
@@ -842,9 +865,10 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'player.toplist.sent_off'),
         factTreeUtils.resolvePath(tree, 'player.toplist.totalSpp'),
         factTreeUtils.resolvePath(tree, 'stats'),
+        factTreeUtils.resolvePath(tree, 'onThisDate'),
       ]),
     );
-    expect(supported).toHaveLength(31);
+    expect(supported).toHaveLength(32);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -942,7 +966,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeUtils
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(47);
+    expect(supported).toHaveLength(48);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {

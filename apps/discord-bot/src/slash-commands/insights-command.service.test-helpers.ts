@@ -26,6 +26,7 @@ import { CompetitionGroupsListService } from '../insights/facts/competition-grou
 import { ErasListService } from '../insights/facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from '../insights/facts/expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
+import { OnThisDateFactsService } from '../insights/facts/on-this-date.service';
 import { PlayerToplistService } from '../insights/facts/player-toplist.service';
 import { RaceToplistService } from '../insights/facts/race-toplist.service';
 import { StarPlayerToplistService } from '../insights/facts/star-player-toplist.service';
@@ -138,6 +139,7 @@ export interface FactTreeMocks {
   starPlayerToplist: MockProxy<StarPlayerToplistService>;
   starPlayersList: MockProxy<StarPlayersListService>;
   trophiesList: MockProxy<TrophiesListService>;
+  onThisDate: MockProxy<OnThisDateFactsService>;
 }
 
 /**
@@ -374,6 +376,11 @@ function makeFactTreeMocks(): FactTreeMocks {
     embeds: [{ title: 'Trophies', description: TROPHIES_LIST_NO_DATA_MESSAGE }],
   });
 
+  const onThisDate = mock<OnThisDateFactsService>();
+  onThisDate.resolveToday.mockResolvedValue(
+    sampleEmbedReply('On this date', 'sample on this date'),
+  );
+
   return {
     coachToplist,
     teamToplist,
@@ -386,6 +393,7 @@ function makeFactTreeMocks(): FactTreeMocks {
     starPlayerToplist,
     starPlayersList,
     trophiesList,
+    onThisDate,
   };
 }
 

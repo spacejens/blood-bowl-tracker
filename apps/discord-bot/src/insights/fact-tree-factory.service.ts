@@ -6,6 +6,7 @@ import { CoachToplistService } from './facts/coach-toplist.service';
 import { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
@@ -34,6 +35,7 @@ export class FactTreeFactoryService {
     private readonly starPlayerToplist: StarPlayerToplistService,
     private readonly starPlayersList: StarPlayersListService,
     private readonly trophiesList: TrophiesListService,
+    private readonly onThisDate: OnThisDateFactsService,
   ) {}
 
   build(): FactNode {
@@ -49,6 +51,7 @@ export class FactTreeFactoryService {
       starPlayerToplist: this.starPlayerToplist,
       starPlayersList: this.starPlayersList,
       trophiesList: this.trophiesList,
+      onThisDate: this.onThisDate,
     });
   }
 }

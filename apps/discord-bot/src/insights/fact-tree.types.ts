@@ -5,6 +5,7 @@ import type { CoachToplistService } from './facts/coach-toplist.service';
 import type { CompetitionGroupsListService } from './facts/competition-groups-list.service';
 import type { ErasListService } from './facts/eras-list.service';
 import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import type { OnThisDateFactsService } from './facts/on-this-date.service';
 import type { PlayerToplistService } from './facts/player-toplist.service';
 import type { RaceToplistService } from './facts/race-toplist.service';
 import type { StarPlayerToplistService } from './facts/star-player-toplist.service';
@@ -26,6 +27,7 @@ export interface FactTreeDeps {
   starPlayerToplist: StarPlayerToplistService;
   starPlayersList: StarPlayersListService;
   trophiesList: TrophiesListService;
+  onThisDate: OnThisDateFactsService;
 }
 
 export interface FactLeaf {

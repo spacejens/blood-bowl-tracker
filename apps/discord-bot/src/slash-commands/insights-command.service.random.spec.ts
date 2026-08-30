@@ -34,14 +34,15 @@ describe('InsightsCommandService — random pick', () => {
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
     const { service, factTreeDeps, eras } = await makeService();
     eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
-    // The real fact tree has exactly 40 era-supporting leaves (verified by
+    // The real fact tree has exactly 41 era-supporting leaves (verified by
     // walking fact-tree.ts); with pickRandom using
     // leaves[Math.floor(Math.random() * leaves.length)], 0.999999 lands
-    // deterministically on the last one — "stats", the sole leaf added
-    // after the "eras" branch (which has no era-supporting leaves).
+    // deterministically on the last one — "onThisDate", the sole leaf added
+    // after "stats" (which is itself the sole leaf added after the "eras"
+    // branch which has no era-supporting leaves).
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null, { era: '20' }));
-    expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalledWith({
+    expect(factTreeDeps.onThisDate.resolveToday).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: 20,
       competitionId: undefined,
