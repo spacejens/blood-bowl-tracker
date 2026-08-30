@@ -115,7 +115,7 @@ This pushes the current contents of `apps/discord-bot/.env.production` to Fly as
    ```bash
    fly status
    ```
-   Retry every few seconds up to about 60 seconds, until both machines report `started`. A healthy deployment has **two** machines (see "Check deployment status"); if fewer are listed, report that as a scaling gap, not as a failure of this action.
+   Retry every few seconds up to about 60 seconds, until both machines report `started`. A healthy deployment has **two** machines (see "Check deployment status"); if fewer are listed, report that as a scaling gap, not as a failure of this action. If any machine instead reports `stopped` — the max-restart-count case documented in "Check deployment status" — stop polling immediately rather than waiting out the rest of the 60 seconds: correcting the secrets does not start a machine Fly has already stopped. Report that state explicitly and point the developer at the "Restart the machine" action (main checkout only) to bring it back.
 5. Confirm the restart produced a healthy boot on both machines:
    ```bash
    fly logs --no-tail
