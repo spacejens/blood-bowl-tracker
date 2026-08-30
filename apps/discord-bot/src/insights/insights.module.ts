@@ -19,10 +19,12 @@ import { DatabaseTimeoutService } from '../database-timeout.service';
 import { PlayerKillerInfoFormatterService } from '../deepdive/facts/player-killer-info-formatter.service';
 import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { EntityComponentsService } from '../entity-components.service';
+import { ClockService } from '../shared/clock.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../shared/era-section-grouper.service';
 import { EventCountLinesService } from '../shared/event-count-lines.service';
 import { ListDescriptionService } from '../shared/list-description.service';
+import { MonthDayService } from '../shared/month-day.service';
 import { DayCountFormatterService } from './day-count-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
@@ -78,6 +80,8 @@ const GAME_DATA_MODULES = [
     EraSectionGrouperService,
     EventCountLinesService,
     ListDescriptionService,
+    ClockService,
+    MonthDayService,
     FactTreeFactoryService,
     FactTreeUtilsService,
     RandomSourceService,
@@ -115,6 +119,8 @@ const GAME_DATA_MODULES = [
     EraSectionGrouperService,
     EventCountLinesService,
     ListDescriptionService,
+    ClockService,
+    MonthDayService,
     FactTreeUtilsService,
     RandomSourceService,
     RandomInsightsScopeService,
