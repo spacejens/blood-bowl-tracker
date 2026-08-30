@@ -192,7 +192,7 @@ quotes — `fly secrets import` stores each value verbatim, so
 `RANDOM_INSIGHTS_CRON="0 * * * *"` would push the literal quote characters
 and make the bot fail to start on an invalid cron expression.
 
-Push the file to Fly as secrets:
+Push the file to Fly as secrets. The `deploy-production` skill automates this via its "Apply production configuration" action (main checkout only); the equivalent command by hand is:
 
 ```bash
 fly secrets import < apps/discord-bot/.env.production

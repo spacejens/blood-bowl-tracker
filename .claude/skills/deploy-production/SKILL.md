@@ -31,7 +31,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    gh auth status
    ```
 3. Commands run from the repository root of the current checkout or worktree, where `fly.toml` lives. `fly.toml` is committed, so a worktree has it; the gitignored production files each action needs are synced by that action's own steps.
-4. Four actions are restricted to the **main checkout** and refuse to run from a worktree: **"Apply production configuration"**, **"Restart the machine"**, **"Roll back to a previous release"**, and **"Trigger a redeploy without a new merge"**. Each is a repo-wide, branch-independent operation on the whole deployment — none of them reads a per-worktree file, and none is about the current branch's code (a redeploy dispatch always targets `main` regardless of what is checked out; a restart and a rollback do not touch code at all). Like precondition 2, this is not checked globally before step 0: each of those four sections performs the check itself as its own first step, so an unrelated action selected alongside one of them (e.g. "Check deployment status") is never blocked by it, and refusing one section never abandons the others. Every other action stays unrestricted and is deliberately worktree-friendly — the database reset, the four production imports, and read-only queries each copy the gitignored production files they need into the worktree, because they are commonly run from a feature's own worktree to validate that feature's data end-to-end, and "Check deployment status" is read-only.
+4. Four actions are restricted to the **main checkout** and refuse to run from a worktree: **"Apply production configuration"**, **"Restart the machine"**, **"Roll back to a previous release"**, and **"Trigger a redeploy without a new merge"**. Each is a repo-wide, branch-independent operation on the whole deployment, and none is about the current branch's code (a redeploy dispatch always targets `main` regardless of what is checked out; a restart and a rollback do not touch code at all) — and the one that does read a file, "Apply production configuration", must read the main checkout's own `apps/discord-bot/.env.production`, not a worktree's possibly-stale synced copy of it. Like precondition 2, this is not checked globally before step 0: each of those four sections performs the check itself as its own first step, so an unrelated action selected alongside one of them (e.g. "Check deployment status") is never blocked by it, and refusing one section never abandons the others. Every other action stays unrestricted and is deliberately worktree-friendly — the database reset, the four production imports, and read-only queries each copy the gitignored production files they need into the worktree, because they are commonly run from a feature's own worktree to validate that feature's data end-to-end, and "Check deployment status" is read-only.
 
 ## Steps
 
@@ -41,12 +41,12 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
 
    **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Check deployment status** — run `fly status` and a recent log tail, and summarize the machine's state.
-   - **Apply production configuration** — push `apps/discord-bot/.env.production` to Fly as secrets; this restarts the machines automatically.
-   - **Restart the machine** — start a stopped machine, or restart a running one.
-   - **Roll back to a previous release** — pick from Fly's release history and redeploy that image.
+   - **Apply production configuration** (main checkout only) — push `apps/discord-bot/.env.production` to Fly as secrets; this restarts the machines automatically.
+   - **Restart the machine** (main checkout only) — start a stopped machine, or restart a running one.
+   - **Roll back to a previous release** (main checkout only) — pick from Fly's release history and redeploy that image.
 
    **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
-   - **Trigger a redeploy without a new merge** — dispatch the GitHub Actions deploy workflow against the current `main`.
+   - **Trigger a redeploy without a new merge** (main checkout only) — dispatch the GitHub Actions deploy workflow against the current `main`.
    - **Drop and recreate the production database** — DESTRUCTIVE: wipe the Neon schema and let the bot's startup migrations rebuild it.
    - **Run the manual import (before other importers) against production** — run `tools/import-manual/` against `data/before-other-importers` over a `flyctl proxy` tunnel.
 
@@ -92,13 +92,14 @@ This pushes the current contents of `apps/discord-bot/.env.production` to Fly as
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
    ```
-   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop **this section only**, reporting that applying production configuration is a repo-wide, branch-independent operation restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout to run it. Any other section selected in step 0 still runs normally.
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop **this section only**, reporting that applying production configuration is a repo-wide, branch-independent operation restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout to run it. Any other section selected in step 0 still runs normally.
 1. Confirm the file to push actually exists:
    ```bash
    ls apps/discord-bot/.env.production
    ```
-   If it is missing, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section. **Do not create it**, do not copy one from anywhere, and do not generate one from a template — authoring production credentials is a developer's job, not this skill's (see Non-goals). Never print the file's contents, or any individual value from it, at any point in this section: it holds every production credential.
+   If it is missing, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section. **Do not create it**, do not copy one from anywhere, and do not generate one from a template — authoring production credentials is a developer's job, not this skill's (see Non-goals). Never read, open, `cat`, `grep`, or print this file, or any individual value from it, at any point in this section — not even to diagnose a failed push: it holds every production credential.
 2. Warn and get an explicit confirmation before pushing anything. Use a plain conversational prompt rather than `AskUserQuestion` — this is a yes/no gate on a single path forward, which `CLAUDE.md`'s "Developer prompts" section explicitly allows a plain prompt for. Say plainly, in one message, that:
    - this replaces the app's Fly secrets wholesale with the file's current contents, so any secret set on Fly but absent from the file is removed, and any value in the file that is stale or wrong becomes live;
    - **this restarts the machines automatically** — Fly restarts on a secrets change, so the bot goes through a full reboot and leader re-election as a direct result of this action;
@@ -132,8 +133,9 @@ A healthy deployment has **two** machines (active + standby, see "Check deployme
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
    ```
-   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop **this section only**, reporting that a restart is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop **this section only**, reporting that a restart is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
 1. Find every machine and its current state, in machine-readable form:
    ```bash
    fly status --json
@@ -168,8 +170,9 @@ Run this section only if "Roll back to a previous release" was selected in step 
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
    ```
-   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop **this section only**, reporting that a rollback is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop **this section only**, reporting that a rollback is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
 1. List the release history with image references:
    ```bash
    fly releases --json
@@ -195,7 +198,7 @@ Run this section only if "Roll back to a previous release" was selected in step 
 
 Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Apply production configuration", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
 
-This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after pushing changed Fly secrets, after a rollback that needs undoing, or to retry a deploy that failed transiently. It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
+This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after a rollback that needs undoing, or to retry a deploy that failed transiently. (Applying changed Fly secrets does not need this: "Apply production configuration" already restarts the machines to pick them up on its own.) It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
 
 0. Two checks before anything else, both stopping **this section only** if they fail (any other section selected in step 0 still runs normally):
 
@@ -203,8 +206,9 @@ This dispatches the same `.github/workflows/deploy.yml` workflow that merges to 
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then echo "WORKTREE — refuse"; else echo "MAIN CHECKOUT — proceed"; fi
    ```
-   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop, reporting that a redeploy dispatch is restricted to the main checkout, that nothing was dispatched, and that the developer can re-invoke this skill from the main checkout.
+   If this printed `WORKTREE — refuse`, this is a worktree: refuse and stop, reporting that a redeploy dispatch is restricted to the main checkout, that nothing was dispatched, and that the developer can re-invoke this skill from the main checkout.
 
    Second, check that `gh` is installed and authenticated — this is the one action in this skill that needs it (see the Preconditions section):
    ```bash
