@@ -550,9 +550,6 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             supportsEra: true,
             supportsCompetition: true,
             supportsMatchCategory: true,
-            // Grouping matches by month/day excludes none of the four scopes:
-            // every one of them narrows which matches are counted, not which
-            // dates exist.
             resolve: (scope) => deps.dateToplist.resolveMatchesAscending(scope),
           },
           descending: {
