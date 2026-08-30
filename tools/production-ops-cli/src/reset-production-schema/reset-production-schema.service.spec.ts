@@ -64,6 +64,7 @@ describe('ResetProductionSchemaService', () => {
       'psql',
       [
         'postgres://user:pass@host/db',
+        '--single-transaction',
         '-v',
         'ON_ERROR_STOP=1',
         '-c',

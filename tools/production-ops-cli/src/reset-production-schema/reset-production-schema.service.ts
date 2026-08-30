@@ -40,6 +40,11 @@ export interface ResetProductionSchemaResult {
  * in place after dropping `game_data` would have the journal assert every
  * migration already ran against a database that no longer has any of their
  * effects, so the next startup's `migrate()` would rebuild nothing.
+ *
+ * `--single-transaction` wraps all four `-c` statements in one
+ * `BEGIN`/`COMMIT`, so a later statement failing (with `ON_ERROR_STOP=1`
+ * set) rolls back the earlier ones too, instead of leaving some schemas
+ * dropped and others not.
  */
 @Injectable()
 export class ResetProductionSchemaService {
@@ -54,6 +59,7 @@ export class ResetProductionSchemaService {
       'psql',
       [
         databaseUrl,
+        '--single-transaction',
         '-v',
         'ON_ERROR_STOP=1',
         '-c',
