@@ -5,8 +5,10 @@
   "packageManager": "pnpm@11.24.0",
   "scripts": {
     "build": "pnpm -r run build",
-    "lint": "pnpm -r run lint",
-    "lint:fix": "pnpm -r run lint:fix",
+    "lint": "pnpm -r run lint && pnpm run lint:markdown",
+    "lint:fix": "pnpm -r run lint:fix && pnpm run lint:markdown:fix",
+    "lint:markdown": "markdownlint-cli2",
+    "lint:markdown:fix": "markdownlint-cli2 --fix",
     "typecheck": "pnpm -r run typecheck",
     "format": "pnpm -r run format",
     "format:fix": "pnpm -r run format:fix",
@@ -31,6 +33,7 @@
     "globals": "^17.9.0",
     "knip": "6.33.0",
     "madge": "8.0.0",
+    "markdownlint-cli2": "^0.23.2",
     "prettier": "^3.9.6",
     "syncpack": "15.3.3",
     "typescript-eslint": "^8.66.0"
