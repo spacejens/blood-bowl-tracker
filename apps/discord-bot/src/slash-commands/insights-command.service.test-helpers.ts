@@ -43,7 +43,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
  *
  * `InsightsCommandService`'s FACT_TREE dependency is built with the real,
  * pure `buildFactTree` (a loose function, not a service — CLAUDE.md case 2
- * exemption) wired to eleven MOCKED fact services. This keeps the real tree
+ * exemption) wired to twelve MOCKED fact services. This keeps the real tree
  * topology (paths, supportsLeague/Era/Competition flags per leaf — already
  * verified against production by `fact-tree.spec.ts`) while every leaf's
  * actual computation is a controlled mock, so these specs never construct
@@ -143,7 +143,7 @@ export interface FactTreeMocks {
 }
 
 /**
- * The eleven fact services `buildFactTree` wires into leaves, each a
+ * The twelve fact services `buildFactTree` wires into leaves, each a
  * `MockProxy` with a default resolved reply — the same title/description
  * content the pre-migration game-data-fake-driven tree produced via real
  * computation, now canned directly since that computation belongs to these

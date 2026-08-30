@@ -18,6 +18,7 @@ import {
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PlayerKillerInfoFormatterService } from '../../deepdive/facts/player-killer-info-formatter.service';
 import { PlayerRowButtonService } from '../../deepdive/player-row-button.service';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
@@ -229,11 +230,14 @@ describe('OnThisDateFactsService.resolve', () => {
     const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
     expect(embed(result).description).toContain('Famous deaths:');
     expect(embed(result).description).toContain(
-      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by An unidentified player from Gouged Eye (Orc, Grimly)',
+      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly)',
     );
   });
 
   it('notes a kill inflicted by a foul', async () => {
+    killerInfo.describe.mockReturnValue(
+      'An opponent, in mysterious circumstances',
+    );
     onThisDate.getTopKilledPlayers.mockResolvedValue([
       victim({ killer: { kind: 'unknown', viaFoul: true } }),
     ]);
@@ -244,6 +248,9 @@ describe('OnThisDateFactsService.resolve', () => {
   });
 
   it('falls back to mysterious circumstances when the killer never resolved', async () => {
+    killerInfo.describe.mockReturnValue(
+      'An opponent, in mysterious circumstances',
+    );
     onThisDate.getTopKilledPlayers.mockResolvedValue([
       victim({ killer: null }),
     ]);
@@ -251,7 +258,42 @@ describe('OnThisDateFactsService.resolve', () => {
     expect(embed(result).description).toContain(
       'killed by an opponent, in mysterious circumstances',
     );
-    expect(killerInfo.describe).not.toHaveBeenCalled();
+    // Routed through the shared formatter (treating a null killer as
+    // `{ kind: 'unknown' }`) rather than a hardcoded duplicate string, so a
+    // future wording change to the formatter reaches this row too.
+    expect(killerInfo.describe).toHaveBeenCalledWith({
+      kind: 'unknown',
+      viaFoul: false,
+    });
+  });
+
+  it('keeps a named killer capitalised, unlike the lower-cased fallback clauses', async () => {
+    killerInfo.describe.mockReturnValue(
+      'Morg n Thorg (Blitzer, Gouged Eye, Orc, Grimly)',
+    );
+    onThisDate.getTopKilledPlayers.mockResolvedValue([
+      victim({
+        killer: {
+          kind: 'player',
+          playerId: 99,
+          playerName: 'Morg n Thorg',
+          positionId: 5,
+          positionName: 'Blitzer',
+          isStarPlayer: true,
+          teamId: 99,
+          teamName: 'Gouged Eye',
+          raceId: 98,
+          raceName: 'Orc',
+          coachId: 97,
+          coachName: 'Grimly',
+          viaFoul: false,
+        },
+      }),
+    ]);
+    const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
+    expect(embed(result).description).toContain(
+      'killed by Morg n Thorg (Blitzer, Gouged Eye, Orc, Grimly)',
+    );
   });
 
   it('offers a button for the victim and for the killer', async () => {
@@ -271,6 +313,16 @@ describe('OnThisDateFactsService.resolve', () => {
       },
       killerEntry,
     ]);
+  });
+
+  it('appends the button-overflow note when the drill-down buttons exceed the cap', async () => {
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 3 more without a link.',
+    });
+    onThisDate.getTopKilledPlayers.mockResolvedValue([victim()]);
+    const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
+    expect(embed(result).description).toContain('…and 3 more without a link.');
   });
 
   it('reports an exact tie remainder', async () => {
@@ -326,6 +378,56 @@ describe('OnThisDateFactsService.resolve', () => {
     expect(resolvedVictims.length).toBeLessThan(TOPLIST_FETCH_LIMIT);
   });
 
+  it('trims victim rows to fit the description length budget, counting the drop exactly', async () => {
+    const longVictims = Array.from({ length: 30 }, (_unused, index) =>
+      victim({
+        playerId: index,
+        name: `Longnamed Player Number ${index} With Extra Padding`,
+        sppTotal: 200 - index,
+        teamName: 'A Very Long Reikland Reavers Team Name Indeed',
+        raceName: 'Human',
+        coachName: 'A Coach With An Unusually Long Name',
+        killer: {
+          kind: 'ambiguousTeams',
+          teams: [
+            {
+              teamId: 1,
+              teamName: 'Gouged Eye Extended Long Team Name',
+              raceId: 1,
+              raceName: 'Orc',
+              coachId: 1,
+              coachName: 'Grimly The Long-Named',
+            },
+            {
+              teamId: 2,
+              teamName: 'Champions of Death With A Very Long Name',
+              raceId: 2,
+              raceName: 'Undead',
+              coachId: 2,
+              coachName: 'Mortis The Verbose',
+            },
+          ],
+          viaFoul: false,
+        },
+      }),
+    );
+    onThisDate.getTopKilledPlayers.mockResolvedValue(longVictims);
+    killerInfo.describe.mockReturnValue(
+      'An unidentified player from Gouged Eye Extended Long Team Name (Orc, Grimly The Long-Named) or Champions of Death With A Very Long Name (Undead, Mortis The Verbose)',
+    );
+
+    const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
+    const description = embed(result).description;
+
+    expect(description.length).toBeLessThanOrEqual(MAX_DESCRIPTION_LENGTH);
+    const shownRowCount = (description.match(/SPP, killed by/g) ?? []).length;
+    const truncationMatch = /…and (\d+) more not shown\./.exec(description);
+    expect(truncationMatch).not.toBeNull();
+    const truncatedCount = Number(truncationMatch?.[1]);
+    expect(shownRowCount).toBeGreaterThan(0);
+    expect(shownRowCount + truncatedCount).toBe(30);
+  });
+
   it('replies with the timeout message when the queries do not settle', async () => {
     stubDatabaseTimeoutOnce(databaseTimeout);
     const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
@@ -354,5 +456,94 @@ describe('OnThisDateFactsService.resolveToday', () => {
       scope,
       limit: 21,
     });
+  });
+});
+
+/**
+ * `EventCountLinesService` and `PlayerKillerInfoFormatterService` (whose only
+ * collaborator, `PlayerRowButtonService`, is itself a pure decision service)
+ * are pure and dependency-free, so this suite passes all three real per the
+ * documented `CLAUDE.md` carve-out — the same one
+ * `player-deepdive.test-helpers.ts` already uses for the equivalent deepdive
+ * services. Every other collaborator stays mocked. This locks down the
+ * actual rendered wording a reader would see, including Fix 1's
+ * lower-cased, formatter-routed killer clause for the unknown/null and team
+ * cases — the kind of duplication bug a fully-mocked spec cannot catch.
+ */
+describe('OnThisDateFactsService with real formatting collaborators', () => {
+  it('renders the real killer wording for an unresolved and a team-only kill', async () => {
+    const realOnThisDate = mock<OnThisDateService>();
+    const realDatabaseTimeout = mockDatabaseTimeout();
+    const realEntityComponents = nullEntityComponents();
+    const realLeaderboard = mock<LeaderboardService>();
+    const realMonthDay = mock<MonthDayService>();
+
+    realOnThisDate.countMatchesPlayed.mockResolvedValue(2);
+    realOnThisDate.getEventCounts.mockResolvedValue(ZERO_COUNTS);
+    const unresolvedVictim = victim({
+      playerId: 1,
+      name: 'Griff Oberwald',
+      sppTotal: 120,
+      killer: null,
+    });
+    const teamKilledVictim = victim({
+      playerId: 2,
+      name: 'Morg n Thorg',
+      sppTotal: 80,
+      killer: {
+        kind: 'team',
+        teamId: 99,
+        teamName: 'Gouged Eye',
+        raceId: 98,
+        raceName: 'Orc',
+        coachId: 97,
+        coachName: 'Grimly',
+        viaFoul: false,
+      },
+    });
+    realOnThisDate.getTopKilledPlayers.mockResolvedValue([
+      unresolvedVictim,
+      teamKilledVictim,
+    ]);
+    realOnThisDate.getKillersForVictims.mockImplementation((victims) =>
+      Promise.resolve(
+        victims.map((candidate) => ({
+          ...candidate,
+          killer: (candidate as OnThisDateKilledPlayer).killer ?? null,
+        })),
+      ),
+    );
+    realMonthDay.format.mockReturnValue('February 29');
+    realLeaderboard.topRanksWithTies.mockImplementation((rows) => ({
+      rows: rows.map((row, index) => ({ ...row, rank: index + 1 })),
+      truncatedCount: 0,
+      tieGroupOpenEnded: false,
+    }));
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        OnThisDateFactsService,
+        EventCountLinesService,
+        PlayerKillerInfoFormatterService,
+        PlayerRowButtonService,
+        { provide: OnThisDateService, useValue: realOnThisDate },
+        { provide: DatabaseTimeoutService, useValue: realDatabaseTimeout },
+        { provide: EntityComponentsService, useValue: realEntityComponents },
+        { provide: LeaderboardService, useValue: realLeaderboard },
+        { provide: MonthDayService, useValue: realMonthDay },
+      ],
+    }).compile();
+    const realService = moduleRef.get(OnThisDateFactsService);
+
+    const result = await realService.resolve({
+      monthDay: MONTH_DAY,
+      scope: {},
+    });
+    expect(embed(result).description).toContain(
+      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an opponent, in mysterious circumstances',
+    );
+    expect(embed(result).description).toContain(
+      '2. Morg n Thorg (Blitzer, Reikland Reavers, Human, Bob) — 80 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly)',
+    );
   });
 });

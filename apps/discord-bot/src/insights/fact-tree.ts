@@ -558,8 +558,8 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
       supportsCompetition: true,
       supportsMatchCategory: true,
       // Every counter, the match count and the killed-players list all apply
-      // the same league, era, competition and match-category filter (from
-      // Task 1), so no scope needs to exclude this leaf.
+      // the same league, era, competition and match-category filter, so no
+      // scope needs to exclude this leaf.
       // This leaf always means today, since the scheduled random poster has
       // no caller-supplied date and "on this date" only makes sense relative
       // to now.

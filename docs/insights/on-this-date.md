@@ -42,8 +42,18 @@ match category):
 
 ## Rules and decisions
 
-- **Confirmed deaths only.** A killing blow the victim survived never appears
-  here, even though the deepdive's own kills list reports such attempts.
+- **Confirmed deaths only, for the Famous deaths list.** A killing blow the
+  victim survived never appears there, even though the deepdive's own kills
+  list reports such attempts.
+- **The event-count breakdown's own "killed" sub-count covers a broader
+  population than the Famous deaths list.** Like the player deepdive's own
+  counters, the casualties and fouls groups' `killed` counts include
+  prevented/avoided deaths and unpaired death-severity actions alongside
+  confirmed deaths, while the Famous deaths list names only players whose
+  death was actually confirmed. The embed can therefore legitimately show,
+  for example, "Casualties inflicted: 8 (3 killed)" above a Famous deaths
+  list naming only 1 player — that is not a bug, it is two different counts
+  answering two different questions.
 - **One death per player.** A player dies at most once, which is why
   resolving who killed a player is unambiguous; this insight reuses the
   existing per-player killer resolution unchanged.

@@ -105,9 +105,10 @@ export class OnThisDateService {
   }
 
   /**
-   * Death-severity events this service caused, whether confirmed, prevented, or
-   * unrecorded. Mirrors `PlayerDeepdiveCountsService`'s `countDeathOutcome`
-   * exactly, so the two services can never disagree about what 'killed' means.
+   * Death-severity events recorded on this date, whether confirmed,
+   * prevented, or unrecorded. Mirrors `PlayerDeepdiveCountsService`'s
+   * `countDeathOutcome` exactly, so the two services can never disagree
+   * about what 'killed' means.
    */
   private deathOutcomeFilter(): SQL | undefined {
     return and(
@@ -131,8 +132,8 @@ export class OnThisDateService {
    * is one of `severities`), so a foul that would have caused a serious
    * injury but was saved by an apothecary still counts. Mirrors
    * `PlayerDeepdiveCountsService`'s `countFoulOutcome` exactly, so the two
-   * services can never disagree about what 'killed' means. Note that
-   * `actionType = 'foul'` carries no severity of its own — unlike
+   * services can never disagree about what a foul-caused severity is. Note
+   * that `actionType = 'foul'` carries no severity of its own — unlike
    * `actionType = 'death'`, which certifies severity by itself — so there
    * is no unpaired/no-consequence case to fold in here.
    */

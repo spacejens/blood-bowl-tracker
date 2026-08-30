@@ -1,16 +1,16 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockDeep } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { ClockService } from './clock.service';
 import { MonthDayService } from './month-day.service';
 
 describe('MonthDayService', () => {
   let service: MonthDayService;
-  let clock: ReturnType<typeof mockDeep<ClockService>>;
+  let clock: ReturnType<typeof mock<ClockService>>;
 
   beforeEach(async () => {
-    clock = mockDeep<ClockService>();
+    clock = mock<ClockService>();
     const moduleRef = await Test.createTestingModule({
       providers: [MonthDayService, { provide: ClockService, useValue: clock }],
     }).compile();

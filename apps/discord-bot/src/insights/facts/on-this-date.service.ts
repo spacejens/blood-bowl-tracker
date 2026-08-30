@@ -2,6 +2,7 @@ import type {
   FactScope,
   OnThisDateKilledPlayer,
   OnThisDateVictim,
+  PlayerKillerInfo,
 } from '@blood-bowl-tracker/game-data';
 import { OnThisDateService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -11,6 +12,10 @@ import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PlayerKillerInfoFormatterService } from '../../deepdive/facts/player-killer-info-formatter.service';
 import { PlayerRowButtonService } from '../../deepdive/player-row-button.service';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  OVERFLOW_NOTE_BUDGET,
+} from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
@@ -106,20 +111,17 @@ export class OnThisDateFactsService {
     const { shown: rankedVictims, remainder } = this.rankVictims(victims);
     const killedVictims =
       await this.onThisDate.getKillersForVictims(rankedVictims);
-    const shown: RankedVictim[] = rankedVictims.map((victim, index) => ({
+    const candidates: RankedVictim[] = rankedVictims.map((victim, index) => ({
       ...victim,
       killer: killedVictims[index].killer,
     }));
-    if (shown.length > 0) {
-      lines.push(
-        '',
-        'Famous deaths:',
-        ...shown.map((entry) => this.row(entry)),
-      );
-      if (remainder !== null) {
-        lines.push(remainder);
-      }
-    }
+
+    const { lines: victimLines, shown } = this.buildVictimSection(
+      candidates,
+      remainder,
+      lines,
+    );
+    lines.push(...victimLines);
 
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(
@@ -166,19 +168,91 @@ export class OnThisDateFactsService {
   }
 
   /**
+   * Selects a prefix of the tie-trimmed `victims` that keeps the whole
+   * description within `MAX_DESCRIPTION_LENGTH` and renders the "Famous
+   * deaths:" section, plus an exact "…and N more not shown." note when
+   * anything was left out by length. This is a second, additional safety net
+   * layered on top of `rankVictims`' own tie-based trim to roughly five rows:
+   * it only ever drops rows the tie logic already decided to show, and only
+   * when their rendered text would blow the character budget — the same
+   * greedy, budget-then-fill approach `PlayerKillsSectionService.build` uses
+   * for the equivalent kills-list section, adapted here for the extra
+   * fixed-size pieces (the counter block, the heading, and the tie
+   * remainder note) this description also carries.
+   */
+  private buildVictimSection(
+    victims: RankedVictim[],
+    remainder: string | null,
+    otherLines: string[],
+  ): { lines: string[]; shown: RankedVictim[] } {
+    if (victims.length === 0) {
+      return { lines: [], shown: [] };
+    }
+
+    const heading = ['', 'Famous deaths:'];
+    const remainderLines = remainder === null ? [] : [remainder];
+    let budget =
+      MAX_DESCRIPTION_LENGTH -
+      otherLines.join('\n').length -
+      1 - // the newline joining the counter block to the heading
+      heading.join('\n').length -
+      1 - // the newline joining the heading to the first victim row
+      (remainderLines.length === 0 ? 0 : remainderLines.join('\n').length + 1) -
+      OVERFLOW_NOTE_BUDGET;
+
+    const shown: RankedVictim[] = [];
+    for (const victim of victims) {
+      const cost = this.row(victim).length + 1;
+      if (cost > budget) {
+        break;
+      }
+      budget -= cost;
+      shown.push(victim);
+    }
+
+    const lines = [...heading, ...shown.map((entry) => this.row(entry))];
+    const truncatedCount = victims.length - shown.length;
+    if (truncatedCount > 0) {
+      lines.push(`…and ${truncatedCount} more not shown.`);
+    }
+    if (remainder !== null) {
+      lines.push(remainder);
+    }
+    return { lines, shown };
+  }
+
+  /**
    * The rank, a dot and a space, the victim name, a parenthesised
    * `position, team, race, coach` list, a spaced em dash, the SPP total, the
    * literal ` SPP, killed by `, the killer clause, and finally
    * ` (via a foul)` when the killer's `viaFoul` is set.
    */
   private row(victim: RankedVictim): string {
-    const clause =
-      victim.killer === null || victim.killer.kind === 'unknown'
-        ? 'an opponent, in mysterious circumstances'
-        : this.killerInfo.describe(victim.killer);
+    const clause = this.killerClause(victim.killer);
     const foulNote =
       victim.killer !== null && victim.killer.viaFoul ? ' (via a foul)' : '';
     return `${victim.rank}. ${victim.name} (${victim.positionName}, ${victim.teamName}, ${victim.raceName}, ${victim.coachName}) — ${victim.sppTotal} SPP, killed by ${clause}${foulNote}`;
+  }
+
+  /**
+   * The killer clause for one row, mid-sentence after "killed by ". A named
+   * killer keeps `describe`'s own capitalisation (it's a proper name); every
+   * other case — an unidentified team, an ambiguous set of teams, or no
+   * killer resolved at all — goes through the same
+   * `PlayerKillerInfoFormatterService.describe` every other caller uses, with
+   * only its leading capital lowered to fit mid-sentence here. Treating a
+   * `null` killer as `{ kind: 'unknown' }` before calling `describe` avoids a
+   * second, duplicated "mysterious circumstances" string that a future
+   * wording change to the formatter could silently miss.
+   */
+  private killerClause(killer: PlayerKillerInfo | null): string {
+    if (killer !== null && killer.kind === 'player') {
+      return this.killerInfo.describe(killer);
+    }
+    const described = this.killerInfo.describe(
+      killer ?? { kind: 'unknown', viaFoul: false },
+    );
+    return described.charAt(0).toLowerCase() + described.slice(1);
   }
 
   /**
