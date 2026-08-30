@@ -156,7 +156,7 @@ To import into the production api-server instead, keep a second config file
 example template, with `apiBaseUrl` changed to `http://localhost:3001`), run
 `flyctl proxy 3001:3000` from the repository root in another terminal, and
 set `IMPORT_CONFIG_ENV=production` for the run. See
-[Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
+[Running import tools against production](../discord-bot/production-imports.md).
 
 ## Architecture
 

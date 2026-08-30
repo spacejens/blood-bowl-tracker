@@ -1,4 +1,4 @@
-# Deploys apps/discord-bot to Fly.io. See docs/discord-bot/production-hosting.md.
+# Deploys apps/discord-bot to Fly.io. See docs/discord-bot/production-deploying.md.
 #
 # Runs on every push to main (i.e. every merged pull request) and on manual
 # dispatch, which redeploys the current main without a new commit. CI does not

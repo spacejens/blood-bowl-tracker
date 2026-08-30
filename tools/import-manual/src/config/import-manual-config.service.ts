@@ -21,7 +21,7 @@ export const DEFAULT_IMPORT_MANUAL_CONFIG_PATH = paths.defaultPath;
  * `import-manual-config.production.json5` in the current working directory,
  * a sibling of the default file. Git-ignored like the default one, and holds
  * the production api-server's bearer token (see
- * docs/discord-bot/production-hosting.md).
+ * docs/discord-bot/production-imports.md).
  */
 export const PRODUCTION_IMPORT_MANUAL_CONFIG_PATH = paths.productionPath;
 

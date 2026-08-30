@@ -397,7 +397,7 @@ and set `IMPORT_CONFIG_ENV=production` for the run:
 ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
 ```
 
-See [Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
+See [Running import tools against production](../discord-bot/production-imports.md).
 
 ## Architecture
 

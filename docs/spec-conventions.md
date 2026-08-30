@@ -41,7 +41,7 @@ Besides `glossary.md` and this file — tagged `Docs-about-docs` above, since th
 - **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `fs-utils-cli/`, `download-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `review-match/`, `review-player/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
 - **Repo-meta docs** — `architecture.md` and `development-workflow.md`. These describe the project's own technical stack, structure, and development process. No fixed rule set applies; follow the existing style of each file.
 
-One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, and `discord-bot/production-hosting.md` are how-to content (Discord app creation, local development, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.
+One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, and `discord-bot/production-hosting.md` together with the `discord-bot/production-*.md` pages it indexes, are how-to content (Discord app creation, local development, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.
 
 The directory map above covers checked-in doc areas only. Gitignored, generated areas — `plans/` (this workflow's working files) and `schemaspy-output/` (the database diagram produced by `pnpm run db:diagram`) — are absent by design, not omissions.
 

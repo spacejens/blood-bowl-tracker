@@ -7,7 +7,7 @@
 #
 # Secrets (DISCORD_BOT_TOKEN, DATABASE_URL, channel ids, API tokens) are NOT in
 # this file. They live in the git-ignored apps/discord-bot/.env.production and
-# are pushed with `fly secrets import`. See docs/discord-bot/production-hosting.md.
+# are pushed with `fly secrets import`. See docs/discord-bot/production-configuration.md.
 
 app = "blood-bowl-tracker-discord-bot"
 primary_region = "arn"
@@ -22,7 +22,7 @@ primary_region = "arn"
 # No [[services]] block: the RPC endpoint is deliberately never published to
 # the public internet. Import tools reach it through `flyctl proxy 3001:3000`
 # over Fly's private WireGuard network instead — see
-# docs/discord-bot/production-hosting.md. A [[services]] block with no
+# docs/discord-bot/production-imports.md. A [[services]] block with no
 # [[services.ports]] entries is rejected by `flyctl config validate`, so the
 # health check is declared as a top-level check rather than a service check.
 #
@@ -41,7 +41,7 @@ primary_region = "arn"
 # once, with `fly scale count 2`, the same way the app itself was created with
 # `flyctl apps create` rather than declared here. Deploys preserve the existing
 # count, so this is a one-time step. See
-# docs/discord-bot/production-hosting.md.
+# docs/discord-bot/production-first-time-setup.md.
 #
 # The app has no HTTP health endpoint, so the check is a plain TCP connect
 # against the port the RPC server binds.
