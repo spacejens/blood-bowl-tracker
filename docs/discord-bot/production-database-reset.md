@@ -16,8 +16,10 @@ like a real `postgres://` connection string — stripping a dotenv-style quote
 pair and a trailing CRLF first — before ever connecting, and aborts without
 running `psql` if it doesn't; an empty or malformed value would otherwise let
 `psql` silently fall back to a local connection instead of failing loudly.
-Doing this by hand instead of through the skill means reproducing that same
-validation and failing closed on any step:
+Doing this by hand instead of through the skill means reproducing the
+essential part of that check — failing closed on an empty value instead of
+letting `psql` silently fall back to a local connection — and failing closed
+on any later step too:
 
 ```bash
 DATABASE_URL="$(grep -E '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2-)"
