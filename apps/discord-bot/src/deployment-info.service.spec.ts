@@ -192,6 +192,7 @@ describe('DeploymentInfoService', () => {
       GIT_BRANCH: 'main',
       GIT_COMMIT_MESSAGE:
         'Merge pull request #551 from spacejens/some-branch\n\nShow team records\n',
+      GIT_COMMIT_TIMESTAMP: '2026-08-30T16:05:22+02:00',
       GIT_IS_MERGE_COMMIT: 'true',
     });
 
@@ -204,6 +205,7 @@ describe('DeploymentInfoService', () => {
             'App: blood-bowl-tracker-discord-bot',
             'Branch: main',
             'Commit: abcdef1',
+            'Committed: 2026-08-30 14:05 UTC',
             '',
             'Show team records',
           ].join('\n'),
@@ -259,6 +261,30 @@ describe('DeploymentInfoService', () => {
     expect(service.describe('active')).toEqual({
       embeds: [
         { title: 'Bot starting as active', description: 'Add team records' },
+      ],
+    });
+  });
+
+  it('renders an already-UTC commit timestamp without shifting it', () => {
+    withEnv({ GIT_COMMIT_TIMESTAMP: '2026-08-30T14:05:22Z' });
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error('not a git repository');
+    });
+
+    expect(service.describe('active').embeds[0].description).toBe(
+      'Committed: 2026-08-30 14:05 UTC',
+    );
+  });
+
+  it('omits the committed line when the timestamp cannot be parsed', () => {
+    withEnv({ GIT_BRANCH: 'main', GIT_COMMIT_TIMESTAMP: 'not-a-date' });
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error('not a git repository');
+    });
+
+    expect(service.describe('active')).toEqual({
+      embeds: [
+        { title: 'Bot starting as active', description: 'Branch: main' },
       ],
     });
   });
