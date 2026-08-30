@@ -31,7 +31,7 @@ function match(overrides: Partial<TpMatch> & { id: number }): TpMatch {
  * The 6-match "qualifier -> semifinal -> final+bronze" shape seen in most
  * real season competitions (e.g. tloegbbl-major-season-25), reconstructed
  * from real fixture data by tracing team ids and scoreResume.winner across
- * rounds (see docs/import-tp/file-format.md and task-7-report.md for the
+ * rounds (see docs/import-tp/file-format-match.md and task-7-report.md for the
  * evidence). Team ids: 1 v 2 and 3 v 4 in the qualifier; the qualifier
  * winners (here, 1 and 3) advance to face two new bye-seeded teams (5, 7) in
  * the semifinal; the semifinal winners (here, 1 and 5) meet in the final,

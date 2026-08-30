@@ -208,7 +208,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   player id, so a player who has since left/been replaced on the roster
   (absent from the standalone `rosters_<id>.json` file) is still imported,
   with `roster.players`' own data winning on conflict for a given id — see
-  [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)
+  [file-format-rosters.md](./file-format-rosters.md)
   for why. Also imports every star player hired via an `inducements_roll`
   match event (gathered by `main.ts` from the already-parsed match events,
   not from any roster field), each getting a reused `isStarPlayer: true`
@@ -272,7 +272,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
 - **TpMatchEventsImportService** — imports touchdown, injury/casualty, and
   administrative match events from every already-parsed TP match's
   `matchEvents[]` (see
-  [file-format.md](./file-format.md#match_idjson-play-date-and-name-parsed)
+  [file-format-match.md](./file-format-match.md)
   for the full decode table). Unlike BBL, which correlates separately
   scraped action/consequence occurrences, TP embeds the acting/victim player
   and team directly on each event, so no correlation step is needed. Runs
