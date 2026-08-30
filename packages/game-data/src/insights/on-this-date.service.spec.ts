@@ -241,6 +241,61 @@ describe('OnThisDateService', () => {
       const whereText = sqlText(firstCallArg(chains[8].where));
       expect(whereText).toContain('is null');
     });
+
+    it('also counts a prevented death, a prevented serious injury and a prevented fatal foul', async () => {
+      const { chains } = await build(
+        ...countRows(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+      );
+      await service.getEventCounts({
+        month: 6,
+        day: 1,
+        scope: { leagueId: 9 },
+      });
+      // Both 'casualty_avoided' and each severity literal are bound query
+      // parameters (not static SQL text), so they're asserted via
+      // extractAllFilterValues rather than sqlText, which omits interpolated
+      // values by design.
+      //
+      // A severity literal used by the avoided-outcome branch is *also*
+      // used by a sibling branch in the same filter (the confirmed-outcome
+      // check, or the actionType check), so merely asserting presence
+      // (`toContain`) can't tell a correct avoided-severity binding apart
+      // from a corrupted or dropped one — the sibling branch's own copy of
+      // the same literal would mask the difference. Asserting the exact
+      // occurrence count instead does: it only matches when the
+      // avoided-outcome branch contributes its own copy of the value on top
+      // of the sibling branch's copy.
+      const occurrences = (values: unknown[], value: string): number =>
+        values.filter((v) => v === value).length;
+
+      // Chain 8: casualty `killed` (deathOutcomeFilter) — 'death' appears
+      // from actionType='death' and the confirmed consequenceType='death'
+      // branch regardless of the avoided-outcome branch; a third occurrence
+      // can only come from consequenceAvoidedSeverity='death'.
+      const deathOutcomeValues = extractAllFilterValues(
+        firstCallArg(chains[8].where),
+      );
+      expect(occurrences(deathOutcomeValues, 'casualty_avoided')).toBe(1);
+      expect(occurrences(deathOutcomeValues, 'death')).toBe(3);
+      // Chain 10: fouls `seriousInjuries` (foulOutcomeFilter with
+      // SERIOUS_INJURY_SUFFERED_TYPES) — the confirmed-outcome branch's
+      // inArray already contributes one copy of every type in the set; a
+      // second copy of 'serious_injury' can only come from the
+      // avoided-outcome branch's own inArray over the same type set.
+      const foulSeriousInjuryValues = extractAllFilterValues(
+        firstCallArg(chains[10].where),
+      );
+      expect(occurrences(foulSeriousInjuryValues, 'casualty_avoided')).toBe(1);
+      expect(occurrences(foulSeriousInjuryValues, 'serious_injury')).toBe(2);
+      // Chain 11: fouls `killed` (foulOutcomeFilter(['death'])) — the
+      // confirmed-outcome branch's inArray(['death']) contributes one copy;
+      // a second copy can only come from the avoided-outcome branch.
+      const foulKilledValues = extractAllFilterValues(
+        firstCallArg(chains[11].where),
+      );
+      expect(occurrences(foulKilledValues, 'casualty_avoided')).toBe(1);
+      expect(occurrences(foulKilledValues, 'death')).toBe(2);
+    });
   });
 
   describe('getTopKilledPlayers', () => {
