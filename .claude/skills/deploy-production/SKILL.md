@@ -110,7 +110,7 @@ This pushes the current contents of `apps/discord-bot/.env.production` to Fly as
    ```bash
    fly secrets import < apps/discord-bot/.env.production
    ```
-   `fly secrets import` reads `KEY=value` lines from stdin. Report only the command's own output — never echo the file into the transcript to "show what was pushed". If the command fails (an auth error, a malformed line), report its output and stop here: no restart was triggered, so there is nothing to verify below.
+   `fly secrets import` reads `KEY=value` lines from stdin. Report only the command's own output — never echo the file into the transcript to "show what was pushed". If the command fails (an auth error, a malformed line), report its output — but do not assume nothing changed: `fly secrets import` can set the secrets before a deploy step it triggers afterward fails, so a non-zero exit does not guarantee production is unchanged. Continue to steps 4–5 to check the actual machine state before concluding anything, rather than stopping here.
 4. Wait for the automatic restart to settle, polling rather than sleeping blindly:
    ```bash
    fly status
