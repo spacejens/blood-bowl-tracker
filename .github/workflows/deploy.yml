@@ -43,6 +43,7 @@ jobs:
       - name: Deploy to Fly.io
         run: |
           commit_message="$(git log -1 --pretty=%B)"
+          commit_timestamp="$(git log -1 --format=%cI)"
           if git rev-parse --verify --quiet HEAD^2 >/dev/null; then
             is_merge_commit=true
           else
@@ -52,6 +53,7 @@ jobs:
             --build-arg GIT_SHA="$GITHUB_SHA" \
             --build-arg GIT_BRANCH="$GITHUB_REF_NAME" \
             --build-arg GIT_COMMIT_MESSAGE="$commit_message" \
+            --build-arg GIT_COMMIT_TIMESTAMP="$commit_timestamp" \
             --build-arg GIT_IS_MERGE_COMMIT="$is_merge_commit"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

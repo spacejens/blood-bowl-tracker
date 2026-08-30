@@ -190,4 +190,52 @@ describe('DiscordBotConfigService', () => {
     expect(service.getPort()).toBe(3000);
     expect(configService.get).toHaveBeenCalledWith('PORT');
   });
+
+  it('enables the standby startup message when the toggle is unset', () => {
+    configService.get.mockReturnValue(undefined);
+    expect(service.getStandbyStartupMessageEnabled()).toBe(true);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
+  });
+
+  it('enables the standby startup message when the toggle is "true"', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'true' : undefined,
+    );
+    expect(service.getStandbyStartupMessageEnabled()).toBe(true);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
+  });
+
+  it('disables the standby startup message when the toggle is "false"', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'false' : undefined,
+    );
+    expect(service.getStandbyStartupMessageEnabled()).toBe(false);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
+  });
+
+  it('reads the standby startup message toggle case-insensitively', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? '  FALSE  ' : undefined,
+    );
+    expect(service.getStandbyStartupMessageEnabled()).toBe(false);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
+  });
+
+  it('treats any other standby startup message toggle value as enabled', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'yes' : undefined,
+    );
+    expect(service.getStandbyStartupMessageEnabled()).toBe(true);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
+  });
 });

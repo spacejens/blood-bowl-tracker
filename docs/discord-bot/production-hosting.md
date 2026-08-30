@@ -92,7 +92,9 @@ drizzle's pool, because advisory locks are session-scoped) and calls
 
 The loser posts a standby startup message — a single plain REST call to
 Discord's API, never a gateway session — and retries the lock every 15
-seconds, doing nothing else.
+seconds, doing nothing else. Setting `STANDBY_STARTUP_MESSAGE_ENABLED=false`
+suppresses that message; the machine still stands by exactly as before. It is
+enabled whenever the variable is unset.
 
 **Failover** needs no heartbeat or timeout bookkeeping. If the active machine
 crashes, is killed, or loses connectivity, its lock connection drops and
@@ -122,6 +124,7 @@ Machine: 148e123456
 App: blood-bowl-tracker-discord-bot
 Branch: main
 Commit: abcdef1
+Committed: 2026-08-30 14:05 UTC
 
 Show team records on the standings page
 ```
@@ -132,6 +135,7 @@ Show team records on the standings page
 | App name       | `FLY_APP_NAME`, injected by Fly                                                                                                                                       |
 | Branch         | `GIT_BRANCH` build arg, from `$GITHUB_REF_NAME`                                                                                                                       |
 | Commit SHA     | `GIT_SHA` build arg, from `$GITHUB_SHA` (shown as the first 7 characters)                                                                                             |
+| Commit time    | `GIT_COMMIT_TIMESTAMP` build arg, from `git log -1 --format=%cI` on the runner — the ISO-8601 committer date, rendered in UTC to the minute                         |
 | Commit message | `GIT_COMMIT_MESSAGE` build arg, from `git log -1 --pretty=%B` on the runner — the merge commit's PR-title body line when there is one, otherwise its subject line; a separate paragraph, not a `Label: value` line |
 | Active/standby | which side of the election this machine ended up on, shown in the title                                                                                               |
 
@@ -139,15 +143,16 @@ An unusually long commit message can push the assembled description past
 Discord's length limit; `DeploymentInfoService` truncates it rather than
 letting Discord reject the whole message.
 
-The four `GIT_*` values are baked into the image by
+The five `GIT_*` values are baked into the image by
 `.github/workflows/deploy.yml` at build time, because `.dockerignore` excludes
 `.git` — a running container has no way to discover its own commit. Locally,
-the `deploy-local` skill exports the same four variables from the host
+the `deploy-local` skill exports the same five variables from the host
 checkout, and a bare `pnpm start:dev` falls back to running `git rev-parse
 HEAD` / `git branch --show-current` directly, plus `git log -1 --pretty=%B`
-for the commit message and `git rev-parse HEAD^2` to detect a merge commit.
-Any field that cannot be resolved is left off the embed rather than shown
-blank; none is required, and none can fail startup.
+for the commit message, `git log -1 --format=%cI` for the commit timestamp,
+and `git rev-parse HEAD^2` to detect a merge commit. Any field that cannot be
+resolved is left off the embed rather than shown blank; none is required, and
+none can fail startup.
 
 This is the only message either machine posts on startup: the status embed
 alone already answers "what is running right now."

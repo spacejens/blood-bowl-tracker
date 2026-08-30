@@ -41,10 +41,21 @@ export class StartupNotifierService {
    * to answer) the same interactions as the active machine, which is exactly
    * what leader election exists to prevent.
    *
+   * Skipped entirely when STANDBY_STARTUP_MESSAGE_ENABLED is off — a
+   * standby's availability is not news, and where restarts are frequent the
+   * announcement is pure noise. The skip is logged so a missing message is
+   * never mistaken for a failure to post one.
+   *
    * Every failure is logged and swallowed: an unannounced standby is still a
    * perfectly healthy standby, ready to take over.
    */
   async postStandbyStartupMessage(): Promise<void> {
+    if (!this.config.getStandbyStartupMessageEnabled()) {
+      this.logger.log(
+        'Standby startup message is disabled; skipping the announcement',
+      );
+      return;
+    }
     try {
       const channelId = this.config.getStartupMessageDiscordChannel();
       const response = await fetch(

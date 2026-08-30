@@ -56,13 +56,17 @@ COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
 # GIT_COMMIT_MESSAGE is the raw, possibly multi-line message; the service
 # picks the single line to display, using GIT_IS_MERGE_COMMIT ("true"/"false")
 # to tell a merge commit's unhelpful subject from its body.
+# GIT_COMMIT_TIMESTAMP is the ISO-8601 committer date, which the service
+# renders in UTC.
 ARG GIT_SHA=""
 ARG GIT_BRANCH=""
 ARG GIT_COMMIT_MESSAGE=""
+ARG GIT_COMMIT_TIMESTAMP=""
 ARG GIT_IS_MERGE_COMMIT=""
 ENV GIT_SHA=$GIT_SHA
 ENV GIT_BRANCH=$GIT_BRANCH
 ENV GIT_COMMIT_MESSAGE=$GIT_COMMIT_MESSAGE
+ENV GIT_COMMIT_TIMESTAMP=$GIT_COMMIT_TIMESTAMP
 ENV GIT_IS_MERGE_COMMIT=$GIT_IS_MERGE_COMMIT
 
 ENV NODE_ENV=production

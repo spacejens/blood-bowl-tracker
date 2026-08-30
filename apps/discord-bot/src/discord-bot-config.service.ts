@@ -17,6 +17,24 @@ export class DiscordBotConfigService {
     return this.getRequired('STARTUP_MESSAGE_DISCORD_CHANNEL');
   }
 
+  /**
+   * Whether the standby machine announces itself on startup. Optional and
+   * default-on, so existing deployments keep announcing without any config
+   * change; setting it to "false" silences the standby's boot message in
+   * environments that restart often, where it is pure noise. Only an explicit
+   * "false" disables it — an unset or unrecognised value keeps today's
+   * behaviour rather than silently turning the announcement off. Unlike the
+   * getters above it never throws: there is nothing to fail fast about when
+   * the variable is genuinely optional.
+   */
+  getStandbyStartupMessageEnabled(): boolean {
+    const value = this.configService.get<string>(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
+    if (!value) return true;
+    return value.trim().toLowerCase() !== 'false';
+  }
+
   getRandomInsightsCron(): string {
     return this.getRequired('RANDOM_INSIGHTS_CRON');
   }

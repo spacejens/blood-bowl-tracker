@@ -21,6 +21,12 @@ export interface DeploymentInfo {
    * line (the PR title) when there is one, otherwise the subject line.
    */
   commitMessage?: string;
+  /**
+   * When the running commit was made, as the raw ISO-8601 committer date
+   * (`git log -1 --format=%cI`), carrying whatever UTC offset the machine
+   * that made the commit had. `describe()` renders it in UTC.
+   */
+  commitTimestamp?: string;
 }
 
 /** How many leading characters of the commit SHA the message shows. */
@@ -67,6 +73,10 @@ export class DeploymentInfoService {
     if (info.commitSha) {
       lines.push(`Commit: ${info.commitSha.slice(0, SHORT_SHA_LENGTH)}`);
     }
+    if (info.commitTimestamp) {
+      const committed = this.formatCommitTimestamp(info.commitTimestamp);
+      if (committed) lines.push(`Committed: ${committed}`);
+    }
     // Two paragraphs: the labelled fields, then the commit message. Either is
     // dropped when it is empty, so nothing renders as a blank line or a
     // dangling separator.
@@ -82,6 +92,22 @@ export class DeploymentInfoService {
         },
       ],
     };
+  }
+
+  /**
+   * Renders the raw ISO-8601 committer date as `YYYY-MM-DD HH:mm UTC`. The
+   * source carries whatever UTC offset the committer's machine had, so it is
+   * normalised to UTC — one fixed zone every reader can compare against,
+   * rather than a zone that silently varies per commit. Seconds are dropped:
+   * minute resolution is enough to tell one deploy from another. An
+   * unparseable value returns undefined so the field is omitted rather than
+   * shown as `Invalid Date`, matching every other best-effort field here.
+   */
+  private formatCommitTimestamp(raw: string): string | undefined {
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return undefined;
+    const iso = parsed.toISOString();
+    return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
   }
 
   /**
@@ -116,6 +142,10 @@ export class DeploymentInfoService {
       const commitMessage = this.deriveCommitMessage(rawMessage);
       if (commitMessage) info.commitMessage = commitMessage;
     }
+    const commitTimestamp =
+      this.env('GIT_COMMIT_TIMESTAMP') ??
+      this.git(['log', '-1', '--format=%cI']);
+    if (commitTimestamp) info.commitTimestamp = commitTimestamp;
     return info;
   }
 
