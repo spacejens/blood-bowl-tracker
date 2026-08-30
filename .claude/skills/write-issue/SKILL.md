@@ -70,7 +70,7 @@ If this run is creating a new parent alongside its sub-issues, draft and create 
 For each candidate that passes Phase 2:
 1. Draft a title and a plain-text body describing the need and its purpose (no code blocks, no implementation prescriptions), matching the tone of this repo's existing issues.
 2. Present the draft to the developer via `AskUserQuestion` with two genuine options: "Create it" and "Revise the draft" (loop back into Phase 2's dialogue for this candidate, then re-draft).
-3. Determine the kind label(s) by following `develop-feature`'s ad-hoc-mode kind-label step exactly (`.claude/skills/develop-feature/SKILL.md`, ad-hoc mode step 2) — don't duplicate that logic here, so the two skills can't drift out of sync.
+3. Determine the kind label(s) — one or more of `feature`, `bug`, `development` — by applying the tests in the "Issue labels" section of [docs/development-workflow.md](../../../docs/development-workflow.md). More than one may apply; assign all that clearly do. If it's genuinely unclear even after applying those tests, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
 4. Create the issue. If this candidate is a sub-issue (of an existing parent, or of one just created earlier in this run), add `--parent <parent issue number or URL>`. If the parent is an existing issue rather than one created earlier in this run, run the Dependency Dashboard parent check from the "Sub-issues" section first, and stop this candidate if it reports `true` or errors.
    ```bash
    gh issue create --title "<title>" --label "<kind label 1>" --label "<kind label 2 if applicable>" --parent <parent issue number> --body "$(cat <<'EOF'
