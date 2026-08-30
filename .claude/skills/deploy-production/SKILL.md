@@ -1,11 +1,11 @@
 ---
 name: deploy-production
-description: Use to operate the blood-bowl-tracker production deployment on Fly.io and Neon — check deployment status, restart the machine, roll back to a previous release, trigger a redeploy of current main without a new merge, drop and recreate the production database, run read-only queries against the production database, or run the manual/BBL/TP importers against production
+description: Use to operate the blood-bowl-tracker production deployment on Fly.io and Neon — check deployment status, apply the production configuration file to Fly as secrets, restart the machine, roll back to a previous release, trigger a redeploy of current main without a new merge, drop and recreate the production database, run read-only queries against the production database, or run the manual/BBL/TP importers against production
 ---
 
 # deploy-production
 
-Operates the already-deployed production Discord bot described in `docs/discord-bot/production-hosting.md`: status and log inspection, machine restarts, rollbacks, on-demand redeploys, a destructive database reset, read-only queries against the production database, and the four production import runs. Every action here is a wrapper around commands that page already documents by hand — when an action fails, that page is the fallback.
+Operates the already-deployed production Discord bot described in `docs/discord-bot/production-hosting.md`: status and log inspection, applying the already-authored production configuration file to Fly as secrets, machine restarts, rollbacks, on-demand redeploys, a destructive database reset, read-only queries against the production database, and the four production import runs. Every action here is a wrapper around commands that page already documents by hand — when an action fails, that page is the fallback.
 
 This skill does **not** perform normal deploys. Those happen automatically in GitHub Actions on every merge to `main` (`.github/workflows/deploy.yml`); the closest thing offered here is dispatching that same workflow against the current `main`.
 
@@ -19,7 +19,7 @@ Takes no arguments.
 
 ## Preconditions
 
-Preconditions 1 and 3 are true blocking preconditions for every action below — check them once, before step 0's question, and stop with a clear message if one fails. Precondition 2 (`gh` authentication) is needed only by the "Trigger a redeploy without a new merge" action; check it once step 0's selections are known, and only if that action was selected. An unauthenticated `gh` CLI must never block a status check, restart, rollback, database reset, or import run — those don't use `gh` at all, and this matters most during an incident, when the developer may just want `fly status` and shouldn't be stopped by an unrelated tool.
+Preconditions 1 and 3 are true blocking preconditions for every action below — check them once, before step 0's question, and stop with a clear message if one fails. Precondition 2 (`gh` authentication) is needed only by the "Trigger a redeploy without a new merge" action; check it once step 0's selections are known, and only if that action was selected. An unauthenticated `gh` CLI must never block a status check, restart, rollback, database reset, or import run — those don't use `gh` at all, and this matters most during an incident, when the developer may just want `fly status` and shouldn't be stopped by an unrelated tool. Precondition 4 (main checkout only) is likewise scoped to four specific actions and checked inside each of their own sections, not globally.
 
 1. `flyctl` is installed and authenticated:
    ```bash
@@ -31,6 +31,7 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    gh auth status
    ```
 3. Commands run from the repository root of the current checkout or worktree, where `fly.toml` lives. `fly.toml` is committed, so a worktree has it; the gitignored production files each action needs are synced by that action's own steps.
+4. Four actions are restricted to the **main checkout** and refuse to run from a worktree: **"Apply production configuration"**, **"Restart the machine"**, **"Roll back to a previous release"**, and **"Trigger a redeploy without a new merge"**. Each is a repo-wide, branch-independent operation on the whole deployment — none of them reads a per-worktree file, and none is about the current branch's code (a redeploy dispatch always targets `main` regardless of what is checked out; a restart and a rollback do not touch code at all). Like precondition 2, this is not checked globally before step 0: each of those four sections performs the check itself as its own first step, so an unrelated action selected alongside one of them (e.g. "Check deployment status") is never blocked by it, and refusing one section never abandons the others. Every other action stays unrestricted and is deliberately worktree-friendly — the database reset, the four production imports, and read-only queries each copy the gitignored production files they need into the worktree, because they are commonly run from a feature's own worktree to validate that feature's data end-to-end, and "Check deployment status" is read-only.
 
 ## Steps
 
