@@ -82,6 +82,46 @@ Run this section only if "Check deployment status" was selected in step 0 above.
      - **`Lost the leader lock while active; exiting`** or **`Failed to complete startup after connecting to Discord; exiting`** — the active machine exited by design after losing the advisory lock or failing a step after connecting. A single occurrence is the intended reaction, and the standby should already have taken over; a repeating loop on the same machine points at the database dropping connections or a persistent Discord-side error worth reading from the surrounding log lines.
 4. This section never changes anything. If it finds a problem, report it and let the developer decide — do not restart, redeploy, or reset on your own initiative.
 
+### Apply production configuration
+
+Run this section only if "Apply production configuration" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
+
+This pushes the current contents of `apps/discord-bot/.env.production` to Fly as the app's secrets — the manual step `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section documents. It **applies** a file the developer has already authored; it never creates, edits, or fills in that file (see Non-goals). Pushing secrets makes Fly restart the machines automatically, so there is no need to chain the "Restart the machine" action after this one — this section does not invoke that one, and steps 4–5 below verify the automatic restart directly.
+
+0. This action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — it is a repo-wide, branch-independent operation, and the file it pushes belongs to the main checkout):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   ```
+   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop **this section only**, reporting that applying production configuration is a repo-wide, branch-independent operation restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout to run it. Any other section selected in step 0 still runs normally.
+1. Confirm the file to push actually exists:
+   ```bash
+   ls apps/discord-bot/.env.production
+   ```
+   If it is missing, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section. **Do not create it**, do not copy one from anywhere, and do not generate one from a template — authoring production credentials is a developer's job, not this skill's (see Non-goals). Never print the file's contents, or any individual value from it, at any point in this section: it holds every production credential.
+2. Warn and get an explicit confirmation before pushing anything. Use a plain conversational prompt rather than `AskUserQuestion` — this is a yes/no gate on a single path forward, which `CLAUDE.md`'s "Developer prompts" section explicitly allows a plain prompt for. Say plainly, in one message, that:
+   - this replaces the app's Fly secrets wholesale with the file's current contents, so any secret set on Fly but absent from the file is removed, and any value in the file that is stale or wrong becomes live;
+   - **this restarts the machines automatically** — Fly restarts on a secrets change, so the bot goes through a full reboot and leader re-election as a direct result of this action;
+   - unlike the database reset, this is correctable: a wrong push is fixed by correcting the file and pushing again, which is why no typed phrase is required here.
+
+   Only proceed on a clear affirmative. Anything else — a hesitation, a question, a request to see the file — is not a yes: stop this section, report that nothing was pushed, and continue with any other selected sections.
+3. Push the secrets:
+   ```bash
+   fly secrets import < apps/discord-bot/.env.production
+   ```
+   `fly secrets import` reads `KEY=value` lines from stdin. Report only the command's own output — never echo the file into the transcript to "show what was pushed". If the command fails (an auth error, a malformed line), report its output and stop here: no restart was triggered, so there is nothing to verify below.
+4. Wait for the automatic restart to settle, polling rather than sleeping blindly:
+   ```bash
+   fly status
+   ```
+   Retry every few seconds up to about 60 seconds, until both machines report `started`. A healthy deployment has **two** machines (see "Check deployment status"); if fewer are listed, report that as a scaling gap, not as a failure of this action.
+5. Confirm the restart produced a healthy boot on both machines:
+   ```bash
+   fly logs --no-tail
+   ```
+   Look for the same healthy-startup markers as the "Check deployment status" section on each machine (migrations applying or nothing pending, then either `Acquired the leader lock; becoming active` or `Another machine holds the leader lock; standing by`). Because both machines restart at once, expect exactly one to win the lock; which one is not deterministic. A machine in state `started` whose logs show a thrown startup error — most likely `DATABASE_URL is not configured` or a similar missing/invalid value — means the file that was just pushed is wrong, not that the push failed: say so explicitly, and point at correcting `apps/discord-bot/.env.production` and re-running this action.
+6. Report the outcome: that the secrets in `apps/discord-bot/.env.production` were pushed (without listing them), each machine's final state and role (active/standby), and what the logs showed. If the logs show a configuration crash loop, say plainly that production is currently down on the newly-pushed configuration and what the failing value appears to be.
+
 ### Restart the machine
 
 Run this section only if "Restart the machine" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
