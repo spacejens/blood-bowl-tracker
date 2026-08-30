@@ -363,6 +363,25 @@ competitions`). Each listed group also gets a button that opens that
   not support the `era`, `competition` or `match-category` filter options (it
   exists to list the whole catalog), so it is excluded from runs scoped by
   those.
+- `date.toplist.matches.descending` — calendar dates (a month and a day, across
+  every recorded year — the same "on this date" scoping `/onthisdate` uses)
+  ranked by how many matches were played on them, busiest first. Rows read
+  `<date>: <N>`, e.g. `1. February 29 — 12`. Ties order chronologically, so two
+  identical requests always render the same list. Supports league, era,
+  competition and match-category filtering.
+- `date.toplist.matches.ascending` — the same match-count metric ranked from
+  the other end: the quietest dates on which anything was ever played. Dates
+  with no recorded match at all are absent rather than ranked zero, since the
+  ranking is built from matches. Same filtering as above.
+
+Each date listed by the two `date.toplist.*` facts also gets a button, in the
+same order as the list, that opens that date's
+[`/onthisdate`](on-this-date.md) view. Unlike every other drill-down button,
+these carry the toplist's own scope: clicking a row on a toplist scoped to one
+league, era, competition or match category opens an `/onthisdate` scoped the
+same way, rather than an all-time one. If the scoped league, era or competition
+has been deleted since the toplist was posted, the button replies with the same
+not-found message the corresponding `/insights` option would.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.

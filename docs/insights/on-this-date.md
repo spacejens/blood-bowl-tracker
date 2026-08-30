@@ -69,3 +69,31 @@ match category):
   actually mixing two populations.
 - **A missing SPP total ranks as zero**, not ahead of everyone else, when
   ordering the players who died on the date.
+
+## Date toplist drill-down buttons
+
+The `date.toplist.matches.ascending` and `date.toplist.matches.descending`
+[`/insights`](../discord-bot/slash-commands/insights.md) facts rank calendar
+dates by match count, and give each listed date a button that opens this
+insight for that date.
+
+Those buttons are the only drill-down buttons that carry a scope. Every other
+one encodes just an entity id, but a date is not an entity: the same February
+29 means something different under one league than under another, so a button
+that dropped the toplist's scope would answer a different question from the one
+the reader was looking at. The scope travels in the button's own customId,
+after the date: `02-29`, `02-29:league:5`, `02-29:era:12`,
+`02-29:competition:7`, or `02-29:matchCategory:normal`. At most one scope
+segment is ever present, because the four scope options are mutually exclusive
+to begin with.
+
+The segment names are spelled out rather than compressed into codes, so an
+engineer reading a raw Discord interaction payload or a log line can tell what
+a customId means without cross-referencing a codec. Both directions of that
+encoding live in one service
+(`apps/discord-bot/src/shared/date-button-id.service.ts`), which is what keeps
+them from drifting apart.
+
+Resolving the scope happens when the button is clicked, not when the toplist is
+posted, so a league, era or competition deleted in between replies with the
+same not-found message the equivalent `/insights` option gives.
