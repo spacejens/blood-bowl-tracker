@@ -44,6 +44,9 @@ describe('OnThisDateService', () => {
     raceName: 'Human',
     coachId: 21,
     coachName: 'Bob',
+    matchDate: '2019-03-14',
+    eraId: 3,
+    eraName: 'Third era',
   };
 
   const teamKiller = {
@@ -311,6 +314,24 @@ describe('OnThisDateService', () => {
       expect(orderByText).toContain('coalesce');
       expect(orderByText).toContain('desc');
       expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('selects the match date (in UTC) and era alongside each victim', async () => {
+      const { db } = await build([victimRow]);
+      await service.getTopKilledPlayers({
+        month: 2,
+        day: 29,
+        scope: { leagueId: 9 },
+        limit: 21,
+      });
+      const selected = firstCallArg(db.select) as Record<string, unknown>;
+      expect(Object.keys(selected)).toEqual(
+        expect.arrayContaining(['matchDate', 'eraId', 'eraName']),
+      );
+      const dateText = sqlText(selected.matchDate);
+      expect(dateText).toContain('time zone');
+      expect(dateText).toContain('to_char');
+      expect(dateText).not.toContain('::date');
     });
 
     it('selects only confirmed death consequences', async () => {

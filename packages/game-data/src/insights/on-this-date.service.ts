@@ -75,6 +75,16 @@ export interface OnThisDateVictim {
   raceName: string;
   coachId: number;
   coachName: string;
+  /**
+   * The UTC calendar date (`YYYY-MM-DD`) of the specific match this death
+   * happened in — distinct from `OnThisDateOptions.month`/`day`, which name
+   * only the recurring month/day being asked about, not the year. Gives the
+   * reader the context to tell one "on this date" death from another when
+   * several years share the same month and day.
+   */
+  matchDate: string;
+  eraId: number;
+  eraName: string;
 }
 
 export interface OnThisDateKilledPlayer extends OnThisDateVictim {
@@ -287,6 +297,16 @@ export class OnThisDateService {
     options: OnThisDateTopKilledOptions,
   ): Promise<OnThisDateVictim[]> {
     const sppTotal = sql<number>`coalesce(${players.sppTotal}, 0)::int`;
+    // UTC-formatted to match `dateFilter`'s own UTC predicate (see its doc
+    // comment above) - the displayed date must agree with the date that
+    // decided this row qualified in the first place. Formatted to text via
+    // `to_char` rather than cast to a `date` column: the `postgres` driver
+    // this package uses parses a `date`-typed result into a JS `Date`
+    // (default OID 1082 parser), which `toString()`s using the bot
+    // process's *local* timezone - exactly the local/UTC disagreement this
+    // feature exists to avoid. `to_char` returns plain text, which the
+    // driver passes through unchanged.
+    const matchDate = sql<string>`to_char(${matches.playedAt} at time zone 'UTC', 'YYYY-MM-DD')`;
     return this.db
       .select({
         playerId: players.id,
@@ -301,6 +321,9 @@ export class OnThisDateService {
         raceName: races.name,
         coachId: coaches.id,
         coachName: coaches.name,
+        matchDate,
+        eraId: eras.id,
+        eraName: eras.name,
       })
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.consequencePlayerId))

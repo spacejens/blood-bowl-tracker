@@ -118,11 +118,12 @@ export class OnThisDateFactsService {
       killer: killedVictims[index].killer,
     }));
 
-    const { lines: victimLines, shown } = this.buildVictimSection(
-      candidates,
+    const { lines: victimLines, shown } = this.buildVictimSection({
+      victims: candidates,
       remainder,
-      lines,
-    );
+      otherLines: lines,
+      showEra: scope.eraId === undefined,
+    });
     lines.push(...victimLines);
 
     const { components, overflowNote } =
@@ -182,11 +183,13 @@ export class OnThisDateFactsService {
    * fixed-size pieces (the counter block, the heading, and the tie
    * remainder note) this description also carries.
    */
-  private buildVictimSection(
-    victims: RankedVictim[],
-    remainder: string | null,
-    otherLines: string[],
-  ): { lines: string[]; shown: RankedVictim[] } {
+  private buildVictimSection(options: {
+    victims: RankedVictim[];
+    remainder: string | null;
+    otherLines: string[];
+    showEra: boolean;
+  }): { lines: string[]; shown: RankedVictim[] } {
+    const { victims, remainder, otherLines, showEra } = options;
     if (victims.length === 0) {
       return { lines: [], shown: [] };
     }
@@ -204,7 +207,7 @@ export class OnThisDateFactsService {
 
     const shown: RankedVictim[] = [];
     for (const victim of victims) {
-      const cost = this.row(victim).length + 1;
+      const cost = this.row(victim, showEra).length + 1;
       if (cost > budget) {
         break;
       }
@@ -212,7 +215,10 @@ export class OnThisDateFactsService {
       shown.push(victim);
     }
 
-    const lines = [...heading, ...shown.map((entry) => this.row(entry))];
+    const lines = [
+      ...heading,
+      ...shown.map((entry) => this.row(entry, showEra)),
+    ];
     const truncatedCount = victims.length - shown.length;
     if (truncatedCount > 0) {
       lines.push(`…and ${truncatedCount} more not shown.`);
@@ -226,14 +232,21 @@ export class OnThisDateFactsService {
   /**
    * The rank, a dot and a space, the victim name, a parenthesised
    * `position, team, race, coach` list, a spaced em dash, the SPP total, the
-   * literal ` SPP, killed by `, the killer clause, and finally
-   * ` (via a foul)` when the killer's `viaFoul` is set.
+   * literal ` SPP, killed by `, the killer clause, ` (via a foul)` when the
+   * killer's `viaFoul` is set, and finally the specific match's own date
+   * (and era, unless the request is already scoped to one era, which would
+   * make repeating it on every row redundant) — the recurring month/day this
+   * whole insight is about can span many different years and eras, so each
+   * row names exactly which one this particular death happened in.
    */
-  private row(victim: RankedVictim): string {
+  private row(victim: RankedVictim, showEra: boolean): string {
     const clause = this.killerClause(victim.killer);
     const foulNote =
       victim.killer !== null && victim.killer.viaFoul ? ' (via a foul)' : '';
-    return `${victim.rank}. ${victim.name} (${victim.positionName}, ${victim.teamName}, ${victim.raceName}, ${victim.coachName}) — ${victim.sppTotal} SPP, killed by ${clause}${foulNote}`;
+    const context = showEra
+      ? ` on ${victim.matchDate} (${victim.eraName})`
+      : ` on ${victim.matchDate}`;
+    return `${victim.rank}. ${victim.name} (${victim.positionName}, ${victim.teamName}, ${victim.raceName}, ${victim.coachName}) — ${victim.sppTotal} SPP, killed by ${clause}${foulNote}${context}`;
   }
 
   /**

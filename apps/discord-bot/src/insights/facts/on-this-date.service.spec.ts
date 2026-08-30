@@ -61,6 +61,9 @@ function victim(
     raceName: 'Human',
     coachId: 40,
     coachName: 'Bob',
+    matchDate: '2019-03-14',
+    eraId: 3,
+    eraName: 'Third era',
     killer: {
       kind: 'team',
       teamId: 99,
@@ -243,8 +246,20 @@ describe('OnThisDateFactsService.resolve', () => {
     const result = await service.resolve({ monthDay: MONTH_DAY, scope: {} });
     expect(embed(result).description).toContain('Famous deaths:');
     expect(embed(result).description).toContain(
-      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly)',
+      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly) on 2019-03-14 (Third era)',
     );
+  });
+
+  it('omits the era when the request is already scoped to one era', async () => {
+    onThisDate.getTopKilledPlayers.mockResolvedValue([victim()]);
+    const result = await service.resolve({
+      monthDay: MONTH_DAY,
+      scope: { eraId: 3 },
+    });
+    expect(embed(result).description).toContain(
+      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly) on 2019-03-14',
+    );
+    expect(embed(result).description).not.toContain('Third era');
   });
 
   it('notes a kill inflicted by a foul', async () => {
@@ -553,10 +568,10 @@ describe('OnThisDateFactsService with real formatting collaborators', () => {
       scope: {},
     });
     expect(embed(result).description).toContain(
-      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an opponent, in mysterious circumstances',
+      '1. Griff Oberwald (Blitzer, Reikland Reavers, Human, Bob) — 120 SPP, killed by an opponent, in mysterious circumstances on 2019-03-14 (Third era)',
     );
     expect(embed(result).description).toContain(
-      '2. Morg n Thorg (Blitzer, Reikland Reavers, Human, Bob) — 80 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly)',
+      '2. Morg n Thorg (Blitzer, Reikland Reavers, Human, Bob) — 80 SPP, killed by an unidentified player from Gouged Eye (Orc, Grimly) on 2019-03-14 (Third era)',
     );
   });
 });

@@ -38,7 +38,11 @@ match category):
 - **Players who died on the date** — ordered richest in
   [Star Player Points (SPP)](../glossary.md#star-player-points-spp) first,
   each shown with whoever killed them at whatever precision the data
-  supports.
+  supports, and with the specific match's own year and era — the recurring
+  month/day this insight is about can span many different years and eras, so
+  each entry names exactly which one that particular death happened in. The
+  era is left out when the request is already scoped to a single era, since
+  repeating it on every row would be redundant.
 
 ## Rules and decisions
 
