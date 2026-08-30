@@ -4,7 +4,12 @@
   extends: ['config:recommended'],
   // Matches pnpm-workspace.yaml's minimumReleaseAge: 1440 (24h) local-install
   // gate, so Renovate never proposes an update pnpm would then refuse to
-  // install locally.
+  // install locally. Exception: a vulnerability-driven update (see
+  // osvVulnerabilityAlerts below) bypasses this gate entirely, so it can land
+  // before pnpm's own gate would allow installing it locally or in CI's
+  // lockfile update — if that happens, add the package to pnpm-workspace.yaml's
+  // minimumReleaseAgeExclude, the same way existing entries there already
+  // handle this.
   minimumReleaseAge: '1 day',
   // GitHub's own Dependabot alerts are disabled on this repo, which is what
   // Renovate's vulnerabilityAlerts handling normally reads from — without
@@ -12,7 +17,8 @@
   // known vulnerability, and every major update (including a security fix)
   // would be treated as an ordinary one and subject to the major-update
   // minimumReleaseAge rule below. Enabling OSV lets Renovate detect
-  // vulnerabilities independently of that GitHub setting.
+  // vulnerabilities independently of that GitHub setting. Renovate's docs
+  // mark this option experimental, so its coverage is not a hard guarantee.
   osvVulnerabilityAlerts: true,
   packageRules: [
     {
@@ -96,9 +102,11 @@
       // which bypasses the gate — repo-wide or per-rule — for
       // vulnerability-driven updates, as long as Renovate can actually
       // detect the vulnerability (see the `osvVulnerabilityAlerts` setting
-      // above). A major that resolves a known security advisory is
-      // therefore never delayed by this rule, and no explicit exception
-      // belongs in this file.
+      // above). A major that resolves a known security advisory covered by
+      // that detection is therefore not delayed by this rule, and no
+      // explicit exception belongs in this file — though `osvVulnerabilityAlerts`
+      // is still an experimental Renovate feature, so this isn't a hard
+      // guarantee for every advisory.
       matchManagers: ['npm'],
       matchUpdateTypes: ['major'],
       minimumReleaseAge: '7 days',
