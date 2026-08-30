@@ -37,3 +37,10 @@ embed.
 The same insight, always resolved against today's date, is one of the facts
 the scheduled random-insights poster can pick — see
 [`/insights`](insights.md).
+
+## Reaching a specific date from a toplist
+
+`/insights`'s `date.toplist.matches.ascending`/`descending` facts also open
+this command: each ranked date gets a button that runs `/onthisdate` for that
+date, carrying forward whatever scope the toplist itself was viewed under.
+See [`/insights`](insights.md) for those facts.

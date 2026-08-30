@@ -1,7 +1,8 @@
 /**
- * The customId prefixes for every deepdive drill-down button. A button's
- * customId is `<prefix><entityId>` (e.g. `deepdive:team:42`); the button
- * handler in `DeepdiveCommandService` strips the prefix to recover the id.
+ * The customId prefixes for every drill-down button. A button's customId is
+ * `<prefix><idPart>` (e.g. `deepdive:team:42`); the button handler strips the
+ * prefix to recover the id part. Most route to `/deepdive`; the on-this-date
+ * prefix routes to `/onthisdate` instead.
  *
  * These live in a dependency-free leaf module (rather than in
  * `deepdive-command.service.ts`) because the deepdive fact resolvers need them
@@ -46,6 +47,17 @@ export const LEAGUE_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:league:';
 export const TROPHY_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:trophy:';
 
 /**
+ * Prefix for on-this-date drill-down button customIds:
+ * `onthisdate:<MM-DD>[:<scopeKind>:<scopeValue>]`. Unlike every other prefix
+ * here, the id part is not an entity id: it is a calendar date plus at most
+ * one scope, encoded by `DateButtonIdService`, so a click from a scoped
+ * toplist lands on an equally scoped `/onthisdate`. It also routes to
+ * `/onthisdate` rather than `/deepdive`, which is why its prefix is not
+ * `deepdive:`.
+ */
+export const ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX = 'onthisdate:';
+
+/**
  * Every routing prefix a drill-down button can use. Narrowing
  * `EntityComponentEntry.customIdPrefix` to this union (rather than `string`)
  * is what lets `entity-components.service.ts` hold an exhaustive
@@ -63,4 +75,5 @@ export type ButtonCustomIdPrefix =
   | typeof COMPETITION_BUTTON_CUSTOM_ID_PREFIX
   | typeof COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX
   | typeof LEAGUE_BUTTON_CUSTOM_ID_PREFIX
-  | typeof TROPHY_BUTTON_CUSTOM_ID_PREFIX;
+  | typeof TROPHY_BUTTON_CUSTOM_ID_PREFIX
+  | typeof ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX;

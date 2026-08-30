@@ -1,11 +1,20 @@
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Test } from '@nestjs/testing';
-import type { ChatInputCommandInteraction } from 'discord.js';
+import type {
+  ButtonInteraction,
+  ChatInputCommandInteraction,
+} from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
 
-import { ON_THIS_DATE_INVALID_DATE_MESSAGE } from '../error-messages';
+import { ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX } from '../deepdive/button-custom-ids';
+import {
+  INSIGHTS_ERA_NOT_FOUND_MESSAGE,
+  ON_THIS_DATE_INVALID_DATE_MESSAGE,
+} from '../error-messages';
 import { OnThisDateFactsService } from '../insights/facts/on-this-date.service';
+import { DateButtonIdService } from '../shared/date-button-id.service';
 import { MonthDayService } from '../shared/month-day.service';
 import { InsightsCommandService } from './insights-command.service';
 import { OnThisDateCommandService } from './on-this-date-command.service';
@@ -19,12 +28,20 @@ function interaction(date: string | null): ChatInputCommandInteraction {
   return mocked;
 }
 
+function buttonInteraction(customId: string): ButtonInteraction {
+  const mocked = mockDeep<ButtonInteraction>();
+  Object.defineProperty(mocked, 'customId', { value: customId });
+  return mocked;
+}
+
 describe('OnThisDateCommandService', () => {
   let service: OnThisDateCommandService;
   let facts: DeepMockProxy<OnThisDateFactsService>;
   let monthDay: DeepMockProxy<MonthDayService>;
   let insightsCommand: DeepMockProxy<InsightsCommandService>;
   let registry: DeepMockProxy<SlashCommandRegistryService>;
+  let discordClient: DeepMockProxy<DiscordClientService>;
+  let buttonId: DeepMockProxy<DateButtonIdService>;
 
   beforeEach(async () => {
     facts = mockDeep<OnThisDateFactsService>();
@@ -53,6 +70,19 @@ describe('OnThisDateCommandService', () => {
 
     registry = mockDeep<SlashCommandRegistryService>();
 
+    discordClient = mockDeep<DiscordClientService>();
+
+    buttonId = mockDeep<DateButtonIdService>();
+    buttonId.decode.mockReturnValue({
+      monthDay: { month: 2, day: 29 },
+      scopeToken: null,
+    });
+
+    insightsCommand.resolveScopeById.mockResolvedValue({
+      kind: 'ok',
+      resolved: {},
+    });
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         OnThisDateCommandService,
@@ -60,6 +90,8 @@ describe('OnThisDateCommandService', () => {
         { provide: MonthDayService, useValue: monthDay },
         { provide: InsightsCommandService, useValue: insightsCommand },
         { provide: SlashCommandRegistryService, useValue: registry },
+        { provide: DiscordClientService, useValue: discordClient },
+        { provide: DateButtonIdService, useValue: buttonId },
       ],
     }).compile();
     service = moduleRef.get(OnThisDateCommandService);
@@ -165,5 +197,92 @@ describe('OnThisDateCommandService', () => {
       );
 
     expect(result).toEqual([]);
+  });
+
+  it('registers a button handler for the on-this-date prefix on module init', () => {
+    service.onModuleInit();
+
+    expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
+      ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+  });
+
+  it('decodes the id part of a button customId, without the prefix', async () => {
+    await service.handleDateButton(buttonInteraction('onthisdate:02-29'));
+
+    expect(buttonId.decode).toHaveBeenCalledWith('02-29');
+  });
+
+  it('renders an unscoped button through the same reply path as the command', async () => {
+    const reply = await service.handleDateButton(
+      buttonInteraction('onthisdate:02-29'),
+    );
+
+    expect(reply).toBe('rendered insight');
+    expect(facts.resolve).toHaveBeenCalledWith({
+      monthDay: { month: 2, day: 29 },
+      scope: {},
+    });
+  });
+
+  it('carries a scope from the button into the reply and its title', async () => {
+    const resolved = { era: { id: 12, name: 'Era Twelve' } };
+    buttonId.decode.mockReturnValue({
+      monthDay: { month: 2, day: 29 },
+      scopeToken: { kind: 'era', id: 12 },
+    });
+    insightsCommand.resolveScopeById.mockResolvedValue({
+      kind: 'ok',
+      resolved,
+    });
+    insightsCommand.toFactScope.mockReturnValue({ eraId: 12 });
+
+    await service.handleDateButton(
+      buttonInteraction('onthisdate:02-29:era:12'),
+    );
+
+    expect(insightsCommand.resolveScopeById).toHaveBeenCalledWith({
+      kind: 'era',
+      id: 12,
+    });
+    expect(facts.resolve).toHaveBeenCalledWith({
+      monthDay: { month: 2, day: 29 },
+      scope: { eraId: 12 },
+    });
+    expect(insightsCommand.applyScopeSuffix).toHaveBeenCalledWith(
+      'rendered insight',
+      resolved,
+    );
+  });
+
+  it('reports a scoped entity that no longer exists', async () => {
+    buttonId.decode.mockReturnValue({
+      monthDay: { month: 2, day: 29 },
+      scopeToken: { kind: 'era', id: 12 },
+    });
+    insightsCommand.resolveScopeById.mockResolvedValue({
+      kind: 'error',
+      message: INSIGHTS_ERA_NOT_FOUND_MESSAGE,
+    });
+
+    const reply = await service.handleDateButton(
+      buttonInteraction('onthisdate:02-29:era:12'),
+    );
+
+    expect(reply).toBe(INSIGHTS_ERA_NOT_FOUND_MESSAGE);
+    expect(facts.resolve).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the invalid-date message on an undecodable customId', async () => {
+    buttonId.decode.mockReturnValue(null);
+
+    const reply = await service.handleDateButton(
+      buttonInteraction('onthisdate:nonsense'),
+    );
+
+    expect(reply).toBe(ON_THIS_DATE_INVALID_DATE_MESSAGE);
+    expect(insightsCommand.resolveScopeById).not.toHaveBeenCalled();
+    expect(facts.resolve).not.toHaveBeenCalled();
   });
 });
