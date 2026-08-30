@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
 import { ClockService } from './clock.service';
@@ -48,14 +48,32 @@ describe('MonthDayService', () => {
   });
 
   describe('today', () => {
-    it('reads today from the clock in UTC', () => {
-      // A local time that would be March 1 in a timezone ahead of UTC,
-      // constructed via Date.UTC so the assertion actually exercises the
-      // UTC getters rather than happening to match local getters too.
-      clock.now.mockReturnValue(new Date(Date.UTC(2024, 1, 29, 23, 30)));
+    it('reads today from the clock using UTC accessors, not local ones', () => {
+      // CI (GitHub Actions ubuntu-latest) already runs with TZ=UTC, and this
+      // repo's Vitest config does not pin any other timezone. That means a
+      // Date.UTC-based fixture makes getMonth()/getDate() (the pre-fix,
+      // local-time bug) return the exact same values as
+      // getUTCMonth()/getUTCDate() (the fix) on the machine this test
+      // actually runs on. Asserting only the returned value would therefore
+      // pass identically whether or not the bug were still present. Spying
+      // on which Date accessor is actually invoked is what makes this test
+      // discriminate the UTC-safe implementation from the local-time bug,
+      // regardless of the ambient timezone of whatever machine runs it.
+      const now = new Date(Date.UTC(2024, 1, 29, 23, 30));
+      clock.now.mockReturnValue(now);
+      const getMonth = vi.spyOn(now, 'getMonth');
+      const getDate = vi.spyOn(now, 'getDate');
+      const getUTCMonth = vi.spyOn(now, 'getUTCMonth');
+      const getUTCDate = vi.spyOn(now, 'getUTCDate');
 
       const result = service.today();
 
+      expect(getMonth).not.toHaveBeenCalled();
+      expect(getDate).not.toHaveBeenCalled();
+      expect(getUTCMonth).toHaveBeenCalled();
+      expect(getUTCMonth).toHaveReturnedWith(1);
+      expect(getUTCDate).toHaveBeenCalled();
+      expect(getUTCDate).toHaveReturnedWith(29);
       expect(result).toEqual({ month: 2, day: 29 });
     });
   });
