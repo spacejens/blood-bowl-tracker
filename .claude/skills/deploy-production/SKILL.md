@@ -30,7 +30,18 @@ Preconditions 1 and 3 are true blocking preconditions for every action below —
    ```bash
    gh auth status
    ```
-3. Commands run from the repository root of the current checkout or worktree, where `fly.toml` lives. `fly.toml` is committed, so a worktree has it; the gitignored production files each action needs are synced by that action's own steps.
+3. Commands run from the repository root of the current checkout or worktree, where `fly.toml` lives. `fly.toml` is committed, so a worktree has it; the gitignored production files each action needs are synced by that action's own steps. Verify this before step 0's question — `git rev-parse --show-toplevel` is worktree-aware, so run from inside a worktree it returns that worktree's own root, which is exactly the reference point this precondition means:
+   ```bash
+   CURRENT_DIR=$(pwd -P)
+   if ! REPO_ROOT=$(git rev-parse --show-toplevel 2>&1); then
+     echo "NOT A GIT CHECKOUT — refuse (current directory: $CURRENT_DIR)"
+   elif [ "$CURRENT_DIR" != "$REPO_ROOT" ]; then
+     echo "NOT AT REPO ROOT — refuse (current directory: $CURRENT_DIR, repository root: $REPO_ROOT)"
+   else
+     echo "AT REPO ROOT — proceed"
+   fi
+   ```
+   `pwd -P` resolves symlinks before comparing, matching `git rev-parse --show-toplevel`'s own physical-path output — plain `pwd` would falsely refuse if the developer reached the repository root through a symlinked path. The two refusal branches are printed with the actual paths already included, so there is nothing left to separately derive when reporting the outcome. If this printed either refusal line, refuse the **entire skill invocation** and stop before step 0's question is asked — every action below resolves paths relative to the repository root (`fly.toml`, `apps/discord-bot/.env.production`, the `tools/*` importer configs), so there is nothing left to run selectively. This differs from precondition 4, which refuses only its own section while other selected actions proceed. Report the printed line to the developer, along with that they can re-invoke this skill from the repository root (or from inside a git checkout at all, for the first refusal line). Nothing has been changed.
 4. Four actions are restricted to the **main checkout** and refuse to run from a worktree: **"Apply production configuration"**, **"Restart the machine"**, **"Roll back to a previous release"**, and **"Trigger a redeploy without a new merge"**. Each is a repo-wide, branch-independent operation on the whole deployment, and none is about the current branch's code (a redeploy dispatch always targets `main` regardless of what is checked out; a restart and a rollback do not touch code at all) — and the one whose command pushes a file from disk, "Apply production configuration", must push the main checkout's own `apps/discord-bot/.env.production`, not a worktree's possibly-stale synced copy of it. Like precondition 2, this is not checked globally before step 0: each of those four sections performs the check itself as its own first step, so an unrelated action selected alongside one of them (e.g. "Check deployment status") is never blocked by it, and refusing one section never abandons the others. Every other action stays unrestricted and is deliberately worktree-friendly — the database reset, the four production imports, and read-only queries each copy the gitignored production files they need into the worktree, because they are commonly run from a feature's own worktree to validate that feature's data end-to-end, and "Check deployment status" is read-only.
 
 ## Steps
