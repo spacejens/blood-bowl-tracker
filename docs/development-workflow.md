@@ -110,7 +110,7 @@ Every issue, and every pull request opened by `develop-feature`, carries at leas
 - **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
 - **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. _Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new._ Newness is not the test; end-user visibility is.
 
-More than one kind label may apply — a bug fix that is also process tooling gets both `bug` and `development`.
+More than one kind label may apply — e.g. a fix for an incorrect stat shown to users that also requires updating the import tooling that produced the bad data gets both `bug` (the user-visible stat was wrong) and `development` (the tooling that produced it also needed fixing).
 
 Worked examples:
 
