@@ -433,11 +433,23 @@ export class PlayerDeepdiveService {
     return `Status: ${this.formatKiller(killer)}${note}`;
   }
 
-  /** The killer clause of the `Status:` line, without the foul note. */
+  /**
+   * The killer clause of the `Status:` line, without the foul note. A
+   * `'player'` killer's name is a proper noun and stays capitalized as
+   * `describe` returns it; every other kind's phrasing ("An unidentified
+   * player from...") is written to stand alone as its own sentence, so its
+   * leading capital is lowered to fit mid-sentence after "Killed by ".
+   */
   private formatKiller(killer: PlayerKillerInfo): string {
-    return killer.kind === 'unknown'
-      ? 'Killed in mysterious circumstances'
-      : `Killed by ${this.killerInfo.describe(killer)}`;
+    if (killer.kind === 'unknown') {
+      return 'Killed in mysterious circumstances';
+    }
+    const described = this.killerInfo.describe(killer);
+    const clause =
+      killer.kind === 'player'
+        ? described
+        : described.charAt(0).toLowerCase() + described.slice(1);
+    return `Killed by ${clause}`;
   }
 
   /**
