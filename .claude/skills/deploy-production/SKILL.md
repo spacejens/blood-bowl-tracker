@@ -124,10 +124,16 @@ This pushes the current contents of `apps/discord-bot/.env.production` to Fly as
 
 ### Restart the machine
 
-Run this section only if "Restart the machine" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
+Run this section only if "Restart the machine" was selected in step 0 above. Runs after the "Check deployment status" and "Apply production configuration" sections if those were also selected; runs standalone if it is the only one picked. If "Apply production configuration" already ran, its own push restarted both machines — check whether a second restart is actually wanted before running this one.
 
 A healthy deployment has **two** machines (active + standby, see "Check deployment status"). This section restarts either a single stopped machine or all machines, never a subset chosen arbitrarily — a partial restart of "just the active one" isn't offered here because killing the active machine is exactly the leader-election failover path already exercised automatically (see `docs/discord-bot/production-hosting.md`'s "Active and standby"); use that machine's own crash/restart, not a manual restart of only it, if the intent is to force a handover.
 
+0. This action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — restarting the deployment is a repo-wide, branch-independent operation that has nothing to do with the current branch's code):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   ```
+   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop **this section only**, reporting that a restart is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
 1. Find every machine and its current state, in machine-readable form:
    ```bash
    fly status --json
@@ -156,8 +162,14 @@ A healthy deployment has **two** machines (active + standby, see "Check deployme
 
 ### Roll back to a previous release
 
-Run this section only if "Roll back to a previous release" was selected in step 0 above. Runs after the "Check deployment status" and "Restart the machine" sections if those were also selected; runs standalone if it is the only one picked.
+Run this section only if "Roll back to a previous release" was selected in step 0 above. Runs after the "Check deployment status", "Apply production configuration", and "Restart the machine" sections if those were also selected; runs standalone if it is the only one picked.
 
+0. This action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — a rollback redeploys an image Fly already built, so it is a repo-wide operation independent of whatever branch is checked out):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   ```
+   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop **this section only**, reporting that a rollback is restricted to the main checkout, that nothing was changed, and that the developer can re-invoke this skill from the main checkout. Any other section selected in step 0 still runs normally.
 1. List the release history with image references:
    ```bash
    fly releases --json
@@ -181,11 +193,20 @@ Run this section only if "Roll back to a previous release" was selected in step 
 
 ### Trigger a redeploy without a new merge
 
-Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
+Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Apply production configuration", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
 
 This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after pushing changed Fly secrets, after a rollback that needs undoing, or to retry a deploy that failed transiently. It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
 
-0. Check that `gh` is installed and authenticated — this is the one action in this skill that needs it (see the Preconditions section):
+0. Two checks before anything else, both stopping **this section only** if they fail (any other section selected in step 0 still runs normally):
+
+   First, this action is restricted to the **main checkout** and must not run from a worktree (see the Preconditions section — the workflow always builds the ref it is dispatched against and this skill always dispatches `main`, so the dispatch is entirely independent of whatever branch is checked out):
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   ```
+   If `MAIN_ROOT` and `WORKTREE_ROOT` differ, this is a worktree: refuse and stop, reporting that a redeploy dispatch is restricted to the main checkout, that nothing was dispatched, and that the developer can re-invoke this skill from the main checkout.
+
+   Second, check that `gh` is installed and authenticated — this is the one action in this skill that needs it (see the Preconditions section):
    ```bash
    gh auth status
    ```
