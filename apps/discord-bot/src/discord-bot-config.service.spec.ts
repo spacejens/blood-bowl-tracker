@@ -204,6 +204,9 @@ describe('DiscordBotConfigService', () => {
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'true' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(true);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
   });
 
   it('disables the standby startup message when the toggle is "false"', () => {
@@ -211,6 +214,9 @@ describe('DiscordBotConfigService', () => {
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'false' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(false);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
   });
 
   it('reads the standby startup message toggle case-insensitively', () => {
@@ -218,6 +224,9 @@ describe('DiscordBotConfigService', () => {
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? '  FALSE  ' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(false);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
   });
 
   it('treats any other standby startup message toggle value as enabled', () => {
@@ -225,5 +234,8 @@ describe('DiscordBotConfigService', () => {
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'yes' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(true);
+    expect(configService.get).toHaveBeenCalledWith(
+      'STANDBY_STARTUP_MESSAGE_ENABLED',
+    );
   });
 });

@@ -135,7 +135,7 @@ Show team records on the standings page
 | App name       | `FLY_APP_NAME`, injected by Fly                                                                                                                                       |
 | Branch         | `GIT_BRANCH` build arg, from `$GITHUB_REF_NAME`                                                                                                                       |
 | Commit SHA     | `GIT_SHA` build arg, from `$GITHUB_SHA` (shown as the first 7 characters)                                                                                             |
-| Commit time    | `GIT_COMMIT_TIMESTAMP` build arg, from `git log -1 --format=%cI` on the runner — the ISO-8601 committer date, rendered in UTC to the minute |
+| Commit time    | `GIT_COMMIT_TIMESTAMP` build arg, from `git log -1 --format=%cI` on the runner — the ISO-8601 committer date, rendered in UTC to the minute                         |
 | Commit message | `GIT_COMMIT_MESSAGE` build arg, from `git log -1 --pretty=%B` on the runner — the merge commit's PR-title body line when there is one, otherwise its subject line; a separate paragraph, not a `Label: value` line |
 | Active/standby | which side of the election this machine ended up on, shown in the title                                                                                               |
 
