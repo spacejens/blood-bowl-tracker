@@ -11,8 +11,12 @@ A healthy startup shows the drizzle migrations applying (or nothing pending)
 on both machines, one machine logging `Acquired the leader lock; becoming
 active`, that machine logging in to Discord's gateway and posting the active
 startup message to `STARTUP_MESSAGE_DISCORD_CHANNEL`, and the other logging
-`Another machine holds the leader lock; standing by` and posting the standby
-message. `fly logs` interleaves both machines, prefixed by machine id.
+`Another machine holds the leader lock; standing by`. The standby machine
+also posts a standby message, unless `STANDBY_STARTUP_MESSAGE_ENABLED=false`
+suppresses it (see [Production topology](production-topology.md)) — in that
+case the standby log line is still the signal to look for, and the absence
+of a Discord post is expected, not a failure. `fly logs` interleaves both
+machines, prefixed by machine id.
 
 Common failures and where they surface:
 
