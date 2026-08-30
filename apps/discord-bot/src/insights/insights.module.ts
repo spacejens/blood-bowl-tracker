@@ -21,6 +21,7 @@ import { PlayerRowButtonService } from '../deepdive/player-row-button.service';
 import { EntityComponentsService } from '../entity-components.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { EraSectionGrouperService } from '../shared/era-section-grouper.service';
+import { EventCountLinesService } from '../shared/event-count-lines.service';
 import { ListDescriptionService } from '../shared/list-description.service';
 import { DayCountFormatterService } from './day-count-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
@@ -75,6 +76,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     DateRangeFormatterService,
     EraSectionGrouperService,
+    EventCountLinesService,
     ListDescriptionService,
     FactTreeFactoryService,
     FactTreeUtilsService,
@@ -111,6 +113,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     DateRangeFormatterService,
     EraSectionGrouperService,
+    EventCountLinesService,
     ListDescriptionService,
     FactTreeUtilsService,
     RandomSourceService,

@@ -18,6 +18,7 @@ import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
+import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
@@ -152,6 +153,7 @@ export async function makeService({
       PlayerDeepdiveService,
       PlayerKillsSectionService,
       PlayerKillerInfoFormatterService,
+      EventCountLinesService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },

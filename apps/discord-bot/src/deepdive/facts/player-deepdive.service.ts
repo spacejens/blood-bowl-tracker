@@ -1,6 +1,5 @@
 import type {
   PlayerDeepdiveCategoryCounts,
-  PlayerDeepdiveEventGroup,
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
@@ -32,6 +31,7 @@ import {
   DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -99,6 +99,7 @@ export class PlayerDeepdiveService {
     private readonly playerKills: PlayerKillsSectionService,
     private readonly stars: StarPlayersService,
     private readonly killerInfo: PlayerKillerInfoFormatterService,
+    private readonly eventCountLines: EventCountLinesService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -204,7 +205,10 @@ export class PlayerDeepdiveService {
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),
     ];
 
-    const categoryLines = this.buildCategoryLines(counts);
+    const categoryLines = this.eventCountLines.build(
+      counts,
+      DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
+    );
 
     // No placeholder when the player has no trophies — the section is simply
     // absent, rather than reported empty. This also covers the case where the
@@ -304,47 +308,6 @@ export class PlayerDeepdiveService {
       ],
       components,
     };
-  }
-
-  /**
-   * The counter block: the five simple categories in their fixed order (zero
-   * ones omitted), then the casualty and foul lines, each carrying its own
-   * severity breakdown. A player with nothing at all in any counter gets a
-   * short placeholder rather than an empty block.
-   */
-  private buildCategoryLines(counts: PlayerDeepdiveCategoryCounts): string[] {
-    const lines = [
-      ...counts.simple
-        .filter((category) => category.count > 0)
-        .map((category) => `${category.label}: ${category.count}`),
-      ...this.buildGroupLine('Casualties inflicted', counts.casualties),
-      ...this.buildGroupLine('Fouls committed', counts.fouls),
-    ];
-    return lines.length === 0 ? [DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE] : lines;
-  }
-
-  /**
-   * One counter line with a severity breakdown, e.g.
-   * `Fouls committed: 7 (3 serious injuries, 2 killed)`. A zero sub-count is
-   * dropped from the parenthetical along with its comma, the parenthetical
-   * disappears when both are zero, and a zero total drops the line entirely —
-   * matching this embed's "no placeholder for zero" convention throughout.
-   */
-  private buildGroupLine(
-    label: string,
-    group: PlayerDeepdiveEventGroup,
-  ): string[] {
-    if (group.total === 0) {
-      return [];
-    }
-    const parts = [
-      ...(group.seriousInjuries === 0
-        ? []
-        : [`${group.seriousInjuries} serious injuries`]),
-      ...(group.killed === 0 ? [] : [`${group.killed} killed`]),
-    ];
-    const breakdown = parts.length === 0 ? '' : ` (${parts.join(', ')})`;
-    return [`${label}: ${group.total}${breakdown}`];
   }
 
   /**
