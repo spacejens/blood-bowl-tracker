@@ -25,10 +25,10 @@ actually read wants something closer to once a day (`0 8 * * *`). The
 template's values were chosen for local iteration, not for a live audience.
 
 `DATABASE_URL` is Neon's **direct** (non-pooled) connection string, not the
-pooled PgBouncer variant Neon also offers. The bot is one long-lived
-container maintaining its own connection pool through drizzle-orm, not a
-burst of short-lived serverless invocations, so Neon's pooler has nothing
-to add.
+pooled PgBouncer variant Neon also offers. Each of the two always-on
+machines (see [Production topology](production-topology.md)) maintains its
+own connection pool through drizzle-orm, not a burst of short-lived
+serverless invocations, so Neon's pooler has nothing to add.
 
 Write `.env.production` as plain `KEY=VALUE` lines with no surrounding
 quotes — `fly secrets import` stores each value verbatim, so
