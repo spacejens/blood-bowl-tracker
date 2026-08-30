@@ -17,6 +17,12 @@ directly, which is what gives that leap-year behaviour for free: there is no
 leap-year special case anywhere in the code. See
 `packages/game-data/src/insights/on-this-date.service.ts`.
 
+Both "today" (the `/onthisdate` command's default, and the date the
+scheduled random-insights job always uses) and the match date filter are
+evaluated in UTC, so the two sides can never disagree about what day it is
+regardless of the bot process's or the database session's local timezone
+configuration.
+
 ## What it reports
 
 Everything below is narrowed by the same scope (league, era, competition, or

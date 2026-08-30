@@ -60,11 +60,15 @@ export class MonthDayService {
   }
 
   /**
-   * Returns today's month and day from the clock.
+   * Returns today's month and day from the clock, read in UTC. The
+   * "on this date" match filter evaluates `matches.playedAt` in UTC too (see
+   * `OnThisDateService.dateFilter`), so pinning both sides to UTC means they
+   * can never disagree about what day it is, regardless of the bot process's
+   * or the database session's local timezone configuration.
    */
   today(): MonthDay {
     const now = this.clock.now();
-    return { month: now.getMonth() + 1, day: now.getDate() };
+    return { month: now.getUTCMonth() + 1, day: now.getUTCDate() };
   }
 
   /**

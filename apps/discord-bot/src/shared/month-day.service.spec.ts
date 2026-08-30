@@ -48,8 +48,11 @@ describe('MonthDayService', () => {
   });
 
   describe('today', () => {
-    it('reads today from the clock', () => {
-      clock.now.mockReturnValue(new Date(2024, 1, 29)); // February 29, 2024
+    it('reads today from the clock in UTC', () => {
+      // A local time that would be March 1 in a timezone ahead of UTC,
+      // constructed via Date.UTC so the assertion actually exercises the
+      // UTC getters rather than happening to match local getters too.
+      clock.now.mockReturnValue(new Date(Date.UTC(2024, 1, 29, 23, 30)));
 
       const result = service.today();
 

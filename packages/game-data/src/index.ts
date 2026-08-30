@@ -23,6 +23,7 @@ export type {
   OnThisDateKilledPlayer,
   OnThisDateOptions,
   OnThisDateTopKilledOptions,
+  OnThisDateVictim,
 } from './insights/on-this-date.service';
 export { OnThisDateService } from './insights/on-this-date.service';
 export { LeaguesModule } from './leagues/leagues.module';

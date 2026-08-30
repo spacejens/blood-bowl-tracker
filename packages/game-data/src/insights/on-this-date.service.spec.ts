@@ -272,20 +272,7 @@ describe('OnThisDateService', () => {
       ]);
     });
 
-    it('pairs each victim with the resolved killer', async () => {
-      await build([victimRow]);
-      playerDeath.getKillerInfo.mockResolvedValue(teamKiller);
-      const result = await service.getTopKilledPlayers({
-        month: 2,
-        day: 29,
-        scope: { leagueId: 9 },
-        limit: 21,
-      });
-      expect(playerDeath.getKillerInfo).toHaveBeenCalledWith(88);
-      expect(result[0]).toEqual({ ...victimRow, killer: teamKiller });
-    });
-
-    it('keeps a victim whose killer cannot be resolved', async () => {
+    it('returns victim rows without resolving killers', async () => {
       await build([victimRow]);
       const result = await service.getTopKilledPlayers({
         month: 2,
@@ -293,10 +280,11 @@ describe('OnThisDateService', () => {
         scope: { leagueId: 9 },
         limit: 21,
       });
-      expect(result[0]).toEqual({ ...victimRow, killer: null });
+      expect(result).toEqual([victimRow]);
+      expect(playerDeath.getKillerInfo).not.toHaveBeenCalled();
     });
 
-    it('asks for no killers when nobody died', async () => {
+    it('returns nothing when nobody died', async () => {
       await build([]);
       const result = await service.getTopKilledPlayers({
         month: 2,
@@ -304,6 +292,28 @@ describe('OnThisDateService', () => {
         scope: { leagueId: 9 },
         limit: 21,
       });
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getKillersForVictims', () => {
+    it('pairs each victim with the resolved killer', async () => {
+      await build();
+      playerDeath.getKillerInfo.mockResolvedValue(teamKiller);
+      const result = await service.getKillersForVictims([victimRow]);
+      expect(playerDeath.getKillerInfo).toHaveBeenCalledWith(88);
+      expect(result[0]).toEqual({ ...victimRow, killer: teamKiller });
+    });
+
+    it('keeps a victim whose killer cannot be resolved', async () => {
+      await build();
+      const result = await service.getKillersForVictims([victimRow]);
+      expect(result[0]).toEqual({ ...victimRow, killer: null });
+    });
+
+    it('asks for no killers when given no victims', async () => {
+      await build();
+      const result = await service.getKillersForVictims([]);
       expect(result).toEqual([]);
       expect(playerDeath.getKillerInfo).not.toHaveBeenCalled();
     });

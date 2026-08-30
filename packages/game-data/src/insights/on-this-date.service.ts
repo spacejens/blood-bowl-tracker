@@ -62,7 +62,7 @@ export interface OnThisDateTopKilledOptions extends OnThisDateOptions {
   limit: number;
 }
 
-export interface OnThisDateKilledPlayer {
+export interface OnThisDateVictim {
   playerId: number;
   name: string;
   sppTotal: number;
@@ -75,6 +75,9 @@ export interface OnThisDateKilledPlayer {
   raceName: string;
   coachId: number;
   coachName: string;
+}
+
+export interface OnThisDateKilledPlayer extends OnThisDateVictim {
   killer: PlayerKillerInfo | null;
 }
 
@@ -86,10 +89,18 @@ export class OnThisDateService {
     private readonly playerDeath: PlayerDeathService,
   ) {}
 
+  /**
+   * Both sides of the "on this date" comparison are pinned to UTC: this
+   * filter extracts month/day from `matches.playedAt` at UTC, and
+   * `MonthDayService.today()` reads "today" via the UTC getters. That way
+   * the two sides can never disagree about what day it is, regardless of
+   * the bot process's or the database session's local timezone
+   * configuration.
+   */
   private dateFilter(options: OnThisDateOptions): SQL | undefined {
     return and(
-      sql`extract(month from ${matches.playedAt}) = ${sql.param(options.month)}`,
-      sql`extract(day from ${matches.playedAt}) = ${sql.param(options.day)}`,
+      sql`extract(month from ${matches.playedAt} at time zone 'UTC') = ${sql.param(options.month)}`,
+      sql`extract(day from ${matches.playedAt} at time zone 'UTC') = ${sql.param(options.day)}`,
     );
   }
 
@@ -263,18 +274,19 @@ export class OnThisDateService {
    * coalesce(spp_total, 0)::int. players.id is the secondary ordering key
    * so a tie is stable.
    *
-   * Resolves PlayerDeathService.getKillerInfo for every fetched row in one
-   * Promise.all. A player dies at most once, so that player's only death
-   * is exactly the death being reported. The caller passes the leaderboard's
-   * own fetch window as limit, so the tie logic in Task 5 can see a whole
-   * tie group; the resulting parallel killer lookups are an accepted cost,
-   * bounded by the caller's database timeout.
+   * Deliberately does not resolve killers: the caller passes the
+   * leaderboard's own fetch window as limit so the tie logic in
+   * `OnThisDateFactsService.rankVictims` can see a whole tie group, but only
+   * a handful of those rows are ever rendered. Resolving killers here would
+   * fan out `PlayerDeathService.getKillerInfo` over the entire fetch window
+   * instead of just the rows actually shown; call `getKillersForVictims`
+   * on the trimmed, shown rows instead.
    */
   async getTopKilledPlayers(
     options: OnThisDateTopKilledOptions,
-  ): Promise<OnThisDateKilledPlayer[]> {
+  ): Promise<OnThisDateVictim[]> {
     const sppTotal = sql<number>`coalesce(${players.sppTotal}, 0)::int`;
-    const victims = await this.db
+    return this.db
       .select({
         playerId: players.id,
         name: players.name,
@@ -311,7 +323,19 @@ export class OnThisDateService {
       )
       .orderBy(desc(sppTotal), players.id)
       .limit(options.limit);
+  }
 
+  /**
+   * Resolves and attaches the killer for exactly the given victims via one
+   * `Promise.all` over `PlayerDeathService.getKillerInfo`. A player dies at
+   * most once, so that player's only death is exactly the death being
+   * reported. Callers should pass only the rows they are actually going to
+   * render — see `getTopKilledPlayers`'s doc comment for why killer
+   * resolution is split out from the fetch.
+   */
+  async getKillersForVictims(
+    victims: OnThisDateVictim[],
+  ): Promise<OnThisDateKilledPlayer[]> {
     return Promise.all(
       victims.map(async (victim) => ({
         ...victim,

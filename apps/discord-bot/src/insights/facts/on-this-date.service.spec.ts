@@ -1,5 +1,6 @@
 import type {
   OnThisDateKilledPlayer,
+  OnThisDateVictim,
   PlayerDeepdiveCategoryCounts,
 } from '@blood-bowl-tracker/game-data';
 import { OnThisDateService } from '@blood-bowl-tracker/game-data';
@@ -70,6 +71,19 @@ function victim(
   };
 }
 
+/**
+ * The victim-only shape `OnThisDateService.getTopKilledPlayers` now returns,
+ * with the killer carried on the object anyway (an extra runtime property
+ * beyond `OnThisDateVictim`) so the default `getKillersForVictims` stub below
+ * can echo it straight back — mirroring the real split without each test
+ * having to wire up a separate killer for its own victim.
+ */
+function victimWithoutKiller(
+  overrides: Partial<OnThisDateKilledPlayer> = {},
+): OnThisDateVictim {
+  return victim(overrides);
+}
+
 let onThisDate: MockProxy<OnThisDateService>;
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
 let entityComponents: MockProxy<EntityComponentsService>;
@@ -93,6 +107,18 @@ beforeEach(async () => {
   onThisDate.countMatchesPlayed.mockResolvedValue(3);
   onThisDate.getEventCounts.mockResolvedValue(ZERO_COUNTS);
   onThisDate.getTopKilledPlayers.mockResolvedValue([]);
+  // A canned response echoing back whatever killer the test's own victim
+  // fixture already carries (or null when it carries none) — NOT a
+  // reimplementation of the real killer-resolution algorithm, which is
+  // covered by on-this-date.service.spec.ts in packages/game-data.
+  onThisDate.getKillersForVictims.mockImplementation((victims) =>
+    Promise.resolve(
+      victims.map((candidate) => ({
+        ...candidate,
+        killer: (candidate as OnThisDateKilledPlayer).killer ?? null,
+      })),
+    ),
+  );
   monthDay.format.mockReturnValue('February 29');
   monthDay.today.mockReturnValue(MONTH_DAY);
   eventCountLines.build.mockReturnValue(['Touchdowns scored: 4']);
@@ -286,6 +312,18 @@ describe('OnThisDateFactsService.resolve', () => {
       expect(row.count).toBe(row.sppTotal);
     }
     expect(topEntries).toBe(5);
+  });
+
+  it('resolves killers only for the shown rows, not the whole fetch window', async () => {
+    onThisDate.getTopKilledPlayers.mockResolvedValue(
+      Array.from({ length: TOPLIST_FETCH_LIMIT }, (_unused, index) =>
+        victimWithoutKiller({ playerId: index, sppTotal: 100 + index }),
+      ),
+    );
+    await service.resolve({ monthDay: MONTH_DAY, scope: {} });
+    expect(onThisDate.getKillersForVictims).toHaveBeenCalledTimes(1);
+    const [resolvedVictims] = onThisDate.getKillersForVictims.mock.calls[0];
+    expect(resolvedVictims.length).toBeLessThan(TOPLIST_FETCH_LIMIT);
   });
 
   it('replies with the timeout message when the queries do not settle', async () => {

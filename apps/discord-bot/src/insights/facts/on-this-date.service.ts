@@ -1,6 +1,7 @@
 import type {
   FactScope,
   OnThisDateKilledPlayer,
+  OnThisDateVictim,
 } from '@blood-bowl-tracker/game-data';
 import { OnThisDateService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -34,6 +35,7 @@ import { LeaderboardService } from '../leaderboard.service';
  */
 const MAX_TOP_ENTRIES = 5;
 
+type CountedVictim = OnThisDateVictim & { count: number };
 type RankedVictim = OnThisDateKilledPlayer & { count: number; rank: number };
 
 /**
@@ -101,7 +103,13 @@ export class OnThisDateFactsService {
       ...this.eventCountLines.build(counts, ON_THIS_DATE_NO_EVENTS_MESSAGE),
     ];
 
-    const { shown, remainder } = this.rankVictims(victims);
+    const { shown: rankedVictims, remainder } = this.rankVictims(victims);
+    const killedVictims =
+      await this.onThisDate.getKillersForVictims(rankedVictims);
+    const shown: RankedVictim[] = rankedVictims.map((victim, index) => ({
+      ...victim,
+      killer: killedVictims[index].killer,
+    }));
     if (shown.length > 0) {
       lines.push(
         '',
@@ -134,8 +142,8 @@ export class OnThisDateFactsService {
    * approximately - the same convention `LeaderboardService.resolveToplist`
    * uses, repeated here since these rows can't go through that method.
    */
-  private rankVictims(victims: OnThisDateKilledPlayer[]): {
-    shown: RankedVictim[];
+  private rankVictims(victims: OnThisDateVictim[]): {
+    shown: (CountedVictim & { rank: number })[];
     remainder: string | null;
   } {
     const saturated = victims.length === TOPLIST_FETCH_LIMIT;
