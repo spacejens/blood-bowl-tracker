@@ -4,8 +4,20 @@
   extends: ['config:recommended'],
   // Matches pnpm-workspace.yaml's minimumReleaseAge: 1440 (24h) local-install
   // gate, so Renovate never proposes an update pnpm would then refuse to
-  // install locally.
+  // install locally. Exception: a vulnerability-driven update bypasses this
+  // gate entirely (see the vulnerabilityAlerts note on the major-update rule
+  // below), so it can land before pnpm's own gate would allow installing it
+  // locally or in CI's lockfile update — if that happens, add the package to
+  // pnpm-workspace.yaml's minimumReleaseAgeExclude, the same way existing
+  // entries there already handle this.
   minimumReleaseAge: '1 day',
+  // GitHub's native vulnerability alerts (Dependabot alerts) are enabled on
+  // this repo (detection only — Dependabot's own automated-security-fixes PR
+  // creation stays off, so Renovate remains the only tool opening PRs here),
+  // which is what Renovate's vulnerabilityAlerts handling reads from to
+  // detect that an update resolves a known vulnerability. Without this,
+  // every update (including a security fix) would be treated as an ordinary
+  // one and subject to the major-update minimumReleaseAge rule below.
   packageRules: [
     {
       // Coordinated release train: these packages must share a version
@@ -70,6 +82,29 @@
       matchManagers: ['npm'],
       matchUpdateTypes: ['patch', 'minor'],
       automerge: true,
+    },
+    {
+      // Majors get a longer soak than the repo-wide 1-day gate. A brand-new
+      // major version typically lands before its peer and downstream
+      // packages have caught up, so a PR opened the moment it publishes
+      // tends to be broken or stuck — it then sits around, or has to go
+      // through `finish-renovate-pr`, until the ecosystem settles. Seven
+      // days lets that settling happen before Renovate proposes the bump at
+      // all. Patch and minor updates are unaffected and keep the repo-wide
+      // 1-day default.
+      // Scoped to the npm manager on purpose: Docker image and GitHub
+      // Actions majors have a different risk profile and none of npm's
+      // peer-dependency churn, so they also keep the 1-day default.
+      // No vulnerability carve-out is needed here: Renovate's own built-in
+      // default for `vulnerabilityAlerts` sets `minimumReleaseAge: null`,
+      // which bypasses the gate — repo-wide or per-rule — for
+      // vulnerability-driven updates, detected via the repo's native GitHub
+      // vulnerability alerts (see the note above `packageRules`). A major
+      // that resolves a known security advisory is therefore not delayed by
+      // this rule, and no explicit exception belongs in this file.
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['major'],
+      minimumReleaseAge: '7 days',
     },
     {
       // Triage aid: label every Renovate PR with the kind of bump it
