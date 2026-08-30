@@ -9,6 +9,7 @@ import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
+  ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -20,7 +21,10 @@ import type {
   EntityComponentEntry,
   EntitySelectRow,
 } from './entity-components.service';
-import { EntityComponentsService } from './entity-components.service';
+import {
+  CALENDAR_EMOJI,
+  EntityComponentsService,
+} from './entity-components.service';
 
 function entries(
   count: number,
@@ -426,5 +430,24 @@ describe('EntityComponentsService', () => {
     expect(service.getEmojiForPrefix(LEAGUE_BUTTON_CUSTOM_ID_PREFIX)).toBe(
       '🏛️',
     );
+  });
+
+  it('styles a date button as a secondary, like the other container types', () => {
+    const { components } = service.buildEntityComponents([
+      {
+        customIdPrefix: ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '02-29',
+        label: 'February 29',
+      },
+    ]);
+    const [row] = components as EntityButtonRow[];
+    expect(row.components[0].style).toBe(ButtonStyle.Secondary);
+    expect(row.components[0].custom_id).toBe('onthisdate:02-29');
+  });
+
+  it('gives a date button the calendar emoji', () => {
+    expect(
+      service.getEmojiForPrefix(ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX),
+    ).toBe(CALENDAR_EMOJI);
   });
 });
