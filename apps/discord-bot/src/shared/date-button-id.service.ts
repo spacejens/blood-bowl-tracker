@@ -89,10 +89,13 @@ export class DateButtonIdService {
         ? null
         : { kind: 'matchCategory', value: category };
     }
-    const id = Number(value);
-    if (value === '' || !Number.isInteger(id)) {
+    // A strict digits-only check, not just Number.isInteger: Number('') is 0,
+    // and Number(' 5 ')/Number('0x5')/Number('5.0') all coerce to valid
+    // integers too, none of which this service's own `encode` ever produces.
+    if (!/^\d+$/.test(value)) {
       return null;
     }
+    const id = Number(value);
     if (kind === 'league' || kind === 'era' || kind === 'competition') {
       return { kind, id };
     }

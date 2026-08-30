@@ -21,10 +21,7 @@ import type {
   EntityComponentEntry,
   EntitySelectRow,
 } from './entity-components.service';
-import {
-  CALENDAR_EMOJI,
-  EntityComponentsService,
-} from './entity-components.service';
+import { EntityComponentsService } from './entity-components.service';
 
 function entries(
   count: number,
@@ -448,6 +445,6 @@ describe('EntityComponentsService', () => {
   it('gives a date button the calendar emoji', () => {
     expect(
       service.getEmojiForPrefix(ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX),
-    ).toBe(CALENDAR_EMOJI);
+    ).toBe('📅');
   });
 });

@@ -109,6 +109,14 @@ describe('DateButtonIdService', () => {
     expect(service.decode('02-29:league:abc')).toBeNull();
   });
 
+  it('returns null for entity ids that Number() would coerce but encode never produces', () => {
+    expect(service.decode('02-29:league:')).toBeNull();
+    expect(service.decode('02-29:league:-5')).toBeNull();
+    expect(service.decode('02-29:league: 5')).toBeNull();
+    expect(service.decode('02-29:league:5.0')).toBeNull();
+    expect(service.decode('02-29:league:0x5')).toBeNull();
+  });
+
   it('returns null for a match category that is not a real one', () => {
     expect(service.decode('02-29:matchCategory:brawl')).toBeNull();
   });

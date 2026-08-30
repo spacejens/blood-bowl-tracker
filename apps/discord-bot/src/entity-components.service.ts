@@ -46,7 +46,7 @@ const BLANK_LABEL = '\u200b';
  * `ENTITY_EMOJI_BY_PREFIX`, because the embed title uses it outside any button
  * context.
  */
-export const CALENDAR_EMOJI = '\ud83d\udcc5';
+export const CALENDAR_EMOJI = '📅';
 
 /**
  * The button colour each destination type gets, so a coach can tell coach

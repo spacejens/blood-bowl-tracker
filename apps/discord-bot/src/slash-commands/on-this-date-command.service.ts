@@ -47,6 +47,10 @@ export class OnThisDateCommandService implements OnModuleInit {
       ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleDateButton(interaction),
     );
+    // No matching registerSelectMenuHandler: date toplists cap at
+    // MAX_LEADERBOARD_ENTRIES (10) rows, well under the 25-entry threshold
+    // EntityComponentsService switches to select menus at, so this prefix can
+    // never actually reach one.
   }
 
   buildCommand(): SlashCommandDefinition {
