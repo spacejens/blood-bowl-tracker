@@ -300,13 +300,14 @@ limit: extract one or more focused services/modules from a source file, or split
 a spec file into multiple files grouped by the functionality under test (sharing
 setup via a `*.test-helpers.ts` module, which is exempt from coverage).
 
-Markdown files are capped at 500 lines too, enforced by the custom
-`max-file-lines` markdownlint rule (in `tools/markdownlint-rules`) via the root
-`.markdownlint-cli2.jsonc`. When a doc grows past the limit, the fix is the same
-as this branch already did twice: split it into topic pages under the same
-directory, with the original filename becoming a short index page linking to
-the new ones. See `docs/import-tp/file-format.md` and
-`docs/discord-bot/production-hosting.md` for the two existing examples of this
+Committed project documentation (`docs/**`, excluding the gitignored
+`docs/plans/` and `docs/superpowers/`) is capped at 500 lines too, counting
+every raw line including blanks, enforced by the custom `max-file-lines`
+markdownlint rule (in `tools/markdownlint-rules`) via the root
+`.markdownlint-cli2.jsonc`. When a doc grows past the limit, split it into
+topic pages under the same directory, with the original filename becoming a
+short index page linking to the new ones. See `docs/import-tp/file-format.md`
+and `docs/discord-bot/production-hosting.md` for two existing examples of this
 pattern.
 
 ## Adding a new workspace package
