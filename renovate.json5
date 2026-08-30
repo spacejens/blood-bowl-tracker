@@ -4,22 +4,20 @@
   extends: ['config:recommended'],
   // Matches pnpm-workspace.yaml's minimumReleaseAge: 1440 (24h) local-install
   // gate, so Renovate never proposes an update pnpm would then refuse to
-  // install locally. Exception: a vulnerability-driven update (see
-  // osvVulnerabilityAlerts below) bypasses this gate entirely, so it can land
-  // before pnpm's own gate would allow installing it locally or in CI's
-  // lockfile update — if that happens, add the package to pnpm-workspace.yaml's
-  // minimumReleaseAgeExclude, the same way existing entries there already
-  // handle this.
+  // install locally. Exception: a vulnerability-driven update bypasses this
+  // gate entirely (see the vulnerabilityAlerts note on the major-update rule
+  // below), so it can land before pnpm's own gate would allow installing it
+  // locally or in CI's lockfile update — if that happens, add the package to
+  // pnpm-workspace.yaml's minimumReleaseAgeExclude, the same way existing
+  // entries there already handle this.
   minimumReleaseAge: '1 day',
-  // GitHub's own Dependabot alerts are disabled on this repo, which is what
-  // Renovate's vulnerabilityAlerts handling normally reads from — without
-  // this, Renovate would have no way to detect that an update resolves a
-  // known vulnerability, and every major update (including a security fix)
-  // would be treated as an ordinary one and subject to the major-update
-  // minimumReleaseAge rule below. Enabling OSV lets Renovate detect
-  // vulnerabilities independently of that GitHub setting. Renovate's docs
-  // mark this option experimental, so its coverage is not a hard guarantee.
-  osvVulnerabilityAlerts: true,
+  // GitHub's native vulnerability alerts (Dependabot alerts) are enabled on
+  // this repo (detection only — Dependabot's own automated-security-fixes PR
+  // creation stays off, so Renovate remains the only tool opening PRs here),
+  // which is what Renovate's vulnerabilityAlerts handling reads from to
+  // detect that an update resolves a known vulnerability. Without this,
+  // every update (including a security fix) would be treated as an ordinary
+  // one and subject to the major-update minimumReleaseAge rule below.
   packageRules: [
     {
       // Coordinated release train: these packages must share a version
@@ -100,13 +98,10 @@
       // No vulnerability carve-out is needed here: Renovate's own built-in
       // default for `vulnerabilityAlerts` sets `minimumReleaseAge: null`,
       // which bypasses the gate — repo-wide or per-rule — for
-      // vulnerability-driven updates, as long as Renovate can actually
-      // detect the vulnerability (see the `osvVulnerabilityAlerts` setting
-      // above). A major that resolves a known security advisory covered by
-      // that detection is therefore not delayed by this rule, and no
-      // explicit exception belongs in this file — though `osvVulnerabilityAlerts`
-      // is still an experimental Renovate feature, so this isn't a hard
-      // guarantee for every advisory.
+      // vulnerability-driven updates, detected via the repo's native GitHub
+      // vulnerability alerts (see the note above `packageRules`). A major
+      // that resolves a known security advisory is therefore not delayed by
+      // this rule, and no explicit exception belongs in this file.
       matchManagers: ['npm'],
       matchUpdateTypes: ['major'],
       minimumReleaseAge: '7 days',
