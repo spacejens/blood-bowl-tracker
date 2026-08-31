@@ -413,12 +413,24 @@ export class WaitForPrReviewService {
    * `deadline`. Bounding every call this way guarantees a result can never
    * arrive long after `deadline` and be mistaken for a fresh `found`.
    *
-   * The second call is made only when the first found nothing. That keeps
-   * the existing precedence intact — a formal review is the strongest
-   * signal, and within the second call a rate-limit edit outranks a
-   * completion (see `RollingCommentOutcome`) — and keeps a failing `gh` from
-   * doubling its own cost. A third call is made only when the first found an
-   * empty-bodied review candidate that needs verifying (see `checkedReview`).
+   * The rolling-comment call is skipped only when the reviews call returned a
+   * review it is safe to trust as-is — one whose body carries real summary
+   * text, or one of the two malformed shapes `emptyBodyReviewId` already
+   * trusts outright rather than trying to verify (a non-object candidate, or
+   * one missing a string `id`). Everything else the reviews call can return
+   * is either not evidence a pass actually ran (an empty-bodied review that
+   * reached here only because it carries inline comments — see
+   * `checkedReview`) or a CodeRabbit-specific comment that a rolling-comment
+   * signal should be allowed to outrank: a rate-limit edit CodeRabbit only
+   * ever reports by editing that comment in place, or a completion notice
+   * cross-checked against the PR's current head commit. In those cases the
+   * rolling call runs and, when it matched anything, *replaces* the reviews
+   * call's finding; when it matched nothing, the reviews call's finding
+   * stands exactly as it was. The extra call is therefore paid only on those
+   * already-rare paths, not on a poll that found a real review.
+   *
+   * A third call is made only when the first found an empty-bodied review
+   * candidate that needs verifying (see `checkedReview`).
    */
   private async poll(
     options: PollOptions,
@@ -430,24 +442,46 @@ export class WaitForPrReviewService {
       return undefined;
     }
     if (
-      outcome.review !== undefined ||
-      outcome.rateLimitComment !== undefined ||
-      outcome.commentUpdateFailedComment !== undefined ||
-      outcome.starGateComment !== undefined
+      outcome.review !== undefined &&
+      this.emptyBodyReviewId(outcome.review) === undefined
     ) {
       return outcome;
+    }
+    // The reviews call above can itself consume the whole remaining budget
+    // (a slow `gh` call, bounded only by `budgetMs`), landing at or past
+    // `deadline` by the time control reaches here. Starting the
+    // rolling-comment call anyway would let `budgetMs` hand it a full
+    // `intervalMs` window rather than the (already negative) time actually
+    // left, letting a result surface after the caller's own deadline. `run`
+    // re-checks the deadline after every poll, but only once it has decided
+    // what to do with this poll's `review`/`discardedEmptyReviewId` — too
+    // late to stop a review already returned from this call. Ending the poll
+    // here instead reports it as nothing found, and `run`'s own deadline
+    // check reports the timeout on the next pass.
+    if (Date.now() >= deadline) {
+      return undefined;
     }
     const rolling = await this.pollRollingComment(
       { options, headRefOid: outcome.headRefOid },
       deadline,
       intervalMs,
     );
+    if (rolling === undefined) {
+      return outcome;
+    }
     // Carry the reviews half's discarded-artifact id through even though the
-    // rolling-comment check found nothing of its own — otherwise `run` would
-    // never learn to exclude it, and the same artifact review would be
-    // re-matched and re-discarded on every later poll (see `run`).
+    // rolling-comment check produced its own answer. This only has an
+    // observable effect when this same iteration's `rolling` result is
+    // suppressed by `run`'s trigger logic (`justTriggered`) and the loop
+    // continues to a later poll — every other case (a found review, a
+    // rate-limited/commentUpdateFailed result) makes `run` return on this
+    // same iteration, so the carried id is pushed into `run`'s exclusion list
+    // but never consulted again. On that surviving trigger-suppressed path,
+    // though, omitting it would let the same artifact review be re-matched
+    // and re-discarded on the next poll instead of staying excluded (see
+    // `run`).
     return {
-      ...(rolling ?? {}),
+      ...rolling,
       ...(outcome.discardedEmptyReviewId === undefined
         ? {}
         : { discardedEmptyReviewId: outcome.discardedEmptyReviewId }),
