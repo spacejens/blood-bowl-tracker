@@ -180,6 +180,24 @@ export class DbGenerateService {
   }
 
   /**
+   * A brand-new column added to a history table must never carry NOT NULL:
+   * `historyTrackedTable()` mirrors a tracked column's `notNull` onto its
+   * history counterpart's TS shape (see packages/db/src/schema/history.ts),
+   * but never mirrors a `default`, so drizzle-kit emits a bare `ADD COLUMN
+   * ... NOT NULL` for the history side with no default to fall back on —
+   * this fails outright against a non-empty history table (history rows are
+   * immutable snapshots; a row written before the column existed can never
+   * be backfilled). Unlike rewriteHistorySetNotNull (which drops a whole
+   * statement), this only strips the trailing ` NOT NULL`, keeping the ADD
+   * COLUMN itself so the column still exists on the history table too.
+   */
+  rewriteHistoryAddNotNullColumn(migrationSql: string): string {
+    const pattern =
+      /(ALTER TABLE "[^"]+"\."[^"]+_history" ADD COLUMN "[^"]+" [^;]+?) NOT NULL;/g;
+    return migrationSql.replace(pattern, '$1;');
+  }
+
+  /**
    * Rewrites the freshly generated SQL for a brand-new history table:
    *  - Replaces drizzle-kit's explicit `CREATE TABLE ..._history ( ... );`
    *    (columns + inline PK) with `CREATE TABLE ..._history (LIKE "s"."t");`.
@@ -256,6 +274,10 @@ export class DbGenerateService {
       // counterpart the same way: pre-existing history rows can never be
       // backfilled. Applies to every migration, unconditionally.
       sql = this.rewriteHistorySetNotNull(sql);
+      // Same reasoning for a brand-new NOT NULL column: its history
+      // counterpart must stay nullable so existing history rows survive.
+      // Applies to every migration, unconditionally.
+      sql = this.rewriteHistoryAddNotNullColumn(sql);
 
       for (const qualified of newHistoryTables) {
         const [schemaName, historyTableName] = qualified.split('.');

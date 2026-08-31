@@ -3,8 +3,8 @@ ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "strength" integer DEFA
 ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "agility" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "passing" integer;--> statement-breakpoint
 ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "armour" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "strength" integer NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "agility" integer NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer;--> statement-breakpoint
+ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "strength" integer;--> statement-breakpoint
+ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "agility" integer;--> statement-breakpoint
 ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "passing" integer;--> statement-breakpoint
-ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "armour" integer NOT NULL;
+ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "armour" integer;

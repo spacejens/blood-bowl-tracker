@@ -255,6 +255,46 @@ describe('DbGenerateService', () => {
     });
   });
 
+  describe('rewriteHistoryAddNotNullColumn', () => {
+    it('strips NOT NULL from a new column added to a history table', () => {
+      const sql =
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer NOT NULL;';
+      expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer;',
+      );
+    });
+
+    it('leaves a nullable column added to a history table untouched', () => {
+      const sql =
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "passing" integer;';
+      expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(sql);
+    });
+
+    it('leaves an ADD COLUMN NOT NULL on a non-history (tracked) table untouched', () => {
+      const sql =
+        'ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "move" integer DEFAULT 0 NOT NULL;';
+      expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(sql);
+    });
+
+    it('strips NOT NULL from every history ADD COLUMN across a multi-statement migration', () => {
+      const sql =
+        'ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "move" integer DEFAULT 0 NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "strength" integer NOT NULL;';
+      expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(
+        'ALTER TABLE "game_data"."positions_race_eras" ADD COLUMN "move" integer DEFAULT 0 NOT NULL;--> statement-breakpoint\n' +
+          'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer;--> statement-breakpoint\n' +
+          'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "strength" integer;',
+      );
+    });
+
+    it('returns sql unchanged when there is no history ADD COLUMN NOT NULL statement', () => {
+      const sql =
+        'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";';
+      expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(sql);
+    });
+  });
+
   describe('rewriteNewHistoryTableCreate', () => {
     const createBlock =
       'CREATE TABLE "game_data"."coaches_history" (\n' +
