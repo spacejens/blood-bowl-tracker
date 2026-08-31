@@ -142,10 +142,42 @@ describe('schema', () => {
     expect(positions.isStarPlayer).toBeDefined();
   });
 
-  it('exports positionsRaceEras join table', () => {
+  it('exports positionsRaceEras join table with characteristics columns', () => {
     expect(positionsRaceEras.id).toBeDefined();
     expect(positionsRaceEras.positionId).toBeDefined();
     expect(positionsRaceEras.raceEraId).toBeDefined();
+    expect(positionsRaceEras.move).toBeDefined();
+    expect(positionsRaceEras.strength).toBeDefined();
+    expect(positionsRaceEras.agility).toBeDefined();
+    expect(positionsRaceEras.passing).toBeDefined();
+    expect(positionsRaceEras.armour).toBeDefined();
+  });
+
+  it('positions_race_eras has a nullable passing and non-null everything else', () => {
+    const config = getTableConfig(positionsRaceEras);
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    // Nullable on purpose: null permanently means "this rules set has no
+    // Passing characteristic", never "not known yet".
+    expect(byName.get('passing')!.notNull).toBe(false);
+    expect(byName.get('passing')!.hasDefault).toBe(false);
+    for (const name of [
+      'position_id',
+      'race_era_id',
+      'move',
+      'strength',
+      'agility',
+      'armour',
+    ]) {
+      expect(byName.get(name)!.notNull).toBe(true);
+    }
+  });
+
+  it('positions_race_eras defaults the four required characteristics to 0', () => {
+    const config = getTableConfig(positionsRaceEras);
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    for (const name of ['move', 'strength', 'agility', 'armour']) {
+      expect(byName.get(name)!.default).toBe(0);
+    }
   });
 
   it('exports players table with FK columns', () => {
