@@ -22,6 +22,7 @@ import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { NameExternalIdService } from './name-external-id.service';
 import { PlayersImportService } from './players-import.service';
+import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
 import { ReferenceLookupService } from './reference-lookup.service';
@@ -46,6 +47,7 @@ const providers = [
   MatchDateRangeService,
   NameExternalIdService,
   PlayersImportService,
+  PositionRulesSetsImportService,
   PositionsImportService,
   RacesImportService,
   ExternalSystemsImportService,
