@@ -179,14 +179,18 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   seen on the team-page pass is upserted the same way. The team-page pass is
   authoritative — on a shared id it wins — so races with no team page still
   import while `tm`-derived races are unaffected.
-- **PositionsModule** — data-type extractor for positions. `PositionPageParser`
-  reads a position's name, its "Can play for" races, and whether it is a star
-  player (the `None (star player)` marker) from a `p=pt` page;
-  `BblPositionsImportService` streams position pages and imports one row per
-  (position, race) pair. Positions that list no race are reverse-engineered from
-  player pages (`PlayerPageParser`, see PlayersModule): each of the position's
-  players belongs to a team whose race is known, so the position's race(s) are
-  recovered from `teamRaceIdsByCode`. Runs after races and teams.
+- **PositionsModule** - data-type extractor for positions. `PositionPageParser`
+  reads a position's name, its "Can play for" races, whether it is a star
+  player (the `None (star player)` marker), and its MA/ST/AG/PA/AV
+  characteristics line from a `p=pt` page; `BblPositionsImportService` streams
+  position pages and imports one row per (position, race) pair. Positions that
+  list no race are reverse-engineered from player pages (`PlayerPageParser`,
+  see PlayersModule): each of the position's players belongs to a team whose
+  race is known, so the position's race(s) are recovered from
+  `teamRaceIdsByCode`. `BblPositionRaceErasImportService` then rules on
+  per-(position, race, era) availability, and
+  `BblPositionCharacteristicsImportService` writes the scraped characteristics
+  under every rules set that availability spans. Runs after races and teams.
 - **PlayersModule** — data-type extractor for players. `PlayerPageParser` reads
   a player's own `pid`, `<h1>` name, position (`p=pt&typID`), and team
   (`p=tm&t`) links off a `p=pl` page. The positions import uses the
@@ -324,6 +328,20 @@ evidence sets, and matches and players (which have no resolve procedure).
   position** imports as duplicate rows, each flagged as a historical (deleted)
   relation. A position that lists no race and has no players in the data is
   skipped with a recorded error. Imported after races and teams (both referenced).
+- **Position characteristics** - from the same `p=pt` page, written to
+  `position_rules_sets`. A position gets one row per rules set it was
+  determined available under, not one hardcoded to BB2020: an era spanning a
+  rules-set change yields a row per rules set in that span, all carrying the
+  same scraped values, since BBL is a single BB2020-era snapshot with no other
+  source for the older rules sets (curated pre-BB2020 values are imported
+  separately and overwrite these). `Passing` is resolved per target rules set:
+  `null` where the rules set declares no Passing characteristic at all, and
+  otherwise the scraped value, or `0` where the page showed `-` - a position
+  that cannot pass under a rules set that does have Passing. One sync call is
+  made per position, so a rejected position's characteristics do not sink the
+  rest of the run. A position whose characteristics table could not be read
+  records an error and is skipped; its identity still imports. Imported after
+  rules sets, positions, and positions_race_eras (all referenced).
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
   id (`t` param) under the configured BBL external system (`BBL` by default),
   and by its `<h1>` name under the `Name` external system. Each team's race and
