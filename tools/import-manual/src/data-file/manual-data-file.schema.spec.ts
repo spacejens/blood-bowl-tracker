@@ -43,6 +43,22 @@ describe('ManualDataFileSchema', () => {
     expect(ManualDataFileSchema.parse({}).positionRulesSets).toEqual([]);
   });
 
+  it('accepts a characteristics entry that omits passing', () => {
+    const parsed = ManualDataFileSchema.parse({
+      positionRulesSets: [
+        {
+          position: { system: 'Name', id: 'Bodyguard' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 6,
+          strength: 3,
+          agility: 3,
+          armour: 8,
+        },
+      ],
+    });
+    expect(parsed.positionRulesSets[0].passing).toBeUndefined();
+  });
+
   it('rejects a characteristics entry with no rules set', () => {
     expect(() =>
       ManualDataFileSchema.parse({
