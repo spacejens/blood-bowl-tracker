@@ -447,6 +447,20 @@ export class WaitForPrReviewService {
     ) {
       return outcome;
     }
+    // The reviews call above can itself consume the whole remaining budget
+    // (a slow `gh` call, bounded only by `budgetMs`), landing at or past
+    // `deadline` by the time control reaches here. Starting the
+    // rolling-comment call anyway would let `budgetMs` hand it a full
+    // `intervalMs` window rather than the (already negative) time actually
+    // left, letting a result surface after the caller's own deadline. `run`
+    // re-checks the deadline after every poll, but only once it has decided
+    // what to do with this poll's `review`/`discardedEmptyReviewId` — too
+    // late to stop a review already returned from this call. Ending the poll
+    // here instead reports it as nothing found, and `run`'s own deadline
+    // check reports the timeout on the next pass.
+    if (Date.now() >= deadline) {
+      return undefined;
+    }
     const rolling = await this.pollRollingComment(
       { options, headRefOid: outcome.headRefOid },
       deadline,

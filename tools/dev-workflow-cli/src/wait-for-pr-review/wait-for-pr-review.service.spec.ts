@@ -226,6 +226,30 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
+  it('does not query the rolling comment once the reviews call already consumed the deadline', async () => {
+    // Simulates the reviews call itself taking long enough to land exactly on
+    // the wait's own deadline, so no time is left for a further `gh` call —
+    // the rolling-comment check must be skipped rather than started anyway.
+    processRunner.run.mockImplementation((_command, args) => {
+      if (args[0] === 'api') {
+        throw new Error(
+          'rolling-comment call must not run once the deadline has passed',
+        );
+      }
+      vi.setSystemTime(new Date(Date.now() + 60_000));
+      return Promise.resolve(RATE_LIMITED);
+    });
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+  });
+
   it('defaults to a 20-minute timeout and a 30-second interval', async () => {
     processRunner.run.mockResolvedValue(EMPTY);
 
