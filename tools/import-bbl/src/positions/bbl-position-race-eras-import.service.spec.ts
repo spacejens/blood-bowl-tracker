@@ -398,6 +398,35 @@ describe('BblPositionRaceErasImportService', () => {
       });
     });
 
+    it('forwards a resolved override for the matching (race, era) pair to the eligibility service', async () => {
+      const era = makeEra({
+        positions: [{ positionId: '10', raceId: '7', available: true }],
+      });
+      const { service, mocks } = await makeService([era]);
+      mocks.eligibility.isEligible.mockReturnValue(true);
+      const positionRaceCandidates = new Map([
+        [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
+      ]);
+      const eraIdsByRaceId = new Map<number, Set<number>>([
+        [7, new Set([500])],
+      ]);
+
+      await service.syncPositionRaceEras({
+        positionRaceCandidates,
+        racesByBblId,
+        rulesSetsByName,
+        eraIdsByRaceId,
+        positionsUsedByEra: new Set(),
+        characteristicsByPositionId,
+      });
+
+      expect(mocks.eligibility.isEligible).toHaveBeenCalledWith({
+        override: true,
+        isStarPlayer: false,
+        hasPositiveEvidence: false,
+      });
+    });
+
     it('omits an entry the eligibility service rejects', async () => {
       const { service, mocks } = await makeService([eraWithBb2020], eraIdsById);
       mocks.eligibility.isEligible.mockReturnValue(false);
@@ -449,6 +478,33 @@ describe('BblPositionRaceErasImportService', () => {
         },
         expect.anything(),
       );
+    });
+
+    it('validates characteristics against the era last declared rules set, not the first', async () => {
+      const era = makeEra({
+        identity: {
+          name: 'BB2020',
+          rulesSets: ['Living rulebook', 'BB2020'],
+        },
+      });
+      const { service, mocks } = await makeService([era], eraIdsById);
+      mocks.eligibility.isEligible.mockReturnValue(true);
+      mocks.positionsImport.syncRaceEras.mockResolvedValue({
+        positionId: 1,
+        raceEraIds: [1],
+      });
+
+      await service.syncPositionRaceEras({
+        ...options,
+        characteristicsByPositionId: new Map([
+          [1, { move: 6, strength: 3, agility: 3, passing: 4, armour: 9 }],
+        ]),
+      });
+
+      expect(
+        mocks.positionsImport.syncRaceEras.mock.calls[0][0].raceEras[0]
+          ?.characteristics?.rulesSetId,
+      ).toBe(20);
     });
 
     it('sends a null passing for an era whose rules set has no Passing', async () => {
