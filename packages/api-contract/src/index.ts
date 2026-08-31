@@ -12,7 +12,6 @@ export * from './schemas/match';
 export * from './schemas/match-event';
 export * from './schemas/player';
 export * from './schemas/position';
-export * from './schemas/position-rules-set';
 export * from './schemas/race';
 export * from './schemas/rules-set';
 export * from './schemas/spp-award-value';

@@ -18,7 +18,6 @@ import {
   matchTeams,
   players,
   positionExternalIds,
-  positionRulesSets,
   positions,
   positionsRaceEras,
   raceEras,
@@ -407,47 +406,5 @@ describe('schema', () => {
     expect(byName.get('agility_format')!.default).toBe('bare');
     expect(byName.get('passing_format')!.default).toBe('absent');
     expect(byName.get('armour_format')!.default).toBe('bare');
-  });
-
-  it('exports positionRulesSets table', () => {
-    expect(positionRulesSets.id).toBeDefined();
-    expect(positionRulesSets.positionId).toBeDefined();
-    expect(positionRulesSets.rulesSetId).toBeDefined();
-    expect(positionRulesSets.move).toBeDefined();
-    expect(positionRulesSets.strength).toBeDefined();
-    expect(positionRulesSets.agility).toBeDefined();
-    expect(positionRulesSets.passing).toBeDefined();
-    expect(positionRulesSets.armour).toBeDefined();
-    const config = getTableConfig(positionRulesSets);
-    expect(config.name).toBe('position_rules_sets');
-    expect(config.schema).toBe('game_data');
-  });
-
-  it('position_rules_sets has a nullable passing and non-null everything else', () => {
-    const config = getTableConfig(positionRulesSets);
-    const byName = new Map(config.columns.map((c) => [c.name, c]));
-    // Nullable on purpose: a rules set whose passing_format is 'absent' has
-    // no Passing characteristic at all, so its rows carry no value.
-    expect(byName.get('passing')!.notNull).toBe(false);
-    for (const name of [
-      'position_id',
-      'rules_set_id',
-      'move',
-      'strength',
-      'agility',
-      'armour',
-    ]) {
-      expect(byName.get(name)!.notNull).toBe(true);
-    }
-  });
-
-  it('position_rules_sets is unique on (position_id, rules_set_id)', () => {
-    const config = getTableConfig(positionRulesSets);
-    const unique = config.uniqueConstraints[0];
-    expect(unique).toBeDefined();
-    expect(unique.columns.map((c) => c.name)).toEqual([
-      'position_id',
-      'rules_set_id',
-    ]);
   });
 });

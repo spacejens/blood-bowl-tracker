@@ -18,7 +18,6 @@ import {
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetFormatMismatchError,
-  PositionRulesSetsService,
   PositionsService,
   PositionUpsertConflictError,
   RacesService,
@@ -61,7 +60,6 @@ describe('RpcRouterFactoryService', () => {
   let matchEventsService: MockProxy<MatchEventsService>;
   let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
-  let positionRulesSetsService: MockProxy<PositionRulesSetsService>;
 
   beforeEach(async () => {
     coachesService = mock<CoachesService>();
@@ -82,7 +80,6 @@ describe('RpcRouterFactoryService', () => {
     matchEventsService = mock<MatchEventsService>();
     sppAdjustmentsService = mock<SppAdjustmentsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
-    positionRulesSetsService = mock<PositionRulesSetsService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -108,10 +105,6 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchEventsService, useValue: matchEventsService },
         { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
-        {
-          provide: PositionRulesSetsService,
-          useValue: positionRulesSetsService,
-        },
         UpsertHandlerService,
       ],
     }).compile();
@@ -939,52 +932,6 @@ describe('RpcRouterFactoryService', () => {
 
     expect(result).toEqual({ sppAwardValueIds: [11] });
     expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
-  });
-
-  describe('positionRulesSets.sync', () => {
-    it('delegates to the position rules sets service', async () => {
-      positionRulesSetsService.sync.mockResolvedValue({
-        positionRulesSetIds: [21],
-      });
-      const input = {
-        entries: [
-          {
-            positionId: 3,
-            rulesSetId: 4,
-            move: 6,
-            strength: 3,
-            agility: 3,
-            passing: 4,
-            armour: 9,
-          },
-        ],
-      };
-
-      const result = await call(router.positionRulesSets.sync, input);
-
-      expect(result).toEqual({ positionRulesSetIds: [21] });
-      expect(positionRulesSetsService.sync).toHaveBeenCalledWith(input);
-    });
-
-    it('maps a format mismatch to BAD_REQUEST', async () => {
-      positionRulesSetsService.sync.mockRejectedValue(
-        new PositionRulesSetFormatMismatchError('Rules set 5 has no Passing'),
-      );
-
-      await expect(
-        call(router.positionRulesSets.sync, { entries: [] }),
-      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
-    });
-
-    it('lets an unrelated failure through untouched', async () => {
-      positionRulesSetsService.sync.mockRejectedValue(
-        new Error('connection lost'),
-      );
-
-      await expect(
-        call(router.positionRulesSets.sync, { entries: [] }),
-      ).rejects.toThrow('connection lost');
-    });
   });
 
   it('routes players.syncScrapedSppAdjustments to SppAdjustmentsService.syncScrapedAdjustments', async () => {

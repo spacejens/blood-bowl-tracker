@@ -18,7 +18,6 @@ import {
   MatchUpsertConflictError,
   PlayersService,
   PlayerUpsertConflictError,
-  PositionRulesSetsService,
   PositionsService,
   PositionUpsertConflictError,
   RacesService,
@@ -48,7 +47,6 @@ import {
   buildExternalSystemsRoutes,
   buildMatchResolveOutcomesRoute,
   buildPlayerSppAdjustmentRoutes,
-  buildPositionRulesSetsRoutes,
   buildPositionSyncRaceErasRoute,
   buildSppAwardValuesRoutes,
   buildTrophyAwardsRoutes,
@@ -87,7 +85,6 @@ export class RpcRouterFactoryService {
     private readonly matchOutcomes: MatchOutcomesService,
     private readonly playersService: PlayersService,
     private readonly matchEventsService: MatchEventsService,
-    private readonly positionRulesSetsService: PositionRulesSetsService,
     private readonly trophiesService: TrophiesService,
     private readonly trophyAwardsService: TrophyAwardsService,
     private readonly upsertHandler: UpsertHandlerService,
@@ -347,9 +344,6 @@ export class RpcRouterFactoryService {
           service: this.positionsService,
         }),
       },
-      positionRulesSets: buildPositionRulesSetsRoutes(
-        this.positionRulesSetsService,
-      ),
       rulesSets: this.buildStandardEntityRoutes({
         procedures: contract.rulesSets,
         service: this.rulesSetsService,

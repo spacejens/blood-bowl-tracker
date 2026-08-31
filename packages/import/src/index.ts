@@ -60,7 +60,6 @@ export { NameExternalIdService } from './name-external-id.service';
 export { PlayersImportService } from './players-import.service';
 export type { PositionRaceEraEligibilityInput } from './position-race-era-eligibility.service';
 export { PositionRaceEraEligibilityService } from './position-race-era-eligibility.service';
-export { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 export type { SyncPositionRaceErasData } from './positions-import.service';
 export { PositionsImportService } from './positions-import.service';
 export { RacesImportService } from './races-import.service';

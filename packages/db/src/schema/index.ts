@@ -18,7 +18,6 @@ export * from './matches';
 export * from './pg-schema';
 export * from './players';
 export * from './players-external-ids';
-export * from './position-rules-sets';
 export * from './positions';
 export * from './positions-external-ids';
 export * from './positions-race-eras';
