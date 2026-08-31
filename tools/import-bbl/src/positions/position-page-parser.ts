@@ -156,13 +156,11 @@ export class PositionPageParser {
   }
 
   /**
-   * One characteristics cell: `-` means "no value" (only ever legitimate for
-   * Passing), a trailing `+` is display formatting the database does not store.
+   * One characteristics cell: parses a plain or `+`-suffixed number (the
+   * trailing `+` is display formatting the database does not store),
+   * returning null for anything unparseable.
    */
   private parseCharacteristic(text: string): number | null {
-    if (text === '-') {
-      return null;
-    }
     const parsed = Number.parseInt(text.replace(/\+$/, ''), 10);
     return Number.isNaN(parsed) ? null : parsed;
   }

@@ -60,7 +60,7 @@ A `pt` page also carries a characteristics table: a header row reading
 `MA`/`ST`/`AG`/`PA`/`AV`/`Skills` followed immediately by one row of values.
 Several tables on the page use the same row class, so the characteristics
 table is found by its header text. `AG`/`PA`/`AV` values carry a trailing
-`+` (display formatting, stripped on import - the database stores plain
+`+` (display formatting, stripped on import — the database stores plain
 numbers), and a `PA` cell reading `-` means the position has no Passing
 ability. That `-` is not confined to pre-BB2020 positions: "Big Guy"
 positions such as Kroxigor and Ogre show it under the current rules too.
