@@ -220,6 +220,21 @@ describe('BblPositionCharacteristicsImportService', () => {
     expect(resultArgs(importResults).imported).toBe(0);
   });
 
+  it('skips a position mapped to an empty rules-set-id set', async () => {
+    await service.syncPositionCharacteristics({
+      rulesSetIdsByPositionId: new Map([[100, new Set()]]),
+      characteristicsByPositionId: new Map([
+        [100, { move: 6, strength: 4, agility: 4, passing: 6, armour: 10 }],
+      ]),
+      rulesSetsByName,
+    });
+
+    expect(
+      positionRulesSetsImport.syncPositionRulesSets,
+    ).not.toHaveBeenCalled();
+    expect(resultArgs(importResults)).toEqual({ imported: 0, errors: [] });
+  });
+
   it('returns the ImportResult the result service built', async () => {
     const outcome = await service.syncPositionCharacteristics({
       rulesSetIdsByPositionId: new Map(),
