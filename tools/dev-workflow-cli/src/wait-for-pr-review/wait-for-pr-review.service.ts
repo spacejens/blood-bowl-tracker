@@ -415,16 +415,18 @@ export class WaitForPrReviewService {
    *
    * The rolling-comment call is skipped only when the reviews call returned a
    * review it is safe to trust as-is — one whose body carries real summary
-   * text. Everything else the reviews call can return is either not evidence
-   * a pass actually ran (an empty-bodied review that reached here only
-   * because it carries inline comments — see `checkedReview`) or a
-   * CodeRabbit-specific comment that a rolling-comment signal should be
-   * allowed to outrank: a rate-limit edit CodeRabbit only ever reports by
-   * editing that comment in place, or a completion notice cross-checked
-   * against the PR's current head commit. In those cases the rolling call
-   * runs and, when it matched anything, *replaces* the reviews call's
-   * finding; when it matched nothing, the reviews call's finding stands
-   * exactly as it was. The extra call is therefore paid only on those
+   * text, or one of the two malformed shapes `emptyBodyReviewId` already
+   * trusts outright rather than trying to verify (a non-object candidate, or
+   * one missing a string `id`). Everything else the reviews call can return
+   * is either not evidence a pass actually ran (an empty-bodied review that
+   * reached here only because it carries inline comments — see
+   * `checkedReview`) or a CodeRabbit-specific comment that a rolling-comment
+   * signal should be allowed to outrank: a rate-limit edit CodeRabbit only
+   * ever reports by editing that comment in place, or a completion notice
+   * cross-checked against the PR's current head commit. In those cases the
+   * rolling call runs and, when it matched anything, *replaces* the reviews
+   * call's finding; when it matched nothing, the reviews call's finding
+   * stands exactly as it was. The extra call is therefore paid only on those
    * already-rare paths, not on a poll that found a real review.
    *
    * A third call is made only when the first found an empty-bodied review
@@ -454,9 +456,16 @@ export class WaitForPrReviewService {
       return outcome;
     }
     // Carry the reviews half's discarded-artifact id through even though the
-    // rolling-comment check produced its own answer — otherwise `run` would
-    // never learn to exclude it, and the same artifact review would be
-    // re-matched and re-discarded on every later poll (see `run`).
+    // rolling-comment check produced its own answer. This only has an
+    // observable effect when this same iteration's `rolling` result is
+    // suppressed by `run`'s trigger logic (`justTriggered`) and the loop
+    // continues to a later poll — every other case (a found review, a
+    // rate-limited/commentUpdateFailed result) makes `run` return on this
+    // same iteration, so the carried id is pushed into `run`'s exclusion list
+    // but never consulted again. On that surviving trigger-suppressed path,
+    // though, omitting it would let the same artifact review be re-matched
+    // and re-discarded on the next poll instead of staying excluded (see
+    // `run`).
     return {
       ...rolling,
       ...(outcome.discardedEmptyReviewId === undefined

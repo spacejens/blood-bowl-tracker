@@ -10,12 +10,15 @@ import {
   COMPLETION_REVIEW,
   completionResult,
   createHarness,
+  EMPTY,
   EMPTY_BODY_FOUND,
+  jqProgramOf,
   OPTIONS,
   RATE_LIMIT_EDIT_CANDIDATE,
   RATE_LIMIT_EDIT_SECTION,
   RATE_LIMITED,
   rateLimitEditResult,
+  rollingResult,
   STAR_GATED,
 } from './wait-for-pr-review.test-helpers';
 
@@ -124,5 +127,71 @@ describe('WaitForPrReviewService rolling-comment precedence', () => {
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toEqual({ found: true, review: COMPLETION_REVIEW });
+  });
+
+  it('reports a concurrent rolling rate-limit edit over a star-gate comment found in the same poll, without triggering', async () => {
+    // A rate-limit edit is fresher evidence than a star-gate comment, and
+    // outranks it the same way it outranks every other reviews-call match —
+    // this pins that the star-gate's own trigger behavior does not run once
+    // the rolling call has already produced a different answer.
+    mockPoll(STAR_GATED, rateLimitEditResult(RATE_LIMIT_EDIT_CANDIDATE));
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toMatchObject({
+      found: false,
+      rateLimited: true,
+      rateLimitComment: { body: RATE_LIMIT_EDIT_SECTION },
+    });
+    expect(triggerCalls()).toHaveLength(0);
+  });
+
+  it('carries a discarded empty-artifact review id through a trigger-suppressed poll whose rolling call matched a rate-limit edit', async () => {
+    // Poll 1 combines two signals the reviews-half discard path and the
+    // rolling-comment replacement path can each produce on their own: a
+    // genuine 0-inline-comment empty artifact (discarded, not returned as
+    // `review`) and a concurrent rolling rate-limit edit (which replaces the
+    // discarded outcome). A rate-limit result alone would make `run` return
+    // immediately, so the discarded id would never be consulted again — this
+    // test instead makes the caller's own retrigger due on this same poll,
+    // which suppresses that immediate return and lets the loop reach a
+    // second poll, where the discarded id must appear in the exclusion list.
+    let prViewCalls = 0;
+    let apiCalls = 0;
+    processRunner.run.mockImplementation((_command, args) => {
+      if (args[1] === 'comment') {
+        return Promise.resolve({ exitCode: 0, stdout: '', stderr: '' });
+      }
+      if (args[0] === 'api') {
+        apiCalls += 1;
+        return Promise.resolve(
+          apiCalls === 1
+            ? rateLimitEditResult(RATE_LIMIT_EDIT_CANDIDATE)
+            : rollingResult({}),
+        );
+      }
+      prViewCalls += 1;
+      return Promise.resolve(prViewCalls === 1 ? EMPTY_BODY_FOUND : EMPTY);
+    });
+    reviewComments.hasInlineComments.mockResolvedValue(false);
+
+    const result = await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000),
+      timeoutMs: 90_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+    // The retrigger fired on poll 1 despite the rolling rate-limit match,
+    // proving this iteration's early return was suppressed and the loop
+    // continued to a second poll.
+    expect(triggerCalls()).toHaveLength(1);
+    const prViewArgs = processRunner.run.mock.calls
+      .filter(([, args]) => args[0] === 'pr' && args[1] === 'view')
+      .map(([, args]) => args);
+    expect(prViewArgs.length).toBeGreaterThanOrEqual(2);
+    expect(jqProgramOf(prViewArgs[0])).not.toContain('.id !=');
+    expect(jqProgramOf(prViewArgs[1])).toContain('.id != "PRR_empty1"');
   });
 });
