@@ -413,12 +413,22 @@ export class WaitForPrReviewService {
    * `deadline`. Bounding every call this way guarantees a result can never
    * arrive long after `deadline` and be mistaken for a fresh `found`.
    *
-   * The second call is made only when the first found nothing. That keeps
-   * the existing precedence intact — a formal review is the strongest
-   * signal, and within the second call a rate-limit edit outranks a
-   * completion (see `RollingCommentOutcome`) — and keeps a failing `gh` from
-   * doubling its own cost. A third call is made only when the first found an
-   * empty-bodied review candidate that needs verifying (see `checkedReview`).
+   * The rolling-comment call is skipped only when the reviews call returned a
+   * review it is safe to trust as-is — one whose body carries real summary
+   * text. Everything else the reviews call can return is either not evidence
+   * a pass actually ran (an empty-bodied review that reached here only
+   * because it carries inline comments — see `checkedReview`) or a
+   * CodeRabbit-specific comment that a rolling-comment signal should be
+   * allowed to outrank: a rate-limit edit CodeRabbit only ever reports by
+   * editing that comment in place, or a completion notice cross-checked
+   * against the PR's current head commit. In those cases the rolling call
+   * runs and, when it matched anything, *replaces* the reviews call's
+   * finding; when it matched nothing, the reviews call's finding stands
+   * exactly as it was. The extra call is therefore paid only on those
+   * already-rare paths, not on a poll that found a real review.
+   *
+   * A third call is made only when the first found an empty-bodied review
+   * candidate that needs verifying (see `checkedReview`).
    */
   private async poll(
     options: PollOptions,
@@ -430,10 +440,8 @@ export class WaitForPrReviewService {
       return undefined;
     }
     if (
-      outcome.review !== undefined ||
-      outcome.rateLimitComment !== undefined ||
-      outcome.commentUpdateFailedComment !== undefined ||
-      outcome.starGateComment !== undefined
+      outcome.review !== undefined &&
+      this.emptyBodyReviewId(outcome.review) === undefined
     ) {
       return outcome;
     }
@@ -442,12 +450,15 @@ export class WaitForPrReviewService {
       deadline,
       intervalMs,
     );
+    if (rolling === undefined) {
+      return outcome;
+    }
     // Carry the reviews half's discarded-artifact id through even though the
-    // rolling-comment check found nothing of its own — otherwise `run` would
+    // rolling-comment check produced its own answer — otherwise `run` would
     // never learn to exclude it, and the same artifact review would be
     // re-matched and re-discarded on every later poll (see `run`).
     return {
-      ...(rolling ?? {}),
+      ...rolling,
       ...(outcome.discardedEmptyReviewId === undefined
         ? {}
         : { discardedEmptyReviewId: outcome.discardedEmptyReviewId }),
