@@ -63,7 +63,6 @@ export class BblPlayersImportService {
      */
     teamEraIdsByPid: Map<string, number>;
     positionsUsedByEra: Set<string>;
-    racesActiveByEra: Set<string>;
     scrapedSppTotalsByPlayerId: Map<number, number | null>;
   }> {
     let imported = 0;
@@ -71,7 +70,6 @@ export class BblPlayersImportService {
     const playerIdsByPid = new Map<string, number>();
     const teamEraIdsByPid = new Map<string, number>();
     const positionsUsedByEra = new Set<string>();
-    const racesActiveByEra = new Set<string>();
     // BBL's own displayed career total per imported player, keyed by DB id.
     // Only an input to the spp_adjustment computation — never stored as
     // players.spp_total, since BBL's figure mixes award rates across eras.
@@ -89,7 +87,6 @@ export class BblPlayersImportService {
         playerIdsByPid,
         teamEraIdsByPid,
         positionsUsedByEra,
-        racesActiveByEra,
         scrapedSppTotalsByPlayerId,
       };
     }
@@ -293,7 +290,6 @@ export class BblPlayersImportService {
           playerIdsByPid.set(player.pid, upserted.id);
           teamEraIdsByPid.set(player.pid, teamEra.id);
           positionsUsedByEra.add(`${positionId}:${eraId}`);
-          racesActiveByEra.add(`${team.raceId}:${eraId}`);
           scrapedSppTotalsByPlayerId.set(upserted.id, player.sppTotal);
         }
       } catch (error) {
@@ -307,7 +303,6 @@ export class BblPlayersImportService {
       playerIdsByPid,
       teamEraIdsByPid,
       positionsUsedByEra,
-      racesActiveByEra,
       scrapedSppTotalsByPlayerId,
     };
   }

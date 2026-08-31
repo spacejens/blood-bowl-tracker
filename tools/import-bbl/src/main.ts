@@ -13,7 +13,6 @@ import { BblMatchOutcomesImportService } from './matches/bbl-match-outcomes-impo
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
 import { BblSppAdjustmentsImportService } from './players/bbl-spp-adjustments-import.service';
-import { BblPositionCharacteristicsImportService } from './positions/bbl-position-characteristics-import.service';
 import { BblPositionRaceErasImportService } from './positions/bbl-position-race-eras-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
@@ -72,19 +71,8 @@ async function run(): Promise<ImportResult> {
         rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
         eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
         positionsUsedByEra: playerOutcome.positionsUsedByEra,
-        racesActiveByEra: playerOutcome.racesActiveByEra,
-      });
-    // Characteristics run right after the race-era sync, which is what decides
-    // the rules sets each position needs a row for. The values themselves come
-    // from the positions step's page scrape.
-    const positionCharacteristicsOutcome = await app
-      .get(BblPositionCharacteristicsImportService)
-      .syncPositionCharacteristics({
-        rulesSetIdsByPositionId:
-          positionRaceErasOutcome.rulesSetIdsByPositionId,
         characteristicsByPositionId:
           positionOutcome.characteristicsByPositionId,
-        rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
       });
     const matchEventsOutcome = await app
       .get(BblMatchEventsImportService)
@@ -147,7 +135,6 @@ async function run(): Promise<ImportResult> {
       positionOutcome.result,
       playerOutcome.result,
       positionRaceErasOutcome.result,
-      positionCharacteristicsOutcome.result,
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,

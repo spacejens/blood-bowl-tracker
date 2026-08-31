@@ -14,7 +14,7 @@ interface BblPositionRace {
  * One position's raw characteristics line, exactly as the page shows it. This
  * is deliberately format-agnostic: a `-` in the Passing cell becomes `null`
  * here, and the decision between `null` and `0` is made later, per target
- * rules set, by BblPositionCharacteristicsImportService.
+ * rules set, by BblPositionRaceErasImportService.
  */
 export interface BblPositionCharacteristics {
   move: number;
