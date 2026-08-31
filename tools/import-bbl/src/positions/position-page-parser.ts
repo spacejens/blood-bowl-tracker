@@ -158,10 +158,14 @@ export class PositionPageParser {
   /**
    * One characteristics cell: parses a plain or `+`-suffixed number (the
    * trailing `+` is display formatting the database does not store),
-   * returning null for anything unparseable.
+   * returning null for anything unparseable. Matches the whole cell text
+   * against the expected shape first — `Number.parseInt` alone would accept
+   * a numeric prefix followed by garbage (e.g. `parseInt('6x', 10) === 6`).
    */
   private parseCharacteristic(text: string): number | null {
-    const parsed = Number.parseInt(text.replace(/\+$/, ''), 10);
-    return Number.isNaN(parsed) ? null : parsed;
+    if (!/^\d+\+?$/.test(text)) {
+      return null;
+    }
+    return Number.parseInt(text, 10);
   }
 }

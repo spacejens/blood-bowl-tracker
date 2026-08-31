@@ -198,6 +198,22 @@ describe('PositionPageParser', () => {
     expect(parser.extractPosition(page)?.characteristics).toBeNull();
   });
 
+  it('returns null characteristics when the values row has fewer than five cells', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<table>' +
+        '<tr class="trlisthead">' +
+        '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr class="trborder">' +
+        '<td>6</td><td>4</td><td>3+</td>' +
+        '</tr>' +
+        '</table>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.characteristics).toBeNull();
+  });
+
   it('ignores other trlisthead tables and reads the MA/ST/AG/PA/AV one', () => {
     const page = positionPage(
       '<h1>Orc Lineman</h1>' +
@@ -240,6 +256,22 @@ describe('PositionPageParser', () => {
         '</tr>' +
         '<tr class="trborder">' +
         '<td>6</td><td>4</td><td>3+</td><td>?</td><td>9+</td><td></td>' +
+        '</tr>' +
+        '</table>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.characteristics).toBeNull();
+  });
+
+  it('rejects a cell with a numeric prefix followed by garbage', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<table>' +
+        '<tr class="trlisthead">' +
+        '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr class="trborder">' +
+        '<td>6x</td><td>4</td><td>3+</td><td>4+</td><td>9+</td><td></td>' +
         '</tr>' +
         '</table>',
       '10',
