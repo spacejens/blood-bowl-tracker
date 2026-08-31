@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
-import { RulesSetSchema, UpsertRulesSetSchema } from './rules-set';
+import {
+  CharacteristicFormatSchema,
+  RulesSetSchema,
+  UpsertRulesSetSchema,
+} from './rules-set';
 
 describe('rules set schemas', () => {
   it('RulesSetSchema parses a valid rules set', () => {
     const parsed = RulesSetSchema.parse({
       id: 1,
       name: 'BB2020',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('BB2020');
@@ -33,5 +42,45 @@ describe('rules set schemas', () => {
       externalIds: [{ externalSystemId: 1, externalId: 'x' }],
     });
     expect(parsed.name).toBeUndefined();
+  });
+
+  it('CharacteristicFormatSchema accepts exactly the three formats', () => {
+    expect(CharacteristicFormatSchema.options).toEqual([
+      'absent',
+      'bare',
+      'plus',
+    ]);
+    expect(() => CharacteristicFormatSchema.parse('plus')).not.toThrow();
+    expect(() => CharacteristicFormatSchema.parse('star')).toThrow();
+  });
+
+  it('RulesSetSchema requires all five characteristic formats', () => {
+    const parsed = RulesSetSchema.parse({
+      id: 1,
+      name: 'BB2020',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(parsed.agilityFormat).toBe('plus');
+    expect(() =>
+      RulesSetSchema.parse({
+        id: 1,
+        name: 'BB2020',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow();
+  });
+
+  it('UpsertRulesSetSchema takes the formats as an optional overlay', () => {
+    const parsed = UpsertRulesSetSchema.parse({
+      passingFormat: 'absent',
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.passingFormat).toBe('absent');
+    expect(parsed.moveFormat).toBeUndefined();
   });
 });

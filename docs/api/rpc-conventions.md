@@ -74,7 +74,7 @@ hand-writes the rest, so the extra procedure stays visible at its own block.
 hand-written — they use a different upsert handler method or return a
 different result shape, and each carries a comment saying so. Those
 permanently hand-written blocks, plus the players SPP-sync procedures,
-`positions.syncRaceEras`, `matches.resolveOutcomes` and
+`positions.syncRaceEras`, `positionRulesSets.sync`, `matches.resolveOutcomes` and
 `competitionGroups.list`, live in
 `rpc-router-factory-hand-written-routes.ts`, which `build()` calls into
 directly, keeping `rpc-router-factory.service.ts` itself under its line
@@ -113,7 +113,7 @@ Not every procedure is upsert-shaped. Some entities instead — or in addition �
 expose a custom procedure that recomputes or syncs already-imported data in
 place rather than importing new records — `sppAwardValues.sync`,
 `matches.resolveOutcomes`,
-`positions.syncRaceEras` and
+`positions.syncRaceEras`, `positionRulesSets.sync` and
 `players.syncScrapedSppAdjustments`/`syncReportedSppAdjustments` are current
 examples of the pattern, not an exhaustive list. Because nothing is being newly
 identified or created, these have no external-id conflict to detect and no
