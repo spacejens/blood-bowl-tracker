@@ -168,6 +168,23 @@ a genuinely new entity.
 }
 ```
 
+### Rules sets
+
+A `rulesSets` entry is `{ name, moveFormat?, strengthFormat?, agilityFormat?,
+passingFormat?, armourFormat?, externalIds }`. The five optional `*Format`
+fields say which position characteristics the rules set has and how each is
+displayed: `'bare'` is a plain number, `'plus'` is a target number a die roll
+has to meet (shown with a trailing "+"), and `'absent'` means the rules set
+has no such characteristic at all. Like every other optional field, an entry
+that omits a format leaves the stored value alone — a rename-only entry can
+still carry just `name` and `externalIds`.
+
+Move and Strength are never target numbers, so their formats are always
+`'bare'` in the curated data. Agility, Passing and Armour became target
+numbers starting with BB2020; the three older rules sets (CRP, CRP+, BB2016)
+have no Passing characteristic at all, so their `passingFormat` is `'absent'`
+rather than `'bare'`.
+
 ### SPP award values
 
 `sppAwardValues` entries seed the standardised Star Player Points award

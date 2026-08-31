@@ -57,6 +57,11 @@ describe('RulesSetsProcessor', () => {
     rulesSets.upsert.mockResolvedValue({
       id: 7,
       name: 'CRP',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'bare',
+      passingFormat: 'absent',
+      armourFormat: 'bare',
       createdAt: new Date(),
       created: true,
     });
@@ -66,7 +71,15 @@ describe('RulesSetsProcessor', () => {
     refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.rulesSets = [
-      { name: 'CRP', externalIds: [{ system: 'Name', id: 'name:crp' }] },
+      {
+        name: 'CRP',
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'bare',
+        passingFormat: 'absent',
+        armourFormat: 'bare',
+        externalIds: [{ system: 'Name', id: 'name:crp' }],
+      },
     ];
     const ctx = makeContext(data);
 
@@ -78,7 +91,15 @@ describe('RulesSetsProcessor', () => {
       ctx.systemIds,
     );
     expect(rulesSets.upsert).toHaveBeenCalledWith(
-      { name: 'CRP', externalIds: cannedExternalIds },
+      {
+        name: 'CRP',
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'bare',
+        passingFormat: 'absent',
+        armourFormat: 'bare',
+        externalIds: cannedExternalIds,
+      },
       ctx.errors,
     );
   });

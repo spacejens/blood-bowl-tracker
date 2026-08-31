@@ -1,4 +1,5 @@
 import {
+  CharacteristicFormatSchema,
   COMPETITION_TYPES,
   ExternalSystemCategorySchema,
   SppEarningActionTypeSchema,
@@ -25,8 +26,22 @@ const ExternalSystemEntrySchema = z.object({
   category: ExternalSystemCategorySchema,
 });
 
+/**
+ * A rules set, plus the configuration saying which position characteristics
+ * it has and how each is displayed. Each format is optional for the same
+ * overlay reason every other entry field is: an entry that says nothing about
+ * characteristics leaves the stored configuration alone. The database
+ * defaults describe the older rules sets, so a rules set an importer creates
+ * without curated formats is still valid — just not necessarily right, which
+ * is why every rules set declared here states all five.
+ */
 const RulesSetEntrySchema = z.object({
   name: z.string().min(1),
+  moveFormat: CharacteristicFormatSchema.optional(),
+  strengthFormat: CharacteristicFormatSchema.optional(),
+  agilityFormat: CharacteristicFormatSchema.optional(),
+  passingFormat: CharacteristicFormatSchema.optional(),
+  armourFormat: CharacteristicFormatSchema.optional(),
   externalIds,
 });
 

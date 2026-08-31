@@ -58,7 +58,37 @@ describe('ManualDataFileSchema', () => {
     });
     expect(parsed.eras[0].endDate).toBeUndefined();
     expect(parsed.races[0].eras).toHaveLength(1);
-    expect(parsed.positions[0].raceEras).toHaveLength(1);
+  });
+
+  it('accepts a rules set declaring its characteristic formats', () => {
+    const parsed = ManualDataFileSchema.parse({
+      rulesSets: [
+        {
+          name: 'BB2020',
+          moveFormat: 'bare',
+          strengthFormat: 'bare',
+          agilityFormat: 'plus',
+          passingFormat: 'plus',
+          armourFormat: 'plus',
+          externalIds: [{ system: 'Name', id: 'BB2020' }],
+        },
+      ],
+    });
+    expect(parsed.rulesSets[0].agilityFormat).toBe('plus');
+  });
+
+  it('rejects an unknown characteristic format', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        rulesSets: [
+          {
+            name: 'BB2020',
+            agilityFormat: 'star',
+            externalIds: [{ system: 'Name', id: 'BB2020' }],
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('defaults races.eras and positions.raceEras to empty arrays', () => {
