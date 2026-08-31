@@ -87,7 +87,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    Expected: exactly `headRefName`. Anything else — stop and report.
 
-4. **Link the plans directory**, so Phase 2's investigation summary is saved outside the worktree and survives its removal. Identical to `develop-feature`'s Setup step 9:
+4. **Link the plans directory**, so Phase 2's investigation summary is saved outside the worktree and survives its removal. Identical to `develop-feature`'s Setup step 10:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
@@ -109,7 +109,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    A failure here is **expected and informative** on this skill's PRs, unlike on `develop-feature`'s: the dependency bump under investigation is itself a plausible cause. Do not stop on it. Record the failure output verbatim — it is Phase 2's first and best evidence — and continue to step 6.
 
-6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 11:
+6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 12:
    ```bash
    node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
