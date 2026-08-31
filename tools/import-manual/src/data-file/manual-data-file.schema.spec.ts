@@ -12,6 +12,7 @@ describe('ManualDataFileSchema', () => {
       eras: [],
       races: [],
       positions: [],
+      positionRulesSets: [],
       coaches: [],
       teams: [],
       competitions: [],
@@ -19,6 +20,59 @@ describe('ManualDataFileSchema', () => {
       trophies: [],
       competitionGroups: [],
     });
+  });
+
+  it('accepts a position/rules-set characteristics entry', () => {
+    const parsed = ManualDataFileSchema.parse({
+      positionRulesSets: [
+        {
+          position: { system: 'Name', id: 'Zombie Lineman' },
+          rulesSet: { system: 'Name', id: 'BB2025' },
+          move: 4,
+          strength: 3,
+          agility: 4,
+          passing: 5,
+          armour: 9,
+        },
+      ],
+    });
+    expect(parsed.positionRulesSets[0].passing).toBe(5);
+  });
+
+  it('defaults the positionRulesSets section to empty', () => {
+    expect(ManualDataFileSchema.parse({}).positionRulesSets).toEqual([]);
+  });
+
+  it('accepts a characteristics entry that omits passing', () => {
+    const parsed = ManualDataFileSchema.parse({
+      positionRulesSets: [
+        {
+          position: { system: 'Name', id: 'Bodyguard' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          move: 6,
+          strength: 3,
+          agility: 3,
+          armour: 8,
+        },
+      ],
+    });
+    expect(parsed.positionRulesSets[0].passing).toBeUndefined();
+  });
+
+  it('rejects a characteristics entry with no rules set', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        positionRulesSets: [
+          {
+            position: { system: 'Name', id: 'Zombie Lineman' },
+            move: 4,
+            strength: 3,
+            agility: 4,
+            armour: 9,
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('accepts a mixed file with an era plus its race and position', () => {
@@ -59,6 +113,37 @@ describe('ManualDataFileSchema', () => {
     expect(parsed.eras[0].endDate).toBeUndefined();
     expect(parsed.races[0].eras).toHaveLength(1);
     expect(parsed.positions[0].raceEras).toHaveLength(1);
+  });
+
+  it('accepts a rules set declaring its characteristic formats', () => {
+    const parsed = ManualDataFileSchema.parse({
+      rulesSets: [
+        {
+          name: 'BB2020',
+          moveFormat: 'bare',
+          strengthFormat: 'bare',
+          agilityFormat: 'plus',
+          passingFormat: 'plus',
+          armourFormat: 'plus',
+          externalIds: [{ system: 'Name', id: 'BB2020' }],
+        },
+      ],
+    });
+    expect(parsed.rulesSets[0].agilityFormat).toBe('plus');
+  });
+
+  it('rejects an unknown characteristic format', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        rulesSets: [
+          {
+            name: 'BB2020',
+            agilityFormat: 'star',
+            externalIds: [{ system: 'Name', id: 'BB2020' }],
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('defaults races.eras and positions.raceEras to empty arrays', () => {

@@ -272,6 +272,11 @@ describe('RpcRouterFactoryService batch upserts', () => {
       rulesSet: {
         id: 1,
         name: 'BB2020',
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'bare',
+        passingFormat: 'plus',
+        armourFormat: 'bare',
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -291,6 +296,11 @@ describe('RpcRouterFactoryService batch upserts', () => {
       {
         id: 1,
         name: 'BB2020',
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'bare',
+        passingFormat: 'plus',
+        armourFormat: 'bare',
         createdAt: new Date('2026-01-01'),
         success: true,
         created: true,

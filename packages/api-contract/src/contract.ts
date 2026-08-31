@@ -41,6 +41,10 @@ import {
   SyncPositionRaceErasSchema,
   UpsertPositionSchema,
 } from './schemas/position';
+import {
+  SyncPositionRulesSetsResultSchema,
+  SyncPositionRulesSetsSchema,
+} from './schemas/position-rules-set';
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
 import {
@@ -107,6 +111,25 @@ export const contract = {
     syncRaceEras: oc
       .input(SyncPositionRaceErasSchema)
       .output(SyncPositionRaceErasResultSchema),
+  },
+  positionRulesSets: {
+    // Not an upsert: a position's characteristics row is keyed by
+    // (positionId, rulesSetId) rather than external ids, so there is no
+    // external-id conflict to detect and no entity+created shape to return,
+    // only the resulting row ids — same shape as sppAwardValues.sync.
+    // BAD_REQUEST is declared because the server rejects characteristics that
+    // disagree with the rules set's declared formats (a supplied Passing for
+    // a rules set that has none, or a missing one where the rules set
+    // requires it); that is authored-data feedback the importer reports per
+    // entry, not a server fault.
+    sync: oc
+      .input(SyncPositionRulesSetsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: "Characteristics do not match the rules set's formats",
+        },
+      })
+      .output(SyncPositionRulesSetsResultSchema),
   },
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),

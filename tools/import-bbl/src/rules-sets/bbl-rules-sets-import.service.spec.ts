@@ -53,6 +53,11 @@ function makeRulesSetRecord(id: number) {
   return {
     id,
     name: 'RulesSet',
+    moveFormat: 'bare' as const,
+    strengthFormat: 'bare' as const,
+    agilityFormat: 'bare' as const,
+    passingFormat: 'bare' as const,
+    armourFormat: 'bare' as const,
     createdAt: new Date('2026-01-01'),
     created: true,
   };

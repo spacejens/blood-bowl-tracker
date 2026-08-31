@@ -1,5 +1,6 @@
 import {
   ActionTypeSchema,
+  CharacteristicFormatSchema,
   COMPETITION_TYPES,
   ConsequenceAvoidedBySchema,
   ConsequenceTypeSchema,
@@ -64,6 +65,7 @@ const dbEnums: ReadonlyArray<readonly [string, EnumLike]> = Object.entries(
  */
 const contractValuesByDbEnum: Record<string, readonly string[]> = {
   actionTypeEnum: ActionTypeSchema.options,
+  characteristicFormatEnum: CharacteristicFormatSchema.options,
   competitionTypeEnum: COMPETITION_TYPES,
   consequenceAvoidedByEnum: ConsequenceAvoidedBySchema.options,
   consequenceTypeEnum: ConsequenceTypeSchema.options,

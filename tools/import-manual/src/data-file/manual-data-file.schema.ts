@@ -1,4 +1,5 @@
 import {
+  CharacteristicFormatSchema,
   COMPETITION_TYPES,
   ExternalSystemCategorySchema,
   SppEarningActionTypeSchema,
@@ -25,8 +26,22 @@ const ExternalSystemEntrySchema = z.object({
   category: ExternalSystemCategorySchema,
 });
 
+/**
+ * A rules set, plus the configuration saying which position characteristics
+ * it has and how each is displayed. Each format is optional for the same
+ * overlay reason every other entry field is: an entry that says nothing about
+ * characteristics leaves the stored configuration alone. The database
+ * defaults describe the older rules sets, so a rules set an importer creates
+ * without curated formats is still valid — just not necessarily right, which
+ * is why every rules set declared here states all five.
+ */
 const RulesSetEntrySchema = z.object({
   name: z.string().min(1),
+  moveFormat: CharacteristicFormatSchema.optional(),
+  strengthFormat: CharacteristicFormatSchema.optional(),
+  agilityFormat: CharacteristicFormatSchema.optional(),
+  passingFormat: CharacteristicFormatSchema.optional(),
+  armourFormat: CharacteristicFormatSchema.optional(),
   externalIds,
 });
 
@@ -60,6 +75,24 @@ const PositionEntrySchema = z.object({
   isStarPlayer: z.boolean().optional(),
   raceEras: z.array(RaceEraRefSchema).default([]),
   externalIds,
+});
+
+/**
+ * One position's characteristics under one rules set. `passing` is optional
+ * because the three older rules sets have no Passing characteristic at all;
+ * the processor sends an omitted value as an explicit null, which the API
+ * validates against the rules set's declared passingFormat — supplying a
+ * value a rules set does not have, or omitting one it requires, is rejected
+ * there rather than silently stored.
+ */
+const PositionRulesSetEntrySchema = z.object({
+  position: ExternalRefSchema,
+  rulesSet: ExternalRefSchema,
+  move: z.number().int(),
+  strength: z.number().int(),
+  agility: z.number().int(),
+  passing: z.number().int().optional(),
+  armour: z.number().int(),
 });
 
 const CoachEntrySchema = z.object({
@@ -165,6 +198,7 @@ export const ManualDataFileSchema = z
     eras: z.array(EraEntrySchema).default([]),
     races: z.array(RaceEntrySchema).default([]),
     positions: z.array(PositionEntrySchema).default([]),
+    positionRulesSets: z.array(PositionRulesSetEntrySchema).default([]),
     coaches: z.array(CoachEntrySchema).default([]),
     teams: z.array(TeamEntrySchema).default([]),
     competitions: z.array(CompetitionEntrySchema).default([]),
@@ -176,4 +210,5 @@ export const ManualDataFileSchema = z
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
+export type PositionRulesSetEntry = z.infer<typeof PositionRulesSetEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;

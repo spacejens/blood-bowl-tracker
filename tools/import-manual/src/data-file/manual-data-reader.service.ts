@@ -61,6 +61,7 @@ export class ManualDataReader {
       eras: [],
       races: [],
       positions: [],
+      positionRulesSets: [],
       coaches: [],
       teams: [],
       competitions: [],
@@ -78,6 +79,7 @@ export class ManualDataReader {
       pooled.eras.push(...file.eras);
       pooled.races.push(...file.races);
       pooled.positions.push(...file.positions);
+      pooled.positionRulesSets.push(...file.positionRulesSets);
       pooled.coaches.push(...file.coaches);
       pooled.teams.push(...file.teams);
       pooled.competitions.push(...file.competitions);

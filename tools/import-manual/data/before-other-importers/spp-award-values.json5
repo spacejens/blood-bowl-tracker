@@ -37,13 +37,49 @@
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
   ],
 
+  // Each rules set also declares which position characteristics it has and how
+  // each is displayed: 'bare' is a plain number, 'plus' a target a die roll has
+  // to meet (shown with a trailing "+"), 'absent' means the rules set has no
+  // such characteristic. Move and Strength are never target numbers; Agility,
+  // Passing and Armour became target numbers in BB2020, and the three older
+  // rules sets have no Passing characteristic at all.
   rulesSets: [
-    { name: 'CRP', externalIds: [{ system: 'Name', id: 'CRP' }] },
-    { name: 'CRP+', externalIds: [{ system: 'Name', id: 'CRP+' }] },
-    { name: 'BB2016', externalIds: [{ system: 'Name', id: 'BB2016' }] },
-    { name: 'BB2020', externalIds: [{ system: 'Name', id: 'BB2020' }] },
-    { name: 'DB2021', externalIds: [{ system: 'Name', id: 'DB2021' }] },
-    { name: 'BB2025', externalIds: [{ system: 'Name', id: 'BB2025' }] },
+    {
+      name: 'CRP',
+      moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'bare',
+      passingFormat: 'absent', armourFormat: 'bare',
+      externalIds: [{ system: 'Name', id: 'CRP' }],
+    },
+    {
+      name: 'CRP+',
+      moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'bare',
+      passingFormat: 'absent', armourFormat: 'bare',
+      externalIds: [{ system: 'Name', id: 'CRP+' }],
+    },
+    {
+      name: 'BB2016',
+      moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'bare',
+      passingFormat: 'absent', armourFormat: 'bare',
+      externalIds: [{ system: 'Name', id: 'BB2016' }],
+    },
+    {
+      name: 'BB2020',
+      moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'plus',
+      passingFormat: 'plus', armourFormat: 'plus',
+      externalIds: [{ system: 'Name', id: 'BB2020' }],
+    },
+    {
+      name: 'DB2021',
+      moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'plus',
+      passingFormat: 'plus', armourFormat: 'plus',
+      externalIds: [{ system: 'Name', id: 'DB2021' }],
+    },
+    {
+      name: 'BB2025',
+      moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'plus',
+      passingFormat: 'plus', armourFormat: 'plus',
+      externalIds: [{ system: 'Name', id: 'BB2025' }],
+    },
   ],
 
   sppAwardValues: [

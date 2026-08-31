@@ -69,6 +69,11 @@ export type {
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
+export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
+export {
+  PositionRulesSetFormatMismatchError,
+  PositionRulesSetsService,
+} from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
 export type { SyncPositionRaceErasData } from './positions/positions.service';
 export {

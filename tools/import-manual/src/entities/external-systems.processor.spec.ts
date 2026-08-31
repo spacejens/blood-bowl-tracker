@@ -15,6 +15,7 @@ function emptyData(): ManualDataFile {
     eras: [],
     races: [],
     positions: [],
+    positionRulesSets: [],
     coaches: [],
     teams: [],
     competitions: [],

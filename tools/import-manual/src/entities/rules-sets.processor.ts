@@ -17,6 +17,11 @@ export class RulesSetsProcessor {
       const upserted = await this.rulesSetsImport.upsert(
         {
           name: entry.name,
+          moveFormat: entry.moveFormat,
+          strengthFormat: entry.strengthFormat,
+          agilityFormat: entry.agilityFormat,
+          passingFormat: entry.passingFormat,
+          armourFormat: entry.armourFormat,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

@@ -310,6 +310,22 @@ directly, which takes precedence even if `computeSppValue` is also set.
 `before-other-importers` phase, so the table exists before any BBL or TP
 match data is imported.
 
+`rules_sets` also carries five `characteristic_format` columns
+(`move_format`, `strength_format`, `agility_format`, `passing_format`,
+`armour_format`), which say whether the rules set has each position
+characteristic at all and how it is displayed: `absent` (no such
+characteristic — only ever Passing, in the pre-BB2020 rules sets), `bare` (a
+plain number) or `plus` (a trailing "+", the value being a target a die roll
+has to meet).
+
+`position_rules_sets` is the position × rules-set association, holding that
+position's Move, Strength, Agility, Passing and Armour under that rules set,
+keyed by `(position_id, rules_set_id)`. `passing` is nullable, for rules sets
+whose `passing_format` is `absent`. A missing row means the position did not
+exist under that rules set. `PositionRulesSetsService.sync` in
+`packages/game-data` is the single place that writes it, and it rejects any
+row whose values disagree with the rules set's declared formats.
+
 ## Discord bot user-facing messages
 
 Every error or status message the Discord bot can send to a user lives in
