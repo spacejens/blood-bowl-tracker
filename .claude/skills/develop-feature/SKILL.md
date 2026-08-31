@@ -86,7 +86,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      ```
 
      `first: 100` comfortably covers any realistic sub-issue count for this repo. Exclude `<N>` itself from the returned set — an issue is not its own sibling. Only the direct sub-issues of the parent are fetched; nested sub-issue trees are out of scope.
-   - Print one line per remaining sibling, in the same style as the comment surfacing in step 3: number, state, an `in progress` marker when that label is present on the sibling, and title. For example:
+   - Print a header line naming the parent's number and title (from the `parent` field's own `number` and `title`), then one line per remaining sibling: number, state, an `in progress` marker when that label is present on the sibling, and title — informational output in the same spirit as the comment surfacing in step 3. For example:
 
      ```text
      Sibling sub-issues under #666 "Import and show position and player characteristics":
