@@ -62,10 +62,9 @@ in as another data-type module without touching the harness services.
       limit.
 
    The random-sample stratum excludes star players outright: today's data model
-   gives a popular star their own `players` row per team that induces them (see
-   [issue #245](https://github.com/spacejens/blood-bowl-tracker/issues/245)), so an
-   unbounded stratum would be dominated by the same few stars appearing many times
-   over. The discrepancy stratum excludes only the narrower case of a star player
+   gives a popular star their own `players` row per team that induces them, so
+   an unbounded stratum would be dominated by the same few stars appearing
+   many times over. The discrepancy stratum excludes only the narrower case of a star player
    with no stored total at all — an induced star player often has none, which would
    always be a "disagreement" by definition, not a real one worth flagging — but
    still includes a star player who does carry a real stored total, since excluding

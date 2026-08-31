@@ -55,8 +55,7 @@ the sr page's "Team trophy" table:` and the trophy legend note in
 `trophies_external_ids` therefore needs the competition group each award
 belongs to.
 
-Competition groups arrived with issue #445, and issue #446 used them to key
-TP trophy external ids as `${disambiguator}-${groupName}` — the same
+TP trophy external ids are keyed as `${disambiguator}-${groupName}` — the same
 hyphen-joined composite BBL positions use (`${typId}-${race.bblId}`). The
 disambiguator is the award's `name` field when present (`Best Stunty`,
 `Wooden Spoon`, which share one numeric code within a file) and the numeric

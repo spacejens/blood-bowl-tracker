@@ -170,8 +170,8 @@ a genuinely new entity.
 
 ### SPP award values
 
-`sppAwardValues` entries seed the standardised Star Player Points award table
-(issue #379). Each entry is `{ rulesSet, race?, actionType, sppValue }`:
+`sppAwardValues` entries seed the standardised Star Player Points award
+table. Each entry is `{ rulesSet, race?, actionType, sppValue }`:
 `rulesSet` is an external-id pair pointing at a rules set, `race` is an
 optional external-id pair pointing at a race, `actionType` is one of the
 action types that award Star Player Points (not every match-event action
@@ -183,9 +183,9 @@ section is processed after the rules sets and races it references.
 
 ### Competition groups
 
-`competitionGroups` entries seed the curated competition-group catalog
-(issue #445) — the recurring track a competition instance belongs to (Major
-Season, Chaos Cup, Ogretoberfest, etc.). Each entry is `{ name, league }`:
+`competitionGroups` entries seed the curated competition-group catalog — the
+recurring track a competition instance belongs to (Major Season, Chaos Cup,
+Ogretoberfest, etc.). Each entry is `{ name, league }`:
 `league` is an external-id pair pointing at the group's owning league. An
 entry declares no `externalIds` of its own, but the importer derives one for
 it: the group's `name` under the synthetic `Name` external system, exactly
@@ -227,7 +227,7 @@ carries a name, because that phase creates the rows.
 
 ### Trophies
 
-`trophies` entries seed the curated trophy catalog (issue #342). Each entry
+`trophies` entries seed the curated trophy catalog. Each entry
 is `{ name, recipientKind, description?, competitionGroup?, league?,
 externalIds }`: `recipientKind` is either `team` or `player`, and
 `competitionGroup` names the competition group (see above) the trophy is
@@ -242,12 +242,12 @@ import error. This section is processed after the leagues and competition
 groups it references.
 
 Trophies deliberately carry no shared `Name` external id, the same precedent
-set for competitions in issue #285: labels like `1st` are ambiguous across
-competition tiers, so identity is a curation decision rather than something
-inferred from label text alone.
+set for competitions: labels like `1st` are ambiguous across competition
+tiers, so identity is a curation decision rather than something inferred
+from label text alone.
 
 Every trophy TP has been observed to award carries a `tourplay.net` external
-id (issue #446), keyed `${disambiguator}-${groupName}`: the raw TP award's
+id, keyed `${disambiguator}-${groupName}`: the raw TP award's
 `name` when present (`Best Stunty`, `Wooden Spoon`) else its numeric
 `awardType` (`1`, `2`, `3`), hyphen-joined with the trophy's competition
 group name — because TP's `awardType` codes are not globally unique per
@@ -263,13 +263,13 @@ records the BBL and TP importers would otherwise create as separate,
 duplicate rows because the two source systems name or key the same
 real-world entity differently:
 
-- `leagues.json5` — the two real leagues, tLoEG and GBBL (issue #445). This
+- `leagues.json5` — the two real leagues, tLoEG and GBBL. This
   file exists ahead of the BBL/TP importers so `competition-groups.json5` (see
   below) has a league to reference. Its external ids deliberately match BBL's
   own `tloeg.bbleague.se` convention exactly, so BBL's later league upsert
   resolves onto these same rows instead of creating duplicates.
-- `competition-groups.json5` — the curated catalog of competition groups
-  (issue #445): the recurring tracks (Major Season, Minor Season, Chaos Cup,
+- `competition-groups.json5` — the curated catalog of competition groups:
+  the recurring tracks (Major Season, Minor Season, Chaos Cup,
   Ogretoberfest, and so on) that `competitions.json5` and `trophies.json5`
   classify instances and trophies into. Not a dedup file in the usual sense —
   like `trophies.json5`, nothing else creates competition groups, so this is
@@ -280,7 +280,7 @@ real-world entity differently:
   exists here purely so `competitions.json5` in the same phase has an era to
   reference.
 - `competitions.json5` — all 86 known competition instances, each with its
-  curated [competition group](#competition-groups) (issue #445) and the real
+  curated [competition group](#competition-groups) and the real
   data needed to create the row. Classification has to happen
   here, ahead of the BBL and TP importers, because `tools/import-tp`'s awards
   import resolves a trophy by the competition's group name. Renaming stays in
@@ -302,10 +302,10 @@ real-world entity differently:
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a
   wrong guess would silently conflate two different star players' rows.
 - `spp-award-values.json5` — the standardised SPP award table, plus the
-  rules-set rows it references — see issue #379. It declares rules sets under
+  rules-set rows it references. It declares rules sets under
   the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
   BBL/TP importers' later upserts match the same rows.
-- `trophies.json5` — the curated catalog of known trophies (issue #342),
+- `trophies.json5` — the curated catalog of known trophies,
   split between team and player recipients, from BBL's own `p=tt`/`p=ppr`
   legend pages plus the TP-only Ogretoberfest and the three Dungeon Bowl
   placements. 12 of the player entries are group-scoped duplicates of a BBL
@@ -344,7 +344,7 @@ tools/import-manual/data/after-other-importers/
 ```
 
 Both subdirectories, and the `.json5` files in them, are **committed to git**
-(issue #352) — unlike `tools/import-bbl/data` and `tools/import-tp/data`, which
+— unlike `tools/import-bbl/data` and `tools/import-tp/data`, which
 hold bulky regenerable scrapes and stay gitignored. A fresh checkout or a new
 worktree therefore already has the reconciled dataset: there is nothing to
 create by hand and nothing to sync in from another checkout, and edits to it go
