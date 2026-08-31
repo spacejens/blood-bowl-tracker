@@ -107,9 +107,20 @@ export const contract = {
     // Not an upsert: this adds position-race-era availability links without
     // ever removing or overwriting existing ones (see
     // PositionsService.syncRaceEras), so there's no conflict to detect and
-    // no entity+created shape to return — just the resulting link ids.
+    // no entity+created shape to return — just the resulting link ids. An
+    // entry may also carry that position's characteristics for the race era;
+    // BAD_REQUEST is declared because the server rejects characteristics
+    // that disagree with the named rules set's declared formats (a supplied
+    // Passing for a rules set that has none, or a missing one where the
+    // rules set requires it), which is authored-data feedback the importer
+    // reports, not a server fault.
     syncRaceEras: oc
       .input(SyncPositionRaceErasSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: "Characteristics do not match the rules set's formats",
+        },
+      })
       .output(SyncPositionRaceErasResultSchema),
   },
   positionRulesSets: {
