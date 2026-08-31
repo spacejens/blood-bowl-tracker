@@ -1,3 +1,4 @@
+import type { RulesSet } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -16,6 +17,8 @@ export interface SyncPositionRaceErasOptions {
     { isStarPlayer: boolean; raceDbIds: Set<number> }
   >;
   racesByBblId: Map<string, { id: number; name: string }>;
+  /** Every rules set the rules-sets step upserted, with its declared formats. */
+  rulesSetsByName: Map<string, RulesSet>;
   eraIdsByRaceId: Map<number, Set<number>>;
   positionsUsedByEra: Set<string>;
   racesActiveByEra: Set<string>;
@@ -46,12 +49,24 @@ export class BblPositionRaceErasImportService {
   async syncPositionRaceEras({
     positionRaceCandidates,
     racesByBblId,
+    rulesSetsByName,
     eraIdsByRaceId,
     positionsUsedByEra,
     racesActiveByEra,
-  }: SyncPositionRaceErasOptions): Promise<{ result: ImportResult }> {
+  }: SyncPositionRaceErasOptions): Promise<{
+    result: ImportResult;
+    rulesSetIdsByPositionId: Map<number, Set<number>>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    // Which rules sets each position gets a characteristics row for. This is
+    // a stricter subset of the race-era availability decided below: it
+    // requires positive evidence the position was actually played (a
+    // config override, a star player, or an observed use), never the
+    // race-era "no team fielded this race in this era" fallback, which would
+    // otherwise fabricate a specific characteristics line for a (position,
+    // rules set) pair with no evidence at all.
+    const rulesSetIdsByPositionId = new Map<number, Set<number>>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
@@ -60,7 +75,10 @@ export class BblPositionRaceErasImportService {
     );
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: this.importResults.result({ imported, errors }) };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        rulesSetIdsByPositionId,
+      };
     }
     const [bblSystemId] = bootstrap.ids;
 
@@ -84,6 +102,37 @@ export class BblPositionRaceErasImportService {
       );
       if (id !== undefined) {
         eraIdsByName.set(name, id);
+      }
+    }
+
+    // Era db id -> the rules sets that era spans. An era covering a rules-set
+    // change (e.g. CRP, CRP+, BB2016) yields one entry per rules set, each of
+    // which gets the same scraped characteristics — BBL has no other source
+    // for the older ones.
+    const rulesSetIdsByEraId = new Map<number, Set<number>>();
+    const unresolvedRulesSetsByEraId = new Map<number, Set<string>>();
+    for (const era of eras) {
+      const eraId = eraIdsByName.get(era.identity.name);
+      if (eraId === undefined) {
+        continue;
+      }
+      let ids = rulesSetIdsByEraId.get(eraId);
+      if (!ids) {
+        ids = new Set<number>();
+        rulesSetIdsByEraId.set(eraId, ids);
+      }
+      for (const name of era.identity.rulesSets) {
+        const rulesSet = rulesSetsByName.get(name);
+        if (rulesSet === undefined) {
+          let missing = unresolvedRulesSetsByEraId.get(eraId);
+          if (!missing) {
+            missing = new Set<string>();
+            unresolvedRulesSetsByEraId.set(eraId, missing);
+          }
+          missing.add(name);
+          continue;
+        }
+        ids.add(rulesSet.id);
       }
     }
 
@@ -143,25 +192,69 @@ export class BblPositionRaceErasImportService {
     for (const [positionId, candidate] of positionRaceCandidates) {
       const overrides = overridesByPositionId.get(positionId);
       const raceEras: { raceId: number; eraId: number }[] = [];
+      const characteristicsEraIds = new Set<number>();
       for (const raceId of candidate.raceDbIds) {
         for (const eraId of eraIdsByRaceId.get(raceId) ?? []) {
           const key = `${raceId}:${eraId}`;
           const override = overrides?.get(key);
           let include: boolean;
+          let includeForCharacteristics: boolean;
           if (override !== undefined) {
             include = override;
+            includeForCharacteristics = override;
           } else if (candidate.isStarPlayer) {
             include = true;
+            includeForCharacteristics = true;
           } else if (positionsUsedByEra.has(`${positionId}:${eraId}`)) {
             include = true;
+            includeForCharacteristics = true;
           } else {
+            // Characteristics require positive evidence the position was
+            // actually played under a rules set. "No team fielded this race
+            // in this era, so treat it as available" is a reasonable default
+            // for general race-era availability (see the class doc
+            // comment), but it would fabricate a specific characteristics
+            // line for a (position, rules set) pair with no evidence at all
+            // — worse than carrying none. Issue #670 fills these back in by
+            // hand, including under BB2020 itself, once real evidence
+            // exists.
             include = !racesActiveByEra.has(key);
+            includeForCharacteristics = false;
           }
           if (include) {
             raceEras.push({ raceId, eraId });
           }
+          if (includeForCharacteristics) {
+            characteristicsEraIds.add(eraId);
+          }
         }
       }
+      const rulesSetIds = new Set<number>();
+      const missingNames = new Set<string>();
+      for (const eraId of characteristicsEraIds) {
+        for (const id of rulesSetIdsByEraId.get(eraId) ?? []) {
+          rulesSetIds.add(id);
+        }
+        for (const name of unresolvedRulesSetsByEraId.get(eraId) ?? []) {
+          missingNames.add(name);
+        }
+      }
+      if (missingNames.size > 0) {
+        errors.push(
+          this.importResults.error({
+            item: { positionId, rulesSets: [...missingNames] },
+            message: `Could not resolve rules set(s) ${[...missingNames]
+              .map((name) => `"${name}"`)
+              .join(
+                ', ',
+              )} for position ${positionId}: not upserted by the rules sets step`,
+          }),
+        );
+      }
+      if (rulesSetIds.size > 0) {
+        rulesSetIdsByPositionId.set(positionId, rulesSetIds);
+      }
+
       const result = await this.positionsImport.syncRaceEras(
         { positionId, raceEras },
         errors,
@@ -171,6 +264,9 @@ export class BblPositionRaceErasImportService {
       }
     }
 
-    return { result: this.importResults.result({ imported, errors }) };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      rulesSetIdsByPositionId,
+    };
   }
 }
