@@ -96,6 +96,7 @@ describe('ManualDataFileSchema', () => {
     });
     expect(parsed.eras[0].endDate).toBeUndefined();
     expect(parsed.races[0].eras).toHaveLength(1);
+    expect(parsed.positions[0].raceEras).toHaveLength(1);
   });
 
   it('accepts a rules set declaring its characteristic formats', () => {
