@@ -333,7 +333,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    EOF
    )"
    ```
-   Use the kind label(s) recorded in Phase 1 step 6 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
+   Use the kind label(s) recorded in Phase 1 step 7 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
 
    **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
    ```bash
