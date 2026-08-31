@@ -251,20 +251,22 @@ export class WaitForPrReviewFiltersService {
    * one of the two, and the wait alternates between them forever. Preventing
    * the double match here keeps the two id spaces disjoint, and leaves the
    * rolling detector's content fingerprint free to keep distinguishing a
-   * genuinely new rate-limit edit from an already-seen one. Two consequences
-   * follow: if the REST call behind `rateLimitEditFilter` fails or times out
-   * on a given poll, this exclusion means the GraphQL path no longer reports
-   * that rate limit either, so the poll simply finds nothing and the wait
-   * continues to its next poll (or eventual timeout) rather than losing
-   * correctness, since a later poll's REST call can still succeed; and
-   * because this exclusion matches on the start marker alone while
-   * `rateLimitEditFilter` requires a *paired* start-and-end marker plus a
-   * phrase match against the extracted section, a comment carrying the start
-   * marker without its matching end marker (e.g. a body truncated mid-edit)
-   * is excluded here but may not be positively matched by the REST side
-   * either — a narrow case neither detector catches on that poll, which is
-   * acceptable because the fail-safe direction is always "wait continues /
-   * eventually times out", never a false positive.
+   * genuinely new rate-limit edit from an already-seen one.
+   *
+   * Two consequences follow, both acceptable because the fail-safe direction
+   * is always "wait continues / eventually times out", never a false
+   * positive:
+   * - If the REST call behind `rateLimitEditFilter` fails or times out on a
+   *   given poll, this exclusion means the GraphQL path no longer reports
+   *   that rate limit either, so the poll simply finds nothing and the wait
+   *   continues to its next poll (or eventual timeout) rather than losing
+   *   correctness, since a later poll's REST call can still succeed.
+   * - This exclusion matches on the start marker alone, while
+   *   `rateLimitEditFilter` requires a *paired* start-and-end marker plus a
+   *   phrase match against the extracted section — so a comment carrying the
+   *   start marker without its matching end marker (e.g. a body truncated
+   *   mid-edit) is excluded here but may not be positively matched by the
+   *   REST side either, a narrow case neither detector catches on that poll.
    */
   private rateLimitFilter(options: WaitForPrReviewFilterOptions): string {
     const excludeClause =
@@ -318,7 +320,7 @@ export class WaitForPrReviewFiltersService {
   }
 
   /**
-   * Deliberately CodeRabbit-specific, structurally identical to
+   * Deliberately CodeRabbit-specific, structurally near-identical to
    * `rateLimitFilter` and `commentUpdateFailedFilter` — same `.comments[]`
    * source, same author-login narrowing, same watermark bound, same
    * `RECENT_REVIEW_START_MARKER` exclusion. Unlike those two, this signal
