@@ -1,4 +1,7 @@
-import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
+import type {
+  RulesSet,
+  UpsertRulesSet,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -34,9 +37,14 @@ export class BblRulesSetsImportService {
    */
   async importRulesSets(): Promise<{
     result: ImportResult;
+    rulesSetsByName: Map<string, RulesSet>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    // Each upsert already answers with the full RulesSet, formats included, so
+    // the characteristics import downstream needs no extra round trip to learn
+    // a target rules set's passingFormat.
+    const rulesSetsByName = new Map<string, RulesSet>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
@@ -56,6 +64,7 @@ export class BblRulesSetsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
+        rulesSetsByName,
       };
     }
 
@@ -67,6 +76,7 @@ export class BblRulesSetsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
+        rulesSetsByName,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -85,11 +95,13 @@ export class BblRulesSetsImportService {
       const rulesSet = await this.rulesSetsImport.upsert(rulesSetData, errors);
       if (rulesSet) {
         imported += 1;
+        rulesSetsByName.set(name, rulesSet);
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
+      rulesSetsByName,
     };
   }
 }

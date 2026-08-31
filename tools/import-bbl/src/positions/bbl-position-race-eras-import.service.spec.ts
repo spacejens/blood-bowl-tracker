@@ -23,6 +23,29 @@ function makeEra(overrides: Partial<EraConfig> = {}): EraConfig {
   };
 }
 
+/** A RulesSet record as the rules-sets step returns it; only id/name/passingFormat matter here. */
+function makeRulesSet(
+  id: number,
+  name: string,
+  passingFormat: 'absent' | 'bare' | 'plus' = 'plus',
+) {
+  return {
+    id,
+    name,
+    moveFormat: 'bare' as const,
+    strengthFormat: 'bare' as const,
+    agilityFormat: 'plus' as const,
+    passingFormat,
+    armourFormat: 'plus' as const,
+    createdAt: new Date('2026-01-01'),
+  };
+}
+
+const rulesSetsByName = new Map([
+  ['Living rulebook', makeRulesSet(10, 'Living rulebook', 'absent')],
+  ['BB2020', makeRulesSet(20, 'BB2020', 'plus')],
+]);
+
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
  * ImportResultService's own `success: errors.length === 0` derivation is
@@ -135,6 +158,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -165,6 +189,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -195,6 +220,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -231,6 +257,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -258,6 +285,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -285,6 +313,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -312,6 +341,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -321,6 +351,40 @@ describe('BblPositionRaceErasImportService', () => {
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
       expect.any(Array),
     );
+  });
+
+  it('gives no characteristics rules sets for an era included only via the no-teams-at-all fallback', async () => {
+    const { service, mocks } = await makeService([makeEra()]);
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+    const positionsUsedByEra = new Set<string>();
+    const racesActiveByEra = new Set<string>();
+    mocks.positionsImport.syncRaceEras.mockResolvedValue({
+      positionId: 100,
+      raceEraIds: [1],
+    });
+
+    const outcome = await service.syncPositionRaceEras({
+      positionRaceCandidates,
+      racesByBblId,
+      rulesSetsByName,
+      eraIdsByRaceId,
+      positionsUsedByEra,
+      racesActiveByEra,
+    });
+
+    // syncRaceEras still gets the era: general race-era availability is
+    // unaffected by the stricter characteristics eligibility check.
+    expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
+      expect.any(Array),
+    );
+    // But the characteristics projection gets nothing: there is no positive
+    // evidence (override, star player, or observed use) the position was
+    // ever played under this era's rules set.
+    expect(outcome.rulesSetIdsByPositionId.has(100)).toBe(false);
   });
 
   it('excludes an era where a config override says available:false, even though a player used it', async () => {
@@ -344,6 +408,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -376,6 +441,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
@@ -406,6 +472,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -437,6 +504,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -467,6 +535,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -494,6 +563,7 @@ describe('BblPositionRaceErasImportService', () => {
     await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
@@ -519,11 +589,94 @@ describe('BblPositionRaceErasImportService', () => {
     const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
       racesByBblId,
+      rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
       racesActiveByEra: new Set(),
     });
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('returns every rules set of a multi-rules-set era for an available position', async () => {
+    const eras = [
+      makeEra({
+        identity: {
+          name: 'Living rulebook',
+          rulesSets: ['Living rulebook', 'BB2020'],
+        },
+      }),
+    ];
+    const { service, mocks } = await makeService(eras);
+    mocks.positionsImport.syncRaceEras.mockResolvedValue({
+      positionId: 100,
+      raceEraIds: [1],
+    });
+
+    const outcome = await service.syncPositionRaceEras({
+      positionRaceCandidates: new Map([
+        [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+      ]),
+      racesByBblId,
+      rulesSetsByName,
+      eraIdsByRaceId: new Map([[7, new Set([500])]]),
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    expect(outcome.rulesSetIdsByPositionId).toEqual(
+      new Map([[100, new Set([10, 20])]]),
+    );
+  });
+
+  it('omits a position with no determined availability', async () => {
+    const { service } = await makeService([makeEra()]);
+
+    const outcome = await service.syncPositionRaceEras({
+      positionRaceCandidates: new Map([
+        [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
+      ]),
+      racesByBblId,
+      rulesSetsByName,
+      // The race is in no era at all, so no raceEras are produced.
+      eraIdsByRaceId: new Map(),
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    expect(outcome.rulesSetIdsByPositionId.size).toBe(0);
+  });
+
+  it('records a per-position error when an era names an unimported rules set', async () => {
+    const eras = [
+      makeEra({
+        identity: { name: 'Living rulebook', rulesSets: ['Nonexistent'] },
+      }),
+    ];
+    const { service, mocks } = await makeService(eras);
+    mocks.positionsImport.syncRaceEras.mockResolvedValue({
+      positionId: 100,
+      raceEraIds: [1],
+    });
+
+    const outcome = await service.syncPositionRaceEras({
+      positionRaceCandidates: new Map([
+        [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+      ]),
+      racesByBblId,
+      rulesSetsByName,
+      eraIdsByRaceId: new Map([[7, new Set([500])]]),
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    expect(outcome.rulesSetIdsByPositionId.size).toBe(0);
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { positionId: 100, rulesSets: ['Nonexistent'] },
+        message:
+          'Could not resolve rules set(s) "Nonexistent" for position 100: not upserted by the rules sets step',
+      },
+    ]);
   });
 });

@@ -36,8 +36,8 @@ code** — the code is the source of truth at that point.
 ## Page types seen in the reference dataset
 
 Fully handled in code (no notes needed): `tm` (team pages — coach and race
-extraction), `pt` (position/player-type pages — name, "Can play for" races, and
-star marker), `tl` (master race-list page — see the note below).
+extraction), `pt` (position/player-type pages — name, "Can play for" races,
+star marker, and the MA/ST/AG/PA/AV characteristics line), `tl` (master race-list page — see the note below).
 
 Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
 scorers, and sendings-off). Per-match **identity** (BBL id, date, competition)
@@ -55,6 +55,15 @@ means there is no race to assign the position to. A page may also carry a
 `None (star player)` skill-category cell, which marks the position as a star
 player. Star players and a few ordinary positions list no race under "Can play
 for"; their race(s) are recovered from player pages instead.
+
+A `pt` page also carries a characteristics table: a header row reading
+`MA`/`ST`/`AG`/`PA`/`AV`/`Skills` followed immediately by one row of values.
+Several tables on the page use the same row class, so the characteristics
+table is found by its header text. `AG`/`PA`/`AV` values carry a trailing
+`+` (display formatting, stripped on import — the database stores plain
+numbers), and a `PA` cell reading `-` means the position has no Passing
+ability. That `-` is not confined to pre-BB2020 positions: "Big Guy"
+positions such as Kroxigor and Ogre show it under the current rules too.
 
 Note on `pl` pages: only two links are read — the player's position
 (`default.asp?p=pt&typID=<id>`) and team (`default.asp?p=tm&t=<code>`). This is

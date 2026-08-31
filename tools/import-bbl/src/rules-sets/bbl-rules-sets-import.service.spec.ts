@@ -246,7 +246,7 @@ describe('BblRulesSetsImportService', () => {
         (c) => !('races' in (c[0] as Record<string, unknown>)),
       ),
     ).toBe(true);
-    expect('rulesSetsByName' in outcome).toBe(false);
+    expect(outcome.rulesSetsByName.size).toBe(3);
     expect(resultArgs(mocks.importResults).imported).toBe(3);
   });
 
@@ -316,5 +316,50 @@ describe('BblRulesSetsImportService', () => {
     const { result } = await service.importRulesSets();
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('returns each upserted rules set keyed by name, carrying its formats', async () => {
+    const eras: EraConfig[] = [
+      {
+        identity: { name: 'First era', rulesSets: ['CRP', 'BB2020'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+      },
+    ];
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.rulesSetsImport.upsert
+      .mockResolvedValueOnce({
+        ...makeRulesSetRecord(10),
+        name: 'CRP',
+        passingFormat: 'absent' as const,
+      })
+      .mockResolvedValueOnce({
+        ...makeRulesSetRecord(20),
+        name: 'BB2020',
+        passingFormat: 'plus' as const,
+      });
+
+    const outcome = await service.importRulesSets();
+
+    expect(outcome.rulesSetsByName.get('CRP')?.id).toBe(10);
+    expect(outcome.rulesSetsByName.get('CRP')?.passingFormat).toBe('absent');
+    expect(outcome.rulesSetsByName.get('BB2020')?.id).toBe(20);
+    expect(outcome.rulesSetsByName.get('BB2020')?.passingFormat).toBe('plus');
+  });
+
+  it('omits a rules set whose upsert failed from the returned map', async () => {
+    const eras: EraConfig[] = [
+      {
+        identity: { name: 'First era', rulesSets: ['CRP'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+      },
+    ];
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.rulesSetsImport.upsert.mockResolvedValue(undefined);
+
+    const outcome = await service.importRulesSets();
+
+    expect(outcome.rulesSetsByName.size).toBe(0);
   });
 });
