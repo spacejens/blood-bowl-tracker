@@ -12,7 +12,10 @@ import { PlayerPageParser } from '../players/player-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
-import { PositionPageParser } from './position-page-parser';
+import {
+  type BblPositionCharacteristics,
+  PositionPageParser,
+} from './position-page-parser';
 
 const POSITION_PAGE_TYPE = 'pt';
 const PLAYER_PAGE_TYPE = 'pl';
@@ -94,6 +97,7 @@ export class BblPositionsImportService {
       number,
       { isStarPlayer: boolean; raceDbIds: Set<number> }
     >;
+    characteristicsByPositionId: Map<number, BblPositionCharacteristics>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -118,6 +122,25 @@ export class BblPositionsImportService {
       }
     };
 
+    const characteristicsByPositionId = new Map<
+      number,
+      BblPositionCharacteristics
+    >();
+    /**
+     * A position upserted for several races produces several rows, all sharing
+     * the one characteristics line its page showed - so this is set per
+     * upserted row, not per page. Kept separate from recordCandidate to stay
+     * inside the 3-parameter limit.
+     */
+    const recordCharacteristics = (
+      positionId: number,
+      characteristics: BblPositionCharacteristics | null,
+    ) => {
+      if (characteristics) {
+        characteristicsByPositionId.set(positionId, characteristics);
+      }
+    };
+
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
       [
@@ -131,6 +154,7 @@ export class BblPositionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         positionRaceCandidates,
+        characteristicsByPositionId,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -184,6 +208,15 @@ export class BblPositionsImportService {
           continue;
         }
 
+        if (!position.characteristics) {
+          errors.push(
+            this.importResults.error({
+              item: { typId: position.typId, name: position.name },
+              message: `Could not read characteristics for position "${position.name}" (${position.typId}): no MA/ST/AG/PA/AV table on the page`,
+            }),
+          );
+        }
+
         const listedBblIds = new Set(position.races.map((r) => r.bblId));
 
         for (const race of position.races) {
@@ -215,6 +248,7 @@ export class BblPositionsImportService {
           if (upserted) {
             imported += 1;
             recordCandidate(upserted.id, false, [dbId]);
+            recordCharacteristics(upserted.id, position.characteristics);
           }
         }
 
@@ -268,6 +302,7 @@ export class BblPositionsImportService {
               true,
               resolved.map((r) => r.dbId),
             );
+            recordCharacteristics(upserted.id, position.characteristics);
           }
         } else {
           for (const race of resolved) {
@@ -289,6 +324,7 @@ export class BblPositionsImportService {
             if (upserted) {
               imported += 1;
               recordCandidate(upserted.id, false, [race.dbId]);
+              recordCharacteristics(upserted.id, position.characteristics);
             }
           }
         }
@@ -301,6 +337,7 @@ export class BblPositionsImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       positionRaceCandidates,
+      characteristicsByPositionId,
     };
   }
 

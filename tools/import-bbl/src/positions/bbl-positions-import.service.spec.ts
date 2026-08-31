@@ -176,6 +176,14 @@ async function makeService(
   };
 }
 
+const CHARACTERISTICS = {
+  move: 6,
+  strength: 3,
+  agility: 3,
+  passing: null,
+  armour: 8,
+};
+
 const racesByBblId = new Map<string, { id: number; name: string }>([
   ['48', { id: 480, name: 'College of Shadow' }],
   ['7', { id: 70, name: 'Goblin Team' }],
@@ -717,7 +725,7 @@ describe('BblPositionsImportService', () => {
             name: 'Lineman',
             isStarPlayer: false,
             races: [{ bblId: '48', name: 'College of Shadow' }],
-            characteristics: null,
+            characteristics: CHARACTERISTICS,
           }),
         ],
       }),
@@ -875,5 +883,152 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('records characteristics for a listed-race position under its upserted id', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+            isStarPlayer: false,
+            characteristics: CHARACTERISTICS,
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 100 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.characteristicsByPositionId).toEqual(
+      new Map([[100, CHARACTERISTICS]]),
+    );
+  });
+
+  it('records characteristics for a star player under its single consolidated id', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '99',
+            name: 'Wilhelm Chaney',
+            races: [],
+            isStarPlayer: true,
+            characteristics: CHARACTERISTICS,
+          }),
+        ],
+        pl: [
+          plPage({
+            pid: '1',
+            name: 'Wilhelm Chaney',
+            typId: '99',
+            teamCode: 'knu',
+            sppTotal: null,
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 900 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.characteristicsByPositionId).toEqual(
+      new Map([[900, CHARACTERISTICS]]),
+    );
+  });
+
+  it('records characteristics for each row of a reverse-engineered multi-race position', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '55',
+            name: 'Kroxigor',
+            races: [],
+            isStarPlayer: false,
+            characteristics: CHARACTERISTICS,
+          }),
+        ],
+        pl: [
+          plPage({
+            pid: '1',
+            name: 'Kroxigor',
+            typId: '55',
+            teamCode: 'knu',
+            sppTotal: null,
+          }),
+          plPage({
+            pid: '2',
+            name: 'Kroxigor',
+            typId: '55',
+            teamCode: 'col',
+            sppTotal: null,
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert
+      .mockResolvedValueOnce(makePositionRecord({ id: 101 }))
+      .mockResolvedValueOnce(makePositionRecord({ id: 102 }));
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.characteristicsByPositionId).toEqual(
+      new Map([
+        [101, CHARACTERISTICS],
+        [102, CHARACTERISTICS],
+      ]),
+    );
+  });
+
+  it('records an error and no characteristics when the table could not be parsed', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+            isStarPlayer: false,
+            characteristics: null,
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 100 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.characteristicsByPositionId.size).toBe(0);
+    // The position's identity still imported; only its characteristics are lost.
+    expect(mocks.positionsImport.upsert).toHaveBeenCalledTimes(1);
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { typId: '33', name: 'Goblin Linemen' },
+        message:
+          'Could not read characteristics for position "Goblin Linemen" (33): no MA/ST/AG/PA/AV table on the page',
+      },
+    ]);
   });
 });
