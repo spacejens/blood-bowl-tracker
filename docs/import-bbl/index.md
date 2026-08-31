@@ -194,8 +194,9 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   (`PositionRaceEraEligibilityService` in `packages/import`) accepts a config
   override, star-player status or a recorded player use as evidence, and
   nothing else. Runs after races, teams, rules sets (whose declared
-  characteristic formats the availability decision validates against) and
-  players (whose recorded uses feed the positive-evidence check).
+  characteristic formats the server validates the attached characteristics
+  against) and players (whose recorded uses feed the positive-evidence
+  check).
 - **PlayersModule** — data-type extractor for players. `PlayerPageParser` reads
   a player's own `pid`, `<h1>` name, position (`p=pt&typID`), and team
   (`p=tm&t`) links off a `p=pl` page. The positions import uses the
