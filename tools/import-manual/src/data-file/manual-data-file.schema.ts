@@ -77,6 +77,24 @@ const PositionEntrySchema = z.object({
   externalIds,
 });
 
+/**
+ * One position's characteristics under one rules set. `passing` is optional
+ * because the three older rules sets have no Passing characteristic at all;
+ * the processor sends an omitted value as an explicit null, which the API
+ * validates against the rules set's declared passingFormat — supplying a
+ * value a rules set does not have, or omitting one it requires, is rejected
+ * there rather than silently stored.
+ */
+const PositionRulesSetEntrySchema = z.object({
+  position: ExternalRefSchema,
+  rulesSet: ExternalRefSchema,
+  move: z.number().int(),
+  strength: z.number().int(),
+  agility: z.number().int(),
+  passing: z.number().int().optional(),
+  armour: z.number().int(),
+});
+
 const CoachEntrySchema = z.object({
   name: z.string().min(1),
   externalIds,
@@ -180,6 +198,7 @@ export const ManualDataFileSchema = z
     eras: z.array(EraEntrySchema).default([]),
     races: z.array(RaceEntrySchema).default([]),
     positions: z.array(PositionEntrySchema).default([]),
+    positionRulesSets: z.array(PositionRulesSetEntrySchema).default([]),
     coaches: z.array(CoachEntrySchema).default([]),
     teams: z.array(TeamEntrySchema).default([]),
     competitions: z.array(CompetitionEntrySchema).default([]),
@@ -191,4 +210,5 @@ export const ManualDataFileSchema = z
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
+export type PositionRulesSetEntry = z.infer<typeof PositionRulesSetEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;

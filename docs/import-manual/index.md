@@ -56,6 +56,7 @@ competitionGroups
 eras
 races
 positions
+positionRulesSets
 coaches
 teams
 competitions
@@ -184,6 +185,24 @@ Move and Strength are never target numbers, so their formats are always
 numbers starting with BB2020; the three older rules sets (CRP, CRP+, BB2016)
 have no Passing characteristic at all, so their `passingFormat` is `'absent'`
 rather than `'bare'`.
+
+### Position characteristics
+
+`positionRulesSets` entries seed a position's Move, Strength, Agility,
+Passing, and Armour characteristics under one rules set. Each entry is
+`{ position, rulesSet, move, strength, agility, passing?, armour }`:
+`position` and `rulesSet` are external-id pairs pointing at an already-curated
+position and rules set, and `move`/`strength`/`agility`/`armour` are integer
+characteristic values. `passing` is omitted for a rules set that has no
+Passing characteristic (its `passingFormat` is `'absent'`); the importer sends
+the omitted value on as an explicit `null`. The API rejects any entry whose
+values disagree with the rules set's declared characteristic formats — for
+example, a `passing` value against a rules set with no Passing characteristic,
+or a missing `passing` against one that has one. This section is processed
+after the rules sets and positions it references.
+
+No data file currently declares any `positionRulesSets` entries — the section
+exists for the curation work that follows.
 
 ### SPP award values
 
@@ -436,11 +455,15 @@ See [Running import tools against production](../discord-bot/production-imports.
   recording an `ImportError` per unresolved reference.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
-- **Entity processors** (rules sets, leagues, eras, races, positions, coaches,
-  teams, competition groups, competitions, SPP award values, trophies) — each
-  resolves its references and calls the shared `*ImportService` from
-  `packages/import`. The positions processor additionally calls `syncRaceEras`
-  to set race/era availability. The competitions processor depends on eras and
+- **Entity processors** (rules sets, leagues, eras, races, positions, position
+  characteristics, coaches, teams, competition groups, competitions, SPP
+  award values, trophies) — each resolves its references and calls the shared
+  `*ImportService` from `packages/import`. The positions processor
+  additionally calls `syncRaceEras` to set race/era availability. The
+  position-characteristics processor runs after both rules sets and
+  positions, resolving both refs before syncing the whole batch, the same way
+  the SPP award values processor does. The competitions processor depends on
+  eras and
   competition groups, so it runs after both, and always sends an empty
   `teamEraIds` list, which the API treats additively and so never detaches an
   imported competition's teams.
