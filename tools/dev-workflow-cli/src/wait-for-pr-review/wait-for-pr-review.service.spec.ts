@@ -226,6 +226,30 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
+  it('does not query the rolling comment once the reviews call already consumed the deadline', async () => {
+    // Simulates the reviews call itself taking long enough to land exactly on
+    // the wait's own deadline, so no time is left for a further `gh` call —
+    // the rolling-comment check must be skipped rather than started anyway.
+    processRunner.run.mockImplementation((_command, args) => {
+      if (args[0] === 'api') {
+        throw new Error(
+          'rolling-comment call must not run once the deadline has passed',
+        );
+      }
+      vi.setSystemTime(new Date(Date.now() + 60_000));
+      return Promise.resolve(RATE_LIMITED);
+    });
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+  });
+
   it('defaults to a 20-minute timeout and a 30-second interval', async () => {
     processRunner.run.mockResolvedValue(EMPTY);
 
@@ -252,7 +276,10 @@ describe('WaitForPrReviewService', () => {
       rateLimitComment: RATE_LIMIT_COMMENT,
     });
     // Returns on the first poll rather than waiting out the full timeout.
-    expect(processRunner.run).toHaveBeenCalledTimes(1);
+    // Two calls, not one: a rate-limit comment on the reviews call is not
+    // trustworthy enough to skip the rolling-comment check, which here finds
+    // nothing and leaves the rate-limit finding standing.
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
 
   it('prefers a review over a rate-limit comment found in the same poll', async () => {
@@ -317,9 +344,10 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toMatchObject({ found: false, rateLimited: true });
-    // Poll 1 makes both calls (reviews, then completion); poll 2 returns on
-    // its first call.
-    expect(processRunner.run).toHaveBeenCalledTimes(3);
+    // Poll 1 makes both calls (reviews, then the rolling comment); so does
+    // poll 2, whose rate-limit match is not trustworthy enough to skip the
+    // rolling-comment check.
+    expect(processRunner.run).toHaveBeenCalledTimes(4);
   });
 
   it('does not treat a phrase match found only inside a code span as a rate limit', async () => {
@@ -430,7 +458,9 @@ describe('WaitForPrReviewService', () => {
       commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT,
     });
     // Returns on the first poll rather than waiting out the full timeout.
-    expect(processRunner.run).toHaveBeenCalledTimes(1);
+    // Two calls: like the rate-limit comment, a comment-update-failure
+    // comment still consults the rolling comment, which matches nothing here.
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
 
   it('prefers a review over a comment-update-failure comment found in the same poll', async () => {
@@ -1179,15 +1209,6 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toEqual({ found: true, review: REVIEW });
-    expect(processRunner.run).toHaveBeenCalledTimes(1);
-  });
-
-  it('prefers a rate-limit comment over a completion comment, and never even asks for one', async () => {
-    mockPoll(RATE_LIMITED, completionResult(COMPLETION_CANDIDATE));
-
-    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
-
-    expect(result).toMatchObject({ found: false, rateLimited: true });
     expect(processRunner.run).toHaveBeenCalledTimes(1);
   });
 

@@ -249,6 +249,33 @@ export const COMPLETION_REVIEW = {
   author: { login: 'coderabbitai[bot]' },
 };
 
+/**
+ * The bounded rate-limit block CodeRabbit edits into its rolling walkthrough
+ * comment, as jq extracts it between
+ * `<!-- This is an auto-generated comment: rate limited by coderabbit.ai -->`
+ * and its matching `<!-- end of ... -->` marker. A real CodeRabbit rolling
+ * comment, abridged: every line is blockquoted, so the block contains no
+ * blank line of its own.
+ */
+export const RATE_LIMIT_EDIT_SECTION =
+  '\n\n> [!WARNING]\n> ## Review limit reached\n> \n' +
+  "> `@spacejens`, you've reached your PR review limit, so we couldn't " +
+  'start this review.\n> \n' +
+  '> **Next review available in:** **30 minutes**\n> \n' +
+  '> Enable usage-based reviews in Billing to review now.\n> \n';
+
+/** What the rate-limit-edit half of the jq filter emits for that comment. */
+export const RATE_LIMIT_EDIT_CANDIDATE = {
+  id: '5304526638',
+  submittedAt: '2026-08-15T22:38:27Z',
+  section: RATE_LIMIT_EDIT_SECTION,
+};
+
+/** `submittedAt` as epoch seconds — every parsed wait is relative to it. */
+export const RATE_LIMIT_EDIT_EPOCH_SECONDS = Math.floor(
+  new Date(RATE_LIMIT_EDIT_CANDIDATE.submittedAt).getTime() / 1000,
+);
+
 /** Everything a spec needs to drive one freshly-compiled service instance. */
 export interface WaitForPrReviewHarness {
   readonly service: WaitForPrReviewService;
