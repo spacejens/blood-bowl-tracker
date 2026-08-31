@@ -503,6 +503,24 @@ describe('RpcRouterFactoryService', () => {
     });
   });
 
+  it('positions.syncRaceEras maps a characteristics format mismatch to BAD_REQUEST', async () => {
+    positionsService.syncRaceEras.mockRejectedValue(
+      new PositionRulesSetFormatMismatchError('nope'),
+    );
+
+    await expect(
+      call(router.positions.syncRaceEras, { positionId: 1, raceEras: [] }),
+    ).rejects.toThrow('nope');
+  });
+
+  it('positions.syncRaceEras rethrows any other error unchanged', async () => {
+    positionsService.syncRaceEras.mockRejectedValue(new Error('boom'));
+
+    await expect(
+      call(router.positions.syncRaceEras, { positionId: 1, raceEras: [] }),
+    ).rejects.toThrow('boom');
+  });
+
   it('positions.upsert throws CONFLICT when the service reports a conflict', async () => {
     positionsService.upsert.mockRejectedValue(
       new PositionUpsertConflictError(

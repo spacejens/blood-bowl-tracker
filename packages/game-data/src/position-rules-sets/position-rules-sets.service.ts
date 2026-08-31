@@ -9,14 +9,15 @@ import { DB, positionRulesSets, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, inArray } from 'drizzle-orm';
 
+import { PositionRulesSetFormatMismatchError } from '../positions/positions.service';
+
 /**
- * An entry whose characteristics disagree with what its rules set declares:
- * a value supplied for a characteristic the rules set does not have, a
- * missing value for one it does, or a rules set that does not exist at all.
- * Authored-data feedback, not a server fault — the API maps it to
- * BAD_REQUEST so an importer reports it against the offending entry.
+ * Re-exported from where it is now defined ({@link PositionRulesSetFormatMismatchError}
+ * in `positions.service.ts`): this module's own writer throws that same
+ * class, so a catch checking `instanceof` sees one class regardless of
+ * which service raised the error.
  */
-export class PositionRulesSetFormatMismatchError extends Error {}
+export { PositionRulesSetFormatMismatchError };
 
 /** The rules set's five format columns, as loaded for validation. */
 interface RulesSetFormats {

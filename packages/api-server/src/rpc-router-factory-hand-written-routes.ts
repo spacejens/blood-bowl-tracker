@@ -149,13 +149,25 @@ export function buildPositionRulesSetsRoutes(
 }
 
 // positions.syncRaceEras: not routed through the upsert handler — it syncs a
-// race/era join, not an upsert with a conflict class.
+// race/era join, not an upsert with a conflict class. The one error it maps
+// is the service's format mismatch: characteristics that disagree with what
+// the named rules set declares are authored-data feedback the importer
+// reports, so BAD_REQUEST rather than an internal error.
 export function buildPositionSyncRaceErasRoute(
   positionsService: PositionsService,
 ) {
   return {
     syncRaceEras: implement(contract.positions.syncRaceEras).handler(
-      ({ input }) => positionsService.syncRaceEras(input),
+      async ({ input, errors }) => {
+        try {
+          return await positionsService.syncRaceEras(input);
+        } catch (error) {
+          if (error instanceof PositionRulesSetFormatMismatchError) {
+            throw errors.BAD_REQUEST({ message: error.message });
+          }
+          throw error;
+        }
+      },
     ),
   };
 }

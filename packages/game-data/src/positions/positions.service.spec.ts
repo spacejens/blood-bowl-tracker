@@ -3,6 +3,7 @@ import { DB, positions } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
+import type { Mock } from 'vitest';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -11,6 +12,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import {
+  PositionRulesSetFormatMismatchError,
   PositionsService,
   PositionUpsertConflictError,
 } from './positions.service';
@@ -28,13 +30,14 @@ describe('PositionsService', () => {
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
     chains: QueryChain[];
+    transaction: Mock;
   }> {
-    const { db, chains } = mockDb(...rowsPerQuery);
+    const { db, chains, transaction } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
       providers: [PositionsService, { provide: DB, useValue: db }],
     }).compile();
     service = moduleRef.get(PositionsService);
-    return { db, chains };
+    return { db, chains, transaction };
   }
 
   const data = {
@@ -280,6 +283,20 @@ describe('PositionsService', () => {
       ]);
     });
 
+    it('returns no ids and issues no further query when every pair is unresolved', async () => {
+      const { chains } = await build([]);
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [{ raceId: 2, eraId: 5 }],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [] });
+      // Only the race_eras resolution query runs; nothing reads or writes
+      // positions_race_eras once every pair resolves to nothing.
+      expect(chains).toHaveLength(1);
+    });
+
     it('dedupes duplicate resolved race_era ids so only one row is inserted', async () => {
       const { chains } = await build(
         [
@@ -315,6 +332,200 @@ describe('PositionsService', () => {
       // `raceEras.length === 0` returns before issuing any query.
       expect(chains).toHaveLength(0);
       expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    const bareFormats = {
+      id: 7,
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'bare',
+      armourFormat: 'plus',
+    };
+    const noPassingFormats = { ...bareFormats, id: 8, passingFormat: 'absent' };
+
+    const characteristics = {
+      rulesSetId: 7,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
+    };
+
+    it('inserts a new row with its characteristics when the entry carries them', async () => {
+      // query 0: rules-set formats; query 1: resolve race_eras; query 2:
+      // existing positions_race_eras rows; query 3: the insert.
+      const { chains, transaction } = await build(
+        [bareFormats],
+        [{ id: 100, raceId: 2, eraId: 5 }],
+        [],
+      );
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [{ raceId: 2, eraId: 5, characteristics }],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
+      expect(transaction).toHaveBeenCalledOnce();
+      expect(firstCallArg(chains[3].values)).toEqual([
+        {
+          positionId: 1,
+          raceEraId: 100,
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: 4,
+          armour: 9,
+        },
+      ]);
+    });
+
+    it('updates the characteristics in place when the row already exists', async () => {
+      // query 0: formats; query 1: race_eras; query 2: the row already
+      // exists; query 3: the update.
+      const { chains } = await build(
+        [bareFormats],
+        [{ id: 100, raceId: 2, eraId: 5 }],
+        [{ raceEraId: 100 }],
+      );
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [{ raceId: 2, eraId: 5, characteristics }],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
+      expect(firstCallArg(chains[3].set)).toEqual({
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
+      });
+    });
+
+    it('accepts a null passing for a rules set with no Passing characteristic', async () => {
+      const { chains } = await build(
+        [noPassingFormats],
+        [{ id: 100, raceId: 2, eraId: 5 }],
+        [],
+      );
+
+      await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          {
+            raceId: 2,
+            eraId: 5,
+            characteristics: {
+              ...characteristics,
+              rulesSetId: 8,
+              passing: null,
+            },
+          },
+        ],
+      });
+
+      expect(firstCallArg(chains[3].values)).toEqual([
+        {
+          positionId: 1,
+          raceEraId: 100,
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: null,
+          armour: 9,
+        },
+      ]);
+    });
+
+    it('rejects a passing value for a rules set that has no Passing', async () => {
+      const { chains } = await build([noPassingFormats]);
+
+      await expect(
+        service.syncRaceEras({
+          positionId: 1,
+          raceEras: [
+            {
+              raceId: 2,
+              eraId: 5,
+              characteristics: { ...characteristics, rulesSetId: 8 },
+            },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+
+      // Validation runs before anything is read or written beyond the
+      // formats lookup itself.
+      expect(chains).toHaveLength(1);
+    });
+
+    it('rejects a missing passing for a rules set that requires one', async () => {
+      await build([bareFormats]);
+
+      await expect(
+        service.syncRaceEras({
+          positionId: 1,
+          raceEras: [
+            {
+              raceId: 2,
+              eraId: 5,
+              characteristics: { ...characteristics, passing: null },
+            },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+    });
+
+    it('rejects characteristics naming a rules set that does not exist', async () => {
+      await build([]);
+
+      await expect(
+        service.syncRaceEras({
+          positionId: 1,
+          raceEras: [{ raceId: 2, eraId: 5, characteristics }],
+        }),
+      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+    });
+
+    it('inserts an entry without characteristics alongside one with them', async () => {
+      // query 0: formats; query 1: race_eras; query 2: existing rows;
+      // query 3: insert of the availability-only rows; query 4: insert of
+      // the rows carrying characteristics.
+      const { chains } = await build(
+        [bareFormats],
+        [
+          { id: 100, raceId: 2, eraId: 5 },
+          { id: 101, raceId: 2, eraId: 6 },
+        ],
+        [],
+      );
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 2, eraId: 6, characteristics },
+        ],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100, 101] });
+      expect(firstCallArg(chains[3].values)).toEqual([
+        { positionId: 1, raceEraId: 100 },
+      ]);
+      expect(firstCallArg(chains[4].values)).toEqual([
+        {
+          positionId: 1,
+          raceEraId: 101,
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: 4,
+          armour: 9,
+        },
+      ]);
     });
   });
 
