@@ -306,6 +306,8 @@ Run this section only if "Drop and recreate the production database" was selecte
 
    On success the command prints one JSON object to stdout: `exitCode`, `stdout`, `stderr`. A non-zero `exitCode` means the reset failed partway — report `stderr` and stop rather than proceeding to step 6. If the query was rejected before `psql` ever ran — a credential problem — the command instead exits non-zero printing `{"error": "<message>"}` to stderr; report that message. If `psql` is not installed, or the connection fails, the command reports that — Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
 
+   From the moment this command succeeds until step 6's restart has reached both machines, the bot is serving against a database with no schema, so requests in that window fail: a Discord slash command replies with the generic `I am badly hurt` message, an RPC or import caller gets a generic error response with the stack logged server-side, and slash-command autocomplete fails quietly (logged, no user-visible reply). That is expected, already-sufficient error handling and not a sign the reset went wrong — `docs/discord-bot/production-database-reset.md` explains all three paths, and why quiescing the machines beforehand was investigated and rejected. Do not treat any of them as a failure of this step, and do not chase them as a bug.
+
 6. Restart both machines so the bot's startup migrations rebuild the schema:
    ```bash
    fly apps restart blood-bowl-tracker-discord-bot

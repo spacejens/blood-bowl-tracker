@@ -43,9 +43,50 @@ never actually reset.
 Both machines keep serving HTTP/RPC (and the active one keeps handling
 Discord and scheduled work) until `fly apps restart` reaches them, so a
 request made in the narrow window between the schema drop and that restart
-completing can fail. This is an accepted cost of an already-destructive,
-already-empty-afterward operation, not something the steps below try to
-avoid.
+completing can fail against a database with no schema at all. None of the
+resulting failures crash or hang the bot, and most are visible rather than
+silent:
+
+- A Discord slash command, button, or select menu run in the window replies
+  with the generic `I am badly hurt` message — the same reply any other
+  unhandled interaction error produces.
+  `packages/discord-client/src/discord-client.service.ts` wraps every
+  handler invocation in a try/catch that logs the rejection and sends that
+  reply. `DatabaseTimeoutService`
+  (`apps/discord-bot/src/database-timeout.service.ts`) is a separate
+  mechanism, for _slow_ queries (a 2s budget, inside Discord's ~3s ack
+  window); a connection that rejects immediately loses that timeout race by
+  rejecting rather than hanging, so it propagates and is caught by the
+  outer try/catch instead.
+- An RPC or import caller — for example an import tool connected over
+  `flyctl proxy` — gets a generic error response.
+  `packages/api-server/src/rpc.middleware.ts` logs any error that is not a
+  recognized business error (`isDefinedError`) with its stack via
+  `logger.error` and rethrows it, and oRPC turns that into the generic
+  response the caller sees.
+- Slash-command autocomplete (the suggestions shown while typing a
+  command's options) is the one path that fails quietly: it has no
+  try/catch of its own in `discord-client.service.ts`, so a rejected query
+  only reaches the outer `Unhandled interaction error` log and the coach
+  sees no suggestions, with no error message. This is still a known,
+  logged failure rather than a hang — just one visible only in the logs,
+  not to the user.
+- The scheduled random-insight post (`RandomInsightsSchedulerService`) has
+  its own try/catch around each run: a query failure during the window is
+  logged and that run is skipped, with the next scheduled run trying again
+  once the schema is back.
+
+Encountering any of these during or shortly after a reset is expected,
+already-sufficient error handling — not a bug to chase.
+
+Quiescing both machines before the drop was investigated and rejected. A
+machine stopped before the drop and restarted before the schema is
+recreated only serves an empty database, and one restarted after adds
+nothing until the importers rerun — so quiescing would narrow the failure
+window without avoiding it, at the cost of extra complexity in the
+leader-election design. Downtime during a reset is an accepted cost of an
+already-destructive, already-empty-afterward operation, not something the
+steps below try to avoid.
 
 All three schemas have to go, not just `public`. Application tables live in
 `game_data` (see `packages/db/src/schema/pg-schema.ts`), not `public` —
