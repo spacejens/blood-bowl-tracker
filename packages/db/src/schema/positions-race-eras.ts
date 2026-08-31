@@ -24,17 +24,13 @@ import { raceEras } from './race-eras';
  * rules set has no Passing characteristic at all", and must never be
  * conflated with "not yet known".
  *
- * The `DEFAULT 0` on the other four is a temporary compromise so a row can
- * exist as "known available, characteristics not yet known" (a source that
- * only knows availability, or an era nobody has curated yet). A follow-up
- * sub-issue of #666 removes these defaults after a production database
- * reset, restoring the invariant that a row's characteristics are always
- * real.
+ * The `DEFAULT 0` on the other four allows a row to exist as "known
+ * available, characteristics not yet known" (a source that only knows
+ * availability, or an era nobody has curated yet).
  *
- * Which of the five values may (and must) be present is enforced in
- * PositionsService.syncRaceEras against the named rules set's declared
- * formats, not by a database constraint: the rule depends on another
- * table's row.
+ * Which of the five values may (and must) be present depends on the named
+ * rules set's declared formats. This rule cannot be enforced by a database
+ * constraint because it depends on another table's row.
  */
 const positionsRaceErasTable = historyTrackedTable({
   schema: gameData,
