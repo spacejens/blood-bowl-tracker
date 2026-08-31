@@ -22,11 +22,11 @@ ALTER TABLE "game_data"."rules_sets" ADD COLUMN "strength_format" "game_data"."c
 ALTER TABLE "game_data"."rules_sets" ADD COLUMN "agility_format" "game_data"."characteristic_format" DEFAULT 'bare'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
 ALTER TABLE "game_data"."rules_sets" ADD COLUMN "passing_format" "game_data"."characteristic_format" DEFAULT 'absent'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
 ALTER TABLE "game_data"."rules_sets" ADD COLUMN "armour_format" "game_data"."characteristic_format" DEFAULT 'bare'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "move_format" "game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "strength_format" "game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "agility_format" "game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "passing_format" "game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
-ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "armour_format" "game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "move_format" "game_data"."characteristic_format" DEFAULT 'bare'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "strength_format" "game_data"."characteristic_format" DEFAULT 'bare'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "agility_format" "game_data"."characteristic_format" DEFAULT 'bare'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "passing_format" "game_data"."characteristic_format" DEFAULT 'absent'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."rules_sets_history" ADD COLUMN "armour_format" "game_data"."characteristic_format" DEFAULT 'bare'::"game_data"."characteristic_format" NOT NULL;--> statement-breakpoint
 ALTER TABLE "game_data"."position_rules_sets" ADD CONSTRAINT "position_rules_sets_position_id_positions_id_fkey" FOREIGN KEY ("position_id") REFERENCES "game_data"."positions"("id");--> statement-breakpoint
 ALTER TABLE "game_data"."position_rules_sets" ADD CONSTRAINT "position_rules_sets_rules_set_id_rules_sets_id_fkey" FOREIGN KEY ("rules_set_id") REFERENCES "game_data"."rules_sets"("id");
 --> statement-breakpoint
