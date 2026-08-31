@@ -3,6 +3,8 @@ import {
   CompetitionGroupsService,
   ExternalSystemsService,
   MatchOutcomesService,
+  PositionRulesSetFormatMismatchError,
+  PositionRulesSetsService,
   PositionsService,
   SppAdjustmentsService,
   SppAwardValuesService,
@@ -116,6 +118,32 @@ export function buildPlayerSppAdjustmentRoutes(
       contract.players.syncReportedSppAdjustments,
     ).handler(({ input }) =>
       sppAdjustmentsService.syncReportedAdjustments(input),
+    ),
+  };
+}
+
+// positionRulesSets: not routed through the upsert handler, for the same
+// reason sppAwardValues.sync is not — a row is keyed by (positionId,
+// rulesSetId) rather than external ids, so there is no CONFLICT to map and no
+// entity+created shape to return. The one error it does map is the service's
+// format mismatch: characteristics that disagree with what the rules set
+// declares are authored-data feedback the importer reports per entry, so
+// BAD_REQUEST rather than an internal error.
+export function buildPositionRulesSetsRoutes(
+  positionRulesSetsService: PositionRulesSetsService,
+) {
+  return {
+    sync: implement(contract.positionRulesSets.sync).handler(
+      async ({ input, errors }) => {
+        try {
+          return await positionRulesSetsService.sync(input);
+        } catch (error) {
+          if (error instanceof PositionRulesSetFormatMismatchError) {
+            throw errors.BAD_REQUEST({ message: error.message });
+          }
+          throw error;
+        }
+      },
     ),
   };
 }
