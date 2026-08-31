@@ -332,9 +332,11 @@ correctly. A writer still names a rules set in the API call, purely so the
 server can validate the five values against that rules set's declared
 formats; the id is not stored. `passing` is nullable, and null permanently
 means the rules set has no Passing characteristic at all — never "not known
-yet". `move`, `strength`, `agility` and `armour` are `NOT NULL DEFAULT 0`, a
-temporary compromise letting a row exist as "available, characteristics not
-yet known" while sources are still being filled in.
+yet". All five characteristic columns default to 0, a temporary compromise
+letting a row exist as "available, characteristics not yet known" while
+sources are still being filled in; for `passing` specifically, that default
+(not null) is what represents "not yet known", so the two states stay
+distinct.
 
 `PositionsService.syncRaceEras` in `packages/game-data` is the single place
 that writes the table. Availability is insert-only and never revoked;

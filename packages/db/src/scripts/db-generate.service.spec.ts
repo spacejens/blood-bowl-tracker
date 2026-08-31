@@ -293,6 +293,14 @@ describe('DbGenerateService', () => {
         'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";';
       expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(sql);
     });
+
+    it('strips only the trailing NOT NULL from a history ADD COLUMN that also has a DEFAULT', () => {
+      const sql =
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer DEFAULT 0 NOT NULL;';
+      expect(service.rewriteHistoryAddNotNullColumn(sql)).toBe(
+        'ALTER TABLE "game_data"."positions_race_eras_history" ADD COLUMN "move" integer DEFAULT 0;',
+      );
+    });
   });
 
   describe('rewriteNewHistoryTableCreate', () => {

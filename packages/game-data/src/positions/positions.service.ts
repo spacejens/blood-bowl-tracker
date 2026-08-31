@@ -219,7 +219,7 @@ export class PositionsService {
     const existingIds = new Set(existing.map((r) => r.raceEraId));
 
     // Two homogeneous inserts rather than one mixed batch: a row with no
-    // characteristics must omit the four defaulted columns entirely so the
+    // characteristics must omit the five defaulted columns entirely so the
     // database supplies them, and mixing both shapes in a single multi-row
     // insert would make one statement's column list depend on the other's.
     const plainRows: NewPositionRaceEra[] = [];
