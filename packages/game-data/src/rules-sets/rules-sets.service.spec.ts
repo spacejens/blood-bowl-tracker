@@ -5,6 +5,7 @@ import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
+import { firstCallArg } from '../shared/query-assertions.test-helpers';
 import {
   RulesSetsService,
   RulesSetUpsertConflictError,
@@ -48,6 +49,32 @@ describe('RulesSetsService', () => {
     expect(chains).toHaveLength(3);
     expect(db.insert).toHaveBeenCalledWith(rulesSets);
     expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('writes the characteristic formats supplied by the upsert', async () => {
+    // query 0: external-id lookup finds nothing; query 1: the insert
+    // returns the row; query 2: the one external ID is new and gets
+    // inserted.
+    const { chains } = await build([], [fakeRulesSet]);
+
+    await service.upsert({
+      name: 'BB2020',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
+      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+    });
+
+    expect(firstCallArg(chains[1].values)).toEqual({
+      name: 'BB2020',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
+    });
   });
 
   it('updates the matching rules set when exactly one external ID matches', async () => {
