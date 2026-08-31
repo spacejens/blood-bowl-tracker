@@ -9,7 +9,7 @@ New to the project? Start with the [glossary](docs/glossary.md), [spec conventio
 This is a pnpm monorepo with three top-level workspace folders:
 
 | Folder | Purpose |
-|--------|---------|
+| -------- | --------- |
 | `apps/` | Runnable applications deployed or distributed to end users |
 | `docs/` | Specifications, glossary, and domain documentation |
 | `packages/` | Shared library packages consumed by apps and tools (not standalone) |
@@ -46,6 +46,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`tools/cli-shared`** — library package with the plumbing the three CLI packages above share: git main-checkout/worktree resolution, child-process running and spawning, and the canonical gitignored file/directory lists; no CLI entry point of its own
 - **`tools/db-diagram/db-diagram.sh`** — generates a [SchemaSpy](https://schemaspy.org/) ER diagram and browsable schema docs for the local docker-compose database into `docs/schemaspy-output/` (run via `pnpm run db:diagram`; requires the stack to be running — start it with `deploy-local` or `docker compose up -d --build`)
 - **`tools/eslint-rules`** — custom ESLint rules shared across the repo (currently `max-function-params`, imported directly by the root `eslint.config.ts`)
+- **`tools/markdownlint-rules`** — custom markdownlint rules shared across the repo (currently `max-file-lines`, which flags any markdown file over 500 lines), built to `dist/` and loaded by the root `.markdownlint-cli2.jsonc`'s `customRules`
 
 ## Getting started
 
@@ -55,14 +56,18 @@ This is a pnpm monorepo with three top-level workspace folders:
 - [Superpowers plugin](https://www.claudepluginhub.com/plugins/obra-superpowers-2) — extends Claude Code with additional skills (`/brainstorm`, `/writing-plans`, etc.)
 
   Install it once with:
+
   ```bash
   npx claudepluginhub obra/superpowers --plugin superpowers
   ```
-- *(optional)* [`rtk`](https://github.com/rtk-ai/rtk) — compresses shell command output (git, tests, linters) before it reaches Claude's context via a Claude Code hook, reducing token usage during development. Each developer opts in on their own machine:
+
+- _(optional)_ [`rtk`](https://github.com/rtk-ai/rtk) — compresses shell command output (git, tests, linters) before it reaches Claude's context via a Claude Code hook, reducing token usage during development. Each developer opts in on their own machine:
+
   ```bash
   brew install rtk       # or: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
   rtk init -g
   ```
+
   Restart Claude Code afterward for the hook to take effect.
 
 ### Dependencies
@@ -88,10 +93,10 @@ pnpm run test:e2e     # e2e tests
 
 `docker-compose.yml` defines two services:
 
-| Service | Description |
-|---------|-------------|
-| `discord-bot` | The NestJS application, built from `Dockerfile` |
-| `postgres` | PostgreSQL 17 database with a named volume for persistence |
+| Service       | Description                                                |
+| ------------- | ---------------------------------------------------------- |
+| `discord-bot` | The NestJS application, built from `Dockerfile`            |
+| `postgres`    | PostgreSQL 17 database with a named volume for persistence |
 
 The bot waits for the database to be healthy before starting. Default credentials and database name are `blood_bowl` and are intended for local use only; override them via environment variables for any other deployment.
 

@@ -140,13 +140,16 @@ camelCase, grouped into nested objects by concern:
 ## Run it
 
 1. Copy the template and fill in real values:
+
    ```bash
    cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.json5
    ```
+
    `tools/import-bbl/import-bbl-config.json5` is git-ignored, so your
    configuration is never committed.
 2. Run the tool from the `tools/import-bbl/` directory so the config file is
    picked up automatically:
+
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
@@ -156,7 +159,7 @@ To import into the production api-server instead, keep a second config file
 example template, with `apiBaseUrl` changed to `http://localhost:3001`), run
 `flyctl proxy 3001:3000` from the repository root in another terminal, and
 set `IMPORT_CONFIG_ENV=production` for the run. See
-[Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
+[Running import tools against production](../discord-bot/production-imports.md).
 
 ## Architecture
 

@@ -51,6 +51,7 @@ export default tseslint.config(
             'tools/download-tp/test/*.ts',
             'tools/download-tp/vitest.config.ts',
             'tools/eslint-rules/vitest.config.ts',
+            'tools/markdownlint-rules/vitest.config.ts',
             'tools/cli-shared/test/*.ts',
             'tools/cli-shared/vitest.config.ts',
             'tools/dev-workflow-cli/test/*.ts',

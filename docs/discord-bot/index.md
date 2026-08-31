@@ -54,9 +54,11 @@ application.
 Configuration is supplied through an environment file in the app directory.
 
 1. Copy the template:
+
    ```bash
    cp apps/discord-bot/.env.example apps/discord-bot/.env
    ```
+
 2. Edit `apps/discord-bot/.env` and set:
    - `DISCORD_BOT_TOKEN` — the token from step 1.
    - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from section 3. The
@@ -129,7 +131,7 @@ so it always answers within Discord's response window.
 
 Global registration is what makes DM use possible, and it trades away the
 near-instant propagation that per-server registration had. After a deploy that
-changes what a command *looks* like — its name, description, or options —
+changes what a command _looks_ like — its name, description, or options —
 Discord can take up to about an hour to show the new definition, and the old
 definition keeps working in the meantime. An unchanged `/insights` or
 `/deepdive` listing shortly after such a deploy is normal, not a sign the deploy

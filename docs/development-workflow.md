@@ -94,7 +94,7 @@ Like branch protection, this can't be configured by code in this repo — a GitH
 3. Sign in to the [CodeRabbit dashboard](https://app.coderabbit.ai) with the same GitHub account and confirm the repository is listed and enabled.
 4. Confirm auto-review-on-PR-open is on. This is CodeRabbit's default, and `.coderabbit.yaml` sets it explicitly, so the committed config wins — no dashboard change should be needed.
 
-Nothing else is required to *use* the reviews: `develop-feature`'s Phase 6 waits for the review after it opens a PR and drives it to completion through `handle-pr-reviews` automatically (see the `develop-feature` section above). If the app is not installed, that wait simply times out after 20 minutes and asks you whether to keep waiting or skip ahead.
+Nothing else is required to _use_ the reviews: `develop-feature`'s Phase 6 waits for the review after it opens a PR and drives it to completion through `handle-pr-reviews` automatically (see the `develop-feature` section above). If the app is not installed, that wait simply times out after 20 minutes and asks you whether to keep waiting or skip ahead.
 
 ## How they fit together
 

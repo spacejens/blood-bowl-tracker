@@ -1,0 +1,38 @@
+{
+  // Markdown linting for every committed markdown file. Runs from the root
+  // via `pnpm lint:markdown`, and therefore under `pnpm lint` and
+  // `pnpm verify` too.
+  "globs": ["**/*.md"],
+  "ignores": [
+    "**/node_modules/**",
+    "**/.git/**",
+    // Gitignored working directories, not committed documentation.
+    "docs/plans/**",
+    "docs/superpowers/**",
+    ".superpowers/**",
+    // Generated SchemaSpy output, regenerated on demand by `pnpm run db:diagram`.
+    "docs/schemaspy-output/**",
+    // Claude Code tooling configuration (including skill files and worktree
+    // checkouts under .claude/worktrees/), not project documentation.
+    ".claude/**",
+    ".worktrees/**",
+    // One per directory, addressed to Claude rather than to readers of the
+    // project's documentation.
+    "**/CLAUDE.md"
+  ],
+  "config": {
+    "default": true,
+    // Line length: disabled. Even at a generous 140 characters a large share
+    // of existing docs would need rewrapping for no real quality gain.
+    "MD013": false,
+    // Custom: files over 500 lines, matching eslint.config.ts's max-lines
+    // ceiling for TypeScript source files.
+    "max-file-lines": true,
+    // Pin emphasis/strong style consistently repo-wide. MD049/MD050's
+    // default "consistent" mode only checks consistency within one file, not
+    // across files.
+    "MD049": { "style": "underscore" },
+    "MD050": { "style": "asterisk" }
+  },
+  "customRules": ["./tools/markdownlint-rules/dist/index.js"]
+}

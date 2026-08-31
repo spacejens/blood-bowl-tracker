@@ -8,7 +8,7 @@ export interface ImportConfigPaths {
    * `<fileBaseName>.production.json5` in the current working directory, a
    * sibling of the default file. Git-ignored like the default one, and holds
    * the production api-server's bearer token (see
-   * docs/discord-bot/production-hosting.md).
+   * docs/discord-bot/production-imports.md).
    */
   productionPath: string;
   /**

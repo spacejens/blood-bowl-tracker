@@ -67,7 +67,7 @@ misplaced under the wrong era subdirectory, not a source of truth for naming.
 
 The tool expects, under `dataDir`:
 
-```
+```text
 <dataDir>/
   <era.dataSubdir>/
     <competition>/
@@ -86,28 +86,34 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 ## Run it
 
 1. Copy the template and fill in real values:
+
    ```bash
    cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.json5
    ```
+
    `tools/import-tp/import-tp-config.json5` is git-ignored, so your
    configuration is never committed.
 2. Build and run the tool so the config file is picked up automatically:
+
    ```bash
    pnpm --filter @blood-bowl-tracker/import-tp run build
    pnpm --filter @blood-bowl-tracker/import-tp run start
    ```
+
    This performs a real import against a running api-server (see
    `connection.apiBaseUrl`). Sample success output:
-   ```
+
+   ```text
    Imported 5 record(s) successfully.
    ```
+
    On failure, the tool exits with a non-zero status and prints each error.
 3. To import into the production api-server instead, keep a second config file
    `tools/import-tp/import-tp-config.production.json5` (copied from the same
    example template, with `apiBaseUrl` changed to `http://localhost:3001`),
    run `flyctl proxy 3001:3000` from the repository root in another
    terminal, and set `IMPORT_CONFIG_ENV=production` for the run. See
-   [Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
+   [Running import tools against production](../discord-bot/production-imports.md).
 
 ## Architecture
 
@@ -208,7 +214,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   player id, so a player who has since left/been replaced on the roster
   (absent from the standalone `rosters_<id>.json` file) is still imported,
   with `roster.players`' own data winning on conflict for a given id — see
-  [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)
+  [file-format-rosters.md](./file-format-rosters.md)
   for why. Also imports every star player hired via an `inducements_roll`
   match event (gathered by `main.ts` from the already-parsed match events,
   not from any roster field), each getting a reused `isStarPlayer: true`
@@ -256,7 +262,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   overwrite.
 - **TpTrophyAwardsImportService** — records every team award from TP's
   per-competition awards files: the 1st/2nd/3rd placements and, where present,
-  Best Stunty and Wooden Spoon. A trophy is *resolved, never created*: the
+  Best Stunty and Wooden Spoon. A trophy is _resolved, never created_: the
   upsert carries only the award's lookup key
   (`` `${disambiguator}-${groupName}` ``, where the disambiguator is the
   award's own `name` when present and its numeric `awardType` otherwise) as a
@@ -272,7 +278,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
 - **TpMatchEventsImportService** — imports touchdown, injury/casualty, and
   administrative match events from every already-parsed TP match's
   `matchEvents[]` (see
-  [file-format.md](./file-format.md#match_idjson-play-date-and-name-parsed)
+  [file-format-match.md](./file-format-match.md)
   for the full decode table). Unlike BBL, which correlates separately
   scraped action/consequence occurrences, TP embeds the acting/victim player
   and team directly on each event, so no correlation step is needed. Runs

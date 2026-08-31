@@ -105,7 +105,7 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
    `apps/discord-bot/.env`. A line reading
    `Another machine holds the leader lock; standing by` means a second
    instance is already running against the same database and holds the leader
-   lock (see `docs/discord-bot/production-hosting.md` on active/standby); stop
+   lock (see `docs/discord-bot/production-topology.md` on active/standby); stop
    that instance, or accept that this container is the standby.
 6. Report to the developer:
    - Which containers are up and their health status.

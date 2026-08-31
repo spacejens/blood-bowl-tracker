@@ -15,7 +15,7 @@ needs it.
 ## Subcommands
 
 | Subcommand | Purpose |
-|---|---|
+| --- | --- |
 | `resolve-main-root` | Locate the main checkout from a worktree |
 | `check-main-stray` | Find uncommitted files and unpushed commits left in the main checkout |
 | `check-drift` | Find gitignored config that differs between a worktree and the main checkout |
@@ -50,12 +50,15 @@ node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <pr-number> <develop
 A poll also triggers on its own, with no `--trigger-after` needed, the first time it finds a CodeRabbit comment saying the repository does not receive automatic reviews (a low-star-count gate CodeRabbit applies repo-wide). That comment never surfaces as its own JSON outcome — it just posts the same `@coderabbitai review` trigger once and keeps polling for the review that follows.
 
 Prints one of four JSON outcomes:
+
 - `{"found": true, "review": {...}}` — a qualifying review was found. This shape is also used when CodeRabbit finishes a pass with nothing actionable and reports that only by editing its rolling walkthrough comment in place, rather than submitting a formal review — the service synthesizes a review-shaped result from that comment so callers need no separate case for it.
 - `{"found": false, "timedOut": true}` — the timeout elapsed with nothing found.
 - `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds": <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time. `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time, plus a fixed 60-second buffer (CodeRabbit's own window can slip past the time it announced, so retrying exactly on time risks a wasted poll and a state-check race at the boundary). The key is omitted from the printed JSON entirely (not `null`) when no duration could be parsed:
+
   ```json
   {"found": false, "rateLimited": true, "rateLimitComment": {...}}
   ```
+
 - `{"found": false, "commentUpdateFailed": true, "commentUpdateFailedComment": {...}}` — a CodeRabbit "couldn't update its existing comment" failure notice was found instead of a review, so the wait returned early rather than running out its remaining time. Unlike the rate-limit outcome above, there is no `availableAtEpochSeconds` equivalent here — CodeRabbit's text for this failure states no wait duration, so the caller falls back to an immediate retry (see develop-feature's Phase 6 step b3).
 
 **Detection precedence.** When more than one of the above could match at once, a formal review wins over a rate-limit comment, which wins over a comment-update-failure comment, which wins over the star-gate comment, which wins over a completion comment, which runs last. A caller-requested retrigger (`--trigger-after`) — or the wait's own star-gate-triggered retrigger — still fires once due even when a stale rate-limit or comment-update-failure comment is found at the same time — it is not skipped just because that poll's early return is about to happen.

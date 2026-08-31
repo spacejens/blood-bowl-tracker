@@ -20,7 +20,7 @@ The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-player section — the
 per-entity preparation hook is a pass-through here. `harness.module.ts` stays local
-because it *is* this tool's own composition.
+because it _is_ this tool's own composition.
 
 Scope today is player info and [Star Player Points](../glossary.md#star-player-points-spp)
 totals. Skills, injuries and characteristics are deliberately deferred — each will plug
@@ -62,15 +62,15 @@ in as another data-type module without touching the harness services.
       limit.
 
    The random-sample stratum excludes star players outright: today's data model
-   gives a popular star their own `players` row per team that induces them (see
-   [issue #245](https://github.com/spacejens/blood-bowl-tracker/issues/245)), so an
-   unbounded stratum would be dominated by the same few stars appearing many times
-   over. The discrepancy stratum excludes only the narrower case of a star player
-   with no stored total at all — an induced star player often has none, which would
-   always be a "disagreement" by definition, not a real one worth flagging — but
-   still includes a star player who does carry a real stored total, since excluding
-   every star player outright would hide a genuine, fixable mismatch behind
-   whatever the bounded star-players stratum happens to sample. Of the automatic
+   gives a popular star their own `players` row per team that induces them, so
+   an unbounded stratum would be dominated by the same few stars appearing many
+   times over. The discrepancy stratum excludes only the narrower case of a
+   star player with no stored total at all — an induced star player often has
+   none, which would always be a "disagreement" by definition, not a real one
+   worth flagging — but still includes a star player who does carry a real
+   stored total, since excluding every star player outright would hide a
+   genuine, fixable mismatch behind whatever the bounded star-players stratum
+   happens to sample. Of the automatic
    strata, only the star-players stratum and the non-standard-per-event stratum
    can select a star player with no stored total at all; `overrides` (below) can
    still name one explicitly regardless of stratum.
@@ -91,11 +91,11 @@ in as another data-type module without touching the harness services.
      events, and a per-event-code breakdown. Right: the stored identity, team, position,
      era and every external id.
    - **spp-totals** — left: the SPP this tool computes by summing the per-event values
-     over the events where the player is the *acting* participant. Right: the stored
+     over the events where the player is the _acting_ participant. Right: the stored
      total and the stored adjustment. Both panels are database-derived, so they carry
      their own headings rather than the harness's raw/imported wording, and a
      `MISMATCH` — highlighted row, explicit label in both panels — is shown when the
-     stored total disagrees with the computed sum *plus* the stored adjustment (not
+     stored total disagrees with the computed sum _plus_ the stored adjustment (not
      the raw computed sum), or has no stored total at all.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.

@@ -331,7 +331,7 @@ prefix, matching every other curated-data file and every real BBL importer) —
 cross-reference
 `tools/import-manual/data/before-other-importers/trophies.json5`. The player
 trophy labels that BBL actually awards in more than one competition group are
-*not* self-disambiguating: `Deadliest Player` or `Legendary Player` mean a
+_not_ self-disambiguating: `Deadliest Player` or `Legendary Player` mean a
 different trophy depending on the tier. Every curated row for one of these
 labels — including its Major Season row — is keyed by the composite
 `${label}-${groupName}` id instead of the bare label, so the awards importer's
@@ -343,7 +343,7 @@ exactly like team trophies do; for these, the importer's composite attempt is
 expected to miss and its bare-label fallback is what actually resolves them.
 One label is an exception to the 1:1 mapping this implies: `Korpen` is the pre-rename label for the
 Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1st`
-(issue #519) — the curated catalog carries both labels as external ids on that one
+— the curated catalog carries both labels as external ids on that one
 trophy.
 
 Group-scoped resolution above requires trusting a competition's curated
@@ -375,7 +375,7 @@ legend and is deliberately not seeded as a trophy.
 This pair of legend pages is the trophy _catalog_; it says nothing about who
 actually won a trophy. That is the job of the `sr` page's "Team trophy" and
 "Player prize" tables described above, whose rows the trophy-awards importer
-(`tools/import-bbl/src/trophy-awards/bbl-trophy-awards-import.service.ts`,
-issue #343) turns into `trophy_awards` rows, resolving each row's trophy by
+(`tools/import-bbl/src/trophy-awards/bbl-trophy-awards-import.service.ts`)
+turns into `trophy_awards` rows, resolving each row's trophy by
 its group-scoped composite id, falling back to the bare label, via
 `trophies_external_ids`.
