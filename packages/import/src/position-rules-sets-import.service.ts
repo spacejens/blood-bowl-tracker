@@ -26,7 +26,7 @@ export class PositionRulesSetsImportService {
       item: data,
       errors,
       buildErrorMessage: (err) =>
-        `Failed to sync characteristics for ${data.entries.length} position/rules-set pair(s): ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to sync ${data.entries.length} position/rules-set pair(s): ${err instanceof Error ? err.message : String(err)}`,
     });
   }
 }

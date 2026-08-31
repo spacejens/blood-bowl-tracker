@@ -66,8 +66,7 @@ describe('PositionRulesSetsImportService', () => {
     expect(errors).toEqual([
       {
         item: data,
-        message:
-          'Failed to sync characteristics for 1 position/rules-set pair(s): boom',
+        message: 'Failed to sync 1 position/rules-set pair(s): boom',
       },
     ]);
   });
@@ -81,8 +80,7 @@ describe('PositionRulesSetsImportService', () => {
     expect(errors).toEqual([
       {
         item: data,
-        message:
-          'Failed to sync characteristics for 1 position/rules-set pair(s): nope',
+        message: 'Failed to sync 1 position/rules-set pair(s): nope',
       },
     ]);
   });
