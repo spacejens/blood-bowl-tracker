@@ -185,6 +185,7 @@ export class PositionsService {
     // A duplicated (raceId, eraId) pair collapses to one row, the last
     // entry's characteristics winning; the pair is the row's natural key, so
     // two entries for it are literally the same row.
+    const seenRaceEraIds = new Set<number>();
     const raceEraIds: number[] = [];
     const characteristicsById = new Map<number, CharacteristicValues>();
     for (const re of data.raceEras) {
@@ -192,7 +193,8 @@ export class PositionsService {
       if (id === undefined) {
         continue;
       }
-      if (!raceEraIds.includes(id)) {
+      if (!seenRaceEraIds.has(id)) {
+        seenRaceEraIds.add(id);
         raceEraIds.push(id);
       }
       if (re.characteristics) {
