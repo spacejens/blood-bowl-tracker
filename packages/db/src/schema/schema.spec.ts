@@ -156,9 +156,10 @@ describe('schema', () => {
     const config = getTableConfig(positionsRaceEras);
     const byName = new Map(config.columns.map((c) => [c.name, c]));
     // Nullable on purpose: null permanently means "this rules set has no
-    // Passing characteristic", never "not known yet".
+    // Passing characteristic", never "not known yet" - that case is instead
+    // covered by passing's own DEFAULT 0, asserted below alongside the other
+    // four.
     expect(byName.get('passing')!.notNull).toBe(false);
-    expect(byName.get('passing')!.hasDefault).toBe(false);
     for (const name of [
       'position_id',
       'race_era_id',
@@ -171,10 +172,10 @@ describe('schema', () => {
     }
   });
 
-  it('positions_race_eras defaults the four required characteristics to 0', () => {
+  it('positions_race_eras defaults every characteristic column to 0', () => {
     const config = getTableConfig(positionsRaceEras);
     const byName = new Map(config.columns.map((c) => [c.name, c]));
-    for (const name of ['move', 'strength', 'agility', 'armour']) {
+    for (const name of ['move', 'strength', 'agility', 'passing', 'armour']) {
       expect(byName.get(name)!.default).toBe(0);
     }
   });

@@ -20,11 +20,17 @@ import { raceEras } from './race-eras';
  * importer picks the era's last declared rules set purely to decide which
  * formats to validate against.
  *
- * `passing` is nullable and has no default: null permanently means "this
- * rules set has no Passing characteristic at all", and must never be
- * conflated with "not yet known".
+ * `passing` is nullable: null permanently means "this rules set has no
+ * Passing characteristic at all", and must never be conflated with "not yet
+ * known". Its `DEFAULT 0` exists for that "not yet known" case instead — the
+ * same reason the other four columns default to 0 — so a row inserted
+ * without characteristics gets a placeholder value there too, rather than
+ * a bare NULL asserting a specific, unconfirmed rules-set format. A write
+ * that does supply characteristics always states `passing` explicitly (a
+ * number, or an explicit null for an absent-format rules set), so this
+ * default is only ever read by an availability-only insert.
  *
- * The `DEFAULT 0` on the other four allows a row to exist as "known
+ * The `DEFAULT 0` on all five columns allows a row to exist as "known
  * available, characteristics not yet known" (a source that only knows
  * availability, or an era nobody has curated yet).
  *
@@ -46,7 +52,7 @@ const positionsRaceErasTable = historyTrackedTable({
     move: integer('move').notNull().default(0),
     strength: integer('strength').notNull().default(0),
     agility: integer('agility').notNull().default(0),
-    passing: integer('passing'),
+    passing: integer('passing').default(0),
     armour: integer('armour').notNull().default(0),
   },
   extraConfig: (t) => ({
