@@ -56,7 +56,6 @@ competitionGroups
 eras
 races
 positions
-positionRulesSets
 coaches
 teams
 competitions
@@ -188,21 +187,22 @@ rather than `'bare'`.
 
 ### Position characteristics
 
-`positionRulesSets` entries seed a position's Move, Strength, Agility,
-Passing, and Armour characteristics under one rules set. Each entry is
-`{ position, rulesSet, move, strength, agility, passing?, armour }`:
-`position` and `rulesSet` are external-id pairs pointing at an already-curated
-position and rules set, and `move`/`strength`/`agility`/`armour` are integer
-characteristic values. `passing` is omitted for a rules set that has no
-Passing characteristic (its `passingFormat` is `'absent'`); the importer sends
-the omitted value on as an explicit `null`. The API rejects any entry whose
-values disagree with the rules set's declared characteristic formats — for
-example, a `passing` value against a rules set with no Passing characteristic,
-or a missing `passing` against one that has one. This section is processed
-after the rules sets and positions it references.
+A position's `raceEras` entries may each carry a `characteristics` object
+seeding that position's Move, Strength, Agility, Passing and Armour for that
+race era: `{ race, era, characteristics: { rulesSet, move, strength, agility,
+passing?, armour } }`. `rulesSet` is an external-id pair naming the rules set
+whose declared characteristic formats the values are validated against — it
+is not stored, since the characteristics belong to the race-era row itself.
+`passing` is omitted for a rules set that has no Passing characteristic (its
+`passingFormat` is `'absent'`); the importer sends the omitted value on as an
+explicit `null`. The API rejects any entry whose values disagree with the
+rules set's declared formats — for example, a `passing` value against a rules
+set with no Passing characteristic, or a missing `passing` against one that
+has one. A `raceEras` entry with no `characteristics` records availability
+alone.
 
-No data file currently declares any `positionRulesSets` entries — the section
-exists for the curation work that follows.
+No data file currently declares any `characteristics` — they exist for the
+curation work that follows.
 
 ### SPP award values
 
@@ -410,6 +410,7 @@ point the tool at any other directory by passing its path.
    ```
 
    `tools/import-manual/import-manual-config.json5` is git-ignored.
+
 2. Build the tool, then run it against a directory (the sole argument):
 
    ```bash
@@ -455,15 +456,13 @@ See [Running import tools against production](../discord-bot/production-imports.
   recording an `ImportError` per unresolved reference.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
-- **Entity processors** (rules sets, leagues, eras, races, positions, position
-  characteristics, coaches, teams, competition groups, competitions, SPP
-  award values, trophies) — each resolves its references and calls the shared
-  `*ImportService` from `packages/import`. The positions processor
-  additionally calls `syncRaceEras` to set race/era availability. The
-  position-characteristics processor runs after both rules sets and
-  positions, resolving both refs before syncing the whole batch, the same way
-  the SPP award values processor does. The competitions processor depends on
-  eras and
+- **Entity processors** (rules sets, leagues, eras, races, positions, coaches,
+  teams, competition groups, competitions, SPP award values, trophies) — each
+  resolves its references and calls the shared `*ImportService` from
+  `packages/import`. The positions processor additionally calls
+  `syncRaceEras` to set race/era availability, carrying each pair's curated
+  characteristics along with it when the data file declares them. The
+  competitions processor depends on eras and
   competition groups, so it runs after both, and always sends an empty
   `teamEraIds` list, which the API treats additively and so never detaches an
   imported competition's teams.

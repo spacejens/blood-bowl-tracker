@@ -74,7 +74,7 @@ hand-writes the rest, so the extra procedure stays visible at its own block.
 hand-written — they use a different upsert handler method or return a
 different result shape, and each carries a comment saying so. Those
 permanently hand-written blocks, plus the players SPP-sync procedures,
-`positions.syncRaceEras`, `positionRulesSets.sync`, `matches.resolveOutcomes` and
+`positions.syncRaceEras`, `matches.resolveOutcomes` and
 `competitionGroups.list`, live in
 `rpc-router-factory-hand-written-routes.ts`, which `build()` calls into
 directly, keeping `rpc-router-factory.service.ts` itself under its line
@@ -113,7 +113,7 @@ Not every procedure is upsert-shaped. Some entities instead — or in addition �
 expose a custom procedure that recomputes or syncs already-imported data in
 place rather than importing new records — `sppAwardValues.sync`,
 `matches.resolveOutcomes`,
-`positions.syncRaceEras`, `positionRulesSets.sync` and
+`positions.syncRaceEras` and
 `players.syncScrapedSppAdjustments`/`syncReportedSppAdjustments` are current
 examples of the pattern, not an exhaustive list. Because nothing is being newly
 identified or created, these have no external-id conflict to detect and no
@@ -127,6 +127,13 @@ outcome for, rather than throwing. As with the batching exceptions above, the
 router's own comment and result schema in
 `packages/api-contract/src/contract.ts` explain why a given procedure is
 shaped this way instead of as an upsert, and its exact result shape.
+
+`positions.syncRaceEras` is the one procedure in this group that declares a
+`BAD_REQUEST`: an entry may carry the position's characteristics for that
+race era, and characteristics that disagree with the named rules set's
+declared formats (a Passing value for a rules set that has none, or a missing
+one where the rules set requires it) are authored-data feedback the importer
+reports, not a server fault.
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. `competitionGroups.list`

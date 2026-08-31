@@ -318,13 +318,28 @@ characteristic — only ever Passing, in the pre-BB2020 rules sets), `bare` (a
 plain number) or `plus` (a trailing "+", the value being a target a die roll
 has to meet).
 
-`position_rules_sets` is the position × rules-set association, holding that
-position's Move, Strength, Agility, Passing and Armour under that rules set,
-keyed by `(position_id, rules_set_id)`. `passing` is nullable, for rules sets
-whose `passing_format` is `absent`. A missing row means the position did not
-exist under that rules set. `PositionRulesSetsService.sync` in
-`packages/game-data` is the single place that writes it, and it rejects any
-row whose values disagree with the rules set's declared formats.
+`positions_race_eras` records that a position was available for one race in
+one era, and carries that position's Move, Strength, Agility, Passing and
+Armour there, keyed by `(position_id, race_era_id)`. A row is positive
+evidence: a curated override said the position was available, it is a star
+player, or a player was actually recorded using it. Absence of a row means no
+such evidence exists — never "probably available".
+
+The table deliberately has no rules-set column, even though an era can span
+several rules sets: in every real era all of its rules sets share the same
+characteristic formats, so one row per race era carries the characteristics
+correctly. A writer still names a rules set in the API call, purely so the
+server can validate the five values against that rules set's declared
+formats; the id is not stored. `passing` is nullable, and null permanently
+means the rules set has no Passing characteristic at all — never "not known
+yet". `move`, `strength`, `agility` and `armour` are `NOT NULL DEFAULT 0`, a
+temporary compromise letting a row exist as "available, characteristics not
+yet known" while sources are still being filled in.
+
+`PositionsService.syncRaceEras` in `packages/game-data` is the single place
+that writes the table. Availability is insert-only and never revoked;
+characteristics, when supplied, are written on insert and updated in place on
+a re-sync, so a better source can correct an earlier one.
 
 ## Discord bot user-facing messages
 
