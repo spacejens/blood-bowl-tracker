@@ -1,4 +1,7 @@
-import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
+import type {
+  PositionRaceEraCharacteristics,
+  UpsertPosition,
+} from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 import type { ImportError } from './types';
@@ -6,7 +9,16 @@ import { createUpsertImportServiceBase } from './upsert-import-service-base';
 
 export interface SyncPositionRaceErasData {
   positionId: number;
-  raceEras: { raceId: number; eraId: number }[];
+  raceEras: {
+    raceId: number;
+    eraId: number;
+    /**
+     * The position's characteristics for this race era, when the source
+     * knows them. Omitted entries record availability only and leave the
+     * characteristics columns at their database defaults.
+     */
+    characteristics?: PositionRaceEraCharacteristics;
+  }[];
 }
 
 @Injectable()
