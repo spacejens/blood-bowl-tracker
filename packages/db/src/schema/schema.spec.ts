@@ -2,6 +2,7 @@ import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+  characteristicFormatEnum,
   coaches,
   coachExternalIds,
   competitionGroups,
@@ -17,6 +18,7 @@ import {
   matchTeams,
   players,
   positionExternalIds,
+  positionRulesSets,
   positions,
   positionsRaceEras,
   raceEras,
@@ -341,5 +343,79 @@ describe('schema', () => {
     expect(trophyAwards.playerId).toBeDefined();
     expect(trophyAwards.teamEraId.notNull).toBe(true);
     expect(trophyAwards.playerId.notNull).toBe(false);
+  });
+
+  it('exports the characteristic format enum', () => {
+    expect(characteristicFormatEnum.enumName).toBe('characteristic_format');
+    expect(characteristicFormatEnum.enumValues).toEqual([
+      'absent',
+      'bare',
+      'plus',
+    ]);
+  });
+
+  it('exports rules_sets characteristic format columns, not null with defaults', () => {
+    const config = getTableConfig(rulesSets);
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    for (const name of [
+      'move_format',
+      'strength_format',
+      'agility_format',
+      'passing_format',
+      'armour_format',
+    ]) {
+      expect(byName.get(name)!.notNull).toBe(true);
+      // Defaulted on purpose: the BBL and TP importers create rules sets from
+      // their own configs without saying anything about characteristics, and
+      // a not-null column with no default would make those inserts fail.
+      expect(byName.get(name)!.hasDefault).toBe(true);
+    }
+    expect(byName.get('move_format')!.default).toBe('bare');
+    expect(byName.get('strength_format')!.default).toBe('bare');
+    expect(byName.get('agility_format')!.default).toBe('bare');
+    expect(byName.get('passing_format')!.default).toBe('absent');
+    expect(byName.get('armour_format')!.default).toBe('bare');
+  });
+
+  it('exports positionRulesSets table', () => {
+    expect(positionRulesSets.id).toBeDefined();
+    expect(positionRulesSets.positionId).toBeDefined();
+    expect(positionRulesSets.rulesSetId).toBeDefined();
+    expect(positionRulesSets.move).toBeDefined();
+    expect(positionRulesSets.strength).toBeDefined();
+    expect(positionRulesSets.agility).toBeDefined();
+    expect(positionRulesSets.passing).toBeDefined();
+    expect(positionRulesSets.armour).toBeDefined();
+    const config = getTableConfig(positionRulesSets);
+    expect(config.name).toBe('position_rules_sets');
+    expect(config.schema).toBe('game_data');
+  });
+
+  it('position_rules_sets has a nullable passing and non-null everything else', () => {
+    const config = getTableConfig(positionRulesSets);
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    // Nullable on purpose: a rules set whose passing_format is 'absent' has
+    // no Passing characteristic at all, so its rows carry no value.
+    expect(byName.get('passing')!.notNull).toBe(false);
+    for (const name of [
+      'position_id',
+      'rules_set_id',
+      'move',
+      'strength',
+      'agility',
+      'armour',
+    ]) {
+      expect(byName.get(name)!.notNull).toBe(true);
+    }
+  });
+
+  it('position_rules_sets is unique on (position_id, rules_set_id)', () => {
+    const config = getTableConfig(positionRulesSets);
+    const unique = config.uniqueConstraints[0];
+    expect(unique).toBeDefined();
+    expect(unique.columns.map((c) => c.name)).toEqual([
+      'position_id',
+      'rules_set_id',
+    ]);
   });
 });
