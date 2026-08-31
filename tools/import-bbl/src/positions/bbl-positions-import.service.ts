@@ -128,7 +128,7 @@ export class BblPositionsImportService {
     >();
     /**
      * A position upserted for several races produces several rows, all sharing
-     * the one characteristics line its page showed - so this is set per
+     * the one characteristics line its page showed — so this is set per
      * upserted row, not per page. Kept separate from recordCandidate to stay
      * inside the 3-parameter limit.
      */

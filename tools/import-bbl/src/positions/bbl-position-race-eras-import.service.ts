@@ -59,10 +59,13 @@ export class BblPositionRaceErasImportService {
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    // Which rules sets each position played under: the same availability the
-    // race-era sync below decides, projected onto the rules sets each era
-    // spans. No new heuristic - the era decision is made once, here, and used
-    // twice.
+    // Which rules sets each position gets a characteristics row for. This is
+    // a stricter subset of the race-era availability decided below: it
+    // requires positive evidence the position was actually played (a
+    // config override, a star player, or an observed use), never the
+    // race-era "no team fielded this race in this era" fallback, which would
+    // otherwise fabricate a specific characteristics line for a (position,
+    // rules set) pair with no evidence at all.
     const rulesSetIdsByPositionId = new Map<number, Set<number>>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
@@ -104,7 +107,7 @@ export class BblPositionRaceErasImportService {
 
     // Era db id -> the rules sets that era spans. An era covering a rules-set
     // change (e.g. CRP, CRP+, BB2016) yields one entry per rules set, each of
-    // which gets the same scraped characteristics - BBL has no other source
+    // which gets the same scraped characteristics — BBL has no other source
     // for the older ones.
     const rulesSetIdsByEraId = new Map<number, Set<number>>();
     const unresolvedRulesSetsByEraId = new Map<number, Set<string>>();
@@ -189,28 +192,46 @@ export class BblPositionRaceErasImportService {
     for (const [positionId, candidate] of positionRaceCandidates) {
       const overrides = overridesByPositionId.get(positionId);
       const raceEras: { raceId: number; eraId: number }[] = [];
+      const characteristicsEraIds = new Set<number>();
       for (const raceId of candidate.raceDbIds) {
         for (const eraId of eraIdsByRaceId.get(raceId) ?? []) {
           const key = `${raceId}:${eraId}`;
           const override = overrides?.get(key);
           let include: boolean;
+          let includeForCharacteristics: boolean;
           if (override !== undefined) {
             include = override;
+            includeForCharacteristics = override;
           } else if (candidate.isStarPlayer) {
             include = true;
+            includeForCharacteristics = true;
           } else if (positionsUsedByEra.has(`${positionId}:${eraId}`)) {
             include = true;
+            includeForCharacteristics = true;
           } else {
+            // Characteristics require positive evidence the position was
+            // actually played under a rules set. "No team fielded this race
+            // in this era, so treat it as available" is a reasonable default
+            // for general race-era availability (see the class doc
+            // comment), but it would fabricate a specific characteristics
+            // line for a (position, rules set) pair with no evidence at all
+            // — worse than carrying none. Issue #670 fills these back in by
+            // hand, including under BB2020 itself, once real evidence
+            // exists.
             include = !racesActiveByEra.has(key);
+            includeForCharacteristics = false;
           }
           if (include) {
             raceEras.push({ raceId, eraId });
+          }
+          if (includeForCharacteristics) {
+            characteristicsEraIds.add(eraId);
           }
         }
       }
       const rulesSetIds = new Set<number>();
       const missingNames = new Set<string>();
-      for (const { eraId } of raceEras) {
+      for (const eraId of characteristicsEraIds) {
         for (const id of rulesSetIdsByEraId.get(eraId) ?? []) {
           rulesSetIds.add(id);
         }

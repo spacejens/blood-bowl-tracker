@@ -230,4 +230,20 @@ describe('PositionPageParser', () => {
     );
     expect(parser.extractPosition(page)?.characteristics).toBeNull();
   });
+
+  it('returns null characteristics when the Passing cell is unreadable garbage, not a dash', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<table>' +
+        '<tr class="trlisthead">' +
+        '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr class="trborder">' +
+        '<td>6</td><td>4</td><td>3+</td><td>?</td><td>9+</td><td></td>' +
+        '</tr>' +
+        '</table>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.characteristics).toBeNull();
+  });
 });

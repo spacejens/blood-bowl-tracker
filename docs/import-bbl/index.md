@@ -179,7 +179,7 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   seen on the team-page pass is upserted the same way. The team-page pass is
   authoritative — on a shared id it wins — so races with no team page still
   import while `tm`-derived races are unaffected.
-- **PositionsModule** - data-type extractor for positions. `PositionPageParser`
+- **PositionsModule** — data-type extractor for positions. `PositionPageParser`
   reads a position's name, its "Can play for" races, whether it is a star
   player (the `None (star player)` marker), and its MA/ST/AG/PA/AV
   characteristics line from a `p=pt` page; `BblPositionsImportService` streams
@@ -328,7 +328,7 @@ evidence sets, and matches and players (which have no resolve procedure).
   position** imports as duplicate rows, each flagged as a historical (deleted)
   relation. A position that lists no race and has no players in the data is
   skipped with a recorded error. Imported after races and teams (both referenced).
-- **Position characteristics** - from the same `p=pt` page, written to
+- **Position characteristics** — from the same `p=pt` page, written to
   `position_rules_sets`. A position gets one row per rules set it was
   determined available under, not one hardcoded to BB2020: an era spanning a
   rules-set change yields a row per rules set in that span, all carrying the

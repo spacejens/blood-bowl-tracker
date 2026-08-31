@@ -106,8 +106,10 @@ export class PositionPageParser {
    * first five cells are exactly those headers, and the `td`s of the row
    * immediately after it. A `pt` page carries several `trlisthead` rows, so the
    * table is found by its header *text*, not by its class. Returns null when
-   * no such table is found or a required (non-Passing) value is unreadable -
-   * an anomaly on real BBL data, guarded defensively rather than expected.
+   * no such table is found, a required (non-Passing) value is unreadable, or
+   * the Passing cell holds something other than a genuine `-` or a readable
+   * number — an anomaly on real BBL data, guarded defensively rather than
+   * expected.
    */
   private extractCharacteristics(
     $: CheerioAPI,
@@ -124,18 +126,27 @@ export class PositionPageParser {
       if (cells.length < CHARACTERISTIC_HEADERS.length) {
         return null;
       }
-      const [move, strength, agility, passing, armour] = cells
+      const texts = cells
         .slice(0, CHARACTERISTIC_HEADERS.length)
-        .map((cell) =>
-          this.parseCharacteristic(
-            this.normalizeText.normalize($(cell).text()),
-          ),
-        );
+        .map((cell) => this.normalizeText.normalize($(cell).text()));
+      const [moveText, strengthText, agilityText, passingText, armourText] =
+        texts;
+      const move = this.parseCharacteristic(moveText);
+      const strength = this.parseCharacteristic(strengthText);
+      const agility = this.parseCharacteristic(agilityText);
+      const armour = this.parseCharacteristic(armourText);
+      // Passing is the only column where `-` is a legitimate value; anything
+      // else that fails to parse (garbage text, an empty cell) rejects the
+      // whole line, same as an unreadable Move/Strength/Agility/Armour cell,
+      // rather than being silently accepted as if it were a genuine `-`.
+      const passing =
+        passingText === '-' ? null : this.parseCharacteristic(passingText);
       if (
         move === null ||
         strength === null ||
         agility === null ||
-        armour === null
+        armour === null ||
+        (passingText !== '-' && passing === null)
       ) {
         return null;
       }

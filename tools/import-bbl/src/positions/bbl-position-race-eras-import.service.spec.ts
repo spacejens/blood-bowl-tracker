@@ -353,6 +353,40 @@ describe('BblPositionRaceErasImportService', () => {
     );
   });
 
+  it('gives no characteristics rules sets for an era included only via the no-teams-at-all fallback', async () => {
+    const { service, mocks } = await makeService([makeEra()]);
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+    const positionsUsedByEra = new Set<string>();
+    const racesActiveByEra = new Set<string>();
+    mocks.positionsImport.syncRaceEras.mockResolvedValue({
+      positionId: 100,
+      raceEraIds: [1],
+    });
+
+    const outcome = await service.syncPositionRaceEras({
+      positionRaceCandidates,
+      racesByBblId,
+      rulesSetsByName,
+      eraIdsByRaceId,
+      positionsUsedByEra,
+      racesActiveByEra,
+    });
+
+    // syncRaceEras still gets the era: general race-era availability is
+    // unaffected by the stricter characteristics eligibility check.
+    expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
+      expect.any(Array),
+    );
+    // But the characteristics projection gets nothing: there is no positive
+    // evidence (override, star player, or observed use) the position was
+    // ever played under this era's rules set.
+    expect(outcome.rulesSetIdsByPositionId.has(100)).toBe(false);
+  });
+
   it('excludes an era where a config override says available:false, even though a player used it', async () => {
     const eras = [
       makeEra({
