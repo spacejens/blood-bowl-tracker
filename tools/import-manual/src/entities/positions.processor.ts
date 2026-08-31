@@ -46,9 +46,11 @@ export class PositionsProcessor {
   }
 
   /**
-   * Resolve every race/era availability pair for a position. Returns undefined
-   * (recording one error per unresolved ref) if any pair can't be resolved, so
-   * the caller skips the syncRaceEras call.
+   * Resolve every race/era availability pair for a position, together with
+   * the rules set naming the formats its characteristics are validated
+   * against. Returns undefined (recording one error per unresolved ref) if
+   * any reference can't be resolved, so the caller skips the syncRaceEras
+   * call.
    */
   private async resolveRaceEras(
     entry: PositionEntry,
@@ -74,11 +76,42 @@ export class PositionsProcessor {
         label,
         kind: 'era',
       });
-      if (raceId === undefined || eraId === undefined) {
+      const rulesSetId = pair.characteristics
+        ? await this.refResolver.resolveRef({
+            ref: pair.characteristics.rulesSet,
+            systemIds: ctx.systemIds,
+            errors: ctx.errors,
+            item: entry,
+            label,
+            kind: 'rulesSet',
+          })
+        : undefined;
+      if (
+        raceId === undefined ||
+        eraId === undefined ||
+        (pair.characteristics !== undefined && rulesSetId === undefined)
+      ) {
         ok = false;
-      } else {
-        raceEras.push({ raceId, eraId });
+        continue;
       }
+      raceEras.push({
+        raceId,
+        eraId,
+        ...(pair.characteristics && rulesSetId !== undefined
+          ? {
+              characteristics: {
+                rulesSetId,
+                move: pair.characteristics.move,
+                strength: pair.characteristics.strength,
+                agility: pair.characteristics.agility,
+                // An omitted Passing means the rules set has none, which the
+                // API and the database both spell as an explicit null.
+                passing: pair.characteristics.passing ?? null,
+                armour: pair.characteristics.armour,
+              },
+            }
+          : {}),
+      });
     }
     return ok ? raceEras : undefined;
   }

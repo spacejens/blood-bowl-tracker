@@ -17,7 +17,6 @@ function emptyData(): ManualDataFile {
     eras: [],
     races: [],
     positions: [],
-    positionRulesSets: [],
     coaches: [],
     teams: [],
     competitions: [],
@@ -195,6 +194,160 @@ describe('PositionsProcessor', () => {
     const count = await processor.process(makeContext(data));
 
     expect(count).toBe(0);
+    expect(positions.syncRaceEras).not.toHaveBeenCalled();
+  });
+
+  it('resolves the characteristics rules set and forwards the values', async () => {
+    positions.upsert.mockResolvedValue({
+      id: 1,
+      name: 'Zombie',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    positions.syncRaceEras.mockResolvedValue({
+      positionId: 1,
+      raceEraIds: [1],
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    // One resolveRef call per race-era pair: race, era, then rules set.
+    refResolver.resolveRef
+      .mockResolvedValueOnce(2) // race
+      .mockResolvedValueOnce(3) // era
+      .mockResolvedValueOnce(7); // rules set
+    const data = emptyData();
+    data.positions = [
+      {
+        name: 'Zombie',
+        isStarPlayer: false,
+        raceEras: [
+          {
+            race: { system: 'Name', id: 'name:necromantic' },
+            era: { system: 'Name', id: 'name:season-12' },
+            characteristics: {
+              rulesSet: { system: 'Name', id: 'name:bb2020' },
+              move: 4,
+              strength: 3,
+              agility: 4,
+              passing: 5,
+              armour: 9,
+            },
+          },
+        ],
+        externalIds: [{ system: 'Name', id: 'name:zombie' }],
+      },
+    ];
+    const ctx = makeContext(data);
+
+    await processor.process(ctx);
+
+    expect(positions.syncRaceEras).toHaveBeenCalledWith(
+      {
+        positionId: 1,
+        raceEras: [
+          {
+            raceId: 2,
+            eraId: 3,
+            characteristics: {
+              rulesSetId: 7,
+              move: 4,
+              strength: 3,
+              agility: 4,
+              passing: 5,
+              armour: 9,
+            },
+          },
+        ],
+      },
+      ctx.errors,
+    );
+  });
+
+  it('sends an omitted passing on as an explicit null', async () => {
+    positions.upsert.mockResolvedValue({
+      id: 1,
+      name: 'Zombie',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    positions.syncRaceEras.mockResolvedValue({
+      positionId: 1,
+      raceEraIds: [1],
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.resolveRef
+      .mockResolvedValueOnce(2) // race
+      .mockResolvedValueOnce(3) // era
+      .mockResolvedValueOnce(7); // rules set
+    const data = emptyData();
+    data.positions = [
+      {
+        name: 'Zombie',
+        isStarPlayer: false,
+        raceEras: [
+          {
+            race: { system: 'Name', id: 'name:necromantic' },
+            era: { system: 'Name', id: 'name:season-12' },
+            characteristics: {
+              rulesSet: { system: 'Name', id: 'name:crp' },
+              move: 6,
+              strength: 3,
+              agility: 3,
+              armour: 8,
+            },
+          },
+        ],
+        externalIds: [{ system: 'Name', id: 'name:zombie' }],
+      },
+    ];
+    const ctx = makeContext(data);
+
+    await processor.process(ctx);
+
+    const call = positions.syncRaceEras.mock.calls[0][0];
+    expect(call.raceEras[0].characteristics?.passing).toBeNull();
+  });
+
+  it('skips the whole sync when the characteristics rules set does not resolve', async () => {
+    positions.upsert.mockResolvedValue({
+      id: 1,
+      name: 'Zombie',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.resolveRef
+      .mockResolvedValueOnce(2) // race
+      .mockResolvedValueOnce(3) // era
+      .mockResolvedValueOnce(undefined); // rules set fails to resolve
+    const data = emptyData();
+    data.positions = [
+      {
+        name: 'Zombie',
+        isStarPlayer: false,
+        raceEras: [
+          {
+            race: { system: 'Name', id: 'name:necromantic' },
+            era: { system: 'Name', id: 'name:season-12' },
+            characteristics: {
+              rulesSet: { system: 'Name', id: 'name:missing' },
+              move: 4,
+              strength: 3,
+              agility: 4,
+              passing: 5,
+              armour: 9,
+            },
+          },
+        ],
+        externalIds: [{ system: 'Name', id: 'name:zombie' }],
+      },
+    ];
+    const ctx = makeContext(data);
+
+    await processor.process(ctx);
+
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
   });
 

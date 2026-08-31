@@ -9,7 +9,6 @@ import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
-import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.processor';
 import { PositionsProcessor } from '../entities/positions.processor';
 import { RacesProcessor } from '../entities/races.processor';
 import { RulesSetsProcessor } from '../entities/rules-sets.processor';
@@ -28,7 +27,6 @@ export class ManualImportService {
     private readonly eras: ErasProcessor,
     private readonly races: RacesProcessor,
     private readonly positions: PositionsProcessor,
-    private readonly positionRulesSets: PositionRulesSetsProcessor,
     private readonly coaches: CoachesProcessor,
     private readonly teams: TeamsProcessor,
     private readonly competitionGroups: CompetitionGroupsProcessor,
@@ -41,21 +39,19 @@ export class ManualImportService {
   /**
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
    * it references, then process each entity section in dependency order —
-   * rulesSets, leagues, eras, races, positions, positionRulesSets, coaches,
-   * teams, competitionGroups, competitions, sppAwardValues, trophies — with
-   * positionRulesSets running after both rulesSets and positions (which its
-   * entries reference), competitionGroups running after leagues (whose
-   * external ids its entries reference) and before competitions and trophies
-   * (which resolve the groups it upserts, by their "Name"-system external
-   * id), sppAwardValues running after rulesSets and races (which it
-   * references), and trophies running last, after the leagues it may also
-   * reference — sharing one error collector so one bad entry never aborts the
-   * rest. Reference-resolution
-   * and upsert failures are collected; a missing directory, malformed file,
-   * or unreachable API throws out of here to be reported as an unexpected
-   * failure. A same-kind
-   * external-id collision is detected server-side: the API's upsert reports
-   * it as a CONFLICT, collected like any other ImportError.
+   * rulesSets, leagues, eras, races, positions, coaches, teams,
+   * competitionGroups, competitions, sppAwardValues, trophies — with
+   * competitionGroups running after leagues (whose external ids its entries
+   * reference) and before competitions and trophies (which resolve the
+   * groups it upserts, by their "Name"-system external id), sppAwardValues
+   * running after rulesSets and races (which it references), and trophies
+   * running last, after the leagues it may also reference — sharing one
+   * error collector so one bad entry never aborts the rest. Reference-
+   * resolution and upsert failures are collected; a missing directory,
+   * malformed file, or unreachable API throws out of here to be reported as
+   * an unexpected failure. A same-kind external-id collision is detected
+   * server-side: the API's upsert reports it as a CONFLICT, collected like
+   * any other ImportError.
    */
   async run(dir: string): Promise<ImportResult> {
     const data = await this.reader.read(dir);
@@ -74,7 +70,6 @@ export class ManualImportService {
     imported += await this.eras.process(ctx);
     imported += await this.races.process(ctx);
     imported += await this.positions.process(ctx);
-    imported += await this.positionRulesSets.process(ctx);
     imported += await this.coaches.process(ctx);
     imported += await this.teams.process(ctx);
     imported += await this.competitionGroups.process(ctx);
