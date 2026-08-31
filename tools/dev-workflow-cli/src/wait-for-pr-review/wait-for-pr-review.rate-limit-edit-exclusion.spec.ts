@@ -6,7 +6,9 @@ import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import {
   createHarness,
   EMPTY,
+  extractCommentUpdateFailedFilter,
   extractRateLimitFilter,
+  extractStarGateFilter,
   jqProgramOf,
   OPTIONS,
   RATE_LIMIT_COMMENT,
@@ -83,8 +85,20 @@ describe('WaitForPrReviewService rate-limit-edit exclusion', () => {
     await runWait({ ...OPTIONS, timeoutMs: 30_000, intervalMs: 30_000 });
 
     const [, args] = processRunner.run.mock.calls[0];
-    const subFilter = extractRateLimitFilter(jqProgramOf(args));
+    const program = jqProgramOf(args);
+    const subFilter = extractRateLimitFilter(program);
     expect(subFilter).toContain(
+      `contains(${JSON.stringify(RATE_LIMIT_EDIT_START_MARKER)}) | not`,
+    );
+
+    // The exclusion belongs to rateLimitFilter alone — it must not leak into
+    // the sibling sub-filters built from the same jq program, even though
+    // commentUpdateFailedFilter carries a visually near-identical
+    // COMMAND_REPLY_MARKER exclusion line.
+    expect(extractCommentUpdateFailedFilter(program)).not.toContain(
+      `contains(${JSON.stringify(RATE_LIMIT_EDIT_START_MARKER)}) | not`,
+    );
+    expect(extractStarGateFilter(program)).not.toContain(
       `contains(${JSON.stringify(RATE_LIMIT_EDIT_START_MARKER)}) | not`,
     );
   });

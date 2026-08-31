@@ -251,7 +251,20 @@ export class WaitForPrReviewFiltersService {
    * one of the two, and the wait alternates between them forever. Preventing
    * the double match here keeps the two id spaces disjoint, and leaves the
    * rolling detector's content fingerprint free to keep distinguishing a
-   * genuinely new rate-limit edit from an already-seen one.
+   * genuinely new rate-limit edit from an already-seen one. Two consequences
+   * follow: if the REST call behind `rateLimitEditFilter` fails or times out
+   * on a given poll, this exclusion means the GraphQL path no longer reports
+   * that rate limit either, so the poll simply finds nothing and the wait
+   * continues to its next poll (or eventual timeout) rather than losing
+   * correctness, since a later poll's REST call can still succeed; and
+   * because this exclusion matches on the start marker alone while
+   * `rateLimitEditFilter` requires a *paired* start-and-end marker plus a
+   * phrase match against the extracted section, a comment carrying the start
+   * marker without its matching end marker (e.g. a body truncated mid-edit)
+   * is excluded here but may not be positively matched by the REST side
+   * either — a narrow case neither detector catches on that poll, which is
+   * acceptable because the fail-safe direction is always "wait continues /
+   * eventually times out", never a false positive.
    */
   private rateLimitFilter(options: WaitForPrReviewFilterOptions): string {
     const excludeClause =
@@ -272,14 +285,18 @@ export class WaitForPrReviewFiltersService {
   }
 
   /**
-   * Deliberately CodeRabbit-specific, and structurally identical to
+   * Deliberately CodeRabbit-specific, and structurally near-identical to
    * `rateLimitFilter` — same `.comments[]` source, same author-login
    * narrowing, same watermark bound, same `[...] | first` wrapping, same
    * `RECENT_REVIEW_START_MARKER` and `COMMAND_REPLY_MARKER` exclusions —
    * because this is the same kind of signal: a top-level comment CodeRabbit
    * posts *instead of* reviewing. Only the phrase set and the exclusion id
    * differ. See `rateLimitFilter`'s doc comment for why the marker
-   * exclusions are needed.
+   * exclusions are needed. It deliberately lacks `rateLimitFilter`'s
+   * `RATE_LIMIT_EDIT_START_MARKER` exclusion: CodeRabbit posts a
+   * comment-update-failure notice as its own top-level comment, never as an
+   * edit to the rolling comment, so there is no REST-side detector for this
+   * filter to avoid colliding with.
    */
   private commentUpdateFailedFilter(
     options: WaitForPrReviewFilterOptions,
