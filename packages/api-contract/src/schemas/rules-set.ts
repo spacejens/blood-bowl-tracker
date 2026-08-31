@@ -8,6 +8,12 @@ import { ExternalIdSchema } from './external-id';
  * the pre-BB2020 rules sets), `bare` (a plain number) or `plus` (a trailing
  * "+", the value being a target a die roll has to meet).
  *
+ * `absent` is only usable in practice for Passing today: `move`/`strength`/
+ * `agility`/`armour` are non-nullable on `PositionRulesSetEntrySchema`, so
+ * configuring one of their formats as `absent` would make every entry for
+ * that rules set permanently rejected by `PositionRulesSetsService`. The enum
+ * stays uniform across all five columns rather than special-casing Passing.
+ *
  * The contract-side mirror of the db's `characteristic_format` enum; the two
  * are held together by packages/game-data/src/shared/enum-sync.spec.ts.
  */

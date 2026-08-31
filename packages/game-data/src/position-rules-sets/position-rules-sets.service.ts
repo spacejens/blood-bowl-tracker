@@ -84,7 +84,11 @@ export class PositionRulesSetsService {
    * `upsertByExternalIds` uses, for the same reason.
    *
    * Validation runs over the whole batch before any write: one bad entry
-   * fails the call rather than half-applying it.
+   * fails the call rather than half-applying it. This includes rejecting a
+   * batch where the same `(positionId, rulesSetId)` pair appears more than
+   * once — without this check, two such entries would both route to the
+   * insert path below and collide on the table's unique constraint, raising
+   * a raw database error instead of this method's own, clearer one.
    */
   async sync(
     data: SyncPositionRulesSets,
@@ -109,8 +113,16 @@ export class PositionRulesSetsService {
       .where(inArray(rulesSets.id, rulesSetIds));
 
     const formatsById = new Map(formatRows.map((row) => [row.id, row]));
+    const seenKeys = new Set<string>();
     for (const entry of data.entries) {
       this.validate(entry, formatsById.get(entry.rulesSetId));
+      const key = this.naturalKey(entry);
+      if (seenKeys.has(key)) {
+        throw new PositionRulesSetFormatMismatchError(
+          `Position ${entry.positionId} under rules set ${entry.rulesSetId} appears more than once in the same batch`,
+        );
+      }
+      seenKeys.add(key);
     }
 
     // Over-fetch by rules set and match in memory: one query regardless of

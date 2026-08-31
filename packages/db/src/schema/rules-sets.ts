@@ -12,6 +12,15 @@ import { gameData } from './pg-schema';
  * - `plus` — displayed with a trailing "+": the value names a target a die
  *   roll has to meet.
  *
+ * `absent` is only usable in practice for Passing today: Move, Strength,
+ * Agility and Armour are stored as non-nullable columns on
+ * `position_rules_sets`, so configuring one of their format columns as
+ * `absent` would make every row for that rules set permanently rejected by
+ * `PositionRulesSetsService` (it always supplies a value for those four).
+ * The enum stays uniform across all five columns rather than special-casing
+ * Passing, since a future rules set losing a currently-mandatory
+ * characteristic is not implausible.
+ *
  * Mirrored in api-contract as `CharacteristicFormatSchema`; the two copies are
  * held together by packages/game-data/src/shared/enum-sync.spec.ts.
  */

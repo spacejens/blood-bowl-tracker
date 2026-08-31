@@ -153,6 +153,71 @@ describe('PositionRulesSetsService', () => {
       ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
     });
 
+    it('rejects a batch with the same (positionId, rulesSetId) pair twice', async () => {
+      // Query 0: the rules-set format lookup — the only query issued, since
+      // the duplicate is caught before the existing-rows lookup ever runs.
+      const db = mockDb([bb2020Formats]);
+      const service = await makeService(db);
+
+      await expect(
+        service.sync({ entries: [bb2020Entry, bb2020Entry] }),
+      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      expect(db.chains).toHaveLength(1);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('validates the whole batch before any write, even when the bad entry is last', async () => {
+      // Query 0: the rules-set format lookup for both rules sets in one
+      // query. No further queries: the first entry passes validation, but
+      // the second (last) fails, so the existing-rows lookup never runs.
+      const db = mockDb([bb2020Formats, crpFormats]);
+      const service = await makeService(db);
+
+      await expect(
+        service.sync({ entries: [bb2020Entry, { ...crpEntry, passing: 4 }] }),
+      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      expect(db.chains).toHaveLength(1);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('handles a batch mixing an insert and an update', async () => {
+      // Query 0: formats. Query 1: the existing-rows lookup finds only the
+      // position-3 pair. Query 2: the INSERT for the new position-7 pair.
+      // Query 3: the UPDATE for the existing position-3 pair.
+      const newPositionEntry = { ...bb2020Entry, positionId: 7 };
+      const db = mockDb(
+        [bb2020Formats],
+        [{ id: 21, positionId: 3, rulesSetId: 4 }],
+        [{ id: 30 }],
+        [{ id: 21 }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...bb2020Entry, move: 7 }, newPositionEntry],
+      });
+
+      expect(result).toEqual({ positionRulesSetIds: [30, 21] });
+      expect(firstCallArg(db.chains[2].values)).toEqual([
+        {
+          positionId: 7,
+          rulesSetId: 4,
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: 4,
+          armour: 9,
+        },
+      ]);
+      expect(firstCallArg(db.chains[3].set)).toEqual({
+        move: 7,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
+      });
+    });
+
     it('updates the existing row for a re-synced pair instead of duplicating it', async () => {
       // Query 0: formats. Query 1: the existing-rows lookup finds the pair.
       // Query 2: the UPDATE — and nothing else, which is what proves no
