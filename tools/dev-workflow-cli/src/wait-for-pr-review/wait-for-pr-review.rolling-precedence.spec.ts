@@ -7,8 +7,8 @@ import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import {
   COMMENT_UPDATE_FAILED,
   COMPLETION_CANDIDATE,
-  completionResult,
   COMPLETION_REVIEW,
+  completionResult,
   createHarness,
   EMPTY_BODY_FOUND,
   OPTIONS,
