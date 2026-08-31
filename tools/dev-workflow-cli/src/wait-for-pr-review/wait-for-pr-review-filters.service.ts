@@ -237,6 +237,21 @@ export class WaitForPrReviewFiltersService {
    * Also excludes any comment carrying `COMMAND_REPLY_MARKER` — see that
    * constant's doc comment for why a manual-trigger command reply must
    * never be matched here.
+   *
+   * Also excludes any comment carrying `RATE_LIMIT_EDIT_START_MARKER` — the
+   * rolling walkthrough comment CodeRabbit edits a rate-limit block into,
+   * which `rateLimitEditFilter` and `rateLimitEditComment` own exclusively.
+   * The `RECENT_REVIEW_START_MARKER` exclusion above does not cover it: a
+   * pass rate-limited before any review has completed carries the rate-limit
+   * markers with no `recent_review` section yet. Without this guard both
+   * detectors match that one comment, and they report it under *different*
+   * ids — this filter under the raw GitHub comment id, the rolling detector
+   * under a composite id pairing that raw id with a section fingerprint — so
+   * whichever id the caller round-trips as `excludeCommentId` suppresses only
+   * one of the two, and the wait alternates between them forever. Preventing
+   * the double match here keeps the two id spaces disjoint, and leaves the
+   * rolling detector's content fingerprint free to keep distinguishing a
+   * genuinely new rate-limit edit from an already-seen one.
    */
   private rateLimitFilter(options: WaitForPrReviewFilterOptions): string {
     const excludeClause =
@@ -248,6 +263,7 @@ export class WaitForPrReviewFiltersService {
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
       `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
       `select((.body // "") | contains(${JSON.stringify(COMMAND_REPLY_MARKER)}) | not) | ` +
+      `select((.body // "") | contains(${JSON.stringify(RATE_LIMIT_EDIT_START_MARKER)}) | not) | ` +
       `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
