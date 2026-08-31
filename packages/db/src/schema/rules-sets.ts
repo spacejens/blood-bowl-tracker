@@ -31,17 +31,12 @@ export const characteristicFormatEnum = gameData.enum('characteristic_format', [
 ]);
 
 /**
- * A rules set, plus the configuration saying which position characteristics it
- * has and how each is displayed. The five format columns are configuration
- * about the rules set, not about any position: a position's actual values live
- * in `position_rules_sets`, and PositionRulesSetsService rejects any row whose
- * values disagree with what these columns declare.
- *
- * They are NOT NULL with defaults rather than NOT NULL alone because the BBL
- * and TP importers create rules sets from their own configs without saying
- * anything about characteristics. The defaults describe the older rules sets
- * (bare Move/Strength/Agility/Armour, no Passing); curated data in
- * tools/import-manual overrides them per rules set.
+ * The five characteristic-format columns are NOT NULL with defaults rather
+ * than NOT NULL alone because the BBL and TP importers create rules sets from
+ * their own configs without saying anything about characteristics. The
+ * defaults describe the older rules sets (bare Move/Strength/Agility/Armour,
+ * no Passing); curated data in tools/import-manual overrides them per rules
+ * set.
  */
 const rulesSetsTable = historyTrackedTable({
   schema: gameData,
