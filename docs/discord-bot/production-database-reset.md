@@ -43,9 +43,9 @@ never actually reset.
 Both machines keep serving HTTP/RPC (and the active one keeps handling
 Discord and scheduled work) until `fly apps restart` reaches them, so a
 request made in the narrow window between the schema drop and that restart
-completing can fail against a database with no schema at all. That failure
-is visible rather than silent, and both request paths that can reach the
-database in that window already degrade gracefully:
+completing can fail against a database with no schema at all. None of the
+resulting failures crash or hang the bot, and most are visible rather than
+silent:
 
 - A Discord slash command run in the window replies with the generic
   `I am badly hurt` message — the same reply any other unhandled command
@@ -62,13 +62,22 @@ database in that window already degrade gracefully:
   recognized business error (`isDefinedError`) with its stack via
   `logger.error` and rethrows it, and oRPC turns that into the generic
   response the caller sees.
+- Slash-command autocomplete (the suggestions shown while typing a
+  command's options) is the one path that fails quietly: it has no
+  try/catch of its own in `discord-client.service.ts`, so a rejected query
+  only reaches the outer `Unhandled interaction error` log and the coach
+  sees no suggestions, with no error message. This is still a
+  known, logged failure rather than a hang — just one visible only in the
+  logs, not to the user.
+- The scheduled random-insight post (`RandomInsightsSchedulerService`) has
+  its own try/catch around each run: a query failure during the window is
+  logged and that run is skipped, with the next scheduled run trying again
+  once the schema is back.
 
-Neither path crashes, hangs, or fails silently, so encountering either of
-these during or shortly after a reset is expected, already-sufficient error
-handling — not a bug to chase.
+Encountering any of these during or shortly after a reset is expected,
+already-sufficient error handling — not a bug to chase.
 
-Quiescing both machines before the drop was investigated and rejected (see
-issue #665). A machine stopped before the drop and restarted before the
+Quiescing both machines before the drop was investigated and rejected. A machine stopped before the drop and restarted before the
 schema is recreated only serves an empty database, and one restarted after
 adds nothing until the importers rerun — so quiescing would narrow the
 failure window without avoiding it, at the cost of extra complexity in the
