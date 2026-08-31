@@ -68,6 +68,7 @@ async function run(): Promise<ImportResult> {
       .syncPositionRaceEras({
         positionRaceCandidates: positionOutcome.positionRaceCandidates,
         racesByBblId: raceOutcome.racesByBblId,
+        rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
         eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
         positionsUsedByEra: playerOutcome.positionsUsedByEra,
         racesActiveByEra: playerOutcome.racesActiveByEra,

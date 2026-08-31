@@ -1,3 +1,4 @@
+import type { RulesSet } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -16,6 +17,8 @@ export interface SyncPositionRaceErasOptions {
     { isStarPlayer: boolean; raceDbIds: Set<number> }
   >;
   racesByBblId: Map<string, { id: number; name: string }>;
+  /** Every rules set the rules-sets step upserted, with its declared formats. */
+  rulesSetsByName: Map<string, RulesSet>;
   eraIdsByRaceId: Map<number, Set<number>>;
   positionsUsedByEra: Set<string>;
   racesActiveByEra: Set<string>;
@@ -46,12 +49,21 @@ export class BblPositionRaceErasImportService {
   async syncPositionRaceEras({
     positionRaceCandidates,
     racesByBblId,
+    rulesSetsByName,
     eraIdsByRaceId,
     positionsUsedByEra,
     racesActiveByEra,
-  }: SyncPositionRaceErasOptions): Promise<{ result: ImportResult }> {
+  }: SyncPositionRaceErasOptions): Promise<{
+    result: ImportResult;
+    rulesSetIdsByPositionId: Map<number, Set<number>>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    // Which rules sets each position played under: the same availability the
+    // race-era sync below decides, projected onto the rules sets each era
+    // spans. No new heuristic - the era decision is made once, here, and used
+    // twice.
+    const rulesSetIdsByPositionId = new Map<number, Set<number>>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
@@ -60,7 +72,10 @@ export class BblPositionRaceErasImportService {
     );
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: this.importResults.result({ imported, errors }) };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        rulesSetIdsByPositionId,
+      };
     }
     const [bblSystemId] = bootstrap.ids;
 
@@ -84,6 +99,37 @@ export class BblPositionRaceErasImportService {
       );
       if (id !== undefined) {
         eraIdsByName.set(name, id);
+      }
+    }
+
+    // Era db id -> the rules sets that era spans. An era covering a rules-set
+    // change (e.g. CRP, CRP+, BB2016) yields one entry per rules set, each of
+    // which gets the same scraped characteristics - BBL has no other source
+    // for the older ones.
+    const rulesSetIdsByEraId = new Map<number, Set<number>>();
+    const unresolvedRulesSetsByEraId = new Map<number, Set<string>>();
+    for (const era of eras) {
+      const eraId = eraIdsByName.get(era.identity.name);
+      if (eraId === undefined) {
+        continue;
+      }
+      let ids = rulesSetIdsByEraId.get(eraId);
+      if (!ids) {
+        ids = new Set<number>();
+        rulesSetIdsByEraId.set(eraId, ids);
+      }
+      for (const name of era.identity.rulesSets) {
+        const rulesSet = rulesSetsByName.get(name);
+        if (rulesSet === undefined) {
+          let missing = unresolvedRulesSetsByEraId.get(eraId);
+          if (!missing) {
+            missing = new Set<string>();
+            unresolvedRulesSetsByEraId.set(eraId, missing);
+          }
+          missing.add(name);
+          continue;
+        }
+        ids.add(rulesSet.id);
       }
     }
 
@@ -162,6 +208,32 @@ export class BblPositionRaceErasImportService {
           }
         }
       }
+      const rulesSetIds = new Set<number>();
+      const missingNames = new Set<string>();
+      for (const { eraId } of raceEras) {
+        for (const id of rulesSetIdsByEraId.get(eraId) ?? []) {
+          rulesSetIds.add(id);
+        }
+        for (const name of unresolvedRulesSetsByEraId.get(eraId) ?? []) {
+          missingNames.add(name);
+        }
+      }
+      if (missingNames.size > 0) {
+        errors.push(
+          this.importResults.error({
+            item: { positionId, rulesSets: [...missingNames] },
+            message: `Could not resolve rules set(s) ${[...missingNames]
+              .map((name) => `"${name}"`)
+              .join(
+                ', ',
+              )} for position ${positionId}: not upserted by the rules sets step`,
+          }),
+        );
+      }
+      if (rulesSetIds.size > 0) {
+        rulesSetIdsByPositionId.set(positionId, rulesSetIds);
+      }
+
       const result = await this.positionsImport.syncRaceEras(
         { positionId, raceEras },
         errors,
@@ -171,6 +243,9 @@ export class BblPositionRaceErasImportService {
       }
     }
 
-    return { result: this.importResults.result({ imported, errors }) };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      rulesSetIdsByPositionId,
+    };
   }
 }
