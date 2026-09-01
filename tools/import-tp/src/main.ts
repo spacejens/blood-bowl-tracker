@@ -19,6 +19,7 @@ import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
+import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
 import { TpPositionRaceErasImportService } from './positions/tp-position-race-eras-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
@@ -98,11 +99,26 @@ async function run(): Promise<ImportResult> {
       .get(TpTeamsImportService)
       .importTeams(rosters);
 
-    const { result: positionResult, starPositionIds } = await app
-      .get(TpPositionsImportService)
-      .importPositions(rosters, {
-        raceNamesById: raceOutcome.raceNamesById,
-      });
+    const {
+      result: positionResult,
+      starPositionIds,
+      characteristicsByPositionId,
+    } = await app.get(TpPositionsImportService).importPositions(rosters, {
+      raceNamesById: raceOutcome.raceNamesById,
+    });
+
+    // Characteristics run immediately after the positions step that produced
+    // them: the map is keyed by the position ids that step just upserted, and
+    // by the rules set ids its era config resolved. This runs in the same TP
+    // importer invocation that writes position availability, which is a
+    // separate (and later) invocation than the BBL importer's -- so TP's
+    // per-rules-set values overwrite BBL's converted snapshot for every
+    // position the two sources share, which is the intent of issue #669.
+    // Star players need no special casing: position_rules_sets is keyed by
+    // positionId alone.
+    const positionCharacteristicsOutcome = await app
+      .get(TpPositionCharacteristicsImportService)
+      .syncPositionCharacteristics(characteristicsByPositionId);
 
     // A roster id can appear under more than one era (TpTeamsImportService's
     // era-union grouping), so resolving a hired star player's team era later
@@ -333,6 +349,7 @@ async function run(): Promise<ImportResult> {
       raceOutcome.result,
       teamOutcome.result,
       positionResult,
+      positionCharacteristicsOutcome.result,
       playerResult,
       positionRaceErasOutcome.result,
       teamParticipationOutcome.result,
