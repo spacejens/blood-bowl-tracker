@@ -153,7 +153,7 @@ describe('TpPositionsImportService characteristics accumulation', () => {
       { raceNamesById: new Map([[50, 'Dwarf']]) },
     );
 
-    expect(characteristicsByPositionId.get(70)?.has(900)).toBeFalsy();
+    expect(characteristicsByPositionId.has(70)).toBe(false);
     expect(resultArgs(importResults).errors).toHaveLength(1);
     expect(resultArgs(importResults).errors[0].message).toContain(
       'Dwarf Runner',
