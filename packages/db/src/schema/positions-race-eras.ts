@@ -6,37 +6,23 @@ import { positions } from './positions';
 import { raceEras } from './race-eras';
 
 /**
- * A position's availability for one race in one era, together with that
- * position's characteristics there.
+ * A position's availability for one race in one era, keyed by
+ * `(positionId, raceEraId)`.
  *
  * A row means the position was genuinely available: a config override said
  * so, it is a star player, or a player actually used it. Absence of a row
  * means no such positive evidence exists — never "probably available".
  *
- * The grain is `(positionId, raceEraId)`, deliberately without a rules-set
- * column even though one era can span several rules sets. In every real era
- * all of its rules sets share the same characteristic formats, so a single
- * row per race era carries the position's characteristics correctly; the
- * importer picks the era's last declared rules set purely to decide which
- * formats to validate against.
- *
- * `passing` is nullable: null permanently means "this rules set has no
- * Passing characteristic at all", and must never be conflated with "not yet
- * known". Its `DEFAULT 0` exists for that "not yet known" case instead — the
- * same reason the other four columns default to 0 — so a row inserted
- * without characteristics gets a placeholder value there too, rather than
- * a bare NULL asserting a specific, unconfirmed rules-set format. A write
- * that does supply characteristics always states `passing` explicitly (a
- * number, or an explicit null for an absent-format rules set), so this
- * default is only ever read by an availability-only insert.
- *
- * The `DEFAULT 0` on all five columns allows a row to exist as "known
- * available, characteristics not yet known" (a source that only knows
- * availability, or an era nobody has curated yet).
- *
- * Which of the five values may (and must) be present depends on the named
- * rules set's declared formats. This rule cannot be enforced by a database
- * constraint because it depends on another table's row.
+ * The characteristics columns (move/strength/agility/passing/armour) are
+ * the table's first non-identifying fields, not its whole purpose — more
+ * may follow. Each defaults to 0 for a row inserted without them (a source
+ * that only knows availability, or an era nobody has curated yet), except
+ * `passing`, whose `null` instead permanently means "this rules set has no
+ * Passing characteristic at all" and must never be conflated with "not yet
+ * known". Which values may (and must) be present depends on the named rules
+ * set's declared formats — enforced in `PositionsService.syncRaceEras`
+ * rather than by a database constraint, since it depends on another
+ * table's row.
  */
 const positionsRaceErasTable = historyTrackedTable({
   schema: gameData,
