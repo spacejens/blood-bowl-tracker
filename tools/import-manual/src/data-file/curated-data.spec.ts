@@ -358,4 +358,21 @@ describe('curated data files', () => {
       armour: 8,
     });
   });
+
+  it('curates CRP characteristics for the core-rulebook teams', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const crpRaces = new Set(
+      entries
+        .filter((entry) => entry.rulesSet.id === 'CRP')
+        .map((entry) => entry.position.id.split(': ')[0]),
+    );
+
+    // The Competition Rules Pack lists 21 official races across its three
+    // roster pages (p.23-25); this covers the first two pages. Stunty Leeg
+    // teams are curated separately and are not part of this count.
+    expect(crpRaces.size).toBeGreaterThanOrEqual(14);
+  });
 });
