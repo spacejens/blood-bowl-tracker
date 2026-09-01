@@ -144,7 +144,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```json
    {
      "copied": ["apps/discord-bot/.env"],
-     "symlinked": ["tools/import-bbl/data"],
+     "symlinked": ["tools/import-bbl/data", "docs/plans"],
      "skipped": ["tools/review-match/review-match-config.json5"]
    }
    ```
@@ -178,7 +178,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```json
    {
      "copied": ["apps/discord-bot/.env"],
-     "symlinked": ["tools/import-bbl/data"],
+     "symlinked": ["tools/import-bbl/data", "docs/plans"],
      "skipped": ["tools/review-match/review-match-config.json5"]
    }
    ```
