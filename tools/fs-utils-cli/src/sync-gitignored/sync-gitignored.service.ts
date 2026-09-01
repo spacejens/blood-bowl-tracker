@@ -33,8 +33,11 @@ export interface SyncGitignoredResult {
  * overwritten, because a developer may have deliberately set one up
  * differently. The large data directories are symlinked rather than copied,
  * as is `docs/plans` — which is additionally created on the main-checkout
- * side first when it does not exist yet, so plans written in a worktree
- * always survive the worktree's removal. A no-op outside a worktree.
+ * side first when it does not exist yet. When this command is the one that
+ * creates the `docs/plans` link, plans written in the worktree afterward
+ * survive its removal; if the worktree already had its own `docs/plans`
+ * (skipped, never overwritten), that guarantee does not apply — those files
+ * stay worktree-local. A no-op outside a worktree.
  */
 @Injectable()
 export class SyncGitignoredService {

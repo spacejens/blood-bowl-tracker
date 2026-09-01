@@ -96,7 +96,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    A failure here is **expected and informative** on this skill's PRs, unlike on `develop-feature`'s: the dependency bump under investigation is itself a plausible cause. Do not stop on it. Record the failure output verbatim — it is Phase 2's first and best evidence — and continue to step 5.
 
-5. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 11 (issue mode). As well as the gitignored config files and data directories, this creates the `docs/plans` symlink back to the main checkout — creating `docs/plans` there first if it does not exist yet — so Phase 2's investigation summary is saved outside the worktree and survives its removal:
+5. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 11 (issue mode). As well as the gitignored config files and data directories, this creates the `docs/plans` symlink back to the main checkout — creating `docs/plans` there first if it does not exist yet — so Phase 2's investigation summary is saved outside the worktree and survives its removal (this holds when the command is the one that creates the link; a worktree that already had its own `docs/plans` is left as-is, and files written there stay worktree-local):
    ```bash
    node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
