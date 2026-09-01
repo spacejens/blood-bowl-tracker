@@ -21,7 +21,6 @@ export interface SyncPositionRaceErasOptions {
   rulesSetsByName: Map<string, RulesSet>;
   eraIdsByRaceId: Map<number, Set<number>>;
   positionsUsedByEra: Set<string>;
-  racesActiveByEra: Set<string>;
 }
 
 @Injectable()
@@ -40,11 +39,11 @@ export class BblPositionRaceErasImportService {
    * (position, race, era) after players are imported.
    *
    * A config override for a (position, race, era) wins outright. Absent one,
-   * two fallback branches are not self-evident: a star player counts as
-   * available in every era regardless of use, and a race that fielded no
-   * teams at all in an era counts as available too — its absence carries no
-   * information either way, so treating it as unavailable would invent a
-   * restriction.
+   * availability requires positive evidence the position was played: a star
+   * player counts as available in every era regardless of use, and so does an
+   * actual recorded player using the position in a matching era. Nothing else
+   * counts — the characteristics projection below therefore uses exactly the
+   * same rule.
    */
   async syncPositionRaceEras({
     positionRaceCandidates,
@@ -52,20 +51,15 @@ export class BblPositionRaceErasImportService {
     rulesSetsByName,
     eraIdsByRaceId,
     positionsUsedByEra,
-    racesActiveByEra,
   }: SyncPositionRaceErasOptions): Promise<{
     result: ImportResult;
     rulesSetIdsByPositionId: Map<number, Set<number>>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    // Which rules sets each position gets a characteristics row for. This is
-    // a stricter subset of the race-era availability decided below: it
-    // requires positive evidence the position was actually played (a
-    // config override, a star player, or an observed use), never the
-    // race-era "no team fielded this race in this era" fallback, which would
-    // otherwise fabricate a specific characteristics line for a (position,
-    // rules set) pair with no evidence at all.
+    // Which rules sets each position gets a characteristics row for. Uses
+    // exactly the same positive-evidence rule as the race-era availability
+    // decided below (a config override, a star player, or an observed use).
     const rulesSetIdsByPositionId = new Map<number, Set<number>>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
@@ -209,16 +203,16 @@ export class BblPositionRaceErasImportService {
             include = true;
             includeForCharacteristics = true;
           } else {
-            // Characteristics require positive evidence the position was
-            // actually played under a rules set. "No team fielded this race
-            // in this era, so treat it as available" is a reasonable default
-            // for general race-era availability (see the class doc
-            // comment), but it would fabricate a specific characteristics
-            // line for a (position, rules set) pair with no evidence at all
-            // — worse than carrying none. Issue #670 fills these back in by
-            // hand, including under BB2020 itself, once real evidence
-            // exists.
-            include = !racesActiveByEra.has(key);
+            // Availability requires positive evidence the position was
+            // actually played: a config override, star-player status, or a
+            // recorded player use in a matching era. "No team fielded this
+            // race in this era, so assume the position was available" used to
+            // sit here and fabricated wrong rows (Halfling positions marked
+            // available to Human teams under BB2016) — an era's silence is
+            // not evidence of availability. Genuine availability with no
+            // evidence in the source data is restored by hand in
+            // tools/import-manual/data/before-other-importers/position-availability.json5.
+            include = false;
             includeForCharacteristics = false;
           }
           if (include) {
