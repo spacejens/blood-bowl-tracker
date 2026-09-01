@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { RaceEraRefSchema, SyncPositionRaceErasSchema } from './position';
+import { RaceEraEntrySchema, SyncPositionRaceErasSchema } from './position';
 
-describe('RaceEraRefSchema', () => {
+describe('RaceEraEntrySchema', () => {
   it('accepts an availability-only entry with no characteristics', () => {
-    const parsed = RaceEraRefSchema.parse({ raceId: 1, eraId: 2 });
+    const parsed = RaceEraEntrySchema.parse({ raceId: 1, eraId: 2 });
 
     expect(parsed).toEqual({ raceId: 1, eraId: 2 });
     expect(parsed.characteristics).toBeUndefined();
   });
 
   it('accepts an entry carrying characteristics', () => {
-    const parsed = RaceEraRefSchema.parse({
+    const parsed = RaceEraEntrySchema.parse({
       raceId: 1,
       eraId: 2,
       characteristics: {
@@ -29,7 +29,7 @@ describe('RaceEraRefSchema', () => {
   });
 
   it('accepts an explicit null passing, for a rules set with no Passing', () => {
-    const parsed = RaceEraRefSchema.parse({
+    const parsed = RaceEraEntrySchema.parse({
       raceId: 1,
       eraId: 2,
       characteristics: {
@@ -47,7 +47,7 @@ describe('RaceEraRefSchema', () => {
 
   it('rejects characteristics with passing omitted entirely', () => {
     expect(() =>
-      RaceEraRefSchema.parse({
+      RaceEraEntrySchema.parse({
         raceId: 1,
         eraId: 2,
         characteristics: {
@@ -63,7 +63,7 @@ describe('RaceEraRefSchema', () => {
 
   it('rejects characteristics with no rulesSetId to validate against', () => {
     expect(() =>
-      RaceEraRefSchema.parse({
+      RaceEraEntrySchema.parse({
         raceId: 1,
         eraId: 2,
         characteristics: {

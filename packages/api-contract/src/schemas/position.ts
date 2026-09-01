@@ -43,7 +43,7 @@ export const PositionRaceEraCharacteristicsSchema = z.object({
  * an era nobody has curated yet); such an entry inserts the row and leaves
  * the characteristics columns at their database defaults.
  */
-export const RaceEraRefSchema = z.object({
+export const RaceEraEntrySchema = z.object({
   raceId: z.number().int(),
   eraId: z.number().int(),
   characteristics: PositionRaceEraCharacteristicsSchema.optional(),
@@ -51,7 +51,7 @@ export const RaceEraRefSchema = z.object({
 
 export const SyncPositionRaceErasSchema = z.object({
   positionId: z.number().int(),
-  raceEras: z.array(RaceEraRefSchema),
+  raceEras: z.array(RaceEraEntrySchema),
 });
 
 export const SyncPositionRaceErasResultSchema = z.object({
@@ -65,4 +65,4 @@ export type PositionRaceEraCharacteristics = z.infer<
   typeof PositionRaceEraCharacteristicsSchema
 >;
 export type SyncPositionRaceEras = z.infer<typeof SyncPositionRaceErasSchema>;
-export type RaceEraRef = z.infer<typeof RaceEraRefSchema>;
+export type RaceEraEntry = z.infer<typeof RaceEraEntrySchema>;

@@ -83,7 +83,7 @@ const RaceEraCharacteristicsSchema = z.object({
   armour: z.number().int(),
 });
 
-const RaceEraRefSchema = z.object({
+const RaceEraEntrySchema = z.object({
   race: ExternalRefSchema,
   era: ExternalRefSchema,
   characteristics: RaceEraCharacteristicsSchema.optional(),
@@ -92,7 +92,7 @@ const RaceEraRefSchema = z.object({
 const PositionEntrySchema = z.object({
   name: z.string().min(1),
   isStarPlayer: z.boolean().optional(),
-  raceEras: z.array(RaceEraRefSchema).default([]),
+  raceEras: z.array(RaceEraEntrySchema).default([]),
   externalIds,
 });
 
