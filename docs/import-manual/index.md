@@ -201,8 +201,13 @@ example, a `passing` value against a rules set with no Passing characteristic,
 or a missing `passing` against one that has one. This section is processed
 after the rules sets and positions it references.
 
-No data file currently declares any `positionRulesSets` entries — the section
-exists for the curation work that follows.
+`data/after-other-importers/position-characteristics.json5` is the one file
+that declares `positionRulesSets` entries. It sits in the **after** phase
+deliberately: the sync matches by the natural key `(position, rules set)` and
+updates in place, and the BBL importer can write its single BB2020-snapshot
+stat line under an older rules set whenever it finds usage evidence there.
+Curating before the importers would let that snapshot overwrite the curated
+values on the very same key.
 
 ### SPP award values
 

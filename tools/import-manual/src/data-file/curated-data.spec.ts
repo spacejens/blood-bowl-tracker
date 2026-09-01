@@ -290,4 +290,72 @@ describe('curated data files', () => {
       ).toBeDefined();
     }
   });
+
+  it('curates CRP characteristics with no Passing value', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const crp = entries.filter((entry) => entry.rulesSet.id === 'CRP');
+
+    // CRP declares passingFormat: 'absent', so a Passing value here would be
+    // rejected by the API at import time rather than caught in review.
+    expect(crp.length).toBeGreaterThan(0);
+    for (const entry of crp) {
+      expect(entry.passing).toBeUndefined();
+    }
+  });
+
+  it('curates every characteristics entry against a known rules set and a "Name" position id', () => {
+    const data = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    );
+
+    expect(data.externalSystems).toContainEqual({
+      name: 'Name',
+      category: 'bookkeeping',
+    });
+    for (const entry of data.positionRulesSets) {
+      expect(entry.rulesSet.system).toBe('Name');
+      expect(['CRP', 'CRP+', 'BB2016', 'BB2020']).toContain(entry.rulesSet.id);
+      expect(entry.position.system).toBe('Name');
+      expect(entry.position.id.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('never curates the same position twice under one rules set', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const keys = entries.map(
+      (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
+    );
+
+    // position_rules_sets is unique on (position_id, rules_set_id): a
+    // duplicate here means the second entry silently overwrites the first.
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('curates CRP characteristics for the six teams on the first roster page', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const darkElfLineman = entries.find(
+      (entry) =>
+        entry.rulesSet.id === 'CRP' &&
+        entry.position.id === 'Dark Elf Team: Dark Elf Lineman',
+    );
+
+    expect(darkElfLineman).toEqual({
+      position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 6,
+      strength: 3,
+      agility: 4,
+      armour: 8,
+    });
+  });
 });

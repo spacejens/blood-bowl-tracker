@@ -1,0 +1,73 @@
+// Hand-curated position characteristics (position_rules_sets) for the rules
+// sets no importer can supply correctly.
+//
+// This file lives in after-other-importers, never before, and that is load
+// bearing: PositionRulesSetsService.sync matches by the natural key
+// (position_id, rules_set_id) and updates in place, and the BBL importer can
+// assign its single BB2020-snapshot stat line to an older rules set whenever
+// it finds real usage evidence there. Curating before the importers would let
+// that snapshot overwrite these values on the very same key; curating after
+// means these values win.
+//
+// CRP, CRP+ and BB2016 declare passingFormat: 'absent' (see
+// data/before-other-importers/spp-award-values.json5), so their entries omit
+// `passing` entirely -- the processor sends the omission on as an explicit
+// null and the API rejects a value here. BB2020 entries must carry `passing`.
+//
+// Every `position` id is the "Name" external id
+// NameExternalIdService.forPosition builds -- "<raceName>: <positionName>" for
+// a regular position, the bare name for a star player -- taken verbatim from
+// the imported database, not from the rulebook's own spelling.
+//
+// Sources, per rules set:
+//   CRP    -- m750496a_BB_Competition_Rules_Pack.pdf, roster pages 23-25.
+//   CRP    -- Stunty_Leeg_Handbook_v1_0.pdf, pages 8-11, for the Stunty Leeg
+//             teams the main CRP book does not list.
+//   CRP+   -- NTBB2015.pdf ("Narrow-Tier Blood Bowl 2015"), pages 3-8.
+//   BB2016 -- BB-Teams-of-Legend-Revised-1.pdf, plus values transcribed from
+//             the physical rulebooks where no PDF covers them.
+//   BB2020 -- gap-filling only, for pairs the BBL/TP importers left with no
+//             row at all.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  positionRulesSets: [
+    // --- CRP: Dark Elf (CRP p.23) ---
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Assassin' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Witch Elf' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
+
+    // --- CRP: Dwarf (CRP p.23) ---
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 3, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Dwarf Team: Troll Slayer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Dwarf Team: Deathroller' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 7, agility: 1, armour: 10 },
+
+    // --- CRP: Amazon (CRP p.23) ---
+    { position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
+
+    // --- CRP: Elf (CRP p.23) ---
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Throwers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Catchers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 8 },
+
+    // --- CRP: Chaos (CRP p.23) ---
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Chosen Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 4, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Minotaur' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 5, agility: 2, armour: 8 },
+
+    // --- CRP: Chaos Dwarf (CRP p.23) ---
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 3, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Bull Centaur' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 5, agility: 2, armour: 8 },
+  ],
+}
