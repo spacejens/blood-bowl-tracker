@@ -347,8 +347,8 @@ evidence sets, and matches and players (which have no resolve procedure).
   where the page showed `-` (a position that cannot pass under a rules set
   that does have Passing). A position with no positive evidence for a race
   era gets no row for it at all — not even a wrong one — including under
-  BB2020 itself; issue #670 fills gaps like these in by hand. A position
-  whose characteristics table could not be read still records its
+  BB2020 itself; gaps like these are filled in by hand as curated data. A
+  position whose characteristics table could not be read still records its
   availability, with the characteristics columns left at their defaults; the
   parse failure was already reported by the positions step.
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
