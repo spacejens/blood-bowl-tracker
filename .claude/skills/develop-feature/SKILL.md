@@ -149,7 +149,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    }
    ```
    `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 12's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
-12. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+12. Print a brief status line confirming the worktree path, build result, baseline test result, and the sync-gitignored copied/symlinked/skipped counts, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -183,7 +183,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    }
    ```
    `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 7's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
-7. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+7. Print a brief status line confirming the worktree path, build result, baseline test result, and the sync-gitignored copied/symlinked/skipped counts, then continue immediately into Phase 2.
 
 ---
 
