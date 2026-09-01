@@ -72,13 +72,14 @@ For each candidate that passes Phase 2:
 2. Send the complete drafted title and body — verbatim, in full — to the developer as its own plain-text chat message, before asking anything. `AskUserQuestion` renders standalone in the UI, so a question that merely refers to the draft ("see the message below for the full title and body") leaves the developer approving something they haven't seen. The draft must be its own message that precedes the question.
 3. Present the draft to the developer via `AskUserQuestion` with two genuine options: "Create it" and "Revise the draft" (loop back into Phase 2's dialogue for this candidate, then repeat from step 1, so the revised draft is shown in full before being approved).
 4. Determine the kind label(s) — one or more of `feature`, `bug`, `development` — by applying the tests in the "Issue labels" section of [docs/development-workflow.md](../../../docs/development-workflow.md). More than one may apply; assign all that clearly do. If it's genuinely unclear even after applying those tests, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
-5. Create the issue. If this candidate is a sub-issue (of an existing parent, or of one just created earlier in this run), add `--parent <parent issue number or URL>`. If the parent is an existing issue rather than one created earlier in this run, run the Dependency Dashboard parent check from the "Sub-issues" section first, and stop this candidate if it reports `true` or errors.
+5. Create the issue. If this candidate is a sub-issue (of an existing parent, or of one just created earlier in this run), add `--parent <parent issue number or URL>`. If the parent is an existing issue rather than one created earlier in this run, run the Dependency Dashboard parent check from the "Sub-issues" section first, and stop this candidate if it reports `true` or errors. The candidate being created as the parent itself (in new-parent-with-sub-issues mode) has no `--parent` of its own — omit the flag for it.
    ```bash
-   gh issue create --title "<title>" --label "<kind label 1>" --label "<kind label 2 if applicable>" --parent <parent issue number> --body "$(cat <<'EOF'
+   gh issue create --title "<title>" --label "<kind label 1>" --label "<kind label 2 if applicable>" --body "$(cat <<'EOF'
    <body>
    EOF
    )"
    ```
+   Add `--parent <parent issue number>` to the command above for a sub-issue candidate; omit it for the parent candidate itself.
 6. Report the created issue's URL to the developer.
 
 If sub-issues are being attached to an existing parent one at a time rather than created fresh (e.g. the developer wants an already-open issue turned into a sub-issue), run the Dependency Dashboard parent check from the "Sub-issues" section against `<parent number>` first — stopping this attachment if it reports `true` or errors — then use `gh issue edit <parent number> --add-sub-issue <existing issue number>` instead of the `--parent` flag on create.
