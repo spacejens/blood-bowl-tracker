@@ -45,3 +45,15 @@ export const GITIGNORED_DATA_DIRS: readonly string[] = [
   'tools/import-bbl/data',
   'tools/import-tp/data',
 ];
+
+/**
+ * Gitignored directories that must always end up symlinked into a worktree,
+ * with the main-checkout side created first if it does not exist yet. Unlike
+ * `GITIGNORED_DATA_DIRS` — large externally-sourced data with nothing to
+ * auto-create, skipped silently when absent — these are empty holding
+ * directories whose whole purpose is that worktree-created files survive the
+ * worktree's removal, so a missing source is created rather than skipped.
+ */
+export const GITIGNORED_AUTO_CREATE_SYMLINK_DIRS: readonly string[] = [
+  'docs/plans',
+];

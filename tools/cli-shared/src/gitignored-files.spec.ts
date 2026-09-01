@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  GITIGNORED_AUTO_CREATE_SYMLINK_DIRS,
   GITIGNORED_DATA_DIRS,
   GITIGNORED_DRIFT_FILES,
   GITIGNORED_SYNC_FILES,
@@ -34,5 +35,9 @@ describe('gitignored-files constants', () => {
       'tools/import-bbl/data',
       'tools/import-tp/data',
     ]);
+  });
+
+  it('exports GITIGNORED_AUTO_CREATE_SYMLINK_DIRS as a readonly array', () => {
+    expect(GITIGNORED_AUTO_CREATE_SYMLINK_DIRS).toEqual(['docs/plans']);
   });
 });
