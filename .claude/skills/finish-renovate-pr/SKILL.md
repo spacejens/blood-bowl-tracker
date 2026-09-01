@@ -87,35 +87,22 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    ```
    Expected: exactly `headRefName`. Anything else — stop and report.
 
-4. **Link the plans directory**, so Phase 2's investigation summary is saved outside the worktree and survives its removal. Identical to `develop-feature`'s Setup step 10:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   if [ "$MAIN_ROOT" != "$(pwd)" ]; then
-     mkdir -p "$MAIN_ROOT/docs/plans"
-     if [ -e docs/plans ]; then
-       echo "Warning: docs/plans already exists in the worktree; leaving it as-is instead of symlinking to $MAIN_ROOT/docs/plans"
-     else
-       ln -s "$MAIN_ROOT/docs/plans" docs/plans
-     fi
-   fi
-   ```
-
-5. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/fs-utils-cli` exists as compiled output for step 6:
+4. **Install and build**, so later steps do not fail on an unbuilt workspace dependency and so `tools/fs-utils-cli` exists as compiled output for step 5:
    ```bash
    pnpm install
    ```
    ```bash
    pnpm build
    ```
-   A failure here is **expected and informative** on this skill's PRs, unlike on `develop-feature`'s: the dependency bump under investigation is itself a plausible cause. Do not stop on it. Record the failure output verbatim — it is Phase 2's first and best evidence — and continue to step 6.
+   A failure here is **expected and informative** on this skill's PRs, unlike on `develop-feature`'s: the dependency bump under investigation is itself a plausible cause. Do not stop on it. Record the failure output verbatim — it is Phase 2's first and best evidence — and continue to step 5.
 
-6. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 12:
+5. **Sync gitignored worktree files**, identical to `develop-feature`'s Setup step 11 (issue mode). As well as the gitignored config files and data directories, this creates the `docs/plans` symlink back to the main checkout — creating `docs/plans` there first if it does not exist yet — so Phase 2's investigation summary is saved outside the worktree and survives its removal (this holds when the command is the one that creates the link; a worktree that already had its own `docs/plans` is left as-is, and files written there stay worktree-local):
    ```bash
    node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   If `dist/main.js` is missing because step 5's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 7's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
+   If `dist/main.js` is missing because step 4's build failed, build just that package first: `pnpm --filter @blood-bowl-tracker/fs-utils-cli run build`. Report the printed `copied`/`symlinked`/`skipped` counts in step 6's status line; a non-zero exit prints `{"error": "<message>"}` — report it and continue (a missing gitignored config does not block a dependency-bump investigation).
 
-7. Print a brief status line — worktree path, branch, whether `pnpm install`/`pnpm build` succeeded, and the sync counts — then continue immediately into Phase 2.
+6. Print a brief status line — worktree path, branch, whether `pnpm install`/`pnpm build` succeeded, and the sync counts — then continue immediately into Phase 2.
 
 ---
 
@@ -132,7 +119,7 @@ Stands in for `develop-feature`'s Specification (Phase 2) and Planning (Phase 3)
    - **Some check is still queued or running** (`status` is not yet `COMPLETED`, so `conclusion` is `null`) — CI has not finished yet, it has not failed. Poll with `gh pr checks <PR> --watch`, which blocks until every check reaches a final state, or re-check with plain `gh pr checks <PR>` at most a handful of times with a short pause between. If checks are still not final after a reasonable wait, stop waiting: report PR #<PR>'s current check status to the developer and do not guess further, rather than polling indefinitely. Once every check has a final conclusion, re-evaluate this step.
    - **Every check is `SUCCESS`** (a `SKIPPED` or `NEUTRAL` conclusion counts as non-blocking here too) — CI is green and nothing is broken; the PR simply is not eligible for automerge. `renovate.json5` automerges only `matchManagers: ['npm']` + `matchUpdateTypes: ['patch', 'minor']`, so a green major bump and any Docker-tag update sit here by design, waiting for a human. Skip step 3, do a light version of step 4 (enough to say what the update touches), and expect the **No code changes needed** outcome in step 6.
 
-   `pnpm build` failing locally in Phase 1 step 5 counts as evidence alongside CI, not instead of it — it is often the same failure, seen sooner.
+   `pnpm build` failing locally in Phase 1 step 4 counts as evidence alongside CI, not instead of it — it is often the same failure, seen sooner.
 
 3. **Pull the failing job's logs.** Existing `gh` commands cover this completely; no repo tooling is needed. List the checks and their state:
    ```bash
@@ -228,7 +215,7 @@ Identical to `develop-feature`'s Phase 5, with no changes:
 
 The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync merge step and no `gh pr create`** — the PR already exists, and merging `main` into Renovate's branch would put commits on it that Renovate never made and that the developer did not ask for. Leave the branch exactly as far behind `main` as Renovate left it; GitHub's merge button handles the rest.
 
-1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist. This depends on `tools/dev-workflow-cli` already being built — Phase 1 step 5's `pnpm build` builds it, so no separate build command is normally needed here; if that build failed, build just this package first: `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`.
+1. **Pre-push check — no stray work in the main checkout.** Unchanged from `develop-feature`'s Phase 6 step 2 — it guards against a dropped `cd` prefix regardless of how the branch came to exist. This depends on `tools/dev-workflow-cli` already being built — Phase 1 step 4's `pnpm build` builds it, so no separate build command is normally needed here; if that build failed, build just this package first: `pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`.
    ```bash
    node tools/dev-workflow-cli/dist/main.js check-main-stray
    ```

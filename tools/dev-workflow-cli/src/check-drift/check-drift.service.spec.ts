@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -175,6 +181,34 @@ describe('CheckDriftService', () => {
     await expect(service.run()).resolves.toEqual({
       drifted: [],
       worktreeOnly: ['apps/discord-bot/.env.production'],
+    });
+  });
+
+  it('flags a worktree docs/plans that is a real directory, not a symlink', async () => {
+    writeIn(worktreeRoot, 'docs/plans/worktree-only.md', '# worktree only');
+
+    await expect(service.run()).resolves.toEqual({
+      drifted: [],
+      worktreeOnly: ['docs/plans'],
+    });
+    expect(processRunner.run).not.toHaveBeenCalled();
+  });
+
+  it('does not flag docs/plans when the worktree correctly symlinks it to the main checkout', async () => {
+    writeIn(mainRoot, 'docs/plans/main-plan.md', '# main');
+    mkdirSync(join(worktreeRoot, 'docs'), { recursive: true });
+    symlinkSync(join(mainRoot, 'docs/plans'), join(worktreeRoot, 'docs/plans'));
+
+    await expect(service.run()).resolves.toEqual({
+      drifted: [],
+      worktreeOnly: [],
+    });
+  });
+
+  it('does not flag docs/plans when the worktree has none at all', async () => {
+    await expect(service.run()).resolves.toEqual({
+      drifted: [],
+      worktreeOnly: [],
     });
   });
 

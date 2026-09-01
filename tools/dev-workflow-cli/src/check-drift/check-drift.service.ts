@@ -1,7 +1,8 @@
-import { existsSync } from 'node:fs';
+import { existsSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
+  GITIGNORED_AUTO_CREATE_SYMLINK_DIRS,
   GITIGNORED_DRIFT_FILES,
   GitRootsService,
   ProcessRunnerService,
@@ -31,7 +32,10 @@ export interface CheckDriftResult {
  * Finds gitignored config that would be lost when the worktree is removed:
  * a file whose worktree copy differs from the main checkout's, or one that
  * has no main-checkout counterpart at all. A listed file that is absent from
- * the worktree is not a finding — there is nothing there to lose. Supplies
+ * the worktree is not a finding — there is nothing there to lose. Also flags
+ * a directory that should be a `sync-gitignored`-managed symlink (currently
+ * only `docs/plans`) but is instead a real, worktree-local directory —
+ * `sync-gitignored` never overwrites one that already existed. Supplies
  * classification and diff text only; resolving each finding stays in the
  * calling skill. A no-op outside a worktree.
  */
@@ -82,6 +86,24 @@ export class CheckDriftService {
           path,
           diff: this.redaction.redact(result.stdout.trimEnd()),
         });
+      }
+    }
+
+    // `sync-gitignored` never overwrites a worktree path that already
+    // exists — if a developer's worktree had its own docs/plans before
+    // sync-gitignored ran, it stays a real directory instead of becoming a
+    // symlink to the main checkout, and files in it are worktree-only.
+    // GITIGNORED_DRIFT_FILES can't cover this: it's a directory, and its
+    // "no main-checkout counterpart" test above doesn't apply either, since
+    // sync-gitignored's own auto-create step guarantees a main-checkout
+    // docs/plans always exists.
+    for (const path of GITIGNORED_AUTO_CREATE_SYMLINK_DIRS) {
+      const worktreeCopy = join(roots.worktreeRoot, path);
+      if (!existsSync(worktreeCopy)) {
+        continue;
+      }
+      if (!lstatSync(worktreeCopy).isSymbolicLink()) {
+        worktreeOnly.push(path);
       }
     }
 

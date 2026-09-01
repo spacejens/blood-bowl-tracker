@@ -55,32 +55,41 @@ Most often triggered conversationally — when the developer says something like
    ```bash
    node tools/dev-workflow-cli/dist/main.js check-drift
    ```
-   The command detects worktree context itself and reports nothing outside a worktree (in a plain main checkout there is no second copy to compare against), so there is no separate detection step here. It compares a fixed list of gitignored files — the dev configs `develop-feature`'s Phase 1 syncs *into* a worktree, plus the `.production` variants — between this worktree and the main checkout. That list lives in `tools/cli-shared/src/gitignored-files.ts` (`GITIGNORED_DRIFT_FILES`); when a new tool config appears, add it there, in one place, rather than to a copy in this file. The `tools/import-bbl/data` and `tools/import-tp/data` directories are deliberately excluded: they are symlinked into the worktree rather than copied, so they always read through to the main checkout's files and cannot drift. A listed file that is absent from this worktree is not checked — there is nothing here to lose.
+   The command detects worktree context itself and reports nothing outside a worktree (in a plain main checkout there is no second copy to compare against), so there is no separate detection step here. It compares a fixed list of gitignored files — the dev configs `develop-feature`'s Phase 1 syncs *into* a worktree, plus the `.production` variants — between this worktree and the main checkout. That list lives in `tools/cli-shared/src/gitignored-files.ts` (`GITIGNORED_DRIFT_FILES`); when a new tool config appears, add it there, in one place, rather than to a copy in this file. The `tools/import-bbl/data` and `tools/import-tp/data` directories are excluded from that file-list comparison: they are always symlinked into the worktree, so they read through to the main checkout's files and cannot drift. A listed file that is absent from this worktree is not checked — there is nothing here to lose.
+
+   `docs/plans` gets a separate check, since it's a directory rather than a single file and `sync-gitignored` never overwrites a worktree path that already existed: if it is correctly symlinked, it cannot drift, same as the data directories; but if a worktree already had its own `docs/plans` before `sync-gitignored` ran, it stayed a real, worktree-local directory instead — the command flags that case as `worktreeOnly` too, alongside the file-list findings.
 
    Output:
    ```json
    {
      "drifted": [{ "path": "apps/discord-bot/.env", "diff": "< old\n---\n> new" }],
-     "worktreeOnly": ["tools/review-match/review-match-config.json5"]
+     "worktreeOnly": ["tools/review-match/review-match-config.json5", "docs/plans"]
    }
    ```
    If both arrays are empty, nothing has drifted — continue to Phase 2.
 
-   For **each** flagged file, first show the developer what is at stake:
+   For **each** flagged path, first show the developer what is at stake:
 
    - **drifted** — show the entry's `diff` text verbatim (`<` lines are the main checkout's copy, `>` lines are this worktree's). The comparison was done by running `diff` on the two files, never by eyeballing their contents from separate reads — which has produced a false "identical" conclusion before.
-   - **worktreeOnly** — state that the file exists only in this worktree and has no counterpart in the main checkout, so removing the worktree destroys the entire file, not just the latest edits.
+   - **worktreeOnly** — state that the path exists only in this worktree and has no (linked) counterpart in the main checkout, so removing the worktree destroys it entirely, not just the latest edits. For `docs/plans` specifically, list the files inside it (`find "<worktree-root>/docs/plans" -type f`) so the developer sees exactly what's at stake, not just the directory name.
 
-   Then ask via `AskUserQuestion`, **one question per flagged file**, with these two genuine options (recommended first, per this project's `AskUserQuestion` convention):
+   Then ask via `AskUserQuestion`, **one question per flagged path**, with these two genuine options (recommended first, per this project's `AskUserQuestion` convention):
 
-   1. **"Copy into main checkout"** (recommended) — overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied. Resolve both roots first with `node tools/dev-workflow-cli/dist/main.js resolve-main-root` and use its `mainRoot` and `worktreeRoot` values:
-      ```bash
-      mkdir -p "$(dirname "<main-root>/<file>")"
-      cp "<worktree-root>/<file>" "<main-root>/<file>"
-      ```
+   1. **"Copy into main checkout"** (recommended) — resolve both roots first with `node tools/dev-workflow-cli/dist/main.js resolve-main-root` and use its `mainRoot` and `worktreeRoot` values, then:
+      - For an ordinary flagged file: overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied.
+        ```bash
+        mkdir -p "$(dirname "<main-root>/<file>")"
+        cp "<worktree-root>/<file>" "<main-root>/<file>"
+        ```
+      - For `docs/plans`: the main checkout already has its own `docs/plans` (`sync-gitignored` auto-creates it), so this merges the worktree's files into it rather than overwriting the directory — copy contents, not the directory itself (note the trailing `/.` on the source and `/` on the destination):
+        ```bash
+        mkdir -p "<main-root>/docs/plans"
+        cp -r "<worktree-root>/docs/plans/." "<main-root>/docs/plans/"
+        ```
+        A same-named file already present in the main checkout's `docs/plans` is silently overwritten by this `cp -r`; if that matters, resolve the conflicting file(s) individually before running it, or diff the two directories first.
    2. **"Leave it"** — the worktree's version is not wanted in the main checkout.
 
-   Never auto-resolve one of these files: they are gitignored, so there is no history to recover them from if the wrong copy wins. Do not proceed to Phase 2 until every flagged file has been resolved.
+   Never auto-resolve one of these: they are gitignored, so there is no history to recover them from if the wrong copy wins. Do not proceed to Phase 2 until every flagged path has been resolved.
 
 ## Phase 2: Offer cleanup
 
