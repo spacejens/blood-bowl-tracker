@@ -162,4 +162,28 @@ describe('WaitForPrReviewService rate-limit-edit exclusion', () => {
       rateLimitComment: RATE_LIMIT_COMMENT,
     });
   });
+
+  it('continues to timeout, not a false rate-limited result, when the REST call fails and the reviews call has no match', async () => {
+    // The new exclusion gives the REST-based rolling-edit detector exclusive
+    // ownership of a rate-limit edited into the rolling comment. If that
+    // REST call itself fails or times out on a poll, this fixture models the
+    // reviews call finding nothing either — so the poll must report nothing
+    // found rather than fabricating a result, and the wait runs to its
+    // timeout rather than losing correctness.
+    processRunner.run.mockImplementation((_command, args) =>
+      Promise.resolve(
+        args[0] === 'api'
+          ? { exitCode: 1, stdout: '', stderr: 'gh: API rate limit exceeded' }
+          : EMPTY,
+      ),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 30_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
 });
