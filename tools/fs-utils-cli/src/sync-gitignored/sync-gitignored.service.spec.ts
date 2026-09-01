@@ -6,6 +6,7 @@ import {
   readFileSync,
   readlinkSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -165,5 +166,21 @@ describe('SyncGitignoredService', () => {
     expect(lstatSync(target).isSymbolicLink()).toBe(false);
     expect(existsSync(join(target, 'worktree-plan.md'))).toBe(true);
     expect(existsSync(join(target, 'main-plan.md'))).toBe(false);
+  });
+
+  it('treats a dangling docs/plans symlink in the worktree as occupied rather than crashing', async () => {
+    mkdirSync(join(fixture, 'gone'), { recursive: true });
+    const danglingTarget = join(fixture, 'gone', 'docs-plans');
+    rmSync(danglingTarget, { recursive: true, force: true });
+    const link = join(worktreeRoot, 'docs/plans');
+    mkdirSync(dirname(link), { recursive: true });
+    symlinkSync(danglingTarget, link);
+
+    const result = await service.run();
+
+    expect(result.symlinked).not.toContain('docs/plans');
+    expect(result.skipped).toContain('docs/plans');
+    expect(lstatSync(link).isSymbolicLink()).toBe(true);
+    expect(readlinkSync(link)).toBe(danglingTarget);
   });
 });

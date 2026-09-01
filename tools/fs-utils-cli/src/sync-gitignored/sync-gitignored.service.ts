@@ -1,4 +1,10 @@
-import { copyFileSync, existsSync, mkdirSync, symlinkSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  symlinkSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import {
@@ -71,7 +77,7 @@ export class SyncGitignoredService {
     for (const path of GITIGNORED_AUTO_CREATE_SYMLINK_DIRS) {
       const source = join(roots.mainRoot, path);
       const target = join(roots.worktreeRoot, path);
-      if (existsSync(target)) {
+      if (this.isOccupied(target)) {
         skipped.push(path);
         continue;
       }
@@ -82,5 +88,15 @@ export class SyncGitignoredService {
     }
 
     return { copied, symlinked, skipped };
+  }
+
+  /**
+   * True if something already sits at `path` — a real file/directory, or a
+   * symlink, even a dangling one. `existsSync` follows symlinks and reports
+   * `false` for a dangling one, which would let `symlinkSync` attempt to
+   * create over it and fail with `EEXIST`.
+   */
+  private isOccupied(path: string): boolean {
+    return lstatSync(path, { throwIfNoEntry: false }) !== undefined;
   }
 }
