@@ -8,8 +8,10 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
+import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
@@ -21,6 +23,10 @@ interface PositionGroup {
   name: string;
   tpPositionIds: Set<number>;
   eraIds: Set<number>;
+  /** Rules set DB id -> the characteristics every roster agreed on. */
+  characteristics: Map<number, TpPositionCharacteristics>;
+  /** Rules sets whose observations disagreed; permanently dropped. */
+  conflictingRulesSetIds: Set<number>;
 }
 
 /** One star position, keyed by name only (star players are not race-scoped),
@@ -28,6 +34,8 @@ interface PositionGroup {
 interface StarPositionGroup {
   name: string;
   tpPositionIds: Set<number>;
+  characteristics: Map<number, TpPositionCharacteristics>;
+  conflictingRulesSetIds: Set<number>;
 }
 
 interface ImportPositionsOptions {
@@ -62,6 +70,13 @@ export class TpPositionsImportService {
    * server-side: `PositionsService` passes `upsertByExternalIds` a
    * `detectSemanticConflict` hook that throws on an `isStarPlayer` mismatch
    * instead of overwriting the row, so no client-side guard is needed here.
+   *
+   * Alongside grouping, each group also accumulates the characteristics its
+   * rosters report, keyed by rules-set DB id (resolved from each roster's era
+   * via `EraDataConfigService.getEras()`). Two rosters disagreeing about the
+   * same (position, rules set) is treated as bad TP source data: the rules
+   * set is dropped for that position and one error is recorded, rather than
+   * letting either roster's observation silently win.
    */
   async importPositions(
     rosters: RosterEntry[],
@@ -69,11 +84,19 @@ export class TpPositionsImportService {
   ): Promise<{
     result: ImportResult;
     starPositionIds: Set<number>;
+    characteristicsByPositionId: Map<
+      number,
+      Map<number, TpPositionCharacteristics>
+    >;
   }> {
     const { raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
     const starPositionIds = new Set<number>();
+    const characteristicsByPositionId = new Map<
+      number,
+      Map<number, TpPositionCharacteristics>
+    >();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -85,15 +108,14 @@ export class TpPositionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         starPositionIds,
+        characteristicsByPositionId,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    let eraNames: string[];
+    let eras: EraDataConfig[];
     try {
-      eraNames = [
-        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
-      ];
+      eras = this.eraDataConfig.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
@@ -104,8 +126,10 @@ export class TpPositionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         starPositionIds,
+        characteristicsByPositionId,
       };
     }
+    const eraNames = [...new Set(eras.map((era) => era.name))];
     const eraIds = await this.lookup.lookupMap(
       'era',
       eraNames.map((name) => ({
@@ -113,6 +137,12 @@ export class TpPositionsImportService {
         externalId: name,
       })),
     );
+
+    const rulesSetIdByEraName = await this.resolveRulesSetIdByEraName({
+      eras,
+      tpSystemId,
+      errors,
+    });
 
     const raceIds = await this.lookup.lookupMap(
       'race',
@@ -144,6 +174,7 @@ export class TpPositionsImportService {
       if (eraId === undefined) {
         errors.push(this.rosterCollection.unknownEraError(era, roster));
       }
+      const rulesSetId = rulesSetIdByEraName.get(era);
       for (const position of roster.positions) {
         const key = `${raceId} ${position.name}`;
         let group = groups.get(key);
@@ -153,12 +184,22 @@ export class TpPositionsImportService {
             name: position.name,
             tpPositionIds: new Set(),
             eraIds: new Set(),
+            characteristics: new Map(),
+            conflictingRulesSetIds: new Set(),
           };
           groups.set(key, group);
         }
         group.tpPositionIds.add(position.tpPositionId);
         if (eraId !== undefined) {
           group.eraIds.add(eraId);
+        }
+        if (rulesSetId !== undefined) {
+          this.accumulateCharacteristics({
+            group,
+            rulesSetId,
+            characteristics: position.characteristics,
+            errors,
+          });
         }
       }
     }
@@ -192,6 +233,9 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
+      if (group.characteristics.size > 0) {
+        characteristicsByPositionId.set(upserted.id, group.characteristics);
+      }
       await this.positionsImport.syncRaceEras(
         {
           positionId: upserted.id,
@@ -219,14 +263,28 @@ export class TpPositionsImportService {
     // PositionUpsertConflictError, reported as a CONFLICT), never silently
     // overwritten. No syncRaceEras (not race-scoped).
     const starGroups = new Map<string, StarPositionGroup>();
-    for (const { roster } of rosters) {
+    for (const { roster, era } of rosters) {
+      const rulesSetId = rulesSetIdByEraName.get(era);
       for (const starPosition of roster.starPositions) {
         let group = starGroups.get(starPosition.name);
         if (!group) {
-          group = { name: starPosition.name, tpPositionIds: new Set() };
+          group = {
+            name: starPosition.name,
+            tpPositionIds: new Set(),
+            characteristics: new Map(),
+            conflictingRulesSetIds: new Set(),
+          };
           starGroups.set(starPosition.name, group);
         }
         group.tpPositionIds.add(starPosition.tpPositionId);
+        if (rulesSetId !== undefined) {
+          this.accumulateCharacteristics({
+            group,
+            rulesSetId,
+            characteristics: starPosition.characteristics,
+            errors,
+          });
+        }
       }
     }
 
@@ -252,11 +310,142 @@ export class TpPositionsImportService {
       }
       imported += 1;
       starPositionIds.add(upserted.id);
+      if (group.characteristics.size > 0) {
+        characteristicsByPositionId.set(upserted.id, group.characteristics);
+      }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
       starPositionIds,
+      characteristicsByPositionId,
     };
+  }
+
+  /**
+   * Each era's single rules set, as a DB id. Characteristics are per rules
+   * set, and TP's raw numeric `ruleSet` field has no established name mapping,
+   * so the era config's declared `rulesSets` is the only reliable source. An
+   * era declaring anything other than exactly one rules set is ambiguous:
+   * every roster in it is skipped for characteristics (its regular position
+   * and race-era import is unaffected) and one error is recorded naming it.
+   */
+  private async resolveRulesSetIdByEraName(options: {
+    eras: EraDataConfig[];
+    tpSystemId: number;
+    errors: ImportError[];
+  }): Promise<Map<string, number>> {
+    const { eras, tpSystemId, errors } = options;
+    const singleRulesSetByEraName = new Map<string, string>();
+    for (const era of eras) {
+      if (era.rulesSets.length === 1) {
+        singleRulesSetByEraName.set(era.name, era.rulesSets[0]);
+        continue;
+      }
+      errors.push(
+        this.importResults.error({
+          item: { era: era.name, rulesSets: era.rulesSets },
+          message:
+            `Era "${era.name}" declares ${era.rulesSets.length} rules sets ` +
+            `(${era.rulesSets.join(', ')}); position characteristics need ` +
+            'exactly one, so they are skipped for every roster in this era.',
+        }),
+      );
+    }
+
+    const rulesSetIds = await this.lookup.lookupMap(
+      'rulesSet',
+      [...new Set(singleRulesSetByEraName.values())].map((name) => ({
+        externalSystemId: tpSystemId,
+        externalId: name,
+      })),
+    );
+
+    const idByEraName = new Map<string, number>();
+    const unresolved = new Set<string>();
+    for (const [eraName, rulesSetName] of singleRulesSetByEraName) {
+      const rulesSetId = rulesSetIds.get(
+        this.lookup.keyOf({
+          externalSystemId: tpSystemId,
+          externalId: rulesSetName,
+        }),
+      );
+      if (rulesSetId === undefined) {
+        if (!unresolved.has(rulesSetName)) {
+          unresolved.add(rulesSetName);
+          errors.push(
+            this.importResults.error({
+              item: { era: eraName, rulesSet: rulesSetName },
+              message:
+                `Could not resolve rules set "${rulesSetName}" (era ` +
+                `"${eraName}"); position characteristics are skipped for it.`,
+            }),
+          );
+        }
+        continue;
+      }
+      idByEraName.set(eraName, rulesSetId);
+    }
+    return idByEraName;
+  }
+
+  /**
+   * Record one roster's observation of a position's characteristics under one
+   * rules set. Two rosters disagreeing is bad TP data, not something to pick a
+   * winner for: the rules set is dropped for this position (once, with one
+   * error), while every other rules set for the same position is unaffected.
+   */
+  private accumulateCharacteristics(options: {
+    group: {
+      name: string;
+      characteristics: Map<number, TpPositionCharacteristics>;
+      conflictingRulesSetIds: Set<number>;
+    };
+    rulesSetId: number;
+    characteristics: TpPositionCharacteristics;
+    errors: ImportError[];
+  }): void {
+    const { group, rulesSetId, characteristics, errors } = options;
+    if (group.conflictingRulesSetIds.has(rulesSetId)) {
+      return;
+    }
+    const existing = group.characteristics.get(rulesSetId);
+    if (existing === undefined) {
+      group.characteristics.set(rulesSetId, characteristics);
+      return;
+    }
+    if (
+      existing.move === characteristics.move &&
+      existing.strength === characteristics.strength &&
+      existing.agility === characteristics.agility &&
+      existing.passing === characteristics.passing &&
+      existing.armour === characteristics.armour
+    ) {
+      return;
+    }
+    group.conflictingRulesSetIds.add(rulesSetId);
+    group.characteristics.delete(rulesSetId);
+    errors.push(
+      this.importResults.error({
+        item: { position: group.name, rulesSetId, existing, characteristics },
+        message:
+          `Conflicting characteristics for position "${group.name}" under ` +
+          `rules set id ${rulesSetId}: ` +
+          `${this.formatCharacteristics(existing)} vs ` +
+          `${this.formatCharacteristics(characteristics)}; skipping this ` +
+          'rules set for this position.',
+      }),
+    );
+  }
+
+  /** One characteristics set as a compact "MA 6 ST 3 AG 3 PA 4 AV 9" line. */
+  private formatCharacteristics(
+    characteristics: TpPositionCharacteristics,
+  ): string {
+    return (
+      `MA ${characteristics.move} ST ${characteristics.strength} ` +
+      `AG ${characteristics.agility} PA ${characteristics.passing} ` +
+      `AV ${characteristics.armour}`
+    );
   }
 }
