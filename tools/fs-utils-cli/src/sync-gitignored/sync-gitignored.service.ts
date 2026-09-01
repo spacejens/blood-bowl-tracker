@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, symlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import {
+  GITIGNORED_AUTO_CREATE_SYMLINK_DIRS,
   GITIGNORED_DATA_DIRS,
   GITIGNORED_SYNC_FILES,
   GitRootsService,
@@ -24,8 +25,10 @@ export interface SyncGitignoredResult {
  * Fills a fresh worktree in with the gitignored dev config the main checkout
  * has. Copy-if-missing only: an existing worktree file or symlink is never
  * overwritten, because a developer may have deliberately set one up
- * differently. The large data directories are symlinked rather than copied.
- * A no-op outside a worktree.
+ * differently. The large data directories are symlinked rather than copied,
+ * as is `docs/plans` — which is additionally created on the main-checkout
+ * side first when it does not exist yet, so plans written in a worktree
+ * always survive the worktree's removal. A no-op outside a worktree.
  */
 @Injectable()
 export class SyncGitignoredService {
@@ -60,6 +63,19 @@ export class SyncGitignoredService {
         skipped.push(path);
         continue;
       }
+      mkdirSync(dirname(target), { recursive: true });
+      symlinkSync(source, target);
+      symlinked.push(path);
+    }
+
+    for (const path of GITIGNORED_AUTO_CREATE_SYMLINK_DIRS) {
+      const source = join(roots.mainRoot, path);
+      const target = join(roots.worktreeRoot, path);
+      if (existsSync(target)) {
+        skipped.push(path);
+        continue;
+      }
+      mkdirSync(source, { recursive: true });
       mkdirSync(dirname(target), { recursive: true });
       symlinkSync(source, target);
       symlinked.push(path);
