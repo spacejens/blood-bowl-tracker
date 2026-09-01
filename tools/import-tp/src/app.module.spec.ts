@@ -12,6 +12,7 @@ import { TpCompetitionsImportService } from './competitions/tp-competitions-impo
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
 import { TpPositionRaceErasImportService } from './positions/tp-position-race-eras-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
@@ -111,6 +112,9 @@ describe('AppModule', () => {
     expect(moduleRef.get(TpPositionRaceErasImportService)).toBeInstanceOf(
       TpPositionRaceErasImportService,
     );
+    expect(
+      moduleRef.get(TpPositionCharacteristicsImportService),
+    ).toBeInstanceOf(TpPositionCharacteristicsImportService);
     expect(moduleRef.get(TpTrophyAwardsImportService)).toBeInstanceOf(
       TpTrophyAwardsImportService,
     );

@@ -18,17 +18,23 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   account id. Looked up in `coachIdsByTpId` from `TpCoachesImportService` to
   resolve the team's coach.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
-  becomes `{ tpPositionId: id, name: position }`. Positions are grouped by
-  `(unified race, position name)` across all roster files, so one
-  identically-named position across rule-set-variant codes of one logical race
-  merges onto a single row, collecting every distinct `tpPositionId` as TP
-  external ids (all in one upsert call). Positions carry no Name external id
-  (position names are not race-unique).
+  becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
+  strength: st, agility: ag, passing: pa, armour: av } }`. `ma`/`st`/`ag`/
+  `pa`/`av` are all required integers on every `lineUpMasters[]` entry; a
+  literal `0` for `pa` means "cannot pass" (carried through unchanged), not
+  "no Passing characteristic" — every rules set TP covers has Passing.
+  Positions are grouped by `(unified race, position name)` across all roster
+  files, so one identically-named position across rule-set-variant codes of
+  one logical race merges onto a single row, collecting every distinct
+  `tpPositionId` as TP external ids (all in one upsert call). Positions carry
+  a Name external id scoped by race and position name (position names are not
+  race-unique), skipped only when the race name fails to resolve.
 - `starPositions` — extracted from `rosterMaster.starPlayersMasters[]` (named
   star players permanently embedded in a roster's line-up, as distinct from
   the star players hired for a single match via `inducements_roll` — see
-  below), each entry becomes `{ tpPositionId: id, name: position }`, same
-  shape as `positions`.
+  below), each entry becomes `{ tpPositionId: id, name: position,
+  characteristics: { move, strength, agility, passing, armour } }`, same
+  shape (and same `ma`/`st`/`ag`/`pa`/`av` source fields) as `positions`.
 - `players` — extracted from `lineUps[]`, each entry becomes `{ id, name,
 number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
   the per-instance line-up id that `matchEvents[].lineUpId` (see

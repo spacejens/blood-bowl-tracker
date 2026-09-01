@@ -125,6 +125,14 @@ async function makeService({
   };
 }
 
+const CHARACTERISTICS = {
+  move: 6,
+  strength: 3,
+  agility: 3,
+  passing: 4,
+  armour: 9,
+};
+
 interface RosterOpts {
   id: number;
   teamRace: string;
@@ -143,7 +151,10 @@ function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
       teamRaceCode: opts.teamRace,
       raceName: opts.raceName,
       coachTpId: opts.coachTpId ?? 'coach-1',
-      positions: opts.positions ?? [],
+      positions: (opts.positions ?? []).map((p) => ({
+        ...p,
+        characteristics: CHARACTERISTICS,
+      })),
       starPositions: [],
       players: [],
     },

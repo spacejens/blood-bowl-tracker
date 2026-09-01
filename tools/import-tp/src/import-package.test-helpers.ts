@@ -59,12 +59,13 @@ export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
  */
 export function mockEraDataConfigService(
   names: string[],
+  rulesSetsByEraName?: Map<string, string[]>,
 ): MockProxy<EraDataConfigService> {
   const eraDataConfig = mock<EraDataConfigService>();
   const eras: EraDataConfig[] = names.map((name) => ({
     name,
     dataSubdir: name,
-    rulesSets: ['BB2020'],
+    rulesSets: rulesSetsByEraName?.get(name) ?? ['BB2020'],
     startDate: '2020-01-01',
   }));
   eraDataConfig.getEras.mockReturnValue(eras);
@@ -77,8 +78,8 @@ export function mockEraDataConfigService(
  * canned-response rule, same as `tp-eras-import.service.spec.ts`'s own
  * `lookup.keyOf` stub) and whose `lookupMap(kind, ...)` resolves from a
  * plain external-id -> DB-id map per kind, keyed under `tpSystemId`. `era`
- * always comes from `eraIdsByName`; `race`/`coach`/`position`/`competition`
- * come from `extra`'s matching map when supplied. A kind with no map (or an
+ * always comes from `eraIdsByName`; `race`/`coach`/`position`/`competition`/
+ * `rulesSet` come from `extra`'s matching map when supplied. A kind with no map (or an
  * id the map doesn't declare) resolves to nothing, matching a real
  * unresolved reference.
  *
@@ -99,6 +100,7 @@ export function mockReferenceLookupService(
     coachIdsByTpId?: Map<string, number>;
     positionIdsByExternalId?: Map<string, number>;
     competitionIdsByExternalId?: Map<string, number>;
+    rulesSetIdsByName?: Map<string, number>;
   },
 ): MockProxy<ReferenceLookupService> {
   const lookup = mock<ReferenceLookupService>();
@@ -111,6 +113,7 @@ export function mockReferenceLookupService(
     coach: extra?.coachIdsByTpId ?? new Map<string, number>(),
     position: extra?.positionIdsByExternalId ?? new Map<string, number>(),
     competition: extra?.competitionIdsByExternalId ?? new Map<string, number>(),
+    rulesSet: extra?.rulesSetIdsByName ?? new Map<string, number>(),
   };
   lookup.lookupMap.mockImplementation((kind) => {
     const idsByExternalId =

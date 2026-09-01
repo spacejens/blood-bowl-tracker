@@ -155,7 +155,19 @@ export const rosters: RosterEntry[] = [
       teamRaceCode: 'Dwarf',
       raceName: 'Dwarf',
       coachTpId: 'coach-1',
-      positions: [{ tpPositionId: 952, name: 'Dwarf Lineman' }],
+      positions: [
+        {
+          tpPositionId: 952,
+          name: 'Dwarf Lineman',
+          characteristics: {
+            move: 5,
+            strength: 3,
+            agility: 4,
+            passing: 6,
+            armour: 9,
+          },
+        },
+      ],
       starPositions: [],
       players: [
         {

@@ -194,6 +194,28 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   Their ids merge into the same `positionIdsByTpPositionId` map the regular
   positions use; a star catalog id that collides with an already-mapped id is
   skipped with a non-fatal error instead of overwriting it.
+  Alongside grouping, each group also accumulates the MA/ST/AG/PA/AV
+  characteristics its rosters report (see
+  [file-format-rosters.md](./file-format-rosters.md)), keyed by rules-set DB
+  id: resolving a roster's rules set for this purpose requires its era's
+  config to declare exactly one rules set (`EraDataConfigService`) — an era
+  declaring zero or more than one causes characteristics to be skipped for
+  every roster in it, with one recorded error, rather than decoding TP's raw
+  numeric `ruleSet` field. Two rosters disagreeing about the same (position,
+  rules set) drops that rules set for that position with one recorded error,
+  instead of letting either observation silently win. Returns
+  `characteristicsByPositionId` (positionId -> rulesSetId ->
+  characteristics), consumed by `TpPositionCharacteristicsImportService`
+  below.
+- **TpPositionCharacteristicsImportService** — writes each position's
+  accumulated `characteristicsByPositionId` entries into
+  `position_rules_sets` via the shared `PositionRulesSetsImportService`, one
+  sync call per position so one bad position's characteristics don't reject
+  every other position's. Because a position's batch spans every rules set it
+  was accumulated under, a future rules set with no Passing characteristic
+  would have its whole position's batch rejected by server-side validation —
+  not an issue today, since every rules set TP currently covers (BB2020,
+  DB2021, BB2025) has Passing. Runs right after positions import.
 - **TpPlayersImportService** — imports every roster player instance from
   `lineUps[]`: each resolves a team era (roster id + era, via
   `teamErasByRosterId`) and a position (`lineUpMasterId`, via

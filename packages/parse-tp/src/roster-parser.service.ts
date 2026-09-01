@@ -2,6 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 /**
+ * One position template's characteristics under the rules set its roster's era
+ * declares. TP stores all five as plain numbers per lineUp/star master.
+ * `passing` is a plain number, never null: TP writes a literal 0 for a position
+ * with no passing ability, and every rules set TP covers (BB2020, DB2021,
+ * BB2025) does have a Passing characteristic, so no absent-vs-zero branching
+ * is needed on the TP side.
+ */
+export interface TpPositionCharacteristics {
+  move: number;
+  strength: number;
+  agility: number;
+  passing: number;
+  armour: number;
+}
+
+/**
  * One position on a race's roster, from a `rosterMaster.lineUpMasters[]` entry.
  * `tpPositionId` is TP's internal line-up-master id: stable per
  * `(teamRace code, position name)` pair, but NOT stable across the rule-set
@@ -11,6 +27,7 @@ import { z } from 'zod';
 export interface TpRosterPosition {
   tpPositionId: number;
   name: string;
+  characteristics: TpPositionCharacteristics;
 }
 
 /**
@@ -92,14 +109,24 @@ export interface TpRoster {
   players: TpRosterPlayer[];
 }
 
+const CharacteristicsFields = {
+  ma: z.number().int(),
+  st: z.number().int(),
+  ag: z.number().int(),
+  pa: z.number().int(),
+  av: z.number().int(),
+};
+
 const LineUpMasterSchema = z.object({
   id: z.number(),
   position: z.string(),
+  ...CharacteristicsFields,
 });
 
 const StarPlayerMasterSchema = z.object({
   id: z.number(),
   position: z.string(),
+  ...CharacteristicsFields,
 });
 
 export const LineUpSchema = z.object({
@@ -167,10 +194,12 @@ export class RosterParserService {
       positions: data.rosterMaster.lineUpMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
+        characteristics: this.characteristics(entry),
       })),
       starPositions: data.rosterMaster.starPlayersMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
+        characteristics: this.characteristics(entry),
       })),
       players: data.lineUps.map((entry) => ({
         id: entry.id,
@@ -217,6 +246,23 @@ export class RosterParserService {
       interceptions: totalInterceptions,
       mvpAwards: totalMVP,
       casualties: totalCasualties,
+    };
+  }
+
+  /** The five characteristics carried on every lineUp/star master entry. */
+  private characteristics(entry: {
+    ma: number;
+    st: number;
+    ag: number;
+    pa: number;
+    av: number;
+  }): TpPositionCharacteristics {
+    return {
+      move: entry.ma,
+      strength: entry.st,
+      agility: entry.ag,
+      passing: entry.pa,
+      armour: entry.av,
     };
   }
 }
