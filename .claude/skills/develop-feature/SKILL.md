@@ -128,41 +128,28 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped), strip a leading `worktree-` if they included it, and prepend the `issue-{N}-` prefix if missing, before treating it as the confirmed branch name.
    - Example: issue 42 "Add player stats endpoint" → offer `worktree-issue-42-add-player-stats-endpoint` and `worktree-issue-42-player-stats-endpoint`, giving a confirmed branch name of `issue-42-add-player-stats-endpoint` or `issue-42-player-stats-endpoint` respectively
 9. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name — `EnterWorktree(name: <confirmed-name>)`, where `<confirmed-name>` is the slug confirmed with the developer in step 8 (e.g. `issue-66-development-process-improvements`). The tool always applies a `worktree-` prefix, so the branch it creates is `worktree-<confirmed-name>` (e.g. `worktree-issue-66-development-process-improvements`) — and that is its **permanent** name. **Do not rename it.** `EnterWorktree`/`ExitWorktree` track the branch by its creation-time name, so renaming it breaks `wrap-up`'s branch cleanup and `ExitWorktree`'s merge check; the prefix appearing in the PR's branch name is purely cosmetic and nothing depends on its absence. Every later phase derives the branch name dynamically (`git branch --show-current`, `gh pr view --json headRefName`), so no other step needs adjusting.
-10. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   if [ "$MAIN_ROOT" != "$(pwd)" ]; then
-     mkdir -p "$MAIN_ROOT/docs/plans"
-     if [ -e docs/plans ]; then
-       echo "Warning: docs/plans already exists in the worktree; leaving it as-is instead of symlinking to $MAIN_ROOT/docs/plans"
-     else
-       ln -s "$MAIN_ROOT/docs/plans" docs/plans
-     fi
-   fi
-   ```
-   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-11. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 12 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+10. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 11 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
-12. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+11. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
    node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 10. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied, and `docs/plans` is symlinked the same way — auto-created on the main-checkout side first if it doesn't exist yet, then linked — so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal (this holds when the command is the one that creates the link; a worktree that already had its own `docs/plans` is left as-is, and files written there stay worktree-local). Because `docs/plans` points out of the worktree, the Write tool refuses to write through it; Phase 2 and Phase 3 save through this CLI's `write-file` subcommand instead. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
    It prints JSON to stdout, e.g.:
    ```json
    {
      "copied": ["apps/discord-bot/.env"],
-     "symlinked": ["tools/import-bbl/data"],
+     "symlinked": ["tools/import-bbl/data", "docs/plans"],
      "skipped": ["tools/review-match/review-match-config.json5"]
    }
    ```
-   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 13's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
-13. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 12's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
+12. Print a brief status line confirming the worktree path, build result, baseline test result, and the sync-gitignored copied/symlinked/skipped counts, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -175,41 +162,28 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped), strip a leading `worktree-` if they included it, and prepend the `feature-` prefix if missing, before treating it as the confirmed branch name.
    - Example: "Add player stats endpoint" → offer `worktree-feature-add-player-stats-endpoint` and `worktree-feature-player-stats-endpoint`, giving a confirmed branch name of `feature-add-player-stats-endpoint` or `feature-player-stats-endpoint` respectively
 4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name — `EnterWorktree(name: <confirmed-name>)`, where `<confirmed-name>` is the slug confirmed with the developer in step 3 (e.g. `feature-add-player-stats-endpoint`). The tool always applies a `worktree-` prefix, so the branch it creates is `worktree-<confirmed-name>` (e.g. `worktree-feature-add-player-stats-endpoint`) — and that is its **permanent** name. **Do not rename it.** `EnterWorktree`/`ExitWorktree` track the branch by its creation-time name, so renaming it breaks `wrap-up`'s branch cleanup and `ExitWorktree`'s merge check; the prefix appearing in the PR's branch name is purely cosmetic and nothing depends on its absence. Every later phase derives the branch name dynamically (`git branch --show-current`, `gh pr view --json headRefName`), so no other step needs adjusting.
-5. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   if [ "$MAIN_ROOT" != "$(pwd)" ]; then
-     mkdir -p "$MAIN_ROOT/docs/plans"
-     if [ -e docs/plans ]; then
-       echo "Warning: docs/plans already exists in the worktree; leaving it as-is instead of symlinking to $MAIN_ROOT/docs/plans"
-     else
-       ln -s "$MAIN_ROOT/docs/plans" docs/plans
-     fi
-   fi
-   ```
-   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+5. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/fs-utils-cli` (which step 6 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
-7. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+6. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
    ```bash
    node tools/fs-utils-cli/dist/main.js sync-gitignored
    ```
-   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 5. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+   The canonical file and directory lists live in `tools/cli-shared/src/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied, and `docs/plans` is symlinked the same way — auto-created on the main-checkout side first if it doesn't exist yet, then linked — so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal (this holds when the command is the one that creates the link; a worktree that already had its own `docs/plans` is left as-is, and files written there stay worktree-local). Because `docs/plans` points out of the worktree, the Write tool refuses to write through it; Phase 2 and Phase 3 save through this CLI's `write-file` subcommand instead. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
 
    It prints JSON to stdout, e.g.:
    ```json
    {
      "copied": ["apps/discord-bot/.env"],
-     "symlinked": ["tools/import-bbl/data"],
+     "symlinked": ["tools/import-bbl/data", "docs/plans"],
      "skipped": ["tools/review-match/review-match-config.json5"]
    }
    ```
-   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 8's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
-8. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 7's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
+7. Print a brief status line confirming the worktree path, build result, baseline test result, and the sync-gitignored copied/symlinked/skipped counts, then continue immediately into Phase 2.
 
 ---
 
