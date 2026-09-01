@@ -27,7 +27,8 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   files, so one identically-named position across rule-set-variant codes of
   one logical race merges onto a single row, collecting every distinct
   `tpPositionId` as TP external ids (all in one upsert call). Positions carry
-  no Name external id (position names are not race-unique).
+  a Name external id scoped by race and position name (position names are not
+  race-unique), skipped only when the race name fails to resolve.
 - `starPositions` — extracted from `rosterMaster.starPlayersMasters[]` (named
   star players permanently embedded in a roster's line-up, as distinct from
   the star players hired for a single match via `inducements_roll` — see
