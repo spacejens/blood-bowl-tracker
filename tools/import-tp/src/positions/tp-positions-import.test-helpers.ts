@@ -11,6 +11,7 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
+import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -146,16 +147,42 @@ export async function makeService({
   };
 }
 
+/** A stand-in characteristics set for grouping tests that don't assert on them. */
+export const DEFAULT_CHARACTERISTICS: TpPositionCharacteristics = {
+  move: 6,
+  strength: 3,
+  agility: 3,
+  passing: 4,
+  armour: 9,
+};
+
 export interface RosterOpts {
   teamRace: string;
   raceName: string;
-  positions: { tpPositionId: number; name: string }[];
-  starPositions?: { tpPositionId: number; name: string }[];
+  positions: {
+    tpPositionId: number;
+    name: string;
+    characteristics?: TpPositionCharacteristics;
+  }[];
+  starPositions?: {
+    tpPositionId: number;
+    name: string;
+    characteristics?: TpPositionCharacteristics;
+  }[];
   id?: number;
 }
 
 export function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
   const { teamRace, raceName, positions, starPositions = [], id = 1 } = opts;
+  const withCharacteristics = (p: {
+    tpPositionId: number;
+    name: string;
+    characteristics?: TpPositionCharacteristics;
+  }) => ({
+    tpPositionId: p.tpPositionId,
+    name: p.name,
+    characteristics: p.characteristics ?? DEFAULT_CHARACTERISTICS,
+  });
   return {
     era,
     competition: 'comp',
@@ -165,8 +192,8 @@ export function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
       teamRaceCode: teamRace,
       raceName,
       coachTpId: 'coach-1',
-      positions,
-      starPositions,
+      positions: positions.map(withCharacteristics),
+      starPositions: starPositions.map(withCharacteristics),
       players: [],
     },
   };

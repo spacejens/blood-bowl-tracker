@@ -24,12 +24,44 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
     rosterMaster: {
       name: 'Dwarf',
       starPlayersMasters: [
-        { id: 5001, position: 'Grim Ironjaw' },
-        { id: 5002, position: "Morg 'n' Thorg" },
+        {
+          id: 5001,
+          position: 'Grim Ironjaw',
+          ma: 5,
+          st: 4,
+          ag: 4,
+          pa: 5,
+          av: 10,
+        },
+        {
+          id: 5002,
+          position: "Morg 'n' Thorg",
+          ma: 6,
+          st: 6,
+          ag: 3,
+          pa: 4,
+          av: 11,
+        },
       ],
       lineUpMasters: [
-        { id: 952, position: 'Dwarf Lineman' },
-        { id: 953, position: 'Dwarf Runner' },
+        {
+          id: 952,
+          position: 'Dwarf Lineman',
+          ma: 5,
+          st: 3,
+          ag: 4,
+          pa: 6,
+          av: 9,
+        },
+        {
+          id: 953,
+          position: 'Dwarf Runner',
+          ma: 6,
+          st: 3,
+          ag: 3,
+          pa: 4,
+          av: 8,
+        },
       ],
     },
     ...overrides,
@@ -54,12 +86,52 @@ describe('RosterParserService', () => {
       raceName: 'Dwarf',
       coachTpId: 'guid-coach-1',
       positions: [
-        { tpPositionId: 952, name: 'Dwarf Lineman' },
-        { tpPositionId: 953, name: 'Dwarf Runner' },
+        {
+          tpPositionId: 952,
+          name: 'Dwarf Lineman',
+          characteristics: {
+            move: 5,
+            strength: 3,
+            agility: 4,
+            passing: 6,
+            armour: 9,
+          },
+        },
+        {
+          tpPositionId: 953,
+          name: 'Dwarf Runner',
+          characteristics: {
+            move: 6,
+            strength: 3,
+            agility: 3,
+            passing: 4,
+            armour: 8,
+          },
+        },
       ],
       starPositions: [
-        { tpPositionId: 5001, name: 'Grim Ironjaw' },
-        { tpPositionId: 5002, name: "Morg 'n' Thorg" },
+        {
+          tpPositionId: 5001,
+          name: 'Grim Ironjaw',
+          characteristics: {
+            move: 5,
+            strength: 4,
+            agility: 4,
+            passing: 5,
+            armour: 10,
+          },
+        },
+        {
+          tpPositionId: 5002,
+          name: "Morg 'n' Thorg",
+          characteristics: {
+            move: 6,
+            strength: 6,
+            agility: 3,
+            passing: 4,
+            armour: 11,
+          },
+        },
       ],
       players: [
         {
@@ -79,8 +151,28 @@ describe('RosterParserService', () => {
   it('parses each starPlayersMasters entry into a star position', () => {
     const roster = service.parse(rosterBody());
     expect(roster.starPositions).toEqual([
-      { tpPositionId: 5001, name: 'Grim Ironjaw' },
-      { tpPositionId: 5002, name: "Morg 'n' Thorg" },
+      {
+        tpPositionId: 5001,
+        name: 'Grim Ironjaw',
+        characteristics: {
+          move: 5,
+          strength: 4,
+          agility: 4,
+          passing: 5,
+          armour: 10,
+        },
+      },
+      {
+        tpPositionId: 5002,
+        name: "Morg 'n' Thorg",
+        characteristics: {
+          move: 6,
+          strength: 6,
+          agility: 3,
+          passing: 4,
+          armour: 11,
+        },
+      },
     ]);
   });
 
@@ -90,7 +182,17 @@ describe('RosterParserService', () => {
         rosterMaster: {
           name: 'Dwarf',
           starPlayersMasters: [],
-          lineUpMasters: [{ id: 952, position: 'Dwarf Lineman' }],
+          lineUpMasters: [
+            {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 5,
+              st: 3,
+              ag: 4,
+              pa: 6,
+              av: 9,
+            },
+          ],
         },
       }),
     );
@@ -337,5 +439,75 @@ describe('RosterParserService', () => {
         }),
       ),
     ).toThrow(/totalTouchdowns/);
+  });
+
+  it('carries a zero Passing straight through for a position that cannot pass', () => {
+    const roster = service.parse(
+      rosterBody({
+        rosterMaster: {
+          name: 'Dwarf',
+          starPlayersMasters: [],
+          lineUpMasters: [
+            {
+              id: 954,
+              position: 'Troll Slayer',
+              ma: 5,
+              st: 3,
+              ag: 4,
+              pa: 0,
+              av: 9,
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(roster.positions[0].characteristics.passing).toBe(0);
+  });
+
+  it('rejects a lineUpMasters entry missing a characteristic, naming the field', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          rosterMaster: {
+            name: 'Dwarf',
+            starPlayersMasters: [],
+            lineUpMasters: [
+              {
+                id: 952,
+                position: 'Dwarf Lineman',
+                ma: 5,
+                st: 3,
+                ag: 4,
+                av: 9,
+              },
+            ],
+          },
+        }),
+      ),
+    ).toThrow(/rosterMaster\.lineUpMasters\.0\.pa/);
+  });
+
+  it('rejects a starPlayersMasters entry missing a characteristic, naming the field', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          rosterMaster: {
+            name: 'Dwarf',
+            starPlayersMasters: [
+              {
+                id: 5001,
+                position: 'Grim Ironjaw',
+                ma: 5,
+                st: 4,
+                ag: 4,
+                pa: 5,
+              },
+            ],
+            lineUpMasters: [],
+          },
+        }),
+      ),
+    ).toThrow(/rosterMaster\.starPlayersMasters\.0\.av/);
   });
 });

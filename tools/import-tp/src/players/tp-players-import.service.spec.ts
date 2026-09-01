@@ -450,7 +450,19 @@ describe('TpPlayersImportService', () => {
           raceName: 'Dwarf',
           coachTpId: 'coach-1',
           positions: [],
-          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          starPositions: [
+            {
+              tpPositionId: 5002,
+              name: "Morg 'n' Thorg",
+              characteristics: {
+                move: 6,
+                strength: 6,
+                agility: 3,
+                passing: 4,
+                armour: 11,
+              },
+            },
+          ],
           players: [
             {
               id: 3000001,
