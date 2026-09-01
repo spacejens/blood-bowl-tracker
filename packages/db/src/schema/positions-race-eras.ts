@@ -11,18 +11,20 @@ import { raceEras } from './race-eras';
  *
  * A row means the position was genuinely available: a config override said
  * so, it is a star player, or a player actually used it. Absence of a row
- * means no such positive evidence exists — never "probably available".
+ * means no such positive evidence exists — never "probably available". See
+ * docs/architecture.md for why the grain has no rules-set column, even
+ * though one era can span several rules sets.
  *
  * The characteristics columns (move/strength/agility/passing/armour) are
  * the table's first non-identifying fields, not its whole purpose — more
- * may follow. Each defaults to 0 for a row inserted without them (a source
- * that only knows availability, or an era nobody has curated yet), except
- * `passing`, whose `null` instead permanently means "this rules set has no
- * Passing characteristic at all" and must never be conflated with "not yet
- * known". Which values may (and must) be present depends on the named rules
- * set's declared formats — enforced in `PositionsService.syncRaceEras`
- * rather than by a database constraint, since it depends on another
- * table's row.
+ * may follow. Each of the five defaults to 0 for a row inserted without them
+ * (a source that only knows availability, or an era nobody has curated
+ * yet). `passing` is additionally nullable, and its `null` permanently
+ * means "this rules set has no Passing characteristic at all" — never "not
+ * yet known", which its `DEFAULT 0` is for. Which values may (and must) be
+ * present depends on the named rules set's declared formats — enforced in
+ * `PositionsService.syncRaceEras` rather than by a database constraint,
+ * since it depends on another table's row.
  */
 const positionsRaceErasTable = historyTrackedTable({
   schema: gameData,
