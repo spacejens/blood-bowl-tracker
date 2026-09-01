@@ -118,6 +118,10 @@ describe('TpPositionCharacteristicsImportService', () => {
   });
 
   it('sends a separate call per position so one rejection cannot sink another', async () => {
+    positionRulesSetsImport.syncPositionRulesSets
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ positionRulesSetIds: [1] });
+
     await service.syncPositionCharacteristics(
       new Map([
         [70, new Map([[900, RUNNER]])],
@@ -128,6 +132,7 @@ describe('TpPositionCharacteristicsImportService', () => {
     expect(positionRulesSetsImport.syncPositionRulesSets).toHaveBeenCalledTimes(
       2,
     );
+    expect(resultArgs(importResults).imported).toBe(1);
   });
 
   it('counts nothing imported when a position sync is rejected', async () => {
