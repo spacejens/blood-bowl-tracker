@@ -292,55 +292,10 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
   });
 
-  it('skips characteristics for an era declaring more than one rules set, with one error', async () => {
-    const { service, importResults } = await makeService({
+  it('skips characteristics for an era the rules set resolver returned no id for', async () => {
+    const { service } = await makeService({
       ...upsertAndSyncMocks(70),
-      eraRulesSets: new Map([
-        ['Fourth era', ['BB2020', 'BB2025']],
-        ['Fifth era', ['BB2025']],
-      ]),
-    });
-
-    const { characteristicsByPositionId } = await service.importPositions(
-      [
-        rosterEntry('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [
-            {
-              tpPositionId: 953,
-              name: 'Dwarf Runner',
-              characteristics: RUNNER,
-            },
-          ],
-          id: 1,
-        }),
-        rosterEntry('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [
-            {
-              tpPositionId: 953,
-              name: 'Dwarf Runner',
-              characteristics: RUNNER,
-            },
-          ],
-          id: 2,
-        }),
-      ],
-      { raceNamesById: new Map([[50, 'Dwarf']]) },
-    );
-
-    expect(characteristicsByPositionId.size).toBe(0);
-    const { errors } = resultArgs(importResults);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('Fourth era');
-  });
-
-  it('skips characteristics for an era whose rules set id does not resolve', async () => {
-    const { service, importResults } = await makeService({
-      ...upsertAndSyncMocks(70),
-      rulesSetIdsByName: new Map([['BB2025', 901]]),
+      rulesSetIdByEraName: new Map([['Fifth era', 901]]),
     });
 
     const { characteristicsByPositionId } = await service.importPositions(
@@ -361,7 +316,6 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
 
     expect(characteristicsByPositionId.size).toBe(0);
-    expect(resultArgs(importResults).errors[0].message).toContain('BB2020');
   });
 
   it('records no characteristics for a position whose upsert failed', async () => {
