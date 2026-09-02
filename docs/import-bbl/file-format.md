@@ -69,16 +69,12 @@ Note on `pl` pages: a player page carries the player's `<h1>` name, two links â€
 the player's position (`default.asp?p=pt&typID=<id>`) and team
 (`default.asp?p=tm&t=<code>`) â€” an "Unspent SPP" row whose parenthesized figure
 is the site's own career total, and the same MA/ST/AG/PA/AV characteristics
-table the `pt` pages carry (header row `MA`/`ST`/`AG`/`PA`/`AV`/`Skills`
-followed immediately by one row of values, found by its header text since
-several tables on the page share the row class; `AG`/`PA`/`AV` carry a
-display-only trailing `+`, and a `PA` cell reading `-` means no Passing
-ability). Most player pages carry a Passing value, including players whose era
-predates the characteristic existing, an artifact of the site's
-BB2016-to-BB2020 conversion; others show `-`. Either way the value shown is not
-evidence about whether the player's rules set has Passing at all. The
-positions import also reads these pages, to resolve the race of a position
-whose `pt` page lists none.
+table the `pt` pages carry (above). Most player pages carry a Passing value,
+including players whose era predates the characteristic existing, an artifact
+of the site's BB2016-to-BB2020 conversion; others show `-`. Either way the
+value shown is not evidence about whether the player's rules set has Passing
+at all. The positions import also reads these pages, to resolve the race of a
+position whose `pt` page lists none.
 
 Note on `se`/`sr` pages: `default.asp?p=se&s=<id>` ("played"/archived
 competitions) and `default.asp?p=sr&s=<id>` (current standings) share one

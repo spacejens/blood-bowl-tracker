@@ -234,6 +234,10 @@ export class BblPlayersImportService {
         // oldest-first; the last one is the era's most current, and is what a
         // BB2020-era scrape of the player's characteristics is measured
         // against. Validation-only — nothing stores a rules set on a player.
+        // `rulesSets` is schema-enforced to be non-empty, so `.at(-1)` is
+        // undefined only for era config this import never actually loads
+        // (e.g. a hand-built test fixture); the `?? '?'` fallback below
+        // exists for that case only.
         const rulesSetName = era.identity.rulesSets.at(-1);
         const rulesSet =
           rulesSetName === undefined

@@ -80,8 +80,8 @@ export const team: UpsertTeam = {
   eras: [],
   externalIds: [],
 };
-export const teamsByCode = new Map<string, UpsertTeam>([['knu', team]]);
-export const racesByBblId = new Map<string, { id: number; name: string }>([
+const teamsByCode = new Map<string, UpsertTeam>([['knu', team]]);
+const racesByBblId = new Map<string, { id: number; name: string }>([
   ['7', { id: 70, name: 'Goblin Team' }],
 ]);
 
@@ -94,7 +94,7 @@ export const eraIdsByName = new Map<string, number>([['LRB', 500]]);
  * race id 70) maps to BBL race id '7' via racesByBblId, so '33-7' is the
  * composite external id.
  */
-export const positionIdsByExternalId = new Map<string, number>([['33-7', 200]]);
+const positionIdsByExternalId = new Map<string, number>([['33-7', 200]]);
 
 export const defaultEras: EraConfig[] = [
   {
@@ -280,7 +280,7 @@ export function makeRulesSet(
  * exactly one rules set, also named "LRB", and it has Passing — so by default
  * a player's parsed Passing value is sent through unchanged.
  */
-export const rulesSetsByName = new Map<string, RulesSet>([
+const rulesSetsByName = new Map<string, RulesSet>([
   ['LRB', makeRulesSet('LRB', 'plus')],
 ]);
 

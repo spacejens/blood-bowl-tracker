@@ -586,13 +586,7 @@ describe('BblPlayersImportService', () => {
       typId: '33',
       teamCode: 'knu',
       sppTotal: null,
-      characteristics: {
-        move: 5,
-        strength: 3,
-        agility: 3,
-        passing: 4,
-        armour: 8,
-      },
+      characteristics: goodPlayer.characteristics,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
@@ -720,13 +714,7 @@ describe('BblPlayersImportService', () => {
       typId: '33',
       teamCode: 'bad',
       sppTotal: null,
-      characteristics: {
-        move: 5,
-        strength: 3,
-        agility: 3,
-        passing: 4,
-        armour: 8,
-      },
+      characteristics: goodPlayer.characteristics,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({

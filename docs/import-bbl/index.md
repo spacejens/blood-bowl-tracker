@@ -198,8 +198,8 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
 - **PlayersModule** — data-type extractor for players. `PlayerPageParser` reads
   a player's own `pid`, `<h1>` name, position (`p=pt&typID`) and team
   (`p=tm&t`) links, and MA/ST/AG/PA/AV characteristics line off a `p=pl` page.
-  The positions import uses the
-  position/team links to resolve the races of positions that list none;
+  The positions import uses the position/team links to resolve the races of
+  positions that list none;
   `BblPlayersImportService` streams player pages and imports one row per
   player, resolving its team era (via the team code and the era whose
   configured player-id range contains the pid) and position (via the composite
