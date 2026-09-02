@@ -1,0 +1,1708 @@
+// Hand-curated position availability (positions_race_eras) for cases the
+// source data cannot evidence.
+//
+// tools/import-bbl only asserts availability where it has positive evidence a
+// position was played -- a config override, star-player status, or a recorded
+// player use in a matching era. That is deliberately strict: the looser "this
+// race fielded no teams in this era, so assume the position was available"
+// rule it used to apply produced wrong rows (Halfling positions available to
+// Human teams). Genuine availability the source data cannot show is restored
+// here from the rulebook rosters.
+//
+// This file lives in after-other-importers, never before, and that is load
+// bearing: many of the position references below use the "<raceName>:
+// <positionName>" Name external id that NameExternalIdService.forPosition
+// builds, and that id is only created by tools/import-bbl's position
+// importer. Curating before the importers would create an orphan position
+// row under that Name id on a fresh database; when BBL later upserts the
+// same real position, supplying both its own numeric external id (already
+// resolved to a different, earlier-created row) and that same Name id (now
+// resolved to the orphan), the two ids point at different rows and the
+// upsert throws PositionUpsertConflictError. Curating after ensures BBL has
+// already established that position's identity, so these references resolve
+// to the correct existing row instead of racing to create a duplicate.
+//
+// positions_race_eras is keyed per ERA, not per rules set. "First era" and
+// "First Stunty Leeg era" each span CRP, CRP+ and BB2016 together, so one row
+// covers all three for those eras.
+//
+// Each entry re-states the position's existing `name` verbatim, because the
+// upsert overlays it -- a mismatched name would rename the position rather
+// than leave it alone. `isStarPlayer` is likewise re-stated (false, for every
+// entry below -- none of these are star players), since on a fresh database
+// this phase creates the row and positions.is_star_player is NOT NULL.
+//
+// Restoration set: every position with a curated CRP `position_rules_sets`
+// entry in data/after-other-importers/position-characteristics.json5 (Tasks
+// 3-5) is positive rulebook evidence that position was available to its race
+// under First era (which spans CRP, CRP+ and BB2016). The same is true, under
+// First Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
+// Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
+//
+// Because this file runs in the after-other-importers phase, its `name`
+// re-statements (see below) win over anything a before-other-importers file
+// (e.g. races-and-positions.json5) curates for the same position: this phase
+// runs later and the upsert overlays whatever name is given here. A future
+// rename curated in a before-phase file for a position also listed below
+// would therefore be silently reverted by this file on the next import.
+// Currently inert -- no position name is curated in both places -- but
+// nothing here tests for the overlap, so it is worth knowing about before
+// adding one.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+  ],
+  positions: [
+    // --- CRP-era availability: Dark Elf Team (First era) ---
+    {
+      name: 'Dark Elf Lineman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '4' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Dark Elf Runner',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Dark Elf Runner' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '4' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Assassin',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Assassin' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '4' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Dark Elf Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Dark Elf Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '4' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Witch Elf',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dark Elf Team: Witch Elf' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '4' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Dwarf Team (First era) ---
+    {
+      name: 'Dwarf Blocker Linemen',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '5' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Dwarf Runner',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dwarf Team: Dwarf Runner' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '5' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Dwarf Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dwarf Team: Dwarf Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '5' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Troll Slayer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dwarf Team: Troll Slayer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '5' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Deathroller',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Dwarf Team: Deathroller' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '5' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Amazon Team (First era) ---
+    {
+      name: 'Tribal Linewoman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Amazon Team: Tribal Linewoman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '1' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Eagle Warrior Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '1' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Piranha Warrior Catcher',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Amazon Team: Piranha Warrior Catcher' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '1' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Koka Kalim Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Amazon Team: Koka Kalim Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '1' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Elven Union Team (First era) ---
+    {
+      name: 'Elven Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Elven Union Team: Elven Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '6' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Elven Throwers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Elven Union Team: Elven Throwers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '6' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Elven Catchers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Elven Union Team: Elven Catchers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '6' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Elven Blitzers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Elven Union Team: Elven Blitzers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '6' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Chaos Chosen Team (First era) ---
+    {
+      name: 'Beastman Runner Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Chosen Team: Beastman Runner Lineman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '2' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Chosen Blockers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Chosen Team: Chosen Blockers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '2' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Minotaur',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Chaos Chosen Team: Minotaur' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '2' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Chaos Dwarf Team (First era) ---
+    {
+      name: 'Hobgoblin Linemen',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '3' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Chaos Dwarf Blockers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Dwarf Team: Chaos Dwarf Blockers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '3' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Bull Centaur',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Chaos Dwarf Team: Bull Centaur' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '3' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Enslaved Minotaur',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Dwarf Team: Enslaved Minotaur' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '3' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Goblin Team (First era) ---
+    {
+      name: 'Goblin Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Goblin Team: Goblin Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '7' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Looney',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Goblin Team: Looney' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '7' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Fanatic',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Goblin Team: Fanatic' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '7' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Pogoer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Goblin Team: Pogoer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '7' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Untrained Troll',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Goblin Team: Untrained Troll' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '7' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Bomma',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Goblin Team: Bomma' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '7' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Halfling Team (First era) ---
+    {
+      name: 'Hafling Treeman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Halfling Team: Hafling Treeman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '8' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Halfling Hopeful Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Halfling Team: Halfling Hopeful Lineman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '8' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: High Elf Team (First era) ---
+    {
+      name: 'High Elf Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'High Elf Team: High Elf Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '9' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'High Elf Throwers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'High Elf Team: High Elf Throwers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '9' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'High Elf Catchers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'High Elf Team: High Elf Catchers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '9' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'High Elf Blitzers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'High Elf Team: High Elf Blitzers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '9' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Human Team (First era) ---
+    {
+      name: 'Human Lineman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Human Team: Human Lineman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '10' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Human Catcher',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Human Team: Human Catcher' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '10' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Human Thrower',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Human Team: Human Thrower' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '10' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Human Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Human Team: Human Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '10' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Ogre',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Human Team: Ogre' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '10' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Tomb Kings Team (First era) ---
+    {
+      name: 'Skeleton Linemen',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Tomb Kings Team: Skeleton Linemen' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '11' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Anointed Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Tomb Kings Team: Anointed Thrower' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '11' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Anointed Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Tomb Kings Team: Anointed Blitzer' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '11' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Tomb Guardians',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Tomb Kings Team: Tomb Guardians' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '11' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Lizardmen Team (First era) ---
+    {
+      name: 'Skink Runner Linemen',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Lizardmen Team: Skink Runner Linemen' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '12' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Saurus Blockers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Lizardmen Team: Saurus Blockers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '12' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Kroxigor',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Lizardmen Team: Kroxigor' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '12' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Necromantic Horror Team (First era) ---
+    {
+      name: 'Zombie',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Necromantic Horror Team: Zombie' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '13' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Ghoul Runners',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Ghoul Runners' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '13' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Wight Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Wight Blitzer' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '13' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Flesh Golem',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Flesh Golem' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '13' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Werewolf',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Werewolf' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '13' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Norse Team (First era) ---
+    {
+      name: 'Norse Raider Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Norse Team: Norse Raider Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '14' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Norse Thrower',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Norse Team: Norse Thrower' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '14' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Norse Catchers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Norse Team: Norse Catchers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '14' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Norse Berserkers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Norse Team: Norse Berserkers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '14' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Ulfwerener',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Norse Team: Ulfwerener' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '14' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Yhetee',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Norse Team: Yhetee' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '14' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Nurgle Team (First era) ---
+    {
+      name: 'Rotter Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Nurgle Team: Rotter Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '15' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Pestigors',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Nurgle Team: Pestigors' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '15' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Bloaters',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Nurgle Team: Bloaters' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '15' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Rotspawn',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Nurgle Team: Rotspawn' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '15' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Skaven Team (First era) ---
+    {
+      name: 'Skaven Clanrat Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Skaven Team: Skaven Clanrat Lineman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '17' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Skaven Thrower',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Skaven Team: Skaven Thrower' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '17' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Gutter Runner',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Skaven Team: Gutter Runner' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '17' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Skaven Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Skaven Team: Skaven Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '17' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Rat Ogre',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Skaven Team: Rat Ogre' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '17' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Shambling Undead Team (First era) ---
+    {
+      name: 'Skeleton Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Shambling Undead Team: Skeleton Lineman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '18' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Zombie',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Shambling Undead Team: Zombie' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '18' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Ghoul Runners',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Shambling Undead Team: Ghoul Runners' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '18' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Wight Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Shambling Undead Team: Wight Blitzer' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '18' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Mummy',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Shambling Undead Team: Mummy' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '18' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Ogre Team (First era) ---
+    {
+      name: 'Gnoblar Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Ogre Team: Gnoblar Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '21' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Ogre Blockers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Ogre Team: Ogre Blockers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '21' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Orc Team (First era) ---
+    {
+      name: 'Orc Lineman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Orc Team: Orc Lineman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Goblin Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Orc Team: Goblin Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Orc Thrower',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Orc Team: Orc Thrower' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Big Un Blocker',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Orc Team: Big Un Blocker' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Orc Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Orc Team: Orc Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Untrained Troll',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Orc Team: Untrained Troll' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Vampire Team (First era) ---
+    {
+      name: 'Thrall Linemen',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Vampire Team: Thrall Linemen' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '20' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Vampire Blitzers',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Vampire Team: Vampire Blitzers' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '20' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP-era availability: Wood Elf Teams (First era) ---
+    {
+      name: 'Wood Elf Lineman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '19' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Wood Elf Catcher',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '19' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Wood Elf Thrower',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '19' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Wardancer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wardancer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '19' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Loren Forest Treeman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '19' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP+-era availability: Slann (First era) ---
+    {
+      name: 'Lineman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Lineman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Catcher',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Catcher' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Kroxigor',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Kroxigor' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP+-era availability: Underworld Denizens (First era) ---
+    {
+      name: 'Underworld Goblin Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Goblin Lineman',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Underworld Skaven Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Skaven Lineman',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Underworld Skaven Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Skaven Thrower',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Underworld Skaven Blitzers',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Skaven Blitzers',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Warpstone Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Underworld Denizens Team: Warpstone Troll' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Albion Fae ---
+    {
+      name: 'SL - Brownies',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Albion Fae: SL - Brownies' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Pixies',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Albion Fae: SL - Pixies' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Leprechauns',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Albion Fae: SL - Leprechauns' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Fenbeast',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Albion Fae: SL - Fenbeast' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Chaos Halflings ---
+    {
+      name: 'Chaos Halfling',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: Chaos Halfling' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Head Carver',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: SL - Head Carver' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Carvers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Chaos Spawn',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: SL - Chaos Spawn' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Goblin Cheaters ---
+    {
+      name: 'SL - Goblin',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Goblin' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Looney',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Looney' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Bombers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Bombers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Fanatic',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Fanatic' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Kickers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Kickers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Pogo Stick',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Pogo Stick' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Horrors Of Tzeentch ---
+    {
+      name: 'SL - Horror',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Horror' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Greater Horror',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'SL - Horrors Of Tzeentch: SL - Greater Horror',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Flamers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Flamers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Fire Wyrms',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Fire Wyrms' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Pygmies ---
+    {
+      name: 'SL - Pygmies',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Pygmies: SL - Pygmies' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Alligator Warriors',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Pygmies: SL - Alligator Warriors' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Eagle Warriors',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Pygmies: SL - Eagle Warriors' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Jaguar Warriors',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Pygmies: SL - Jaguar Warriors' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Kroxigor',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Pygmies: SL - Kroxigor' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Skinks ---
+    {
+      name: 'SL - Skinks',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Skinks' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Whiptails',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Whiptails' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Adept of Sotek',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Raptors',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Raptors' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- BB2016-era availability: Chaos Renegade Team (First era) ---
+    // No CRP/CRP+ baseline exists for this race: Chaos Renegades was added
+    // by Teams of Legend itself. "Chaos Renegade Team" is already
+    // pre-registered by races-and-positions.json5, so it is referenced here
+    // by its tloeg.bbleague.se id rather than declared inline above.
+    {
+      name: 'Renegade Human Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Human Lineman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Goblin',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Goblin' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Skaven',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Skaven' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Dark Elf',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Dark Elf' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Troll' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Ogre',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Ogre' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Minotaur',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Minotaur' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP+-era availability: Halfling Team (First era) ---
+    // Halfling Catcher is a CRP+-added position inside an otherwise-CRP
+    // team; Halfling Team (race id 8) is pre-registered by
+    // races-and-positions.json5, not declared in this file.
+    {
+      name: 'Halfling Catcher',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Halfling Team: Halfling Catcher' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '8' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+  ],
+}

@@ -288,11 +288,10 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
 
-    const { playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
-      await service.importPlayers({
-        teamsByCode,
-        racesByBblId,
-      });
+    const { playerIdsByPid, positionsUsedByEra } = await service.importPlayers({
+      teamsByCode,
+      racesByBblId,
+    });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
@@ -315,7 +314,6 @@ describe('BblPlayersImportService', () => {
     );
     // positionId 200, eraId 500 (from eraIdsByName), team.raceId 70.
     expect(positionsUsedByEra).toEqual(new Set(['200:500']));
-    expect(racesActiveByEra).toEqual(new Set(['70:500']));
   });
 
   it("returns each imported player's team era id keyed by pid", async () => {
@@ -1059,14 +1057,12 @@ describe('BblPlayersImportService', () => {
       }),
     );
 
-    const { positionsUsedByEra, racesActiveByEra } =
-      await service.importPlayers({
-        teamsByCode,
-        racesByBblId,
-      });
+    const { positionsUsedByEra } = await service.importPlayers({
+      teamsByCode,
+      racesByBblId,
+    });
 
     expect(positionsUsedByEra.size).toBe(0);
-    expect(racesActiveByEra.size).toBe(0);
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {

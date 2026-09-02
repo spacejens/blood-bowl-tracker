@@ -72,7 +72,6 @@ async function run(): Promise<ImportResult> {
         rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
         eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
         positionsUsedByEra: playerOutcome.positionsUsedByEra,
-        racesActiveByEra: playerOutcome.racesActiveByEra,
       });
     // Characteristics run right after the race-era sync, which is what decides
     // the rules sets each position needs a row for. The values themselves come

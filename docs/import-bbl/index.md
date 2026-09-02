@@ -190,10 +190,11 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   `teamRaceIdsByCode`. `BblPositionRaceErasImportService` then rules on
   per-(position, race, era) availability, and
   `BblPositionCharacteristicsImportService` writes the scraped characteristics
-  only under rules sets with positive evidence (an override, star-player
-  status, or a recorded player use) — narrower than availability, which also
-  accepts a "no team fielded this race" fallback that characteristics
-  excludes. Runs after races and teams.
+  under the same rules sets. Both require positive evidence the position was
+  played — an override, star-player status, or a recorded player use. An era
+  in which the race fielded no teams at all is not evidence of availability
+  and yields no row; genuine availability the source data cannot show is
+  curated by hand in `tools/import-manual`. Runs after races and teams.
 - **PlayersModule** — data-type extractor for players. `PlayerPageParser` reads
   a player's own `pid`, `<h1>` name, position (`p=pt&typID`), and team
   (`p=tm&t`) links off a `p=pl` page. The positions import uses the
@@ -334,15 +335,15 @@ evidence sets, and matches and players (which have no resolve procedure).
 - **Position characteristics** — from the same `p=pt` page, written to
   `position_rules_sets`. A position gets one row per rules set it was
   determined eligible for (positive evidence only — an override, star-player
-  status, or a recorded player use, not the looser "no data" fallback
-  race-era availability allows), not one hardcoded to BB2020: an era spanning
-  a rules-set change yields a row per rules set in that span, all carrying
-  the same scraped values, since BBL is a single BB2020-era snapshot with no
-  other source for the older rules sets (curated pre-BB2020 values are
-  imported separately and overwrite these). A position with no positive
-  evidence for a rules set gets no row for it at all — not even a wrong
-  one — including under BB2020 itself; issue #670 fills gaps like these in by
-  hand. `Passing` is resolved per target rules set: `null` where the rules
+  status, or a recorded player use, the same rule race-era availability
+  applies), not one hardcoded to BB2020: an era spanning a rules-set change
+  yields a row per rules set in that span, all carrying the same scraped
+  values, since BBL is a single BB2020-era snapshot with no other source for
+  the older rules sets (curated pre-BB2020 values are imported separately and
+  overwrite these). A position with no positive evidence for a rules set gets
+  no row for it at all — not even a wrong one — including under BB2020
+  itself; gaps like these are filled in by hand in `tools/import-manual`.
+  `Passing` is resolved per target rules set: `null` where the rules
   set declares no Passing characteristic at all, and otherwise the scraped
   value, or `0` where the page showed `-` — a position that cannot pass
   under a rules set that does have Passing. One sync call is

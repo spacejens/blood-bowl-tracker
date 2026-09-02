@@ -161,7 +161,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
@@ -192,7 +191,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(mocks.lookup.lookupMap).toHaveBeenCalledWith(
@@ -223,7 +221,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
@@ -248,7 +245,6 @@ describe('BblPositionRaceErasImportService', () => {
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set<string>();
-    const racesActiveByEra = new Set(['7:500']);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
       raceEraIds: [1],
@@ -260,7 +256,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
@@ -276,7 +271,6 @@ describe('BblPositionRaceErasImportService', () => {
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set(['100:500']);
-    const racesActiveByEra = new Set(['7:500']);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
       raceEraIds: [1],
@@ -288,7 +282,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
@@ -304,7 +297,6 @@ describe('BblPositionRaceErasImportService', () => {
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set<string>();
-    const racesActiveByEra = new Set(['7:500']);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
       raceEraIds: [],
@@ -316,7 +308,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
@@ -325,17 +316,16 @@ describe('BblPositionRaceErasImportService', () => {
     );
   });
 
-  it('includes a regular position in an era where the race had no teams at all', async () => {
+  it('excludes a regular position from an era where the race had no teams at all', async () => {
     const { service, mocks } = await makeService([]);
     const positionRaceCandidates = new Map([
       [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set<string>();
-    const racesActiveByEra = new Set<string>();
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
-      raceEraIds: [1],
+      raceEraIds: [],
     });
 
     await service.syncPositionRaceEras({
@@ -344,26 +334,27 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
+    // No override, not a star player, no recorded use: absence of teams for
+    // the race carries no evidence the position was available, and asserting
+    // it anyway produced wrong rows (Halfling positions on Human teams).
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
-      { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
+      { positionId: 100, raceEras: [] },
       expect.any(Array),
     );
   });
 
-  it('gives no characteristics rules sets for an era included only via the no-teams-at-all fallback', async () => {
+  it('gives no characteristics rules sets for an era with no positive evidence', async () => {
     const { service, mocks } = await makeService([makeEra()]);
     const positionRaceCandidates = new Map([
       [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set<string>();
-    const racesActiveByEra = new Set<string>();
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
-      raceEraIds: [1],
+      raceEraIds: [],
     });
 
     const outcome = await service.syncPositionRaceEras({
@@ -372,16 +363,15 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
-    // syncRaceEras still gets the era: general race-era availability is
-    // unaffected by the stricter characteristics eligibility check.
+    // syncRaceEras gets no era either: without positive evidence, general
+    // race-era availability and characteristics eligibility agree.
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
-      { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
+      { positionId: 100, raceEras: [] },
       expect.any(Array),
     );
-    // But the characteristics projection gets nothing: there is no positive
+    // The characteristics projection gets nothing: there is no positive
     // evidence (override, star player, or observed use) the position was
     // ever played under this era's rules set.
     expect(outcome.rulesSetIdsByPositionId.has(100)).toBe(false);
@@ -399,7 +389,6 @@ describe('BblPositionRaceErasImportService', () => {
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set(['100:500']);
-    const racesActiveByEra = new Set(['7:500']);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
       raceEraIds: [],
@@ -411,7 +400,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
@@ -432,7 +420,6 @@ describe('BblPositionRaceErasImportService', () => {
     ]);
     const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
     const positionsUsedByEra = new Set<string>();
-    const racesActiveByEra = new Set(['7:500']);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
       raceEraIds: [1],
@@ -444,7 +431,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra,
-      racesActiveByEra,
     });
 
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
@@ -475,7 +461,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     const { errors } = resultArgs(mocks.importResults);
@@ -507,7 +492,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     const { errors } = resultArgs(mocks.importResults);
@@ -538,7 +522,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     const { errors } = resultArgs(mocks.importResults);
@@ -566,7 +549,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     const { imported, errors } = resultArgs(mocks.importResults);
@@ -592,7 +574,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(result).toBe(CANNED_RESULT);
@@ -621,7 +602,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId: new Map([[7, new Set([500])]]),
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(outcome.rulesSetIdsByPositionId).toEqual(
@@ -641,7 +621,6 @@ describe('BblPositionRaceErasImportService', () => {
       // The race is in no era at all, so no raceEras are produced.
       eraIdsByRaceId: new Map(),
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(outcome.rulesSetIdsByPositionId.size).toBe(0);
@@ -667,7 +646,6 @@ describe('BblPositionRaceErasImportService', () => {
       rulesSetsByName,
       eraIdsByRaceId: new Map([[7, new Set([500])]]),
       positionsUsedByEra: new Set(),
-      racesActiveByEra: new Set(),
     });
 
     expect(outcome.rulesSetIdsByPositionId.size).toBe(0);
