@@ -152,7 +152,8 @@ describe('RaceSamplerService', () => {
       {
         source: 'bbl',
         reason:
-          'No race found for stratum "Race no longer available under modern rules sets"',
+          'No race found for stratum "Race no longer available under modern rules sets" ' +
+          '(source-agnostic stratum, showing first configured source)',
       },
     ]);
   });
@@ -193,6 +194,32 @@ describe('RaceSamplerService', () => {
         source: 'tp',
         reason:
           'Only 0 of 1 override race(s) were found in the database: NoSuchRace',
+      },
+    ]);
+  });
+
+  it('does not collapse two distinct-source override gaps that share identical reason text', async () => {
+    const stratifier = mock<RaceStratifier>();
+    stratifier.listStrata.mockReturnValue([]);
+    const lookup = mock<RaceLookupService>();
+    lookup.findByExternalIds.mockResolvedValue([]);
+    const config = mock<RaceReviewConfigService>();
+    config.getRacesPerStratum.mockReturnValue(3);
+    config.getOverrides.mockImplementation((source) =>
+      source === 'bbl' || source === 'tp' ? ['5'] : [],
+    );
+    const service = await makeService({ stratifier, lookup, config });
+
+    const { gaps } = await service.sample();
+
+    expect(gaps).toEqual([
+      {
+        source: 'bbl',
+        reason: 'Only 0 of 1 override race(s) were found in the database: 5',
+      },
+      {
+        source: 'tp',
+        reason: 'Only 0 of 1 override race(s) were found in the database: 5',
       },
     ]);
   });
