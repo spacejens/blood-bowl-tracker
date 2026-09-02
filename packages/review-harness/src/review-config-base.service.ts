@@ -62,16 +62,27 @@ export abstract class ReviewConfigServiceBase {
     return url.data;
   }
 
-  /** Absolute path to a source's downloaded raw data directory. */
+  /** Absolute path to a source's raw data directory. */
   getDataDir(source: ReviewSource): string {
     const dir = nonEmptyStringSchema.safeParse(this.group(source).dataDir);
     if (!dir.success) {
       throw new Error(
         `${source}.dataDir is not set in ${this.fileName}. Set it to ` +
-          `the folder holding the downloaded ${source.toUpperCase()} data.`,
+          this.dataDirHint(source),
       );
     }
     return resolve(dir.data);
+  }
+
+  /**
+   * `manual` data is git-tracked (tools/import-manual's committed data
+   * directory), not downloaded, so the hint for it reads differently than
+   * for `bbl`/`tp`, whose data genuinely is downloaded into a local mirror.
+   */
+  private dataDirHint(source: ReviewSource): string {
+    return source === 'manual'
+      ? "the folder holding tools/import-manual's curated data."
+      : `the folder holding the downloaded ${source.toUpperCase()} data.`;
   }
 
   /** Name the source's records are registered under in `external_systems`. */
