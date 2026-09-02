@@ -491,17 +491,72 @@
     // BB2016 boxed-set teams (Human, Orc, Dwarf, Skaven, Elf variants) --
     // those still need transcription from the physical rulebooks (Task 14).
 
+    // --- BB2016: boxed-set teams and remaining CRP-legacy races, transcribed
+    // from the physical rulebooks (Task 14) -- Teams of Legend does not cover
+    // these (see the note above the Vampire block). ---
+    { position: { system: 'Name', id: 'Human Team: Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Human Team: Human Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Human Team: Human Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Human Team: Human Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Human Team: Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 2, armour: 9 },
+
+    { position: { system: 'Name', id: 'Orc Team: Orc Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Orc Team: Orc Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Orc Team: Big Un Blocker' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 3, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Dwarf Team: Troll Slayer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Dwarf Team: Deathroller' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 7, agility: 1, armour: 10 },
+
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Clanrat Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 9, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Skaven Team: Rat Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 5, agility: 2, armour: 8 },
+
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Assassin' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Witch Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
+
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 8 },
+
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 8 },
+
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 2, strength: 6, agility: 1, armour: 10 },
+
+    { position: { system: 'Name', id: 'Nurgle Team: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Nurgle Team: Pestigors' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Nurgle Team: Bloaters' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Nurgle Team: Rotspawn' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 5, agility: 1, armour: 9 },
+
     // --- BB2020 gap-fill: Giant Mercenary ---
-    // LOW CONFIDENCE: Giant Mercenary is a Blood Bowl 2020 mercenary/star
-    // player (Death Zone Season 2 "Mercenaries" chapter), not covered by any
-    // PDF or physical rulebook available for this task. This is the classic
-    // "Giant" big-guy line (MA 3/ST 9/AG 5+/AV 9+, no throwing skill) carried
-    // forward from earlier editions, transcribed here from general series
-    // knowledge rather than the BB2020 source text -- move/strength/agility/
-    // armour should be spot-checked against the physical supplement. `passing`
-    // is doubly uncertain: BB2020 requires a numeric Passing target for every
-    // entry, but Giants have no passing skill in any edition, so 6 is an
-    // inferred worst-case placeholder, not a transcribed value.
-    { position: { system: 'Name', id: 'Giant Mercenary' }, rulesSet: { system: 'Name', id: 'BB2020' }, move: 3, strength: 9, agility: 5, passing: 6, armour: 9 },
+    // Giant Mercenary is a Blood Bowl 2020 mercenary/star player (Death Zone
+    // Season 2 "Mercenaries" chapter). Task 12's initial values were a
+    // low-confidence estimate from general series knowledge; the values below
+    // are the developer's correction, transcribed from the physical
+    // supplement.
+    { position: { system: 'Name', id: 'Giant Mercenary' }, rulesSet: { system: 'Name', id: 'BB2020' }, move: 6, strength: 7, agility: 5, passing: 5, armour: 11 },
   ],
 }

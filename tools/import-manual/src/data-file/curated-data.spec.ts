@@ -513,11 +513,67 @@ describe('curated data files', () => {
       bb2016.map((entry) => entry.position.id.split(': ')[0]),
     );
 
-    // Teams of Legend covers the CRP-legacy races under BB2016; the boxed-set
-    // teams it omits are transcribed from the physical rulebooks separately.
-    expect(races.size).toBeGreaterThanOrEqual(14);
+    // Teams of Legend covers 14 CRP-legacy races; the 4 boxed-set races
+    // (Human, Orc, Dwarf, Skaven) and the 6 further CRP-legacy races Teams of
+    // Legend itself skipped (Dark Elf, Elven Union, High Elf, Wood Elf,
+    // Nurgle, Slann) are transcribed from the physical rulebooks (Task 14).
+    expect(races.size).toBeGreaterThanOrEqual(24);
     for (const entry of bb2016) {
       expect(entry.passing).toBeUndefined();
     }
+  });
+
+  it('curates BB2016 characteristics for every position that had a CRP row', () => {
+    // BB2016 dropped a handful of CRP positions outright; each exception is
+    // listed here so the assertion documents them instead of hiding them
+    // behind a count.
+    const droppedInBb2016: string[] = [
+      'SL - Albion Fae: SL - Brownies',
+      'SL - Albion Fae: SL - Pixies',
+      'SL - Albion Fae: SL - Leprechauns',
+      'SL - Albion Fae: SL - Fenbeast',
+      'SL - Chaos Halflings: Chaos Halfling',
+      'SL - Chaos Halflings: SL - Head Carver',
+      'SL - Chaos Halflings: SL - Carvers',
+      'SL - Chaos Halflings: SL - Chaos Spawn',
+      'SL - Goblin Cheaters: SL - Goblin',
+      'SL - Goblin Cheaters: SL - Looney',
+      'SL - Goblin Cheaters: SL - Bombers',
+      'SL - Goblin Cheaters: SL - Fanatic',
+      'SL - Goblin Cheaters: SL - Kickers',
+      'SL - Goblin Cheaters: SL - Pogo Stick',
+      'SL - Horrors Of Tzeentch: SL - Horror',
+      'SL - Horrors Of Tzeentch: SL - Greater Horror',
+      'SL - Horrors Of Tzeentch: SL - Flamers',
+      'SL - Horrors Of Tzeentch: SL - Fire Wyrms',
+      'SL - Pygmies: SL - Pygmies',
+      'SL - Pygmies: SL - Alligator Warriors',
+      'SL - Pygmies: SL - Eagle Warriors',
+      'SL - Pygmies: SL - Jaguar Warriors',
+      'SL - Pygmies: SL - Kroxigor',
+      'SL - Skinks: SL - Skinks',
+      'SL - Skinks: SL - Whiptails',
+      'SL - Skinks: SL - Adept of Sotek',
+      'SL - Skinks: SL - Raptors',
+    ];
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const bb2016 = new Set(
+      entries
+        .filter((entry) => entry.rulesSet.id === 'BB2016')
+        .map((entry) => entry.position.id),
+    );
+    const crp = new Set(
+      entries
+        .filter((entry) => entry.rulesSet.id === 'CRP')
+        .map((entry) => entry.position.id),
+    );
+
+    // "First era" and "First Stunty Leeg era" span CRP, CRP+ and BB2016
+    // together, so a position curated for CRP was playable under BB2016 too
+    // unless BB2016 dropped its team list.
+    expect([...crp].filter((id) => !bb2016.has(id))).toEqual(droppedInBb2016);
   });
 });
