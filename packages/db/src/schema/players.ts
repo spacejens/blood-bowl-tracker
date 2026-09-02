@@ -33,6 +33,30 @@ const playersTable = historyTrackedTable({
     // (clamped to 0). Nullable, mirroring `spp_total`: NULL means not
     // computed; a number — including 0 — means computed and confirmed.
     sppAdjustment: integer('spp_adjustment'),
+    // The player's own current Move/Strength/Agility/Passing/Armour, as the
+    // source reports them. Not merely a copy of the position's baseline:
+    // both BBL and TP report a player's current values, and injuries and
+    // advancements genuinely drive them away from that baseline.
+    //
+    // A player has exactly one current characteristic line, unlike a
+    // position (one line per rules set, hence the separate
+    // `position_rules_sets` table), so these live directly on the row. No
+    // rules-set id is stored alongside them: an era can list several rules
+    // sets in sequence, so nothing here can resolve one unambiguously —
+    // whichever caller needs one for validation supplies it explicitly.
+    //
+    // The DEFAULT 0 on the four NOT NULL columns is temporary: it exists
+    // only so existing rows satisfy NOT NULL before the BBL and TP importers
+    // populate real values. 0 is not a legal value for any characteristic
+    // under any rules set, so it is purely a placeholder.
+    move: integer('move').notNull().default(0),
+    strength: integer('strength').notNull().default(0),
+    agility: integer('agility').notNull().default(0),
+    // Nullable with no default, mirroring `position_rules_sets.passing`:
+    // NULL permanently means "this player's rules set has no Passing
+    // characteristic" (an asserted absence), never "not yet known".
+    passing: integer('passing'),
+    armour: integer('armour').notNull().default(0),
   },
 });
 

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
@@ -56,6 +57,7 @@ describe('PlayersService toplist queries', () => {
         { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: PlayerContextNamesService, useValue: playerContextNames },
+        CharacteristicFormatValidationService,
         { provide: DB, useValue: db },
       ],
     }).compile();

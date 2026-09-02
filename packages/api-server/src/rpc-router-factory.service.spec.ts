@@ -1,4 +1,5 @@
 import {
+  CharacteristicFormatMismatchError,
   CoachesService,
   CoachUpsertConflictError,
   CompetitionGroupsService,
@@ -17,7 +18,6 @@ import {
   MissingRequiredFieldError,
   PlayersService,
   PlayerUpsertConflictError,
-  PositionRulesSetFormatMismatchError,
   PositionRulesSetsService,
   PositionsService,
   PositionUpsertConflictError,
@@ -775,6 +775,11 @@ describe('RpcRouterFactoryService', () => {
         name: 'Griff Oberwald',
         teamEraId: 10,
         positionId: 20,
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
         sppTotal: null,
         sppAdjustment: null,
         createdAt: new Date('2026-01-01'),
@@ -797,6 +802,11 @@ describe('RpcRouterFactoryService', () => {
       name: 'Griff Oberwald',
       teamEraId: 10,
       positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -817,6 +827,27 @@ describe('RpcRouterFactoryService', () => {
         externalIds: [{ externalSystemId: 1, externalId: '12345' }],
       }),
     ).rejects.toThrow();
+  });
+
+  it('players.upsert maps a characteristic format mismatch to BAD_REQUEST', async () => {
+    playersService.upsert.mockRejectedValue(
+      new CharacteristicFormatMismatchError(
+        'Rules set 5 has no Passing characteristic, but player 1:12345 supplies one',
+      ),
+    );
+
+    await expect(
+      call(router.players.upsert, {
+        name: 'Griff Oberwald',
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 8,
+        rulesSetId: 5,
+        externalIds: [{ externalSystemId: 1, externalId: '12345' }],
+      }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
   });
 
   it('matchEvents.upsert returns the flat entity with a created flag', async () => {
@@ -950,7 +981,7 @@ describe('RpcRouterFactoryService', () => {
 
     it('maps a format mismatch to BAD_REQUEST', async () => {
       positionRulesSetsService.sync.mockRejectedValue(
-        new PositionRulesSetFormatMismatchError('Rules set 5 has no Passing'),
+        new CharacteristicFormatMismatchError('Rules set 5 has no Passing'),
       );
 
       await expect(

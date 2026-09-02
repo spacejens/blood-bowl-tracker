@@ -4,17 +4,23 @@ import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
+import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
+import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { firstCallArg } from '../shared/query-assertions.test-helpers';
-import {
-  PositionRulesSetFormatMismatchError,
-  PositionRulesSetsService,
-} from './position-rules-sets.service';
+import { PositionRulesSetsService } from './position-rules-sets.service';
 
 async function makeService(
   db: MockDbResult,
 ): Promise<PositionRulesSetsService> {
   const moduleRef = await Test.createTestingModule({
-    providers: [PositionRulesSetsService, { provide: DB, useValue: db.db }],
+    providers: [
+      PositionRulesSetsService,
+      // Pure, dependency-free decision service: passed real so these tests
+      // keep asserting the actual format rule (see CLAUDE.md, "Testing
+      // services").
+      CharacteristicFormatValidationService,
+      { provide: DB, useValue: db.db },
+    ],
   }).compile();
   return moduleRef.get(PositionRulesSetsService);
 }
@@ -121,7 +127,7 @@ describe('PositionRulesSetsService', () => {
 
       await expect(
         service.sync({ entries: [{ ...crpEntry, passing: 4 }] }),
-      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
@@ -140,7 +146,7 @@ describe('PositionRulesSetsService', () => {
 
       await expect(
         service.sync({ entries: [{ ...bb2020Entry, passing: null }] }),
-      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
@@ -150,7 +156,7 @@ describe('PositionRulesSetsService', () => {
 
       await expect(
         service.sync({ entries: [bb2020Entry] }),
-      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
     });
 
     it('rejects a batch with the same (positionId, rulesSetId) pair twice', async () => {
@@ -161,7 +167,7 @@ describe('PositionRulesSetsService', () => {
 
       await expect(
         service.sync({ entries: [bb2020Entry, bb2020Entry] }),
-      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
       expect(db.chains).toHaveLength(1);
       expect(db.transaction).not.toHaveBeenCalled();
     });
@@ -175,7 +181,7 @@ describe('PositionRulesSetsService', () => {
 
       await expect(
         service.sync({ entries: [bb2020Entry, { ...crpEntry, passing: 4 }] }),
-      ).rejects.toBeInstanceOf(PositionRulesSetFormatMismatchError);
+      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
       expect(db.chains).toHaveLength(1);
       expect(db.transaction).not.toHaveBeenCalled();
     });

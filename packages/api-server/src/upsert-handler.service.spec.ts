@@ -1,4 +1,5 @@
 import {
+  CharacteristicFormatMismatchError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   TrophyAwardCompetitionGroupMismatchError,
@@ -136,6 +137,17 @@ describe('UpsertHandlerService', () => {
       ).rejects.toBeInstanceOf(BadRequestReply);
     });
 
+    it('translates a characteristic format mismatch into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runWithoutConflict(errors, () => {
+          throw new CharacteristicFormatMismatchError(
+            'Rules set 5 has no Passing characteristic, but player 1:12345 supplies one',
+          );
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalled();
+    });
+
     it('translates a match category mismatch error into a BAD_REQUEST reply', async () => {
       await expect(
         handler.runWithoutConflict(errors, () => {
@@ -204,6 +216,20 @@ describe('UpsertHandlerService', () => {
         success: false,
         error: 'Cannot create new eras: missing required field(s): leagueId',
       },
+    ]);
+  });
+
+  it('turns a characteristic format mismatch into a failed batch item', async () => {
+    const results = await handler.runBatch(TestConflictError, [
+      () => {
+        throw new CharacteristicFormatMismatchError(
+          'Rules set 5 has no Passing',
+        );
+      },
+    ]);
+
+    expect(results).toEqual([
+      { success: false, error: 'Rules set 5 has no Passing' },
     ]);
   });
 

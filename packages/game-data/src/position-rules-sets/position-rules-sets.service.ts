@@ -1,5 +1,4 @@
 import type {
-  CharacteristicFormat,
   PositionRulesSetEntry,
   SyncPositionRulesSets,
   SyncPositionRulesSetsResult,
@@ -9,64 +8,25 @@ import { DB, positionRulesSets, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, inArray } from 'drizzle-orm';
 
-/**
- * An entry whose characteristics disagree with what its rules set declares:
- * a value supplied for a characteristic the rules set does not have, a
- * missing value for one it does, or a rules set that does not exist at all.
- * Authored-data feedback, not a server fault — the API maps it to
- * BAD_REQUEST so an importer reports it against the offending entry.
- */
-export class PositionRulesSetFormatMismatchError extends Error {}
-
-/** The rules set's five format columns, as loaded for validation. */
-interface RulesSetFormats {
-  moveFormat: CharacteristicFormat;
-  strengthFormat: CharacteristicFormat;
-  agilityFormat: CharacteristicFormat;
-  passingFormat: CharacteristicFormat;
-  armourFormat: CharacteristicFormat;
-}
-
-/** The five characteristic columns, without the identifying pair. */
-interface CharacteristicValues {
-  move: number;
-  strength: number;
-  agility: number;
-  passing: number | null;
-  armour: number;
-}
-
-/**
- * The five characteristics, each paired with the rules-set column declaring
- * its format and the human-readable name used in error messages. Iterating
- * this list is what keeps validation exhaustive: a sixth characteristic means
- * one more line here, not five more branches.
- */
-const CHARACTERISTICS = [
-  { key: 'move', format: 'moveFormat', label: 'Move' },
-  { key: 'strength', format: 'strengthFormat', label: 'Strength' },
-  { key: 'agility', format: 'agilityFormat', label: 'Agility' },
-  { key: 'passing', format: 'passingFormat', label: 'Passing' },
-  { key: 'armour', format: 'armourFormat', label: 'Armour' },
-] as const satisfies readonly {
-  key: keyof CharacteristicValues;
-  format: keyof RulesSetFormats;
-  label: string;
-}[];
+import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
+import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
+import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 
 /**
  * Owns the position × rules-set association: the position's characteristics
  * under one rules set.
  *
- * This is the single place enforcing "characteristics must match what the
- * rules set declares". Every writer goes through it — the curated manual
- * import today, the BBL and TP imports in the sibling issues — so none of
- * them re-implements the rule, and none can write a Passing value for a
- * rules set that has no Passing characteristic.
+ * Every writer of position characteristics goes through it, and it defers
+ * the "characteristics must match what the rules set declares" check to the
+ * shared CharacteristicFormatValidationService, so positions and players
+ * apply one identical rule.
  */
 @Injectable()
 export class PositionRulesSetsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly characteristicFormats: CharacteristicFormatValidationService,
+  ) {}
 
   /**
    * Insert or update the supplied rows, matched on their natural key
@@ -115,10 +75,15 @@ export class PositionRulesSetsService {
     const formatsById = new Map(formatRows.map((row) => [row.id, row]));
     const seenKeys = new Set<string>();
     for (const entry of data.entries) {
-      this.validate(entry, formatsById.get(entry.rulesSetId));
+      this.characteristicFormats.validate({
+        values: this.characteristicValues(entry),
+        formats: formatsById.get(entry.rulesSetId),
+        rulesSetId: entry.rulesSetId,
+        subject: `position ${entry.positionId}`,
+      });
       const key = this.naturalKey(entry);
       if (seenKeys.has(key)) {
-        throw new PositionRulesSetFormatMismatchError(
+        throw new CharacteristicFormatMismatchError(
           `Position ${entry.positionId} under rules set ${entry.rulesSetId} appears more than once in the same batch`,
         );
       }
@@ -186,34 +151,9 @@ export class PositionRulesSetsService {
   }
 
   /**
-   * Reject an entry that disagrees with its rules set: an `absent` format
-   * requires the value to be null, and any other format requires a number.
+   * The entry's five characteristic columns, without the identifying pair —
+   * both what the shared validator checks and what gets written.
    */
-  private validate(
-    entry: PositionRulesSetEntry,
-    formats: RulesSetFormats | undefined,
-  ): void {
-    if (formats === undefined) {
-      throw new PositionRulesSetFormatMismatchError(
-        `Rules set ${entry.rulesSetId} does not exist, so position ${entry.positionId} cannot have characteristics under it`,
-      );
-    }
-    for (const characteristic of CHARACTERISTICS) {
-      const value = entry[characteristic.key];
-      const format = formats[characteristic.format];
-      if (format === 'absent' && value !== null) {
-        throw new PositionRulesSetFormatMismatchError(
-          `Rules set ${entry.rulesSetId} has no ${characteristic.label} characteristic, but position ${entry.positionId} supplies one`,
-        );
-      }
-      if (format !== 'absent' && value === null) {
-        throw new PositionRulesSetFormatMismatchError(
-          `Rules set ${entry.rulesSetId} requires a ${characteristic.label} characteristic, but position ${entry.positionId} supplies none`,
-        );
-      }
-    }
-  }
-
   private characteristicValues(
     entry: PositionRulesSetEntry,
   ): CharacteristicValues {

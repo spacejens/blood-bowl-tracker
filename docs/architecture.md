@@ -333,6 +333,23 @@ exist under that rules set. `PositionRulesSetsService.sync` in
 `packages/game-data` is the single place that writes it, and it rejects any
 row whose values disagree with the rules set's declared formats.
 
+`players` carries its own `move`, `strength`, `agility`, `passing` and
+`armour`: both BBL and TP report a player's _current_ characteristics, which
+drift from the position's baseline through injuries and advancements, so
+these are stored per player rather than derived from `position_rules_sets`. A
+player has exactly one current line — unlike a position, which has one per
+rules set — so the columns live directly on the row, and no rules set is
+stored alongside them (an era can list several rules sets in sequence, so
+none can be derived from a player unambiguously). `passing` is nullable with
+the same meaning as on `position_rules_sets`: NULL asserts that the player's
+rules set has no Passing characteristic. The other four are NOT NULL with a
+temporary `DEFAULT 0` — a placeholder, since 0 is not a legal value under any
+rules set — until the BBL and TP imports populate real values.
+`PlayersService.upsert` accepts the five as an all-or-nothing group paired
+with a `rulesSetId` that is used only to validate them (via the same
+`CharacteristicFormatValidationService` that `PositionRulesSetsService` uses)
+and is never persisted.
+
 ## Discord bot user-facing messages
 
 Every error or status message the Discord bot can send to a user lives in
