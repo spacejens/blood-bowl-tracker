@@ -325,6 +325,15 @@ describe('PlayersService', () => {
       ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
       expect(transaction).not.toHaveBeenCalled();
     });
+
+    it('rejects a partial characteristic line supplied without a rulesSetId', async () => {
+      const { transaction } = await build();
+
+      await expect(
+        service.upsert({ ...base, move: 6, externalIds }),
+      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
+      expect(transaction).not.toHaveBeenCalled();
+    });
   });
 
   describe('findById', () => {

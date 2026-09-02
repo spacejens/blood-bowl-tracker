@@ -1,4 +1,5 @@
 import type { UpsertPlayer } from '@blood-bowl-tracker/api-contract';
+import { PLAYER_CHARACTERISTIC_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
   competitionTeams,
@@ -210,6 +211,18 @@ export class PlayersService {
    * unvalidated partial line.
    */
   private async validateCharacteristics(data: UpsertPlayer): Promise<void> {
+    const supplied = PLAYER_CHARACTERISTIC_KEYS.filter(
+      (key) => data[key] !== undefined,
+    );
+    if (
+      supplied.length > 0 &&
+      supplied.length < PLAYER_CHARACTERISTIC_KEYS.length
+    ) {
+      throw new CharacteristicFormatMismatchError(
+        `Characteristics are all-or-nothing: a partial characteristic line was supplied for ${this.playerSubject(data)} — supply every one of ${PLAYER_CHARACTERISTIC_KEYS.join(', ')} or none`,
+      );
+    }
+
     const values = this.characteristicValues(data);
     if (values === undefined) {
       if (data.rulesSetId !== undefined) {
