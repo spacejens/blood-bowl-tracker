@@ -81,7 +81,7 @@ tool's own composition.
    (which would otherwise draw a different random sample per source and could select up
    to three times the configured `racesPerStratum`).
 
-2. Adds every race id listed in `overrides`, whatever the strata picked.
+2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
 3. For each sampled race, renders three panel pairs:
    - **race-identity** — left: BBL, TP and manual curation are all attempted together in
