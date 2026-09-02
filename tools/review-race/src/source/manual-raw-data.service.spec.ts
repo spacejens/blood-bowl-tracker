@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
 import { ManualRawDataService } from './manual-raw-data.service';
@@ -18,14 +19,13 @@ describe('ManualRawDataService', () => {
     mkdirSync(join(tempDir, 'before-other-importers'), { recursive: true });
     mkdirSync(join(tempDir, 'after-other-importers'), { recursive: true });
 
-    const mockConfig = {
-      getDataDir: (type: string) => (type === 'manual' ? tempDir : ''),
-    };
+    const config = mock<RaceReviewConfigService>();
+    config.getDataDir.mockReturnValue(tempDir);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         ManualRawDataService,
-        { provide: RaceReviewConfigService, useValue: mockConfig },
+        { provide: RaceReviewConfigService, useValue: config },
       ],
     }).compile();
 
