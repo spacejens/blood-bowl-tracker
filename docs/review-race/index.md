@@ -83,7 +83,10 @@ tool's own composition.
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
-3. For each sampled race, renders three panel pairs:
+3. For each sampled race, renders three panel pairs. Star players are excluded
+   throughout the position-availability and position-characteristics panels, both raw
+   and imported — they are shared across races rather than owned by one, so a
+   per-race report is the wrong place to review them:
    - **race-identity** — left: BBL, TP and manual curation are all attempted together in
      one panel (unlike other review tools' raw panels, which pick a single source based
      on the sampled entity's own source), each contributing its own sub-table when that

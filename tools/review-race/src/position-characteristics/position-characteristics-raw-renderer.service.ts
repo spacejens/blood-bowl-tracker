@@ -108,6 +108,7 @@ export class PositionCharacteristicsRawRendererService {
     );
   }
 
+  /** Star players are excluded — this tool reviews ordinary positions only. */
   private async tpSection(race: SampledRace): Promise<string | null> {
     const ids = await this.raceIds.forRace(race.raceId);
     const rows: TableCell[][] = [];
@@ -115,7 +116,7 @@ export class PositionCharacteristicsRawRendererService {
     for (const code of ids.tp) {
       const tpRace = await this.tp.raceFor(code);
       for (const position of tpRace?.positions ?? []) {
-        if (seen.has(position.tpPositionId)) {
+        if (seen.has(position.tpPositionId) || position.isStar) {
           continue;
         }
         seen.add(position.tpPositionId);

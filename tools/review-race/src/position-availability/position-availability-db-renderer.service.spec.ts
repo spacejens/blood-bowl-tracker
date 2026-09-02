@@ -32,27 +32,18 @@ async function makeService(): Promise<{
 }
 
 describe('PositionAvailabilityDbRendererService', () => {
-  it('renders one row per (era, position) with a yes/no star-player cell, grouped in query order', async () => {
+  it('renders one row per (era, position), grouped in query order', async () => {
     const { service, query } = await makeService();
     query.positionsFor.mockResolvedValue([
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-      {
-        positionId: 2,
-        positionName: 'Deathroller',
-        isStarPlayer: true,
         eraId: 10,
         eraName: 'Second Era',
       },
       {
         positionId: 3,
         positionName: 'Blocker',
-        isStarPlayer: false,
         eraId: 20,
         eraName: 'First Era',
       },
@@ -62,18 +53,10 @@ describe('PositionAvailabilityDbRendererService', () => {
 
     expect(query.positionsFor).toHaveBeenCalledWith(7);
     const rowIndex = (needle: string): number => html.indexOf(needle);
-    expect(html).toContain(
-      '<td>Second Era</td><td>Blitzer</td><td>no</td><td>1</td>',
-    );
-    expect(html).toContain(
-      '<td>Second Era</td><td>Deathroller</td><td>yes</td><td>2</td>',
-    );
-    expect(html).toContain(
-      '<td>First Era</td><td>Blocker</td><td>no</td><td>3</td>',
-    );
+    expect(html).toContain('<td>Second Era</td><td>Blitzer</td><td>1</td>');
+    expect(html).toContain('<td>First Era</td><td>Blocker</td><td>3</td>');
     // Rows appear in the order the query returned them.
-    expect(rowIndex('Blitzer')).toBeLessThan(rowIndex('Deathroller'));
-    expect(rowIndex('Deathroller')).toBeLessThan(rowIndex('Blocker'));
+    expect(rowIndex('Blitzer')).toBeLessThan(rowIndex('Blocker'));
   });
 
   it('renders a note when the race has no availability rows at all', async () => {
@@ -93,7 +76,6 @@ describe('PositionAvailabilityDbRendererService', () => {
       {
         positionId: 1,
         positionName: '<script>Blitzer</script>',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },

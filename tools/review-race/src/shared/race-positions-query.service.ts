@@ -9,7 +9,7 @@ import {
   rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 
 /** How one characteristic is displayed under a rules set. */
 export type CharacteristicFormat = 'absent' | 'bare' | 'plus';
@@ -22,11 +22,10 @@ export interface RaceEraRow {
   endDate: string | null;
 }
 
-/** One (position, era) availability row for the race. */
+/** One (position, era) availability row for the race. Never a star player. */
 export interface RacePositionRow {
   positionId: number;
   positionName: string;
-  isStarPlayer: boolean;
   eraId: number;
   eraName: string;
 }
@@ -66,12 +65,12 @@ export class RacePositionsQueryService {
       .orderBy(asc(eras.startDate), asc(eras.name));
   }
 
+  /** Star players are excluded — this tool reviews ordinary positions only. */
   async positionsFor(raceId: number): Promise<RacePositionRow[]> {
     return await this.db
       .select({
         positionId: positions.id,
         positionName: positions.name,
-        isStarPlayer: positions.isStarPlayer,
         eraId: eras.id,
         eraName: eras.name,
       })
@@ -82,7 +81,9 @@ export class RacePositionsQueryService {
         eq(positionsRaceEras.raceEraId, raceEras.id),
       )
       .innerJoin(positions, eq(positions.id, positionsRaceEras.positionId))
-      .where(eq(raceEras.raceId, raceId))
+      .where(
+        and(eq(raceEras.raceId, raceId), eq(positions.isStarPlayer, false)),
+      )
       .orderBy(asc(eras.startDate), asc(positions.name));
   }
 

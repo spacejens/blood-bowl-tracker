@@ -44,7 +44,6 @@ describe('PositionCharacteristicsDbRendererService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },
@@ -84,7 +83,6 @@ describe('PositionCharacteristicsDbRendererService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },
@@ -114,7 +112,6 @@ describe('PositionCharacteristicsDbRendererService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },
@@ -156,7 +153,6 @@ describe('PositionCharacteristicsDbRendererService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },

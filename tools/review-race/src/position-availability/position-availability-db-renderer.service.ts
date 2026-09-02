@@ -24,11 +24,10 @@ export class PositionAvailabilityDbRendererService {
       );
     }
     return this.html.table(
-      ['Era', 'Position', 'Star player', 'Position id'],
+      ['Era', 'Position', 'Position id'],
       rows.map((row) => [
         row.eraName,
         row.positionName,
-        row.isStarPlayer ? 'yes' : 'no',
         String(row.positionId),
       ]),
     );

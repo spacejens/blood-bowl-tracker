@@ -86,6 +86,7 @@ describe('CharacteristicsChangeStratificationService', () => {
     expect(rendered).toContain('armour');
     expect(rendered).toContain('passing');
     expect(rendered.toLowerCase()).toContain('is distinct from');
+    expect(rendered).toContain('is_star_player');
     expect(dbResult.chains[0].limit).toHaveBeenCalledWith(3);
     expect(dbResult.chains[0].orderBy).toHaveBeenCalled();
   });
@@ -103,6 +104,7 @@ describe('CharacteristicsChangeStratificationService', () => {
     const whereCondition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
     const rendered = new PgDialect().sqlToQuery(whereCondition).sql;
     expect(rendered.toLowerCase()).toContain('is null');
+    expect(rendered).toContain('is_star_player');
     expect(dbResult.chains[0].leftJoin).toHaveBeenCalled();
     expect(dbResult.chains[0].limit).toHaveBeenCalledWith(5);
   });

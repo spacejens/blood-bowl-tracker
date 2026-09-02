@@ -51,7 +51,6 @@ describe('RacePositionsQueryService', () => {
       {
         positionId: 11,
         positionName: 'Dwarf Blitzer',
-        isStarPlayer: false,
         eraId: 1,
         eraName: 'First era',
       },
@@ -59,6 +58,18 @@ describe('RacePositionsQueryService', () => {
     const service = await makeService(mockDb(rows));
 
     expect(await service.positionsFor(7)).toEqual(rows);
+  });
+
+  it('excludes star players from the positions query', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.positionsFor(7);
+
+    const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
+    const rendered = new PgDialect().sqlToQuery(condition).sql.toLowerCase();
+    expect(rendered).toContain('is_star_player');
+    expect(rendered).toContain('race_id');
   });
 
   it("returns the distinct rules sets the race's eras map to", async () => {

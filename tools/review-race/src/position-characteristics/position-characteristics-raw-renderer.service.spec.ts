@@ -125,7 +125,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
     );
   });
 
-  it('lists TP roster characteristics deduplicated by tpPositionId', async () => {
+  it('lists TP roster characteristics deduplicated by tpPositionId, excluding star players', async () => {
     const { service, raceIds, tp } = await makeService();
     raceIds.forRace.mockResolvedValue({
       bbl: [],
@@ -150,6 +150,18 @@ describe('PositionCharacteristicsRawRendererService', () => {
               armour: 8,
             },
           },
+          {
+            tpPositionId: 200,
+            name: 'Deathroller',
+            isStar: true,
+            characteristics: {
+              move: 3,
+              strength: 8,
+              agility: 5,
+              passing: 0,
+              armour: 10,
+            },
+          },
         ],
       }),
     );
@@ -158,6 +170,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
 
     expect(html).toContain('<h5>TP</h5>');
     expect(html.match(/Blitzer/g)?.length).toBe(1);
+    expect(html).not.toContain('Deathroller');
     expect(html).toContain(
       '<td>Blitzer</td><td>6</td><td>3</td><td>3</td><td>0</td><td>8</td>',
     );
@@ -169,7 +182,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },
@@ -213,7 +225,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },

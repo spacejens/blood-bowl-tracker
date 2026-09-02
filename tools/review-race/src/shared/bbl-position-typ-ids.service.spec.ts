@@ -40,7 +40,6 @@ describe('BblPositionTypIdsService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },
@@ -60,7 +59,6 @@ describe('BblPositionTypIdsService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },
@@ -80,7 +78,6 @@ describe('BblPositionTypIdsService', () => {
       {
         positionId: 1,
         positionName: 'Blitzer',
-        isStarPlayer: false,
         eraId: 10,
         eraName: 'Second Era',
       },

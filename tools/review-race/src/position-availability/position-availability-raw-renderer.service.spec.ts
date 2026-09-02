@@ -117,7 +117,7 @@ describe('PositionAvailabilityRawRendererService', () => {
     expect(html).not.toContain('<h5>BBL</h5>');
   });
 
-  it('lists the TP roster positions merged and deduplicated by tpPositionId across codes', async () => {
+  it('lists the TP roster positions merged and deduplicated by tpPositionId across codes, excluding star players', async () => {
     const { service, raceIds, tp } = await makeService();
     raceIds.forRace.mockResolvedValue({
       bbl: [],
@@ -162,8 +162,35 @@ describe('PositionAvailabilityRawRendererService', () => {
 
     expect(html).toContain('<h5>TP</h5>');
     expect(html.match(/Blitzer/g)?.length).toBe(1);
-    expect(html).toContain('star');
-    expect(html).toContain('regular');
+    expect(html).not.toContain('Deathroller');
+  });
+
+  it('omits the TP sub-section when every TP position is a star player', async () => {
+    const { service, raceIds, tp } = await makeService();
+    raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf'], name: [] });
+    tp.raceFor.mockResolvedValue({
+      teamRaceCode: 'dwarf',
+      rosterName: 'Dwarf',
+      rosterCount: 1,
+      positions: [
+        {
+          tpPositionId: 200,
+          name: 'Deathroller',
+          isStar: true,
+          characteristics: {
+            move: 3,
+            strength: 8,
+            agility: 5,
+            passing: 0,
+            armour: 10,
+          },
+        },
+      ],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).not.toContain('<h5>TP</h5>');
   });
 
   it('lists a manual curation entry only when its raceEras race matches one of the race external ids', async () => {

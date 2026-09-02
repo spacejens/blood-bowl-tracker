@@ -3,6 +3,7 @@ import {
   DB,
   eraRulesSets,
   positionRulesSets,
+  positions,
   positionsRaceEras,
   raceEras,
   races,
@@ -83,6 +84,7 @@ export class CharacteristicsChangeStratificationService implements RaceStratifie
         positionsRaceEras,
         eq(positionsRaceEras.raceEraId, raceEras.id),
       )
+      .innerJoin(positions, eq(positions.id, positionsRaceEras.positionId))
       .innerJoin(
         positionRulesSets,
         eq(positionRulesSets.positionId, positionsRaceEras.positionId),
@@ -95,12 +97,15 @@ export class CharacteristicsChangeStratificationService implements RaceStratifie
         ),
       )
       .where(
-        or(
-          ne(positionRulesSets.move, other.move),
-          ne(positionRulesSets.strength, other.strength),
-          ne(positionRulesSets.agility, other.agility),
-          ne(positionRulesSets.armour, other.armour),
-          sql`${positionRulesSets.passing} is distinct from ${other.passing}`,
+        and(
+          eq(positions.isStarPlayer, false),
+          or(
+            ne(positionRulesSets.move, other.move),
+            ne(positionRulesSets.strength, other.strength),
+            ne(positionRulesSets.agility, other.agility),
+            ne(positionRulesSets.armour, other.armour),
+            sql`${positionRulesSets.passing} is distinct from ${other.passing}`,
+          ),
         ),
       )
       .groupBy(races.id, races.name)
@@ -118,6 +123,7 @@ export class CharacteristicsChangeStratificationService implements RaceStratifie
         positionsRaceEras,
         eq(positionsRaceEras.raceEraId, raceEras.id),
       )
+      .innerJoin(positions, eq(positions.id, positionsRaceEras.positionId))
       .innerJoin(eraRulesSets, eq(eraRulesSets.eraId, raceEras.eraId))
       .leftJoin(
         positionRulesSets,
@@ -126,7 +132,9 @@ export class CharacteristicsChangeStratificationService implements RaceStratifie
           eq(positionRulesSets.rulesSetId, eraRulesSets.rulesSetId),
         ),
       )
-      .where(isNull(positionRulesSets.id))
+      .where(
+        and(eq(positions.isStarPlayer, false), isNull(positionRulesSets.id)),
+      )
       .groupBy(races.id, races.name)
       .orderBy(sql`random()`)
       .limit(limit);
