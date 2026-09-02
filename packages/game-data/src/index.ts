@@ -70,10 +70,7 @@ export type {
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
 export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
-export {
-  PositionRulesSetFormatMismatchError,
-  PositionRulesSetsService,
-} from './position-rules-sets/position-rules-sets.service';
+export { PositionRulesSetsService } from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
 export type { SyncPositionRaceErasData } from './positions/positions.service';
 export {
@@ -87,6 +84,9 @@ export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
+export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
+export { CharacteristicFormatValidationModule } from './shared/characteristic-format-validation.module';
+export { CharacteristicFormatValidationService } from './shared/characteristic-format-validation.service';
 export type { CompetitionType } from './shared/competition-types';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';

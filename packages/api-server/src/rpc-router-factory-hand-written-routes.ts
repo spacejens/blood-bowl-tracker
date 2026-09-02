@@ -1,9 +1,9 @@
 import { contract } from '@blood-bowl-tracker/api-contract';
 import {
+  CharacteristicFormatMismatchError,
   CompetitionGroupsService,
   ExternalSystemsService,
   MatchOutcomesService,
-  PositionRulesSetFormatMismatchError,
   PositionRulesSetsService,
   PositionsService,
   SppAdjustmentsService,
@@ -138,7 +138,7 @@ export function buildPositionRulesSetsRoutes(
         try {
           return await positionRulesSetsService.sync(input);
         } catch (error) {
-          if (error instanceof PositionRulesSetFormatMismatchError) {
+          if (error instanceof CharacteristicFormatMismatchError) {
             throw errors.BAD_REQUEST({ message: error.message });
           }
           throw error;

@@ -1,4 +1,5 @@
 import {
+  CharacteristicFormatMismatchError,
   CoachesService,
   CoachUpsertConflictError,
   CompetitionGroupsService,
@@ -17,7 +18,6 @@ import {
   MissingRequiredFieldError,
   PlayersService,
   PlayerUpsertConflictError,
-  PositionRulesSetFormatMismatchError,
   PositionRulesSetsService,
   PositionsService,
   PositionUpsertConflictError,
@@ -950,7 +950,7 @@ describe('RpcRouterFactoryService', () => {
 
     it('maps a format mismatch to BAD_REQUEST', async () => {
       positionRulesSetsService.sync.mockRejectedValue(
-        new PositionRulesSetFormatMismatchError('Rules set 5 has no Passing'),
+        new CharacteristicFormatMismatchError('Rules set 5 has no Passing'),
       );
 
       await expect(
