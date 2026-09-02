@@ -16,6 +16,11 @@ describe('player schemas', () => {
       name: 'Griff Oberwald',
       teamEraId: 10,
       positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('Griff Oberwald');
@@ -76,6 +81,123 @@ describe('player schemas', () => {
       UpsertPlayerSchema.parse({
         sppTotal: 1.5,
         externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+      }),
+    ).toThrow();
+  });
+
+  const validExternalIds = [{ externalSystemId: 1, externalId: 'x' }];
+  const allCharacteristics = {
+    move: 6,
+    strength: 3,
+    agility: 3,
+    passing: 4,
+    armour: 9,
+  };
+
+  it('PlayerSchema requires the five characteristics', () => {
+    const parsed = PlayerSchema.parse({
+      id: 1,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(parsed.move).toBe(6);
+    expect(parsed.passing).toBe(4);
+  });
+
+  it('PlayerSchema accepts a null passing for a rules set without one', () => {
+    const parsed = PlayerSchema.parse({
+      id: 1,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: null,
+      armour: 8,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(parsed.passing).toBeNull();
+  });
+
+  it('PlayerSchema rejects a player missing a characteristic', () => {
+    expect(() =>
+      PlayerSchema.parse({
+        id: 1,
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow();
+  });
+
+  it('UpsertPlayerSchema accepts all five characteristics with a rulesSetId', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      ...allCharacteristics,
+      rulesSetId: 4,
+      externalIds: validExternalIds,
+    });
+    expect(parsed.move).toBe(6);
+    expect(parsed.rulesSetId).toBe(4);
+  });
+
+  it('UpsertPlayerSchema accepts a null passing alongside the other four', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      ...allCharacteristics,
+      passing: null,
+      rulesSetId: 5,
+      externalIds: validExternalIds,
+    });
+    expect(parsed.passing).toBeNull();
+  });
+
+  it('UpsertPlayerSchema accepts a payload with no characteristics at all', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      name: 'Griff Oberwald',
+      externalIds: validExternalIds,
+    });
+    expect(parsed.move).toBeUndefined();
+    expect(parsed.rulesSetId).toBeUndefined();
+  });
+
+  it('UpsertPlayerSchema rejects a partial set of characteristics', () => {
+    expect(() =>
+      UpsertPlayerSchema.parse({
+        move: 6,
+        strength: 3,
+        rulesSetId: 4,
+        externalIds: validExternalIds,
+      }),
+    ).toThrow();
+  });
+
+  it('UpsertPlayerSchema rejects characteristics without a rulesSetId', () => {
+    expect(() =>
+      UpsertPlayerSchema.parse({
+        ...allCharacteristics,
+        externalIds: validExternalIds,
+      }),
+    ).toThrow();
+  });
+
+  it('UpsertPlayerSchema rejects a rulesSetId without characteristics', () => {
+    expect(() =>
+      UpsertPlayerSchema.parse({
+        name: 'Griff Oberwald',
+        rulesSetId: 4,
+        externalIds: validExternalIds,
       }),
     ).toThrow();
   });

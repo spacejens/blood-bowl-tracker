@@ -2,31 +2,99 @@ import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
 
+/**
+ * The five characteristics, in a fixed order. Exported so consumers iterate
+ * the group rather than restating (and drifting from) the list.
+ */
+export const PLAYER_CHARACTERISTIC_KEYS = [
+  'move',
+  'strength',
+  'agility',
+  'passing',
+  'armour',
+] as const;
+
 export const PlayerSchema = z.object({
   id: z.number(),
   name: z.string(),
   teamEraId: z.number().int(),
   positionId: z.number().int(),
+  // The player's own current characteristics. Required, not optional: every
+  // stored row has concrete values (a placeholder 0 for the four NOT NULL
+  // columns until the BBL and TP imports populate real ones). `passing` is
+  // nullable because null asserts that the player's rules set has no Passing
+  // characteristic at all.
+  move: z.number().int(),
+  strength: z.number().int(),
+  agility: z.number().int(),
+  passing: z.number().int().nullable(),
+  armour: z.number().int(),
   createdAt: z.coerce.date(),
 });
 
-export const UpsertPlayerSchema = z.object({
-  // Unlike other entities' upsert schemas, a player's name may be empty —
-  // some BBL players legitimately have no name.
-  name: z.string().optional(),
-  teamEraId: z.number().int().optional(),
-  positionId: z.number().int().optional(),
-  // The source's own reported Star Player Points total, where the source
-  // publishes a trustworthy one (TP does). BBL's published figure is NOT
-  // sent here: it was recalculated at BB2020 rates by the site's migration,
-  // so BBL's spp_total is instead derived server-side as the era-correct
-  // event sum plus the recovered spp_adjustment (see
-  // players.syncScrapedSppAdjustments). Optional in the "no instruction
-  // about that column" sense: an omitted value leaves any previously-stored
-  // total untouched.
-  sppTotal: z.number().int().optional(),
-  externalIds: z.array(ExternalIdSchema).min(1),
-});
+export const UpsertPlayerSchema = z
+  .object({
+    // Unlike other entities' upsert schemas, a player's name may be empty —
+    // some BBL players legitimately have no name.
+    name: z.string().optional(),
+    teamEraId: z.number().int().optional(),
+    positionId: z.number().int().optional(),
+    // The source's own reported Star Player Points total, where the source
+    // publishes a trustworthy one (TP does). BBL's published figure is NOT
+    // sent here: it was recalculated at BB2020 rates by the site's migration,
+    // so BBL's spp_total is instead derived server-side as the era-correct
+    // event sum plus the recovered spp_adjustment (see
+    // players.syncScrapedSppAdjustments). Optional in the "no instruction
+    // about that column" sense: an omitted value leaves any previously-stored
+    // total untouched.
+    sppTotal: z.number().int().optional(),
+    // The five characteristics form one optional, all-or-nothing group: a
+    // caller supplies all of them (with `passing` possibly null) or none.
+    // A partial line cannot be meaningfully validated or stored, and an
+    // omitted group leaves whatever is stored untouched.
+    move: z.number().int().optional(),
+    strength: z.number().int().optional(),
+    agility: z.number().int().optional(),
+    passing: z.number().int().nullable().optional(),
+    armour: z.number().int().optional(),
+    // Validation input only, never persisted: the server checks the supplied
+    // characteristics against this rules set's declared formats. Nothing
+    // stores a rules set on a player row — an era can list several rules sets
+    // in sequence, so no single one can be derived from a player, and
+    // whichever caller needs one says which it means.
+    rulesSetId: z.number().int().optional(),
+    externalIds: z.array(ExternalIdSchema).min(1),
+  })
+  .superRefine((data, ctx) => {
+    const supplied = PLAYER_CHARACTERISTIC_KEYS.filter(
+      (key) => data[key] !== undefined,
+    );
+    if (
+      supplied.length > 0 &&
+      supplied.length < PLAYER_CHARACTERISTIC_KEYS.length
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Characteristics are all-or-nothing: supply every one of ${PLAYER_CHARACTERISTIC_KEYS.join(', ')} or none`,
+      });
+    }
+    const hasCharacteristics =
+      supplied.length === PLAYER_CHARACTERISTIC_KEYS.length;
+    if (hasCharacteristics && data.rulesSetId === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'rulesSetId is required when characteristics are supplied, so they can be validated against the rules set',
+      });
+    }
+    if (!hasCharacteristics && data.rulesSetId !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'rulesSetId is only accepted alongside a full set of characteristics',
+      });
+    }
+  });
 
 /**
  * Recompute `players.spp_adjustment` (and `players.spp_total`) for players

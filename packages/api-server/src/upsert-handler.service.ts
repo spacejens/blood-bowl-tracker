@@ -1,4 +1,5 @@
 import {
+  CharacteristicFormatMismatchError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   TrophyAwardCompetitionGroupMismatchError,
@@ -39,8 +40,13 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * known failure modes into the matching contract error. A per-entity conflict
  * (>1 owner matched) becomes CONFLICT; a create-path payload missing a
  * required column (`MissingRequiredFieldError`, shared across every entity,
- * so no per-entity class is needed here) becomes BAD_REQUEST. A match whose
- * category doesn't fit its competition's type (`MatchCategoryMismatchError`)
+ * so no per-entity class is needed here) becomes BAD_REQUEST.
+ * Characteristics that disagree with what their rules set declares
+ * (`CharacteristicFormatMismatchError`, raised by `players.upsert`) are
+ * likewise authored-data feedback rather than a server fault, so they become
+ * BAD_REQUEST too — matching how `positionRulesSets.sync` already reports the
+ * same failure.
+ * A match whose category doesn't fit its competition's type (`MatchCategoryMismatchError`)
  * is likewise a payload-validity failure, not a conflict, and also becomes
  * BAD_REQUEST, as does a trophy award whose player id does not fit its
  * trophy's recipient kind (`TrophyAwardRecipientMismatchError`) and one whose
@@ -91,6 +97,7 @@ export class UpsertHandlerService {
     } catch (err) {
       if (
         err instanceof MissingRequiredFieldError ||
+        err instanceof CharacteristicFormatMismatchError ||
         err instanceof MatchCategoryMismatchError ||
         err instanceof TrophyAwardRecipientMismatchError ||
         err instanceof TrophyAwardCompetitionGroupMismatchError
@@ -144,6 +151,7 @@ export class UpsertHandlerService {
         }
         if (
           err instanceof MissingRequiredFieldError ||
+          err instanceof CharacteristicFormatMismatchError ||
           err instanceof MatchCategoryMismatchError ||
           err instanceof TrophyAwardRecipientMismatchError ||
           err instanceof TrophyAwardCompetitionGroupMismatchError

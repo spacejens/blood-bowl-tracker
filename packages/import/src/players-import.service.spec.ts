@@ -45,6 +45,11 @@ describe('PlayersImportService', () => {
       name: 'Griff Oberwald',
       teamEraId: 10,
       positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -109,6 +114,11 @@ describe('PlayersImportService.upsertPlayerResult', () => {
       name: 'Griff Oberwald',
       teamEraId: 10,
       positionId: 20,
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
