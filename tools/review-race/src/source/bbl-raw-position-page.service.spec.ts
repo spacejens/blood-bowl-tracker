@@ -99,6 +99,64 @@ describe('BblRawPositionPageService', () => {
     expect(position?.characteristics).toBeNull();
   });
 
+  it('caches a parsed position and does not re-read the page on a second call', async () => {
+    reader.readPage.mockResolvedValue(PAGE);
+
+    await service.positionFor('310');
+    const second = await service.positionFor('310');
+
+    expect(second?.name).toBe('Dwarf Blitzer');
+    expect(reader.readPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a link with no href attribute when collecting races', async () => {
+    reader.readPage.mockResolvedValue(
+      `<h1>Position</h1>
+<a>No href here</a>
+<a href="default.asp?p=tl#5">Dwarf Team</a>`,
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(position?.races).toEqual([{ bblId: '5', name: 'Dwarf Team' }]);
+  });
+
+  it('returns null characteristics when the row after the header has fewer than 5 cells', async () => {
+    reader.readPage.mockResolvedValue(
+      `<h1>Position</h1>
+<table><tr><td>MA</td><td>ST</td><td>AG</td><td>PA</td><td>AV</td></tr>
+<tr><td>5</td><td>3</td></tr></table>`,
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(position?.characteristics).toBeNull();
+  });
+
+  it('parses a numeric passing value when the cell is not a literal dash', async () => {
+    reader.readPage.mockResolvedValue(
+      `<h1>Position</h1>
+<table><tr><td>MA</td><td>ST</td><td>AG</td><td>PA</td><td>AV</td></tr>
+<tr><td>5</td><td>3</td><td>3+</td><td>6+</td><td>9</td></tr></table>`,
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(position?.characteristics?.passing).toBe(6);
+  });
+
+  it('returns null characteristics when passing is present but unparseable', async () => {
+    reader.readPage.mockResolvedValue(
+      `<h1>Position</h1>
+<table><tr><td>MA</td><td>ST</td><td>AG</td><td>PA</td><td>AV</td></tr>
+<tr><td>5</td><td>3</td><td>3+</td><td>x</td><td>9</td></tr></table>`,
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(position?.characteristics).toBeNull();
+  });
+
   it('returns null for a non-numeric typId without calling readPage', async () => {
     const position = await service.positionFor('abc');
 

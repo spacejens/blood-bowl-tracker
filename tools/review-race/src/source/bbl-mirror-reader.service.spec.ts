@@ -83,6 +83,24 @@ describe('BblMirrorReaderService', () => {
     ]);
   });
 
+  it('rethrows a listing failure that is not a missing directory', async () => {
+    const notADir = join(dir, 'default.asp?p=tl');
+    writeFileSync(notADir, '');
+    const config = mock<RaceReviewConfigService>();
+    config.getDataDir.mockReturnValue(notADir);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BblMirrorReaderService,
+        { provide: RaceReviewConfigService, useValue: config },
+      ],
+    }).compile();
+    const serviceWithFileAsDir = moduleRef.get(BblMirrorReaderService);
+
+    await expect(
+      serviceWithFileAsDir.listTeamPageFilenames(),
+    ).rejects.toThrow();
+  });
+
   it('returns an empty array when the data directory does not exist', async () => {
     const config = mock<RaceReviewConfigService>();
     config.getDataDir.mockReturnValue(join(dir, 'nonexistent'));

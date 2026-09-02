@@ -90,6 +90,23 @@ describe('RaceIdentityRawRendererService', () => {
     expect(html).toContain('not in the mirror');
   });
 
+  it('falls back to em-dashes for a BBL row when listName and teamPageName are both absent', async () => {
+    const { service, externalIds, bbl } = await makeService();
+    externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
+    bbl.raceFor.mockResolvedValue({
+      bblId: '5',
+      listName: null,
+      teamPageName: null,
+      teamPageCount: 0,
+      teamCodes: [],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).toContain('<h5>BBL</h5>');
+    expect(html.match(/<td>—<\/td>/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+
   it('renders one TP row per TP code, with rosterMaster.name and the roster count', async () => {
     const { service, externalIds, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
@@ -112,6 +129,82 @@ describe('RaceIdentityRawRendererService', () => {
     expect(html).toContain('Dwarf (dwarf)');
     expect(html).toContain('Dwarf (dwarf2)');
     expect(html.match(/<td>3<\/td>/g)?.length).toBe(2);
+  });
+
+  it('renders a TP row with an explanatory note when no roster file carries that code', async () => {
+    const { service, externalIds, tp } = await makeService();
+    externalIds.forRace.mockResolvedValue({
+      bbl: [],
+      tp: ['ghost'],
+      name: [],
+    });
+    tp.raceFor.mockResolvedValue(null);
+
+    const html = await service.render(race);
+
+    expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('ghost');
+    expect(html).toContain('no roster file carries this code');
+  });
+
+  it('falls back to an em-dash for a TP row when rosterMaster.name is absent', async () => {
+    const { service, externalIds, tp } = await makeService();
+    externalIds.forRace.mockResolvedValue({
+      bbl: [],
+      tp: ['dwarf'],
+      name: [],
+    });
+    tp.raceFor.mockResolvedValue({
+      teamRaceCode: 'dwarf',
+      rosterName: null,
+      rosterCount: 3,
+      positions: [],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('<td>—</td>');
+  });
+
+  it('skips a null BBL/TP entry when finding the first name for the agreement row', async () => {
+    const { service, externalIds, bbl, tp } = await makeService();
+    externalIds.forRace.mockResolvedValue({
+      bbl: ['1', '2'],
+      tp: ['a', 'b'],
+      name: [],
+    });
+    bbl.raceFor.mockImplementation((id: string) =>
+      Promise.resolve(
+        id === '1'
+          ? null
+          : {
+              bblId: id,
+              listName: 'Dwarf Team',
+              teamPageName: 'Dwarf Team',
+              teamPageCount: 1,
+              teamCodes: [],
+            },
+      ),
+    );
+    tp.raceFor.mockImplementation((code: string) =>
+      Promise.resolve(
+        code === 'a'
+          ? null
+          : {
+              teamRaceCode: code,
+              rosterName: 'Dwarf',
+              rosterCount: 1,
+              positions: [],
+            },
+      ),
+    );
+
+    const html = await service.render(race);
+
+    expect(html).toContain('<h5>BBL / TP name agreement</h5>');
+    expect(html).toContain('agree');
+    expect(html).not.toContain('MISMATCH');
   });
 
   it('renders the Manual curation sub-section listing the curated entry name and system:id pairs', async () => {

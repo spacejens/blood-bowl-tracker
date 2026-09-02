@@ -192,6 +192,172 @@ describe('ManualRawDataService', () => {
     expect(characteristics[0].passing).toEqual(2);
   });
 
+  it('positions() skips an entry whose name is not a string', async () => {
+    const json5Content = `
+{
+  races: [],
+  positions: [
+    { name: 'Dwarf Blocker Lineman', isStarPlayer: false, externalIds: [] },
+    { name: 123, isStarPlayer: false, externalIds: [] }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      json5Content,
+    );
+
+    const positions = await service.positions();
+    expect(positions).toHaveLength(1);
+    expect(positions[0].name).toEqual('Dwarf Blocker Lineman');
+  });
+
+  it('availability() skips an entry whose name is not a string', async () => {
+    const json5Content = `
+{
+  positions: [
+    { name: 'Dark Elf Lineman', externalIds: [], raceEras: [] },
+    { name: null, externalIds: [], raceEras: [] }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      json5Content,
+    );
+
+    const availability = await service.availability();
+    expect(availability).toHaveLength(1);
+    expect(availability[0].name).toEqual('Dark Elf Lineman');
+  });
+
+  it('availability() skips a raceEras entry whose race or era ref is invalid', async () => {
+    const json5Content = `
+{
+  positions: [
+    {
+      name: 'Dark Elf Lineman',
+      externalIds: [],
+      raceEras: [
+        { race: { system: 'tloeg.bbleague.se', id: '4' }, era: { system: 'Name', id: 'First era' } },
+        { race: { id: '4' }, era: { system: 'Name', id: 'First era' } },
+        { race: { system: 'tloeg.bbleague.se', id: '4' }, era: { system: 'Name' } }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      json5Content,
+    );
+
+    const availability = await service.availability();
+    expect(availability[0].raceEras).toHaveLength(1);
+  });
+
+  it('characteristics() skips an entry with a missing position or rulesSet ref', async () => {
+    const json5Content = `
+{
+  positionRulesSets: [
+    {
+      position: { system: 'Name', id: 'Dwarf Blocker Lineman' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 4, strength: 3, agility: 2, armour: 9
+    },
+    {
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 4, strength: 3, agility: 2, armour: 9
+    },
+    {
+      position: { system: 'Name', id: 'Dwarf Blocker Lineman' },
+      move: 4, strength: 3, agility: 2, armour: 9
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      json5Content,
+    );
+
+    const characteristics = await service.characteristics();
+    expect(characteristics).toHaveLength(1);
+  });
+
+  it('races() skips an externalIds entry with a missing system or non-string/number id', async () => {
+    const json5Content = `
+{
+  races: [
+    {
+      name: 'Dwarf',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '5' },
+        { id: '6' },
+        { system: 'tloeg.bbleague.se', id: null },
+        { system: 'tloeg.bbleague.se', id: true }
+      ]
+    }
+  ],
+  positions: []
+}
+`;
+    writeFileSync(
+      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      json5Content,
+    );
+
+    const races = await service.races();
+    expect(races[0].externalIds).toEqual([
+      { system: 'tloeg.bbleague.se', id: '5' },
+    ]);
+  });
+
+  it('returns {} when the parsed JSON5 is not an object (e.g. a bare number)', async () => {
+    writeFileSync(
+      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      '42',
+    );
+
+    const races = await service.races();
+    expect(races).toEqual([]);
+  });
+
+  it('treats a non-array externalIds as no external ids', async () => {
+    const json5Content = `
+{
+  races: [
+    { name: 'Dwarf', externalIds: 'not-an-array' }
+  ],
+  positions: []
+}
+`;
+    writeFileSync(
+      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
+      json5Content,
+    );
+
+    const races = await service.races();
+    expect(races[0].externalIds).toEqual([]);
+  });
+
+  it('treats a non-array raceEras as no race eras', async () => {
+    const json5Content = `
+{
+  positions: [
+    { name: 'Dark Elf Lineman', externalIds: [], raceEras: 'not-an-array' }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-availability.json5'),
+      json5Content,
+    );
+
+    const availability = await service.availability();
+    expect(availability[0].raceEras).toEqual([]);
+  });
+
   it('returns [] when a file is missing', async () => {
     // Don't create the file
     const races = await service.races();

@@ -335,6 +335,47 @@ describe('TpRawRosterIndexService', () => {
     expect(race?.positions[0]?.tpPositionId).toBe(952);
   });
 
+  it('sets rosterName to null when rosterMaster.name is absent or not a string', async () => {
+    const dataDir = join(tempDir, 'data');
+    mkdirSync(join(dataDir, 'era-1', 'comp-a'), { recursive: true });
+    writeFileSync(
+      join(dataDir, 'era-1', 'comp-a', 'rosters_1.json'),
+      roster({ rosterMaster: { lineUpMasters: [], starPlayersMasters: [] } }),
+    );
+
+    config.getDataDir.mockReturnValue(dataDir);
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.rosterName).toBeNull();
+  });
+
+  it('treats a non-array lineUpMasters/starPlayersMasters as no positions', async () => {
+    const dataDir = join(tempDir, 'data');
+    mkdirSync(join(dataDir, 'era-1', 'comp-a'), { recursive: true });
+    writeFileSync(
+      join(dataDir, 'era-1', 'comp-a', 'rosters_1.json'),
+      roster({ rosterMaster: { name: 'Dwarf' } }),
+    );
+
+    config.getDataDir.mockReturnValue(dataDir);
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions).toEqual([]);
+  });
+
+  it('rethrows a listing failure that is not a missing directory', async () => {
+    const dataDir = join(tempDir, 'data');
+    mkdirSync(dataDir, { recursive: true });
+    const notADir = join(dataDir, 'not-a-dir');
+    writeFileSync(notADir, '');
+
+    config.getDataDir.mockReturnValue(notADir);
+
+    await expect(service.raceFor('Dwarf_BB2025')).rejects.toThrow();
+  });
+
   it('returns null for a missing data directory instead of throwing', async () => {
     config.getDataDir.mockReturnValue(join(tempDir, 'nonexistent'));
 

@@ -137,6 +137,102 @@ describe('BblRawRaceIndexService', () => {
     expect(reader.readPage).toHaveBeenCalledWith('default.asp?p=tl');
   });
 
+  it('does not record a race entry for an anchor immediately followed by an empty bold tag', async () => {
+    reader.readPage.mockResolvedValue(
+      '<a name="5"></a><b></b><a name="6"></a><b>Elven Union Team</b>',
+    );
+    reader.listTeamPageFilenames.mockResolvedValue([]);
+
+    const race5 = await service.raceFor('5');
+    const race6 = await service.raceFor('6');
+
+    expect(race5).toBeNull();
+    expect(race6?.listName).toBe('Elven Union Team');
+  });
+
+  it('ignores an anchor tag with no name attribute in the race list', async () => {
+    reader.readPage.mockResolvedValue(
+      '<a></a><b>Ignore me</b><a name="5"></a><b>Dwarf Team</b>',
+    );
+    reader.listTeamPageFilenames.mockResolvedValue([]);
+
+    const race = await service.raceFor('5');
+
+    expect(race?.listName).toBe('Dwarf Team');
+  });
+
+  it('ignores a team page whose "Race:" cell has no name or no id link', async () => {
+    const noNameHtml =
+      '<table><tr><td>Race:</td><td><a href="default.asp?p=tl#5"></a></td></tr></table>';
+    const noIdHtml =
+      '<table><tr><td>Race:</td><td>Dwarf Team</td></tr></table>';
+    reader.readPage.mockImplementation((filename: string) => {
+      if (filename === 'default.asp?p=tl') {
+        return Promise.resolve(null);
+      }
+      if (filename === 'default.asp?p=tm&t=NONAME') {
+        return Promise.resolve(noNameHtml);
+      }
+      if (filename === 'default.asp?p=tm&t=NOID') {
+        return Promise.resolve(noIdHtml);
+      }
+      return Promise.resolve(null);
+    });
+    reader.listTeamPageFilenames.mockResolvedValue([
+      'default.asp?p=tm&t=NONAME',
+      'default.asp?p=tm&t=NOID',
+    ]);
+
+    const race = await service.raceFor('5');
+
+    expect(race).toBeNull();
+  });
+
+  it('falls back to the filename when a team page filename does not match the t= pattern', async () => {
+    const teamPageHtml =
+      '<table><tr><td>Race:</td><td><a href="default.asp?p=tl#5">Dwarf Team</a></td></tr></table>';
+    reader.readPage.mockImplementation((filename: string) => {
+      if (filename === 'default.asp?p=tl') {
+        return Promise.resolve(null);
+      }
+      if (filename === 'weird-filename.html') {
+        return Promise.resolve(teamPageHtml);
+      }
+      return Promise.resolve(null);
+    });
+    reader.listTeamPageFilenames.mockResolvedValue(['weird-filename.html']);
+
+    const race = await service.raceFor('5');
+
+    expect(race?.teamCodes).toEqual(['weird-filename.html']);
+  });
+
+  it('skips a listed team page filename whose contents are missing from the mirror', async () => {
+    const teamPageHtml =
+      '<table><tr><td>Race:</td><td><a href="default.asp?p=tl#5">Dwarf Team</a></td></tr></table>';
+    reader.readPage.mockImplementation((filename: string) => {
+      if (filename === 'default.asp?p=tl') {
+        return Promise.resolve(null);
+      }
+      if (filename === 'default.asp?p=tm&t=ABC') {
+        return Promise.resolve(teamPageHtml);
+      }
+      if (filename === 'default.asp?p=tm&t=MISSING') {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(null);
+    });
+    reader.listTeamPageFilenames.mockResolvedValue([
+      'default.asp?p=tm&t=MISSING',
+      'default.asp?p=tm&t=ABC',
+    ]);
+
+    const race = await service.raceFor('5');
+
+    expect(race?.teamPageCount).toBe(1);
+    expect(race?.teamCodes).toEqual(['ABC']);
+  });
+
   it('survives a missing race-list page', async () => {
     const teamPageHtml =
       '<table><tr><td>Race:</td><td><a href="default.asp?p=tl#5">Dwarf Team</a></td></tr></table>';
