@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
@@ -15,7 +16,7 @@ describe('TpRawRosterIndexService', () => {
 
   beforeEach(async () => {
     config = mock<RaceReviewConfigService>();
-    tempDir = mkdtempSync('tp-roster-index-test-');
+    tempDir = mkdtempSync(join(tmpdir(), 'tp-roster-index-test-'));
 
     const moduleRef = await Test.createTestingModule({
       providers: [
