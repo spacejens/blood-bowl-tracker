@@ -116,8 +116,12 @@ ${body}
    * One data type's two panels, side by side. A reviewer that named its
    * panels gets its own headings; anything else gets the generic pair.
    */
-  protected panelPair(panel: ReviewPanel, source: ReviewSource): string {
-    const rawLabel = panel.rawLabel ?? `Raw source (${source.toUpperCase()})`;
+  protected panelPair(panel: ReviewPanel, source?: ReviewSource): string {
+    const rawLabel =
+      panel.rawLabel ??
+      (source === undefined
+        ? 'Raw source'
+        : `Raw source (${source.toUpperCase()})`);
     const importedLabel = panel.importedLabel ?? 'Imported (database)';
     return `<h3>${this.html.escape(panel.dataTypeId)}</h3>
 <div class="panels">
