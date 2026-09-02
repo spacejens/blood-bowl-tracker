@@ -15,6 +15,7 @@ const DEFAULT_OUTPUT_PATH = 'output/report.html';
 const DEFAULT_EXTERNAL_SYSTEM_NAMES: Record<ReviewSource, string> = {
   bbl: 'BBL',
   tp: 'TP',
+  manual: 'Manual',
 };
 
 /** What a concrete tool config service tells the base about itself. */
