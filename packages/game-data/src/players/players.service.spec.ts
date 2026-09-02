@@ -312,8 +312,8 @@ describe('PlayersService', () => {
       const { transaction } = await build();
 
       await expect(
-        service.upsert({ ...base, move: 6, rulesSetId: 4, externalIds }),
-      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
+        service.upsert({ ...base, rulesSetId: 4, externalIds }),
+      ).rejects.toThrow(/without a complete set of characteristics/);
       expect(transaction).not.toHaveBeenCalled();
     });
 
@@ -322,7 +322,7 @@ describe('PlayersService', () => {
 
       await expect(
         service.upsert({ ...base, ...characteristics, externalIds }),
-      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
+      ).rejects.toThrow(/without a rules set to validate/);
       expect(transaction).not.toHaveBeenCalled();
     });
 
@@ -331,7 +331,7 @@ describe('PlayersService', () => {
 
       await expect(
         service.upsert({ ...base, move: 6, externalIds }),
-      ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
+      ).rejects.toThrow(/all-or-nothing/);
       expect(transaction).not.toHaveBeenCalled();
     });
   });

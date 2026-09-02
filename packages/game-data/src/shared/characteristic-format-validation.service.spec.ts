@@ -1,3 +1,4 @@
+import { PLAYER_CHARACTERISTIC_KEYS } from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -133,6 +134,12 @@ describe('CharacteristicFormatValidationService', () => {
   it('checks every one of the five characteristics', () => {
     expect(CHARACTERISTICS.map((characteristic) => characteristic.key)).toEqual(
       ['move', 'strength', 'agility', 'passing', 'armour'],
+    );
+  });
+
+  it('agrees with PLAYER_CHARACTERISTIC_KEYS on key order', () => {
+    expect(CHARACTERISTICS.map((characteristic) => characteristic.key)).toEqual(
+      PLAYER_CHARACTERISTIC_KEYS,
     );
   });
 });
