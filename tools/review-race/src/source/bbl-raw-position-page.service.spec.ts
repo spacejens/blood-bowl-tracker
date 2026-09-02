@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
@@ -15,7 +15,6 @@ describe('BblRawPositionPageService', () => {
   let service: BblRawPositionPageService;
   let reader: ReturnType<typeof mock<BblMirrorReaderService>>;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   beforeEach(async () => {
     reader = mock<BblMirrorReaderService>();
 

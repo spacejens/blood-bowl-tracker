@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
@@ -13,7 +13,6 @@ describe('TpRawRosterIndexService', () => {
   let config: ReturnType<typeof mock<RaceReviewConfigService>>;
   let tempDir: string;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   beforeEach(async () => {
     config = mock<RaceReviewConfigService>();
     tempDir = mkdtempSync('tp-roster-index-test-');
@@ -27,7 +26,6 @@ describe('TpRawRosterIndexService', () => {
     service = moduleRef.get(TpRawRosterIndexService);
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
   });
