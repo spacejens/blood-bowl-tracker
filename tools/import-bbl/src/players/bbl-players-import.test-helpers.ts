@@ -240,6 +240,13 @@ export const goodPlayer: BblPlayer = {
   typId: '33',
   teamCode: 'knu',
   sppTotal: null,
+  characteristics: {
+    move: 5,
+    strength: 3,
+    agility: 3,
+    passing: 4,
+    armour: 8,
+  },
 };
 
 /**
