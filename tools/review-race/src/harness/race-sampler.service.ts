@@ -26,9 +26,9 @@ const OVERRIDE_REASON = 'override';
  *
  * Keyed on the race id alone — unlike review-player, which keys on
  * `source:playerId`. A race is one entity across BBL, TP and the curated
- * files, and its report entry shows all three side by side, so a stratum that
- * declares several sources for one race-level question resolves to the same
- * race and collapses into a single entry carrying one reason.
+ * files, and its report entry shows all three side by side, so two different
+ * strata that both select the same race collapse into a single entry
+ * carrying both reasons, rather than appearing as two report rows.
  *
  * Each stratum is sampled exactly once, using the first source it declares —
  * never once per declared source. Every current stratifier either declares

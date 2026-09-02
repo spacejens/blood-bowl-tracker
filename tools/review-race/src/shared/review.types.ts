@@ -12,8 +12,9 @@ export { REVIEW_SOURCES } from '@blood-bowl-tracker/review-harness';
  * carries no `source`: a race is one entity across BBL, TP and the manual
  * curation, and the whole point of the report is showing all three side by
  * side for the same race. That is also why the sampler keys its dedup on
- * `raceId` alone, collapsing the redundant per-source calls a stratum
- * declaring several sources makes into one `selectedFor` entry.
+ * `raceId` alone: when two different strata both select the same race, they
+ * collapse into one `selectedFor` entry carrying both reasons instead of two
+ * separate report rows.
  */
 export interface ReviewRace {
   /** game_data.races.id */

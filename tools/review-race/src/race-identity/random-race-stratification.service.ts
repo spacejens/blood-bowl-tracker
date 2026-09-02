@@ -18,9 +18,9 @@ const RANDOM_STRATUM = 'random';
  * races stops being a sample after the first run.
  *
  * Declared for all three sources even though the query is source-independent:
- * the sampler's race-level dedup collapses the three identical calls into one
- * `selectedFor` entry, and declaring it per source keeps the stratum list
- * uniform.
+ * the sampler only ever samples this stratum once (using the first declared
+ * source), so listing all three here is purely descriptive — it says the
+ * result speaks to every source, without causing any repeated sampling.
  */
 @Injectable()
 export class RandomRaceStratificationService implements RaceStratifier {
