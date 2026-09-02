@@ -20,9 +20,6 @@ export interface SampleResult {
 
 const OVERRIDE_REASON = 'override';
 
-/** A gap tagged with how it was produced, so dedup can treat the two kinds differently. */
-type TaggedGap = ReviewGap & { readonly kind: 'stratum' | 'override' };
-
 /**
  * Decides which races the report covers: every registered stratifier's strata
  * plus the config's pinned overrides, deduplicated by race id.
@@ -32,6 +29,19 @@ type TaggedGap = ReviewGap & { readonly kind: 'stratum' | 'override' };
  * files, and its report entry shows all three side by side, so a stratum that
  * declares several sources for one race-level question resolves to the same
  * race and collapses into a single entry carrying one reason.
+ *
+ * Each stratum is sampled exactly once, using the first source it declares —
+ * never once per declared source. Every current stratifier either declares
+ * exactly one source (the per-source coverage strata), for which this is no
+ * different from the old per-source loop, or declares several sources purely
+ * as a formality because its query doesn't vary by source at all (era
+ * availability, characteristics change, name mismatch, the random baseline).
+ * For those, calling `sampleStratum` once per declared source used to run the
+ * same `ORDER BY random() LIMIT n` query two or three independent times,
+ * each drawing a different random sample — so a stratum configured for 3
+ * races per source could select up to 9 distinct races instead of 3. Sampling
+ * once removes that over-selection outright, and removes the need to
+ * deduplicate the once-multiplied gaps this used to also produce.
  */
 @Injectable()
 export class RaceSamplerService implements ReviewSampler<SampledRace> {
@@ -45,27 +55,25 @@ export class RaceSamplerService implements ReviewSampler<SampledRace> {
   async sample(): Promise<SampleResult> {
     const limit = this.config.getRacesPerStratum();
     const selected = new Map<number, SampledRace>();
-    const gaps: TaggedGap[] = [];
+    const gaps: ReviewGap[] = [];
 
     for (const stratifier of this.stratifiers) {
       for (const stratum of stratifier.listStrata()) {
-        for (const source of stratum.sources) {
-          const found = await stratifier.sampleStratum({
+        const source = stratum.sources[0];
+        const found = await stratifier.sampleStratum({
+          source,
+          stratumId: stratum.id,
+          limit,
+        });
+        if (found.length === 0) {
+          gaps.push({
             source,
-            stratumId: stratum.id,
-            limit,
+            reason: `No race found for stratum "${stratum.label}"`,
           });
-          if (found.length === 0) {
-            gaps.push({
-              source,
-              reason: `No race found for stratum "${stratum.label}"`,
-              kind: 'stratum',
-            });
-            continue;
-          }
-          for (const race of found) {
-            this.merge(selected, race, stratum.label);
-          }
+          continue;
+        }
+        for (const race of found) {
+          this.merge(selected, race, stratum.label);
         }
       }
     }
@@ -82,7 +90,6 @@ export class RaceSamplerService implements ReviewSampler<SampledRace> {
           reason:
             `Only ${found.length} of ${overrides.length} override race(s) ` +
             `were found in the database: ${overrides.join(', ')}`,
-          kind: 'override',
         });
       }
       for (const race of found) {
@@ -92,60 +99,8 @@ export class RaceSamplerService implements ReviewSampler<SampledRace> {
 
     return {
       items: [...selected.values()].sort((a, b) => this.compare(a, b)),
-      gaps: this.dedupeGaps(gaps),
+      gaps,
     };
-  }
-
-  /**
-   * Several strata declare all three sources purely as a formality — their
-   * `sampleStratum` ignores `request.source` and returns the same race-level
-   * result regardless — so an empty one of those strata produces one
-   * identical gap per source. Collapse those down to one gap per distinct
-   * reason, keeping the first occurrence's source but noting in the reason
-   * that it stood in for a source-agnostic stratum, so the report doesn't
-   * mislead about which source the gap actually came from.
-   *
-   * Override gaps are the opposite case: their reason text never mentions
-   * the source (`Only N of M override race(s) were found...`), so two
-   * *different* sources configured with the same override id list can
-   * produce identical reason text for genuinely distinct failures. Those are
-   * deduped on `source:reason` instead, so they never collapse into each
-   * other.
-   */
-  private dedupeGaps(gaps: TaggedGap[]): ReviewGap[] {
-    const result: ReviewGap[] = [];
-    const strataIndexByReason = new Map<string, number>();
-    const strataOccurrences = new Map<string, number>();
-    const overridesSeen = new Set<string>();
-
-    for (const gap of gaps) {
-      if (gap.kind === 'override') {
-        const key = `${gap.source}:${gap.reason}`;
-        if (overridesSeen.has(key)) {
-          continue;
-        }
-        overridesSeen.add(key);
-        result.push({ source: gap.source, reason: gap.reason });
-        continue;
-      }
-
-      const occurrences = (strataOccurrences.get(gap.reason) ?? 0) + 1;
-      strataOccurrences.set(gap.reason, occurrences);
-      if (occurrences === 1) {
-        strataIndexByReason.set(gap.reason, result.length);
-        result.push({ source: gap.source, reason: gap.reason });
-      } else if (occurrences === 2) {
-        // Always set: `strataIndexByReason` gets this key on the first
-        // occurrence above, before `occurrences` can reach 2.
-        const index = strataIndexByReason.get(gap.reason) as number;
-        result[index] = {
-          ...result[index],
-          reason: `${gap.reason} (source-agnostic stratum, showing first configured source)`,
-        };
-      }
-    }
-
-    return result;
   }
 
   /** Add a race, or add one more reason to a race already selected. */

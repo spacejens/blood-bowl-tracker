@@ -44,44 +44,10 @@ async function makeService(options: {
 }
 
 describe('RaceSamplerService', () => {
-  it('samples every stratum for every source it declares', async () => {
+  it('samples each stratum exactly once, using its first declared source', async () => {
     const stratifier = mock<RaceStratifier>();
     stratifier.listStrata.mockReturnValue([
       { id: 'random', label: 'Random sample', sources: ['bbl', 'tp'] },
-    ]);
-    stratifier.sampleStratum.mockImplementation(({ source }) =>
-      Promise.resolve([
-        reviewRace({
-          raceId: source === 'bbl' ? 7 : 8,
-          raceName: source === 'bbl' ? 'Dwarf' : 'Human',
-        }),
-      ]),
-    );
-    const config = mock<RaceReviewConfigService>();
-    config.getRacesPerStratum.mockReturnValue(3);
-    config.getOverrides.mockReturnValue([]);
-    const service = await makeService({ stratifier, config });
-
-    const { items: races, gaps } = await service.sample();
-
-    expect(races.map((race) => race.raceId)).toEqual([7, 8]);
-    expect(races[0].selectedFor).toEqual(['Random sample']);
-    expect(gaps).toEqual([]);
-    expect(stratifier.sampleStratum).toHaveBeenCalledWith({
-      source: 'bbl',
-      stratumId: 'random',
-      limit: 3,
-    });
-  });
-
-  it('collapses a race returned by the same stratum under two sources into one entry', async () => {
-    const stratifier = mock<RaceStratifier>();
-    stratifier.listStrata.mockReturnValue([
-      {
-        id: 'source-coverage',
-        label: 'Source coverage',
-        sources: ['bbl', 'tp'],
-      },
     ]);
     stratifier.sampleStratum.mockResolvedValue([reviewRace()]);
     const config = mock<RaceReviewConfigService>();
@@ -89,10 +55,17 @@ describe('RaceSamplerService', () => {
     config.getOverrides.mockReturnValue([]);
     const service = await makeService({ stratifier, config });
 
-    const { items: races } = await service.sample();
+    const { items: races, gaps } = await service.sample();
 
-    expect(races).toHaveLength(1);
-    expect(races[0].selectedFor).toEqual(['Source coverage']);
+    expect(races.map((race) => race.raceId)).toEqual([7]);
+    expect(races[0].selectedFor).toEqual(['Random sample']);
+    expect(gaps).toEqual([]);
+    expect(stratifier.sampleStratum).toHaveBeenCalledTimes(1);
+    expect(stratifier.sampleStratum).toHaveBeenCalledWith({
+      source: 'bbl',
+      stratumId: 'random',
+      limit: 3,
+    });
   });
 
   it('adds a second label when a race is picked by two different strata', async () => {
@@ -131,7 +104,7 @@ describe('RaceSamplerService', () => {
     ]);
   });
 
-  it('collapses identical empty-stratum gaps from all three declared sources into one', async () => {
+  it('records one gap for a stratum declaring multiple sources, using its first', async () => {
     const stratifier = mock<RaceStratifier>();
     stratifier.listStrata.mockReturnValue([
       {
@@ -148,12 +121,12 @@ describe('RaceSamplerService', () => {
 
     const { gaps } = await service.sample();
 
+    expect(stratifier.sampleStratum).toHaveBeenCalledTimes(1);
     expect(gaps).toEqual([
       {
         source: 'bbl',
         reason:
-          'No race found for stratum "Race no longer available under modern rules sets" ' +
-          '(source-agnostic stratum, showing first configured source)',
+          'No race found for stratum "Race no longer available under modern rules sets"',
       },
     ]);
   });

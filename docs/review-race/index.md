@@ -72,12 +72,14 @@ tool's own composition.
    9. **Random sample** — a plain random sample of races, with no selection criteria of
       its own.
 
-   Each stratum declares one or more `sources`; the sampler (`race-sampler.service.ts`)
-   runs the stratum's query once per declared source and merges the results by
-   `raceId`, folding any duplicate reason text into one entry rather than reporting one
-   per source. This is why strata 1, 2, 3, 4 and 9 — whose queries do not vary by
-   source at all — still declare `sources: ['bbl', 'tp', 'manual']`: it keeps the
-   stratum list uniform without producing three identical findings for one race.
+   Each stratum declares one or more `sources`, but the sampler
+   (`race-sampler.service.ts`) samples every stratum exactly once, using only the first
+   source it declares — never once per declared source. This is why strata 1, 2, 3, 4
+   and 9 — whose queries do not vary by source at all — still declare
+   `sources: ['bbl', 'tp', 'manual']`: the list exists to describe which sources the
+   result meaningfully speaks to, not to trigger repeated sampling of the same query
+   (which would otherwise draw a different random sample per source and could select up
+   to three times the configured `racesPerStratum`).
 
 2. Adds every race id listed in `overrides`, whatever the strata picked.
 
@@ -116,9 +118,12 @@ tool's own composition.
    the filename, and prints where it landed.
 
 Strata that match nothing, and override ids that are not in the database, are reported as
-gaps in the report (and as console warnings) — never as failures. A stratum with several
-declared sources that finds nothing for any of them still reports one gap, not one per
-source: the sampler dedupes gaps by their reason text before returning them.
+gaps in the report (and as console warnings) — never as failures. Each stratum is sampled
+exactly once, using the first source it declares, regardless of how many sources it lists —
+a stratum whose query doesn't vary by source (era availability, characteristics change,
+name mismatch, the random baseline) declares several sources purely to describe which
+sources the result speaks to, not to trigger repeated sampling — so a stratum that finds
+nothing produces exactly one gap, never one per declared source.
 
 ## Configuration
 
