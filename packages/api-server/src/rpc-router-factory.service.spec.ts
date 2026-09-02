@@ -829,6 +829,27 @@ describe('RpcRouterFactoryService', () => {
     ).rejects.toThrow();
   });
 
+  it('players.upsert maps a characteristic format mismatch to BAD_REQUEST', async () => {
+    playersService.upsert.mockRejectedValue(
+      new CharacteristicFormatMismatchError(
+        'Rules set 5 has no Passing characteristic, but player 1:12345 supplies one',
+      ),
+    );
+
+    await expect(
+      call(router.players.upsert, {
+        name: 'Griff Oberwald',
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 8,
+        rulesSetId: 5,
+        externalIds: [{ externalSystemId: 1, externalId: '12345' }],
+      }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+
   it('matchEvents.upsert returns the flat entity with a created flag', async () => {
     matchEventsService.upsert.mockResolvedValue({
       matchEvent: {
