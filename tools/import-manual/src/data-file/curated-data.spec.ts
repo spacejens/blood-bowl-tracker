@@ -376,6 +376,26 @@ describe('curated data files', () => {
     expect(crpRaces.size).toBeGreaterThanOrEqual(21);
   });
 
+  it('curates CRP+ characteristics with no Passing value', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const crpPlus = entries.filter((entry) => entry.rulesSet.id === 'CRP+');
+    const races = new Set(
+      crpPlus.map((entry) => entry.position.id.split(': ')[0]),
+    );
+
+    // NTBB2015 republishes 24 team lists; this covers the first 12. Chaos
+    // Pact is one of those 12 (NTBB2015 p.3) but has no matching race at all
+    // in the inventory -- see the // UNMATCHED: block below -- so only 11
+    // races actually gain entries here.
+    expect(races.size).toBeGreaterThanOrEqual(11);
+    for (const entry of crpPlus) {
+      expect(entry.passing).toBeUndefined();
+    }
+  });
+
   it('curates position availability against real races and eras only', () => {
     const data = readFile(
       'before-other-importers',

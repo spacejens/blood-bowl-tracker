@@ -163,5 +163,91 @@
     { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
     { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 3, agility: 4, armour: 7 },
     { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 2, strength: 6, agility: 1, armour: 10 },
+
+    // --- CRP+: Amazon (NTBB2015 p.3) ---
+    { position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+
+    // --- CRP+: Chaos (NTBB2015 p.3) ---
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Chosen Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 4, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Minotaur' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 5, agility: 2, armour: 8 },
+
+    // --- CRP+: Chaos Dwarf (NTBB2015 p.3) ---
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 3, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Bull Centaur' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 5, agility: 2, armour: 8 },
+
+    // Chaos Pact (NTBB2015 p.3) is not curated: the race does not exist at
+    // all in the inventory (no "Chaos Pact" row in the races table, no
+    // "Chaos Pact:"-prefixed positions) -- see UNMATCHED below.
+
+    // --- CRP+: Dark Elf (NTBB2015 p.4) ---
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Assassin' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Dark Elf Team: Witch Elf' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
+
+    // --- CRP+: Dwarf (NTBB2015 p.4) ---
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 3, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Dwarf Team: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Dwarf Team: Troll Slayer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Dwarf Team: Deathroller' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 7, agility: 1, armour: 10 },
+
+    // --- CRP+: Elf (NTBB2015 p.4) ---
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Throwers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Elven Union Team: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 8 },
+
+    // --- CRP+: Goblin (NTBB2015 p.4) ---
+    { position: { system: 'Name', id: 'Goblin Team: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Bomma' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Looney' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Pogoer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Fanatic' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 3, strength: 7, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Halfling (NTBB2015 p.5) ---
+    { position: { system: 'Name', id: 'Halfling Team: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 2, strength: 6, agility: 1, armour: 10 },
+    { position: { system: 'Name', id: 'Halfling Team: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 2, agility: 3, armour: 6 },
+    { position: { system: 'Name', id: 'Halfling Team: Halfling Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 2, agility: 4, armour: 6 },
+
+    // --- CRP+: High Elf (NTBB2015 p.5) ---
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'High Elf Team: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 8 },
+
+    // --- CRP+: Human (NTBB2015 p.5) ---
+    { position: { system: 'Name', id: 'Human Team: Human Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    // CRP+ delta: armour 7 -> 8
+    { position: { system: 'Name', id: 'Human Team: Human Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 2, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Human Team: Human Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Human Team: Human Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Human Team: Ogre' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 5, agility: 2, armour: 9 },
+
+    // --- CRP+: Khemri (NTBB2015 p.5) ---
+    { position: { system: 'Name', id: 'Tomb Kings Team: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Tomb Kings Team: Anointed Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Tomb Kings Team: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Tomb Kings Team: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // UNMATCHED:
+    // - Chaos Pact (NTBB2015 p.3): Marauders, Skaven Renegade, Dark Elf
+    //   Renegade, Goblin Renegade, Chaos Troll, Chaos Ogre, Minotaur -- the
+    //   race does not exist in the inventory at all (no "Chaos Pact" row in
+    //   the races table, no "Chaos Pact:"-prefixed positions). "Chaos
+    //   Renegade Team" exists but lists an unrelated roster (Renegade
+    //   Skaven/Dark Elf/Goblin/Human/Orc/Ogre/Minotaur/Troll/Rat Ogre with
+    //   different naming and, being a BB2020-era race, different stats), so
+    //   it is not a safe match. Per the brief, Chaos Pact falls in Task 8's
+    //   page range; if #668/#669 still haven't imported this race by then,
+    //   this stays unmatched.
   ],
 }
