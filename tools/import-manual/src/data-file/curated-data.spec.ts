@@ -576,4 +576,56 @@ describe('curated data files', () => {
     // unless BB2016 dropped its team list.
     expect([...crp].filter((id) => !bb2016.has(id))).toEqual(droppedInBb2016);
   });
+
+  it('curates a First-era (or First Stunty Leeg era) availability row for every CRP/CRP+/BB2016 characteristics entry', () => {
+    // Positions where a curated CRP/CRP+/BB2016 characteristics entry exists
+    // but no matching availability row is appropriate. Empty: every curated
+    // position below has a matching availability row.
+    const exceptions: string[] = [];
+
+    const characteristics = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const availability = readFile(
+      'after-other-importers',
+      'position-availability.json5',
+    ).positions;
+
+    const curatedIds = new Set(
+      characteristics
+        .filter((entry) =>
+          ['CRP', 'CRP+', 'BB2016'].includes(entry.rulesSet.id),
+        )
+        .map((entry) => entry.position.id),
+    );
+
+    const erasByPositionId = new Map<string, Set<string>>();
+    for (const position of availability) {
+      const nameIds = position.externalIds
+        .filter((ref) => ref.system === 'Name')
+        .map((ref) => ref.id);
+      for (const nameId of nameIds) {
+        const eras = erasByPositionId.get(nameId) ?? new Set<string>();
+        for (const raceEra of position.raceEras) {
+          eras.add(raceEra.era.id);
+        }
+        erasByPositionId.set(nameId, eras);
+      }
+    }
+
+    // Stunty Leeg positions are keyed under "First Stunty Leeg era" rather
+    // than "First era"; every Stunty Leeg race name is prefixed "SL - ", so
+    // the position id (built as "<race>: <name>") is too.
+    const missing = [...curatedIds]
+      .filter((id) => {
+        const expectedEra = id.startsWith('SL - ')
+          ? 'First Stunty Leeg era'
+          : 'First era';
+        return !erasByPositionId.get(id)?.has(expectedEra);
+      })
+      .sort();
+
+    expect(missing).toEqual(exceptions);
+  });
 });

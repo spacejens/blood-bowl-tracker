@@ -327,7 +327,8 @@ real-world entity differently:
   import resolves a trophy by the competition's group name. Renaming stays in
   the after-other-importers phase.
 - `races-and-positions.json5` — BBL/TP race and regular position name
-  variants.
+  variants. `positions_race_eras` availability restoration is curated
+  separately, in `position-availability.json5` (see below).
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
 - `teams.json5` — team name variants.
 - `star-players.json5` — star player `Position` rows. Both BBL and TP
@@ -374,6 +375,25 @@ Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
 Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   earlier phase: it can only run once the importers have (re-)created their
   rows under the raw source names.
+- `position-characteristics.json5` — hand-curated Move/Strength/Agility/Armour
+  values for the rules sets no importer can supply correctly (CRP, CRP+,
+  BB2016), plus BB2020 gap-filling. It sits in the **after** phase because
+  the sync matches by the natural key `(position, rules set)` and updates in
+  place, and the BBL importer can write its single BB2020-snapshot stat line
+  under an older rules set on real usage evidence — curating before the
+  importers would let that snapshot overwrite the curated values on the same
+  key (see [Position characteristics](#position-characteristics) above).
+- `position-availability.json5` — hand-restored `positions_race_eras`
+  availability the source data cannot evidence, from the rulebook rosters.
+  It sits in the **after** phase for a stricter reason than the file above:
+  many of its position references use the "`<raceName>: <positionName>`"
+  `Name` external id that only `tools/import-bbl`'s position importer
+  creates. Curating before the importers would create an orphan position row
+  under that id, and BBL's later upsert of the same real position would then
+  see its own external id and that `Name` id point at two different rows,
+  throwing `PositionUpsertConflictError`. Curating after ensures BBL has
+  already established the position's identity, so these references resolve
+  onto the existing row, not a duplicate.
 
 ## Data layout
 

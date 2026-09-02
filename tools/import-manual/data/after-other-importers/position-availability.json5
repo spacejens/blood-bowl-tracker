@@ -1631,5 +1631,117 @@
         },
       ],
     },
+
+    // --- BB2016-era availability: Chaos Renegade Team (First era) ---
+    // No CRP/CRP+ baseline exists for this race: Chaos Renegades was added
+    // by Teams of Legend itself. "Chaos Renegade Team" is already
+    // pre-registered by races-and-positions.json5, so it is referenced here
+    // by its tloeg.bbleague.se id rather than declared inline above.
+    {
+      name: 'Renegade Human Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Human Lineman' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Goblin',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Goblin' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Skaven',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Skaven' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Dark Elf',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Dark Elf' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Troll' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Ogre',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Ogre' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Renegade Minotaur',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Chaos Renegade Team: Renegade Minotaur' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '23' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP+-era availability: Halfling Team (First era) ---
+    // Halfling Catcher is a CRP+-added position inside an otherwise-CRP
+    // team; Halfling Team is already declared above (race id 8).
+    {
+      name: 'Halfling Catcher',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Halfling Team: Halfling Catcher' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '8' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
   ],
 }
