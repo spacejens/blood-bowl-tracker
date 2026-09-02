@@ -502,4 +502,22 @@ describe('curated data files', () => {
       expect(entry.armour).toBeLessThanOrEqual(12);
     }
   });
+
+  it('curates BB2016 characteristics with no Passing value', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const bb2016 = entries.filter((entry) => entry.rulesSet.id === 'BB2016');
+    const races = new Set(
+      bb2016.map((entry) => entry.position.id.split(': ')[0]),
+    );
+
+    // Teams of Legend covers the CRP-legacy races under BB2016; the boxed-set
+    // teams it omits are transcribed from the physical rulebooks separately.
+    expect(races.size).toBeGreaterThanOrEqual(14);
+    for (const entry of bb2016) {
+      expect(entry.passing).toBeUndefined();
+    }
+  });
 });

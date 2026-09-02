@@ -392,6 +392,105 @@
     //   page range; if #668/#669 still haven't imported this race by then,
     //   this stays unmatched.
 
+    // --- BB2016: Amazon (Teams of Legend p.1) ---
+    { position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Amazon Team: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+
+    // --- BB2016: Chaos Dwarf (Teams of Legend p.2) ---
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 3, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Bull Centaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Dwarf Team: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 2, armour: 8 },
+
+    // --- BB2016: Chaos Renegades (Teams of Legend p.2) ---
+    // No CRP/CRP+ baseline exists for this race to diff against -- Chaos
+    // Renegades was added by Teams of Legend itself. Resolves to the
+    // inventory's "Chaos Renegade Team" race: its seven positions
+    // (Renegade Human Lineman/Goblin/Skaven/Dark Elf/Troll/Ogre/Minotaur)
+    // match this roster's seven rows exactly, and exclude the later
+    // BB2020-era additions (Renegade Orc, Renegade Human Thrower, Renegade
+    // Rat Ogre) that this PDF's roster does not list.
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Goblin' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Skaven' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Dark Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 4, armour: 8 },
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 5, agility: 1, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Renegade Team: Renegade Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 2, armour: 8 },
+
+    // --- BB2016: Chaos Chosen (Teams of Legend p.3) ---
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Chosen Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 4, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Chaos Chosen Team: Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 2, armour: 8 },
+
+    // --- BB2016: Goblin (Teams of Legend p.3) ---
+    { position: { system: 'Name', id: 'Goblin Team: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Bomma' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Looney' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Fanatic' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 3, strength: 7, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Pogoer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Goblin Team: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- BB2016: Halfling (Teams of Legend p.5) ---
+    { position: { system: 'Name', id: 'Halfling Team: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 2, strength: 6, agility: 1, armour: 10 },
+    { position: { system: 'Name', id: 'Halfling Team: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 2, agility: 3, armour: 6 },
+
+    // --- BB2016: Khemri Tomb Kings (Teams of Legend p.5) ---
+    { position: { system: 'Name', id: 'Tomb Kings Team: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Tomb Kings Team: Anointed Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Tomb Kings Team: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Tomb Kings Team: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- BB2016: Lizardmen (Teams of Legend p.6) ---
+    { position: { system: 'Name', id: 'Lizardmen Team: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Lizardmen Team: Saurus Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 4, agility: 1, armour: 9 },
+    { position: { system: 'Name', id: 'Lizardmen Team: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 5, agility: 1, armour: 9 },
+
+    // --- BB2016: Norse (Teams of Legend p.6) ---
+    { position: { system: 'Name', id: 'Norse Team: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Norse Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Norse Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Ulfwerener' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 4, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Norse Team: Yhetee' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 1, armour: 8 },
+
+    // --- BB2016: Necromantic Horror (Teams of Legend p.7) ---
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Zombie' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Flesh Golem' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Werewolf' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 3, agility: 3, armour: 8 },
+
+    // --- BB2016: Shambling Undead (Teams of Legend p.7) ---
+    { position: { system: 'Name', id: 'Shambling Undead Team: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Zombie' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Mummy' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 3, strength: 5, agility: 1, armour: 9 },
+
+    // --- BB2016: Ogre (Teams of Legend p.8) ---
+    { position: { system: 'Name', id: 'Ogre Team: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 1, agility: 3, armour: 5 },
+    { position: { system: 'Name', id: 'Ogre Team: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 5, agility: 2, armour: 9 },
+
+    // --- BB2016: Underworld Denizens (Teams of Legend p.8) ---
+    // No CRP baseline exists for this race to diff against -- matches the
+    // CRP+ values (NTBB2015 p.8) exactly.
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Goblin Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Skaven Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Skaven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Warpstone Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- BB2016: Vampire (Teams of Legend p.9) ---
+    { position: { system: 'Name', id: 'Vampire Team: Thrall Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Vampire Team: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 4, agility: 4, armour: 8 },
+
+    // Teams of Legend is 9 pages total (no page 10). It does not cover the
+    // BB2016 boxed-set teams (Human, Orc, Dwarf, Skaven, Elf variants) --
+    // those still need transcription from the physical rulebooks (Task 14).
+
     // --- BB2020 gap-fill: Giant Mercenary ---
     // LOW CONFIDENCE: Giant Mercenary is a Blood Bowl 2020 mercenary/star
     // player (Death Zone Season 2 "Mercenaries" chapter), not covered by any
