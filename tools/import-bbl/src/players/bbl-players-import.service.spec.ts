@@ -11,10 +11,8 @@ import {
   makeService,
   makeTeamRecord,
   plPage,
-  racesByBblId,
   resultArgs,
   team,
-  teamsByCode,
 } from './bbl-players-import.test-helpers';
 import type { BblPlayer } from './player-page-parser';
 
@@ -544,10 +542,7 @@ describe('BblPlayersImportService', () => {
       },
     });
 
-    const { playerIdsByPid } = await service.importPlayers({
-      teamsByCode,
-      racesByBblId,
-    });
+    const { playerIdsByPid } = await service.importPlayers(importOptions);
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
@@ -590,10 +585,7 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
     );
 
-    const { playerIdsByPid } = await service.importPlayers({
-      teamsByCode,
-      racesByBblId,
-    });
+    const { playerIdsByPid } = await service.importPlayers(importOptions);
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(playerIdsByPid.get('388')).toBe(900);
@@ -753,10 +745,7 @@ describe('BblPlayersImportService', () => {
     );
     mocks.playersImport.upsertPlayerResult.mockResolvedValue(undefined);
 
-    const { playerIdsByPid } = await service.importPlayers({
-      teamsByCode,
-      racesByBblId,
-    });
+    const { playerIdsByPid } = await service.importPlayers(importOptions);
 
     expect(resultArgs(mocks.importResults).imported).toBe(0);
     expect(playerIdsByPid.size).toBe(0);
