@@ -375,4 +375,53 @@ describe('curated data files', () => {
     // teams are curated separately and are not part of this count.
     expect(crpRaces.size).toBeGreaterThanOrEqual(21);
   });
+
+  it('curates position availability against real races and eras only', () => {
+    const data = readFile(
+      'before-other-importers',
+      'position-availability.json5',
+    );
+
+    expect(data.externalSystems).toContainEqual({
+      name: 'Name',
+      category: 'bookkeeping',
+    });
+    expect(data.positions.length).toBeGreaterThan(0);
+    for (const position of data.positions) {
+      // Every entry exists to add raceEras -- an entry with none would
+      // silently do nothing but re-upsert the position's own name.
+      expect(position.raceEras.length).toBeGreaterThan(0);
+      expect(position.externalIds).toContainEqual(
+        expect.objectContaining({ system: 'Name' }),
+      );
+      for (const raceEra of position.raceEras) {
+        expect(raceEra.era.system).toBe('Name');
+        expect([
+          'First era',
+          'Second era',
+          'First Stunty Leeg era',
+          'First Dungeon Bowl era',
+          'GBBL 1',
+          'Third era',
+          'Second Dungeon Bowl era',
+          'Fourth era',
+        ]).toContain(raceEra.era.id);
+      }
+    }
+  });
+
+  it('never curates the same position/race/era availability twice', () => {
+    const positions = readFile(
+      'before-other-importers',
+      'position-availability.json5',
+    ).positions;
+    const keys = positions.flatMap((position) =>
+      position.raceEras.map(
+        (raceEra) =>
+          `${position.externalIds[0].id}|${raceEra.race.system}:${raceEra.race.id}|${raceEra.era.id}`,
+      ),
+    );
+
+    expect(new Set(keys).size).toBe(keys.length);
+  });
 });
