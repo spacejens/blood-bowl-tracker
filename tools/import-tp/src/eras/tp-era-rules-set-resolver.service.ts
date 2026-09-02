@@ -21,7 +21,15 @@ export class TpEraRulesSetResolverService {
    * era declaring anything other than exactly one rules set is ambiguous:
    * every roster in it is skipped for characteristics (its other import steps
    * are unaffected) and one error is recorded naming it. An unresolvable rules
-   * set name is recorded once per rules set, not once per era that uses it.
+   * set name is recorded once per rules set, not once per era that uses it --
+   * but "once" is per CALL: this service is injected separately by the
+   * positions and players importers, each with its own `errors` array, so a
+   * single misconfigured era is currently reported once by each of the two
+   * importers in one import run (two errors overall, not one). Acceptable
+   * today because the two messages point at the same root cause; consolidate
+   * into a single shared resolution (computed once and threaded into both
+   * importers, the way `characteristicsByPositionId` already is) if the
+   * duplication ever becomes confusing in practice.
    *
    * Shared by the positions and players importers: both need the same
    * era -> rules set mapping to send characteristics for validation.
@@ -43,8 +51,8 @@ export class TpEraRulesSetResolverService {
           item: { era: era.name, rulesSets: era.rulesSets },
           message:
             `Era "${era.name}" declares ${era.rulesSets.length} rules sets ` +
-            `(${era.rulesSets.join(', ')}); position characteristics need ` +
-            'exactly one, so they are skipped for every roster in this era.',
+            `(${era.rulesSets.join(', ')}); characteristics need exactly ` +
+            'one, so they are skipped for every roster in this era.',
         }),
       );
     }
@@ -74,7 +82,7 @@ export class TpEraRulesSetResolverService {
               item: { era: eraName, rulesSet: rulesSetName },
               message:
                 `Could not resolve rules set "${rulesSetName}" (era ` +
-                `"${eraName}"); position characteristics are skipped for it.`,
+                `"${eraName}"); characteristics are skipped for it.`,
             }),
           );
         }

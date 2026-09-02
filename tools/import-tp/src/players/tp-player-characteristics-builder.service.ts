@@ -63,7 +63,7 @@ export class TpPlayerCharacteristicsBuilderService {
     positionId: number;
     eraName: string;
     rulesSetIdByEraName: Map<string, number>;
-    characteristicsByPositionId: Map<
+    characteristicsByPositionId?: Map<
       number,
       Map<number, TpPositionCharacteristics>
     >;
@@ -79,7 +79,7 @@ export class TpPlayerCharacteristicsBuilderService {
       return undefined;
     }
     const characteristics = characteristicsByPositionId
-      .get(positionId)
+      ?.get(positionId)
       ?.get(rulesSetId);
     if (characteristics === undefined) {
       return undefined;

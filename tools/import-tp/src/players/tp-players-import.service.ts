@@ -404,6 +404,12 @@ export class TpPlayersImportService {
         // star and mercenary hires included, so no path is special-cased here.
         // A player merged in from a match-embedded snapshot carries none and
         // sends none, leaving any previously-imported values untouched.
+        // Unlike sppTotal above, this is not deduplicated across a player id
+        // recurring in more than one era's roster: whichever entry this loop
+        // processes last wins. Fine when the values genuinely agree (the
+        // normal case for one physical player), but if a player id were ever
+        // reused across two eras with different rules sets, one upsert would
+        // validate against the wrong rules set's declared characteristics.
         const characteristics = this.characteristicsBuilder.forRosterPlayer({
           characteristics: player.characteristics,
           eraName: era,
@@ -510,9 +516,7 @@ export class TpPlayersImportService {
                   positionId: position.id,
                   eraName: starEraName,
                   rulesSetIdByEraName,
-                  characteristicsByPositionId:
-                    characteristicsByPositionId ??
-                    new Map<number, Map<number, TpPositionCharacteristics>>(),
+                  characteristicsByPositionId,
                 });
 
           const upserted = await this.playersImport.upsertPlayerResult(
