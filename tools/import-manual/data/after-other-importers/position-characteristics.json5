@@ -76,9 +76,11 @@
     { position: { system: 'Name', id: 'Goblin Team: Fanatic' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 3, strength: 7, agility: 3, armour: 7 },
     { position: { system: 'Name', id: 'Goblin Team: Pogoer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 2, agility: 3, armour: 7 },
     { position: { system: 'Name', id: 'Goblin Team: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 5, agility: 1, armour: 9 },
+    { position: { system: 'Name', id: 'Goblin Team: Bomma' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 2, agility: 3, armour: 7 },
 
     // --- CRP: Halfling (CRP p.24) ---
     { position: { system: 'Name', id: 'Halfling Team: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 2, strength: 6, agility: 1, armour: 10 },
+    { position: { system: 'Name', id: 'Halfling Team: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 2, agility: 3, armour: 6 },
 
     // --- CRP: High Elf (CRP p.24) ---
     { position: { system: 'Name', id: 'High Elf Team: High Elf Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 4, armour: 8 },
@@ -120,13 +122,3 @@
     { position: { system: 'Name', id: 'Norse Team: Yhetee' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 5, agility: 1, armour: 8 },
   ],
 }
-// UNMATCHED:
-//   CRP p.24, Goblin "Bombardier" (MA6 ST2 AG3 AV7) -- ambiguous between
-//   Goblin Team: Bomma and Goblin Team: Doom Diver; the inventory shows both
-//   already carrying an existing (buggy) CRP row, so neither has unique
-//   evidence of being the CRP-era "Bombardier" role.
-//   CRP p.24, Halfling "Halflings" (MA5 ST2 AG3 AV6) -- ambiguous among
-//   Halfling Team: Halfling Catcher, Halfling Team: Halfling Hefty and
-//   Halfling Team: Halfling Hopeful Lineman; all three already carry an
-//   existing (buggy) CRP row in the inventory, so none has unique evidence of
-//   being the CRP-era generic "Halflings" line.
