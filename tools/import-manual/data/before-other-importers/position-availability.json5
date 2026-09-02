@@ -1280,9 +1280,7 @@
     {
       name: 'SL - Brownies',
       isStarPlayer: false,
-      externalIds: [
-        { system: 'Name', id: 'SL - Albion Fae: SL - Brownies' },
-      ],
+      externalIds: [{ system: 'Name', id: 'SL - Albion Fae: SL - Brownies' }],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '33' },
@@ -1606,9 +1604,7 @@
     {
       name: 'SL - Adept of Sotek',
       isStarPlayer: false,
-      externalIds: [
-        { system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' },
-      ],
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' }],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '31' },
