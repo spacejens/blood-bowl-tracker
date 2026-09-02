@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { CharacteristicFormatValidationModule } from '../shared/characteristic-format-validation.module';
 import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { PlayerContextNamesModule } from '../shared/player-context-names.module';
@@ -11,6 +12,7 @@ import { StarPlayersService } from './star-players.service';
 
 @Module({
   imports: [
+    CharacteristicFormatValidationModule,
     LikePatternModule,
     MatchEventCountsModule,
     PlayerContextNamesModule,
