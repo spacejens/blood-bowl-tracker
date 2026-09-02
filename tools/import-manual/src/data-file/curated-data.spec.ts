@@ -480,4 +480,26 @@ describe('curated data files', () => {
     // unasserted.
     expect(stuntyEraRows.length).toBeGreaterThan(0);
   });
+
+  it('curates every BB2020 characteristics entry with a Passing value', () => {
+    const entries = readFile(
+      'after-other-importers',
+      'position-characteristics.json5',
+    ).positionRulesSets;
+    const bb2020 = entries.filter((entry) => entry.rulesSet.id === 'BB2020');
+
+    // BB2020 declares passingFormat: 'plus'; an entry omitting Passing is
+    // rejected by the API at import time.
+    expect(bb2020.length).toBeGreaterThan(0);
+    for (const entry of bb2020) {
+      expect(entry.passing).toBeDefined();
+      // Target numbers, so a plausible range rather than an exact value.
+      expect(entry.passing).toBeGreaterThanOrEqual(1);
+      expect(entry.passing).toBeLessThanOrEqual(6);
+      expect(entry.agility).toBeGreaterThanOrEqual(1);
+      expect(entry.agility).toBeLessThanOrEqual(6);
+      expect(entry.armour).toBeGreaterThanOrEqual(1);
+      expect(entry.armour).toBeLessThanOrEqual(12);
+    }
+  });
 });

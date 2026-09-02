@@ -391,5 +391,18 @@
     //   it is not a safe match. Per the brief, Chaos Pact falls in Task 8's
     //   page range; if #668/#669 still haven't imported this race by then,
     //   this stays unmatched.
+
+    // --- BB2020 gap-fill: Giant Mercenary ---
+    // LOW CONFIDENCE: Giant Mercenary is a Blood Bowl 2020 mercenary/star
+    // player (Death Zone Season 2 "Mercenaries" chapter), not covered by any
+    // PDF or physical rulebook available for this task. This is the classic
+    // "Giant" big-guy line (MA 3/ST 9/AG 5+/AV 9+, no throwing skill) carried
+    // forward from earlier editions, transcribed here from general series
+    // knowledge rather than the BB2020 source text -- move/strength/agility/
+    // armour should be spot-checked against the physical supplement. `passing`
+    // is doubly uncertain: BB2020 requires a numeric Passing target for every
+    // entry, but Giants have no passing skill in any edition, so 6 is an
+    // inferred worst-case placeholder, not a transcribed value.
+    { position: { system: 'Name', id: 'Giant Mercenary' }, rulesSet: { system: 'Name', id: 'BB2020' }, move: 3, strength: 9, agility: 5, passing: 6, armour: 9 },
   ],
 }
