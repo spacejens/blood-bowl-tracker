@@ -386,11 +386,11 @@ describe('curated data files', () => {
       crpPlus.map((entry) => entry.position.id.split(': ')[0]),
     );
 
-    // NTBB2015 republishes 24 team lists; this covers the first 12. Chaos
-    // Pact is one of those 12 (NTBB2015 p.3) but has no matching race at all
-    // in the inventory -- see the // UNMATCHED: block below -- so only 11
-    // races actually gain entries here.
-    expect(races.size).toBeGreaterThanOrEqual(11);
+    // NTBB2015 republishes 24 team lists, now fully covered (pages 3-8).
+    // Chaos Pact (NTBB2015 p.3) has no matching race at all in the inventory
+    // -- see the // UNMATCHED: block below -- so only 23 of the 24 team
+    // lists actually gain entries here.
+    expect(races.size).toBeGreaterThanOrEqual(23);
     for (const entry of crpPlus) {
       expect(entry.passing).toBeUndefined();
     }

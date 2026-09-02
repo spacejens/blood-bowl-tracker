@@ -238,6 +238,86 @@
     { position: { system: 'Name', id: 'Tomb Kings Team: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 2, armour: 8 },
     { position: { system: 'Name', id: 'Tomb Kings Team: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 5, agility: 1, armour: 9 },
 
+    // --- CRP+: Lizardman (NTBB2015 p.6) ---
+    { position: { system: 'Name', id: 'Lizardmen Team: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Lizardmen Team: Saurus Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 4, agility: 1, armour: 9 },
+    { position: { system: 'Name', id: 'Lizardmen Team: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Necromantic (NTBB2015 p.6) ---
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Zombie' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Werewolf' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Necromantic Horror Team: Flesh Golem' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 4, agility: 2, armour: 9 },
+
+    // --- CRP+: Norse (NTBB2015 p.6) ---
+    { position: { system: 'Name', id: 'Norse Team: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Norse Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Norse Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Norse Team: Ulfwerener' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 4, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Norse Team: Yhetee' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 5, agility: 1, armour: 8 },
+
+    // --- CRP+: Nurgle (NTBB2015 p.6) ---
+    { position: { system: 'Name', id: 'Nurgle Team: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Nurgle Team: Pestigors' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Nurgle Team: Bloaters' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Nurgle Team: Rotspawn' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Ogre (NTBB2015 p.7) ---
+    // CRP+ delta: move 5 -> 6, armour 5 -> 6 (matches NTBB2015's own
+    // intro-page note about an Ogre buff over the CRP baseline)
+    { position: { system: 'Name', id: 'Ogre Team: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 1, agility: 3, armour: 6 },
+    { position: { system: 'Name', id: 'Ogre Team: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 5, agility: 2, armour: 9 },
+
+    // --- CRP+: Orc (NTBB2015 p.7) ---
+    { position: { system: 'Name', id: 'Orc Team: Orc Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Orc Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Orc Team: Big Un Blocker' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Orc Team: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Skaven (NTBB2015 p.7) ---
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Clanrat Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 9, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Rat Ogre' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 5, agility: 2, armour: 8 },
+
+    // --- CRP+: Slann (NTBB2015 p.7) ---
+    // No CRP baseline exists for this race to diff against.
+    { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Undead (NTBB2015 p.8) ---
+    { position: { system: 'Name', id: 'Shambling Undead Team: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 5, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Zombie' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Mummy' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 3, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Underworld (NTBB2015 p.8) ---
+    // No CRP baseline exists for this race to diff against.
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Goblin Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Skaven Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Underworld Skaven Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Underworld Denizens Team: Warpstone Troll' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP+: Vampire (NTBB2015 p.8) ---
+    { position: { system: 'Name', id: 'Vampire Team: Thrall Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Vampire Team: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 4, agility: 4, armour: 8 },
+
+    // --- CRP+: Wood Elf (NTBB2015 p.8) ---
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 2, strength: 6, agility: 1, armour: 10 },
+
     // UNMATCHED:
     // - Chaos Pact (NTBB2015 p.3): Marauders, Skaven Renegade, Dark Elf
     //   Renegade, Goblin Renegade, Chaos Troll, Chaos Ogre, Minotaur -- the
