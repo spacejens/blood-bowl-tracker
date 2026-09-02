@@ -2,6 +2,7 @@ import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
+import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import { RaceNameComparisonService } from '../shared/race-name-comparison.service';
 import type { SampledRace } from '../shared/review.types';
@@ -15,9 +16,10 @@ import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
  * a reviewer would otherwise have to do by eye, whether BBL's and TP's names
  * agree once BBL's "<Race> Team(s)" suffix convention is accounted for.
  *
- * `HtmlService` and `RaceNameComparisonService` are injected as real providers
- * in this service's spec: both are pure, dependency-free and separately
- * tested, and mocking either would leave the thing under test unasserted.
+ * `HtmlService`, `RaceNameComparisonService` and `ManualEntryMatcherService`
+ * are injected as real providers in this service's spec: all three are pure,
+ * dependency-free and separately tested, and mocking any of them would leave
+ * the thing under test unasserted.
  */
 @Injectable()
 export class RaceIdentityRawRendererService {
@@ -27,6 +29,7 @@ export class RaceIdentityRawRendererService {
     private readonly tp: TpRawRosterIndexService,
     private readonly manual: ManualRawDataService,
     private readonly names: RaceNameComparisonService,
+    private readonly matcher: ManualEntryMatcherService,
     private readonly html: HtmlService,
   ) {}
 
@@ -69,7 +72,7 @@ export class RaceIdentityRawRendererService {
             race.listName ?? '—',
             race.teamPageName ?? '—',
             String(race.teamPageCount),
-            race.teamCodes.join(', ') || '—',
+            this.teamCodesCell(race.teamCodes, race.teamPageCount),
           ];
     });
     return (
@@ -85,6 +88,21 @@ export class RaceIdentityRawRendererService {
         rows,
       )
     );
+  }
+
+  /**
+   * `race.teamCodes` is already capped at `BblRawRaceIndexService`'s display
+   * limit, so a race with more team pages than codes shown gets an explicit
+   * "and N more" suffix naming how many were left out, using the
+   * uncapped `teamPageCount` the source already tracks.
+   */
+  private teamCodesCell(teamCodes: string[], teamPageCount: number): string {
+    if (teamCodes.length === 0) {
+      return '—';
+    }
+    const omitted = teamPageCount - teamCodes.length;
+    const joined = teamCodes.join(', ');
+    return omitted > 0 ? `${joined} (and ${omitted} more)` : joined;
   }
 
   private tpSection(
@@ -114,21 +132,10 @@ export class RaceIdentityRawRendererService {
     );
   }
 
-  /**
-   * A curated `races[]` entry belongs to this race when any of its
-   * `externalIds` `{system,id}` pairs equals one of the race's own
-   * `(systemName, externalId)` rows, or when its `name` equals the race's
-   * stored name.
-   */
   private async manualSection(race: SampledRace): Promise<string | null> {
     const owned = await this.externalIds.allForRace(race.raceId);
-    const keys = new Set(
-      owned.map((row) => `${row.systemName}:${row.externalId}`),
-    );
-    const entries = (await this.manual.races()).filter(
-      (entry) =>
-        entry.name === race.raceName ||
-        entry.externalIds.some((ref) => keys.has(`${ref.system}:${ref.id}`)),
+    const entries = (await this.manual.races()).filter((entry) =>
+      this.matcher.matchesRace(entry, race.raceName, owned),
     );
     if (entries.length === 0) {
       return null;

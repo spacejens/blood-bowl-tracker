@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
+import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
@@ -42,6 +43,7 @@ async function makeService(): Promise<{
       { provide: TpRawRosterIndexService, useValue: tp },
       { provide: ManualRawDataService, useValue: manual },
       { provide: BblPositionTypIdsService, useValue: typIds },
+      ManualEntryMatcherService,
       HtmlService,
     ],
   }).compile();

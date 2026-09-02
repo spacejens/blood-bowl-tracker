@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import { RaceNameComparisonService } from '../shared/race-name-comparison.service';
 import type { SampledRace } from '../shared/review.types';
@@ -39,6 +40,7 @@ async function makeService(): Promise<{
       { provide: TpRawRosterIndexService, useValue: tp },
       { provide: ManualRawDataService, useValue: manual },
       RaceNameComparisonService,
+      ManualEntryMatcherService,
       HtmlService,
     ],
   }).compile();
@@ -105,6 +107,39 @@ describe('RaceIdentityRawRendererService', () => {
 
     expect(html).toContain('<h5>BBL</h5>');
     expect(html.match(/<td>—<\/td>/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('appends an "and N more" note to team codes truncated below the team page count', async () => {
+    const { service, externalIds, bbl } = await makeService();
+    externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
+    bbl.raceFor.mockResolvedValue({
+      bblId: '5',
+      listName: 'Dwarf Team',
+      teamPageName: 'Dwarf Team',
+      teamPageCount: 12,
+      teamCodes: ['ABC', 'DEF'],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).toContain('ABC, DEF (and 10 more)');
+  });
+
+  it('shows team codes with no "and N more" note when nothing was truncated', async () => {
+    const { service, externalIds, bbl } = await makeService();
+    externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
+    bbl.raceFor.mockResolvedValue({
+      bblId: '5',
+      listName: 'Dwarf Team',
+      teamPageName: 'Dwarf Team',
+      teamPageCount: 2,
+      teamCodes: ['ABC', 'DEF'],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).toContain('ABC, DEF');
+    expect(html).not.toContain('more)');
   });
 
   it('renders one TP row per TP code, with rosterMaster.name and the roster count', async () => {

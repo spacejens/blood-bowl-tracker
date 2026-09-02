@@ -9,14 +9,22 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
+import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
+import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
 import { SourceCoverageStratificationService } from './source-coverage-stratification.service';
 
+interface MakeServiceOptions {
+  externalSystems?: MockProxy<ExternalSystemLookupService>;
+  manual?: MockProxy<ManualRawDataService>;
+  raceIds?: MockProxy<RaceExternalIdsService>;
+}
+
 async function makeService(
   dbResult: MockDbResult,
-  externalSystems?: MockProxy<ExternalSystemLookupService>,
-  manual?: MockProxy<ManualRawDataService>,
+  options: MakeServiceOptions = {},
 ): Promise<SourceCoverageStratificationService> {
+  const { externalSystems, manual, raceIds } = options;
   const extSys = externalSystems || mock<ExternalSystemLookupService>();
   if (!externalSystems) {
     extSys.getSystemId.mockResolvedValue(1);
@@ -25,6 +33,10 @@ async function makeService(
   if (!manual) {
     manualSvc.races.mockResolvedValue([]);
   }
+  const raceIdsSvc = raceIds || mock<RaceExternalIdsService>();
+  if (!raceIds) {
+    raceIdsSvc.allForRace.mockResolvedValue([]);
+  }
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -32,6 +44,8 @@ async function makeService(
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: extSys },
       { provide: ManualRawDataService, useValue: manualSvc },
+      { provide: RaceExternalIdsService, useValue: raceIdsSvc },
+      ManualEntryMatcherService,
     ],
   }).compile();
   return moduleRef.get(SourceCoverageStratificationService);
@@ -61,7 +75,7 @@ describe('SourceCoverageStratificationService', () => {
     ]);
     const externalSystems = mock<ExternalSystemLookupService>();
     externalSystems.getSystemId.mockResolvedValue(7);
-    const service = await makeService(dbResult, externalSystems);
+    const service = await makeService(dbResult, { externalSystems });
 
     const races = await service.sampleStratum({
       stratumId: 'no-bbl',
@@ -86,7 +100,7 @@ describe('SourceCoverageStratificationService', () => {
     const dbResult = mockDb([]);
     const externalSystems = mock<ExternalSystemLookupService>();
     externalSystems.getSystemId.mockResolvedValue(9);
-    const service = await makeService(dbResult, externalSystems);
+    const service = await makeService(dbResult, { externalSystems });
 
     await service.sampleStratum({
       stratumId: 'no-tp',
@@ -103,13 +117,13 @@ describe('SourceCoverageStratificationService', () => {
 
   it('calls manual.races() to get curated entries', async () => {
     const manualSvc = mock<ManualRawDataService>();
-    manualSvc.races.mockResolvedValue([{ name: 'Dwarves' }] as never);
+    manualSvc.races.mockResolvedValue([{ name: 'Dwarves', externalIds: [] }]);
     const dbResult = mockDb([
       { raceId: 1, raceName: 'Elves' },
       { raceId: 2, raceName: 'Orcs' },
     ]);
 
-    const service = await makeService(dbResult, undefined, manualSvc);
+    const service = await makeService(dbResult, { manual: manualSvc });
 
     await service.sampleStratum({
       stratumId: 'no-manual',
@@ -120,19 +134,18 @@ describe('SourceCoverageStratificationService', () => {
     expect(manualSvc.races).toHaveBeenCalled();
   });
 
-  it('excludes races that have manual curation entries (case-insensitive)', async () => {
+  it('excludes races that have a matching manual curation entry, by exact name', async () => {
     const manualSvc = mock<ManualRawDataService>();
-    // Seed with 'Dwarves' (uppercase)
-    manualSvc.races.mockResolvedValue([{ name: 'Dwarves' }] as never);
+    manualSvc.races.mockResolvedValue([{ name: 'Dwarves', externalIds: [] }]);
     const dbResult = mockDb([
-      // This race matches the manual entry (case-insensitive)
-      { raceId: 1, raceName: 'dwarves' },
-      // These races do not match
+      // This race matches the manual entry by exact name.
+      { raceId: 1, raceName: 'Dwarves' },
+      // These races do not match.
       { raceId: 2, raceName: 'Elves' },
       { raceId: 3, raceName: 'Orcs' },
     ]);
 
-    const service = await makeService(dbResult, undefined, manualSvc);
+    const service = await makeService(dbResult, { manual: manualSvc });
 
     const races = await service.sampleStratum({
       stratumId: 'no-manual',
@@ -140,13 +153,67 @@ describe('SourceCoverageStratificationService', () => {
       source: 'manual',
     });
 
-    // Verify that the matching race (dwarves) is excluded
-    expect(races).not.toContainEqual({ raceId: 1, raceName: 'dwarves' });
+    // Verify that the matching race (Dwarves) is excluded
+    expect(races).not.toContainEqual({ raceId: 1, raceName: 'Dwarves' });
     // Verify that non-matching races are included
     expect(races).toContainEqual({ raceId: 2, raceName: 'Elves' });
     expect(races).toContainEqual({ raceId: 3, raceName: 'Orcs' });
     // Verify that the limit is honored
     expect(races).toHaveLength(2);
+  });
+
+  it('excludes a race matched only by external id, even when the curated name differs', async () => {
+    const manualSvc = mock<ManualRawDataService>();
+    manualSvc.races.mockResolvedValue([
+      { name: 'Dwarf Team', externalIds: [{ system: 'BBL', id: '5' }] },
+    ]);
+    const dbResult = mockDb([
+      { raceId: 1, raceName: 'Dwarf' },
+      { raceId: 2, raceName: 'Elves' },
+    ]);
+    const raceIds = mock<RaceExternalIdsService>();
+    raceIds.allForRace.mockImplementation((raceId: number) =>
+      Promise.resolve(
+        raceId === 1 ? [{ systemName: 'BBL', externalId: '5' }] : [],
+      ),
+    );
+
+    const service = await makeService(dbResult, { manual: manualSvc, raceIds });
+
+    const races = await service.sampleStratum({
+      stratumId: 'no-manual',
+      limit: 10,
+      source: 'manual',
+    });
+
+    expect(races).not.toContainEqual({ raceId: 1, raceName: 'Dwarf' });
+    expect(races).toContainEqual({ raceId: 2, raceName: 'Elves' });
+  });
+
+  it('stops scanning once the limit is reached, without checking later candidates', async () => {
+    const manualSvc = mock<ManualRawDataService>();
+    manualSvc.races.mockResolvedValue([]);
+    const dbResult = mockDb([
+      { raceId: 1, raceName: 'Elves' },
+      { raceId: 2, raceName: 'Orcs' },
+      { raceId: 3, raceName: 'Skaven' },
+      { raceId: 4, raceName: 'Humans' },
+    ]);
+    const raceIds = mock<RaceExternalIdsService>();
+    raceIds.allForRace.mockResolvedValue([]);
+
+    const service = await makeService(dbResult, { manual: manualSvc, raceIds });
+
+    const races = await service.sampleStratum({
+      stratumId: 'no-manual',
+      limit: 2,
+      source: 'manual',
+    });
+
+    expect(races).toHaveLength(2);
+    // Only the first two candidates should have been checked against the
+    // race's own external ids before the loop stopped.
+    expect(raceIds.allForRace).toHaveBeenCalledTimes(2);
   });
 
   it('rejects an unknown stratum id', async () => {

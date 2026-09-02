@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { BblPositionTypIdsService } from './bbl-position-typ-ids.service';
 import { ExternalSystemLookupService } from './external-system-lookup.service';
+import { ManualEntryMatcherService } from './manual-entry-matcher.service';
 import { PositionExternalIdsService } from './position-external-ids.service';
 import { RaceExternalIdsService } from './race-external-ids.service';
 import { RaceNameComparisonService } from './race-name-comparison.service';
@@ -19,6 +20,7 @@ const SHARED = [
   BblPositionTypIdsService,
   ExternalSystemLookupService,
   HtmlService,
+  ManualEntryMatcherService,
   PositionExternalIdsService,
   RaceExternalIdsService,
   RaceNameComparisonService,

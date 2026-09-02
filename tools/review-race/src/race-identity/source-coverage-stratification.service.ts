@@ -4,6 +4,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
+import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
+import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import type {
   RaceStratifier,
   StratumSampleRequest,
@@ -40,6 +42,8 @@ export class SourceCoverageStratificationService implements RaceStratifier {
     @Inject(DB) private readonly db: Db,
     private readonly externalSystems: ExternalSystemLookupService,
     private readonly manual: ManualRawDataService,
+    private readonly raceIds: RaceExternalIdsService,
+    private readonly matcher: ManualEntryMatcherService,
   ) {}
 
   listStrata(): ReviewStratum[] {
@@ -75,22 +79,32 @@ export class SourceCoverageStratificationService implements RaceStratifier {
   }
 
   /**
-   * The curated files have no external-id space of their own, so "has no
-   * manual entry" is answered against the files themselves: every race in
-   * random order, filtered by name against `races-and-positions.json5`, then
-   * capped. Filtering after ordering (rather than in SQL) keeps the sample
-   * random rather than alphabetical.
+   * "Has no manual entry" is answered against the curated files themselves,
+   * using the same name-or-external-id rule every other raw panel uses (see
+   * `ManualEntryMatcherService`): every race in random order is checked
+   * against every curated `races[]` entry, stopping once `limit` races with
+   * no match have been collected. Filtering after ordering (rather than in
+   * SQL) keeps the sample random rather than alphabetical.
    */
   private async withoutManualEntry(limit: number): Promise<ReviewRace[]> {
-    const curated = new Set(
-      (await this.manual.races()).map((entry) => entry.name.toLowerCase()),
-    );
-    const rows = await this.db
+    const curated = await this.manual.races();
+    const candidates = await this.db
       .select({ raceId: races.id, raceName: races.name })
       .from(races)
       .orderBy(sql`random()`);
-    return rows
-      .filter((row) => !curated.has(row.raceName.toLowerCase()))
-      .slice(0, limit);
+    const result: ReviewRace[] = [];
+    for (const candidate of candidates) {
+      if (result.length >= limit) {
+        break;
+      }
+      const owned = await this.raceIds.allForRace(candidate.raceId);
+      const hasManualEntry = curated.some((entry) =>
+        this.matcher.matchesRace(entry, candidate.raceName, owned),
+      );
+      if (!hasManualEntry) {
+        result.push(candidate);
+      }
+    }
+    return result;
   }
 }

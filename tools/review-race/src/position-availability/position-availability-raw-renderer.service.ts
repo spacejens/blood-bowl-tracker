@@ -3,6 +3,7 @@ import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
 import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
+import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
@@ -19,6 +20,10 @@ import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
  * A BBL position page that does not list the race the database says it
  * belongs to gets a highlighted row with an explicit NOT LISTED label — that
  * disagreement is the whole reason this panel exists.
+ *
+ * `ManualEntryMatcherService` is injected as a real provider in this
+ * service's spec: it is pure, dependency-free and separately tested, and
+ * mocking it would leave the thing under test unasserted.
  */
 @Injectable()
 export class PositionAvailabilityRawRendererService {
@@ -28,6 +33,7 @@ export class PositionAvailabilityRawRendererService {
     private readonly bbl: BblRawPositionPageService,
     private readonly tp: TpRawRosterIndexService,
     private readonly manual: ManualRawDataService,
+    private readonly matcher: ManualEntryMatcherService,
     private readonly html: HtmlService,
   ) {}
 
@@ -115,13 +121,10 @@ export class PositionAvailabilityRawRendererService {
 
   private async manualSection(race: SampledRace): Promise<string | null> {
     const owned = await this.raceIds.allForRace(race.raceId);
-    const keys = new Set(
-      owned.map((row) => `${row.systemName} ${row.externalId}`),
-    );
     const rows: TableCell[][] = [];
     for (const entry of await this.manual.availability()) {
       for (const pair of entry.raceEras) {
-        if (keys.has(`${pair.race.system} ${pair.race.id}`)) {
+        if (this.matcher.refMatchesRace(pair.race, owned)) {
           rows.push([entry.name, `${pair.era.system}: ${pair.era.id}`]);
         }
       }
