@@ -54,7 +54,9 @@ describe('BblMirrorReaderService', () => {
   it('preserves 0x80-0x9F bytes as their identical code points, not Windows-1252', async () => {
     writeFileSync(join(dir, 'default.asp?p=tl'), Buffer.from([0x80]));
 
-    expect(await service.readPage('default.asp?p=tl')).toBe('');
+    expect(await service.readPage('default.asp?p=tl')).toBe(
+      String.fromCharCode(0x80),
+    );
   });
 
   it('returns null for a page that is not in the mirror', async () => {
