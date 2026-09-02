@@ -84,6 +84,7 @@ describe('CharacteristicsChangeStratificationService', () => {
     expect(rendered).toContain('strength');
     expect(rendered).toContain('agility');
     expect(rendered).toContain('armour');
+    expect(rendered).toContain('passing');
     expect(rendered.toLowerCase()).toContain('is distinct from');
     expect(dbResult.chains[0].limit).toHaveBeenCalledWith(3);
     expect(dbResult.chains[0].orderBy).toHaveBeenCalled();
