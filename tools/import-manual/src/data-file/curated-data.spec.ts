@@ -343,19 +343,62 @@ describe('curated data files', () => {
       'after-other-importers',
       'position-characteristics.json5',
     ).positionRulesSets;
-    const darkElfLineman = entries.find(
-      (entry) =>
-        entry.rulesSet.id === 'CRP' &&
-        entry.position.id === 'Dark Elf Team: Dark Elf Lineman',
-    );
+    const findCrp = (positionId: string) =>
+      entries.find(
+        (entry) =>
+          entry.rulesSet.id === 'CRP' && entry.position.id === positionId,
+      );
 
-    expect(darkElfLineman).toEqual({
+    expect(findCrp('Dark Elf Team: Dark Elf Lineman')).toEqual({
       position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 4,
       armour: 8,
+    });
+    expect(findCrp('Dwarf Team: Dwarf Blocker Linemen')).toEqual({
+      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 4,
+      strength: 3,
+      agility: 2,
+      armour: 9,
+    });
+    expect(findCrp('Amazon Team: Tribal Linewoman')).toEqual({
+      position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 6,
+      strength: 3,
+      agility: 3,
+      armour: 7,
+    });
+    expect(findCrp('Elven Union Team: Elven Linemen')).toEqual({
+      position: { system: 'Name', id: 'Elven Union Team: Elven Linemen' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 6,
+      strength: 3,
+      agility: 4,
+      armour: 7,
+    });
+    expect(findCrp('Chaos Chosen Team: Beastman Runner Lineman')).toEqual({
+      position: {
+        system: 'Name',
+        id: 'Chaos Chosen Team: Beastman Runner Lineman',
+      },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 6,
+      strength: 3,
+      agility: 3,
+      armour: 8,
+    });
+    expect(findCrp('Chaos Dwarf Team: Hobgoblin Linemen')).toEqual({
+      position: { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 6,
+      strength: 3,
+      agility: 3,
+      armour: 7,
     });
   });
 
@@ -462,6 +505,7 @@ describe('curated data files', () => {
     expect(
       nameIds.some((id) => id.startsWith('Underworld Denizens Team: ')),
     ).toBe(true);
+    expect(nameIds.some((id) => id.startsWith('Slann: '))).toBe(true);
   });
 
   it('curates availability for the Stunty Leeg era', () => {
@@ -600,17 +644,40 @@ describe('curated data files', () => {
         .map((entry) => entry.position.id),
     );
 
-    const erasByPositionId = new Map<string, Set<string>>();
+    // Every raceEra below references its race by the "tloeg.bbleague.se"
+    // numeric id, not by name, so a race name has to be recovered before it
+    // can be compared against a characteristics position id's "<race>: ..."
+    // prefix. Every position in this file re-states its own race in its
+    // "Name" external id (id.split(': ')[0]), so that -- paired with the
+    // same entry's raceEras -- is enough to build a numeric-id-to-race-name
+    // lookup without needing the database.
+    const raceNameByBblId = new Map<string, string>();
+    for (const position of availability) {
+      const nameIds = position.externalIds
+        .filter((ref) => ref.system === 'Name' && ref.id.includes(': '))
+        .map((ref) => ref.id);
+      for (const nameId of nameIds) {
+        const race = nameId.split(': ')[0];
+        for (const raceEra of position.raceEras) {
+          if (raceEra.race.system === 'tloeg.bbleague.se') {
+            raceNameByBblId.set(raceEra.race.id, race);
+          }
+        }
+      }
+    }
+
+    const eraRaceByPositionId = new Map<string, Set<string>>();
     for (const position of availability) {
       const nameIds = position.externalIds
         .filter((ref) => ref.system === 'Name')
         .map((ref) => ref.id);
       for (const nameId of nameIds) {
-        const eras = erasByPositionId.get(nameId) ?? new Set<string>();
+        const eraRaces = eraRaceByPositionId.get(nameId) ?? new Set<string>();
         for (const raceEra of position.raceEras) {
-          eras.add(raceEra.era.id);
+          const race = raceNameByBblId.get(raceEra.race.id);
+          eraRaces.add(`${raceEra.era.id}|${race}`);
         }
-        erasByPositionId.set(nameId, eras);
+        eraRaceByPositionId.set(nameId, eraRaces);
       }
     }
 
@@ -622,7 +689,10 @@ describe('curated data files', () => {
         const expectedEra = id.startsWith('SL - ')
           ? 'First Stunty Leeg era'
           : 'First era';
-        return !erasByPositionId.get(id)?.has(expectedEra);
+        const expectedRace = id.split(': ')[0];
+        return !eraRaceByPositionId
+          .get(id)
+          ?.has(`${expectedEra}|${expectedRace}`);
       })
       .sort();
 

@@ -38,60 +38,20 @@
 // under First era (which spans CRP, CRP+ and BB2016). The same is true, under
 // First Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
 // Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
+//
+// Because this file runs in the after-other-importers phase, its `name`
+// re-statements (see below) win over anything a before-other-importers file
+// (e.g. races-and-positions.json5) curates for the same position: this phase
+// runs later and the upsert overlays whatever name is given here. A future
+// rename curated in a before-phase file for a position also listed below
+// would therefore be silently reverted by this file on the next import.
+// Currently inert -- no position name is curated in both places -- but
+// nothing here tests for the overlap, so it is worth knowing about before
+// adding one.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
-  ],
-  // Races referenced below that races-and-positions.json5 does not already
-  // pre-register (see the inventory's "Races needing inline declaration").
-  // Declared here so the reference resolves within this phase, the same way
-  // spp-award-values.json5 declares the rules sets it references.
-  races: [
-    {
-      name: 'Dark Elf Team',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '4' }],
-    },
-    {
-      name: 'Chaos Chosen Team',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '2' }],
-    },
-    {
-      name: 'Skaven Team',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '17' }],
-    },
-    {
-      name: 'Shambling Undead Team',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '18' }],
-    },
-    {
-      name: 'Slann',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '22' }],
-    },
-    {
-      name: 'SL - Albion Fae',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '33' }],
-    },
-    {
-      name: 'SL - Chaos Halflings',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '29' }],
-    },
-    {
-      name: 'SL - Goblin Cheaters',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '34' }],
-    },
-    {
-      name: 'SL - Horrors Of Tzeentch',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '27' }],
-    },
-    {
-      name: 'SL - Pygmies',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '32' }],
-    },
-    {
-      name: 'SL - Skinks',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '31' }],
-    },
   ],
   positions: [
     // --- CRP-era availability: Dark Elf Team (First era) ---
@@ -1731,7 +1691,8 @@
 
     // --- CRP+-era availability: Halfling Team (First era) ---
     // Halfling Catcher is a CRP+-added position inside an otherwise-CRP
-    // team; Halfling Team is already declared above (race id 8).
+    // team; Halfling Team (race id 8) is pre-registered by
+    // races-and-positions.json5, not declared in this file.
     {
       name: 'Halfling Catcher',
       isStarPlayer: false,
