@@ -49,10 +49,10 @@ export function resultArgs(importResults: MockProxy<ImportResultService>): {
 }
 
 /**
- * The canned ImportError the mocked PageParseErrorService.build returns. No
- * test in this file exercises BblPlayersImportService's `pageParseError.build`
- * call path, so this constant only backs the mock's default return value —
- * build()'s own message-template algorithm is covered by
+ * The canned ImportError the mocked PageParseErrorService.build returns,
+ * backing the mock's default return value for any spec using this harness
+ * that exercises BblPlayersImportService's `pageParseError.build` call path —
+ * build()'s own message-template algorithm is covered separately by
  * ../source/page-parse-error.service.spec.ts.
  */
 export const CANNED_PAGE_PARSE_ERROR: ImportError = {
@@ -146,7 +146,7 @@ export function makeTeamRecord(eras: { id: number; eraId: number }[]) {
  * set. `idsByName` seeds the mocked lookup's era resolution (defaulting to
  * `eraIdsByName`); a test wanting different resolution results passes its own
  * map. Position resolution always defaults to `positionIdsByExternalId`; no
- * test in this file needs a different one.
+ * spec using this harness needs a different one.
  */
 export async function makeService(
   reader: BblSourceReader,
@@ -254,12 +254,6 @@ export const goodPlayer: BblPlayer = {
 };
 
 /**
- * The default `importPlayers` options every test in this package's player
- * specs passes. Collected here so a new required option is added once, not
- * at every call site; a test needing a variant spreads and overrides it
- * (e.g. `{ ...importOptions, teamsByCode: localTeamsByCode }`).
- */
-/**
  * A RulesSet as the rules-sets import step hands it over. Only `id` and
  * `passingFormat` matter to BblPlayersImportService; the rest are
  * unremarkable defaults so the fixture satisfies the contract type.
@@ -267,9 +261,10 @@ export const goodPlayer: BblPlayer = {
 export function makeRulesSet(
   name: string,
   passingFormat: CharacteristicFormat,
+  id = 800,
 ): RulesSet {
   return {
-    id: 800,
+    id,
     name,
     moveFormat: 'bare',
     strengthFormat: 'bare',
@@ -289,6 +284,12 @@ export const rulesSetsByName = new Map<string, RulesSet>([
   ['LRB', makeRulesSet('LRB', 'plus')],
 ]);
 
+/**
+ * The default `importPlayers` options every test in this package's player
+ * specs passes. Collected here so a new required option is added once, not
+ * at every call site; a test needing a variant spreads and overrides it
+ * (e.g. `{ ...importOptions, teamsByCode: localTeamsByCode }`).
+ */
 export const importOptions = {
   teamsByCode,
   racesByBblId,

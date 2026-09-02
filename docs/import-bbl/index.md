@@ -378,7 +378,7 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   position characteristics are: `null` where that rules set declares no
   Passing characteristic at all, and otherwise the scraped value, or `0` where
   the page showed `-`. BBL's BB2016-to-BB2020 conversion wrote a Passing value
-  onto every player, including those whose era has no such characteristic, so
+  onto most players, including many whose era has no such characteristic, so
   the page's own figure never decides this — the rules set does. A player whose
   characteristics line cannot be read fails page parsing outright and is
   skipped with a recorded error, as is one whose era names a rules set that was

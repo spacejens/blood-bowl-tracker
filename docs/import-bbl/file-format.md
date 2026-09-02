@@ -73,11 +73,12 @@ table the `pt` pages carry (header row `MA`/`ST`/`AG`/`PA`/`AV`/`Skills`
 followed immediately by one row of values, found by its header text since
 several tables on the page share the row class; `AG`/`PA`/`AV` carry a
 display-only trailing `+`, and a `PA` cell reading `-` means no Passing
-ability). Every player page in the reference dataset carries a Passing value —
-including players whose era predates the characteristic existing, an artifact
-of the site's BB2016-to-BB2020 conversion — so the value shown is not evidence
-that the player's rules set has Passing at all. The positions import also reads
-these pages, to resolve the race of a position whose `pt` page lists none.
+ability). Most player pages carry a Passing value, including players whose era
+predates the characteristic existing, an artifact of the site's
+BB2016-to-BB2020 conversion; others show `-`. Either way the value shown is not
+evidence about whether the player's rules set has Passing at all. The
+positions import also reads these pages, to resolve the race of a position
+whose `pt` page lists none.
 
 Note on `se`/`sr` pages: `default.asp?p=se&s=<id>` ("played"/archived
 competitions) and `default.asp?p=sr&s=<id>` (current standings) share one

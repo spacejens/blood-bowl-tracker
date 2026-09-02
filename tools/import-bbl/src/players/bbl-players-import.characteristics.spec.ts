@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { type EraConfig } from '../eras/era-config.service';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import {
+  defaultEras as eras,
   eraIdsByName,
   goodPlayer,
   importOptions,
@@ -12,22 +13,6 @@ import {
   plPage,
   resultArgs,
 } from './bbl-players-import.test-helpers';
-
-/**
- * A single-rules-set era matching the harness defaults: name "LRB", pid range
- * covering goodPlayer's pid 42, and eraIdsByName resolving "LRB" to 500.
- */
-const eras: EraConfig[] = [
-  {
-    identity: { name: 'LRB', rulesSets: ['LRB'] },
-    dates: { startDate: '2011-09-09', autoAssignByDate: true },
-    players: {
-      firstPlayerId: 1,
-      lastPlayerId: 9999,
-      autoAssignByPlayerId: true,
-    },
-  },
-];
 
 /** An era whose rules sets change mid-era, oldest first. */
 const spanningEras: EraConfig[] = [
@@ -78,8 +63,8 @@ describe('BblPlayersImportService characteristics', () => {
     });
 
     // The page's own Passing value (4) is discarded: BBL's BB2020 migration
-    // gave every player a Passing value, including players whose era has no
-    // such characteristic at all.
+    // wrote a Passing value onto most players, including players whose era
+    // has no such characteristic at all.
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
       expect.objectContaining({ passing: null, rulesSetId: 800 }),
       expect.any(Array),
@@ -119,9 +104,9 @@ describe('BblPlayersImportService characteristics', () => {
     await service.importPlayers({
       ...importOptions,
       rulesSetsByName: new Map<string, RulesSet>([
-        ['CRP', { ...makeRulesSet('CRP', 'absent'), id: 801 }],
-        ['CRP+', { ...makeRulesSet('CRP+', 'absent'), id: 802 }],
-        ['BB2016', { ...makeRulesSet('BB2016', 'absent'), id: 803 }],
+        ['CRP', makeRulesSet('CRP', 'absent', 801)],
+        ['CRP+', makeRulesSet('CRP+', 'absent', 802)],
+        ['BB2016', makeRulesSet('BB2016', 'absent', 803)],
       ]),
     });
 

@@ -94,14 +94,11 @@ export class PlayerPageParser {
       }
     });
 
+    if (!pid || $('h1').length === 0 || !typId || !teamCode) {
+      return null;
+    }
     const characteristics = this.extractCharacteristics($);
-    if (
-      !pid ||
-      $('h1').length === 0 ||
-      !typId ||
-      !teamCode ||
-      !characteristics
-    ) {
+    if (!characteristics) {
       return null;
     }
     return {

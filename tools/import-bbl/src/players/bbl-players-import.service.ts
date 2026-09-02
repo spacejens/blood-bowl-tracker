@@ -57,7 +57,7 @@ export class BblPlayersImportService {
    * player's scraped MA/ST/AG/PA/AV line is sent alongside, validated
    * server-side against the last rules set listed for their era — a rules set
    * that declares no Passing characteristic receives a null Passing rather
-   * than the value BBL's BB2020 migration wrote onto every player.
+   * than the value BBL's BB2020 migration wrote onto most players.
    */
   async importPlayers({
     teamsByCode,
@@ -319,8 +319,8 @@ export class BblPlayersImportService {
             // Two distinct states: a rules set with no Passing concept at all
             // stores null, while a rules set that has Passing stores 0 for a
             // player who cannot pass (the page's "-"). BBL's BB2020 migration
-            // gave every player a Passing value, so the page's own figure is
-            // never what decides this — the era's rules set is.
+            // wrote a Passing value onto most players, so the page's own
+            // figure is never what decides this — the era's rules set is.
             passing:
               rulesSet.passingFormat === 'absent'
                 ? null
