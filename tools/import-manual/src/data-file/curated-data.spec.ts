@@ -370,9 +370,10 @@ describe('curated data files', () => {
         .map((entry) => entry.position.id.split(': ')[0]),
     );
 
-    // 21 core-rulebook teams plus the Stunty Leeg lists, which are a CRP-era
-    // supplement rather than a rules set of their own.
-    expect(crpRaces.size).toBeGreaterThanOrEqual(25);
+    // 21 core-rulebook teams plus the Stunty Leeg lists (Albion Fae, Chaos
+    // Halflings, Goblin Cheaters, Horrors of Tzeentch, Pygmies, Skinks), which
+    // are a CRP-era supplement rather than a rules set of their own.
+    expect(crpRaces.size).toBeGreaterThanOrEqual(27);
   });
 
   it('curates CRP+ characteristics with no Passing value', () => {
@@ -461,5 +462,22 @@ describe('curated data files', () => {
     expect(
       nameIds.some((id) => id.startsWith('Underworld Denizens Team: ')),
     ).toBe(true);
+  });
+
+  it('curates availability for the Stunty Leeg era', () => {
+    const positions = readFile(
+      'before-other-importers',
+      'position-availability.json5',
+    ).positions;
+    const stuntyEraRows = positions.flatMap((position) =>
+      position.raceEras.filter(
+        (raceEra) => raceEra.era.id === 'First Stunty Leeg era',
+      ),
+    );
+
+    // The Stunty Leeg era is short and sparsely recorded, so it is exactly
+    // where the importer's evidence rule leaves genuine availability
+    // unasserted.
+    expect(stuntyEraRows.length).toBeGreaterThan(0);
   });
 });

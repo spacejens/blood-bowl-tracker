@@ -27,11 +27,9 @@
 // Restoration set: every position with a curated CRP `position_rules_sets`
 // entry in data/after-other-importers/position-characteristics.json5 (Tasks
 // 3-5) is positive rulebook evidence that position was available to its race
-// under First era (which spans CRP, CRP+ and BB2016). Nothing beyond what
-// those curated CRP rosters support is restored here -- in particular, no
-// First Stunty Leeg era rows: Stunty Leeg positions have not been curated yet
-// (Tasks 10-11), and Task 11 will add its own availability rows once they
-// are.
+// under First era (which spans CRP, CRP+ and BB2016). The same is true, under
+// First Stunty Leeg era (which also spans BB2016, CRP and CRP+), for every
+// Stunty-Leeg-handbook-sourced position curated there (Tasks 10-11).
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
@@ -61,6 +59,30 @@
     {
       name: 'Slann',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '22' }],
+    },
+    {
+      name: 'SL - Albion Fae',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '33' }],
+    },
+    {
+      name: 'SL - Chaos Halflings',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '29' }],
+    },
+    {
+      name: 'SL - Goblin Cheaters',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '34' }],
+    },
+    {
+      name: 'SL - Horrors Of Tzeentch',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '27' }],
+    },
+    {
+      name: 'SL - Pygmies',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '32' }],
+    },
+    {
+      name: 'SL - Skinks',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '31' }],
     },
   ],
   positions: [
@@ -1250,6 +1272,358 @@
         {
           race: { system: 'tloeg.bbleague.se', id: '24' },
           era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Albion Fae ---
+    {
+      name: 'SL - Brownies',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Albion Fae: SL - Brownies' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Pixies',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Albion Fae: SL - Pixies' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Leprechauns',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Albion Fae: SL - Leprechauns' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Fenbeast',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Albion Fae: SL - Fenbeast' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '33' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Chaos Halflings ---
+    {
+      name: 'Chaos Halfling',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: Chaos Halfling' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Head Carver',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: SL - Head Carver' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Carvers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Chaos Spawn',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Chaos Halflings: SL - Chaos Spawn' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '29' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Goblin Cheaters ---
+    {
+      name: 'SL - Goblin',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Goblin' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Looney',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Looney' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Bombers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Bombers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Fanatic',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Fanatic' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Kickers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Kickers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Pogo Stick',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Goblin Cheaters: SL - Pogo Stick' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '34' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Horrors Of Tzeentch ---
+    {
+      name: 'SL - Horror',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Horror' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Greater Horror',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'SL - Horrors Of Tzeentch: SL - Greater Horror',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Flamers',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Flamers' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Fire Wyrms',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Fire Wyrms' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '27' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Pygmies ---
+    {
+      name: 'SL - Pygmies',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Pygmies: SL - Pygmies' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Alligator Warriors',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Pygmies: SL - Alligator Warriors' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Eagle Warriors',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Pygmies: SL - Eagle Warriors' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Jaguar Warriors',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Pygmies: SL - Jaguar Warriors' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Kroxigor',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Pygmies: SL - Kroxigor' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '32' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+
+    // --- Stunty Leeg availability: SL - Skinks ---
+    {
+      name: 'SL - Skinks',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Skinks' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Whiptails',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Whiptails' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Adept of Sotek',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
+        },
+      ],
+    },
+    {
+      name: 'SL - Raptors',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'SL - Skinks: SL - Raptors' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '31' },
+          era: { system: 'Name', id: 'First Stunty Leeg era' },
         },
       ],
     },

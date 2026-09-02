@@ -190,6 +190,42 @@
     { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Flamers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
     { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Fire Wyrms' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 5, agility: 4, armour: 8 },
 
+    // --- CRP: Pygmy (Stunty Leeg handbook p.10) ---
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Pygmies' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 2, agility: 3, armour: 6 },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Alligator Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 2, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Eagle Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 2, agility: 3, armour: 6 },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Jaguar Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 5, agility: 3, armour: 6 },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP: Skink (Stunty Leeg handbook p.10) ---
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Skinks' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Whiptails' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 1, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Raptors' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 2, agility: 3, armour: 7 },
+
+    // UNMATCHED:
+    // - Nurgling (Stunty Leeg handbook p.10): Nurglings, Putrifiers,
+    //   Plaguebearers, Beasts of Nurgle -- no matching race in the inventory
+    //   (no "SL - Nurgling"/"Nurgling"-prefixed row in the races table).
+    // - Skryre Slaves (Stunty Leeg handbook p.10): Slaves, Poisoned Wind
+    //   Globadier, Jezzails, Mechavermin, Doomwheel -- no matching race.
+    // - Snotling (Stunty Leeg handbook p.11): Snotling Mobs, Snotling Goons,
+    //   Splatta Wagon, Pump Wagons, Trolls -- the database's "Snotling" race
+    //   exists, but its only positions (Fun-hoppa, Fungus Flinga, Pump Wagon,
+    //   Snotling Lineman, Stilty Runna, Trained Troll) are the later,
+    //   differently-named Snotling Team roster -- e.g. that "Pump Wagon" is
+    //   move 4/strength 5/agility 5/armour 9, versus this handbook's Pump
+    //   Wagons at move 4/strength 6/agility 1/armour 9, a different entity
+    //   under a similar name, not the same position. Same class of mismatch
+    //   as Task 10's Gnome skip.
+    // - Squig Herder (Stunty Leeg handbook p.11): Squig Herders, Squigs,
+    //   Squig Hoppers -- no matching race.
+    // - Strigoyan (Stunty Leeg handbook p.11): Thralls, Crypt Ghouls,
+    //   Strigoyan Lord -- no matching race.
+    // - Handbook page 14 (printed page 12) begins prose team write-ups
+    //   ("STUNTY TEAMS" / Albion Fae flavour text), not roster stat lines --
+    //   nothing to transcribe there.
+
     // --- CRP+: Amazon (NTBB2015 p.3) ---
     { position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
     { position: { system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 3, agility: 3, armour: 7 },
