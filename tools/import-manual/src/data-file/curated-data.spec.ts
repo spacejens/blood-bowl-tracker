@@ -493,19 +493,20 @@ describe('curated data files', () => {
       'after-other-importers',
       'position-availability.json5',
     ).positions;
-    const nameIds = positions.flatMap((position) =>
-      position.externalIds
-        .filter((ref) => ref.system === 'Name')
-        .map((ref) => ref.id),
-    );
+    const hasFirstEraFor = (prefix: string) =>
+      positions.some(
+        (position) =>
+          position.externalIds.some(
+            (ref) => ref.system === 'Name' && ref.id.startsWith(prefix),
+          ) &&
+          position.raceEras.some((raceEra) => raceEra.era.id === 'First era'),
+      );
 
     // Chaos Pact, Slann and Underworld appear in NTBB2015 but not in the CRP
     // core book, so nothing in the source data evidences them for the
     // CRP-era eras.
-    expect(
-      nameIds.some((id) => id.startsWith('Underworld Denizens Team: ')),
-    ).toBe(true);
-    expect(nameIds.some((id) => id.startsWith('Slann: '))).toBe(true);
+    expect(hasFirstEraFor('Underworld Denizens Team: ')).toBe(true);
+    expect(hasFirstEraFor('Slann: ')).toBe(true);
   });
 
   it('curates availability for the Stunty Leeg era', () => {
@@ -618,7 +619,9 @@ describe('curated data files', () => {
     // "First era" and "First Stunty Leeg era" span CRP, CRP+ and BB2016
     // together, so a position curated for CRP was playable under BB2016 too
     // unless BB2016 dropped its team list.
-    expect([...crp].filter((id) => !bb2016.has(id))).toEqual(droppedInBb2016);
+    expect([...crp].filter((id) => !bb2016.has(id)).sort()).toEqual(
+      [...droppedInBb2016].sort(),
+    );
   });
 
   it('curates a First-era (or First Stunty Leeg era) availability row for every CRP/CRP+/BB2016 characteristics entry', () => {
