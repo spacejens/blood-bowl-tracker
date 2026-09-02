@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
+import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
 import { PositionExternalIdsService } from '../shared/position-external-ids.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import { RacePositionsQueryService } from '../shared/race-positions-query.service';
@@ -27,7 +27,7 @@ async function makeService(): Promise<{
   bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
   tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
   manual: ReturnType<typeof mock<ManualRawDataService>>;
-  config: ReturnType<typeof mock<RaceReviewConfigService>>;
+  typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
 }> {
   const query = mock<RacePositionsQueryService>();
   const positionIds = mock<PositionExternalIdsService>();
@@ -35,14 +35,12 @@ async function makeService(): Promise<{
   const bbl = mock<BblRawPositionPageService>();
   const tp = mock<TpRawRosterIndexService>();
   const manual = mock<ManualRawDataService>();
-  const config = mock<RaceReviewConfigService>();
-  config.getExternalSystemName.mockImplementation((source) =>
-    source === 'bbl' ? 'BBL' : 'TP',
-  );
+  const typIds = mock<BblPositionTypIdsService>();
   query.positionsFor.mockResolvedValue([]);
   positionIds.forPositions.mockResolvedValue(new Map());
   raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
   manual.characteristics.mockResolvedValue([]);
+  typIds.forRace.mockResolvedValue(new Map());
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionCharacteristicsRawRendererService,
@@ -52,7 +50,7 @@ async function makeService(): Promise<{
       { provide: BblRawPositionPageService, useValue: bbl },
       { provide: TpRawRosterIndexService, useValue: tp },
       { provide: ManualRawDataService, useValue: manual },
-      { provide: RaceReviewConfigService, useValue: config },
+      { provide: BblPositionTypIdsService, useValue: typIds },
       HtmlService,
     ],
   }).compile();
@@ -64,25 +62,14 @@ async function makeService(): Promise<{
     bbl,
     tp,
     manual,
-    config,
+    typIds,
   };
 }
 
 describe('PositionCharacteristicsRawRendererService', () => {
   it('lists each stored position\'s BBL characteristics, with — for a "-" passing cell', async () => {
-    const { service, query, positionIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
-    );
+    const { service, typIds, bbl } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue({
       typId: '310',
       name: 'Dwarf Blitzer',
@@ -101,24 +88,13 @@ describe('PositionCharacteristicsRawRendererService', () => {
 
     expect(html).toContain('<h5>BBL</h5>');
     expect(html).toContain(
-      '<td>Blitzer</td><td>6</td><td>3</td><td>3</td><td>—</td><td>8</td>',
+      '<td>Blitzer</td><td>310</td><td>6</td><td>3</td><td>3</td><td>—</td><td>8</td>',
     );
   });
 
   it('renders "no characteristics table on the page" when the page has none', async () => {
-    const { service, query, positionIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
-    );
+    const { service, typIds, bbl } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue({
       typId: '310',
       name: 'Dwarf Blitzer',
@@ -129,29 +105,24 @@ describe('PositionCharacteristicsRawRendererService', () => {
 
     const html = await service.render(race);
 
-    expect(html).toContain('no characteristics table on the page');
+    expect(html).toContain('class="mismatch"');
+    expect(html).toContain(
+      '<td>Blitzer</td><td>310</td><td>no characteristics table on the page</td><td>—</td><td>—</td><td>—</td><td>—</td>',
+    );
   });
 
   it('renders "page not in the mirror" when the BBL position page cannot be read', async () => {
-    const { service, query, positionIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
-    );
+    const { service, typIds, bbl } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue(null);
 
     const html = await service.render(race);
 
     expect(html).toContain('<h5>BBL</h5>');
-    expect(html).toContain('page not in the mirror');
+    expect(html).toContain('class="mismatch"');
+    expect(html).toContain(
+      '<td>Blitzer</td><td>310</td><td>page not in the mirror</td><td>—</td><td>—</td><td>—</td><td>—</td>',
+    );
   });
 
   it('lists TP roster characteristics deduplicated by tpPositionId', async () => {

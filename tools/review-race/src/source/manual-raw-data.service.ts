@@ -31,13 +31,6 @@ export interface ManualRaceEntry {
   externalIds: ManualExternalIdRef[];
 }
 
-/** One `positions[]` entry of races-and-positions.json5. */
-export interface ManualPositionEntry {
-  name: string;
-  isStarPlayer: boolean;
-  externalIds: ManualExternalIdRef[];
-}
-
 /** One `positions[]` entry of position-availability.json5. */
 export interface ManualAvailabilityEntry {
   name: string;
@@ -79,22 +72,6 @@ export class ManualRawDataService {
       return name === null
         ? []
         : [{ name, externalIds: this.refs(entry, 'externalIds') }];
-    });
-  }
-
-  async positions(): Promise<ManualPositionEntry[]> {
-    const entries = await this.array(RACES_AND_POSITIONS_FILE, 'positions');
-    return entries.flatMap((entry) => {
-      const name = this.string(entry, 'name');
-      return name === null
-        ? []
-        : [
-            {
-              name,
-              isStarPlayer: this.property(entry, 'isStarPlayer') === true,
-              externalIds: this.refs(entry, 'externalIds'),
-            },
-          ];
     });
   }
 

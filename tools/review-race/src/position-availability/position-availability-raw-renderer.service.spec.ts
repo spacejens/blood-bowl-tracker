@@ -3,10 +3,8 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
-import { PositionExternalIdsService } from '../shared/position-external-ids.service';
+import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
-import { RacePositionsQueryService } from '../shared/race-positions-query.service';
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
@@ -21,69 +19,46 @@ const race: SampledRace = {
 
 async function makeService(): Promise<{
   service: PositionAvailabilityRawRendererService;
-  query: ReturnType<typeof mock<RacePositionsQueryService>>;
-  positionIds: ReturnType<typeof mock<PositionExternalIdsService>>;
   raceIds: ReturnType<typeof mock<RaceExternalIdsService>>;
   bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
   tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
   manual: ReturnType<typeof mock<ManualRawDataService>>;
-  config: ReturnType<typeof mock<RaceReviewConfigService>>;
+  typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
 }> {
-  const query = mock<RacePositionsQueryService>();
-  const positionIds = mock<PositionExternalIdsService>();
   const raceIds = mock<RaceExternalIdsService>();
   const bbl = mock<BblRawPositionPageService>();
   const tp = mock<TpRawRosterIndexService>();
   const manual = mock<ManualRawDataService>();
-  const config = mock<RaceReviewConfigService>();
-  config.getExternalSystemName.mockImplementation((source) =>
-    source === 'bbl' ? 'BBL' : 'TP',
-  );
-  query.positionsFor.mockResolvedValue([]);
-  positionIds.forPositions.mockResolvedValue(new Map());
+  const typIds = mock<BblPositionTypIdsService>();
   raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
   raceIds.allForRace.mockResolvedValue([]);
   manual.availability.mockResolvedValue([]);
+  typIds.forRace.mockResolvedValue(new Map());
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionAvailabilityRawRendererService,
-      { provide: RacePositionsQueryService, useValue: query },
-      { provide: PositionExternalIdsService, useValue: positionIds },
       { provide: RaceExternalIdsService, useValue: raceIds },
       { provide: BblRawPositionPageService, useValue: bbl },
       { provide: TpRawRosterIndexService, useValue: tp },
       { provide: ManualRawDataService, useValue: manual },
-      { provide: RaceReviewConfigService, useValue: config },
+      { provide: BblPositionTypIdsService, useValue: typIds },
       HtmlService,
     ],
   }).compile();
   return {
     service: moduleRef.get(PositionAvailabilityRawRendererService),
-    query,
-    positionIds,
     raceIds,
     bbl,
     tp,
     manual,
-    config,
+    typIds,
   };
 }
 
 describe('PositionAvailabilityRawRendererService', () => {
   it('renders a BBL row showing the page name and "listed" when the page lists this race', async () => {
-    const { service, query, positionIds, raceIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
-    );
+    const { service, raceIds, bbl, typIds } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     raceIds.forRace.mockResolvedValue({ bbl: ['44'], tp: [], name: [] });
     bbl.positionFor.mockResolvedValue({
       typId: '310',
@@ -103,19 +78,8 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('highlights a BBL row with NOT LISTED when the page does not list this race', async () => {
-    const { service, query, positionIds, raceIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
-    );
+    const { service, raceIds, bbl, typIds } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     raceIds.forRace.mockResolvedValue({ bbl: ['44'], tp: [], name: [] });
     bbl.positionFor.mockResolvedValue({
       typId: '310',
@@ -132,19 +96,8 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('renders "page not in the mirror" when the BBL position page cannot be read', async () => {
-    const { service, query, positionIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310-44' }]]]),
-    );
+    const { service, bbl, typIds } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue(null);
 
     const html = await service.render(race);
@@ -153,41 +106,8 @@ describe('PositionAvailabilityRawRendererService', () => {
     expect(html).toContain('page not in the mirror');
   });
 
-  it('skips a position with no BBL external id from the BBL sub-section', async () => {
-    const { service, query, positionIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'TP', externalId: '999' }]]]),
-    );
-
-    const html = await service.render(race);
-
-    expect(bbl.positionFor).not.toHaveBeenCalled();
-    expect(html).not.toContain('<h5>BBL</h5>');
-  });
-
-  it('skips a BBL external id with no hyphen rather than producing a bogus typId', async () => {
-    const { service, query, positionIds, bbl } = await makeService();
-    query.positionsFor.mockResolvedValue([
-      {
-        positionId: 1,
-        positionName: 'Blitzer',
-        isStarPlayer: false,
-        eraId: 10,
-        eraName: 'Second Era',
-      },
-    ]);
-    positionIds.forPositions.mockResolvedValue(
-      new Map([[1, [{ systemName: 'BBL', externalId: '310' }]]]),
-    );
+  it('omits the BBL sub-section when the race has no BBL typIds', async () => {
+    const { service, bbl } = await makeService();
 
     const html = await service.render(race);
 

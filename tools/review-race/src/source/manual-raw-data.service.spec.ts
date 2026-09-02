@@ -63,39 +63,6 @@ describe('ManualRawDataService', () => {
     });
   });
 
-  it('positions() returns name, isStarPlayer, and externalIds', async () => {
-    const json5Content = `
-{
-  races: [],
-  positions: [
-    {
-      name: 'Dwarf Blocker Lineman',
-      isStarPlayer: false,
-      externalIds: [
-        { system: 'tloeg.bbleague.se', id: '57-5' },
-        { system: 'tourplay.net', id: '280' }
-      ]
-    }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
-      json5Content,
-    );
-
-    const positions = await service.positions();
-    expect(positions).toHaveLength(1);
-    expect(positions[0]).toEqual({
-      name: 'Dwarf Blocker Lineman',
-      isStarPlayer: false,
-      externalIds: [
-        { system: 'tloeg.bbleague.se', id: '57-5' },
-        { system: 'tourplay.net', id: '280' },
-      ],
-    });
-  });
-
   it('availability() returns name, externalIds, and raceEras', async () => {
     const json5Content = `
 {
@@ -190,26 +157,6 @@ describe('ManualRawDataService', () => {
     const characteristics = await service.characteristics();
     expect(characteristics).toHaveLength(1);
     expect(characteristics[0].passing).toEqual(2);
-  });
-
-  it('positions() skips an entry whose name is not a string', async () => {
-    const json5Content = `
-{
-  races: [],
-  positions: [
-    { name: 'Dwarf Blocker Lineman', isStarPlayer: false, externalIds: [] },
-    { name: 123, isStarPlayer: false, externalIds: [] }
-  ]
-}
-`;
-    writeFileSync(
-      join(tempDir, 'before-other-importers', 'races-and-positions.json5'),
-      json5Content,
-    );
-
-    const positions = await service.positions();
-    expect(positions).toHaveLength(1);
-    expect(positions[0].name).toEqual('Dwarf Blocker Lineman');
   });
 
   it('availability() skips an entry whose name is not a string', async () => {

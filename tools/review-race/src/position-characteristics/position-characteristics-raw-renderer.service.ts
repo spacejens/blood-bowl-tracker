@@ -1,8 +1,8 @@
-import type { TableCell } from '@blood-bowl-tracker/review-harness';
+import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
+import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
 import { PositionExternalIdsService } from '../shared/position-external-ids.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import { RacePositionsQueryService } from '../shared/race-positions-query.service';
@@ -34,7 +34,7 @@ export class PositionCharacteristicsRawRendererService {
     private readonly bbl: BblRawPositionPageService,
     private readonly tp: TpRawRosterIndexService,
     private readonly manual: ManualRawDataService,
-    private readonly config: RaceReviewConfigService,
+    private readonly typIds: BblPositionTypIdsService,
     private readonly html: HtmlService,
   ) {}
 
@@ -53,28 +53,45 @@ export class PositionCharacteristicsRawRendererService {
   }
 
   private async bblSection(race: SampledRace): Promise<string | null> {
-    const typIds = await this.bblTypIds(race.raceId);
+    const typIds = await this.typIds.forRace(race.raceId);
     if (typIds.size === 0) {
       return null;
     }
-    const rows: TableCell[][] = [];
+    const rows: TableRow[] = [];
     for (const [positionName, typId] of typIds) {
       const page = await this.bbl.positionFor(typId);
       if (page === null) {
-        rows.push([positionName, typId, 'page not in the mirror']);
+        rows.push(
+          this.html.highlight([
+            positionName,
+            typId,
+            'page not in the mirror',
+            NONE,
+            NONE,
+            NONE,
+            NONE,
+          ]),
+        );
         continue;
       }
       if (page.characteristics === null) {
-        rows.push([
-          positionName,
-          typId,
-          'no characteristics table on the page',
-        ]);
+        rows.push(
+          this.html.highlight([
+            positionName,
+            typId,
+            'no characteristics table on the page',
+            NONE,
+            NONE,
+            NONE,
+            NONE,
+          ]),
+        );
         continue;
       }
       const { move, strength, agility, passing, armour } = page.characteristics;
       rows.push([
         positionName,
+        typId,
         String(move),
         String(strength),
         String(agility),
@@ -84,35 +101,11 @@ export class PositionCharacteristicsRawRendererService {
     }
     return (
       this.html.subheading('BBL') +
-      this.html.table(['Position', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
+      this.html.table(
+        ['Position', 'BBL typID', 'MA', 'ST', 'AG', 'PA', 'AV'],
+        rows,
+      )
     );
-  }
-
-  /**
-   * Stored position name -> BBL typID, from each position's
-   * `"<typId>-<raceBblId>"` external id. Split on the first `-` only: the
-   * race half is what follows, and neither half is guaranteed hyphen-free.
-   */
-  private async bblTypIds(raceId: number): Promise<Map<string, string>> {
-    const bblSystem = this.config.getExternalSystemName('bbl');
-    const positions = await this.query.positionsFor(raceId);
-    const byPosition = await this.positionIds.forPositions(
-      positions.map((position) => position.positionId),
-    );
-    const typIds = new Map<string, string>();
-    for (const position of positions) {
-      const external = (byPosition.get(position.positionId) ?? []).find(
-        (row) => row.systemName === bblSystem,
-      );
-      if (external === undefined || !external.externalId.includes('-')) {
-        continue;
-      }
-      const typId = external.externalId.split('-')[0];
-      if (typId !== undefined && typId !== '') {
-        typIds.set(position.positionName, typId);
-      }
-    }
-    return typIds;
   }
 
   private async tpSection(race: SampledRace): Promise<string | null> {

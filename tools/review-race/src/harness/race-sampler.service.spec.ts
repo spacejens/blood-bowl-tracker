@@ -131,6 +131,32 @@ describe('RaceSamplerService', () => {
     ]);
   });
 
+  it('collapses identical empty-stratum gaps from all three declared sources into one', async () => {
+    const stratifier = mock<RaceStratifier>();
+    stratifier.listStrata.mockReturnValue([
+      {
+        id: 'era-availability',
+        label: 'Race no longer available under modern rules sets',
+        sources: ['bbl', 'tp', 'manual'],
+      },
+    ]);
+    stratifier.sampleStratum.mockResolvedValue([]);
+    const config = mock<RaceReviewConfigService>();
+    config.getRacesPerStratum.mockReturnValue(3);
+    config.getOverrides.mockReturnValue([]);
+    const service = await makeService({ stratifier, config });
+
+    const { gaps } = await service.sample();
+
+    expect(gaps).toEqual([
+      {
+        source: 'bbl',
+        reason:
+          'No race found for stratum "Race no longer available under modern rules sets"',
+      },
+    ]);
+  });
+
   it('adds override races with the reason "override"', async () => {
     const stratifier = mock<RaceStratifier>();
     stratifier.listStrata.mockReturnValue([]);

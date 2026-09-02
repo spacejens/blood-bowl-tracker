@@ -2,10 +2,8 @@ import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import { RaceReviewConfigService } from '../config/review-race-config.service';
-import { PositionExternalIdsService } from '../shared/position-external-ids.service';
+import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
-import { RacePositionsQueryService } from '../shared/race-positions-query.service';
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
@@ -25,13 +23,11 @@ import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
 @Injectable()
 export class PositionAvailabilityRawRendererService {
   constructor(
-    private readonly query: RacePositionsQueryService,
-    private readonly positionIds: PositionExternalIdsService,
+    private readonly typIds: BblPositionTypIdsService,
     private readonly raceIds: RaceExternalIdsService,
     private readonly bbl: BblRawPositionPageService,
     private readonly tp: TpRawRosterIndexService,
     private readonly manual: ManualRawDataService,
-    private readonly config: RaceReviewConfigService,
     private readonly html: HtmlService,
   ) {}
 
@@ -52,7 +48,7 @@ export class PositionAvailabilityRawRendererService {
   private async bblSection(race: SampledRace): Promise<string | null> {
     const ids = await this.raceIds.forRace(race.raceId);
     const bblRaceIds = new Set(ids.bbl);
-    const typIds = await this.bblTypIds(race.raceId);
+    const typIds = await this.typIds.forRace(race.raceId);
     if (typIds.size === 0) {
       return null;
     }
@@ -84,33 +80,6 @@ export class PositionAvailabilityRawRendererService {
         rows,
       )
     );
-  }
-
-  /**
-   * Stored position name -> BBL typID, from each position's
-   * `"<typId>-<raceBblId>"` external id. Split on the first `-` only: the
-   * race half is what follows, and neither half is guaranteed hyphen-free.
-   */
-  private async bblTypIds(raceId: number): Promise<Map<string, string>> {
-    const bblSystem = this.config.getExternalSystemName('bbl');
-    const positions = await this.query.positionsFor(raceId);
-    const byPosition = await this.positionIds.forPositions(
-      positions.map((position) => position.positionId),
-    );
-    const typIds = new Map<string, string>();
-    for (const position of positions) {
-      const external = (byPosition.get(position.positionId) ?? []).find(
-        (row) => row.systemName === bblSystem,
-      );
-      if (external === undefined || !external.externalId.includes('-')) {
-        continue;
-      }
-      const typId = external.externalId.split('-')[0];
-      if (typId !== undefined && typId !== '') {
-        typIds.set(position.positionName, typId);
-      }
-    }
-    return typIds;
   }
 
   private async tpSection(race: SampledRace): Promise<string | null> {

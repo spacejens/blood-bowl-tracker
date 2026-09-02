@@ -1,6 +1,7 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
+import { BblPositionTypIdsService } from './bbl-position-typ-ids.service';
 import { ExternalSystemLookupService } from './external-system-lookup.service';
 import { PositionExternalIdsService } from './position-external-ids.service';
 import { RaceExternalIdsService } from './race-external-ids.service';
@@ -15,6 +16,7 @@ import { RacePositionsQueryService } from './race-positions-query.service';
  * data-type module injects it through this one module.
  */
 const SHARED = [
+  BblPositionTypIdsService,
   ExternalSystemLookupService,
   HtmlService,
   PositionExternalIdsService,

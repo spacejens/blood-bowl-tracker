@@ -167,14 +167,9 @@ export class RaceIdentityRawRendererService {
     ) {
       return null;
     }
-    const cells: TableCell[] = [
-      bblName,
-      tpName,
-      this.names.agree(bblName, tpName) ? 'agree' : 'MISMATCH',
-    ];
-    const row: TableRow = this.names.agree(bblName, tpName)
-      ? cells
-      : this.html.highlight(cells);
+    const agrees = this.names.agree(bblName, tpName);
+    const cells: TableCell[] = [bblName, tpName, agrees ? 'agree' : 'MISMATCH'];
+    const row: TableRow = agrees ? cells : this.html.highlight(cells);
     return (
       this.html.subheading('BBL / TP name agreement') +
       this.html.table(['BBL name', 'TP name', 'Verdict'], [row])

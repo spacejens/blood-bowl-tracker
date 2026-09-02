@@ -87,8 +87,26 @@ export class RaceSamplerService implements ReviewSampler<SampledRace> {
 
     return {
       items: [...selected.values()].sort((a, b) => this.compare(a, b)),
-      gaps,
+      gaps: this.dedupeGaps(gaps),
     };
+  }
+
+  /**
+   * Several strata declare all three sources purely as a formality — their
+   * `sampleStratum` ignores `request.source` and returns the same race-level
+   * result regardless — so an empty one of those strata produces one
+   * identical gap per source. Collapse those down to one gap per distinct
+   * reason, keeping the first occurrence.
+   */
+  private dedupeGaps(gaps: ReviewGap[]): ReviewGap[] {
+    const seen = new Set<string>();
+    return gaps.filter((gap) => {
+      if (seen.has(gap.reason)) {
+        return false;
+      }
+      seen.add(gap.reason);
+      return true;
+    });
   }
 
   /** Add a race, or add one more reason to a race already selected. */
