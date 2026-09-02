@@ -97,8 +97,10 @@ tool's own composition.
      for that race.
    - **position-availability** — left: raw BBL and TP source data showing which positions
      are listed for this race in each source (a BBL position page that does not list the
-     race is rendered as a highlighted row with an explicit label `NOT LISTED`). Right:
-     the stored availability data from `positions_race_eras` for each era this race covers.
+     race is rendered as a highlighted row with an explicit label `NOT LISTED`), plus a
+     manual curation sub-table sourced from `position-availability.json5` for the
+     rulebook rosters neither BBL nor TP can evidence. Right: the stored availability
+     data from `positions_race_eras` for each era this race covers.
    - **position-characteristics** — left: raw BBL and TP source data for this race's
      positions, showing move/strength/agility/passing/armour (MA/ST/AG/PA/AV) per rules
      set, plus manual curation's own characteristics for rules sets neither source
