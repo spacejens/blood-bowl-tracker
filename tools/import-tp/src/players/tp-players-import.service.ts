@@ -17,10 +17,13 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
+import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 
 /**
  * One hired-star-player group: the roster that hired them, the real era the
@@ -90,6 +93,8 @@ export class TpPlayersImportService {
     private readonly importResults: ImportResultService,
     private readonly eraDataConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
+    private readonly eraRulesSetResolver: TpEraRulesSetResolverService,
+    private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
   ) {}
 
   /**
@@ -232,11 +237,9 @@ export class TpPlayersImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    let eraNames: string[];
+    let eras: EraDataConfig[];
     try {
-      eraNames = [
-        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
-      ];
+      eras = this.eraDataConfig.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
@@ -252,6 +255,7 @@ export class TpPlayersImportService {
         careerSppCountsByPlayerId,
       };
     }
+    const eraNames = [...new Set(eras.map((era) => era.name))];
     const eraIds = await this.lookup.lookupMap(
       'era',
       eraNames.map((name) => ({
@@ -277,6 +281,18 @@ export class TpPlayersImportService {
         )
         .filter((entry): entry is [number, string] => entry[0] !== undefined),
     );
+    // Characteristics are per rules set, and a player's era declares which one
+    // validates them. Resolved once for the whole run by the same shared
+    // service the positions importer uses; an era it skipped (zero or several
+    // declared rules sets, or an unresolvable name) simply gets no
+    // characteristics -- it has already recorded its own error, and the rest
+    // of that era's player import is unaffected.
+    const rulesSetIdByEraName =
+      await this.eraRulesSetResolver.resolveRulesSetIdByEraName({
+        eras,
+        tpSystemId,
+        errors,
+      });
     const mercenaryPositionIdsByName = new Map<string, number>();
 
     // One batched lookup for the whole run, not one per player: collect
@@ -370,6 +386,16 @@ export class TpPlayersImportService {
           continue;
         }
 
+        // TP embeds every player's OWN current characteristics in lineUps[],
+        // star and mercenary hires included, so no path is special-cased here.
+        // A player merged in from a match-embedded snapshot carries none and
+        // sends none, leaving any previously-imported values untouched.
+        const characteristics = this.characteristicsBuilder.forRosterPlayer({
+          characteristics: player.characteristics,
+          eraName: era,
+          rulesSetIdByEraName,
+        });
+
         const upserted = await this.playersImport.upsertPlayerResult(
           {
             name: player.name,
@@ -385,6 +411,7 @@ export class TpPlayersImportService {
             sppTotal:
               maxSppTotalByPlayerId.get(player.id) ??
               player.totalStarPlayerPoints,
+            ...characteristics,
             externalIds: [
               { externalSystemId: tpSystemId, externalId: String(player.id) },
             ],
