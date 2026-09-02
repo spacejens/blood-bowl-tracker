@@ -444,4 +444,23 @@ describe('curated data files', () => {
 
     expect(new Set(keys).size).toBe(keys.length);
   });
+
+  it('curates CRP-era availability for the CRP+-only team lists', () => {
+    const positions = readFile(
+      'before-other-importers',
+      'position-availability.json5',
+    ).positions;
+    const nameIds = positions.flatMap((position) =>
+      position.externalIds
+        .filter((ref) => ref.system === 'Name')
+        .map((ref) => ref.id),
+    );
+
+    // Chaos Pact, Slann and Underworld appear in NTBB2015 but not in the CRP
+    // core book, so nothing in the source data evidences them for the
+    // CRP-era eras.
+    expect(
+      nameIds.some((id) => id.startsWith('Underworld Denizens Team: ')),
+    ).toBe(true);
+  });
 });

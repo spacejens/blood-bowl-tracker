@@ -58,6 +58,10 @@
       name: 'Shambling Undead Team',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '18' }],
     },
+    {
+      name: 'Slann',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '22' }],
+    },
   ],
   positions: [
     // --- CRP-era availability: Dark Elf Team (First era) ---
@@ -121,7 +125,9 @@
     {
       name: 'Dwarf Blocker Linemen',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' }],
+      externalIds: [
+        { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '5' },
@@ -189,7 +195,9 @@
     {
       name: 'Eagle Warrior Thrower',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' }],
+      externalIds: [
+        { system: 'Name', id: 'Amazon Team: Eagle Warrior Thrower' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '1' },
@@ -200,7 +208,9 @@
     {
       name: 'Piranha Warrior Catcher',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Amazon Team: Piranha Warrior Catcher' }],
+      externalIds: [
+        { system: 'Name', id: 'Amazon Team: Piranha Warrior Catcher' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '1' },
@@ -270,7 +280,9 @@
     {
       name: 'Beastman Runner Lineman',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Chaos Chosen Team: Beastman Runner Lineman' }],
+      externalIds: [
+        { system: 'Name', id: 'Chaos Chosen Team: Beastman Runner Lineman' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '2' },
@@ -281,7 +293,9 @@
     {
       name: 'Chosen Blockers',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Chaos Chosen Team: Chosen Blockers' }],
+      externalIds: [
+        { system: 'Name', id: 'Chaos Chosen Team: Chosen Blockers' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '2' },
@@ -305,7 +319,9 @@
     {
       name: 'Hobgoblin Linemen',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' }],
+      externalIds: [
+        { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '3' },
@@ -316,7 +332,9 @@
     {
       name: 'Chaos Dwarf Blockers',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Chaos Dwarf Team: Chaos Dwarf Blockers' }],
+      externalIds: [
+        { system: 'Name', id: 'Chaos Dwarf Team: Chaos Dwarf Blockers' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '3' },
@@ -338,7 +356,9 @@
     {
       name: 'Enslaved Minotaur',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Chaos Dwarf Team: Enslaved Minotaur' }],
+      externalIds: [
+        { system: 'Name', id: 'Chaos Dwarf Team: Enslaved Minotaur' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '3' },
@@ -430,7 +450,9 @@
     {
       name: 'Halfling Hopeful Lineman',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Halfling Team: Halfling Hopeful Lineman' }],
+      externalIds: [
+        { system: 'Name', id: 'Halfling Team: Halfling Hopeful Lineman' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '8' },
@@ -546,7 +568,9 @@
     {
       name: 'Skeleton Linemen',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Tomb Kings Team: Skeleton Linemen' }],
+      externalIds: [
+        { system: 'Name', id: 'Tomb Kings Team: Skeleton Linemen' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '11' },
@@ -557,7 +581,9 @@
     {
       name: 'Anointed Thrower',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Tomb Kings Team: Anointed Thrower' }],
+      externalIds: [
+        { system: 'Name', id: 'Tomb Kings Team: Anointed Thrower' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '11' },
@@ -568,7 +594,9 @@
     {
       name: 'Anointed Blitzer',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Tomb Kings Team: Anointed Blitzer' }],
+      externalIds: [
+        { system: 'Name', id: 'Tomb Kings Team: Anointed Blitzer' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '11' },
@@ -592,7 +620,9 @@
     {
       name: 'Skink Runner Linemen',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Lizardmen Team: Skink Runner Linemen' }],
+      externalIds: [
+        { system: 'Name', id: 'Lizardmen Team: Skink Runner Linemen' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '12' },
@@ -638,7 +668,9 @@
     {
       name: 'Ghoul Runners',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Necromantic Horror Team: Ghoul Runners' }],
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Ghoul Runners' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '13' },
@@ -649,7 +681,9 @@
     {
       name: 'Wight Blitzer',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Necromantic Horror Team: Wight Blitzer' }],
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Wight Blitzer' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '13' },
@@ -660,7 +694,9 @@
     {
       name: 'Flesh Golem',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Necromantic Horror Team: Flesh Golem' }],
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Flesh Golem' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '13' },
@@ -671,7 +707,9 @@
     {
       name: 'Werewolf',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Necromantic Horror Team: Werewolf' }],
+      externalIds: [
+        { system: 'Name', id: 'Necromantic Horror Team: Werewolf' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '13' },
@@ -798,7 +836,9 @@
     {
       name: 'Skaven Clanrat Lineman',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Skaven Team: Skaven Clanrat Lineman' }],
+      externalIds: [
+        { system: 'Name', id: 'Skaven Team: Skaven Clanrat Lineman' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '17' },
@@ -855,7 +895,9 @@
     {
       name: 'Skeleton Lineman',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Shambling Undead Team: Skeleton Lineman' }],
+      externalIds: [
+        { system: 'Name', id: 'Shambling Undead Team: Skeleton Lineman' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '18' },
@@ -877,7 +919,9 @@
     {
       name: 'Ghoul Runners',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Shambling Undead Team: Ghoul Runners' }],
+      externalIds: [
+        { system: 'Name', id: 'Shambling Undead Team: Ghoul Runners' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '18' },
@@ -888,7 +932,9 @@
     {
       name: 'Wight Blitzer',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Shambling Undead Team: Wight Blitzer' }],
+      externalIds: [
+        { system: 'Name', id: 'Shambling Undead Team: Wight Blitzer' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '18' },
@@ -1072,10 +1118,137 @@
     {
       name: 'Loren Forest Treeman',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }],
+      externalIds: [
+        { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' },
+      ],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '19' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP+-era availability: Slann (First era) ---
+    {
+      name: 'Lineman',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Lineman' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Catcher',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Catcher' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Blitzer',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Blitzer' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Kroxigor',
+      isStarPlayer: false,
+      externalIds: [{ system: 'Name', id: 'Slann: Kroxigor' }],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '22' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+
+    // --- CRP+-era availability: Underworld Denizens (First era) ---
+    {
+      name: 'Underworld Goblin Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Goblin Lineman',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Underworld Skaven Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Skaven Lineman',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Underworld Skaven Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Skaven Thrower',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Underworld Skaven Blitzers',
+      isStarPlayer: false,
+      externalIds: [
+        {
+          system: 'Name',
+          id: 'Underworld Denizens Team: Underworld Skaven Blitzers',
+        },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
+          era: { system: 'Name', id: 'First era' },
+        },
+      ],
+    },
+    {
+      name: 'Warpstone Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'Name', id: 'Underworld Denizens Team: Warpstone Troll' },
+      ],
+      raceEras: [
+        {
+          race: { system: 'tloeg.bbleague.se', id: '24' },
           era: { system: 'Name', id: 'First era' },
         },
       ],
