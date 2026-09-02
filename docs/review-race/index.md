@@ -38,58 +38,85 @@ tool's own composition.
 
 ## What it does
 
-1. Samples races across nine strata (a race is the sampled unit; "modern rules set" means
+1. Samples races across nine strata (`racesPerStratum` races, default 3, per stratum —
+   see Configuration; a race is the sampled unit; "modern rules set" means
    `passing_format` is not `'absent'`):
-   1. **Race no longer available under modern rules sets** — races present in manual
-      curation or a raw data source but absent from modern rules sets.
-   2. **Race only available under modern rules sets** — races in modern rules sets but
-      absent from older ones (manual curation or raw sources).
+   1. **Race no longer available under modern rules sets** — races whose eras map to no
+      rules set with a modern `passing_format`. A pure DB query over
+      `races ⋈ race_eras ⋈ era_rules_sets ⋈ rules_sets`; it never reads manual curation
+      or a raw source file.
+   2. **Race only available under modern rules sets** — the mirror image: races whose
+      eras map to no rules set with a legacy (non-modern) `passing_format`. Same pure
+      DB query as above, with the condition flipped.
    3. **Race has a position whose characteristics changed between rules sets** — races
-      where a position has differing characteristics across rules sets (columns, cost,
-      skills, etc.).
+      where a position's move, strength, agility, armour or passing differs between two
+      rules sets its race's eras both map to.
    4. **Race has a position missing characteristics for a rules set it should have** —
-      races where `position_rules_sets` lacks a row for a rules set its era maps to,
-      suggesting incomplete data entry.
-   5. **Race has no BBL data** — races in manual curation or TP but not in downloaded BBL
+      races where `position_rules_sets` lacks a row for a (position, rules set) pair its
+      era mapping implies, suggesting incomplete data entry.
+   5. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
+      external system. A DB-only check — it does not look at the downloaded BBL mirror
       files.
-   6. **Race has no TP data** — races in manual curation or BBL but not in downloaded TP
-      files.
-   7. **Race has no manual curation entry** — races in BBL or TP but absent from the
-      hand-curated data.
+   6. **Race has no TP data** — races with no `race_external_ids` row for the TP external
+      system. Same DB-only check as above, scoped to the TP external system.
+   7. **Race has no manual curation entry** — unlike strata 5 and 6, this reads the
+      curated `races-and-positions.json5` file itself (there is no external-id space for
+      manual curation to check in the database): every race is compared by name against
+      the file's entries. The three source-coverage strata are therefore not uniform in
+      what they check — a race can, for example, have a BBL external-id row in the
+      database with no corresponding page in the BBL mirror, or vice versa.
    8. **BBL and TP names disagree** — races present in both sources but under different
-      names.
-   9. **Random sample** — `racesPerStratum` races (default 3) per stratum, selected
-      randomly from those matching the stratum's criteria.
+      names, beyond BBL's own `<Race> Team(s)` suffix convention. The race-identity
+      panel's own BBL/TP name-agreement sub-table (below) shows this same comparison for
+      every sampled race, not only the ones this stratum selects.
+   9. **Random sample** — a plain random sample of races, with no selection criteria of
+      its own.
 
-   When a stratum's criteria are satisfied by multiple sources (e.g., a race's BBL name
-   and TP name both disagree), the sampler collapses those into one entry with one reason
-   — which is why `sources` on such a stratum is a formality rather than three separate
-   entries.
+   Each stratum declares one or more `sources`; the sampler (`race-sampler.service.ts`)
+   runs the stratum's query once per declared source and merges the results by
+   `raceId`, folding any duplicate reason text into one entry rather than reporting one
+   per source. This is why strata 1, 2, 3, 4 and 9 — whose queries do not vary by
+   source at all — still declare `sources: ['bbl', 'tp', 'manual']`: it keeps the
+   stratum list uniform without producing three identical findings for one race.
 
 2. Adds every race id listed in `overrides`, whatever the strata picked.
 
 3. For each sampled race, renders three panel pairs:
-   - **race-info** — left: BBL's own race page parsed for name, cost (if any), and
-     available positions; TP's roster data parsed for name and position list; or manual
-     curation showing name and position list. Right: the stored race identity and every
-     external id for that race. A race with no `position_rules_sets` row for a rules set
-     its era maps to is rendered as a highlighted row carrying an explicit textual label
-     (`missing`), so the report stays readable without colour.
+   - **race-identity** — left: BBL, TP and manual curation are all attempted together in
+     one panel (unlike other review tools' raw panels, which pick a single source based
+     on the sampled entity's own source), each contributing its own sub-table when that
+     source has data for the race. BBL's sub-table shows its race id, race-list name,
+     team-page name, team-page count and team codes — it carries no cost or position
+     data. TP's sub-table shows its `teamRace` code, `rosterMaster.name`, roster count
+     and position **count** (not a position list). Manual curation's sub-table shows the
+     curated name and its registered external ids. A fourth sub-table, BBL/TP name
+     agreement, compares BBL's
+     and TP's own names for the race — accounting for BBL's `<Race> Team(s)` suffix
+     convention — and renders a highlighted `MISMATCH` row when they disagree beyond
+     that convention. Right: the stored race identity, its eras, and every external id
+     for that race.
    - **position-availability** — left: raw BBL and TP source data showing which positions
      are listed for this race in each source (a BBL position page that does not list the
      race is rendered as a highlighted row with an explicit label `NOT LISTED`). Right:
      the stored availability data from `positions_race_eras` for each era this race covers.
-   - **position-characteristics** — left: raw BBL and TP source data for a sample of this
-     race's positions, showing characteristics (cost, columns, skills) per rules set.
-     Right: the stored characteristics from `position_rules_sets` for the same positions
-     and rules sets. Missing characteristics are highlighted with an explicit label
-     (`missing`).
+   - **position-characteristics** — left: raw BBL and TP source data for this race's
+     positions, showing move/strength/agility/passing/armour (MA/ST/AG/PA/AV) per rules
+     set, plus manual curation's own characteristics for rules sets neither source
+     evidences the same way the database stores them. A BBL position page that cannot be
+     read, or that carries no characteristics table, is rendered as a highlighted row
+     naming the problem instead of being silently dropped from the table. Right: the
+     stored characteristics from `position_rules_sets` for the same positions and rules
+     sets. A (position, rules set) pair with no stored row is rendered as a highlighted
+     row carrying an explicit textual label (`missing`), so the report stays readable
+     without colour.
 
 4. Writes the report under `tools/review-race/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
 Strata that match nothing, and override ids that are not in the database, are reported as
-gaps in the report (and as console warnings) — never as failures.
+gaps in the report (and as console warnings) — never as failures. A stratum with several
+declared sources that finds nothing for any of them still reports one gap, not one per
+source: the sampler dedupes gaps by their reason text before returning them.
 
 ## Configuration
 
