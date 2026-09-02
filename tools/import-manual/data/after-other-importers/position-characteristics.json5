@@ -120,5 +120,48 @@
     { position: { system: 'Name', id: 'Norse Team: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
     { position: { system: 'Name', id: 'Norse Team: Ulfwerener' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 4, agility: 2, armour: 8 },
     { position: { system: 'Name', id: 'Norse Team: Yhetee' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 5, agility: 1, armour: 8 },
+
+    // --- CRP: Nurgle (CRP p.25) ---
+    { position: { system: 'Name', id: 'Nurgle Team: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Nurgle Team: Pestigors' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Nurgle Team: Bloaters' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Nurgle Team: Rotspawn' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP: Skaven (CRP p.25) ---
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Clanrat Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 9, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Skaven Team: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Skaven Team: Rat Ogre' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 5, agility: 2, armour: 8 },
+
+    // --- CRP: Undead (CRP p.25) ---
+    { position: { system: 'Name', id: 'Shambling Undead Team: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 3, agility: 2, armour: 7 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Zombie' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 3, agility: 2, armour: 8 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Shambling Undead Team: Mummy' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 3, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP: Ogre (CRP p.25) ---
+    { position: { system: 'Name', id: 'Ogre Team: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 1, agility: 3, armour: 5 },
+    { position: { system: 'Name', id: 'Ogre Team: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 5, agility: 2, armour: 9 },
+
+    // --- CRP: Orc (CRP p.25) ---
+    { position: { system: 'Name', id: 'Orc Team: Orc Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 2, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Orc Team: Orc Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 5, strength: 3, agility: 3, armour: 8 },
+    { position: { system: 'Name', id: 'Orc Team: Big Un Blocker' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 4, agility: 2, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 9 },
+    { position: { system: 'Name', id: 'Orc Team: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 4, strength: 5, agility: 1, armour: 9 },
+
+    // --- CRP: Vampire (CRP p.25) ---
+    { position: { system: 'Name', id: 'Vampire Team: Thrall Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 3, agility: 3, armour: 7 },
+    { position: { system: 'Name', id: 'Vampire Team: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 4, agility: 4, armour: 8 },
+
+    // --- CRP: Wood Elf (CRP p.25) ---
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 2, strength: 6, agility: 1, armour: 10 },
   ],
 }
