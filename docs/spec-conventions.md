@@ -29,6 +29,7 @@ docs/
   import-tp/               # Tool/how-to: TP data importer
   review-match/            # Tool/how-to: match-data review aid
   review-player/           # Tool/how-to: player-data review aid
+  review-race/             # Tool/how-to: race- and position-data review aid
 ```
 
 `game-concepts/` is the parent for all domain entities. Each app gets its own top-level subfolder. `insights/` covers anything derived from collected data or submitted by users — the term is intentionally broad to cover both objective stats and subjective content.
@@ -38,7 +39,7 @@ docs/
 Besides `glossary.md` and this file — tagged `Docs-about-docs` above, since they describe the docs themselves rather than fitting one of the three styles below — `docs/` holds three kinds of document, and different expectations apply to each:
 
 - **Spec docs** — `game-concepts/`, `insights/`, `api/`, `discord-bot/`, and future app subfolders. These are governed by [Spec file conventions](#spec-file-conventions) below: describe why and what, and leave implementation detail to the code.
-- **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `fs-utils-cli/`, `download-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `review-match/`, `review-player/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
+- **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `fs-utils-cli/`, `download-tp/`, `import-bbl/`, `import-manual/`, `import-tp/`, `review-match/`, `review-player/`, `review-race/`. These document how to configure, run, and operate a tool. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
 - **Repo-meta docs** — `architecture.md` and `development-workflow.md`. These describe the project's own technical stack, structure, and development process. No fixed rule set applies; follow the existing style of each file.
 
 One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, and `discord-bot/production-hosting.md` — together with the `discord-bot/production-*.md` pages it indexes — are how-to content (Discord app creation, local development, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.
