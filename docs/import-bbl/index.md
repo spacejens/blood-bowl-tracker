@@ -196,8 +196,9 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   and yields no row; genuine availability the source data cannot show is
   curated by hand in `tools/import-manual`. Runs after races and teams.
 - **PlayersModule** — data-type extractor for players. `PlayerPageParser` reads
-  a player's own `pid`, `<h1>` name, position (`p=pt&typID`), and team
-  (`p=tm&t`) links off a `p=pl` page. The positions import uses the
+  a player's own `pid`, `<h1>` name, position (`p=pt&typID`) and team
+  (`p=tm&t`) links, and MA/ST/AG/PA/AV characteristics line off a `p=pl` page.
+  The positions import uses the
   position/team links to resolve the races of positions that list none;
   `BblPlayersImportService` streams player pages and imports one row per
   player, resolving its team era (via the team code and the era whose
@@ -370,7 +371,19 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   positions imports. A
   player whose pid matches no configured era range, whose team code was not
   imported, or whose position cannot be resolved is skipped with a recorded
-  error. Imported after teams, team eras, and positions (all referenced).
+  error.
+  Its scraped MA/ST/AG/PA/AV line is sent with the upsert, validated
+  server-side against the last rules set listed for the player's era (an era
+  can span several, listed oldest-first). `Passing` is resolved the same way
+  position characteristics are: `null` where that rules set declares no
+  Passing characteristic at all, and otherwise the scraped value, or `0` where
+  the page showed `-`. BBL's BB2016-to-BB2020 conversion wrote a Passing value
+  onto every player, including those whose era has no such characteristic, so
+  the page's own figure never decides this — the rules set does. A player whose
+  characteristics line cannot be read fails page parsing outright and is
+  skipped with a recorded error, as is one whose era names a rules set that was
+  not imported.
+  Imported after rules sets, teams, team eras, and positions (all referenced).
 - **Competitions** — from the master competition dropdown on the `se`/`sr`
   pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page
   (dates). Keyed by the numeric BBL id (`s` param) under the configured BBL

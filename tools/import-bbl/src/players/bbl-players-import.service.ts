@@ -1,4 +1,4 @@
-import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type { RulesSet, UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -21,6 +21,12 @@ const PLAYER_PAGE_TYPE = 'pl';
 interface ImportPlayersOptions {
   teamsByCode: Map<string, UpsertTeam>;
   racesByBblId: Map<string, { id: number; name: string }>;
+  /**
+   * Every upserted rules set, keyed by name — for its declared
+   * `passingFormat`, which decides whether a player's scraped Passing value
+   * applies to their era at all.
+   */
+  rulesSetsByName: Map<string, RulesSet>;
 }
 
 @Injectable()
@@ -47,11 +53,16 @@ export class BblPlayersImportService {
    * key), then upserted keyed by its pid under the BBL external system only —
    * unlike other entities, players get no Name external id, since player
    * names are not guaranteed unique across the league. Players that cannot be
-   * fully resolved are recorded as errors and skipped. Idempotent.
+   * fully resolved are recorded as errors and skipped. Idempotent. Each
+   * player's scraped MA/ST/AG/PA/AV line is sent alongside, validated
+   * server-side against the last rules set listed for their era — a rules set
+   * that declares no Passing characteristic receives a null Passing rather
+   * than the value BBL's BB2020 migration wrote onto every player.
    */
   async importPlayers({
     teamsByCode,
     racesByBblId,
+    rulesSetsByName,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByPid: Map<string, number>;
@@ -180,7 +191,7 @@ export class BblPlayersImportService {
           errors.push(
             this.importResults.error({
               item: { pid: page.params.pid },
-              message: `Failed to parse player page for pid "${page.params.pid}": missing pid, <h1>, position link, or team link.`,
+              message: `Failed to parse player page for pid "${page.params.pid}": missing pid, <h1>, position link, team link, or characteristics line.`,
             }),
           );
           continue;
@@ -214,6 +225,29 @@ export class BblPlayersImportService {
             this.importResults.error({
               item: { pid: player.pid, era: era.identity.name },
               message: `Skipped player "${player.name}" (${player.pid}): era "${era.identity.name}" not imported`,
+            }),
+          );
+          continue;
+        }
+
+        // An era can span several rules sets, listed chronologically
+        // oldest-first; the last one is the era's most current, and is what a
+        // BB2020-era scrape of the player's characteristics is measured
+        // against. Validation-only — nothing stores a rules set on a player.
+        const rulesSetName = era.identity.rulesSets.at(-1);
+        const rulesSet =
+          rulesSetName === undefined
+            ? undefined
+            : rulesSetsByName.get(rulesSetName);
+        if (!rulesSet) {
+          errors.push(
+            this.importResults.error({
+              item: {
+                pid: player.pid,
+                era: era.identity.name,
+                rulesSet: rulesSetName,
+              },
+              message: `Skipped player "${player.name}" (${player.pid}): rules set "${rulesSetName ?? '?'}" for era "${era.identity.name}" not imported`,
             }),
           );
           continue;
@@ -279,6 +313,20 @@ export class BblPlayersImportService {
             name: player.name,
             teamEraId: teamEra.id,
             positionId,
+            move: player.characteristics.move,
+            strength: player.characteristics.strength,
+            agility: player.characteristics.agility,
+            // Two distinct states: a rules set with no Passing concept at all
+            // stores null, while a rules set that has Passing stores 0 for a
+            // player who cannot pass (the page's "-"). BBL's BB2020 migration
+            // gave every player a Passing value, so the page's own figure is
+            // never what decides this — the era's rules set is.
+            passing:
+              rulesSet.passingFormat === 'absent'
+                ? null
+                : (player.characteristics.passing ?? 0),
+            armour: player.characteristics.armour,
+            rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },
             ],

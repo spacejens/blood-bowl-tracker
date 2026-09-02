@@ -1,4 +1,8 @@
-import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type {
+  CharacteristicFormat,
+  RulesSet,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -255,7 +259,38 @@ export const goodPlayer: BblPlayer = {
  * at every call site; a test needing a variant spreads and overrides it
  * (e.g. `{ ...importOptions, teamsByCode: localTeamsByCode }`).
  */
+/**
+ * A RulesSet as the rules-sets import step hands it over. Only `id` and
+ * `passingFormat` matter to BblPlayersImportService; the rest are
+ * unremarkable defaults so the fixture satisfies the contract type.
+ */
+export function makeRulesSet(
+  name: string,
+  passingFormat: CharacteristicFormat,
+): RulesSet {
+  return {
+    id: 800,
+    name,
+    moveFormat: 'bare',
+    strengthFormat: 'bare',
+    agilityFormat: 'plus',
+    passingFormat,
+    armourFormat: 'plus',
+    createdAt: new Date('2026-01-01'),
+  };
+}
+
+/**
+ * The default rules-set resolution. `defaultEras`' only era ("LRB") lists
+ * exactly one rules set, also named "LRB", and it has Passing — so by default
+ * a player's parsed Passing value is sent through unchanged.
+ */
+export const rulesSetsByName = new Map<string, RulesSet>([
+  ['LRB', makeRulesSet('LRB', 'plus')],
+]);
+
 export const importOptions = {
   teamsByCode,
   racesByBblId,
+  rulesSetsByName,
 };

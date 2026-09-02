@@ -65,10 +65,19 @@ numbers), and a `PA` cell reading `-` means the position has no Passing
 ability. That `-` is not confined to pre-BB2020 positions: "Big Guy"
 positions such as Kroxigor and Ogre show it under the current rules too.
 
-Note on `pl` pages: only two links are read — the player's position
-(`default.asp?p=pt&typID=<id>`) and team (`default.asp?p=tm&t=<code>`). This is
-not a full player import; no `players` rows are written. It exists so the
-positions import can resolve the race of a position whose `pt` page lists none.
+Note on `pl` pages: a player page carries the player's `<h1>` name, two links —
+the player's position (`default.asp?p=pt&typID=<id>`) and team
+(`default.asp?p=tm&t=<code>`) — an "Unspent SPP" row whose parenthesized figure
+is the site's own career total, and the same MA/ST/AG/PA/AV characteristics
+table the `pt` pages carry (header row `MA`/`ST`/`AG`/`PA`/`AV`/`Skills`
+followed immediately by one row of values, found by its header text since
+several tables on the page share the row class; `AG`/`PA`/`AV` carry a
+display-only trailing `+`, and a `PA` cell reading `-` means no Passing
+ability). Every player page in the reference dataset carries a Passing value —
+including players whose era predates the characteristic existing, an artifact
+of the site's BB2016-to-BB2020 conversion — so the value shown is not evidence
+that the player's rules set has Passing at all. The positions import also reads
+these pages, to resolve the race of a position whose `pt` page lists none.
 
 Note on `se`/`sr` pages: `default.asp?p=se&s=<id>` ("played"/archived
 competitions) and `default.asp?p=sr&s=<id>` (current standings) share one
