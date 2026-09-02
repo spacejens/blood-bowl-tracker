@@ -510,4 +510,68 @@ describe('RosterParserService', () => {
       ),
     ).toThrow(/rosterMaster\.starPlayersMasters\.0\.av/);
   });
+
+  it("parses a lineUp entry's own characteristics", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+            isBigGuy: false,
+            totalStarPlayerPoints: 23,
+            ma: 6,
+            st: 4,
+            ag: 3,
+            pa: 5,
+            av: 10,
+          },
+        ],
+      }),
+    );
+
+    expect(roster.players[0]?.characteristics).toEqual({
+      move: 6,
+      strength: 4,
+      agility: 3,
+      passing: 5,
+      armour: 10,
+    });
+  });
+
+  it('carries a zero Passing on a lineUp entry through unchanged', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+            isBigGuy: false,
+            totalStarPlayerPoints: 23,
+            ma: 5,
+            st: 3,
+            ag: 4,
+            pa: 0,
+            av: 9,
+          },
+        ],
+      }),
+    );
+
+    expect(roster.players[0]?.characteristics?.passing).toBe(0);
+  });
+
+  it('leaves characteristics undefined when the lineUp entry carries none', () => {
+    expect(
+      service.parse(rosterBody()).players[0]?.characteristics,
+    ).toBeUndefined();
+  });
 });

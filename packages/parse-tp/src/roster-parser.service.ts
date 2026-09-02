@@ -18,6 +18,23 @@ export interface TpPositionCharacteristics {
 }
 
 /**
+ * One player's OWN current characteristics, from a `lineUps[]` entry --
+ * distinct from `TpPositionCharacteristics` (the position template they were
+ * recruited from) even though the shape is identical: a player's values drift
+ * from the template as they level up. `passing` is a plain number, never null,
+ * for the same reason `TpPositionCharacteristics.passing` is: TP writes a
+ * literal 0 for a player with no passing ability, and every rules set TP
+ * covers declares a Passing characteristic.
+ */
+export interface TpPlayerCharacteristics {
+  move: number;
+  strength: number;
+  agility: number;
+  passing: number;
+  armour: number;
+}
+
+/**
  * One position on a race's roster, from a `rosterMaster.lineUpMasters[]` entry.
  * `tpPositionId` is TP's internal line-up-master id: stable per
  * `(teamRace code, position name)` pair, but NOT stable across the rule-set
@@ -66,6 +83,13 @@ export interface TpRosterPlayer {
    * same `LineUpSchema` do not, which is why every counter field is optional.
    */
   careerCounts?: TpCareerSppCounts;
+  /**
+   * The player's own current characteristics, or `undefined` when the source
+   * entry carried none. Only a standalone `rosters_<id>.json` entry has them:
+   * the match-embedded roster snapshots `MatchParserService` parses through
+   * the same `LineUpSchema` do not, which is why every raw field is optional.
+   */
+  characteristics?: TpPlayerCharacteristics;
 }
 
 /**
@@ -148,6 +172,15 @@ export const LineUpSchema = z.object({
   totalInterceptions: z.number().int().nonnegative().optional(),
   totalMVP: z.number().int().nonnegative().optional(),
   totalCasualties: z.number().int().nonnegative().optional(),
+  // The player's OWN current characteristics. Optional for the same reason
+  // the career counters above are: match-embedded roster snapshots reuse this
+  // schema (see MatchLineUpSchema in match-parser.service.ts) and carry none
+  // of these fields.
+  ma: z.number().int().optional(),
+  st: z.number().int().optional(),
+  ag: z.number().int().optional(),
+  pa: z.number().int().optional(),
+  av: z.number().int().optional(),
 });
 
 const RosterSchema = z.object({
@@ -211,6 +244,7 @@ export class RosterParserService {
         isBigGuy: entry.isBigGuy ?? false,
         totalStarPlayerPoints: entry.totalStarPlayerPoints,
         careerCounts: this.careerCounts(entry),
+        characteristics: this.playerCharacteristics(entry),
       })),
     };
   }
@@ -247,6 +281,28 @@ export class RosterParserService {
       mvpAwards: totalMVP,
       casualties: totalCasualties,
     };
+  }
+
+  /**
+   * The entry's own characteristics, or `undefined` when it does not carry the
+   * full set. All-or-nothing on purpose: the server's upsert contract requires
+   * all five or none, and a partial line cannot be validated against a rules
+   * set's declared formats.
+   */
+  private playerCharacteristics(
+    entry: z.infer<typeof LineUpSchema>,
+  ): TpPlayerCharacteristics | undefined {
+    const { ma, st, ag, pa, av } = entry;
+    if (
+      ma === undefined ||
+      st === undefined ||
+      ag === undefined ||
+      pa === undefined ||
+      av === undefined
+    ) {
+      return undefined;
+    }
+    return this.characteristics({ ma, st, ag, pa, av });
   }
 
   /** The five characteristics carried on every lineUp/star master entry. */
