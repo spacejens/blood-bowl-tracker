@@ -13,6 +13,7 @@ import {
 import type {
   TpCareerSppCounts,
   TpInducedStarPlayer,
+  TpPositionCharacteristics,
   TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -79,6 +80,18 @@ export interface ImportPlayersOptions {
    * callers/tests that don't exercise star positions can omit it.
    */
   starPositionIds?: Set<number>;
+  /**
+   * Each Position's accumulated characteristics, keyed by DB position id then
+   * rules set DB id, from `TpPositionsImportService`. Used only by the
+   * induced-star-hire path: a star hired mid-season via an `inducements_roll`
+   * event has no `lineUps[]` entry, so no characteristics of their own -- a
+   * freshly-hired star's are the position template's. Optional -- callers and
+   * tests that don't exercise star hires can omit it.
+   */
+  characteristicsByPositionId?: Map<
+    number,
+    Map<number, TpPositionCharacteristics>
+  >;
 }
 
 @Injectable()
@@ -123,6 +136,7 @@ export class TpPlayersImportService {
     inducedStarPlayerHireGroups,
     matchEmbeddedPlayersByRosterId,
     starPositionIds,
+    characteristicsByPositionId,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByLineUpId: Map<number, number>;
@@ -483,11 +497,30 @@ export class TpPlayersImportService {
             continue;
           }
 
+          // A star hired mid-season has no lineUps[] entry, so no
+          // characteristics of their own: use the star position's template
+          // values for the hiring era's rules set. Missing values are not an
+          // error here -- the positions step that produced this map would
+          // already have recorded one if something were wrong upstream.
+          const starEraName = eraNameByEraId.get(eraId);
+          const starCharacteristics =
+            starEraName === undefined
+              ? undefined
+              : this.characteristicsBuilder.forStarPosition({
+                  positionId: position.id,
+                  eraName: starEraName,
+                  rulesSetIdByEraName,
+                  characteristicsByPositionId:
+                    characteristicsByPositionId ??
+                    new Map<number, Map<number, TpPositionCharacteristics>>(),
+                });
+
           const upserted = await this.playersImport.upsertPlayerResult(
             {
               name: starPlayer.name,
               teamEraId: teamEra.id,
               positionId: position.id,
+              ...starCharacteristics,
               externalIds: [
                 {
                   externalSystemId: tpSystemId,
@@ -501,12 +534,11 @@ export class TpPlayersImportService {
             imported += 1;
             starPlayerIdsByRosterAndMaster.set(key, upserted.id);
             const teamRaceCode = teamRaceCodeByRosterId.get(rosterId);
-            const eraName = eraNameByEraId.get(eraId);
-            if (teamRaceCode !== undefined && eraName !== undefined) {
+            if (teamRaceCode !== undefined && starEraName !== undefined) {
               starPositionUsages.push({
                 positionId: position.id,
                 teamRaceCode,
-                era: eraName,
+                era: starEraName,
               });
             }
           }

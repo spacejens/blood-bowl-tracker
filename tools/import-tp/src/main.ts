@@ -226,6 +226,10 @@ async function run(): Promise<ImportResult> {
     // standalone roster file -- is still imported and resolvable.
     // playerIdsByLineUpId and starPlayerIdsByRosterAndMaster are kept in
     // scope for the match-events step below.
+    // characteristicsByPositionId (from the positions step above) is consumed
+    // only by the induced-star-hire path: a star hired mid-season has no
+    // lineUps[] entry of their own, so their characteristics come from the
+    // star position's template. Ordinary roster players carry their own.
     const {
       result: playerResult,
       playerIdsByLineUpId,
@@ -238,6 +242,7 @@ async function run(): Promise<ImportResult> {
       inducedStarPlayerHireGroups,
       matchEmbeddedPlayersByRosterId,
       starPositionIds,
+      characteristicsByPositionId,
     });
 
     // Star positions get zero positions_race_eras rows from the regular
