@@ -398,7 +398,7 @@ describe('curated data files', () => {
 
   it('curates position availability against real races and eras only', () => {
     const data = readFile(
-      'before-other-importers',
+      'after-other-importers',
       'position-availability.json5',
     );
 
@@ -432,7 +432,7 @@ describe('curated data files', () => {
 
   it('never curates the same position/race/era availability twice', () => {
     const positions = readFile(
-      'before-other-importers',
+      'after-other-importers',
       'position-availability.json5',
     ).positions;
     const keys = positions.flatMap((position) =>
@@ -447,7 +447,7 @@ describe('curated data files', () => {
 
   it('curates CRP-era availability for the CRP+-only team lists', () => {
     const positions = readFile(
-      'before-other-importers',
+      'after-other-importers',
       'position-availability.json5',
     ).positions;
     const nameIds = positions.flatMap((position) =>
@@ -466,7 +466,7 @@ describe('curated data files', () => {
 
   it('curates availability for the Stunty Leeg era', () => {
     const positions = readFile(
-      'before-other-importers',
+      'after-other-importers',
       'position-availability.json5',
     ).positions;
     const stuntyEraRows = positions.flatMap((position) =>

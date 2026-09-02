@@ -9,10 +9,18 @@
 // Human teams). Genuine availability the source data cannot show is restored
 // here from the rulebook rosters.
 //
-// This file is in before-other-importers, which is safe: the API's
-// syncRaceEras is upsert-only and never deletes, so ordering does not affect
-// correctness, and this matches the convention every other curated
-// availability record follows.
+// This file lives in after-other-importers, never before, and that is load
+// bearing: many of the position references below use the "<raceName>:
+// <positionName>" Name external id that NameExternalIdService.forPosition
+// builds, and that id is only created by tools/import-bbl's position
+// importer. Curating before the importers would create an orphan position
+// row under that Name id on a fresh database; when BBL later upserts the
+// same real position, supplying both its own numeric external id (already
+// resolved to a different, earlier-created row) and that same Name id (now
+// resolved to the orphan), the two ids point at different rows and the
+// upsert throws PositionUpsertConflictError. Curating after ensures BBL has
+// already established that position's identity, so these references resolve
+// to the correct existing row instead of racing to create a duplicate.
 //
 // positions_race_eras is keyed per ERA, not per rules set. "First era" and
 // "First Stunty Leeg era" each span CRP, CRP+ and BB2016 together, so one row

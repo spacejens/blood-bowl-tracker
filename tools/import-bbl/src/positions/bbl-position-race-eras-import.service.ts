@@ -211,7 +211,7 @@ export class BblPositionRaceErasImportService {
             // available to Human teams under BB2016) — an era's silence is
             // not evidence of availability. Genuine availability with no
             // evidence in the source data is restored by hand in
-            // tools/import-manual/data/before-other-importers/position-availability.json5.
+            // tools/import-manual/data/after-other-importers/position-availability.json5.
             include = false;
             includeForCharacteristics = false;
           }
