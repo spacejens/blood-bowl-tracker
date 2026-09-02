@@ -67,9 +67,11 @@ describe('RacePositionsQueryService', () => {
     await service.positionsFor(7);
 
     const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
-    const rendered = new PgDialect().sqlToQuery(condition).sql.toLowerCase();
+    const { sql: renderedSql, params } = new PgDialect().sqlToQuery(condition);
+    const rendered = renderedSql.toLowerCase();
     expect(rendered).toContain('is_star_player');
     expect(rendered).toContain('race_id');
+    expect(params).toEqual([7, false]);
   });
 
   it("returns the distinct rules sets the race's eras map to", async () => {
