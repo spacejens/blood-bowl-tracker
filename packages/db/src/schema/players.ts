@@ -45,17 +45,23 @@ const playersTable = historyTrackedTable({
     // sets in sequence, so nothing here can resolve one unambiguously —
     // whichever caller needs one for validation supplies it explicitly.
     //
-    // The DEFAULT 0 on the four NOT NULL columns is temporary: it exists
-    // only so existing rows satisfy NOT NULL before the BBL and TP importers
-    // populate real values. 0 is not a legal value for any characteristic
-    // under any rules set, so it is purely a placeholder.
+    // The DEFAULT 0 on move/strength/agility/armour (NOT NULL) and on
+    // passing (nullable) is temporary: it exists only so existing rows have
+    // a placeholder before the BBL and TP importers populate real values. 0
+    // is not a legal value for any characteristic under any rules set, so it
+    // can never be mistaken for a real one.
     move: integer('move').notNull().default(0),
     strength: integer('strength').notNull().default(0),
     agility: integer('agility').notNull().default(0),
-    // Nullable with no default, mirroring `position_rules_sets.passing`:
-    // NULL permanently means "this player's rules set has no Passing
-    // characteristic" (an asserted absence), never "not yet known".
-    passing: integer('passing'),
+    // Nullable, mirroring `position_rules_sets.passing`: NULL permanently
+    // means "this player's rules set has no Passing characteristic" (an
+    // asserted absence). The DEFAULT 0 placeholder exists only for rows this
+    // migration backfills, whose actual rules set isn't known yet — an
+    // explicit importer write of `passing: null` is what asserts absence,
+    // never the migration default. Once every player has a real value
+    // (tracked by #705), the only values remaining will be a real number or
+    // an explicitly-asserted null.
+    passing: integer('passing').default(0),
     armour: integer('armour').notNull().default(0),
   },
 });

@@ -335,9 +335,12 @@ rules set — so the columns live directly on the row, and no rules set is
 stored alongside them (an era can list several rules sets in sequence, so
 none can be derived from a player unambiguously). `passing` is nullable with
 the same meaning as on `position_rules_sets`: NULL asserts that the player's
-rules set has no Passing characteristic. The other four are NOT NULL with a
-temporary `DEFAULT 0` — a placeholder, since 0 is not a legal value under any
-rules set — until the BBL and TP imports populate real values.
+rules set has no Passing characteristic — an explicit importer write, never
+the migration default. All five columns carry a temporary `DEFAULT 0` — a
+placeholder, since 0 is not a legal value under any rules set — so an
+existing row's `passing` reads as "not yet known" rather than being
+mistaken for an asserted absence, until the BBL and TP imports populate real
+values.
 `PlayersService.upsert` accepts the five as an all-or-nothing group paired
 with a `rulesSetId` that is used only to validate them (via the same
 `CharacteristicFormatValidationService` that `PositionRulesSetsService` uses)
