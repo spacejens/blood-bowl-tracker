@@ -126,6 +126,59 @@ describe('TpPlayersImportService characteristics', () => {
     expect(payload).not.toHaveProperty('rulesSetId');
   });
 
+  it("falls back to the recruited position's characteristics for a player known only from a match-embedded snapshot", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service } = await makeService({ upsertPlayerResult });
+
+    await service.importPlayers({
+      rosters: rosterWith(undefined),
+      teamErasByRosterId: teamEras,
+      characteristicsByPositionId: new Map([
+        [
+          200,
+          new Map([
+            [900, { move: 5, strength: 3, agility: 4, passing: 6, armour: 9 }],
+          ]),
+        ],
+      ]),
+    });
+
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        move: 5,
+        strength: 3,
+        agility: 4,
+        passing: 6,
+        armour: 9,
+        rulesSetId: 900,
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("prefers the player's own characteristics over the position fallback when both are available", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service } = await makeService({ upsertPlayerResult });
+
+    await service.importPlayers({
+      rosters: rosterWith(OWN),
+      teamErasByRosterId: teamEras,
+      characteristicsByPositionId: new Map([
+        [
+          200,
+          new Map([
+            [900, { move: 1, strength: 1, agility: 1, passing: 1, armour: 1 }],
+          ]),
+        ],
+      ]),
+    });
+
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({ ...OWN, rulesSetId: 900 }),
+      expect.anything(),
+    );
+  });
+
   it("sends no characteristics when the player's era resolved to no rules set", async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service } = await makeService({

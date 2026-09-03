@@ -9,6 +9,21 @@ const RULES_SET_IDS = new Map([
   ['Fifth era', 901],
 ]);
 
+const OWN = {
+  move: 6,
+  strength: 4,
+  agility: 3,
+  passing: 5,
+  armour: 10,
+};
+
+function byPositionWith(
+  positionId: number,
+  entries: [number, TpPositionCharacteristics][],
+): Map<number, Map<number, TpPositionCharacteristics>> {
+  return new Map([[positionId, new Map(entries)]]);
+}
+
 describe('TpPlayerCharacteristicsBuilderService', () => {
   let service: TpPlayerCharacteristicsBuilderService;
 
@@ -22,81 +37,50 @@ describe('TpPlayerCharacteristicsBuilderService', () => {
   it("builds a full payload from a player's own characteristics", () => {
     expect(
       service.forRosterPlayer({
-        characteristics: {
-          move: 6,
-          strength: 4,
-          agility: 3,
-          passing: 5,
-          armour: 10,
-        },
+        characteristics: OWN,
+        positionId: 70,
         eraName: 'Fourth era',
         rulesSetIdByEraName: RULES_SET_IDS,
       }),
-    ).toEqual({
-      move: 6,
-      strength: 4,
-      agility: 3,
-      passing: 5,
-      armour: 10,
-      rulesSetId: 900,
-    });
+    ).toEqual({ ...OWN, rulesSetId: 900 });
   });
 
   it('carries a zero Passing through unchanged', () => {
     expect(
       service.forRosterPlayer({
-        characteristics: {
-          move: 5,
-          strength: 3,
-          agility: 4,
-          passing: 0,
-          armour: 9,
-        },
+        characteristics: { ...OWN, passing: 0 },
+        positionId: 70,
         eraName: 'Fourth era',
         rulesSetIdByEraName: RULES_SET_IDS,
       })?.passing,
     ).toBe(0);
   });
 
-  it('returns nothing when the player carries no characteristics', () => {
-    expect(
-      service.forRosterPlayer({
-        characteristics: undefined,
-        eraName: 'Fourth era',
-        rulesSetIdByEraName: RULES_SET_IDS,
-      }),
-    ).toBeUndefined();
-  });
-
-  it('returns nothing when the era has no resolved rules set', () => {
-    expect(
-      service.forRosterPlayer({
-        characteristics: {
-          move: 6,
-          strength: 4,
-          agility: 3,
-          passing: 5,
-          armour: 10,
-        },
-        eraName: 'Sixth era',
-        rulesSetIdByEraName: RULES_SET_IDS,
-      }),
-    ).toBeUndefined();
-  });
-
-  it("builds a payload from a star position's characteristics for that era's rules set", () => {
-    const byPosition = new Map<number, Map<number, TpPositionCharacteristics>>([
-      [
-        70,
-        new Map([
-          [900, { move: 6, strength: 5, agility: 3, passing: 4, armour: 10 }],
-          [901, { move: 7, strength: 5, agility: 3, passing: 4, armour: 10 }],
-        ]),
-      ],
+  it("prefers the player's own characteristics over the position fallback when both are available", () => {
+    const byPosition = byPositionWith(70, [
+      [900, { move: 1, strength: 1, agility: 1, passing: 1, armour: 1 }],
     ]);
 
     expect(
-      service.forStarPosition({
+      service.forRosterPlayer({
+        characteristics: OWN,
+        positionId: 70,
+        eraName: 'Fourth era',
+        rulesSetIdByEraName: RULES_SET_IDS,
+        characteristicsByPositionId: byPosition,
+      }),
+    ).toEqual({ ...OWN, rulesSetId: 900 });
+  });
+
+  it("falls back to the recruited position's characteristics when the player carries none of their own", () => {
+    const byPosition = byPositionWith(70, [
+      [900, { move: 6, strength: 5, agility: 3, passing: 4, armour: 10 }],
+      [901, { move: 7, strength: 5, agility: 3, passing: 4, armour: 10 }],
+    ]);
+
+    expect(
+      service.forRosterPlayer({
+        characteristics: undefined,
         positionId: 70,
         eraName: 'Fourth era',
         rulesSetIdByEraName: RULES_SET_IDS,
@@ -112,9 +96,21 @@ describe('TpPlayerCharacteristicsBuilderService', () => {
     });
   });
 
-  it('returns nothing when the position has no characteristics at all', () => {
+  it('returns nothing when the player carries no characteristics and no position fallback map is given', () => {
     expect(
-      service.forStarPosition({
+      service.forRosterPlayer({
+        characteristics: undefined,
+        positionId: 70,
+        eraName: 'Fourth era',
+        rulesSetIdByEraName: RULES_SET_IDS,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns nothing when the player carries no characteristics and the position has none either', () => {
+    expect(
+      service.forRosterPlayer({
+        characteristics: undefined,
         positionId: 71,
         eraName: 'Fourth era',
         rulesSetIdByEraName: RULES_SET_IDS,
@@ -123,18 +119,14 @@ describe('TpPlayerCharacteristicsBuilderService', () => {
     ).toBeUndefined();
   });
 
-  it("returns nothing when the position has no entry for the era's rules set", () => {
-    const byPosition = new Map<number, Map<number, TpPositionCharacteristics>>([
-      [
-        70,
-        new Map([
-          [901, { move: 7, strength: 5, agility: 3, passing: 4, armour: 10 }],
-        ]),
-      ],
+  it("returns nothing when the player carries no characteristics and the position has none for the era's rules set", () => {
+    const byPosition = byPositionWith(70, [
+      [901, { move: 7, strength: 5, agility: 3, passing: 4, armour: 10 }],
     ]);
 
     expect(
-      service.forStarPosition({
+      service.forRosterPlayer({
+        characteristics: undefined,
         positionId: 70,
         eraName: 'Fourth era',
         rulesSetIdByEraName: RULES_SET_IDS,
@@ -143,18 +135,25 @@ describe('TpPlayerCharacteristicsBuilderService', () => {
     ).toBeUndefined();
   });
 
-  it('returns nothing for a star position when the era has no resolved rules set', () => {
-    const byPosition = new Map<number, Map<number, TpPositionCharacteristics>>([
-      [
-        70,
-        new Map([
-          [900, { move: 6, strength: 5, agility: 3, passing: 4, armour: 10 }],
-        ]),
-      ],
+  it('returns nothing when the era has no resolved rules set, even with characteristics present', () => {
+    expect(
+      service.forRosterPlayer({
+        characteristics: OWN,
+        positionId: 70,
+        eraName: 'Sixth era',
+        rulesSetIdByEraName: RULES_SET_IDS,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns nothing for a position-only fallback when the era has no resolved rules set', () => {
+    const byPosition = byPositionWith(70, [
+      [900, { move: 6, strength: 5, agility: 3, passing: 4, armour: 10 }],
     ]);
 
     expect(
-      service.forStarPosition({
+      service.forRosterPlayer({
+        characteristics: undefined,
         positionId: 70,
         eraName: 'Sixth era',
         rulesSetIdByEraName: RULES_SET_IDS,
