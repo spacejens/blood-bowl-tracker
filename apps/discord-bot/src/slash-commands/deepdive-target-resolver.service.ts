@@ -7,6 +7,7 @@ import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-g
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
+import { PositionDeepdiveService } from '../deepdive/facts/position-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
@@ -18,6 +19,7 @@ import {
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
@@ -46,6 +48,7 @@ export class DeepdiveTargetResolverService {
     private readonly coachDeepdive: CoachDeepdiveService,
     private readonly teamDeepdive: TeamDeepdiveService,
     private readonly playerDeepdive: PlayerDeepdiveService,
+    private readonly positionDeepdive: PositionDeepdiveService,
     private readonly raceDeepdive: RaceDeepdiveService,
     private readonly competitionDeepdive: CompetitionDeepdiveService,
     private readonly competitionGroupDeepdive: CompetitionGroupDeepdiveService,
@@ -87,6 +90,19 @@ export class DeepdiveTargetResolverService {
       value,
       DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
       (id) => this.starPlayerDeepdive.resolve(id),
+    );
+  }
+
+  /**
+   * The id here is a `positions.id`, like `resolveStarPlayer`'s — but it goes
+   * to the position's own view (its characteristics per rules set), not to a
+   * star's hire history.
+   */
+  resolvePosition(value: string): Promise<string | InteractionReplyOptions> {
+    return this.resolveTarget(
+      value,
+      DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
+      (id) => this.positionDeepdive.resolve(id),
     );
   }
 

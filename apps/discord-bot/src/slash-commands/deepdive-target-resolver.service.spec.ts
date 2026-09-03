@@ -9,6 +9,7 @@ import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-g
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
+import { PositionDeepdiveService } from '../deepdive/facts/position-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
@@ -20,6 +21,7 @@ import {
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
@@ -35,6 +37,7 @@ describe('DeepdiveTargetResolverService', () => {
   let coachDeepdive: MockProxy<CoachDeepdiveService>;
   let teamDeepdive: MockProxy<TeamDeepdiveService>;
   let playerDeepdive: MockProxy<PlayerDeepdiveService>;
+  let positionDeepdive: MockProxy<PositionDeepdiveService>;
   let raceDeepdive: MockProxy<RaceDeepdiveService>;
   let competitionDeepdive: MockProxy<CompetitionDeepdiveService>;
   let competitionGroupDeepdive: MockProxy<CompetitionGroupDeepdiveService>;
@@ -47,6 +50,7 @@ describe('DeepdiveTargetResolverService', () => {
     coachDeepdive = mock<CoachDeepdiveService>();
     teamDeepdive = mock<TeamDeepdiveService>();
     playerDeepdive = mock<PlayerDeepdiveService>();
+    positionDeepdive = mock<PositionDeepdiveService>();
     raceDeepdive = mock<RaceDeepdiveService>();
     competitionDeepdive = mock<CompetitionDeepdiveService>();
     competitionGroupDeepdive = mock<CompetitionGroupDeepdiveService>();
@@ -60,6 +64,7 @@ describe('DeepdiveTargetResolverService', () => {
         { provide: CoachDeepdiveService, useValue: coachDeepdive },
         { provide: TeamDeepdiveService, useValue: teamDeepdive },
         { provide: PlayerDeepdiveService, useValue: playerDeepdive },
+        { provide: PositionDeepdiveService, useValue: positionDeepdive },
         { provide: RaceDeepdiveService, useValue: raceDeepdive },
         { provide: CompetitionDeepdiveService, useValue: competitionDeepdive },
         {
@@ -189,6 +194,20 @@ describe('DeepdiveTargetResolverService', () => {
       DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
     );
     expect(starPlayerDeepdive.resolve).not.toHaveBeenCalled();
+  });
+
+  it('delegates a numeric position value to the position deepdive', async () => {
+    positionDeepdive.resolve.mockResolvedValue('rendered');
+
+    await expect(service.resolvePosition('4')).resolves.toBe('rendered');
+    expect(positionDeepdive.resolve).toHaveBeenCalledWith(4);
+  });
+
+  it('returns the not-found message for a non-integer position value', async () => {
+    await expect(service.resolvePosition('nope')).resolves.toBe(
+      DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
+    );
+    expect(positionDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('resolves a league target by id', async () => {

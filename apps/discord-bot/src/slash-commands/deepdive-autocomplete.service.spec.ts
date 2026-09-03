@@ -5,6 +5,7 @@ import {
   ErasService,
   LeaguesService,
   PlayersService,
+  PositionsService,
   RacesService,
   StarPlayersService,
   TeamsService,
@@ -25,6 +26,7 @@ function autocompleteInteraction(
     | 'coach'
     | 'team'
     | 'player'
+    | 'position'
     | 'race'
     | 'competition'
     | 'competition-group'
@@ -49,6 +51,7 @@ describe('DeepdiveAutocompleteService', () => {
   let coaches: MockProxy<CoachesService>;
   let teams: MockProxy<TeamsService>;
   let players: MockProxy<PlayersService>;
+  let positions: MockProxy<PositionsService>;
   let races: MockProxy<RacesService>;
   let stars: MockProxy<StarPlayersService>;
   let trophies: MockProxy<TrophiesService>;
@@ -61,6 +64,7 @@ describe('DeepdiveAutocompleteService', () => {
     coaches = mock<CoachesService>();
     teams = mock<TeamsService>();
     players = mock<PlayersService>();
+    positions = mock<PositionsService>();
     races = mock<RacesService>();
     stars = mock<StarPlayersService>();
     trophies = mock<TrophiesService>();
@@ -75,6 +79,7 @@ describe('DeepdiveAutocompleteService', () => {
         { provide: CoachesService, useValue: coaches },
         { provide: TeamsService, useValue: teams },
         { provide: PlayersService, useValue: players },
+        { provide: PositionsService, useValue: positions },
         { provide: RacesService, useValue: races },
         { provide: StarPlayersService, useValue: stars },
         { provide: TrophiesService, useValue: trophies },
@@ -127,6 +132,17 @@ describe('DeepdiveAutocompleteService', () => {
     await expect(
       service.resolve(autocompleteInteraction('or', 'race')),
     ).resolves.toEqual([{ name: 'Orc', value: '4' }]);
+  });
+
+  it('offers position choices with the position id as the value', async () => {
+    positions.searchByNamePrefix.mockResolvedValue([
+      { id: 4, name: 'Blitzer' },
+    ]);
+
+    await expect(
+      service.resolve(autocompleteInteraction('Bl', 'position')),
+    ).resolves.toEqual([{ name: 'Blitzer', value: '4' }]);
+    expect(positions.searchByNamePrefix).toHaveBeenCalledWith('Bl', 25);
   });
 
   it('returns competition choices labelled "<name> (<league>)" with id values', async () => {
