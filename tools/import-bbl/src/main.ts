@@ -63,6 +63,7 @@ async function run(): Promise<ImportResult> {
     const playerOutcome = await app.get(BblPlayersImportService).importPlayers({
       teamsByCode: teamOutcome.teamsByCode,
       racesByBblId: raceOutcome.racesByBblId,
+      rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
     });
     const positionRaceErasOutcome = await app
       .get(BblPositionRaceErasImportService)
