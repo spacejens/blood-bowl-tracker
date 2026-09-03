@@ -20,6 +20,11 @@ const aggregate: TpRawPlayerAggregate = {
     [7, 1],
   ]),
   matchCount: 2,
+  move: null,
+  strength: null,
+  agility: null,
+  passing: null,
+  armour: null,
 };
 
 async function makeService(found: TpRawPlayerAggregate | null): Promise<{
