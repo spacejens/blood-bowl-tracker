@@ -9,6 +9,9 @@ import { ReviewPlayerConfigService } from '../config/review-player-config.servic
 /** `match_<id>.json` — TP's per-match file, one per competition directory. */
 const MATCH_FILENAME = /^match_(\d+)\.json$/;
 
+/** `rosters_<id>.json` — TP's per-team roster file, one per team per competition. */
+const ROSTERS_FILENAME = /^rosters_\d+\.json$/;
+
 /** The two rosters a TP `match_<id>.json` embeds its line-ups under. */
 const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
 
@@ -25,11 +28,33 @@ export interface TpRawPlayerAggregate {
   eventCounts: Map<number, number>;
   /** How many match files the player appears in. */
   matchCount: number;
+  /**
+   * The player's own MA/ST/AG/PA/AV, from the roster file that carries their
+   * line-up id. Null when no downloaded roster file does — TP publishes a
+   * player's characteristics only in `rosters_<id>.json`; the `lineUps[]`
+   * snapshots embedded in a match file carry none — and TP's `pa: 0`, which
+   * means "this position has no Passing characteristic at all", is reported
+   * here as null rather than as a zero.
+   */
+  move: number | null;
+  strength: number | null;
+  agility: number | null;
+  passing: number | null;
+  armour: number | null;
 }
 
 /** Mutable accumulator, plus the match id the reported total came from. */
 interface Accumulator extends TpRawPlayerAggregate {
   latestMatchId: number;
+}
+
+/** One roster line-up entry's five characteristic values. */
+interface RawCharacteristics {
+  move: number | null;
+  strength: number | null;
+  agility: number | null;
+  passing: number | null;
+  armour: number | null;
 }
 
 /**
@@ -38,11 +63,14 @@ interface Accumulator extends TpRawPlayerAggregate {
  * (name, position, TP's own reported total) and every match event attributed
  * to their `lineUpId`.
  *
- * The whole mirror is scanned exactly once per process, into an index keyed by
- * line-up id, because the alternative — re-scanning per sampled player — would
- * re-parse ~96 MB of JSON per player. The scan is the tool's slowest step by
- * far; that is the price of not reusing tools/import-tp's reader, which is the
- * code under review.
+ * The whole mirror is scanned exactly once per process — both the
+ * `match_<id>.json` files and the `rosters_<id>.json` files, which are where
+ * TP publishes a player's own MA/ST/AG/PA/AV (a match file's embedded
+ * `lineUps[]` entries carry none) — into an index keyed by line-up id,
+ * because the alternative — re-scanning per sampled player — would re-parse
+ * ~96 MB of JSON per player. The scan is the tool's slowest step by far; that
+ * is the price of not reusing tools/import-tp's reader, which is the code
+ * under review.
  *
  * Every shape check is defensive: this reads unvalidated JSON straight off
  * disk, and a raw panel that throws is strictly worse for a reviewer than one
@@ -66,34 +94,76 @@ export class TpRawPlayerIndexService {
 
   private async buildIndex(): Promise<Map<number, Accumulator>> {
     const players = new Map<number, Accumulator>();
+    const characteristics = new Map<number, RawCharacteristics>();
     const dataDir = this.config.getDataDir('tp');
     for (const era of await this.subdirectories(dataDir)) {
       const eraDir = join(dataDir, era.name);
       for (const competition of await this.subdirectories(eraDir)) {
         const competitionDir = join(eraDir, competition.name);
         for (const entry of await this.entries(competitionDir)) {
-          const matched = entry.isFile()
-            ? MATCH_FILENAME.exec(entry.name)
-            : null;
-          if (matched) {
-            const file = await this.readMatchFile(
-              join(competitionDir, entry.name),
-            );
-            if (file !== null) {
-              this.absorb(players, file, Number(matched[1]));
-            }
+          if (entry.isFile()) {
+            await this.absorbFile({
+              players,
+              characteristics,
+              file: { dir: competitionDir, name: entry.name },
+            });
           }
         }
       }
     }
+    this.applyCharacteristics(players, characteristics);
     return players;
   }
 
-  private async readMatchFile(path: string): Promise<unknown> {
+  private async readJsonFile(path: string): Promise<unknown> {
     try {
       return JSON.parse(await readFile(path, 'utf8')) as unknown;
     } catch {
       return null;
+    }
+  }
+
+  /** One directory entry: a match file, a roster file, or neither. */
+  private async absorbFile(input: {
+    players: Map<number, Accumulator>;
+    characteristics: Map<number, RawCharacteristics>;
+    file: { dir: string; name: string };
+  }): Promise<void> {
+    const { players, characteristics, file } = input;
+    const matched = MATCH_FILENAME.exec(file.name);
+    const isRoster = ROSTERS_FILENAME.test(file.name);
+    if (matched === null && !isRoster) {
+      return;
+    }
+    const body = await this.readJsonFile(join(file.dir, file.name));
+    if (body === null) {
+      return;
+    }
+    if (matched !== null) {
+      this.absorb(players, body, Number(matched[1]));
+    } else {
+      this.absorbRoster(characteristics, body);
+    }
+  }
+
+  /**
+   * Copy each roster's characteristics onto the player it belongs to. A
+   * line-up id present only in a roster file is dropped: this index's unit is
+   * a player seen in a match, and the rest of the aggregate would be empty.
+   */
+  private applyCharacteristics(
+    players: Map<number, Accumulator>,
+    characteristics: Map<number, RawCharacteristics>,
+  ): void {
+    for (const [lineUpId, line] of characteristics) {
+      const player = players.get(lineUpId);
+      if (player !== undefined) {
+        player.move = line.move;
+        player.strength = line.strength;
+        player.agility = line.agility;
+        player.passing = line.passing;
+        player.armour = line.armour;
+      }
     }
   }
 
@@ -140,6 +210,11 @@ export class TpRawPlayerIndexService {
       eventCounts: new Map(),
       matchCount: 0,
       latestMatchId: 0,
+      move: null,
+      strength: null,
+      agility: null,
+      passing: null,
+      armour: null,
     };
     player.matchCount += 1;
     // TP's match ids increase over time, so the highest one a player appears
@@ -162,6 +237,39 @@ export class TpRawPlayerIndexService {
     if (typeof starPoints === 'number') {
       player.starPointsFromEvents += starPoints;
     }
+  }
+
+  /**
+   * A team's roster file: every line-up entry's own current characteristics,
+   * keyed by the same line-up id the match files use. An entry with no
+   * readable `ma` is skipped — that is the shape of a roster entry which
+   * carries no characteristics line at all.
+   */
+  private absorbRoster(
+    characteristics: Map<number, RawCharacteristics>,
+    file: unknown,
+  ): void {
+    for (const entry of this.arrayProperty(file, 'lineUps')) {
+      const id = this.property(entry, 'id');
+      const move = this.numberProperty(entry, 'ma');
+      if (typeof id !== 'number' || move === null) {
+        continue;
+      }
+      const passing = this.numberProperty(entry, 'pa');
+      characteristics.set(id, {
+        move,
+        strength: this.numberProperty(entry, 'st'),
+        agility: this.numberProperty(entry, 'ag'),
+        // TP writes 0 for a position with no Passing characteristic at all.
+        passing: passing === 0 ? null : passing,
+        armour: this.numberProperty(entry, 'av'),
+      });
+    }
+  }
+
+  private numberProperty(value: unknown, key: string): number | null {
+    const property = this.property(value, key);
+    return typeof property === 'number' ? property : null;
   }
 
   private lineUpsOf(file: unknown, key: string): unknown[] {

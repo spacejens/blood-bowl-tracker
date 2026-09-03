@@ -29,6 +29,14 @@ function writeMatch(matchId: number, body: unknown): void {
   );
 }
 
+function writeRoster(rosterId: number, lineUps: unknown[]): void {
+  writeFileSync(
+    join(dir, 'fourth-era', 'season-30', `rosters_${rosterId}.json`),
+    JSON.stringify({ lineUps }),
+    'utf8',
+  );
+}
+
 function matchFile(options: {
   lineUpTotal: number;
   events: { lineUpId?: number; matchEventType: number; starPoints?: number }[];
@@ -256,5 +264,72 @@ describe('TpRawPlayerIndexService', () => {
     writeFileSync(dir, 'not a directory', 'utf8');
 
     await expect(service.aggregateFor('2477481')).rejects.toThrow();
+  });
+
+  it('reads a player characteristics line from the roster file', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 6,
+      strength: 4,
+      agility: 3,
+      passing: 5,
+      armour: 10,
+    });
+  });
+
+  it('reports TP pa 0 as no Passing characteristic', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 4, st: 5, ag: 4, pa: 0, av: 10 }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.passing).toBeNull();
+  });
+
+  it('leaves characteristics null for a player no roster file carries', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: null,
+      strength: null,
+      agility: null,
+      passing: null,
+      armour: null,
+    });
+  });
+
+  it('ignores a roster entry with no readable characteristics line', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, name: 'no stats here' }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.move).toBeNull();
+  });
+
+  it('ignores roster characteristics for a line-up id no match file mentions', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 999999, ma: 6, st: 3, ag: 3, pa: 4, av: 9 }]);
+
+    expect(await service.aggregateFor('999999')).toBeNull();
+  });
+
+  it('skips a malformed roster file rather than failing the scan', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeFileSync(
+      join(dir, 'fourth-era', 'season-30', 'rosters_500.json'),
+      'not json at all',
+      'utf8',
+    );
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.move).toBeNull();
   });
 });
