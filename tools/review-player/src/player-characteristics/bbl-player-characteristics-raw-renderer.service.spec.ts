@@ -60,7 +60,9 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
 
     const html = await service.render('1000');
 
-    expect(html).toContain('<td>6</td><td>3</td><td>3</td><td>—</td><td>9</td>');
+    expect(html).toContain(
+      '<td>6</td><td>3</td><td>3</td><td>—</td><td>9</td>',
+    );
   });
 
   it('renders a zero cell as the none marker rather than "0"', async () => {
@@ -111,7 +113,9 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
 
   it('renders an unreadable cell verbatim so the reviewer sees what the page says', async () => {
     const { service, loader } = await makeService();
-    loader.loadPlayerPage.mockResolvedValue(page(['5', '3', '3+', 'n/a', '8+']));
+    loader.loadPlayerPage.mockResolvedValue(
+      page(['5', '3', '3+', 'n/a', '8+']),
+    );
 
     const html = await service.render('1000');
 
