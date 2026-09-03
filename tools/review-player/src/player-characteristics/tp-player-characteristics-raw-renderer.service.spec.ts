@@ -105,14 +105,39 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
     );
   });
 
-  it('notes a player not in the TP index', async () => {
+  it('notes a player who appears in no downloaded TP match file', async () => {
     const { service, index } = await makeService();
     index.aggregateFor.mockResolvedValue(null);
 
     const html = await service.render('9999');
 
     expect(html).toBe(
-      '<p class="note">No TP roster entry for line-up id 9999 in the downloaded mirror.</p>',
+      '<p class="note">Line-up id 9999 appears in no downloaded TP match file.</p>',
+    );
+  });
+
+  it('notes a player no downloaded roster file carries characteristics for', async () => {
+    const { service, index } = await makeService();
+    const aggregate: TpRawPlayerAggregate = {
+      lineUpId: 1,
+      name: 'Test Player',
+      position: 'Unknown',
+      totalStarPlayerPoints: 0,
+      starPointsFromEvents: 0,
+      eventCounts: new Map(),
+      matchCount: 1,
+      move: null,
+      strength: null,
+      agility: null,
+      passing: null,
+      armour: null,
+    };
+    index.aggregateFor.mockResolvedValue(aggregate);
+
+    const html = await service.render('4');
+
+    expect(html).toBe(
+      '<p class="note">No characteristics for line-up id 4 in any downloaded TP roster file.</p>',
     );
   });
 });

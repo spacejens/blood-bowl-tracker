@@ -13,6 +13,12 @@ const HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
  * none marker, since zero is never a real characteristic value (and TP reports
  * null for a characteristic the position doesn't have).
  *
+ * Two distinct gaps get two distinct notes, because they mean different
+ * things: a line-up id in no match file at all is a player this tool cannot
+ * see, while a line-up id with no roster entry is a player TP publishes no
+ * characteristics for (roster files cover fewer competitions than match files
+ * do). Neither is an error.
+ *
  * `HtmlService` is injected real in this service's spec — it is a pure
  * formatter with its own tests, and mocking it would leave the markup
  * unasserted.
@@ -28,16 +34,23 @@ export class TpPlayerCharacteristicsRawRendererService {
     const aggregate = await this.index.aggregateFor(externalId);
     if (aggregate === null) {
       return this.html.note(
-        `No TP roster entry for line-up id ${externalId} in the downloaded mirror.`,
+        `Line-up id ${externalId} appears in no downloaded TP match file.`,
       );
     }
-    const cells = [
-      this.display(aggregate.move),
-      this.display(aggregate.strength),
-      this.display(aggregate.agility),
-      this.display(aggregate.passing),
-      this.display(aggregate.armour),
+    const values = [
+      aggregate.move,
+      aggregate.strength,
+      aggregate.agility,
+      aggregate.passing,
+      aggregate.armour,
     ];
+    if (values.every((value) => value === null)) {
+      return this.html.note(
+        `No characteristics for line-up id ${externalId} in any downloaded ` +
+          'TP roster file.',
+      );
+    }
+    const cells = values.map((value) => this.display(value));
     return this.html.table([...HEADERS], [cells]);
   }
 
