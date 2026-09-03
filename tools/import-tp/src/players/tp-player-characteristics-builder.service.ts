@@ -28,28 +28,38 @@ export interface TpPlayerCharacteristicsPayload {
 @Injectable()
 export class TpPlayerCharacteristicsBuilderService {
   /**
-   * A player's characteristics, validated under the rules set their era
-   * declares. Prefers the player's own current values (from a `lineUps[]`
-   * entry) when present. Falls back to the recruited position's accumulated
-   * template characteristics -- the same values `TpPositionsImportService`
-   * already collected per rules set -- for the two cases where no
-   * player-specific line exists: a player known only from a match-embedded
-   * snapshot (one who has since left the roster the standalone
-   * `rosters_<id>.json` file reflects, so it carries no `ma/st/ag/pa/av` for
-   * them), and a star player hired mid-season via an `inducements_roll`
-   * event, which has no `lineUps[]` entry at all. This mirrors #671's own
-   * model of a player's characteristics: seeded from their position's, free
-   * to differ once real per-player data exists.
-   *
-   * Returns `undefined` when the era resolved to no single rules set, or when
-   * neither the player's own values nor the position fallback are available
-   * -- an omitted group leaves whatever is already stored untouched. A
-   * missing position fallback is not an error here: the positions step that
-   * produced `characteristicsByPositionId` would already have recorded one if
-   * something were wrong upstream.
+   * A roster player's own current characteristics, validated under the rules
+   * set the player's era declares. Returns `undefined` when the player carried
+   * none (a match-embedded-only entry: `lineUps[]` snapshots inside a match
+   * file have no `ma/st/ag/pa/av`) or when the era resolved to no single rules
+   * set -- an omitted group leaves whatever is already stored untouched.
    */
   forRosterPlayer(options: {
     characteristics: TpPlayerCharacteristics | undefined;
+    eraName: string;
+    rulesSetIdByEraName: Map<string, number>;
+  }): TpPlayerCharacteristicsPayload | undefined {
+    const { characteristics, eraName, rulesSetIdByEraName } = options;
+    if (characteristics === undefined) {
+      return undefined;
+    }
+    const rulesSetId = rulesSetIdByEraName.get(eraName);
+    if (rulesSetId === undefined) {
+      return undefined;
+    }
+    return { ...characteristics, rulesSetId };
+  }
+
+  /**
+   * A star player hired mid-season via an `inducements_roll` event has no
+   * `lineUps[]` entry, so no characteristics of their own; a freshly-hired
+   * star's values are the position template's, which the positions import step
+   * already accumulated per rules set. Returns `undefined` when the position
+   * has no accumulated characteristics for this era's rules set -- unexpected,
+   * but not an error here: the positions step would already have recorded one
+   * if something were wrong upstream.
+   */
+  forStarPosition(options: {
     positionId: number;
     eraName: string;
     rulesSetIdByEraName: Map<string, number>;
@@ -59,7 +69,6 @@ export class TpPlayerCharacteristicsBuilderService {
     >;
   }): TpPlayerCharacteristicsPayload | undefined {
     const {
-      characteristics,
       positionId,
       eraName,
       rulesSetIdByEraName,
@@ -69,15 +78,12 @@ export class TpPlayerCharacteristicsBuilderService {
     if (rulesSetId === undefined) {
       return undefined;
     }
-    if (characteristics !== undefined) {
-      return { ...characteristics, rulesSetId };
-    }
-    const positionCharacteristics = characteristicsByPositionId
+    const characteristics = characteristicsByPositionId
       ?.get(positionId)
       ?.get(rulesSetId);
-    if (positionCharacteristics === undefined) {
+    if (characteristics === undefined) {
       return undefined;
     }
-    return { ...positionCharacteristics, rulesSetId };
+    return { ...characteristics, rulesSetId };
   }
 }
