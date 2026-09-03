@@ -10,7 +10,7 @@ import { ReviewPlayerConfigService } from '../config/review-player-config.servic
 const MATCH_FILENAME = /^match_(\d+)\.json$/;
 
 /** `rosters_<id>.json` — TP's per-team roster file, one per team per competition. */
-const ROSTERS_FILENAME = /^rosters_\d+\.json$/;
+const ROSTERS_FILENAME = /^rosters_(\d+)\.json$/;
 
 /** The two rosters a TP `match_<id>.json` embeds its line-ups under. */
 const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
@@ -48,8 +48,13 @@ interface Accumulator extends TpRawPlayerAggregate {
   latestMatchId: number;
 }
 
-/** One roster line-up entry's five characteristic values. */
+/**
+ * One roster line-up entry's five characteristic values, plus the id of the
+ * `rosters_<id>.json` file it was read from — needed to decide which of two
+ * disagreeing roster files wins (see `absorbRoster`).
+ */
 interface RawCharacteristics {
+  rosterId: number;
   move: number | null;
   strength: number | null;
   agility: number | null;
@@ -131,8 +136,8 @@ export class TpRawPlayerIndexService {
   }): Promise<void> {
     const { players, characteristics, file } = input;
     const matched = MATCH_FILENAME.exec(file.name);
-    const isRoster = ROSTERS_FILENAME.test(file.name);
-    if (matched === null && !isRoster) {
+    const rosterMatch = ROSTERS_FILENAME.exec(file.name);
+    if (matched === null && rosterMatch === null) {
       return;
     }
     const body = await this.readJsonFile(join(file.dir, file.name));
@@ -141,8 +146,8 @@ export class TpRawPlayerIndexService {
     }
     if (matched !== null) {
       this.absorb(players, body, Number(matched[1]));
-    } else {
-      this.absorbRoster(characteristics, body);
+    } else if (rosterMatch !== null) {
+      this.absorbRoster(characteristics, body, Number(rosterMatch[1]));
     }
   }
 
@@ -244,10 +249,17 @@ export class TpRawPlayerIndexService {
    * keyed by the same line-up id the match files use. An entry with no
    * readable `ma` is skipped — that is the shape of a roster entry which
    * carries no characteristics line at all.
+   *
+   * A line-up id can appear in more than one downloaded `rosters_<id>.json`
+   * file with disagreeing values. `readdir` order is not a meaningful
+   * ordering, so ties are broken the same way `absorbLineUp` already breaks
+   * them for match data: the higher-numbered file id is treated as the more
+   * recent source and wins.
    */
   private absorbRoster(
     characteristics: Map<number, RawCharacteristics>,
     file: unknown,
+    rosterId: number,
   ): void {
     for (const entry of this.arrayProperty(file, 'lineUps')) {
       const id = this.property(entry, 'id');
@@ -255,8 +267,13 @@ export class TpRawPlayerIndexService {
       if (typeof id !== 'number' || move === null) {
         continue;
       }
+      const existing = characteristics.get(id);
+      if (existing !== undefined && existing.rosterId >= rosterId) {
+        continue;
+      }
       const passing = this.numberProperty(entry, 'pa');
       characteristics.set(id, {
+        rosterId,
         move,
         strength: this.numberProperty(entry, 'st'),
         agility: this.numberProperty(entry, 'ag'),

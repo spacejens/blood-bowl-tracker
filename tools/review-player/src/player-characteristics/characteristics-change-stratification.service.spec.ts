@@ -1,8 +1,10 @@
+import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -35,11 +37,21 @@ describe('CharacteristicsChangeStratificationService', () => {
         PlayerProjectionQueryService['base']
       >,
     );
+    // The service also builds a real correlated subquery through the
+    // injected `Db` (the era's max rules-set id), which is embedded as a
+    // value inside the outer query's condition rather than awaited on its
+    // own. It needs a genuine drizzle query builder behind it — the
+    // auto-chaining `mockDb()` stand-in returns plain jest-mock objects, not
+    // real drizzle SQL nodes, and can't be rendered by `PgDialect`.
+    // `drizzle.mock()` never connects, so it is safe to use here even though
+    // it is otherwise a production driver.
+    const db = drizzle.mock();
     const moduleRef = await Test.createTestingModule({
       providers: [
         CharacteristicsChangeStratificationService,
         { provide: ExternalSystemLookupService, useValue: externalSystems },
         { provide: PlayerProjectionQueryService, useValue: query },
+        { provide: DB, useValue: db },
       ],
     }).compile();
     service = moduleRef.get(CharacteristicsChangeStratificationService);
@@ -120,6 +132,14 @@ describe('CharacteristicsChangeStratificationService', () => {
     expect(joins).toContain('era_rules_sets');
     expect(joins.toLowerCase()).toContain('max');
     expect(joins).toContain('position_rules_sets');
+    // The correlated subquery must resolve to a real, schema-qualified
+    // table — not a bare alias identifier with no FROM behind it (the
+    // rendering a raw sql fragment referencing a manually-created alias
+    // produces, which Postgres rejects as "relation does not exist").
+    expect(joins).toContain(
+      'from "game_data"."era_rules_sets" "latest_era_rules_sets"',
+    );
+    expect(joins).toContain('"latest_era_rules_sets"."era_id"');
   });
 
   it('rejects an unknown stratum id', async () => {

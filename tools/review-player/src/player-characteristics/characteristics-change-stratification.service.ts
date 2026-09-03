@@ -1,10 +1,12 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import {
+  DB,
   eraRulesSets,
   players,
   positionRulesSets,
   teamEras,
 } from '@blood-bowl-tracker/db';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { SQL } from 'drizzle-orm';
 import { and, eq, gt, isNotNull, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -63,6 +65,7 @@ export class CharacteristicsChangeStratificationService implements PlayerStratif
   constructor(
     private readonly externalSystems: ExternalSystemLookupService,
     private readonly query: PlayerProjectionQueryService,
+    @Inject(DB) private readonly db: Db,
   ) {}
 
   listStrata(): ReviewStratum[] {
@@ -77,16 +80,24 @@ export class CharacteristicsChangeStratificationService implements PlayerStratif
     const condition = this.filterFor(stratumId);
     const externalSystemId = await this.externalSystems.getSystemId(source);
     const latest = alias(eraRulesSets, 'latest_era_rules_sets');
+    // The era's last-listed rules set: era_rules_sets rows are inserted in
+    // the order the importers' own configs list them, so the highest id for
+    // an era is what those configs mean by "last-listed". Built through the
+    // query builder (not a raw sql fragment referencing the alias directly)
+    // so drizzle registers the alias's FROM and schema-qualifies it — a raw
+    // `sql` template referencing `latest` without a builder-owned FROM
+    // renders it as a bare, non-existent identifier instead.
+    const maxIdSubquery = this.db
+      .select({ id: sql<number>`max(${latest.id})` })
+      .from(latest)
+      .where(eq(latest.eraId, teamEras.eraId));
     const rows = await this.query
       .base(externalSystemId)
       .innerJoin(
         eraRulesSets,
         and(
           eq(eraRulesSets.eraId, teamEras.eraId),
-          // The era's last-listed rules set: era_rules_sets rows are inserted
-          // in the order the importers' own configs list them, so the highest
-          // id for an era is what those configs mean by "last-listed".
-          sql`${eraRulesSets.id} = (select max(${latest.id}) from ${latest} where ${latest.eraId} = ${teamEras.eraId})`,
+          eq(eraRulesSets.id, maxIdSubquery),
         ),
       )
       .innerJoin(

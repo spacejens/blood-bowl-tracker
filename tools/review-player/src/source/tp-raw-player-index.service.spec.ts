@@ -320,6 +320,38 @@ describe('TpRawPlayerIndexService', () => {
     expect(await service.aggregateFor('999999')).toBeNull();
   });
 
+  it('prefers characteristics from the higher-numbered roster file on conflict', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 8,
+      strength: 2,
+      agility: 5,
+      passing: 3,
+      armour: 9,
+    });
+  });
+
+  it('keeps the higher-numbered roster file when it is scanned first', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 8,
+      strength: 2,
+      agility: 5,
+      passing: 3,
+      armour: 9,
+    });
+  });
+
   it('skips a malformed roster file rather than failing the scan', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
     writeFileSync(
