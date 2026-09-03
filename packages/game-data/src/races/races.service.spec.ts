@@ -435,6 +435,58 @@ describe('RacesService', () => {
     });
   });
 
+  describe('listPositionsByEra', () => {
+    it('groups positions under their era, preserving the query order', async () => {
+      await build([
+        { eraId: 3, eraName: 'BB2016', positionId: 1, positionName: 'Blitzer' },
+        { eraId: 3, eraName: 'BB2016', positionId: 2, positionName: 'Lineman' },
+        { eraId: 4, eraName: 'BB2020', positionId: 2, positionName: 'Lineman' },
+      ]);
+
+      await expect(service.listPositionsByEra(1)).resolves.toEqual([
+        {
+          eraId: 3,
+          eraName: 'BB2016',
+          positions: [
+            { id: 1, name: 'Blitzer' },
+            { id: 2, name: 'Lineman' },
+          ],
+        },
+        {
+          eraId: 4,
+          eraName: 'BB2020',
+          positions: [{ id: 2, name: 'Lineman' }],
+        },
+      ]);
+    });
+
+    it('returns an empty array when the race has no positions recorded', async () => {
+      await build([]);
+
+      await expect(service.listPositionsByEra(1)).resolves.toEqual([]);
+    });
+
+    it('filters on the requested race and orders by era start date then position name', async () => {
+      const { chains } = await build([]);
+
+      await service.listPositionsByEra(7);
+
+      // A single eq() filter (no and()/inArray()) renders as a scalar Param,
+      // not an array — extractFilterValues returns it unwrapped in that case
+      // (see the existing countMatchesPlayedByRace/countByEra/countByLeague
+      // tests above, which all assert with `.toBe(<scalar>)` for the same
+      // reason). Matches the same category of assertion mismatch noted in
+      // tasks 2 and 3 of this plan.
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['positions.name'],
+      );
+    });
+  });
+
   describe('getTopTeamsByMatchesPlayed', () => {
     it('returns the team rows (with id) and forwards the limit', async () => {
       const rows = [{ id: 9, name: 'Reikland Reavers', count: 12 }];

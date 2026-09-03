@@ -10,6 +10,8 @@ import {
   eras,
   matches,
   matchTeams,
+  positions,
+  positionsRaceEras,
   raceEras,
   raceExternalIds,
   races,
@@ -18,7 +20,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, desc, eq, ilike } from 'drizzle-orm';
+import { and, asc, countDistinct, desc, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
@@ -32,6 +34,17 @@ export class RaceUpsertConflictError extends UpsertConflictError {}
 
 export interface RaceWithEras extends Race {
   eras: number[];
+}
+
+/**
+ * The positions a race can field in one era. Grouped rather than flat because
+ * the race deep dive shows them era by era: the same position typically
+ * recurs in several eras, and a flat list would say nothing about when.
+ */
+export interface RacePositionsInEra {
+  eraId: number;
+  eraName: string;
+  positions: { id: number; name: string }[];
 }
 
 @Injectable()
@@ -70,6 +83,50 @@ export class RacesService {
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
       .where(eq(raceEras.raceId, raceId))
       .orderBy(eras.startDate, eras.name);
+  }
+
+  /**
+   * Every position available to this race, grouped by era, oldest era first
+   * and positions name-ascending within each. Eras with no recorded positions
+   * do not appear at all — the inner joins drop them, and an era with nothing
+   * to list would render as an empty line.
+   *
+   * The grouping is done in memory over an already-ordered flat result: one
+   * query, and the order the database chose is the order the reader sees.
+   */
+  async listPositionsByEra(raceId: number): Promise<RacePositionsInEra[]> {
+    const rows = await this.db
+      .select({
+        eraId: eras.id,
+        eraName: eras.name,
+        positionId: positions.id,
+        positionName: positions.name,
+      })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.raceEraId, raceEras.id),
+      )
+      .innerJoin(positions, eq(positions.id, positionsRaceEras.positionId))
+      .where(eq(raceEras.raceId, raceId))
+      .orderBy(asc(eras.startDate), asc(eras.name), asc(positions.name));
+
+    const byEra = new Map<number, RacePositionsInEra>();
+    for (const row of rows) {
+      const group = byEra.get(row.eraId);
+      const position = { id: row.positionId, name: row.positionName };
+      if (group === undefined) {
+        byEra.set(row.eraId, {
+          eraId: row.eraId,
+          eraName: row.eraName,
+          positions: [position],
+        });
+      } else {
+        group.positions.push(position);
+      }
+    }
+    return [...byEra.values()];
   }
 
   getTopTeamsByMatchesPlayed(
