@@ -184,6 +184,20 @@ const CHARACTERISTICS = {
   armour: 8,
 };
 
+/**
+ * An arbitrary player characteristics line. This service never reads
+ * `BblPlayer.characteristics` — it only exists because the field is
+ * required — so its exact values are irrelevant; shared here rather than
+ * repeated at every `plPage(...)` fixture in this file.
+ */
+const ANY_PLAYER_CHARACTERISTICS: BblPlayer['characteristics'] = {
+  move: 5,
+  strength: 3,
+  agility: 3,
+  passing: 4,
+  armour: 8,
+};
+
 const racesByBblId = new Map<string, { id: number; name: string }>([
   ['48', { id: 480, name: 'College of Shadow' }],
   ['7', { id: 70, name: 'Goblin Team' }],
@@ -292,6 +306,7 @@ describe('BblPositionsImportService', () => {
             typId: '60',
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -368,6 +383,7 @@ describe('BblPositionsImportService', () => {
             typId: '60',
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -449,6 +465,7 @@ describe('BblPositionsImportService', () => {
             typId: '33',
             teamCode: 'col', // -> race 480 (College of Shadow, bblId '48') = already listed
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -508,6 +525,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'knu',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
           plPage({
             pid: '123',
@@ -515,6 +533,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'col',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -583,6 +602,7 @@ describe('BblPositionsImportService', () => {
             typId: '121',
             teamCode: 'knu',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -689,6 +709,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'unknown-code',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -800,6 +821,7 @@ describe('BblPositionsImportService', () => {
             typId: '10',
             teamCode: 'ghost', // not in teamRaceIdsByCode
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -843,6 +865,7 @@ describe('BblPositionsImportService', () => {
             typId: '10',
             teamCode: 'orphan', // -> db id 999, absent from racesByBblId
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -932,6 +955,7 @@ describe('BblPositionsImportService', () => {
             typId: '99',
             teamCode: 'knu',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
@@ -969,6 +993,7 @@ describe('BblPositionsImportService', () => {
             typId: '55',
             teamCode: 'knu',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
           plPage({
             pid: '2',
@@ -976,6 +1001,7 @@ describe('BblPositionsImportService', () => {
             typId: '55',
             teamCode: 'col',
             sppTotal: null,
+            characteristics: ANY_PLAYER_CHARACTERISTICS,
           }),
         ],
       }),
