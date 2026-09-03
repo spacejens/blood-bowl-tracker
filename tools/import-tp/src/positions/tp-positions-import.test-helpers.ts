@@ -18,6 +18,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
+import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import {
   asProviderMethod,
   mockEraDataConfigService,
@@ -65,10 +66,14 @@ export interface MakeServiceOptions {
   raceIdsByCode?: Map<string, number>;
   /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
   getEras?: () => EraDataConfig[];
-  /** Era name -> the rules set names that era's config declares. */
-  eraRulesSets?: Map<string, string[]>;
-  /** Rules set name -> DB id, as if already resolved via ReferenceLookupService. */
-  rulesSetIdsByName?: Map<string, number>;
+  /**
+   * The map the mocked TpEraRulesSetResolverService returns: era name -> rules
+   * set DB id. An era absent from it models the resolver having skipped it
+   * (zero or several declared rules sets, or an unresolvable name) -- that
+   * resolution logic has its own spec at
+   * ../eras/tp-era-rules-set-resolver.service.spec.ts.
+   */
+  rulesSetIdByEraName?: Map<string, number>;
 }
 
 export async function makeService({
@@ -87,13 +92,9 @@ export async function makeService({
     ['HU-1', 7],
   ]),
   getEras,
-  eraRulesSets = new Map([
-    ['Fourth era', ['BB2020']],
-    ['Fifth era', ['BB2025']],
-  ]),
-  rulesSetIdsByName = new Map([
-    ['BB2020', 900],
-    ['BB2025', 901],
+  rulesSetIdByEraName = new Map([
+    ['Fourth era', 900],
+    ['Fifth era', 901],
   ]),
 }: MakeServiceOptions): Promise<{
   service: TpPositionsImportService;
@@ -124,16 +125,16 @@ export async function makeService({
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
-  const eraDataConfig = mockEraDataConfigService(
-    [...eraIdsByName.keys()],
-    eraRulesSets,
-  );
+  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
   if (getEras) {
     eraDataConfig.getEras.mockImplementation(getEras);
   }
+  const eraRulesSetResolver = mock<TpEraRulesSetResolverService>();
+  eraRulesSetResolver.resolveRulesSetIdByEraName.mockResolvedValue(
+    rulesSetIdByEraName,
+  );
   const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
     raceIdsByCode,
-    rulesSetIdsByName,
   });
 
   const moduleRef = await Test.createTestingModule({
@@ -153,6 +154,10 @@ export async function makeService({
       { provide: ImportResultService, useValue: importResults },
       { provide: EraDataConfigService, useValue: eraDataConfig },
       { provide: ReferenceLookupService, useValue: lookup },
+      {
+        provide: TpEraRulesSetResolverService,
+        useValue: eraRulesSetResolver,
+      },
     ],
   }).compile();
   return {

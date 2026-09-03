@@ -59,13 +59,12 @@ export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
  */
 export function mockEraDataConfigService(
   names: string[],
-  rulesSetsByEraName?: Map<string, string[]>,
 ): MockProxy<EraDataConfigService> {
   const eraDataConfig = mock<EraDataConfigService>();
   const eras: EraDataConfig[] = names.map((name) => ({
     name,
     dataSubdir: name,
-    rulesSets: rulesSetsByEraName?.get(name) ?? ['BB2020'],
+    rulesSets: ['BB2020'],
     startDate: '2020-01-01',
   }));
   eraDataConfig.getEras.mockReturnValue(eras);
