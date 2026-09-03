@@ -1,3 +1,4 @@
+import type { RacePositionsInEra } from '@blood-bowl-tracker/game-data';
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -20,6 +21,7 @@ import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
@@ -29,7 +31,10 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
-import { RACE_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import {
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
 interface MakeServiceOptions {
@@ -72,11 +77,13 @@ function makeRaces(options: {
   race?: { id: number; name: string };
   eras?: { id: number; name: string }[];
   topTeams?: { id: number; name: string; count: number }[];
+  positionsByEra?: RacePositionsInEra[];
 }): MockProxy<RacesService> {
   const races = mock<RacesService>();
   races.findById.mockResolvedValue(options.race);
   races.listEras.mockResolvedValue(options.eras ?? []);
   races.getTopTeamsByMatchesPlayed.mockResolvedValue(options.topTeams ?? []);
+  races.listPositionsByEra.mockResolvedValue(options.positionsByEra ?? []);
   return races;
 }
 
@@ -407,6 +414,7 @@ describe('RaceDeepdiveService', () => {
         databaseTimeout.run
           .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { service } = await makeService({
@@ -422,6 +430,78 @@ describe('RaceDeepdiveService', () => {
       },
       () => undefined,
       DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('lists the positions available in each era, with a button per position', async () => {
+    const { service, entityComponents } = await makeService({
+      races: makeRaces({
+        race: { id: 1, name: 'Orc' },
+        positionsByEra: [
+          {
+            eraId: 3,
+            eraName: 'BB2016',
+            positions: [
+              { id: 1, name: 'Blitzer' },
+              { id: 2, name: 'Lineman' },
+            ],
+          },
+          {
+            eraId: 4,
+            eraName: 'BB2020',
+            positions: [{ id: 2, name: 'Lineman' }],
+          },
+        ],
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+
+    const result = await service.resolve(1);
+
+    expect(JSON.stringify(result)).toContain(
+      'Positions:\\nBB2016: Blitzer Lineman\\nBB2020: Lineman',
+    );
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: '1',
+          label: 'Blitzer',
+        },
+        {
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: '2',
+          label: 'Lineman',
+        },
+      ]),
+    );
+  });
+
+  it('omits the positions section entirely when the race has none recorded', async () => {
+    const { service } = await makeService({
+      races: makeRaces({ race: { id: 1, name: 'Orc' }, positionsByEra: [] }),
+      leaderboard: passthroughLeaderboard(),
+    });
+
+    expect(JSON.stringify(await service.resolve(1))).not.toContain(
+      'Positions:',
+    );
+  });
+
+  it('returns the positions timeout message when that query times out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    databaseTimeout.run
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (_work, fallback) => fallback);
+    const { service } = await makeService({
+      races: makeRaces({ race: { id: 1, name: 'Orc' } }),
+      databaseTimeout,
+    });
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
     );
   });
 });

@@ -1,3 +1,4 @@
+import type { RacePositionsInEra } from '@blood-bowl-tracker/game-data';
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -9,6 +10,7 @@ import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
@@ -20,6 +22,7 @@ import {
 import { TeamContextService } from '../../insights/team-context.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -77,6 +80,15 @@ export class RaceDeepdiveService {
       return DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE;
     }
 
+    const positionsByEra: RacePositionsInEra[] | null =
+      await this.databaseTimeout.run(
+        this.races.listPositionsByEra(raceId),
+        null,
+      );
+    if (positionsByEra === null) {
+      return DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE;
+    }
+
     const eras =
       eraRows.length > 0
         ? eraRows.map((era) => era.name).join(', ')
@@ -113,6 +125,22 @@ export class RaceDeepdiveService {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    // No placeholder when a race has no positions recorded: the section is
+    // simply absent rather than reported empty. The plain-text `Eras:` line
+    // above is unaffected — it stays the race's summary line, while this
+    // section answers what the race could actually field in each era.
+    const positionLines =
+      positionsByEra.length === 0
+        ? []
+        : [
+            '',
+            'Positions:',
+            ...positionsByEra.map(
+              (era) =>
+                `${era.eraName}: ${era.positions.map((position) => position.name).join(' ')}`,
+            ),
+          ];
+
     // Leaderboard entries first: buildEntityComponents has no internal
     // prioritisation (first-N / first-group wins), so the top-teams list gets
     // drill-down controls before the era header entries do.
@@ -127,12 +155,20 @@ export class RaceDeepdiveService {
         entityId: String(era.id),
         label: era.name,
       })),
+      ...positionsByEra.flatMap((era) =>
+        era.positions.map((position): EntityComponentEntry => ({
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(position.id),
+          label: position.name,
+        })),
+      ),
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);
 
     const description = [
       `Eras: ${eras}`,
+      ...positionLines,
       '',
       'Top teams by matches played:',
       ...teamLines,
