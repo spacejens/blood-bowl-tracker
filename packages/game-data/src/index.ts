@@ -84,6 +84,8 @@ export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
+export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
+export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
 export { CharacteristicFormatValidationModule } from './shared/characteristic-format-validation.module';
 export { CharacteristicFormatValidationService } from './shared/characteristic-format-validation.service';
