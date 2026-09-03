@@ -50,6 +50,7 @@ export const griff = {
   teamId: 11,
   raceName: 'Human',
   raceId: 4,
+  positionId: 4,
   positionName: 'Blitzer',
   eraName: 'Season 5',
   eraId: 7,
@@ -181,6 +182,7 @@ export function makePlayers(options: {
     teamId: number;
     raceName: string;
     raceId: number;
+    positionId: number;
     positionName: string;
     eraName: string;
     eraId: number;
