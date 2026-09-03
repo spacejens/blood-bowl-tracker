@@ -72,7 +72,11 @@ export { StarPlayersService } from './players/star-players.service';
 export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
 export { PositionRulesSetsService } from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
-export type { SyncPositionRaceErasData } from './positions/positions.service';
+export type {
+  PositionHeader,
+  PositionTopPlayer,
+  SyncPositionRaceErasData,
+} from './positions/positions.service';
 export {
   PositionsService,
   PositionUpsertConflictError,
