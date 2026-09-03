@@ -1,9 +1,10 @@
+import type { Dirent } from 'node:fs';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -35,6 +36,44 @@ function writeRoster(rosterId: number, lineUps: unknown[]): void {
     JSON.stringify({ lineUps }),
     'utf8',
   );
+}
+
+type EntriesFn = (dir: string) => Promise<Dirent[]>;
+
+/**
+ * Forces the service's directory scan to visit `targetDir`'s entries in
+ * exactly `order`, regardless of what the real `readdir` call returns. The
+ * production code relies on `readdir` order to break roster-conflict ties
+ * (see `absorbRoster`), and that order is filesystem-dependent — write order
+ * does not reliably control it (that's what let the bug this guards against
+ * slip past the original, non-discriminating tests). Pinning the scan order
+ * directly is the only portable way to exercise both directions of the
+ * guard.
+ */
+function withOrderedEntries(
+  targetService: TpRawPlayerIndexService,
+  targetDir: string,
+  order: string[],
+): void {
+  const proto = Object.getPrototypeOf(targetService) as { entries: EntriesFn };
+  const original = proto.entries.bind(targetService) as EntriesFn;
+  vi.spyOn(
+    targetService as unknown as { entries: EntriesFn },
+    'entries',
+  ).mockImplementation(async (targetPath: string) => {
+    const result = await original(targetPath);
+    if (targetPath !== targetDir) {
+      return result;
+    }
+    const byName = new Map(result.map((entry) => [entry.name, entry]));
+    return order.map((name) => {
+      const entry = byName.get(name);
+      if (entry === undefined) {
+        throw new Error(`entries() did not return ${name} for ${targetPath}`);
+      }
+      return entry;
+    });
+  });
 }
 
 function matchFile(options: {
@@ -320,10 +359,15 @@ describe('TpRawPlayerIndexService', () => {
     expect(await service.aggregateFor('999999')).toBeNull();
   });
 
-  it('prefers characteristics from the higher-numbered roster file on conflict', async () => {
+  it('takes the higher-numbered roster file when it is scanned after the lower one', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
     writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
     writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
+      'match_1.json',
+      'rosters_500.json',
+      'rosters_700.json',
+    ]);
 
     const player = await service.aggregateFor('2477481');
 
@@ -336,10 +380,15 @@ describe('TpRawPlayerIndexService', () => {
     });
   });
 
-  it('keeps the higher-numbered roster file when it is scanned first', async () => {
+  it('keeps the higher-numbered roster file when it is scanned before the lower one', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
-    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
     writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
+      'match_1.json',
+      'rosters_700.json',
+      'rosters_500.json',
+    ]);
 
     const player = await service.aggregateFor('2477481');
 
