@@ -130,6 +130,17 @@ describe('PlayerCharacteristicsDbRendererService', () => {
     expect(html).toContain('<td>4+ ▲</td>');
   });
 
+  it('treats Passing missing where the baseline has one as a change', async () => {
+    const service = await makeService(
+      mockDb([playerRow({ passing: null })], [rulesSetRow()], [baselineRow()]),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('<td>— ▼</td>');
+  });
+
   it('treats Passing absent on both sides as unchanged', async () => {
     const service = await makeService(
       mockDb(

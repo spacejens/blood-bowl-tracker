@@ -73,7 +73,10 @@ plug in as another data-type module without touching the harness services.
       "better/worse" — under BB2020 a lower Agility is a better Agility, and which is
       which is the reviewer's call. A player whose characteristics were never imported
       still carries the column defaults of 0 and so appears as decreased, which is
-      itself worth seeing.
+      itself worth seeing. The imported-panel view marks a Passing change whenever
+      either side has a value and the other doesn't, so a Passing-only change can show
+      a marker there without selecting the player into either stratum here, since both
+      strata require Passing present on both sides to compare it at all.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so

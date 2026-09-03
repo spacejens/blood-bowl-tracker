@@ -87,6 +87,26 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
     );
   });
 
+  it('skips a header row from an unrelated table before finding the real one', async () => {
+    const { service, loader } = await makeService();
+    const unrelatedTable = `
+      <table class="tblist">
+        <tr class="trlisthead">
+          <th>Skill</th><th>Category</th><th>Description</th>
+        </tr>
+        <tr><td>Block</td><td>General</td><td>...</td></tr>
+      </table>`;
+    loader.loadPlayerPage.mockResolvedValue(
+      `<html><body>${unrelatedTable}${page(['5', '3', '3+', '4+', '8+'])}</body></html>`,
+    );
+
+    const html = await service.render('1000');
+
+    expect(html).toContain(
+      '<td>5</td><td>3</td><td>3+</td><td>4+</td><td>8+</td>',
+    );
+  });
+
   it('notes a page with no characteristics table at all', async () => {
     const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(
