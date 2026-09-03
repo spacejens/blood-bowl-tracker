@@ -40,6 +40,30 @@ class TestReportBuilderService extends ReportBuilderBase<TestItem> {
   }
 }
 
+/**
+ * Like `TestReportBuilderService`, but calls `panelPair` with no source — the
+ * shape review-race's reviewers use, since a race is not sampled through one
+ * source.
+ */
+@Injectable()
+class NoSourceTestReportBuilderService extends ReportBuilderBase<TestItem> {
+  protected readonly title = 'Test import review';
+  protected readonly entityNoun: ReportEntityNoun = {
+    singular: 'thing',
+    plural: 'things',
+  };
+
+  constructor(html: HtmlService) {
+    super(html);
+  }
+
+  protected renderSection(item: TestItem, panels: ReviewPanel[]): string {
+    return `<section class="thing"><h2>${this.html.escape(item.name)}</h2>${panels
+      .map((panel) => this.panelPair(panel))
+      .join('\n')}</section>`;
+  }
+}
+
 const generatedAt = new Date('2026-08-26T09:00:00.000Z');
 
 const panel: ReviewPanel = {
@@ -166,5 +190,17 @@ describe('ReportBuilderBase', () => {
       html.indexOf('<p>imported panel</p>'),
     );
     expect(html).toContain('class="panels"');
+  });
+
+  it('falls back to a source-less raw label when no source is given', async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [NoSourceTestReportBuilderService, HtmlService],
+    }).compile();
+    const noSourceService = moduleRef.get(NoSourceTestReportBuilderService);
+
+    const html = noSourceService.build(reportWith([panel]));
+
+    expect(html).toContain('<h4>Raw source</h4>');
+    expect(html).not.toContain('<h4>Raw source (');
   });
 });

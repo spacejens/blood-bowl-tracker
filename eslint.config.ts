@@ -70,6 +70,8 @@ export default tseslint.config(
             'tools/review-match/vitest.config.ts',
             'tools/review-player/test/*.ts',
             'tools/review-player/vitest.config.ts',
+            'tools/review-race/test/*.ts',
+            'tools/review-race/vitest.config.ts',
           ],
         },
         tsconfigRootDir: import.meta.dirname,

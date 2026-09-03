@@ -101,8 +101,17 @@ describe('ReviewConfigServiceBase', () => {
       const service = await makeService('{}');
 
       expect(() => service.getDataDir('tp')).toThrow(
-        /tp\.dataDir is not set in review-test-config\.json5/,
+        /tp\.dataDir is not set in review-test-config\.json5.*downloaded TP data/,
       );
+    });
+
+    it('describes manual data as curated rather than downloaded when unset', async () => {
+      const service = await makeService('{}');
+
+      expect(() => service.getDataDir('manual')).toThrow(
+        /manual\.dataDir is not set in review-test-config\.json5.*tools\/import-manual's curated data/,
+      );
+      expect(() => service.getDataDir('manual')).not.toThrow(/downloaded/);
     });
   });
 

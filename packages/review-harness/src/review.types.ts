@@ -1,8 +1,13 @@
-/** The import sources a review tool can review data from. */
-export type ReviewSource = 'bbl' | 'tp';
+/**
+ * The sources a review tool can review data against. `'manual'` is the
+ * hand-curated data under `tools/import-manual/data/` — an independent source
+ * a review tool must be able to check against, not part of "what got
+ * imported".
+ */
+export type ReviewSource = 'bbl' | 'tp' | 'manual';
 
 /** Every source, in the order the report presents them. */
-export const REVIEW_SOURCES: readonly ReviewSource[] = ['bbl', 'tp'];
+export const REVIEW_SOURCES: readonly ReviewSource[] = ['bbl', 'tp', 'manual'];
 
 /** Something a report could not cover — reported, never a run failure. */
 export interface ReviewGap {
