@@ -70,6 +70,7 @@ export type {
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
 export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
+export type { PositionCharacteristics } from './position-rules-sets/position-rules-sets.service';
 export { PositionRulesSetsService } from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
 export type {

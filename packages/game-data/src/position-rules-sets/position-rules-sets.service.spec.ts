@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
-import { firstCallArg } from '../shared/query-assertions.test-helpers';
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  sqlText,
+} from '../shared/query-assertions.test-helpers';
 import { PositionRulesSetsService } from './position-rules-sets.service';
 
 async function makeService(
@@ -248,6 +253,65 @@ describe('PositionRulesSetsService', () => {
         passing: 4,
         armour: 9,
       });
+    });
+  });
+
+  describe('listByPosition', () => {
+    const row = {
+      rulesSetId: 3,
+      rulesSetName: 'BB2020',
+      moveFormat: 'bare',
+      move: 7,
+      strengthFormat: 'bare',
+      strength: 3,
+      agilityFormat: 'plus',
+      agility: 3,
+      passingFormat: 'plus',
+      passing: 4,
+      armourFormat: 'plus',
+      armour: 9,
+    };
+
+    it('returns one row per rules set the position has characteristics for', async () => {
+      const db = mockDb([row]);
+      const service = await makeService(db);
+
+      await expect(service.listByPosition(1)).resolves.toEqual([row]);
+      // extractFilterValues returns the bare literal for a single eq()
+      // filter, not a single-element array — matches the established
+      // convention across this package's specs (e.g. players.service.spec.ts,
+      // coaches.service.spec.ts), which all assert `.toBe(<value>)` here.
+      expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(1);
+    });
+
+    it('returns an empty array when the position has no characteristics rows', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await expect(service.listByPosition(1)).resolves.toEqual([]);
+    });
+
+    it('orders rules sets chronologically by their earliest era, then by name', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await service.listByPosition(1);
+
+      // sqlText only renders literal StringChunks, not the bare Column node
+      // inside min(...), so it surfaces the aggregate call itself ("min(...
+      // asc") rather than the column name; extractJoinColumns is what recovers
+      // which column the aggregate is over. Together these two assertions
+      // verify the same behavior the brief's original single sqlText
+      // assertion intended: ordering by the earliest (min) era start date.
+      expect(sqlText(firstCallArg(db.chains[0].orderBy, 0, 0))).toContain(
+        'min(',
+      );
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].orderBy, 0, 0)),
+      ).toEqual(['eras.start_date']);
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].orderBy, 0, 1)),
+      ).toEqual(['rules_sets.name']);
     });
   });
 });

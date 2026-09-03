@@ -1,16 +1,47 @@
 import type {
+  CharacteristicFormat,
   PositionRulesSetEntry,
   SyncPositionRulesSets,
   SyncPositionRulesSetsResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, NewPositionRulesSet } from '@blood-bowl-tracker/db';
-import { DB, positionRulesSets, rulesSets } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eraRulesSets,
+  eras,
+  positionRulesSets,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray, min } from 'drizzle-orm';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
+
+/**
+ * A position's stat line under one rules set, together with that rules set's
+ * own declared display formats. The formats travel with the values because
+ * the whole point of showing several rules sets side by side is that they
+ * differ: rendering them uniformly would hide exactly what the view exists to
+ * show. `passing` is nullable, mirroring the column — a rules set whose
+ * `passingFormat` is 'absent' has no Passing characteristic at all, and its
+ * consumer omits the field rather than rendering a placeholder.
+ */
+export interface PositionCharacteristics {
+  rulesSetId: number;
+  rulesSetName: string;
+  moveFormat: CharacteristicFormat;
+  move: number;
+  strengthFormat: CharacteristicFormat;
+  strength: number;
+  agilityFormat: CharacteristicFormat;
+  agility: number;
+  passingFormat: CharacteristicFormat;
+  passing: number | null;
+  armourFormat: CharacteristicFormat;
+  armour: number;
+}
 
 /**
  * Owns the position × rules-set association: the position's characteristics
@@ -27,6 +58,45 @@ export class PositionRulesSetsService {
     @Inject(DB) private readonly db: Db,
     private readonly characteristicFormats: CharacteristicFormatValidationService,
   ) {}
+
+  /**
+   * Every rules set this position has recorded characteristics for, oldest
+   * first.
+   *
+   * "Oldest" is the earliest start date among the eras that list the rules
+   * set (`era_rules_sets -> eras`), which is why the era tables are joined at
+   * all — `rules_sets` itself carries no date. The joins are LEFT joins and
+   * the ordering aggregate is `min(...)`: a rules set can be listed by
+   * several eras, and one listed by none still belongs in the list (Postgres
+   * sorts its NULL last under ASC, so an uncurated rules set falls to the
+   * bottom rather than dropping out). Grouping by the two primary keys is
+   * enough for Postgres to allow every other selected column, since each is
+   * functionally dependent on one of them.
+   */
+  listByPosition(positionId: number): Promise<PositionCharacteristics[]> {
+    return this.db
+      .select({
+        rulesSetId: rulesSets.id,
+        rulesSetName: rulesSets.name,
+        moveFormat: rulesSets.moveFormat,
+        move: positionRulesSets.move,
+        strengthFormat: rulesSets.strengthFormat,
+        strength: positionRulesSets.strength,
+        agilityFormat: rulesSets.agilityFormat,
+        agility: positionRulesSets.agility,
+        passingFormat: rulesSets.passingFormat,
+        passing: positionRulesSets.passing,
+        armourFormat: rulesSets.armourFormat,
+        armour: positionRulesSets.armour,
+      })
+      .from(positionRulesSets)
+      .innerJoin(rulesSets, eq(rulesSets.id, positionRulesSets.rulesSetId))
+      .leftJoin(eraRulesSets, eq(eraRulesSets.rulesSetId, rulesSets.id))
+      .leftJoin(eras, eq(eras.id, eraRulesSets.eraId))
+      .where(eq(positionRulesSets.positionId, positionId))
+      .groupBy(positionRulesSets.id, rulesSets.id)
+      .orderBy(asc(min(eras.startDate)), asc(rulesSets.name));
+  }
 
   /**
    * Insert or update the supplied rows, matched on their natural key
