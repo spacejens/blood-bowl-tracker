@@ -292,6 +292,47 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
   });
 
+  it('lets an authoritative roster arriving second override the legacy one', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
   it('skips characteristics for an era the rules set resolver returned no id for', async () => {
     const { service } = await makeService({
       ...upsertAndSyncMocks(70),
