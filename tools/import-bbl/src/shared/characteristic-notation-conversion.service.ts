@@ -3,10 +3,11 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * BBL's mirror only ever displays Agility and Armour in BB2020's
- * roll-to-beat notation, whatever rules set the player or position actually
- * played under. These two methods rewrite such a value into the notation a
- * given rules set declares, so a pre-BB2020 row stores the value that rules
- * set would have written.
+ * roll-to-beat notation — the value these two methods receive as
+ * `rawAgility`/`rawArmour` is always that BB2020-notation number, whatever
+ * rules set the player or position actually played under. These methods
+ * rewrite it into the notation the target rules set declares, so a
+ * pre-BB2020 row stores the value that rules set would itself have written.
  *
  * The decision is data-driven: it is the target rules set's own
  * `agilityFormat` / `armourFormat` that says which notation applies, so no
@@ -18,10 +19,11 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class CharacteristicNotationConversionService {
   /**
-   * Pre-BB2020 Agility is a plain number rolled on a single D6; BB2020 states
-   * the target the roll has to meet instead. Old AG 4 is the same as 2+, old
-   * AG 3 the same as 3+. Clamped to a 2+ floor: a natural 1 always fails
-   * under every rules set, so 1+ is not a value BB2020 notation can express.
+   * BB2020 Agility states the target a single D6 roll has to meet; pre-BB2020
+   * Agility is a plain number on a complementary scale where the two always
+   * sum to 6 — new 2+ is old AG 4, new 3+ is old AG 3, new 4+ is old AG 2.
+   * Unclamped: BB2020's own 2+ floor (a natural 1 always fails) means the
+   * scraped input is never low enough to need one here.
    *
    * `plus` (already BB2020 notation) and `absent` are both returned
    * unchanged — this method only decides notation, not whether the
@@ -31,14 +33,13 @@ export class CharacteristicNotationConversionService {
     if (format !== 'bare') {
       return rawAgility;
     }
-    return Math.max(2, 7 - rawAgility);
+    return 6 - rawAgility;
   }
 
   /**
-   * Pre-BB2020 Armour is the 2D6 value a roll had to come out *above* to
-   * break; BB2020 states the minimum roll that breaks it, one higher. Old AV
-   * 7 is the same defense as 8+. Unclamped: realistic armour values do not
-   * approach a ceiling worth guarding.
+   * BB2020 Armour states the minimum 2D6 roll that breaks it; pre-BB2020
+   * Armour is the value a roll had to come out *above* to break, one lower.
+   * BB2020 8+ is the same defense as old AV 7.
    */
   convertArmour(rawArmour: number, format: CharacteristicFormat): number {
     if (format !== 'bare') {

@@ -203,9 +203,10 @@ describe('BblPlayersImportService characteristics', () => {
     });
 
     // goodPlayer's page shows AG 3 / AV 8 in BBL's BB2020 notation. Under a
-    // rules set that writes bare numbers those are AG 4 and AV 7.
+    // rules set that writes bare numbers those are AG 3 (3 is the scale's
+    // own fixed point: 6 - 3 = 3) and AV 7.
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
-      expect.objectContaining({ agility: 4, armour: 7 }),
+      expect.objectContaining({ agility: 3, armour: 7 }),
       expect.any(Array),
     );
   });
