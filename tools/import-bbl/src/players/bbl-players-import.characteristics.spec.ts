@@ -58,7 +58,7 @@ describe('BblPlayersImportService characteristics', () => {
     await service.importPlayers({
       ...importOptions,
       rulesSetsByName: new Map<string, RulesSet>([
-        ['LRB', makeRulesSet('LRB', 'absent')],
+        ['LRB', makeRulesSet({ name: 'LRB', passingFormat: 'absent' })],
       ]),
     });
 
@@ -104,9 +104,18 @@ describe('BblPlayersImportService characteristics', () => {
     await service.importPlayers({
       ...importOptions,
       rulesSetsByName: new Map<string, RulesSet>([
-        ['CRP', makeRulesSet('CRP', 'absent', 801)],
-        ['CRP+', makeRulesSet('CRP+', 'absent', 802)],
-        ['BB2016', makeRulesSet('BB2016', 'absent', 803)],
+        [
+          'CRP',
+          makeRulesSet({ name: 'CRP', passingFormat: 'absent', id: 801 }),
+        ],
+        [
+          'CRP+',
+          makeRulesSet({ name: 'CRP+', passingFormat: 'absent', id: 802 }),
+        ],
+        [
+          'BB2016',
+          makeRulesSet({ name: 'BB2016', passingFormat: 'absent', id: 803 }),
+        ],
       ]),
     });
 
@@ -170,5 +179,48 @@ describe('BblPlayersImportService characteristics', () => {
     expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
       { externalSystemId: 1, externalId: 'LRB' },
     ]);
+  });
+
+  it('converts Agility and Armour into a bare-notation rules set', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers({
+      ...importOptions,
+      rulesSetsByName: new Map<string, RulesSet>([
+        [
+          'LRB',
+          makeRulesSet({
+            name: 'LRB',
+            passingFormat: 'absent',
+            agilityFormat: 'bare',
+            armourFormat: 'bare',
+          }),
+        ],
+      ]),
+    });
+
+    // goodPlayer's page shows AG 3 / AV 8 in BBL's BB2020 notation. Under a
+    // rules set that writes bare numbers those are AG 4 and AV 7.
+    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({ agility: 4, armour: 7 }),
+      expect.any(Array),
+    );
+  });
+
+  it('leaves Agility and Armour alone for a plus-notation rules set', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers(importOptions);
+
+    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({ agility: 3, armour: 8 }),
+      expect.any(Array),
+    );
   });
 });
