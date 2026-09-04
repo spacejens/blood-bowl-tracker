@@ -158,11 +158,11 @@
     { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 4, agility: 4, armour: 8 },
 
     // --- CRP: Wood Elf (CRP p.25) ---
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 2, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 2, strength: 6, agility: 1, armour: 10 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 2, strength: 6, agility: 1, armour: 10 },
 
     // --- CRP: Albion Fae (Stunty Leeg handbook p.8) ---
     { position: { system: 'Name', id: 'SL - Albion Fae: SL - Brownies' }, rulesSet: { system: 'Name', id: 'CRP' }, move: 6, strength: 1, agility: 3, armour: 7 },
@@ -374,11 +374,11 @@
     { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 6, strength: 4, agility: 4, armour: 8 },
 
     // --- CRP+: Wood Elf (NTBB2015 p.8) ---
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 2, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 2, strength: 6, agility: 1, armour: 10 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, move: 2, strength: 6, agility: 1, armour: 10 },
 
     // UNMATCHED:
     // - Chaos Pact (NTBB2015 p.3): Marauders, Skaven Renegade, Dark Elf
@@ -545,11 +545,11 @@
     { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 8 },
 
     // --- BB2016: Wood Elf (physical rulebook) ---
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 2, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Wardancer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 3, agility: 4, armour: 7 },
-    { position: { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 2, strength: 6, agility: 1, armour: 10 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 2, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 8, strength: 3, agility: 4, armour: 7 },
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 2, strength: 6, agility: 1, armour: 10 },
 
     // --- BB2016: Nurgle (physical rulebook) ---
     { position: { system: 'Name', id: 'Nurgle: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 5, strength: 3, agility: 3, armour: 8 },

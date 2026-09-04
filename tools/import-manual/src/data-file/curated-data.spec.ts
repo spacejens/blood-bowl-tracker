@@ -419,12 +419,14 @@ describe('curated data files', () => {
     ];
 
     // tools/import-bbl canonicalizes its team-page race name
-    // ("Underworld Denizens Team") down to the race's real name before
-    // building this id (BblRaceNameService), and tools/import-tp always used
-    // the real name. A curated id carrying the old " Team" spelling would
-    // match neither importer: it would create an orphan position row and then
-    // collide with the real one (PositionUpsertConflictError).
+    // ("Underworld Denizens Team", "Wood Elf Teams") down to the race's real
+    // name before building this id (BblRaceNameService strips both the
+    // singular and plural " Team"/" Teams" suffix), and tools/import-tp
+    // always used the real name. A curated id carrying either old spelling
+    // would match neither importer: it would create an orphan position row
+    // and then collide with the real one (PositionUpsertConflictError).
     expect(ids.filter((id) => id.includes(' Team: '))).toEqual([]);
+    expect(ids.filter((id) => id.includes(' Teams: '))).toEqual([]);
   });
 
   it('curates CRP characteristics for the core-rulebook teams', () => {

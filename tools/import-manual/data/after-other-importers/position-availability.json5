@@ -1064,7 +1064,7 @@
     {
       name: 'Wood Elf Lineman',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wood Elf Lineman' }],
+      externalIds: [{ system: 'Name', id: 'Wood Elf: Wood Elf Lineman' }],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '19' },
@@ -1075,7 +1075,7 @@
     {
       name: 'Wood Elf Catcher',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wood Elf Catcher' }],
+      externalIds: [{ system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '19' },
@@ -1086,7 +1086,7 @@
     {
       name: 'Wood Elf Thrower',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wood Elf Thrower' }],
+      externalIds: [{ system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '19' },
@@ -1097,7 +1097,7 @@
     {
       name: 'Wardancer',
       isStarPlayer: false,
-      externalIds: [{ system: 'Name', id: 'Wood Elf Teams: Wardancer' }],
+      externalIds: [{ system: 'Name', id: 'Wood Elf: Wardancer' }],
       raceEras: [
         {
           race: { system: 'tloeg.bbleague.se', id: '19' },
@@ -1109,7 +1109,7 @@
       name: 'Loren Forest Treeman',
       isStarPlayer: false,
       externalIds: [
-        { system: 'Name', id: 'Wood Elf Teams: Loren Forest Treeman' },
+        { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' },
       ],
       raceEras: [
         {
