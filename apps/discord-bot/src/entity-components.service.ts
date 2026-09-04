@@ -53,9 +53,9 @@ export const CALENDAR_EMOJI = '📅';
  * The button colour each destination type gets, so a coach can tell coach
  * buttons from team buttons from player buttons at a glance without reading
  * every label. Discord offers only four usable styles (Link navigates to a
- * URL and Premium is for purchases), so some of the eleven destination types share colours:
- * the five "container" types (era, competition, competition group, league, trophy)
- * share Secondary, and the four "who played" types (coach, team, race and
+ * URL and Premium is for purchases), so some of the twelve destination types share colours:
+ * the six "container" types (era, competition, competition group, league, trophy,
+ * on-this-date) share Secondary, and the four "who played" types (coach, team, race and
  * position) share Success, because red would read as a destructive-action
  * colour for routine navigation among these look-alike types. Player is the sole user of
  * Primary. Star player takes Danger, the last unused style: it is the one
@@ -87,7 +87,7 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
 /**
  * The emoji each destination type gets, rendered by Discord in the component's
  * own `emoji` field (not prefixed into the label). Colour alone cannot carry
- * type identity: Discord offers only four usable button styles for eleven and
+ * type identity: Discord offers only four usable button styles for twelve and
  * counting destination types, and select-menu options have no colour at all,
  * so a coach and a competition would be indistinguishable in a long list.
  * Emoji is the primary type signal; `BUTTON_STYLE_BY_PREFIX` remains an

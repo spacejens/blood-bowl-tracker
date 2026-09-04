@@ -167,7 +167,9 @@ export class PositionsService {
   /**
    * How many players have ever held this position. Every hire of a star, and
    * every player of a regular position, is its own `players` row, so this is
-   * a plain row count.
+   * a row count — `countDistinct` rather than plain `count` costs nothing
+   * here (there is no join that could duplicate a row) and reads as honest
+   * about what the id being counted actually is.
    */
   async countPlayers(positionId: number): Promise<number> {
     const [row] = await this.db

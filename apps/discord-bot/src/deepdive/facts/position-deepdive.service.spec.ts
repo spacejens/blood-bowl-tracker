@@ -75,7 +75,10 @@ interface MakeServiceOptions {
   positions: PositionsService;
   positionRulesSets: PositionRulesSetsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
-  leaderboard?: MockProxy<LeaderboardService>;
+  // Widened beyond MockProxy so a test can supply a *real* LeaderboardService
+  // (see `makeRealLeaderboard` below) when it needs genuine ranking rather
+  // than `passthroughLeaderboard()`'s rank-1-for-everything stand-in.
+  leaderboard?: LeaderboardService;
   entityComponents?: MockProxy<EntityComponentsService>;
 }
 
@@ -127,6 +130,30 @@ function makeRulesSets(
   const positionRulesSets = mock<PositionRulesSetsService>();
   positionRulesSets.listByPosition.mockResolvedValue(rows);
   return positionRulesSets;
+}
+
+/**
+ * A real `LeaderboardService`, its own two constructor dependencies mocked
+ * (neither is touched by `topRanksWithTies`, the only method this service
+ * calls). Unlike `passthroughLeaderboard()`, this genuinely ranks by `count`
+ * — needed for the one test below that has to tell apart "ranked by SPP
+ * total" from a plausible bug like "ranked by player id".
+ */
+async function makeRealLeaderboard(): Promise<LeaderboardService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      LeaderboardService,
+      {
+        provide: DatabaseTimeoutService,
+        useValue: mock<DatabaseTimeoutService>(),
+      },
+      {
+        provide: EntityComponentsService,
+        useValue: mock<EntityComponentsService>(),
+      },
+    ],
+  }).compile();
+  return moduleRef.get(LeaderboardService);
 }
 
 /**
@@ -301,6 +328,51 @@ describe('PositionDeepdiveService', () => {
 
     expect(JSON.stringify(await service.resolve(1))).toContain(
       'Held by 1 player\\n',
+    );
+  });
+
+  it('ties players on equal SPP total, using SPP rather than player id as the rank key', async () => {
+    // `topRanksWithTies` trusts its input's order and only groups adjacent
+    // *equal* `count` values into one rank — it never re-sorts. Real players
+    // always share the same SPP here (a genuine tie), so the real
+    // `LeaderboardService` only merges them into rank 1 if the service maps
+    // `count: player.sppTotal`; mapping `count: player.id` instead (ids are
+    // always distinct) would silently split them into ranks 1 and 2, since
+    // ids can never tie the way this test's SPP totals do.
+    const { service } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: [] },
+        topPlayers: [
+          { id: 9, name: 'Griff', sppTotal: 100 },
+          { id: 10, name: 'Varag', sppTotal: 100 },
+        ],
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      leaderboard: await makeRealLeaderboard(),
+    });
+
+    expect(JSON.stringify(await service.resolve(1))).toContain(
+      '1. Griff — 100\\n1. Varag — 100',
+    );
+  });
+
+  it('appends the overflow note when the entity components overflow', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 3 more not shown.',
+    });
+    entityComponents.getEmojiForPrefix.mockReturnValue('🏃');
+    const { service } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: [{ id: 2, name: 'Human' }] },
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      entityComponents,
+    });
+
+    expect(JSON.stringify(await service.resolve(1))).toContain(
+      '…and 3 more not shown.',
     );
   });
 
