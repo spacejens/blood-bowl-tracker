@@ -13,6 +13,7 @@ import type { BblPlayer } from '../players/player-page-parser';
 import { PlayerPageParser } from '../players/player-page-parser';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
+import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -99,6 +100,7 @@ interface Mocks {
   nameExternalId: MockProxy<NameExternalIdService>;
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
+  bblRaceName: MockProxy<BblRaceNameService>;
 }
 
 /**
@@ -147,6 +149,12 @@ async function makeService(
   const pageParseError = mock<PageParseErrorService>();
   pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
+  const bblRaceName = mock<BblRaceNameService>();
+  // Canned pass-through: these tests assert which race name the service under
+  // test hands to the canonicalizer and to forPosition, not what the
+  // canonicalizer computes -- that is BblRaceNameService's own spec's job.
+  bblRaceName.canonical.mockImplementation((name) => name);
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPositionsImportService,
@@ -159,6 +167,7 @@ async function makeService(
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
+      { provide: BblRaceNameService, useValue: bblRaceName },
     ],
   }).compile();
 
@@ -172,6 +181,7 @@ async function makeService(
       nameExternalId,
       importResults,
       pageParseError,
+      bblRaceName,
     },
   };
 }
@@ -285,6 +295,49 @@ describe('BblPositionsImportService', () => {
       isStarPlayer: false,
       raceDbIds: new Set([480, 70]),
     });
+  });
+
+  it('builds the Name external id from the canonicalized race name', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '326',
+            name: 'Underworld Snotling',
+            isStarPlayer: false,
+            races: [{ bblId: '24', name: 'Underworld Denizens Team' }],
+            characteristics: null,
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(makePositionRecord());
+    mocks.bblRaceName.canonical.mockReturnValue('Underworld Denizens');
+    mocks.nameExternalId.forPosition.mockReturnValue('name-id-underworld');
+
+    await service.importPositions(
+      new Map([['24', { id: 240, name: 'Underworld Denizens Team' }]]),
+      new Map<string, number>(),
+    );
+
+    expect(mocks.bblRaceName.canonical).toHaveBeenCalledWith(
+      'Underworld Denizens Team',
+    );
+    expect(mocks.nameExternalId.forPosition).toHaveBeenCalledWith(
+      'Underworld Denizens',
+      'Underworld Snotling',
+    );
+    expect(mocks.positionsImport.upsert).toHaveBeenCalledWith(
+      {
+        name: 'Underworld Snotling',
+        isStarPlayer: false,
+        externalIds: [
+          { externalSystemId: 1, externalId: '326-24' },
+          { externalSystemId: 2, externalId: 'name-id-underworld' },
+        ],
+      },
+      expect.any(Array),
+    );
   });
 
   it('imports listed races and an extra reverse-engineered race (non-star) as a duplicate candidate row', async () => {
