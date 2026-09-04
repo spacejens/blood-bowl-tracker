@@ -63,6 +63,8 @@ rule-set codes are — and are not — used. See
   The suffix _is_ used for one narrow purpose: when two rosters in one era
   report different characteristics for the same position, the one whose
   suffix matches that era's single configured rules set name is taken as the
-  current template and wins (see `TpPositionsImportService` in
-  [index.md](./index.md)) — TP publishes a mid-rules-set roster update as a
-  new suffixed code alongside the legacy bare one.
+  current template and wins, unless both (or neither) roster's suffix
+  matches, in which case the disagreement stays unresolvable (see
+  `TpPositionsImportService` in [index.md](./index.md)) — TP publishes a
+  mid-rules-set roster update as a new suffixed code alongside the legacy
+  bare one.
