@@ -14,6 +14,7 @@ import {
   mockBblSourceReaderByType,
 } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
+import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -116,6 +117,7 @@ interface Mocks {
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
+  bblRaceName: MockProxy<BblRaceNameService>;
 }
 
 /**
@@ -163,6 +165,13 @@ async function makeService(
   const pageParseError = mock<PageParseErrorService>();
   pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
+  const bblRaceName = mock<BblRaceNameService>();
+  // Canned pass-through default: these tests assert which race name the
+  // service under test hands to the canonicalizer and to forRace, not what
+  // the canonicalizer computes -- that is BblRaceNameService's own spec's
+  // job. The suffix-stripping test below overrides this with a canned value.
+  bblRaceName.canonical.mockImplementation((name) => name);
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblRacesImportService,
@@ -175,6 +184,7 @@ async function makeService(
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
+      { provide: BblRaceNameService, useValue: bblRaceName },
     ],
   }).compile();
 
@@ -188,6 +198,7 @@ async function makeService(
       nameConfig,
       importResults,
       pageParseError,
+      bblRaceName,
     },
   };
 }
@@ -239,6 +250,33 @@ describe('BblRacesImportService', () => {
       },
       expect.any(Array),
     );
+  });
+
+  it('canonicalizes the scraped race name for both the display name and the Name external ID', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([page('Dark Elf Team', '13')]),
+    );
+    // Canned value: BblRaceNameService's own suffix-stripping is covered by
+    // ../source/bbl-race-name.service.spec.ts.
+    mocks.bblRaceName.canonical.mockReturnValue('Dark Elf');
+
+    const { racesByBblId } = await service.importRaces();
+
+    expect(mocks.bblRaceName.canonical).toHaveBeenCalledWith('Dark Elf Team');
+    expect(mocks.racesImport.upsert).toHaveBeenCalledWith(
+      {
+        name: 'Dark Elf',
+        eras: [],
+        externalIds: [
+          { externalSystemId: 1, externalId: '13' },
+          { externalSystemId: 2, externalId: 'Dark Elf' },
+        ],
+      },
+      expect.any(Array),
+    );
+    // The BBL-id map keeps the raw scraped name on purpose: it feeds only
+    // log/error messages in the downstream positions import.
+    expect(racesByBblId.get('13')?.name).toBe('Dark Elf Team');
   });
 
   it('deduplicates a race (by id) appearing on multiple team pages', async () => {
