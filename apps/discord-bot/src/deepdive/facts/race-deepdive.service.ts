@@ -1,4 +1,4 @@
-import type { RacePositionsInEra } from '@blood-bowl-tracker/game-data';
+import type { RacePosition } from '@blood-bowl-tracker/game-data';
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -21,6 +21,7 @@ import {
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -51,6 +52,7 @@ export class RaceDeepdiveService {
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
+    private readonly eraSectionGrouper: EraSectionGrouperService,
   ) {}
 
   async resolve(raceId: number): Promise<string | InteractionReplyOptions> {
@@ -81,12 +83,11 @@ export class RaceDeepdiveService {
       return DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE;
     }
 
-    const positionsByEra: RacePositionsInEra[] | null =
-      await this.databaseTimeout.run(
-        this.races.listPositionsByEra(raceId),
-        null,
-      );
-    if (positionsByEra === null) {
+    const positions: RacePosition[] | null = await this.databaseTimeout.run(
+      this.races.listPositionsByEra(raceId),
+      null,
+    );
+    if (positions === null) {
       return DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE;
     }
 
@@ -129,17 +130,24 @@ export class RaceDeepdiveService {
     // No placeholder when a race has no positions recorded: the section is
     // simply absent rather than reported empty. The plain-text `Eras:` line
     // above is unaffected — it stays the race's summary line, while this
-    // section answers what the race could actually field in each era.
+    // section answers what the race could actually field in each era. Grouped
+    // into per-era sections the same way the trophy and competition-group
+    // deep dives group their own per-era lists — one `<era> positions:`
+    // heading per era, one row per position — rather than one packed line
+    // per era, so a long position name or a long list of positions reads the
+    // same way those other per-era lists already do.
     const positionLines =
-      positionsByEra.length === 0
+      positions.length === 0
         ? []
         : [
             '',
-            'Positions:',
-            ...positionsByEra.map(
-              (era) =>
-                `${era.eraName}: ${era.positions.map((position) => position.name).join(' ')}`,
-            ),
+            ...this.eraSectionGrouper
+              .group(positions)
+              .flatMap((section, index) => [
+                ...(index === 0 ? [] : ['']),
+                `${section.eraName} positions:`,
+                ...section.rows.map((position) => position.name),
+              ]),
           ];
 
     // Leaderboard entries first: buildEntityComponents has no internal
@@ -156,13 +164,11 @@ export class RaceDeepdiveService {
         entityId: String(era.id),
         label: era.name,
       })),
-      ...positionsByEra.flatMap((era) =>
-        era.positions.map((position): EntityComponentEntry => ({
-          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(position.id),
-          label: position.name,
-        })),
-      ),
+      ...positions.map((position): EntityComponentEntry => ({
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(position.id),
+        label: position.name,
+      })),
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);

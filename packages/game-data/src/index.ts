@@ -83,7 +83,7 @@ export {
   PositionUpsertConflictError,
 } from './positions/positions.service';
 export { RacesModule } from './races/races.module';
-export type { RacePositionsInEra } from './races/races.service';
+export type { RacePosition } from './races/races.service';
 export { RacesService, RaceUpsertConflictError } from './races/races.service';
 export { RulesSetsModule } from './rules-sets/rules-sets.module';
 export {

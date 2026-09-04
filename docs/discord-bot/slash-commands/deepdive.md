@@ -221,11 +221,16 @@ played:` followed by their top five teams by matches played, one line per
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,
   comma-joined by name, or "None recorded" if it is in none), then — only when
-  the race has positions recorded for at least one era, with the whole section
-  omitted otherwise — a blank line, a `Positions:` heading, and one
-  `<era>: <positions>` line per era, oldest era first, listing that era's
-  positions space-joined by name. A position recurring across several eras
-  appears once per era it belongs to. Then a blank line and
+  the race has (non-star) positions recorded for at least one era, with the
+  whole section omitted otherwise — a blank line and one
+  `<era> positions:` heading per era, oldest era first, each followed by that
+  era's positions as one line per position, name-ascending — the same
+  heading-then-rows shape the trophy and competition-group deepdives use for
+  their own per-era lists. A position recurring across several eras appears
+  once per era it belongs to. Star positions are never listed here: they are
+  shared across every race that can hire them rather than belonging to this
+  one race, and are already reachable from their own star-player deepdive.
+  Then a blank line and
   `Top teams by matches played:` followed by its top five teams by matches
   played, one line per team formatted `<rank>. <team> — <matches>`. Ties at the
   fifth-place cutoff are all shown, up to ten teams — the same convention

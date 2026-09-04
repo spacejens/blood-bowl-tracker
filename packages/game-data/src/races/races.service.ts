@@ -37,14 +37,17 @@ export interface RaceWithEras extends Race {
 }
 
 /**
- * The positions a race can field in one era. Grouped rather than flat because
- * the race deep dive shows them era by era: the same position typically
- * recurs in several eras, and a flat list would say nothing about when.
+ * One position available to a race in one era. Flat, already ordered by era
+ * then position name — the same shape `CompetitionsService.listByCompetitionGroupChronological`
+ * returns, so a consumer groups it into per-era sections with the shared
+ * `EraSectionGrouperService` rather than this service doing that grouping
+ * itself.
  */
-export interface RacePositionsInEra {
+export interface RacePosition {
+  id: number;
+  name: string;
   eraId: number;
   eraName: string;
-  positions: { id: number; name: string }[];
 }
 
 @Injectable()
@@ -86,21 +89,25 @@ export class RacesService {
   }
 
   /**
-   * Every position available to this race, grouped by era, oldest era first
-   * and positions name-ascending within each. Eras with no recorded positions
-   * do not appear at all — the inner joins drop them, and an era with nothing
-   * to list would render as an empty line.
+   * Every ordinary (non-star) position available to this race, oldest era
+   * first and positions name-ascending within each. Eras with no recorded
+   * positions do not appear at all — the inner joins drop them, and an era
+   * with nothing to list would render as an empty line. Star positions are
+   * excluded: they are shared across every race that can hire them rather
+   * than belonging to this one race, and are already reachable from their
+   * own star-player deep dive.
    *
-   * The grouping is done in memory over an already-ordered flat result: one
-   * query, and the order the database chose is the order the reader sees.
+   * Flat and already ordered, matching how `CompetitionsService.listByCompetitionGroupChronological`
+   * shapes its own rows — the caller groups this into per-era sections with
+   * `EraSectionGrouperService`, the same way that competitions list does.
    */
-  async listPositionsByEra(raceId: number): Promise<RacePositionsInEra[]> {
-    const rows = await this.db
+  listPositionsByEra(raceId: number): Promise<RacePosition[]> {
+    return this.db
       .select({
+        id: positions.id,
+        name: positions.name,
         eraId: eras.id,
         eraName: eras.name,
-        positionId: positions.id,
-        positionName: positions.name,
       })
       .from(raceEras)
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
@@ -109,24 +116,10 @@ export class RacesService {
         eq(positionsRaceEras.raceEraId, raceEras.id),
       )
       .innerJoin(positions, eq(positions.id, positionsRaceEras.positionId))
-      .where(eq(raceEras.raceId, raceId))
+      .where(
+        and(eq(raceEras.raceId, raceId), eq(positions.isStarPlayer, false)),
+      )
       .orderBy(asc(eras.startDate), asc(eras.name), asc(positions.name));
-
-    const byEra = new Map<number, RacePositionsInEra>();
-    for (const row of rows) {
-      const group = byEra.get(row.eraId);
-      const position = { id: row.positionId, name: row.positionName };
-      if (group === undefined) {
-        byEra.set(row.eraId, {
-          eraId: row.eraId,
-          eraName: row.eraName,
-          positions: [position],
-        });
-      } else {
-        group.positions.push(position);
-      }
-    }
-    return [...byEra.values()];
   }
 
   getTopTeamsByMatchesPlayed(
