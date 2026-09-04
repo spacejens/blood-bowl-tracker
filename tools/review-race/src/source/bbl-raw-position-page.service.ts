@@ -11,12 +11,12 @@ const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
 
 /** One position's raw characteristics line, exactly as the page shows it. */
 export interface BblRawCharacteristics {
-  move: number;
-  strength: number;
-  agility: number;
+  move: string;
+  strength: string;
+  agility: string;
   /** null when the page shows a literal `-`. */
-  passing: number | null;
-  armour: number;
+  passing: string | null;
+  armour: string;
 }
 
 /** What BBL's own `p=pt` page says about one position. */
@@ -143,9 +143,9 @@ export class BblRawPositionPageService {
     return { move, strength, agility, passing, armour };
   }
 
-  /** A plain or `+`-suffixed number; anything else is unreadable. */
-  private value(text: string): number | null {
-    return /^\d+\+?$/.test(text) ? Number.parseInt(text, 10) : null;
+  /** A plain or `+`-suffixed number as scraped; anything else is unreadable. */
+  private value(text: string): string | null {
+    return /^\d+\+?$/.test(text) ? text : null;
   }
 
   private text(raw: string): string {

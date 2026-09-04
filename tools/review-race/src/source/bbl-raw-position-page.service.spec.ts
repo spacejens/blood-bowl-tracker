@@ -71,20 +71,32 @@ describe('BblRawPositionPageService', () => {
     const position = await service.positionFor('310');
 
     expect(position?.characteristics).toEqual({
-      move: 5,
-      strength: 3,
-      agility: 3,
+      move: '5',
+      strength: '3',
+      agility: '3+',
       passing: null,
-      armour: 9,
+      armour: '9',
     });
   });
 
-  it('strips a trailing plus from a value', async () => {
+  it('preserves a trailing plus on a value', async () => {
     reader.readPage.mockResolvedValue(PAGE);
 
     const position = await service.positionFor('310');
 
-    expect(position?.characteristics?.agility).toBe(3);
+    expect(position?.characteristics?.agility).toBe('3+');
+  });
+
+  it('preserves a trailing plus on armour too', async () => {
+    reader.readPage.mockResolvedValue(
+      `<h1>Position</h1>
+<table><tr><td>MA</td><td>ST</td><td>AG</td><td>PA</td><td>AV</td></tr>
+<tr><td>5</td><td>3</td><td>3+</td><td>-</td><td>9+</td></tr></table>`,
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(position?.characteristics?.armour).toBe('9+');
   });
 
   it('returns null characteristics when a required cell is unparseable', async () => {
@@ -133,7 +145,7 @@ describe('BblRawPositionPageService', () => {
     expect(position?.characteristics).toBeNull();
   });
 
-  it('parses a numeric passing value when the cell is not a literal dash', async () => {
+  it('keeps the passing value verbatim when the cell is not a literal dash', async () => {
     reader.readPage.mockResolvedValue(
       `<h1>Position</h1>
 <table><tr><td>MA</td><td>ST</td><td>AG</td><td>PA</td><td>AV</td></tr>
@@ -142,7 +154,7 @@ describe('BblRawPositionPageService', () => {
 
     const position = await service.positionFor('310');
 
-    expect(position?.characteristics?.passing).toBe(6);
+    expect(position?.characteristics?.passing).toBe('6+');
   });
 
   it('returns null characteristics when passing is present but unparseable', async () => {
