@@ -349,42 +349,42 @@ describe('curated data files', () => {
           entry.rulesSet.id === 'CRP' && entry.position.id === positionId,
       );
 
-    expect(findCrp('Dark Elf Team: Dark Elf Lineman')).toEqual({
-      position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' },
+    expect(findCrp('Dark Elf: Dark Elf Lineman')).toEqual({
+      position: { system: 'Name', id: 'Dark Elf: Dark Elf Lineman' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 4,
       armour: 8,
     });
-    expect(findCrp('Dwarf Team: Dwarf Blocker Linemen')).toEqual({
-      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+    expect(findCrp('Dwarf: Dwarf Blocker Linemen')).toEqual({
+      position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 4,
       strength: 3,
       agility: 2,
       armour: 9,
     });
-    expect(findCrp('Amazon Team: Tribal Linewoman')).toEqual({
-      position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' },
+    expect(findCrp('Amazon: Tribal Linewoman')).toEqual({
+      position: { system: 'Name', id: 'Amazon: Tribal Linewoman' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 3,
       armour: 7,
     });
-    expect(findCrp('Elven Union Team: Elven Linemen')).toEqual({
-      position: { system: 'Name', id: 'Elven Union Team: Elven Linemen' },
+    expect(findCrp('Elven Union: Elven Linemen')).toEqual({
+      position: { system: 'Name', id: 'Elven Union: Elven Linemen' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 4,
       armour: 7,
     });
-    expect(findCrp('Chaos Chosen Team: Beastman Runner Lineman')).toEqual({
+    expect(findCrp('Chaos Chosen: Beastman Runner Lineman')).toEqual({
       position: {
         system: 'Name',
-        id: 'Chaos Chosen Team: Beastman Runner Lineman',
+        id: 'Chaos Chosen: Beastman Runner Lineman',
       },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
@@ -392,14 +392,39 @@ describe('curated data files', () => {
       agility: 3,
       armour: 8,
     });
-    expect(findCrp('Chaos Dwarf Team: Hobgoblin Linemen')).toEqual({
-      position: { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' },
+    expect(findCrp('Chaos Dwarf: Hobgoblin Linemen')).toEqual({
+      position: { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Linemen' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 3,
       armour: 7,
     });
+  });
+
+  it('keys every curated position by the canonical race name', () => {
+    const ids = [
+      ...readFile(
+        'after-other-importers',
+        'position-availability.json5',
+      ).positions.flatMap((position) =>
+        position.externalIds
+          .filter((ref) => ref.system === 'Name')
+          .map((ref) => ref.id),
+      ),
+      ...readFile(
+        'after-other-importers',
+        'position-characteristics.json5',
+      ).positionRulesSets.map((entry) => entry.position.id),
+    ];
+
+    // tools/import-bbl canonicalizes its team-page race name
+    // ("Underworld Denizens Team") down to the race's real name before
+    // building this id (BblRaceNameService), and tools/import-tp always used
+    // the real name. A curated id carrying the old " Team" spelling would
+    // match neither importer: it would create an orphan position row and then
+    // collide with the real one (PositionUpsertConflictError).
+    expect(ids.filter((id) => id.includes(' Team: '))).toEqual([]);
   });
 
   it('curates CRP characteristics for the core-rulebook teams', () => {
@@ -505,7 +530,7 @@ describe('curated data files', () => {
     // Chaos Pact, Slann and Underworld appear in NTBB2015 but not in the CRP
     // core book, so nothing in the source data evidences them for the
     // CRP-era eras.
-    expect(hasFirstEraFor('Underworld Denizens Team: ')).toBe(true);
+    expect(hasFirstEraFor('Underworld Denizens: ')).toBe(true);
     expect(hasFirstEraFor('Slann: ')).toBe(true);
   });
 
