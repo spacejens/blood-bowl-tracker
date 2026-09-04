@@ -18,6 +18,7 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   passthroughEntityComponents,
@@ -374,6 +375,30 @@ describe('PositionDeepdiveService', () => {
     expect(JSON.stringify(await service.resolve(1))).toContain(
       '…and 3 more not shown.',
     );
+  });
+
+  it('truncates the description to the Discord embed cap when a position has an unbounded number of races', async () => {
+    // findById carries no cap on how many races a position resolves to, so a
+    // position linked to many races (or races with long names) can produce a
+    // description longer than Discord's MAX_DESCRIPTION_LENGTH. One name here
+    // is ~9 chars plus a separator; 600 of them comfortably exceeds 4096.
+    const manyRaces = Array.from({ length: 600 }, (_unused, index) => ({
+      id: index,
+      name: `Race ${index}`,
+    }));
+    const { service } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: manyRaces },
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+    });
+
+    const result = await service.resolve(1);
+
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 
   it('offers race buttons ahead of top-player buttons', async () => {

@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
@@ -179,10 +180,25 @@ export class RaceDeepdiveService {
       embeds: [
         {
           title: `${this.entityComponents.getEmojiForPrefix(RACE_BUTTON_CUSTOM_ID_PREFIX)} ${race.name}`,
-          description,
+          description: this.enforceDescriptionLimit(description),
         },
       ],
       ...(components.length > 0 ? { components } : {}),
     };
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit.
+   * `listPositionsByEra` has no row cap of its own — a race with many eras
+   * and many positions per era, or simply long position names, could in
+   * principle overflow — so this measures the actual assembled string rather
+   * than trusting that input to stay small. Mirrors
+   * `PlayerDeepdiveService.enforceDescriptionLimit`.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
   }
 }

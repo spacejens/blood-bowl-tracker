@@ -10,6 +10,7 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -503,5 +504,32 @@ describe('RaceDeepdiveService', () => {
     await expect(service.resolve(1)).resolves.toBe(
       DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('truncates the description to the Discord embed cap when a race has an unbounded number of positions', async () => {
+    // listPositionsByEra carries no row cap, so a race with many eras and
+    // many positions per era can produce a description longer than Discord's
+    // MAX_DESCRIPTION_LENGTH. One era line is well over 4096 chars once it
+    // lists 600 position names.
+    const manyPositions = Array.from({ length: 600 }, (_unused, index) => ({
+      id: index,
+      name: `Position ${index}`,
+    }));
+    const { service } = await makeService({
+      races: makeRaces({
+        race: { id: 1, name: 'Orc' },
+        positionsByEra: [
+          { eraId: 3, eraName: 'BB2016', positions: manyPositions },
+        ],
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+
+    const result = await service.resolve(1);
+
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 });
