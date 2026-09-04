@@ -17,13 +17,15 @@ describe('CharacteristicNotationConversionService', () => {
   describe('convertAgility', () => {
     // The input is always BBL's scraped BB2020-notation target; pre-BB2020
     // Agility sits on a complementary scale where the two sum to 6 — new 2+
-    // is old AG 4, new 3+ is old AG 3, new 4+ is old AG 2.
+    // is old AG 4, new 3+ is old AG 3, new 4+ is old AG 2. Clamped to a 1
+    // floor: old notation has no AG 0, so a scraped 6 (which would compute
+    // to 0) clamps to 1, same as 5.
     const bareCases: [raw: number, converted: number][] = [
       [2, 4],
       [3, 3],
       [4, 2],
       [5, 1],
-      [6, 0],
+      [6, 1],
     ];
     it.each(bareCases)(
       'converts a scraped Agility %i into bare-notation %i',

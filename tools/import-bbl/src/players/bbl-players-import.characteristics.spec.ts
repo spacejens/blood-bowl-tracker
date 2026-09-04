@@ -182,8 +182,17 @@ describe('BblPlayersImportService characteristics', () => {
   });
 
   it('converts Agility and Armour into a bare-notation rules set', async () => {
+    // goodPlayer's own Agility (3) is this scale's fixed point (6 - 3 = 3),
+    // so converting it wouldn't distinguish this test from the pass-through
+    // test below — a regression that dropped the convertAgility call
+    // entirely would still pass. Override to AG 4 (converts to 2) so a
+    // wrong or missing conversion is actually caught here.
+    const bareAgilityPlayer = {
+      ...goodPlayer,
+      characteristics: { ...goodPlayer.characteristics, agility: 4 },
+    };
     const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      mockBblSourceReaderByType({ pl: [plPage(bareAgilityPlayer)] }),
       eras,
     );
 
@@ -202,11 +211,10 @@ describe('BblPlayersImportService characteristics', () => {
       ]),
     });
 
-    // goodPlayer's page shows AG 3 / AV 8 in BBL's BB2020 notation. Under a
-    // rules set that writes bare numbers those are AG 3 (3 is the scale's
-    // own fixed point: 6 - 3 = 3) and AV 7.
+    // The page shows AG 4 / AV 8 in BBL's BB2020 notation. Under a rules set
+    // that writes bare numbers those are AG 2 and AV 7.
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
-      expect.objectContaining({ agility: 3, armour: 7 }),
+      expect.objectContaining({ agility: 2, armour: 7 }),
       expect.any(Array),
     );
   });

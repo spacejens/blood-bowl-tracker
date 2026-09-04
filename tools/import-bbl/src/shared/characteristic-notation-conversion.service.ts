@@ -22,8 +22,13 @@ export class CharacteristicNotationConversionService {
    * BB2020 Agility states the target a single D6 roll has to meet; pre-BB2020
    * Agility is a plain number on a complementary scale where the two always
    * sum to 6 — new 2+ is old AG 4, new 3+ is old AG 3, new 4+ is old AG 2.
-   * Unclamped: BB2020's own 2+ floor (a natural 1 always fails) means the
-   * scraped input is never low enough to need one here.
+   * Clamped to a 1 floor: old notation has no AG 0, and a scraped BB2020
+   * value of 6+ or higher (a poor-Agility Big Guy, say) would otherwise
+   * compute below it. This clamp is lossy in the same way BB2020's own 2+
+   * floor is: several distinct old values (5, 6, ...) can all collapse to
+   * the same BB2020 2+ on BBL's page, so converting 2+ back can only recover
+   * one of them (4) — an unavoidable consequence of BBL never showing the
+   * player's true old-notation value.
    *
    * `plus` (already BB2020 notation) and `absent` are both returned
    * unchanged — this method only decides notation, not whether the
@@ -33,7 +38,7 @@ export class CharacteristicNotationConversionService {
     if (format !== 'bare') {
       return rawAgility;
     }
-    return 6 - rawAgility;
+    return Math.max(1, 6 - rawAgility);
   }
 
   /**
