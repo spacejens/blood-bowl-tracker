@@ -1,14 +1,15 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports ten targets — an era, a coach, a team, a player, a star
-player, a race, a competition, a competition group, a trophy, and a league —
-and is designed to grow further optional, mutually exclusive targets in future
-work.
+Today it supports eleven targets — an era, a coach, a team, a player, a star
+player, a race, a position, a competition, a competition group, a trophy, and
+a league — and is designed to grow further optional, mutually exclusive
+targets in future work.
 
 Every deepdive embed's headline is the subject's name prefixed with its entity
 type's emoji — 🕰️ era, 📋 coach, 🛡️ team, 🎽 player, ⭐ star player, 🧬 race,
-🏟️ competition, 🔁 competition group, 🏛️ league, 🏆 trophy — so the title
+🏃 position, 🏟️ competition, 🔁 competition group, 🏛️ league, 🏆 trophy — so
+the title
 visually matches the button or dropdown entry that opened it. These are the
 same emoji the drill-down components carry, read from the single map in
 `apps/discord-bot/src/entity-components.service.ts`, so the two can never drift
@@ -18,14 +19,15 @@ are plain messages with no embed, so they have no headline to prefix.
 
 ## Arguments
 
-The command takes ten optional string arguments, `era`, `coach`, `team`, `player`,
-`star-player`, `race`, `competition`, `competition-group`, `trophy`, and
+The command takes eleven optional string arguments, `era`, `coach`, `team`, `player`,
+`star-player`, `race`, `position`, `competition`, `competition-group`, `trophy`, and
 `league`, each autocompleted by name
 (`era` suggestions are labelled `<era> (<league>)`; `coach` and `team` suggestions are labelled
 `<name> (#<id>)`; `player` suggestions are labelled `<name> (<team>)`
 because player names are not unique across teams; `star-player` suggestions are
 a bare name with no parenthetical, because a star has no single team to name in
-one; `race` suggestions are a bare name with no parenthetical; `competition`
+one; `race` suggestions are a bare name with no parenthetical; `position`
+suggestions are a bare name with no parenthetical; `competition`
 suggestions are labelled `<competition> (<league>)`; `competition-group`
 suggestions are
 labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
@@ -192,11 +194,14 @@ played:` followed by their top five teams by matches played, one line per
   team when the killer is ambiguous; no button at all in the mysterious-
   circumstances case), then one button per listed victim (the victim player
   when identified, one button per candidate team when the side is ambiguous,
-  none in the mysterious-circumstances case), then the team, era and race
-  buttons — which follow the order of the header lines — so the most specific
-  content keeps button priority. Position has no deepdive target, so it has no
-  button, and neither does the killer's own position, race or coach, nor a
-  victim's.
+  none in the mysterious-circumstances case), then the team, era, race and
+  position buttons — which follow the order of the header lines — so the most
+  specific content keeps button priority. The `Position: <position>` line
+  stays as text as well as gaining a button: unlike team/era/race, the button
+  can vanish under the 25-entry cap or when the list of drill-down targets
+  grows too long for buttons, so the text line is the reader's guaranteed way
+  to see the position even then. Neither the killer's own position, race or
+  coach has a button, nor a victim's.
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`star-player:<star>`** — the bot replies with an embed for that star: the
   star's name as the title, then one line per team that has ever hired them,
@@ -215,15 +220,55 @@ played:` followed by their top five teams by matches played, one line per
   message.
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,
-  comma-joined by name, or "None recorded" if it is in none), a blank line, and
+  comma-joined by name, or "None recorded" if it is in none), then — only when
+  the race has (non-star) positions recorded for at least one era, with the
+  whole section omitted otherwise — a blank line and one
+  `<era> positions:` heading per era, oldest era first, each followed by that
+  era's positions as one line per position, name-ascending — the same
+  heading-then-rows shape the trophy and competition-group deepdives use for
+  their own per-era lists. A position recurring across several eras appears
+  once per era it belongs to. Star positions are never listed here: they are
+  shared across every race that can hire them rather than belonging to this
+  one race, and are already reachable from their own star-player deepdive.
+  Then a blank line and
   `Top teams by matches played:` followed by its top five teams by matches
   played, one line per team formatted `<rank>. <team> — <matches>`. Ties at the
   fifth-place cutoff are all shown, up to ten teams — the same convention
   `/insights` toplists use, though at most ten teams are fetched, so the "…and N
   more tied." note never actually appears here. The top-teams list is not
   era-scoped. A race with no recorded team appearances shows a short "no teams
-  yet" message in place of the list.
+  yet" message in place of the list. Every listed position is rendered as a
+  drill-down button to that position's deepdive, ahead of the top-teams
+  buttons.
 - **A race that matches nothing** — the bot replies with a not-found message.
+- **`position:<position>`** — the bot replies with an embed for that
+  [position](../../glossary.md#position): the position name as the title,
+  then `Race(s): <races>` (comma-joined by name, or "None recorded" if the
+  position has no [race](../../glossary.md#race) recorded — a position can
+  in principle belong to more than one race), a blank line, and one stat
+  line per rules set the position has recorded characteristics for, oldest
+  rules set first, formatted `<rules set>: MA <move> ST <strength>
+  AG <agility> [PA <passing>] AV <armour>`. Each value is written using that
+  rules set's own recorded format — a bare number, or a number with a
+  trailing `+` for a target a die roll has to meet — and a rules set with no
+  Passing characteristic at all omits the `PA` field entirely rather than
+  showing a placeholder for it; a stored value of zero (not yet curated)
+  renders as a dash instead of `0`. A position with no characteristics
+  recorded for any rules set shows a short message instead of a stat-line
+  list. Then a blank line, `Held by <N> player(s)`, a blank line, and
+  `Top players by SPP:` followed by its top five players by career SPP total,
+  one line per player formatted `<rank>. <player> (<team>, <coach>) — <SPP>`
+  — the player's position is left off, since every listed player already
+  holds this one, and the list is not scoped to one race or one
+  [era](../../glossary.md#era), so neither belongs on the row either. Ties at the
+  fifth-place cutoff are all shown, up to ten players — the same convention
+  `/insights` toplists use, though at most ten players are fetched, so the
+  "…and N more tied." note never actually appears here. A position with no
+  players shows a short message instead of a list. Every listed race is
+  rendered as a drill-down button to that race's deepdive, followed by one
+  button per listed top player.
+- **A position that matches nothing** — the bot replies with a not-found
+  message.
 - **`competition:<competition>`** — the bot replies with an embed for that
   competition: the competition name as the title, then `Type: <type>` (`season`
   or `cup`), `Era: <era>`, `Group: <competition group>`, `Duration: <range>`
@@ -358,6 +403,7 @@ and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.service.t
 `apps/discord-bot/src/deepdive/facts/player-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/star-player-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/race-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/position-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/competition-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/competition-group-deepdive.service.ts`,
 `apps/discord-bot/src/deepdive/facts/league-deepdive.service.ts`, and

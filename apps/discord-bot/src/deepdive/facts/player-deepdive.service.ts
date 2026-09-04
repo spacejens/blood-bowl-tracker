@@ -35,6 +35,7 @@ import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -51,6 +52,7 @@ type Player = {
   raceName: string;
   raceId: number;
   positionName: string;
+  positionId: number;
   eraName: string;
   eraId: number;
   sppTotal: number | null;
@@ -270,6 +272,16 @@ export class PlayerDeepdiveService {
           customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(player.raceId),
           label: player.raceName,
+        },
+        // The position is always-available context about the subject, like the
+        // team/era/race entries it sits with, so it joins the header-derived
+        // group rather than taking priority over honors and kills. The header
+        // line keeps naming the position in text as well: the button is a way
+        // in, not the only way to read it.
+        {
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(player.positionId),
+          label: player.positionName,
         },
         // A star's identity is its position, so this one hire's embed can only
         // ever show one team. The star-player deepdive shows every team that

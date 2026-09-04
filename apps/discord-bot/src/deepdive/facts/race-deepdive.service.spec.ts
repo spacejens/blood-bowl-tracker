@@ -1,3 +1,4 @@
+import type { RacePosition } from '@blood-bowl-tracker/game-data';
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -9,6 +10,7 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   entityComponentsMock,
@@ -20,6 +22,7 @@ import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
@@ -29,7 +32,15 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
-import { RACE_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
+import {
+  cannedEraSectionGrouper,
+  singleEraSectionGrouper,
+} from '../../shared/era-section-grouper-mock.test-helpers';
+import {
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
 interface MakeServiceOptions {
@@ -38,6 +49,7 @@ interface MakeServiceOptions {
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   teamContext?: MockProxy<TeamContextService>;
+  eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
 }
 
 async function makeService({
@@ -46,6 +58,7 @@ async function makeService({
   leaderboard = mock<LeaderboardService>(),
   entityComponents = passthroughEntityComponents(),
   teamContext = passthroughTeamContext(),
+  eraSectionGrouper = singleEraSectionGrouper(),
 }: MakeServiceOptions): Promise<{
   service: RaceDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
@@ -59,6 +72,7 @@ async function makeService({
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TeamContextService, useValue: teamContext },
+      { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
     ],
   }).compile();
   return {
@@ -72,11 +86,13 @@ function makeRaces(options: {
   race?: { id: number; name: string };
   eras?: { id: number; name: string }[];
   topTeams?: { id: number; name: string; count: number }[];
+  positions?: RacePosition[];
 }): MockProxy<RacesService> {
   const races = mock<RacesService>();
   races.findById.mockResolvedValue(options.race);
   races.listEras.mockResolvedValue(options.eras ?? []);
   races.getTopTeamsByMatchesPlayed.mockResolvedValue(options.topTeams ?? []);
+  races.listPositionsByEra.mockResolvedValue(options.positions ?? []);
   return races;
 }
 
@@ -407,6 +423,7 @@ describe('RaceDeepdiveService', () => {
         databaseTimeout.run
           .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { service } = await makeService({
@@ -423,5 +440,105 @@ describe('RaceDeepdiveService', () => {
       () => undefined,
       DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('lists the positions available in each era, one heading per era and one row per position', async () => {
+    const positions: RacePosition[] = [
+      { id: 1, name: 'Blitzer', eraId: 3, eraName: 'BB2016' },
+      { id: 2, name: 'Lineman', eraId: 3, eraName: 'BB2016' },
+      { id: 2, name: 'Lineman', eraId: 4, eraName: 'BB2020' },
+    ];
+    const { service, entityComponents } = await makeService({
+      races: makeRaces({
+        race: { id: 1, name: 'Orc' },
+        positions,
+      }),
+      leaderboard: passthroughLeaderboard(),
+      // Mirrors the trophy/competition-group deep dives' own per-era section
+      // rendering: one heading per era, then one row per item under it —
+      // not the single packed line per era this section used to render.
+      eraSectionGrouper: cannedEraSectionGrouper([
+        { eraName: 'BB2016', rows: positions.slice(0, 2) },
+        { eraName: 'BB2020', rows: positions.slice(2) },
+      ]),
+    });
+
+    const result = await service.resolve(1);
+
+    expect(JSON.stringify(result)).toContain(
+      'BB2016 positions:\\nBlitzer\\nLineman\\n\\nBB2020 positions:\\nLineman',
+    );
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: '1',
+          label: 'Blitzer',
+        },
+        {
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: '2',
+          label: 'Lineman',
+        },
+      ]),
+    );
+  });
+
+  it('omits the positions section entirely when the race has none recorded', async () => {
+    const { service } = await makeService({
+      races: makeRaces({ race: { id: 1, name: 'Orc' }, positions: [] }),
+      leaderboard: passthroughLeaderboard(),
+    });
+
+    expect(JSON.stringify(await service.resolve(1))).not.toContain(
+      'positions:',
+    );
+  });
+
+  it('returns the positions timeout message when that query times out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    databaseTimeout.run
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (work) => work)
+      .mockImplementationOnce(async (_work, fallback) => fallback);
+    const { service } = await makeService({
+      races: makeRaces({ race: { id: 1, name: 'Orc' } }),
+      databaseTimeout,
+    });
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('truncates the description to the Discord embed cap when a race has an unbounded number of positions', async () => {
+    // listPositionsByEra carries no row cap, so a race with many eras and
+    // many positions per era can produce a description longer than Discord's
+    // MAX_DESCRIPTION_LENGTH. 600 one-per-line position names comfortably
+    // exceeds it.
+    const manyPositions: RacePosition[] = Array.from(
+      { length: 600 },
+      (_unused, index) => ({
+        id: index,
+        name: `Position ${index}`,
+        eraId: 3,
+        eraName: 'BB2016',
+      }),
+    );
+    const { service } = await makeService({
+      races: makeRaces({
+        race: { id: 1, name: 'Orc' },
+        positions: manyPositions,
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+
+    const result = await service.resolve(1);
+
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description.length).toBe(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 });

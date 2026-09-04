@@ -10,6 +10,7 @@ import {
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -52,11 +53,11 @@ export const CALENDAR_EMOJI = '📅';
  * The button colour each destination type gets, so a coach can tell coach
  * buttons from team buttons from player buttons at a glance without reading
  * every label. Discord offers only four usable styles (Link navigates to a
- * URL and Premium is for purchases), so some of the ten destination types share colours:
- * the five "container" types (era, competition, competition group, league, trophy)
- * share Secondary, and the three "who played" types (coach, team, race) share
- * Success, because red would read as a destructive-action colour for routine
- * navigation among these look-alike types. Player is the sole user of
+ * URL and Premium is for purchases), so some of the twelve destination types share colours:
+ * the six "container" types (era, competition, competition group, league, trophy,
+ * on-this-date) share Secondary, and the four "who played" types (coach, team, race and
+ * position) share Success, because red would read as a destructive-action
+ * colour for routine navigation among these look-alike types. Player is the sole user of
  * Primary. Star player takes Danger, the last unused style: it is the one
  * destination type that is not routine navigation but a single marquee entity
  * (a hired mercenary, not a team/coach/race a coach browses through), so red
@@ -80,12 +81,13 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
   [PLAYER_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Primary,
   [STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Danger,
   [RACE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
+  [POSITION_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
 };
 
 /**
  * The emoji each destination type gets, rendered by Discord in the component's
  * own `emoji` field (not prefixed into the label). Colour alone cannot carry
- * type identity: Discord offers only four usable button styles for ten and
+ * type identity: Discord offers only four usable button styles for twelve and
  * counting destination types, and select-menu options have no colour at all,
  * so a coach and a competition would be indistinguishable in a long list.
  * Emoji is the primary type signal; `BUTTON_STYLE_BY_PREFIX` remains an
@@ -98,7 +100,9 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
  * (competition), a repeat symbol for a recurring series (competition group),
  * a classical building for the institution a whole league is, one level above
  * the competition group's repeat symbol (league), a trophy cup for an award
- * (trophy), and a calendar for a recurring calendar date (on-this-date).
+ * (trophy), a calendar for a recurring calendar date (on-this-date), and a
+ * runner for a playing role on the pitch (position) — deliberately distinct
+ * from the player's jersey, since a position is a role, not an individual.
  *
  * The `Record<ButtonCustomIdPrefix, string>` annotation is deliberate, exactly
  * as it is for the colour map above: TypeScript requires every member of the
@@ -113,6 +117,7 @@ const ENTITY_EMOJI_BY_PREFIX: Record<ButtonCustomIdPrefix, string> = {
   [PLAYER_BUTTON_CUSTOM_ID_PREFIX]: '🎽',
   [STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX]: '⭐',
   [RACE_BUTTON_CUSTOM_ID_PREFIX]: '🧬',
+  [POSITION_BUTTON_CUSTOM_ID_PREFIX]: '🏃',
   [COMPETITION_BUTTON_CUSTOM_ID_PREFIX]: '🏟️',
   [COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX]: '🔁',
   [LEAGUE_BUTTON_CUSTOM_ID_PREFIX]: '🏛️',

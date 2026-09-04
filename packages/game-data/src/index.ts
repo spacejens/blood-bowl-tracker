@@ -70,20 +70,28 @@ export type {
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
 export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
+export type { PositionCharacteristics } from './position-rules-sets/position-rules-sets.service';
 export { PositionRulesSetsService } from './position-rules-sets/position-rules-sets.service';
 export { PositionsModule } from './positions/positions.module';
-export type { SyncPositionRaceErasData } from './positions/positions.service';
+export type {
+  PositionHeader,
+  PositionTopPlayer,
+  SyncPositionRaceErasData,
+} from './positions/positions.service';
 export {
   PositionsService,
   PositionUpsertConflictError,
 } from './positions/positions.service';
 export { RacesModule } from './races/races.module';
+export type { RacePosition } from './races/races.service';
 export { RacesService, RaceUpsertConflictError } from './races/races.service';
 export { RulesSetsModule } from './rules-sets/rules-sets.module';
 export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
+export { CharacteristicDisplayFormattingModule } from './shared/characteristic-display-formatting.module';
+export { CharacteristicDisplayFormattingService } from './shared/characteristic-display-formatting.service';
 export { CharacteristicFormatMismatchError } from './shared/characteristic-format-mismatch-error';
 export { CharacteristicFormatValidationModule } from './shared/characteristic-format-validation.module';
 export { CharacteristicFormatValidationService } from './shared/characteristic-format-validation.service';

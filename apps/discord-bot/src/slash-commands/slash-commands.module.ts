@@ -11,6 +11,7 @@ import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
+import { PositionDeepdiveService } from '../deepdive/facts/position-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
@@ -43,6 +44,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     CoachDeepdiveService,
     TeamDeepdiveService,
     RaceDeepdiveService,
+    PositionDeepdiveService,
     PlayerDeepdiveService,
     StarPlayerDeepdiveService,
     PlayerKillsSectionService,

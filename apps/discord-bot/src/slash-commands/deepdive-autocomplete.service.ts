@@ -5,6 +5,7 @@ import {
   ErasService,
   LeaguesService,
   PlayersService,
+  PositionsService,
   RacesService,
   StarPlayersService,
   TeamsService,
@@ -34,6 +35,7 @@ export class DeepdiveAutocompleteService {
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
+    private readonly positions: PositionsService,
     private readonly races: RacesService,
     private readonly stars: StarPlayersService,
     private readonly trophies: TrophiesService,
@@ -96,6 +98,16 @@ export class DeepdiveAutocompleteService {
       return stars.map((row) => ({
         name: row.name,
         value: String(row.positionId),
+      }));
+    }
+    if (focused.name === 'position') {
+      const positions = await this.positions.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return positions.map((row) => ({
+        name: row.name,
+        value: String(row.id),
       }));
     }
     if (focused.name === 'race') {

@@ -134,6 +134,7 @@ describe('PlayerDeepdiveService kills section', () => {
       'Reikland Reavers',
       'Season 5',
       'Human',
+      'Blitzer',
     ]);
   });
 
