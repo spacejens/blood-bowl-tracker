@@ -343,4 +343,80 @@ describe('TpPositionsImportService characteristics accumulation', () => {
 
     expect(characteristicsByPositionId.size).toBe(0);
   });
+
+  it('keeps agreeing characteristics from an authoritative and a legacy roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('imports a position that exists only in the authoritative roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 960,
+              name: 'Dwarf Thrower',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
 });
