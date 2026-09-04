@@ -242,12 +242,15 @@ export class PlayerDeepdiveService {
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),
-      // Omitted entirely when no rules set applies to the player's era: there
-      // is then no way to know how to write the values, and a wrongly
+      // Set off with a blank line rather than joining the identity lines
+      // directly above: characteristics are a different kind of fact about
+      // the player than the header's own team/era/race/position. Omitted
+      // entirely when no rules set applies to the player's era: there is
+      // then no way to know how to write the values, and a wrongly
       // formatted stat line would read as fact.
       ...(characteristicsContext === undefined
         ? []
-        : [this.buildCharacteristicsLine(player, characteristicsContext)]),
+        : ['', this.buildCharacteristicsLine(player, characteristicsContext)]),
     ];
 
     const categoryLines = this.eventCountLines.build(

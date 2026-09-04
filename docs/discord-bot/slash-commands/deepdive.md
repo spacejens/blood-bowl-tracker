@@ -113,7 +113,8 @@ played:` followed by their top five teams by matches played, one line per
   `Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
   those forms.
   Only the `death` consequence produces this line; a player who has not died
-  shows no `Status:` line at all, rather than a placeholder. Then a
+  shows no `Status:` line at all, rather than a placeholder. Then a blank
+  line, and a
   `Characteristics: MA <move> ST <strength> AG <agility> [PA <passing>]
   AV <armour>` line, the player's own current values written using the
   format of whichever [rules set](../../glossary.md#rules-set) applies to
