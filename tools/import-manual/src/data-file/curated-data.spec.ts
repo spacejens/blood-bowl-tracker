@@ -746,11 +746,15 @@ describe('curated data files', () => {
     // Hopeful Lineman', id 297, on the older rosters; 'Halfling Hopeful', id
     // 969, on BB2025), and BBL still uses the older name (typId 39, race 8).
     // Registering all three ids up front lands every source's upsert on this
-    // single row instead of three.
+    // single row instead of three. The Name id matches this file's own
+    // convention of pre-registering one so the after-other-importers
+    // availability phase (which references this same Name id) can never race
+    // BBL/TP into creating an orphan row before either source has run.
     expect(entry?.externalIds).toEqual([
       { system: 'tloeg.bbleague.se', id: '39-8' },
       { system: 'tourplay.net', id: '969' },
       { system: 'tourplay.net', id: '297' },
+      { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' },
     ]);
     expect(entry?.isStarPlayer).toBe(false);
   });

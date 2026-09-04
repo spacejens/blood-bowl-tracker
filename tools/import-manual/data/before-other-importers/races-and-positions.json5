@@ -542,6 +542,7 @@
         { system: 'tloeg.bbleague.se', id: '39-8' },
         { system: 'tourplay.net', id: '969' },
         { system: 'tourplay.net', id: '297' },
+        { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' },
       ],
     },
     {
