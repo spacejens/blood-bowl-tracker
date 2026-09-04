@@ -6,6 +6,9 @@ import {
 import { Module } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
+import { CharacteristicsChangeStratificationService } from '../player-characteristics/characteristics-change-stratification.service';
+import { PlayerCharacteristicsModule } from '../player-characteristics/player-characteristics.module';
+import { PlayerCharacteristicsReviewerService } from '../player-characteristics/player-characteristics-reviewer.service';
 import { PlayerInfoModule } from '../player-info/player-info.module';
 import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.service';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
@@ -26,12 +29,17 @@ import { ReviewService } from './review.service';
 /**
  * The data-type-agnostic half of the tool, plus the one place data types are
  * registered. NestJS has no multi-provider mechanism, so the two arrays below
- * are the registry: adding a future data type (skills, injuries,
- * characteristics) means importing its module and adding it to these two
- * factories — no change to any harness service.
+ * are the registry: adding a future data type (skills, injuries) means
+ * importing its module and adding it to these two factories — no change to
+ * any harness service.
  */
 @Module({
-  imports: [SharedModule, PlayerInfoModule, SppTotalsModule],
+  imports: [
+    SharedModule,
+    PlayerInfoModule,
+    PlayerCharacteristicsModule,
+    SppTotalsModule,
+  ],
   providers: [
     PlayerLookupService,
     PlayerSamplerService,
@@ -42,11 +50,13 @@ import { ReviewService } from './review.service';
     createRegistryProvider(PLAYER_DATA_TYPE_REVIEWERS, [
       PlayerInfoReviewerService,
       PlayerSppTotalsReviewerService,
+      PlayerCharacteristicsReviewerService,
     ]),
     createRegistryProvider(PLAYER_STRATIFIERS, [
       SppDiscrepancyStratificationService,
       SppMagnitudeStratificationService,
       SppNonStandardContributionStratificationService,
+      CharacteristicsChangeStratificationService,
       RandomPlayerStratificationService,
       StarPlayerStratificationService,
     ]),

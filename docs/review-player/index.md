@@ -22,13 +22,13 @@ The report document is shared the same way: `report-builder.service.ts` and
 per-entity preparation hook is a pass-through here. `harness.module.ts` stays local
 because it _is_ this tool's own composition.
 
-Scope today is player info and [Star Player Points](../glossary.md#star-player-points-spp)
-totals. Skills, injuries and characteristics are deliberately deferred — each will plug
-in as another data-type module without touching the harness services.
+Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
+totals and characteristics. Skills and injuries are deliberately deferred — each will
+plug in as another data-type module without touching the harness services.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across seven strata:
+1. Samples players per source (BBL and TP) across nine strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -60,6 +60,23 @@ in as another data-type module without touching the harness services.
    7. **Star players** — `playersPerStratum` star players per source, sampled
       randomly like the regular stratum but kept separate and bounded by the same
       limit.
+   8. **Characteristic increased** — `playersPerStratum` players with at least one
+      of MA/ST/AG/PA/AV numerically higher on their stored `players` row than on the
+      baseline their position carries under their era's rules set. Both this stratum
+      and the next exclude a player whose era maps to no rules set, or whose position
+      has no baseline row for it: there is nothing to compare against.
+   9. **Characteristic decreased** — the mirror image: at least one characteristic
+      numerically lower than that baseline. An advancement raises a characteristic and
+      an injury lowers one, so neither stratum is a finding on its own; they exist so a
+      run always contains players whose values are not simply their position's, which is
+      where a mis-parsed stat line shows up. The comparison is numeric, not
+      "better/worse" — under BB2020 a lower Agility is a better Agility, and which is
+      which is the reviewer's call. A player whose characteristics were never imported
+      still carries the column defaults of 0 and so appears as decreased, which is
+      itself worth seeing. The imported-panel view marks a Passing change whenever
+      either side has a value and the other doesn't, so a Passing-only change can show
+      a marker there without selecting the player into either stratum here, since both
+      strata require Passing present on both sides to compare it at all.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
@@ -97,6 +114,24 @@ in as another data-type module without touching the harness services.
      `MISMATCH` — highlighted row, explicit label in both panels — is shown when the
      stored total disagrees with the computed sum _plus_ the stored adjustment (not
      the raw computed sum), or has no stored total at all.
+   - **player-characteristics** — left: the player's own MA/ST/AG/PA/AV as their
+     source publishes them — BBL's player page stat row, or the TP roster file
+     entry for their line-up id (TP publishes a player's characteristics only in
+     `rosters_<id>.json`; the line-up snapshots inside a match file carry none, so a
+     player TP has no roster file for shows an explicit note). Right: the baseline
+     row for the player's position under their era's rules set, then the stored
+     `players` row, each cell formatted the way that rules set displays it and
+     marked with an increase or decrease arrow where it differs numerically from the
+     baseline directly above. A zero is shown as a dash everywhere, in both panels:
+     zero is not a legal characteristic under any rules set, so a stored zero is the
+     column default, not a value. A position with no baseline row for the resolved
+     rules set gets a highlighted `missing` row and no comparison.
+
+     The rules set is resolved from the database alone — the last rules set listed
+     for the player's era (`era_rules_sets`, highest id first) — because this tool
+     must not read the importers' configs. That is an insertion-order heuristic
+     matching what the importers themselves mean by "last-listed", accepted here
+     to keep the single-player comparison simple.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 

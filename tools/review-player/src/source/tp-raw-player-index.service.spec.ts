@@ -1,9 +1,10 @@
+import type { Dirent } from 'node:fs';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -27,6 +28,52 @@ function writeMatch(matchId: number, body: unknown): void {
     JSON.stringify(body),
     'utf8',
   );
+}
+
+function writeRoster(rosterId: number, lineUps: unknown[]): void {
+  writeFileSync(
+    join(dir, 'fourth-era', 'season-30', `rosters_${rosterId}.json`),
+    JSON.stringify({ lineUps }),
+    'utf8',
+  );
+}
+
+type EntriesFn = (dir: string) => Promise<Dirent[]>;
+
+/**
+ * Forces the service's directory scan to visit `targetDir`'s entries in
+ * exactly `order`, regardless of what the real `readdir` call returns. The
+ * production code relies on `readdir` order to break roster-conflict ties
+ * (see `absorbRoster`), and that order is filesystem-dependent — write order
+ * does not reliably control it (that's what let the bug this guards against
+ * slip past the original, non-discriminating tests). Pinning the scan order
+ * directly is the only portable way to exercise both directions of the
+ * guard.
+ */
+function withOrderedEntries(
+  targetService: TpRawPlayerIndexService,
+  targetDir: string,
+  order: string[],
+): void {
+  const proto = Object.getPrototypeOf(targetService) as { entries: EntriesFn };
+  const original = proto.entries.bind(targetService) as EntriesFn;
+  vi.spyOn(
+    targetService as unknown as { entries: EntriesFn },
+    'entries',
+  ).mockImplementation(async (targetPath: string) => {
+    const result = await original(targetPath);
+    if (targetPath !== targetDir) {
+      return result;
+    }
+    const byName = new Map(result.map((entry) => [entry.name, entry]));
+    return order.map((name) => {
+      const entry = byName.get(name);
+      if (entry === undefined) {
+        throw new Error(`entries() did not return ${name} for ${targetPath}`);
+      }
+      return entry;
+    });
+  });
 }
 
 function matchFile(options: {
@@ -256,5 +303,114 @@ describe('TpRawPlayerIndexService', () => {
     writeFileSync(dir, 'not a directory', 'utf8');
 
     await expect(service.aggregateFor('2477481')).rejects.toThrow();
+  });
+
+  it('reads a player characteristics line from the roster file', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 6,
+      strength: 4,
+      agility: 3,
+      passing: 5,
+      armour: 10,
+    });
+  });
+
+  it('reports TP pa 0 as no Passing characteristic', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 4, st: 5, ag: 4, pa: 0, av: 10 }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.passing).toBeNull();
+  });
+
+  it('leaves characteristics null for a player no roster file carries', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: null,
+      strength: null,
+      agility: null,
+      passing: null,
+      armour: null,
+    });
+  });
+
+  it('ignores a roster entry with no readable characteristics line', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, name: 'no stats here' }]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.move).toBeNull();
+  });
+
+  it('ignores roster characteristics for a line-up id no match file mentions', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 999999, ma: 6, st: 3, ag: 3, pa: 4, av: 9 }]);
+
+    expect(await service.aggregateFor('999999')).toBeNull();
+  });
+
+  it('takes the higher-numbered roster file when it is scanned after the lower one', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
+      'match_1.json',
+      'rosters_500.json',
+      'rosters_700.json',
+    ]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 8,
+      strength: 2,
+      agility: 5,
+      passing: 3,
+      armour: 9,
+    });
+  });
+
+  it('keeps the higher-numbered roster file when it is scanned before the lower one', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
+    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
+      'match_1.json',
+      'rosters_700.json',
+      'rosters_500.json',
+    ]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 8,
+      strength: 2,
+      agility: 5,
+      passing: 3,
+      armour: 9,
+    });
+  });
+
+  it('skips a malformed roster file rather than failing the scan', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeFileSync(
+      join(dir, 'fourth-era', 'season-30', 'rosters_500.json'),
+      'not json at all',
+      'utf8',
+    );
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.move).toBeNull();
   });
 });
