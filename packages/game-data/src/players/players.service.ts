@@ -74,6 +74,11 @@ export class PlayersService {
         eraId: number;
         sppTotal: number | null;
         sppAdjustment: number | null;
+        move: number;
+        strength: number;
+        agility: number;
+        passing: number | null;
+        armour: number;
       }
     | undefined
   > {
@@ -91,6 +96,14 @@ export class PlayersService {
         eraId: eras.id,
         sppTotal: players.sppTotal,
         sppAdjustment: players.sppAdjustment,
+        // The player's own current characteristics. No new join: they live on
+        // `players` itself. A stored 0 is the not-yet-curated placeholder and
+        // is passed through as-is — rendering it is the caller's decision.
+        move: players.move,
+        strength: players.strength,
+        agility: players.agility,
+        passing: players.passing,
+        armour: players.armour,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))

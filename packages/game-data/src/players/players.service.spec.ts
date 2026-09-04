@@ -351,6 +351,11 @@ describe('PlayersService', () => {
         eraId: 7,
         sppTotal: 24,
         sppAdjustment: 2,
+        move: 7,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
       };
       const { db, chains } = await build([row]);
       await expect(service.findById(1)).resolves.toEqual(row);
@@ -368,8 +373,40 @@ describe('PlayersService', () => {
           'eraId',
           'sppTotal',
           'sppAdjustment',
+          'move',
+          'strength',
+          'agility',
+          'passing',
+          'armour',
         ]),
       );
+    });
+
+    it('passes through a placeholder zero and a null passing untouched', async () => {
+      // A stored 0 is the not-yet-curated placeholder and `null` passing is a
+      // rules set with no Passing characteristic; the deepdive renders both as
+      // a dash, so findById must not coerce either.
+      const row = {
+        id: 3,
+        name: 'Uncurated Lineman',
+        teamName: 'Reikland Reavers',
+        teamId: 11,
+        raceName: 'Human',
+        raceId: 4,
+        positionName: 'Lineman',
+        positionId: 8,
+        eraName: 'Season 5',
+        eraId: 7,
+        sppTotal: 0,
+        sppAdjustment: 0,
+        move: 0,
+        strength: 0,
+        agility: 0,
+        passing: null,
+        armour: 0,
+      };
+      await build([row]);
+      await expect(service.findById(3)).resolves.toEqual(row);
     });
 
     it('passes through null spp columns for a player with no computed total', async () => {
@@ -388,6 +425,11 @@ describe('PlayersService', () => {
         eraId: 7,
         sppTotal: null,
         sppAdjustment: null,
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: null,
+        armour: 8,
       };
       await build([row]);
       await expect(service.findById(2)).resolves.toEqual(row);
@@ -408,6 +450,11 @@ describe('PlayersService', () => {
           eraId: 5,
           sppTotal: 130,
           sppAdjustment: 0,
+          move: 7,
+          strength: 3,
+          agility: 3,
+          passing: 4,
+          armour: 9,
         },
       ]);
 

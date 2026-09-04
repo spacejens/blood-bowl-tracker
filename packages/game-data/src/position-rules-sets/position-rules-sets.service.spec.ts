@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -312,6 +313,139 @@ describe('PositionRulesSetsService', () => {
       expect(
         extractJoinColumns(firstCallArg(db.chains[0].orderBy, 0, 1)),
       ).toEqual(['rules_sets.name']);
+    });
+  });
+
+  describe('findCharacteristicsContext', () => {
+    /**
+     * One resolved row as the query returns it: the rules set's five formats
+     * plus the left-joined position baseline. `baselineRulesSetId` is the
+     * left join's presence flag — null when this era rules set has no
+     * `position_rules_sets` row for the position.
+     */
+    const resolvedRow = {
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
+      baselineRulesSetId: 90,
+      baselineMove: 6,
+      baselineStrength: 3,
+      baselineAgility: 3,
+      baselinePassing: 4,
+      baselineArmour: 9,
+    };
+
+    it('returns the formats and the baseline of the matched rules set', async () => {
+      const db = mockDb([resolvedRow]);
+      const service = await makeService(db);
+
+      await expect(service.findCharacteristicsContext(3, 7)).resolves.toEqual({
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'plus',
+        passingFormat: 'plus',
+        armourFormat: 'plus',
+        baseline: {
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: 4,
+          armour: 9,
+        },
+      });
+    });
+
+    it('filters on the era and the position, and takes a single row', async () => {
+      const db = mockDb([resolvedRow]);
+      const service = await makeService(db);
+
+      await service.findCharacteristicsContext(3, 7);
+
+      expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(7);
+      expect(
+        extractAllFilterValues(firstCallArg(db.chains[0].leftJoin, 0, 1)),
+      ).toContain(3);
+      expect(firstCallArg(db.chains[0].limit)).toBe(1);
+    });
+
+    it('prefers a position match over a higher-id era rules set without one', async () => {
+      // The ordering is what implements the preference, so assert on it: rows
+      // with a position match sort first, then the highest era_rules_sets.id.
+      const db = mockDb([resolvedRow]);
+      const service = await makeService(db);
+
+      await service.findCharacteristicsContext(3, 7);
+
+      expect(sqlText(firstCallArg(db.chains[0].orderBy, 0, 0))).toContain(
+        'is null',
+      );
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].orderBy, 0, 1)),
+      ).toEqual(['era_rules_sets.id']);
+    });
+
+    it('returns the formats with no baseline when no era rules set covers the position', async () => {
+      const db = mockDb([
+        {
+          ...resolvedRow,
+          baselineRulesSetId: null,
+          baselineMove: null,
+          baselineStrength: null,
+          baselineAgility: null,
+          baselinePassing: null,
+          baselineArmour: null,
+        },
+      ]);
+      const service = await makeService(db);
+
+      await expect(service.findCharacteristicsContext(3, 7)).resolves.toEqual({
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'plus',
+        passingFormat: 'plus',
+        armourFormat: 'plus',
+        baseline: undefined,
+      });
+    });
+
+    it('keeps a null baseline passing for a rules set with no Passing characteristic', async () => {
+      const db = mockDb([
+        {
+          ...resolvedRow,
+          agilityFormat: 'bare',
+          passingFormat: 'absent',
+          armourFormat: 'bare',
+          baselinePassing: null,
+          baselineArmour: 8,
+        },
+      ]);
+      const service = await makeService(db);
+
+      await expect(service.findCharacteristicsContext(3, 7)).resolves.toEqual({
+        moveFormat: 'bare',
+        strengthFormat: 'bare',
+        agilityFormat: 'bare',
+        passingFormat: 'absent',
+        armourFormat: 'bare',
+        baseline: {
+          move: 6,
+          strength: 3,
+          agility: 3,
+          passing: null,
+          armour: 8,
+        },
+      });
+    });
+
+    it('returns undefined when the era lists no rules sets at all', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await expect(
+        service.findCharacteristicsContext(3, 7),
+      ).resolves.toBeUndefined();
     });
   });
 });

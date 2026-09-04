@@ -3,10 +3,13 @@ import type {
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
+  PositionCharacteristicsContext,
 } from '@blood-bowl-tracker/game-data';
 import {
+  CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayersService,
+  PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
@@ -56,6 +59,11 @@ export const griff = {
   eraId: 7,
   sppTotal: null as number | null,
   sppAdjustment: null as number | null,
+  move: 7,
+  strength: 3,
+  agility: 3,
+  passing: 4 as number | null,
+  armour: 9,
 };
 
 export const gougedEye = {
@@ -117,6 +125,7 @@ export interface MakeServiceOptions {
   playerDeath?: MockProxy<PlayerDeathService>;
   stars?: MockProxy<StarPlayersService>;
   playerRowButton?: MockProxy<PlayerRowButtonService>;
+  positionRulesSets?: MockProxy<PositionRulesSetsService>;
 }
 
 /**
@@ -133,6 +142,19 @@ function makeStars(): MockProxy<StarPlayersService> {
 // Re-export makePlayerRowButton from team-deepdive.test-helpers to avoid duplication.
 export { makePlayerRowButton };
 
+/**
+ * A `PositionRulesSetsService` mock. Defaults to `undefined` — "no rules set
+ * applies to this player's era" — so specs about other parts of the embed
+ * never see a Characteristics line.
+ */
+export function makePositionRulesSets(
+  context: PositionCharacteristicsContext | undefined = undefined,
+): MockProxy<PositionRulesSetsService> {
+  const positionRulesSets = mock<PositionRulesSetsService>();
+  positionRulesSets.findCharacteristicsContext.mockResolvedValue(context);
+  return positionRulesSets;
+}
+
 export async function makeService({
   players,
   databaseTimeout = mockDatabaseTimeout(),
@@ -141,6 +163,7 @@ export async function makeService({
   playerDeath = makePlayerDeath(),
   stars = makeStars(),
   playerRowButton = makePlayerRowButton(),
+  positionRulesSets = makePositionRulesSets(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -148,6 +171,7 @@ export async function makeService({
   playerDeath: MockProxy<PlayerDeathService>;
   stars: MockProxy<StarPlayersService>;
   playerRowButton: MockProxy<PlayerRowButtonService>;
+  positionRulesSets: MockProxy<PositionRulesSetsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -155,6 +179,9 @@ export async function makeService({
       PlayerKillsSectionService,
       PlayerKillerInfoFormatterService,
       EventCountLinesService,
+      // Pure and dependency-free (see CLAUDE.md's formatting-service
+      // carve-out): passed real so the specs assert the actual rendered text.
+      CharacteristicDisplayFormattingService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -162,6 +189,7 @@ export async function makeService({
       { provide: PlayerDeathService, useValue: playerDeath },
       { provide: StarPlayersService, useValue: stars },
       { provide: PlayerRowButtonService, useValue: playerRowButton },
+      { provide: PositionRulesSetsService, useValue: positionRulesSets },
     ],
   }).compile();
   return {
@@ -171,6 +199,7 @@ export async function makeService({
     playerDeath,
     stars,
     playerRowButton,
+    positionRulesSets,
   };
 }
 
@@ -188,6 +217,11 @@ export function makePlayers(options: {
     eraId: number;
     sppTotal: number | null;
     sppAdjustment: number | null;
+    move: number;
+    strength: number;
+    agility: number;
+    passing: number | null;
+    armour: number;
   };
   counts?: Partial<PlayerDeepdiveCategoryCounts>;
 }): PlayersService {

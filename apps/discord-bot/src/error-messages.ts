@@ -175,6 +175,8 @@ export const DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE =
   'The bookkeeper is still adding up every contract this one has signed.';
 export const DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE =
   'The scout is still checking whether this one signs autographs.';
+export const DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE =
+  'The team physician is still measuring this one up against the rulebook.';
 export const DEEPDIVE_RACE_NOT_FOUND_MESSAGE =
   'No such race has ever fielded a team in these parts.';
 export const DEEPDIVE_RACE_TIMEOUT_MESSAGE =

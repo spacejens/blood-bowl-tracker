@@ -13,7 +13,7 @@ import {
   rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, eq, inArray, min } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, min, sql } from 'drizzle-orm';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
@@ -41,6 +41,33 @@ export interface PositionCharacteristics {
   passing: number | null;
   armourFormat: CharacteristicFormat;
   armour: number;
+}
+
+/**
+ * Everything needed to render one player's own characteristics: the display
+ * formats of the rules set that applies to their era, and — when the position
+ * has a recorded stat line under that rules set — the baseline those values
+ * started from.
+ *
+ * `baseline` is optional rather than the whole context being absent because
+ * "no baseline" is a real, renderable outcome: the formats are still known,
+ * so the values are shown, just without any up/down comparison.
+ */
+export interface PositionCharacteristicsContext {
+  moveFormat: CharacteristicFormat;
+  strengthFormat: CharacteristicFormat;
+  agilityFormat: CharacteristicFormat;
+  passingFormat: CharacteristicFormat;
+  armourFormat: CharacteristicFormat;
+  baseline:
+    | {
+        move: number;
+        strength: number;
+        agility: number;
+        passing: number | null;
+        armour: number;
+      }
+    | undefined;
 }
 
 /**
@@ -96,6 +123,84 @@ export class PositionRulesSetsService {
       .where(eq(positionRulesSets.positionId, positionId))
       .groupBy(positionRulesSets.id, rulesSets.id)
       .orderBy(asc(min(eras.startDate)), asc(rulesSets.name));
+  }
+
+  /**
+   * Which rules set's formats — and which position baseline — apply to a
+   * player of this position in this era.
+   *
+   * `players` stores its own characteristics but no rules set, and an era can
+   * list several rules sets in sequence, so the rules set has to be resolved
+   * rather than read. The preference is the era's *last-listed* rules set
+   * (highest `era_rules_sets.id`, the only ordering signal either join table
+   * carries) that also has a `position_rules_sets` row for this position:
+   * that is the position "as it stood most recently in this era". A rules set
+   * with no such row still supplies usable formats, so it is the fallback —
+   * better than guessing a format — but yields no baseline. An era listing no
+   * rules sets at all yields `undefined`: there is nothing to format with, so
+   * the caller renders nothing.
+   *
+   * `baselineRulesSetId` is cast to an explicitly nullable type because it is
+   * the left join's presence flag: the underlying column is `NOT NULL`, so
+   * only the cast makes the "no matching row" case checkable at all.
+   */
+  async findCharacteristicsContext(
+    positionId: number,
+    eraId: number,
+  ): Promise<PositionCharacteristicsContext | undefined> {
+    const rows = await this.db
+      .select({
+        moveFormat: rulesSets.moveFormat,
+        strengthFormat: rulesSets.strengthFormat,
+        agilityFormat: rulesSets.agilityFormat,
+        passingFormat: rulesSets.passingFormat,
+        armourFormat: rulesSets.armourFormat,
+        baselineRulesSetId: sql<number | null>`${positionRulesSets.id}`,
+        baselineMove: positionRulesSets.move,
+        baselineStrength: positionRulesSets.strength,
+        baselineAgility: positionRulesSets.agility,
+        baselinePassing: positionRulesSets.passing,
+        baselineArmour: positionRulesSets.armour,
+      })
+      .from(eraRulesSets)
+      .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
+      .leftJoin(
+        positionRulesSets,
+        and(
+          eq(positionRulesSets.rulesSetId, eraRulesSets.rulesSetId),
+          eq(positionRulesSets.positionId, positionId),
+        ),
+      )
+      .where(eq(eraRulesSets.eraId, eraId))
+      // Postgres sorts false before true, so rows that did match the position
+      // come first; among those, the last-listed era rules set wins.
+      .orderBy(
+        sql`(${positionRulesSets.id} is null) asc`,
+        desc(eraRulesSets.id),
+      )
+      .limit(1);
+
+    const row = rows[0];
+    if (row === undefined) {
+      return undefined;
+    }
+    return {
+      moveFormat: row.moveFormat,
+      strengthFormat: row.strengthFormat,
+      agilityFormat: row.agilityFormat,
+      passingFormat: row.passingFormat,
+      armourFormat: row.armourFormat,
+      baseline:
+        row.baselineRulesSetId === null
+          ? undefined
+          : {
+              move: row.baselineMove,
+              strength: row.baselineStrength,
+              agility: row.baselineAgility,
+              passing: row.baselinePassing,
+              armour: row.baselineArmour,
+            },
+    };
   }
 
   /**
