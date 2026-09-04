@@ -47,10 +47,10 @@ describe('CharacteristicNotationConversionService', () => {
     // Pre-BB2020 Armour is the value a 2D6 roll has to beat; BB2020 writes
     // the minimum roll that breaks it, which is one higher.
     const bareCases: [raw: number, converted: number][] = [
-      [7, 8],
-      [8, 9],
-      [9, 10],
-      [10, 11],
+      [8, 7],
+      [9, 8],
+      [10, 9],
+      [11, 10],
     ];
     it.each(bareCases)(
       'converts a bare-notation Armour %i to %i',

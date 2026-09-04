@@ -44,6 +44,6 @@ export class CharacteristicNotationConversionService {
     if (format !== 'bare') {
       return rawArmour;
     }
-    return rawArmour + 1;
+    return rawArmour - 1;
   }
 }
