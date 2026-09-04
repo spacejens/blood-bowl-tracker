@@ -135,4 +135,118 @@ describe('PlayerDeepdiveService characteristics line', () => {
       DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
     );
   });
+
+  it('marks each characteristic that moved away from the position baseline', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: {
+          ...griff,
+          move: 7,
+          strength: 3,
+          agility: 3,
+          passing: 4,
+          armour: 8,
+        },
+      }),
+      positionRulesSets: makePositionRulesSets(
+        context({
+          baseline: {
+            move: 6,
+            strength: 3,
+            agility: 2,
+            passing: 4,
+            armour: 9,
+          },
+        }),
+      ),
+    });
+
+    expect(descriptionOf(await service.resolve(1))).toContain(
+      'Characteristics: MA 7▲ ST 3 AG 3+▲ PA 4+ AV 8+▼',
+    );
+  });
+
+  it('marks a not-yet-curated zero as decreased while still showing a dash', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, move: 0 } }),
+      positionRulesSets: makePositionRulesSets(
+        context({
+          baseline: {
+            move: 6,
+            strength: 3,
+            agility: 3,
+            passing: 4,
+            armour: 9,
+          },
+        }),
+      ),
+    });
+
+    expect(descriptionOf(await service.resolve(1))).toContain(
+      'Characteristics: MA —▼ ST 3 AG 3+ PA 4+ AV 9+',
+    );
+  });
+
+  it('marks nothing when the rules set has no baseline for the position', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, move: 9 } }),
+      positionRulesSets: makePositionRulesSets(
+        context({ baseline: undefined }),
+      ),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain(
+      'Characteristics: MA 9 ST 3 AG 3+ PA 4+ AV 9+',
+    );
+    expect(description).not.toContain('▲');
+    expect(description).not.toContain('▼');
+  });
+
+  it('never marks Passing for a rules set without a Passing characteristic', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, passing: null } }),
+      positionRulesSets: makePositionRulesSets(
+        context({
+          agilityFormat: 'bare',
+          passingFormat: 'absent',
+          armourFormat: 'bare',
+          baseline: {
+            move: 6,
+            strength: 3,
+            agility: 3,
+            passing: null,
+            armour: 9,
+          },
+        }),
+      ),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description).toContain('Characteristics: MA 7▲ ST 3 AG 3 AV 9');
+    expect(description).not.toContain('PA');
+  });
+
+  it('leaves Passing unmarked when only one side has a value', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, passing: 3 } }),
+      positionRulesSets: makePositionRulesSets(
+        context({
+          baseline: {
+            move: 7,
+            strength: 3,
+            agility: 3,
+            passing: null,
+            armour: 9,
+          },
+        }),
+      ),
+    });
+
+    expect(descriptionOf(await service.resolve(1))).toContain(
+      'Characteristics: MA 7 ST 3 AG 3+ PA 3+ AV 9+',
+    );
+  });
 });

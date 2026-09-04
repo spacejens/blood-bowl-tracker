@@ -1,3 +1,4 @@
+import type { CharacteristicFormat } from '@blood-bowl-tracker/api-contract';
 import type {
   PlayerDeepdiveCategoryCounts,
   PlayerHonor,
@@ -83,6 +84,14 @@ const MAX_PLAYER_HONORS = 30;
  * from `countKillsInflicted`, so the overflow note reports an exact remainder.
  */
 const MAX_PLAYER_KILLS = 30;
+
+/**
+ * How a characteristic that has moved away from the position's baseline is
+ * marked. Comparison is on the raw stored numbers, before formatting, so a
+ * not-yet-curated 0 still reads as a decrease next to its dash.
+ */
+const INCREASED = '▲';
+const DECREASED = '▼';
 
 /**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
@@ -480,28 +489,62 @@ export class PlayerDeepdiveService {
   }
 
   /**
-   * `Characteristics: MA 7 ST 3 AG 3+ PA 4+ AV 9+` — the player's own current
-   * values, written the way their era's rules set writes them. A rules set
-   * without a Passing characteristic drops the field rather than showing a
-   * placeholder: it does not exist there at all, which is different from
-   * existing and being unknown (a stored 0, which renders as a dash).
+   * `Characteristics: MA 7▲ ST 3 AG 3+▲ PA 4+ AV 9+▼` — the player's own
+   * current values, written the way their era's rules set writes them, with
+   * every characteristic that has moved away from the position's baseline
+   * marked. A rules set without a Passing characteristic drops the field
+   * rather than showing a placeholder: it does not exist there at all, which
+   * is different from existing and being unknown (a stored 0, which renders
+   * as a dash). When the rules set carries no baseline for this position,
+   * nothing is marked — the values are still worth showing.
    */
   private buildCharacteristicsLine(
     player: Player,
     context: PositionCharacteristicsContext,
   ): string {
+    const baseline = context.baseline;
     const fields = [
-      `MA ${this.characteristics.format(player.move, context.moveFormat)}`,
-      `ST ${this.characteristics.format(player.strength, context.strengthFormat)}`,
-      `AG ${this.characteristics.format(player.agility, context.agilityFormat)}`,
+      `MA ${this.formatCharacteristic(player.move, context.moveFormat, baseline?.move)}`,
+      `ST ${this.formatCharacteristic(player.strength, context.strengthFormat, baseline?.strength)}`,
+      `AG ${this.formatCharacteristic(player.agility, context.agilityFormat, baseline?.agility)}`,
       ...(context.passingFormat === 'absent'
         ? []
         : [
-            `PA ${this.characteristics.format(player.passing, context.passingFormat)}`,
+            `PA ${this.formatCharacteristic(player.passing, context.passingFormat, baseline?.passing)}`,
           ]),
-      `AV ${this.characteristics.format(player.armour, context.armourFormat)}`,
+      `AV ${this.formatCharacteristic(player.armour, context.armourFormat, baseline?.armour)}`,
     ];
     return `Characteristics: ${fields.join(' ')}`;
+  }
+
+  /** One characteristic: its formatted value plus its baseline marker. */
+  private formatCharacteristic(
+    value: number | null,
+    format: CharacteristicFormat,
+    baseline: number | null | undefined,
+  ): string {
+    return `${this.characteristics.format(value, format)}${this.baselineMarker(value, baseline)}`;
+  }
+
+  /**
+   * The up/down marker for one characteristic, or the empty string when there
+   * is nothing to compare: no baseline at all, or either side missing (a
+   * rules set with no Passing characteristic never reaches this, since the
+   * field is dropped before formatting). The comparison is on the raw stored
+   * numbers rather than the formatted text, so a not-yet-curated 0 is marked
+   * as a decrease even though it renders as a dash.
+   */
+  private baselineMarker(
+    value: number | null,
+    baseline: number | null | undefined,
+  ): string {
+    if (value === null || baseline === null || baseline === undefined) {
+      return '';
+    }
+    if (value > baseline) {
+      return INCREASED;
+    }
+    return value < baseline ? DECREASED : '';
   }
 
   /**
