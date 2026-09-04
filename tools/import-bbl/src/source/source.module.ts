@@ -2,6 +2,7 @@ import { ImportModule } from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
 
 import { BblPageService } from './bbl-page.service';
+import { BblRaceNameService } from './bbl-race-name.service';
 import { BblSourceReader } from './bbl-source-reader';
 import { ExternalSystemNameConfigService } from './external-system-name-config.service';
 import { NormalizeExtractedTextService } from './normalize-extracted-text.service';
@@ -17,6 +18,7 @@ import { SourceConfigService } from './source-config.service';
     BblPageService,
     NormalizeExtractedTextService,
     PageParseErrorService,
+    BblRaceNameService,
   ],
   exports: [
     BblSourceReader,
@@ -24,6 +26,7 @@ import { SourceConfigService } from './source-config.service';
     BblPageService,
     NormalizeExtractedTextService,
     PageParseErrorService,
+    BblRaceNameService,
   ],
 })
 export class SourceModule {}
