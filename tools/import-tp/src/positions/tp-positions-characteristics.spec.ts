@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
 import {
   makeService,
   oneSystemUpsertMock,
@@ -558,5 +559,138 @@ describe('TpPositionsImportService characteristics accumulation', () => {
       new Map([[70, new Map([[900, RUNNER]])]]),
     );
     expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('still drops a rules set when both disagreeing rosters are authoritative', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [1, 2].map((id) =>
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: id === 1 ? RUNNER : RUNNER_ALT,
+            },
+          ],
+          id,
+        }),
+      ),
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+    expect(resultArgs(importResults).errors[0].message).toContain(
+      'Dwarf Runner',
+    );
+  });
+
+  it('never resurrects a dropped rules set from a later authoritative roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        // Two legacy rosters disagree: unresolvable, rules set 900 dropped.
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+        // An authoritative roster arriving afterwards does not bring it back.
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: SLAYER,
+            },
+          ],
+          id: 3,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+  });
+
+  it('treats no roster as authoritative when its era declares several rules sets', async () => {
+    const multiRulesSetEras: EraDataConfig[] = [
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020', 'BB2025'],
+        startDate: '2020-01-01',
+      },
+    ];
+    const { service, importResults } = await makeService({
+      ...upsertAndSyncMocks(70),
+      getEras: () => multiRulesSetEras,
+      eraIdsByName: new Map([['Fourth era', 100]]),
+      rulesSetIdByEraName: new Map([['Fourth era', 900]]),
+    });
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
   });
 });
