@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { EraConfigModule } from '../eras/era-config.module';
 import { PlayersModule } from '../players/players.module';
+import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import { SourceModule } from '../source/source.module';
 import { BblPositionCharacteristicsImportService } from './bbl-position-characteristics-import.service';
 import { BblPositionRaceErasImportService } from './bbl-position-race-eras-import.service';
@@ -16,6 +17,7 @@ import { PositionPageParser } from './position-page-parser';
     BblPositionsImportService,
     BblPositionRaceErasImportService,
     BblPositionCharacteristicsImportService,
+    CharacteristicNotationConversionService,
   ],
   exports: [
     BblPositionsImportService,
