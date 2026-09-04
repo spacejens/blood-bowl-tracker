@@ -701,4 +701,90 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     expect(characteristicsByPositionId.has(70)).toBe(false);
     expect(resultArgs(importResults).errors).toHaveLength(1);
   });
+
+  it('resolves a star position conflict in favour of the authoritative roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(80),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[80, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('keeps an authoritative star observation over a later legacy one', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(80),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[80, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
 });
