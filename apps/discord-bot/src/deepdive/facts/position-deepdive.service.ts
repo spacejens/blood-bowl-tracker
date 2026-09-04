@@ -20,6 +20,7 @@ import {
   DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE,
   DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
+  DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE,
@@ -28,6 +29,7 @@ import {
   LeaderboardService,
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
+import { PlayerContextService } from '../../insights/player-context.service';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -63,6 +65,7 @@ export class PositionDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly playerContext: PlayerContextService,
   ) {}
 
   async resolve(positionId: number): Promise<string | InteractionReplyOptions> {
@@ -117,10 +120,38 @@ export class PositionDeepdiveService {
       topPlayers.map((player) => ({ ...player, count: player.sppTotal })),
       TOP_PLAYERS_TOP_ENTRIES,
     );
+    // Every listed player already holds this position, so repeating it would
+    // say nothing new, and a position is not scoped to one race or one era
+    // the way this decoration's other options assume — only team and coach
+    // add information here. Wrapped in the same timeout handling as every
+    // other DB call in this method, since attachSuffixes does its own DB
+    // round trip.
+    const decorated:
+      | (PositionTopPlayer & {
+          count: number;
+          rank: number;
+          contextSuffix: string;
+        })[]
+      | null = await this.databaseTimeout.run(
+      this.playerContext.attachSuffixes(ranked, (row) => row.id, {
+        includePosition: false,
+        includeTeam: true,
+        includeRace: false,
+        includeEra: false,
+        includeCoach: true,
+      }),
+      null,
+    );
+    if (decorated === null) {
+      return DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE;
+    }
     const playerLines =
-      ranked.length === 0
+      decorated.length === 0
         ? [DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE]
-        : ranked.map((row) => `${row.rank}. ${row.name} — ${row.sppTotal}`);
+        : decorated.map(
+            (row) =>
+              `${row.rank}. ${row.name}${row.contextSuffix} — ${row.sppTotal}`,
+          );
     if (truncatedCount > 0) {
       playerLines.push(`…and ${truncatedCount} more tied.`);
     }

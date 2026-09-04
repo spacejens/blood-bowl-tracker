@@ -29,12 +29,15 @@ import {
   DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE,
   DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
+  DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
+import { PlayerContextService } from '../../insights/player-context.service';
+import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -78,6 +81,7 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
+  playerContext?: MockProxy<PlayerContextService>;
 }
 
 async function makeService({
@@ -86,10 +90,12 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = passthroughLeaderboard(),
   entityComponents = passthroughEntityComponents(),
+  playerContext = passthroughPlayerContext(),
 }: MakeServiceOptions): Promise<{
   service: PositionDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
+  playerContext: MockProxy<PlayerContextService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -103,12 +109,14 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: PlayerContextService, useValue: playerContext },
     ],
   }).compile();
   return {
     service: moduleRef.get(PositionDeepdiveService),
     leaderboard,
     entityComponents,
+    playerContext,
   };
 }
 
@@ -134,7 +142,7 @@ function makeRulesSets(
 
 /**
  * A `DatabaseTimeoutService` mock that passes the first `skip` calls through
- * and times the next one out, so a test can pin which of the four queries a
+ * and times the next one out, so a test can pin which of the five queries a
  * timeout message belongs to.
  */
 function timeoutOnCall(skip: number): MockProxy<DatabaseTimeoutService> {
@@ -203,6 +211,21 @@ describe('PositionDeepdiveService', () => {
 
     await expect(service.resolve(1)).resolves.toBe(
       DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('returns the player-context timeout message when that query times out', async () => {
+    const { service } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: [] },
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      databaseTimeout: timeoutOnCall(4),
+    });
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
     );
   });
 
@@ -333,6 +356,48 @@ describe('PositionDeepdiveService', () => {
         { id: 10, name: 'Varag', sppTotal: 88, count: 88 },
       ],
       5, // TOP_PLAYERS_TOP_ENTRIES, not exported from the service
+    );
+  });
+
+  it("appends each top player's team and coach context to their name", async () => {
+    const { service } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: [] },
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      playerContext: passthroughPlayerContext(' (Reikland Reavers, Bob)'),
+    });
+
+    expect(JSON.stringify(await service.resolve(1))).toContain(
+      '1. Griff (Reikland Reavers, Bob) — 130',
+    );
+  });
+
+  it('decorates top players with their team and coach only, not position, race or era', async () => {
+    const { service, playerContext } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: [] },
+        topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+    });
+
+    await service.resolve(1);
+
+    // Every player already holds this same position — repeating it on each
+    // row would say nothing new — and a position is not scoped to one race
+    // or one era, so neither belongs here either.
+    expect(playerContext.attachSuffixes).toHaveBeenCalledWith(
+      [{ id: 9, name: 'Griff', sppTotal: 130, count: 130, rank: 1 }],
+      expect.any(Function) as (row: unknown) => number,
+      {
+        includePosition: false,
+        includeTeam: true,
+        includeRace: false,
+        includeEra: false,
+        includeCoach: true,
+      },
     );
   });
 

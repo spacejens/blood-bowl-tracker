@@ -203,6 +203,8 @@ export const DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE =
   'The scouts are still arguing over who wore this one best.';
 export const DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE =
   'Not one player has ever taken this spot on the pitch.';
+export const DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE =
+  'The scout is still tracking down which teams and coaches those players turned out for.';
 export const DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE =
   'The league secretary has no such competition on the fixture list.';
 export const DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE =
