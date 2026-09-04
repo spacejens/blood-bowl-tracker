@@ -644,6 +644,14 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     expect(resultArgs(importResults).errors).toHaveLength(1);
   });
 
+  // This test deliberately constructs a combination that cannot occur in production:
+  // an era declaring 2+ rules sets (rulesSets: ['BB2020', 'BB2025']), yet with a
+  // stubbed rules-set id (900) for it. In real code, TpEraRulesSetResolverService
+  // only ever resolves a rules-set id for an era declaring exactly one rules set,
+  // making this combination unreachable from normal code paths. The test constructs
+  // it purely to isolate and test the `rulesSetName === undefined` branch of the
+  // private `isAuthoritativeRoster` method in TpPositionsImportService, which is
+  // otherwise unreachable from a unit test.
   it('treats no roster as authoritative when its era declares several rules sets', async () => {
     const multiRulesSetEras: EraDataConfig[] = [
       {
