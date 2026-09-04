@@ -3,11 +3,14 @@ import type {
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
+  PositionCharacteristicsContext,
   StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
+  CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayersService,
+  PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
@@ -22,6 +25,7 @@ import {
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
@@ -57,6 +61,11 @@ type Player = {
   eraId: number;
   sppTotal: number | null;
   sppAdjustment: number | null;
+  move: number;
+  strength: number;
+  agility: number;
+  passing: number | null;
+  armour: number;
 };
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
@@ -102,6 +111,8 @@ export class PlayerDeepdiveService {
     private readonly stars: StarPlayersService,
     private readonly killerInfo: PlayerKillerInfoFormatterService,
     private readonly eventCountLines: EventCountLinesService,
+    private readonly positionRulesSets: PositionRulesSetsService,
+    private readonly characteristics: CharacteristicDisplayFormattingService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -199,12 +210,35 @@ export class PlayerDeepdiveService {
       return DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE;
     }
 
+    // Last of the supplementary queries, deliberately: the timeout tests for
+    // every earlier query count `run` invocations, and appending here leaves
+    // their ordering untouched. `undefined` is this query's own real "no rules
+    // set applies to this era" answer, so the timeout sentinel is `null`.
+    const characteristicsContext:
+      PositionCharacteristicsContext | undefined | null =
+      await this.databaseTimeout.run(
+        this.positionRulesSets.findCharacteristicsContext(
+          player.positionId,
+          player.eraId,
+        ),
+        null,
+      );
+    if (characteristicsContext === null) {
+      return DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE;
+    }
+
     const header = [
       `Team: ${player.teamName}`,
       `Era: ${player.eraName}`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),
+      // Omitted entirely when no rules set applies to the player's era: there
+      // is then no way to know how to write the values, and a wrongly
+      // formatted stat line would read as fact.
+      ...(characteristicsContext === undefined
+        ? []
+        : [this.buildCharacteristicsLine(player, characteristicsContext)]),
     ];
 
     const categoryLines = this.eventCountLines.build(
@@ -443,6 +477,31 @@ export class PlayerDeepdiveService {
   private buildStatusLine(killer: PlayerKillerInfo): string {
     const note = killer.viaFoul ? ' (via a foul)' : '';
     return `Status: ${this.formatKiller(killer)}${note}`;
+  }
+
+  /**
+   * `Characteristics: MA 7 ST 3 AG 3+ PA 4+ AV 9+` — the player's own current
+   * values, written the way their era's rules set writes them. A rules set
+   * without a Passing characteristic drops the field rather than showing a
+   * placeholder: it does not exist there at all, which is different from
+   * existing and being unknown (a stored 0, which renders as a dash).
+   */
+  private buildCharacteristicsLine(
+    player: Player,
+    context: PositionCharacteristicsContext,
+  ): string {
+    const fields = [
+      `MA ${this.characteristics.format(player.move, context.moveFormat)}`,
+      `ST ${this.characteristics.format(player.strength, context.strengthFormat)}`,
+      `AG ${this.characteristics.format(player.agility, context.agilityFormat)}`,
+      ...(context.passingFormat === 'absent'
+        ? []
+        : [
+            `PA ${this.characteristics.format(player.passing, context.passingFormat)}`,
+          ]),
+      `AV ${this.characteristics.format(player.armour, context.armourFormat)}`,
+    ];
+    return `Characteristics: ${fields.join(' ')}`;
   }
 
   /**
