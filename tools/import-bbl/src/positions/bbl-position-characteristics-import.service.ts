@@ -68,31 +68,34 @@ export class BblPositionCharacteristicsImportService {
       }
 
       const entries: PositionRulesSetEntry[] = [...rulesSetIds].map(
-        (rulesSetId) => ({
-          positionId,
-          rulesSetId,
-          move: characteristics.move,
-          strength: characteristics.strength,
-          // BBL only ever shows BB2020 notation, so a rules set that writes
-          // bare numbers needs these two rewritten. `?? 'plus'` mirrors the
-          // passingFormat lookup below: an unresolvable rules set converts
-          // nothing, which is the pre-existing behaviour.
-          agility: this.notationConversion.convertAgility(
-            characteristics.agility,
-            rulesSetsById.get(rulesSetId)?.agilityFormat ?? 'plus',
-          ),
-          // Two distinct states: a rules set with no Passing concept at all
-          // stores null, while a rules set that has Passing stores 0 for a
-          // position that cannot pass (the page's "-").
-          passing:
-            rulesSetsById.get(rulesSetId)?.passingFormat === 'absent'
-              ? null
-              : (characteristics.passing ?? 0),
-          armour: this.notationConversion.convertArmour(
-            characteristics.armour,
-            rulesSetsById.get(rulesSetId)?.armourFormat ?? 'plus',
-          ),
-        }),
+        (rulesSetId) => {
+          const rulesSet = rulesSetsById.get(rulesSetId);
+          return {
+            positionId,
+            rulesSetId,
+            move: characteristics.move,
+            strength: characteristics.strength,
+            // BBL only ever shows BB2020 notation, so a rules set that
+            // writes bare numbers needs these two rewritten. `?? 'plus'`
+            // mirrors the passingFormat check below: an unresolvable rules
+            // set converts nothing, which is the pre-existing behaviour.
+            agility: this.notationConversion.convertAgility(
+              characteristics.agility,
+              rulesSet?.agilityFormat ?? 'plus',
+            ),
+            // Two distinct states: a rules set with no Passing concept at
+            // all stores null, while a rules set that has Passing stores 0
+            // for a position that cannot pass (the page's "-").
+            passing:
+              rulesSet?.passingFormat === 'absent'
+                ? null
+                : (characteristics.passing ?? 0),
+            armour: this.notationConversion.convertArmour(
+              characteristics.armour,
+              rulesSet?.armourFormat ?? 'plus',
+            ),
+          };
+        },
       );
       if (entries.length === 0) {
         continue;
