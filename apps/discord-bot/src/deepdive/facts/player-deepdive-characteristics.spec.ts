@@ -32,12 +32,19 @@ function context(
   };
 }
 
-/** The embed description of a resolved reply, or '' if it is a plain string. */
+/**
+ * The embed description of a resolved reply. Throws for a plain string reply
+ * (a timeout or not-found message) rather than returning '', so a
+ * `not.toContain(...)` assertion against it cannot pass vacuously.
+ */
 function descriptionOf(reply: string | InteractionReplyOptions): string {
-  return typeof reply === 'string'
-    ? ''
-    : ((reply.embeds?.[0] as { description?: string } | undefined)
-        ?.description ?? '');
+  if (typeof reply === 'string') {
+    throw new Error(`Expected an embed reply, got the plain string: ${reply}`);
+  }
+  return (
+    (reply.embeds?.[0] as { description?: string } | undefined)?.description ??
+    ''
+  );
 }
 
 describe('PlayerDeepdiveService characteristics line', () => {

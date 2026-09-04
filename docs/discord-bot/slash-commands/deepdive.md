@@ -113,7 +113,20 @@ played:` followed by their top five teams by matches played, one line per
   `Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
   those forms.
   Only the `death` consequence produces this line; a player who has not died
-  shows no `Status:` line at all, rather than a placeholder. Then —
+  shows no `Status:` line at all, rather than a placeholder. Then a
+  `Characteristics: MA <move> ST <strength> AG <agility> [PA <passing>]
+  AV <armour>` line, the player's own current values written using the
+  format of whichever [rules set](../../glossary.md#rules-set) applies to
+  their era — a bare number, or a number with a trailing `+` for a target a
+  die roll has to meet — with the same `PA`-omission and dash-for-zero rules
+  as the position deepdive's stat line below. Each value that has moved away
+  from the [position](../../glossary.md#position)'s own recorded baseline
+  under that rules set carries a trailing `▲` (increased) or `▼` (decreased);
+  the comparison is on the raw stored numbers, so a not-yet-curated zero
+  still carries `▼` next to its dash. Nothing is marked when the position has
+  no recorded baseline under the resolved rules set — the values are shown
+  unmarked rather than guessing — and the whole line is omitted when no rules
+  set can be resolved for the player's era at all. Then —
   only when the player has recorded trophies, with the whole section omitted
   otherwise rather than a placeholder line — a blank line, a `Trophies:`
   heading, and that player's own awards newest-competition-first, one line per

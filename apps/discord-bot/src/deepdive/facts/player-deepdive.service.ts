@@ -90,8 +90,8 @@ const MAX_PLAYER_KILLS = 30;
  * marked. Comparison is on the raw stored numbers, before formatting, so a
  * not-yet-curated 0 still reads as a decrease next to its dash.
  */
-const INCREASED = '▲';
-const DECREASED = '▼';
+const INCREASED = '▲'; // the raw value is higher than the baseline
+const DECREASED = '▼'; // the raw value is lower than the baseline
 
 /**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
