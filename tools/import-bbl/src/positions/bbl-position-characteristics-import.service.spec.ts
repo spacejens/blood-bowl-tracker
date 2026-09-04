@@ -1,3 +1,7 @@
+import type {
+  CharacteristicFormat,
+  RulesSet,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
@@ -7,6 +11,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import { BblPositionCharacteristicsImportService } from './bbl-position-characteristics-import.service';
 
 /**
@@ -30,26 +35,45 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
   return importResults.result.mock.calls[0][0];
 }
 
-function makeRulesSet(
-  id: number,
-  name: string,
-  passingFormat: 'absent' | 'bare' | 'plus',
-) {
+function makeRulesSet({
+  id,
+  name,
+  passingFormat,
+  agilityFormat = 'plus',
+  armourFormat = 'plus',
+}: {
+  id: number;
+  name: string;
+  passingFormat: CharacteristicFormat;
+  agilityFormat?: CharacteristicFormat;
+  armourFormat?: CharacteristicFormat;
+}): RulesSet {
   return {
     id,
     name,
-    moveFormat: 'bare' as const,
-    strengthFormat: 'bare' as const,
-    agilityFormat: 'plus' as const,
+    moveFormat: 'bare',
+    strengthFormat: 'bare',
+    agilityFormat,
     passingFormat,
-    armourFormat: 'plus' as const,
+    armourFormat,
     createdAt: new Date('2026-01-01'),
   };
 }
 
+// CRP predates BB2020: no Passing at all, and Agility/Armour written as bare
+// numbers. BB2020 has Passing and writes both as roll-to-beat targets.
 const rulesSetsByName = new Map([
-  ['CRP', makeRulesSet(10, 'CRP', 'absent')],
-  ['BB2020', makeRulesSet(20, 'BB2020', 'plus')],
+  [
+    'CRP',
+    makeRulesSet({
+      id: 10,
+      name: 'CRP',
+      passingFormat: 'absent',
+      agilityFormat: 'bare',
+      armourFormat: 'bare',
+    }),
+  ],
+  ['BB2020', makeRulesSet({ id: 20, name: 'BB2020', passingFormat: 'plus' })],
 ]);
 
 describe('BblPositionCharacteristicsImportService', () => {
@@ -69,6 +93,7 @@ describe('BblPositionCharacteristicsImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblPositionCharacteristicsImportService,
+        CharacteristicNotationConversionService,
         {
           provide: PositionRulesSetsImportService,
           useValue: positionRulesSetsImport,
@@ -156,9 +181,11 @@ describe('BblPositionCharacteristicsImportService', () => {
         rulesSetId: 10,
         move: 6,
         strength: 5,
-        agility: 4,
+        // CRP writes bare numbers: BBL's AG 4 / AV 10 are AG 2 / AV 9 there
+        // (agility = 6 - raw, armour = raw - 1).
+        agility: 2,
         passing: null,
-        armour: 10,
+        armour: 9,
       },
       {
         positionId: 100,
@@ -243,5 +270,48 @@ describe('BblPositionCharacteristicsImportService', () => {
     });
 
     expect(outcome.result).toBe(CANNED_RESULT);
+  });
+
+  it('converts Agility and Armour per rules set for a position synced under both notations', async () => {
+    await service.syncPositionCharacteristics({
+      rulesSetIdsByPositionId: new Map([[100, new Set([10, 20])]]),
+      characteristicsByPositionId: new Map([
+        [100, { move: 6, strength: 3, agility: 3, passing: 4, armour: 8 }],
+      ]),
+      rulesSetsByName,
+    });
+
+    // One scraped BB2020-notation line, two rules sets, two different stored
+    // characteristic sets: CRP writes bare numbers (AG 3 -> 3 — 3 is the
+    // scale's own fixed point, 6 - 3 = 3 — and AV 8 -> 7), BB2020 keeps
+    // BBL's own figures.
+    const { entries } =
+      positionRulesSetsImport.syncPositionRulesSets.mock.calls[0][0];
+    expect(entries[0]).toMatchObject({
+      rulesSetId: 10,
+      agility: 3,
+      armour: 7,
+    });
+    expect(entries[1]).toMatchObject({
+      rulesSetId: 20,
+      agility: 3,
+      armour: 8,
+    });
+  });
+
+  it('leaves Agility and Armour alone for a rules set with no resolvable entry', async () => {
+    await service.syncPositionCharacteristics({
+      // Rules set id 99 is in no rules set map, so nothing tells this service
+      // which notation it uses; the safe fallback is to convert nothing.
+      rulesSetIdsByPositionId: new Map([[100, new Set([99])]]),
+      characteristicsByPositionId: new Map([
+        [100, { move: 6, strength: 3, agility: 3, passing: 4, armour: 8 }],
+      ]),
+      rulesSetsByName,
+    });
+
+    expect(
+      positionRulesSetsImport.syncPositionRulesSets.mock.calls[0][0].entries[0],
+    ).toMatchObject({ agility: 3, armour: 8 });
   });
 });

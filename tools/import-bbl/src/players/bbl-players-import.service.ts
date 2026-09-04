@@ -10,6 +10,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
+import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -42,6 +43,7 @@ export class BblPlayersImportService {
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
+    private readonly notationConversion: CharacteristicNotationConversionService,
     private readonly lookup: ReferenceLookupService,
   ) {}
 
@@ -57,7 +59,9 @@ export class BblPlayersImportService {
    * player's scraped MA/ST/AG/PA/AV line is sent alongside, validated
    * server-side against the last rules set listed for their era — a rules set
    * that declares no Passing characteristic receives a null Passing rather
-   * than the value BBL's BB2020 migration wrote onto most players.
+   * than the value BBL's BB2020 migration wrote onto most players, and a
+   * rules set that writes Agility/Armour as bare numbers receives those two
+   * converted out of BBL's BB2020 notation.
    */
   async importPlayers({
     teamsByCode,
@@ -319,7 +323,13 @@ export class BblPlayersImportService {
             positionId,
             move: player.characteristics.move,
             strength: player.characteristics.strength,
-            agility: player.characteristics.agility,
+            // BBL only ever shows BB2020 notation, so a player whose era
+            // predates it needs their Agility/Armour rewritten into the
+            // notation their own rules set declares.
+            agility: this.notationConversion.convertAgility(
+              player.characteristics.agility,
+              rulesSet.agilityFormat,
+            ),
             // Two distinct states: a rules set with no Passing concept at all
             // stores null, while a rules set that has Passing stores 0 for a
             // player who cannot pass (the page's "-"). BBL's BB2020 migration
@@ -329,7 +339,10 @@ export class BblPlayersImportService {
               rulesSet.passingFormat === 'absent'
                 ? null
                 : (player.characteristics.passing ?? 0),
-            armour: player.characteristics.armour,
+            armour: this.notationConversion.convertArmour(
+              player.characteristics.armour,
+              rulesSet.armourFormat,
+            ),
             rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },

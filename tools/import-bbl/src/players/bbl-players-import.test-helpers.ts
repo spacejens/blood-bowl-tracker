@@ -15,6 +15,7 @@ import { Test } from '@nestjs/testing';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
+import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
@@ -205,6 +206,7 @@ export async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPlayersImportService,
+      CharacteristicNotationConversionService,
       { provide: BblSourceReader, useValue: reader },
       { provide: PlayerPageParser, useValue: parser },
       { provide: PlayersImportService, useValue: playersImport },
@@ -254,23 +256,33 @@ export const goodPlayer: BblPlayer = {
 };
 
 /**
- * A RulesSet as the rules-sets import step hands it over. Only `id` and
- * `passingFormat` matter to BblPlayersImportService; the rest are
- * unremarkable defaults so the fixture satisfies the contract type.
+ * A RulesSet as the rules-sets import step hands it over. Only `id`,
+ * `passingFormat`, `agilityFormat` and `armourFormat` matter to
+ * BblPlayersImportService; the rest are unremarkable defaults so the fixture
+ * satisfies the contract type. Takes a single options object because
+ * `local/max-function-params` caps parameters at 3.
  */
-export function makeRulesSet(
-  name: string,
-  passingFormat: CharacteristicFormat,
+export function makeRulesSet({
+  name,
+  passingFormat,
   id = 800,
-): RulesSet {
+  agilityFormat = 'plus',
+  armourFormat = 'plus',
+}: {
+  name: string;
+  passingFormat: CharacteristicFormat;
+  id?: number;
+  agilityFormat?: CharacteristicFormat;
+  armourFormat?: CharacteristicFormat;
+}): RulesSet {
   return {
     id,
     name,
     moveFormat: 'bare',
     strengthFormat: 'bare',
-    agilityFormat: 'plus',
+    agilityFormat,
     passingFormat,
-    armourFormat: 'plus',
+    armourFormat,
     createdAt: new Date('2026-01-01'),
   };
 }
@@ -278,10 +290,12 @@ export function makeRulesSet(
 /**
  * The default rules-set resolution. `defaultEras`' only era ("LRB") lists
  * exactly one rules set, also named "LRB", and it has Passing — so by default
- * a player's parsed Passing value is sent through unchanged.
+ * a player's parsed Passing value is sent through unchanged. Its Agility and
+ * Armour are declared in BB2020 notation, so they are sent through unchanged
+ * too.
  */
 const rulesSetsByName = new Map<string, RulesSet>([
-  ['LRB', makeRulesSet('LRB', 'plus')],
+  ['LRB', makeRulesSet({ name: 'LRB', passingFormat: 'plus' })],
 ]);
 
 /**
