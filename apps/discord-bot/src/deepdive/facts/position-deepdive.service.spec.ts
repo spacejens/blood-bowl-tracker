@@ -76,10 +76,7 @@ interface MakeServiceOptions {
   positions: PositionsService;
   positionRulesSets: PositionRulesSetsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
-  // Widened beyond MockProxy so a test can supply a *real* LeaderboardService
-  // (see `makeRealLeaderboard` below) when it needs genuine ranking rather
-  // than `passthroughLeaderboard()`'s rank-1-for-everything stand-in.
-  leaderboard?: LeaderboardService;
+  leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
 }
 
@@ -91,6 +88,7 @@ async function makeService({
   entityComponents = passthroughEntityComponents(),
 }: MakeServiceOptions): Promise<{
   service: PositionDeepdiveService;
+  leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
@@ -109,6 +107,7 @@ async function makeService({
   }).compile();
   return {
     service: moduleRef.get(PositionDeepdiveService),
+    leaderboard,
     entityComponents,
   };
 }
@@ -131,30 +130,6 @@ function makeRulesSets(
   const positionRulesSets = mock<PositionRulesSetsService>();
   positionRulesSets.listByPosition.mockResolvedValue(rows);
   return positionRulesSets;
-}
-
-/**
- * A real `LeaderboardService`, its own two constructor dependencies mocked
- * (neither is touched by `topRanksWithTies`, the only method this service
- * calls). Unlike `passthroughLeaderboard()`, this genuinely ranks by `count`
- * — needed for the one test below that has to tell apart "ranked by SPP
- * total" from a plausible bug like "ranked by player id".
- */
-async function makeRealLeaderboard(): Promise<LeaderboardService> {
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      LeaderboardService,
-      {
-        provide: DatabaseTimeoutService,
-        useValue: mock<DatabaseTimeoutService>(),
-      },
-      {
-        provide: EntityComponentsService,
-        useValue: mock<EntityComponentsService>(),
-      },
-    ],
-  }).compile();
-  return moduleRef.get(LeaderboardService);
 }
 
 /**
@@ -332,28 +307,32 @@ describe('PositionDeepdiveService', () => {
     );
   });
 
-  it('ties players on equal SPP total, using SPP rather than player id as the rank key', async () => {
-    // `topRanksWithTies` trusts its input's order and only groups adjacent
-    // *equal* `count` values into one rank — it never re-sorts. Real players
-    // always share the same SPP here (a genuine tie), so the real
-    // `LeaderboardService` only merges them into rank 1 if the service maps
-    // `count: player.sppTotal`; mapping `count: player.id` instead (ids are
-    // always distinct) would silently split them into ranks 1 and 2, since
-    // ids can never tie the way this test's SPP totals do.
-    const { service } = await makeService({
+  it('ranks top players by SPP total, not by player id or fetch order', async () => {
+    const { service, leaderboard } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
         topPlayers: [
-          { id: 9, name: 'Griff', sppTotal: 100 },
-          { id: 10, name: 'Varag', sppTotal: 100 },
+          { id: 9, name: 'Griff', sppTotal: 130 },
+          { id: 10, name: 'Varag', sppTotal: 88 },
         ],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
-      leaderboard: await makeRealLeaderboard(),
     });
 
-    expect(JSON.stringify(await service.resolve(1))).toContain(
-      '1. Griff — 100\\n1. Varag — 100',
+    await service.resolve(1);
+
+    // Asserted on the mocked call rather than a real LeaderboardService: it
+    // injects DatabaseTimeoutService and EntityComponentsService, so it is
+    // not the dependency-free kind of collaborator CLAUDE.md's real-provider
+    // carve-out covers, and topRanksWithTies's own ranking/tie behavior
+    // already has dedicated coverage in leaderboard.service.spec.ts. This
+    // still catches a plausible mapping mistake like `count: player.id`.
+    expect(leaderboard.topRanksWithTies).toHaveBeenCalledWith(
+      [
+        { id: 9, name: 'Griff', sppTotal: 130, count: 130 },
+        { id: 10, name: 'Varag', sppTotal: 88, count: 88 },
+      ],
+      5, // TOP_PLAYERS_TOP_ENTRIES, not exported from the service
     );
   });
 
