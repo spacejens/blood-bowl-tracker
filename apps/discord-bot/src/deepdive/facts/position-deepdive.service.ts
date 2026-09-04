@@ -125,23 +125,28 @@ export class PositionDeepdiveService {
     // the way this decoration's other options assume — only team and coach
     // add information here. Wrapped in the same timeout handling as every
     // other DB call in this method, since attachSuffixes does its own DB
-    // round trip.
+    // round trip — skipped entirely when there is nothing to decorate, so a
+    // position with no players never risks the player-context timeout
+    // message in place of the correct "no players" view.
     const decorated:
       | (PositionTopPlayer & {
           count: number;
           rank: number;
           contextSuffix: string;
         })[]
-      | null = await this.databaseTimeout.run(
-      this.playerContext.attachSuffixes(ranked, (row) => row.id, {
-        includePosition: false,
-        includeTeam: true,
-        includeRace: false,
-        includeEra: false,
-        includeCoach: true,
-      }),
-      null,
-    );
+      | null =
+      ranked.length === 0
+        ? []
+        : await this.databaseTimeout.run(
+            this.playerContext.attachSuffixes(ranked, (row) => row.id, {
+              includePosition: false,
+              includeTeam: true,
+              includeRace: false,
+              includeEra: false,
+              includeCoach: true,
+            }),
+            null,
+          );
     if (decorated === null) {
       return DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE;
     }

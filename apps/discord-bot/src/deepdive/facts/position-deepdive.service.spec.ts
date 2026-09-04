@@ -229,6 +229,31 @@ describe('PositionDeepdiveService', () => {
     );
   });
 
+  it('skips the player-context lookup entirely when there are no top players', async () => {
+    // attachSuffixes does its own DB round trip; with no ranked players to
+    // decorate there is nothing for it to look up, so it must not run at
+    // all — running it anyway would risk a spurious
+    // DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE in place of the
+    // correct "no players" view if that unnecessary call happened to time
+    // out. Pin this by timing out the 5th call: if attachSuffixes were
+    // still invoked, this would return the timeout message instead of
+    // rendering normally.
+    const { service, playerContext } = await makeService({
+      positions: makePositions({
+        position: { name: 'Blitzer', races: [] },
+        playerCount: 0,
+        topPlayers: [],
+      }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      databaseTimeout: timeoutOnCall(4),
+    });
+
+    const rendered = JSON.stringify(await service.resolve(1));
+
+    expect(rendered).toContain(DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE);
+    expect(playerContext.attachSuffixes).not.toHaveBeenCalled();
+  });
+
   it('renders races, one stat line per rules set, the player count and the top players', async () => {
     const { service } = await makeService({
       positions: makePositions({
