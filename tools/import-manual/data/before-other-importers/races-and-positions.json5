@@ -528,6 +528,23 @@
       ],
     },
     {
+      // Halfling: BBL 'Halfling Hopeful Lineman' (typId 39) / TP 'Halfling
+      // Hopeful Lineman' (id 297, older rosters) / TP 'Halfling Hopeful'
+      // (id 969, BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering BBL's id here too is what makes the merge work: without
+      // it BBL's upsert would create a second row and TP's id-297 upsert
+      // would then see its two ids resolve to two different rows
+      // (PositionUpsertConflictError).
+      name: 'Halfling Hopeful',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '39-8' },
+        { system: 'tourplay.net', id: '969' },
+        { system: 'tourplay.net', id: '297' },
+      ],
+    },
+    {
       // High Elf: BBL 'High Elf Blitzers' / TP 'High Elf Blitzer'
       name: 'High Elf Blitzer',
       isStarPlayer: false,

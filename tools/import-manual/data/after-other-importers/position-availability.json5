@@ -438,7 +438,7 @@
       ],
     },
     {
-      name: 'Halfling Hopeful Lineman',
+      name: 'Halfling Hopeful',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' },

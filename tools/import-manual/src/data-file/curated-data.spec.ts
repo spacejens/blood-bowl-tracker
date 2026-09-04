@@ -728,4 +728,48 @@ describe('curated data files', () => {
 
     expect(missing).toEqual(exceptions);
   });
+
+  it('pre-registers the Halfling roster lineman as one row across its rename', () => {
+    const positions = readFile(
+      'before-other-importers',
+      'races-and-positions.json5',
+    ).positions;
+    const entry = positions.find(
+      (position) =>
+        position.name === 'Halfling Hopeful' &&
+        position.externalIds.some(
+          (ref) => ref.system === 'tourplay.net' && ref.id === '969',
+        ),
+    );
+
+    // TP renamed this position between rules-set generations ('Halfling
+    // Hopeful Lineman', id 297, on the older rosters; 'Halfling Hopeful', id
+    // 969, on BB2025), and BBL still uses the older name (typId 39, race 8).
+    // Registering all three ids up front lands every source's upsert on this
+    // single row instead of three.
+    expect(entry?.externalIds).toEqual([
+      { system: 'tloeg.bbleague.se', id: '39-8' },
+      { system: 'tourplay.net', id: '969' },
+      { system: 'tourplay.net', id: '297' },
+    ]);
+    expect(entry?.isStarPlayer).toBe(false);
+  });
+
+  it('curates the Halfling roster lineman under its post-rename name', () => {
+    const positions = readFile(
+      'after-other-importers',
+      'position-availability.json5',
+    ).positions;
+    const entry = positions.find((position) =>
+      position.externalIds.some(
+        (ref) =>
+          ref.system === 'Name' &&
+          ref.id === 'Halfling: Halfling Hopeful Lineman',
+      ),
+    );
+
+    // This phase overlays the position's name, so it has to re-state the
+    // merged row's final name rather than the older spelling its Name id uses.
+    expect(entry?.name).toBe('Halfling Hopeful');
+  });
 });
