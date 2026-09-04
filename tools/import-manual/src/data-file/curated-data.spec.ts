@@ -405,6 +405,14 @@ describe('curated data files', () => {
   it('keys every curated position by the canonical race name', () => {
     const ids = [
       ...readFile(
+        'before-other-importers',
+        'races-and-positions.json5',
+      ).positions.flatMap((position) =>
+        position.externalIds
+          .filter((ref) => ref.system === 'Name')
+          .map((ref) => ref.id),
+      ),
+      ...readFile(
         'after-other-importers',
         'position-availability.json5',
       ).positions.flatMap((position) =>

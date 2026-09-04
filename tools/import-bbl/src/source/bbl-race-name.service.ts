@@ -12,6 +12,12 @@ import { Injectable } from '@nestjs/common';
  * "<Race>" spelling TP does -- otherwise upsertByExternalIds, which matches on
  * exact (system, id) equality only, sees two unrelated ids and creates two
  * position rows for one real position.
+ *
+ * tools/review-race's RaceNameComparisonService strips the same suffix for a
+ * different purpose (comparing BBL/TP race names for display, case- and
+ * whitespace-insensitively) and must stay independent of this package -- see
+ * docs/architecture.md's review-race entry -- so the two are not shared, only
+ * parallel.
  */
 @Injectable()
 export class BblRaceNameService {

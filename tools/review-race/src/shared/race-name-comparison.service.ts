@@ -8,6 +8,11 @@ const TEAM_SUFFIX = /\s+teams?$/;
  * "<Race> Teams"; TP names the same race just "<Race>", so that suffix is a
  * known, expected difference and never a mismatch on its own. Pure and
  * dependency-free, so specs may inject it as a real provider.
+ *
+ * tools/import-bbl's BblRaceNameService strips the same suffix for a
+ * different purpose (canonicalizing a position's Name external id) and is
+ * deliberately not reused here -- this package must stay independent of the
+ * importers (see docs/architecture.md's review-race entry).
  */
 @Injectable()
 export class RaceNameComparisonService {
