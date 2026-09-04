@@ -92,11 +92,11 @@ export class PositionCharacteristicsRawRendererService {
       rows.push([
         positionName,
         typId,
-        String(move),
-        String(strength),
-        String(agility),
-        passing === null ? NONE : String(passing),
-        String(armour),
+        move,
+        strength,
+        agility,
+        passing === null ? NONE : passing,
+        armour,
       ]);
     }
     return (
