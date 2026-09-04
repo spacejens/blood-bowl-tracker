@@ -241,10 +241,11 @@ played:` followed by their top five teams by matches played, one line per
   drill-down button to that position's deepdive, ahead of the top-teams
   buttons.
 - **A race that matches nothing** — the bot replies with a not-found message.
-- **`position:<position>`** — the bot replies with an embed for that position:
-  the position name as the title, then `Race(s): <races>` (comma-joined by
-  name, or "None recorded" if the position has no race recorded — a position
-  can in principle belong to more than one race), a blank line, and one stat
+- **`position:<position>`** — the bot replies with an embed for that
+  [position](../../glossary.md#position): the position name as the title,
+  then `Race(s): <races>` (comma-joined by name, or "None recorded" if the
+  position has no [race](../../glossary.md#race) recorded — a position can
+  in principle belong to more than one race), a blank line, and one stat
   line per rules set the position has recorded characteristics for, oldest
   rules set first, formatted `<rules set>: MA <move> ST <strength>
   AG <agility> [PA <passing>] AV <armour>`. Each value is written using that
@@ -258,8 +259,8 @@ played:` followed by their top five teams by matches played, one line per
   `Top players by SPP:` followed by its top five players by career SPP total,
   one line per player formatted `<rank>. <player> (<team>, <coach>) — <SPP>`
   — the player's position is left off, since every listed player already
-  holds this one, and the list is not scoped to one race or one era, so
-  neither belongs on the row either. Ties at the
+  holds this one, and the list is not scoped to one race or one
+  [era](../../glossary.md#era), so neither belongs on the row either. Ties at the
   fifth-place cutoff are all shown, up to ten players — the same convention
   `/insights` toplists use, though at most ten players are fetched, so the
   "…and N more tied." note never actually appears here. A position with no
