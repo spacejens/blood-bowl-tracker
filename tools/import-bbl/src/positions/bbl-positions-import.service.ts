@@ -9,6 +9,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { PlayerPageParser } from '../players/player-page-parser';
+import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -37,29 +38,6 @@ interface RaceExternalIdsOptions {
   typId: string;
   race: { bblId: string; name: string };
   positionName: string;
-  nameExternalId: NameExternalIdService;
-}
-
-/**
- * The BBL (`<typId>-<raceBblId>`) and Name (`<raceName>: <positionName>`)
- * external ids for one (position, race) pairing.
- */
-function raceExternalIds(options: RaceExternalIdsOptions): ExternalIdPair[] {
-  const {
-    bblSystemId,
-    nameSystemId,
-    typId,
-    race,
-    positionName,
-    nameExternalId,
-  } = options;
-  return [
-    { externalSystemId: bblSystemId, externalId: `${typId}-${race.bblId}` },
-    {
-      externalSystemId: nameSystemId,
-      externalId: nameExternalId.forPosition(race.name, positionName),
-    },
-  ];
 }
 
 @Injectable()
@@ -74,6 +52,7 @@ export class BblPositionsImportService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
+    private readonly bblRaceName: BblRaceNameService,
   ) {}
 
   /**
@@ -234,13 +213,12 @@ export class BblPositionsImportService {
             {
               name: position.name,
               isStarPlayer: false,
-              externalIds: raceExternalIds({
+              externalIds: this.raceExternalIds({
                 bblSystemId,
                 nameSystemId,
                 typId: position.typId,
                 race,
                 positionName: position.name,
-                nameExternalId: this.nameExternalId,
               }),
             },
             errors,
@@ -277,13 +255,12 @@ export class BblPositionsImportService {
               externalId: this.nameExternalId.forStarPosition(position.name),
             },
             ...resolved.flatMap((race) =>
-              raceExternalIds({
+              this.raceExternalIds({
                 bblSystemId,
                 nameSystemId,
                 typId: position.typId,
                 race,
                 positionName: position.name,
-                nameExternalId: this.nameExternalId,
               }),
             ),
           ];
@@ -310,13 +287,12 @@ export class BblPositionsImportService {
               {
                 name: position.name,
                 isStarPlayer: false,
-                externalIds: raceExternalIds({
+                externalIds: this.raceExternalIds({
                   bblSystemId,
                   nameSystemId,
                   typId: position.typId,
                   race,
                   positionName: position.name,
-                  nameExternalId: this.nameExternalId,
                 }),
               },
               errors,
@@ -339,6 +315,29 @@ export class BblPositionsImportService {
       positionRaceCandidates,
       characteristicsByPositionId,
     };
+  }
+
+  /**
+   * The BBL (`<typId>-<raceBblId>`) and Name
+   * (`<canonicalRaceName>: <positionName>`) external ids for one
+   * (position, race) pairing. The race name is canonicalized because BBL names
+   * races after their team page ("<Race> Team") while tools/import-tp builds
+   * the same Name id from the bare "<Race>": without this, the two importers
+   * produce two different ids and upsertByExternalIds creates two unrelated
+   * position rows for one real position.
+   */
+  private raceExternalIds(options: RaceExternalIdsOptions): ExternalIdPair[] {
+    const { bblSystemId, nameSystemId, typId, race, positionName } = options;
+    return [
+      { externalSystemId: bblSystemId, externalId: `${typId}-${race.bblId}` },
+      {
+        externalSystemId: nameSystemId,
+        externalId: this.nameExternalId.forPosition(
+          this.bblRaceName.canonical(race.name),
+          positionName,
+        ),
+      },
+    ];
   }
 
   /** Pre-scan every player page into a map of position typId -> team codes. */

@@ -349,42 +349,42 @@ describe('curated data files', () => {
           entry.rulesSet.id === 'CRP' && entry.position.id === positionId,
       );
 
-    expect(findCrp('Dark Elf Team: Dark Elf Lineman')).toEqual({
-      position: { system: 'Name', id: 'Dark Elf Team: Dark Elf Lineman' },
+    expect(findCrp('Dark Elf: Dark Elf Lineman')).toEqual({
+      position: { system: 'Name', id: 'Dark Elf: Dark Elf Lineman' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 4,
       armour: 8,
     });
-    expect(findCrp('Dwarf Team: Dwarf Blocker Linemen')).toEqual({
-      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+    expect(findCrp('Dwarf: Dwarf Blocker Linemen')).toEqual({
+      position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 4,
       strength: 3,
       agility: 2,
       armour: 9,
     });
-    expect(findCrp('Amazon Team: Tribal Linewoman')).toEqual({
-      position: { system: 'Name', id: 'Amazon Team: Tribal Linewoman' },
+    expect(findCrp('Amazon: Tribal Linewoman')).toEqual({
+      position: { system: 'Name', id: 'Amazon: Tribal Linewoman' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 3,
       armour: 7,
     });
-    expect(findCrp('Elven Union Team: Elven Linemen')).toEqual({
-      position: { system: 'Name', id: 'Elven Union Team: Elven Linemen' },
+    expect(findCrp('Elven Union: Elven Linemen')).toEqual({
+      position: { system: 'Name', id: 'Elven Union: Elven Linemen' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 4,
       armour: 7,
     });
-    expect(findCrp('Chaos Chosen Team: Beastman Runner Lineman')).toEqual({
+    expect(findCrp('Chaos Chosen: Beastman Runner Lineman')).toEqual({
       position: {
         system: 'Name',
-        id: 'Chaos Chosen Team: Beastman Runner Lineman',
+        id: 'Chaos Chosen: Beastman Runner Lineman',
       },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
@@ -392,14 +392,49 @@ describe('curated data files', () => {
       agility: 3,
       armour: 8,
     });
-    expect(findCrp('Chaos Dwarf Team: Hobgoblin Linemen')).toEqual({
-      position: { system: 'Name', id: 'Chaos Dwarf Team: Hobgoblin Linemen' },
+    expect(findCrp('Chaos Dwarf: Hobgoblin Linemen')).toEqual({
+      position: { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Linemen' },
       rulesSet: { system: 'Name', id: 'CRP' },
       move: 6,
       strength: 3,
       agility: 3,
       armour: 7,
     });
+  });
+
+  it('keys every curated position by the canonical race name', () => {
+    const ids = [
+      ...readFile(
+        'before-other-importers',
+        'races-and-positions.json5',
+      ).positions.flatMap((position) =>
+        position.externalIds
+          .filter((ref) => ref.system === 'Name')
+          .map((ref) => ref.id),
+      ),
+      ...readFile(
+        'after-other-importers',
+        'position-availability.json5',
+      ).positions.flatMap((position) =>
+        position.externalIds
+          .filter((ref) => ref.system === 'Name')
+          .map((ref) => ref.id),
+      ),
+      ...readFile(
+        'after-other-importers',
+        'position-characteristics.json5',
+      ).positionRulesSets.map((entry) => entry.position.id),
+    ];
+
+    // tools/import-bbl canonicalizes its team-page race name
+    // ("Underworld Denizens Team", "Wood Elf Teams") down to the race's real
+    // name before building this id (BblRaceNameService strips both the
+    // singular and plural " Team"/" Teams" suffix), and tools/import-tp
+    // always used the real name. A curated id carrying either old spelling
+    // would match neither importer: it would create an orphan position row
+    // and then collide with the real one (PositionUpsertConflictError).
+    expect(ids.filter((id) => id.includes(' Team: '))).toEqual([]);
+    expect(ids.filter((id) => id.includes(' Teams: '))).toEqual([]);
   });
 
   it('curates CRP characteristics for the core-rulebook teams', () => {
@@ -505,7 +540,7 @@ describe('curated data files', () => {
     // Chaos Pact, Slann and Underworld appear in NTBB2015 but not in the CRP
     // core book, so nothing in the source data evidences them for the
     // CRP-era eras.
-    expect(hasFirstEraFor('Underworld Denizens Team: ')).toBe(true);
+    expect(hasFirstEraFor('Underworld Denizens: ')).toBe(true);
     expect(hasFirstEraFor('Slann: ')).toBe(true);
   });
 
@@ -700,5 +735,53 @@ describe('curated data files', () => {
       .sort();
 
     expect(missing).toEqual(exceptions);
+  });
+
+  it('pre-registers the Halfling roster lineman as one row across its rename', () => {
+    const positions = readFile(
+      'before-other-importers',
+      'races-and-positions.json5',
+    ).positions;
+    const entry = positions.find(
+      (position) =>
+        position.name === 'Halfling Hopeful' &&
+        position.externalIds.some(
+          (ref) => ref.system === 'tourplay.net' && ref.id === '969',
+        ),
+    );
+
+    // TP renamed this position between rules-set generations ('Halfling
+    // Hopeful Lineman', id 297, on the older rosters; 'Halfling Hopeful', id
+    // 969, on BB2025), and BBL still uses the older name (typId 39, race 8).
+    // Registering all three ids up front lands every source's upsert on this
+    // single row instead of three. The Name id matches this file's own
+    // convention of pre-registering one so the after-other-importers
+    // availability phase (which references this same Name id) can never race
+    // BBL/TP into creating an orphan row before either source has run.
+    expect(entry?.externalIds).toEqual([
+      { system: 'tloeg.bbleague.se', id: '39-8' },
+      { system: 'tourplay.net', id: '969' },
+      { system: 'tourplay.net', id: '297' },
+      { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' },
+    ]);
+    expect(entry?.isStarPlayer).toBe(false);
+  });
+
+  it('curates the Halfling roster lineman under its post-rename name', () => {
+    const positions = readFile(
+      'after-other-importers',
+      'position-availability.json5',
+    ).positions;
+    const entry = positions.find((position) =>
+      position.externalIds.some(
+        (ref) =>
+          ref.system === 'Name' &&
+          ref.id === 'Halfling: Halfling Hopeful Lineman',
+      ),
+    );
+
+    // This phase overlays the position's name, so it has to re-state the
+    // merged row's final name rather than the older spelling its Name id uses.
+    expect(entry?.name).toBe('Halfling Hopeful');
   });
 });
