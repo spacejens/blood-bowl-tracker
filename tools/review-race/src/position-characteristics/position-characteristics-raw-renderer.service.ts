@@ -16,8 +16,9 @@ const NAME_SYSTEM = 'Name';
 
 /**
  * The position-characteristics raw panel: each source's own view of one
- * position's MA/ST/AG/PA/AV, on its own terms. BBL and TP each publish plain
- * numbers per position; the curated `position-characteristics.json5` answers
+ * position's MA/ST/AG/PA/AV, on its own terms. TP publishes plain numbers per
+ * position; BBL publishes whatever its page shows, including the `+`
+ * roll-target notation; the curated `position-characteristics.json5` answers
  * for the rules sets neither source evidences numerically the same way the
  * database stores them.
  *

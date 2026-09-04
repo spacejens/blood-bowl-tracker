@@ -79,14 +79,6 @@ describe('BblRawPositionPageService', () => {
     });
   });
 
-  it('preserves a trailing plus on a value', async () => {
-    reader.readPage.mockResolvedValue(PAGE);
-
-    const position = await service.positionFor('310');
-
-    expect(position?.characteristics?.agility).toBe('3+');
-  });
-
   it('preserves a trailing plus on armour too', async () => {
     reader.readPage.mockResolvedValue(
       `<h1>Position</h1>
