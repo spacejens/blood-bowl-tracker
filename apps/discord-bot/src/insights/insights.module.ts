@@ -1,4 +1,5 @@
 import {
+  CharacteristicDisplayFormattingModule,
   CoachesModule,
   CompetitionGroupsModule,
   CompetitionsModule,
@@ -9,6 +10,7 @@ import {
   MatchesModule,
   OnThisDateModule,
   PlayersModule,
+  PositionRulesSetsModule,
   PositionsModule,
   RacesModule,
   RulesSetsModule,
@@ -66,6 +68,8 @@ const GAME_DATA_MODULES = [
   OnThisDateModule,
   PlayersModule,
   PositionsModule,
+  PositionRulesSetsModule,
+  CharacteristicDisplayFormattingModule,
   RacesModule,
   ExternalSystemsModule,
   TrophiesModule,

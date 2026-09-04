@@ -27,6 +27,7 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -202,10 +203,11 @@ describe('PlayerDeepdiveService', () => {
   // EntityComponentsService's own dedupe/cap/chunk/select logic is covered
   // by entity-components.service.spec.ts. Here `entityComponents` is a mock
   // returning a canned component list, so this test asserts only what
-  // PlayerDeepdiveService itself owns: the team-then-era-then-race entry pool
-  // (in that order, matching the header lines, with the right ids/labels) it
-  // hands to buildEntityComponents.
-  it('builds team, era, and race entries from the header, in header order', async () => {
+  // PlayerDeepdiveService itself owns: the
+  // team-then-era-then-race-then-position entry pool (in that order, matching
+  // the header lines, with the right ids/labels) it hands to
+  // buildEntityComponents.
+  it('builds team, era, race, and position entries from the header, in header order', async () => {
     const entityComponents = entityComponentsMock();
     const cannedComponents = [
       {
@@ -252,6 +254,11 @@ describe('PlayerDeepdiveService', () => {
         customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
         label: 'Human',
+      },
+      {
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Blitzer',
       },
     ]);
   });
@@ -438,6 +445,7 @@ describe('PlayerDeepdiveService', () => {
       `${TEAM_BUTTON_CUSTOM_ID_PREFIX}11`,
       `${ERA_BUTTON_CUSTOM_ID_PREFIX}7`,
       `${RACE_BUTTON_CUSTOM_ID_PREFIX}4`,
+      `${POSITION_BUTTON_CUSTOM_ID_PREFIX}4`,
     ]);
     expect(buttons.map((button) => button.label)).toEqual([
       'MVP',
@@ -445,6 +453,7 @@ describe('PlayerDeepdiveService', () => {
       'Reikland Reavers',
       'Season 5',
       'Human',
+      'Blitzer',
     ]);
   });
 
@@ -847,7 +856,8 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toContain(
       'Status: Killed in mysterious circumstances',
     );
-    // Only the player's own team, era and race entries — no killer entry.
+    // Only the player's own team, era, race and position entries — no killer
+    // entry.
     expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
       {
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -863,6 +873,11 @@ describe('PlayerDeepdiveService', () => {
         customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
         label: 'Human',
+      },
+      {
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Blitzer',
       },
     ]);
   });
@@ -953,6 +968,27 @@ describe('PlayerDeepdiveService', () => {
         button.custom_id.startsWith(STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX),
       ),
     ).toBe(false);
+  });
+
+  it('offers a position button alongside the team, era and race buttons', async () => {
+    const { service, entityComponents } = await makeService({
+      players: makePlayers({
+        player: griff,
+        counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
+      }),
+    });
+
+    await service.resolve(1);
+
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: '4',
+          label: 'Blitzer',
+        },
+      ]),
+    );
   });
 
   it('returns the star timeout message when the star lookup times out', async () => {

@@ -19,6 +19,7 @@ import {
   DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
@@ -34,6 +35,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -47,6 +49,7 @@ function chatInput(options: {
   coach?: string | null;
   team?: string | null;
   player?: string | null;
+  position?: string | null;
   starPlayer?: string | null;
   race?: string | null;
   competition?: string | null;
@@ -61,6 +64,7 @@ function chatInput(options: {
         if (name === 'coach') return options.coach ?? null;
         if (name === 'team') return options.team ?? null;
         if (name === 'player') return options.player ?? null;
+        if (name === 'position') return options.position ?? null;
         if (name === 'star-player') return options.starPlayer ?? null;
         if (name === 'race') return options.race ?? null;
         if (name === 'competition') return options.competition ?? null;
@@ -143,6 +147,12 @@ describe('DeepdiveCommandService', () => {
       {
         name: 'race',
         description: 'Show the detail view for a single race (optional)',
+        type: 3,
+        autocomplete: true,
+      },
+      {
+        name: 'position',
+        description: 'Show the detail view for a single position (optional)',
         type: 3,
         autocomplete: true,
       },
@@ -510,6 +520,55 @@ describe('DeepdiveCommandService', () => {
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
   });
 
+  it('declares a position option with autocomplete', () => {
+    const option = service
+      .buildCommand()
+      .options?.find((each) => each.name === 'position');
+
+    expect(option).toMatchObject({ autocomplete: true });
+  });
+
+  it('routes the position option to the position resolver', async () => {
+    targetResolver.resolvePosition.mockResolvedValue('rendered');
+
+    await expect(service.execute(chatInput({ position: '4' }))).resolves.toBe(
+      'rendered',
+    );
+    expect(targetResolver.resolvePosition).toHaveBeenCalledWith('4');
+  });
+
+  it('rejects supplying both a position and another target', async () => {
+    const result = await service.execute(
+      chatInput({ position: '4', era: '3' }),
+    );
+    expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+    expect(targetResolver.resolvePosition).not.toHaveBeenCalled();
+  });
+
+  it('routes a position button to the position resolver, stripping the prefix', async () => {
+    targetResolver.resolvePosition.mockResolvedValue('rendered');
+
+    await service.handlePositionButton(
+      buttonInteraction(`${POSITION_BUTTON_CUSTOM_ID_PREFIX}4`),
+    );
+
+    expect(targetResolver.resolvePosition).toHaveBeenCalledWith('4');
+  });
+
+  it('routes a position select menu choice to the position resolver', async () => {
+    targetResolver.resolvePosition.mockResolvedValue('rendered');
+
+    await service.handlePositionSelect(selectInteraction(['4']));
+
+    expect(targetResolver.resolvePosition).toHaveBeenCalledWith('4');
+  });
+
+  it('returns the position not-found message for an empty select menu choice', async () => {
+    await expect(
+      service.handlePositionSelect(selectInteraction([])),
+    ).resolves.toBe(DEEPDIVE_POSITION_NOT_FOUND_MESSAGE);
+  });
+
   it('forwards the rendered embed from the competition deepdive service for a resolved competition', async () => {
     targetResolver.resolveCompetition.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ competition: '3' }));
@@ -676,6 +735,13 @@ describe('DeepdiveCommandService', () => {
       invoke: (service, interaction) => service.handleRaceSelect(interaction),
       resolver: (targetResolver) => targetResolver.resolveRace,
       notFoundMessage: DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+    },
+    {
+      name: 'position',
+      invoke: (service, interaction) =>
+        service.handlePositionSelect(interaction),
+      resolver: (targetResolver) => targetResolver.resolvePosition,
+      notFoundMessage: DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
     },
     {
       name: 'competition',

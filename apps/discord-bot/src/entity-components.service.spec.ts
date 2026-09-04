@@ -11,6 +11,7 @@ import {
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -446,5 +447,36 @@ describe('EntityComponentsService', () => {
     expect(
       service.getEmojiForPrefix(ON_THIS_DATE_BUTTON_CUSTOM_ID_PREFIX),
     ).toBe('📅');
+  });
+
+  it('gives position buttons the who-played Success style and the runner emoji', () => {
+    const { components } = service.buildEntityComponents([
+      {
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Blitzer',
+      },
+    ]);
+
+    expect(components).toEqual([
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Button,
+            style: ButtonStyle.Success,
+            label: 'Blitzer',
+            custom_id: 'deepdive:position:4',
+            emoji: { name: '🏃' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('reports the position emoji through getEmojiForPrefix', () => {
+    expect(service.getEmojiForPrefix(POSITION_BUTTON_CUSTOM_ID_PREFIX)).toBe(
+      '🏃',
+    );
   });
 });

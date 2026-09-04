@@ -10,6 +10,8 @@ import {
   eras,
   matches,
   matchTeams,
+  positions,
+  positionsRaceEras,
   raceEras,
   raceExternalIds,
   races,
@@ -18,7 +20,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, desc, eq, ilike } from 'drizzle-orm';
+import { and, asc, countDistinct, desc, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
@@ -32,6 +34,20 @@ export class RaceUpsertConflictError extends UpsertConflictError {}
 
 export interface RaceWithEras extends Race {
   eras: number[];
+}
+
+/**
+ * One position available to a race in one era. Flat, already ordered by era
+ * then position name — the same shape `CompetitionsService.listByCompetitionGroupChronological`
+ * returns, so a consumer groups it into per-era sections with the shared
+ * `EraSectionGrouperService` rather than this service doing that grouping
+ * itself.
+ */
+export interface RacePosition {
+  id: number;
+  name: string;
+  eraId: number;
+  eraName: string;
 }
 
 @Injectable()
@@ -70,6 +86,40 @@ export class RacesService {
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
       .where(eq(raceEras.raceId, raceId))
       .orderBy(eras.startDate, eras.name);
+  }
+
+  /**
+   * Every ordinary (non-star) position available to this race, oldest era
+   * first and positions name-ascending within each. Eras with no recorded
+   * positions do not appear at all — the inner joins drop them, and an era
+   * with nothing to list would render as an empty line. Star positions are
+   * excluded: they are shared across every race that can hire them rather
+   * than belonging to this one race, and are already reachable from their
+   * own star-player deep dive.
+   *
+   * Flat and already ordered, matching how `CompetitionsService.listByCompetitionGroupChronological`
+   * shapes its own rows — the caller groups this into per-era sections with
+   * `EraSectionGrouperService`, the same way that competitions list does.
+   */
+  listPositionsByEra(raceId: number): Promise<RacePosition[]> {
+    return this.db
+      .select({
+        id: positions.id,
+        name: positions.name,
+        eraId: eras.id,
+        eraName: eras.name,
+      })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.raceEraId, raceEras.id),
+      )
+      .innerJoin(positions, eq(positions.id, positionsRaceEras.positionId))
+      .where(
+        and(eq(raceEras.raceId, raceId), eq(positions.isStarPlayer, false)),
+      )
+      .orderBy(asc(eras.startDate), asc(eras.name), asc(positions.name));
   }
 
   getTopTeamsByMatchesPlayed(

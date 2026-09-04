@@ -69,6 +69,7 @@ export class PlayersService {
         raceName: string;
         raceId: number;
         positionName: string;
+        positionId: number;
         eraName: string;
         eraId: number;
         sppTotal: number | null;
@@ -85,6 +86,7 @@ export class PlayersService {
         raceName: races.name,
         raceId: races.id,
         positionName: positions.name,
+        positionId: positions.id,
         eraName: eras.name,
         eraId: eras.id,
         sppTotal: players.sppTotal,

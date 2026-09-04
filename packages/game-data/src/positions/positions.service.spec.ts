@@ -3,8 +3,11 @@ import { DB, positions } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -24,6 +27,11 @@ const fakePosition = {
 
 describe('PositionsService', () => {
   let service: PositionsService;
+  let likePattern: MockProxy<LikePatternService>;
+
+  beforeEach(() => {
+    likePattern = mock<LikePatternService>();
+  });
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -31,7 +39,11 @@ describe('PositionsService', () => {
   }> {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
-      providers: [PositionsService, { provide: DB, useValue: db }],
+      providers: [
+        PositionsService,
+        { provide: LikePatternService, useValue: likePattern },
+        { provide: DB, useValue: db },
+      ],
     }).compile();
     service = moduleRef.get(PositionsService);
     return { db, chains };
@@ -379,6 +391,119 @@ describe('PositionsService', () => {
       ).toEqual(['positions_race_eras.race_era_id', 'race_eras.id']);
       expect(chains[0].where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+    });
+  });
+
+  describe('findById', () => {
+    it('returns the position name with its deduplicated races', async () => {
+      await build([
+        { name: 'Blitzer', raceId: 2, raceName: 'Human' },
+        { name: 'Blitzer', raceId: 2, raceName: 'Human' },
+        { name: 'Blitzer', raceId: 5, raceName: 'Orc' },
+      ]);
+
+      await expect(service.findById(1)).resolves.toEqual({
+        name: 'Blitzer',
+        races: [
+          { id: 2, name: 'Human' },
+          { id: 5, name: 'Orc' },
+        ],
+      });
+    });
+
+    it('returns the position with an empty race list when it has no race eras', async () => {
+      await build([{ name: 'Blitzer', raceId: null, raceName: null }]);
+
+      await expect(service.findById(1)).resolves.toEqual({
+        name: 'Blitzer',
+        races: [],
+      });
+    });
+
+    it('returns undefined when no such position exists', async () => {
+      await build([]);
+
+      await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+
+    it('filters on the requested position id', async () => {
+      const { chains } = await build([
+        { name: 'Blitzer', raceId: 2, raceName: 'Human' },
+      ]);
+
+      await service.findById(7);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+    });
+  });
+
+  describe('countPlayers', () => {
+    it('returns the count the query resolves to', async () => {
+      await build([{ count: 42 }]);
+
+      await expect(service.countPlayers(1)).resolves.toBe(42);
+    });
+
+    it('filters on the requested position id', async () => {
+      const { chains } = await build([{ count: 0 }]);
+
+      await service.countPlayers(7);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+    });
+  });
+
+  describe('listTopPlayersBySpp', () => {
+    it('returns the player rows and forwards the limit', async () => {
+      const rows = [
+        { id: 9, name: 'Griff', sppTotal: 130 },
+        { id: 10, name: 'Varag', sppTotal: 88 },
+      ];
+      const { chains } = await build(rows);
+
+      await expect(service.listTopPlayersBySpp(1, 10)).resolves.toEqual(rows);
+      expect(firstCallArg(chains[0].limit)).toBe(10);
+    });
+
+    it('orders by SPP total descending, then by player name', async () => {
+      const { chains } = await build([]);
+
+      await service.listTopPlayersBySpp(1, 10);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['players.spp_total'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['players.name'],
+      );
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('escapes the typed prefix before building the LIKE pattern', async () => {
+      likePattern.escape.mockReturnValue('50\\%');
+      const { chains } = await build([{ id: 1, name: '50% Blitzer' }]);
+
+      await service.searchByNamePrefix('50%', 25);
+
+      // `ilike()`'s value isn't recoverable via `extractFilterValues` (it
+      // embeds the raw interpolated value directly in the SQL query chunks
+      // rather than as a `Param`, the same reason `RacesService`'s own
+      // `searchByNamePrefix` spec doesn't attempt this assertion either), so
+      // this instead confirms the escaped pattern reached `where()` at all by
+      // checking it was called, and that the escape step ran on the raw
+      // typed prefix.
+      expect(likePattern.escape).toHaveBeenCalledWith('50%');
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(firstCallArg(chains[0].limit)).toBe(25);
+    });
+
+    it('returns the id/name rows the query resolves to', async () => {
+      likePattern.escape.mockReturnValue('Bl');
+      const rows = [{ id: 1, name: 'Blitzer' }];
+      await build(rows);
+
+      await expect(service.searchByNamePrefix('Bl', 25)).resolves.toEqual(rows);
     });
   });
 });

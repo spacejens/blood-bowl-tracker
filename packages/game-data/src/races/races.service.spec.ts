@@ -435,6 +435,45 @@ describe('RacesService', () => {
     });
   });
 
+  describe('listPositionsByEra', () => {
+    it('returns a flat, already-ordered row per position', async () => {
+      const rows = [
+        { eraId: 3, eraName: 'BB2016', id: 1, name: 'Blitzer' },
+        { eraId: 3, eraName: 'BB2016', id: 2, name: 'Lineman' },
+        { eraId: 4, eraName: 'BB2020', id: 2, name: 'Lineman' },
+      ];
+      await build(rows);
+
+      await expect(service.listPositionsByEra(1)).resolves.toEqual(rows);
+    });
+
+    it('returns an empty array when the race has no positions recorded', async () => {
+      await build([]);
+
+      await expect(service.listPositionsByEra(1)).resolves.toEqual([]);
+    });
+
+    it('filters on the requested race, excludes star players, and orders by era start date then position name', async () => {
+      const { chains } = await build([]);
+
+      await service.listPositionsByEra(7);
+
+      // and(eq(raceId), eq(isStarPlayer, false)) carries two Params, so this
+      // walks the whole condition tree rather than stopping at the first
+      // match — see extractAllFilterValues's own doc comment.
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        7,
+        false,
+      ]);
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 2))).toEqual(
+        ['positions.name'],
+      );
+    });
+  });
+
   describe('getTopTeamsByMatchesPlayed', () => {
     it('returns the team rows (with id) and forwards the limit', async () => {
       const rows = [{ id: 9, name: 'Reikland Reavers', count: 12 }];

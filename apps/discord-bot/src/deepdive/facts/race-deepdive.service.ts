@@ -1,14 +1,17 @@
+import type { RacePosition } from '@blood-bowl-tracker/game-data';
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
@@ -18,8 +21,10 @@ import {
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
 import { TeamContextService } from '../../insights/team-context.service';
+import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -47,6 +52,7 @@ export class RaceDeepdiveService {
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
+    private readonly eraSectionGrouper: EraSectionGrouperService,
   ) {}
 
   async resolve(raceId: number): Promise<string | InteractionReplyOptions> {
@@ -75,6 +81,14 @@ export class RaceDeepdiveService {
     );
     if (topTeams === null) {
       return DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE;
+    }
+
+    const positions: RacePosition[] | null = await this.databaseTimeout.run(
+      this.races.listPositionsByEra(raceId),
+      null,
+    );
+    if (positions === null) {
+      return DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE;
     }
 
     const eras =
@@ -113,6 +127,29 @@ export class RaceDeepdiveService {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    // No placeholder when a race has no positions recorded: the section is
+    // simply absent rather than reported empty. The plain-text `Eras:` line
+    // above is unaffected — it stays the race's summary line, while this
+    // section answers what the race could actually field in each era. Grouped
+    // into per-era sections the same way the trophy and competition-group
+    // deep dives group their own per-era lists — one `<era> positions:`
+    // heading per era, one row per position — rather than one packed line
+    // per era, so a long position name or a long list of positions reads the
+    // same way those other per-era lists already do.
+    const positionLines =
+      positions.length === 0
+        ? []
+        : [
+            '',
+            ...this.eraSectionGrouper
+              .group(positions)
+              .flatMap((section, index) => [
+                ...(index === 0 ? [] : ['']),
+                `${section.eraName} positions:`,
+                ...section.rows.map((position) => position.name),
+              ]),
+          ];
+
     // Leaderboard entries first: buildEntityComponents has no internal
     // prioritisation (first-N / first-group wins), so the top-teams list gets
     // drill-down controls before the era header entries do.
@@ -127,12 +164,18 @@ export class RaceDeepdiveService {
         entityId: String(era.id),
         label: era.name,
       })),
+      ...positions.map((position): EntityComponentEntry => ({
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(position.id),
+        label: position.name,
+      })),
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);
 
     const description = [
       `Eras: ${eras}`,
+      ...positionLines,
       '',
       'Top teams by matches played:',
       ...teamLines,
@@ -143,10 +186,25 @@ export class RaceDeepdiveService {
       embeds: [
         {
           title: `${this.entityComponents.getEmojiForPrefix(RACE_BUTTON_CUSTOM_ID_PREFIX)} ${race.name}`,
-          description,
+          description: this.enforceDescriptionLimit(description),
         },
       ],
       ...(components.length > 0 ? { components } : {}),
     };
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit.
+   * `listPositionsByEra` has no row cap of its own — a race with many eras
+   * and many positions per era, or simply long position names, could in
+   * principle overflow — so this measures the actual assembled string rather
+   * than trusting that input to stay small. Mirrors
+   * `PlayerDeepdiveService.enforceDescriptionLimit`.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
   }
 }

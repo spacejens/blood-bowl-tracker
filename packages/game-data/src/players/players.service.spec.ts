@@ -346,6 +346,7 @@ describe('PlayersService', () => {
         raceName: 'Human',
         raceId: 4,
         positionName: 'Blitzer',
+        positionId: 3,
         eraName: 'Season 5',
         eraId: 7,
         sppTotal: 24,
@@ -382,6 +383,7 @@ describe('PlayersService', () => {
         raceName: 'Human',
         raceId: 4,
         positionName: 'Lineman',
+        positionId: 8,
         eraName: 'Season 5',
         eraId: 7,
         sppTotal: null,
@@ -389,6 +391,30 @@ describe('PlayersService', () => {
       };
       await build([row]);
       await expect(service.findById(2)).resolves.toEqual(row);
+    });
+
+    it('resolves the position id alongside the position name', async () => {
+      await build([
+        {
+          id: 1,
+          name: 'Griff',
+          teamName: 'Reikland Reavers',
+          teamId: 2,
+          raceName: 'Human',
+          raceId: 3,
+          positionName: 'Blitzer',
+          positionId: 4,
+          eraName: 'BB2020',
+          eraId: 5,
+          sppTotal: 130,
+          sppAdjustment: 0,
+        },
+      ]);
+
+      await expect(service.findById(1)).resolves.toMatchObject({
+        positionId: 4,
+        positionName: 'Blitzer',
+      });
     });
 
     it('joins the era through the player team-era', async () => {

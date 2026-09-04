@@ -33,6 +33,14 @@ export const STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:star-player:';
 /** Prefix for race deepdive button customIds: `deepdive:race:<id>`. */
 export const RACE_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:race:';
 
+/**
+ * Prefix for position deepdive button customIds: `deepdive:position:<id>`.
+ * The id part is a `positions.id` — the same kind of id the star-player
+ * prefix carries, but a different destination: this one shows the position's
+ * characteristics per rules set, that one a star's hire history.
+ */
+export const POSITION_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:position:';
+
 /** Prefix for competition deepdive button customIds: `deepdive:competition:<id>`. */
 export const COMPETITION_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:competition:';
 
@@ -72,6 +80,7 @@ export type ButtonCustomIdPrefix =
   | typeof PLAYER_BUTTON_CUSTOM_ID_PREFIX
   | typeof STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX
   | typeof RACE_BUTTON_CUSTOM_ID_PREFIX
+  | typeof POSITION_BUTTON_CUSTOM_ID_PREFIX
   | typeof COMPETITION_BUTTON_CUSTOM_ID_PREFIX
   | typeof COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX
   | typeof LEAGUE_BUTTON_CUSTOM_ID_PREFIX

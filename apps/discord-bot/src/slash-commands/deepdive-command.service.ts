@@ -17,6 +17,7 @@ import {
   DEEPDIVE_LEAGUE_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
@@ -34,6 +35,7 @@ export {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -47,6 +49,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   LEAGUE_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -87,6 +90,10 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleRaceButton(interaction),
+    );
+    this.discordClient.registerButtonHandler(
+      POSITION_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handlePositionButton(interaction),
     );
     this.discordClient.registerButtonHandler(
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -133,6 +140,11 @@ export class DeepdiveCommandService implements OnModuleInit {
       RACE_BUTTON_CUSTOM_ID_PREFIX,
       (interaction: StringSelectMenuInteraction) =>
         this.handleRaceSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      POSITION_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handlePositionSelect(interaction),
     );
     this.discordClient.registerSelectMenuHandler(
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -199,6 +211,12 @@ export class DeepdiveCommandService implements OnModuleInit {
           autocomplete: true,
         },
         {
+          name: 'position',
+          description: 'Show the detail view for a single position (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
+        {
           name: 'competition',
           description:
             'Show the detail view for a single competition (optional)',
@@ -240,6 +258,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const playerOption = interaction.options.getString('player');
     const starPlayerOption = interaction.options.getString('star-player');
     const raceOption = interaction.options.getString('race');
+    const positionOption = interaction.options.getString('position');
     const competitionOption = interaction.options.getString('competition');
     const trophyOption = interaction.options.getString('trophy');
     const competitionGroupOption =
@@ -252,6 +271,7 @@ export class DeepdiveCommandService implements OnModuleInit {
       playerOption,
       starPlayerOption,
       raceOption,
+      positionOption,
       competitionOption,
       trophyOption,
       competitionGroupOption,
@@ -277,6 +297,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (raceOption !== null) {
       return this.targetResolver.resolveRace(raceOption);
+    }
+    if (positionOption !== null) {
+      return this.targetResolver.resolvePosition(positionOption);
     }
     if (competitionOption !== null) {
       return this.targetResolver.resolveCompetition(competitionOption);
@@ -347,6 +370,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       RACE_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.targetResolver.resolveRace(idPart);
+  }
+
+  async handlePositionButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      POSITION_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.targetResolver.resolvePosition(idPart);
   }
 
   async handleCompetitionButton(
@@ -443,6 +475,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_RACE_NOT_FOUND_MESSAGE;
     }
     return this.targetResolver.resolveRace(value);
+  }
+
+  async handlePositionSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_POSITION_NOT_FOUND_MESSAGE;
+    }
+    return this.targetResolver.resolvePosition(value);
   }
 
   async handleCompetitionSelect(

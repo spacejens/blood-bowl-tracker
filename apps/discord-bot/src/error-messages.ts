@@ -187,6 +187,24 @@ export const DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE =
   'The scout is still tracking down which coaches those teams belong to.';
 export const DEEPDIVE_RACE_NO_TEAMS_MESSAGE =
   'No team of this race has taken the field yet.';
+export const DEEPDIVE_RACE_POSITIONS_TIMEOUT_MESSAGE =
+  'The team secretary is still leafing through the roster this lot are allowed.';
+export const DEEPDIVE_POSITION_NOT_FOUND_MESSAGE =
+  'Nobody has ever lined up in a role by that name around here.';
+export const DEEPDIVE_POSITION_TIMEOUT_MESSAGE =
+  'The rules committee is still arguing over what this one does on the pitch.';
+export const DEEPDIVE_POSITION_CHARACTERISTICS_TIMEOUT_MESSAGE =
+  'The clerk is still copying this one out of the rulebooks, edition by edition.';
+export const DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE =
+  'No rulebook in the archive says what this one is worth.';
+export const DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE =
+  'The registrar is still counting everyone who ever took this spot.';
+export const DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE =
+  'The scouts are still arguing over who wore this one best.';
+export const DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE =
+  'Not one player has ever taken this spot on the pitch.';
+export const DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE =
+  'The scout is still tracking down which teams and coaches those players turned out for.';
 export const DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE =
   'The league secretary has no such competition on the fixture list.';
 export const DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE =
