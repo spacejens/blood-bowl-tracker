@@ -77,13 +77,16 @@ played:` followed by their top five teams by matches played, one line per
   section from the next. At most 30 trophies are shown; when there are more,
   the list ends with an exact `…and N more not shown.` note computed from the
   team's true award count. Then a blank line and
-  `Top players by match events:` followed by its top five players by total
-  match events — every recorded event a player took part in, of any type,
-  counted together — one line per player formatted
-  `<rank>. <player> — <events>`. Ties at the fifth-place cutoff are all shown,
-  up to ten players (the same convention `/insights` toplists use, though at
-  most ten players are fetched, so the "…and N more tied." note never actually
-  appears here). Each trophy is rendered as a drill-down button to the trophy,
+  `Top players by SPP:` followed by its top five players by career SPP total
+  — the player's stored total across every [era](../../glossary.md#era) the
+  team has played, manual adjustments included, exactly as the player deepdive
+  reports it — one line per player formatted
+  `<rank>. <player> (<position>, <era>) — <SPP>`. Star players are not listed:
+  each hire of a star is its own player record, so one star would otherwise
+  take several of the five slots. Ties at the fifth-place cutoff are all
+  shown, up to ten players (the same convention `/insights` toplists use,
+  though at most ten players are fetched, so the "…and N more tied." note
+  never actually appears here). Each trophy is rendered as a drill-down button to the trophy,
   plus a button to the player for a player award; those come before the
   top-players buttons, which in turn come before the race/coach/era header
   buttons, so the most specific content keeps button priority. A team that
