@@ -241,6 +241,18 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   Position keyed by the player's own inline `fallbackPositionName`, the same
   treatment a star player gets. A player whose team era or position (even via
   that fallback) can't be resolved is recorded as an error and skipped.
+  Because TP supplies no characteristics for a mercenary anywhere — the name
+  is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire
+  carries no `ma/st/ag/pa/av` — both the mercenary Position's
+  `position_rules_sets` rows and each hire's own characteristics come from
+  `MercenaryCharacteristicsConfigService`, a curated, source-controlled table
+  (mercenary position name → rules-set name → characteristics) applied by
+  `TpMercenaryCharacteristicsService`. The position sync runs once per
+  distinct mercenary name per import run; the per-hire fallback runs only when
+  the hire embedded no characteristics of its own, so a future TP payload that
+  does supply them still wins. An uncurated mercenary name, or a hire under a
+  rules set the table does not cover, is recorded as an `ImportError` rather
+  than silently leaving the characteristics unset.
   Players carry only a TP external id (no Name external id — player names
   aren't unique). Returns
   `playerIdsByLineUpId`, consumed by match-event import to resolve a

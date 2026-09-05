@@ -129,6 +129,10 @@ whether it also resolves via a catalog. `TpRosterPlayer.fallbackPositionName`
 carries this inline name; `TpPlayersImportService` uses it (gated on
 `isBigGuy`, so a genuine regular-position catalog gap is never masked) as
 described above.
+These entries also never carry `ma/st/ag/pa/av`, in either the standalone
+roster file or the match-embedded snapshot, so a mercenary's characteristics
+cannot come from TP at all — the importer takes them from a curated table
+instead (see [index.md](./index.md)'s `TpPlayersImportService` entry).
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
