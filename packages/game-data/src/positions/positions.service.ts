@@ -324,6 +324,54 @@ export class PositionsService {
   }
 
   /**
+   * Name-prefix search backing `/deepdive`'s position autocomplete, with each
+   * suggestion's race so same-named positions can be told apart before the
+   * reader commits to one — nearly every race has a "Lineman".
+   *
+   * A position reaches its races through `positions_race_eras -> race_eras`,
+   * where the same race repeats once per era it is available in, so the
+   * select is `selectDistinct` over exactly the three returned columns: that
+   * collapses the per-era duplicates to one row per distinct (position, race)
+   * pair, the same deduplication `findById` does in TypeScript. Doing it in
+   * SQL is what lets the `LIMIT` apply *after* the fan-out, so the caller
+   * never receives more rows than it asked for — a multi-race position simply
+   * consumes one slot per race.
+   *
+   * The joins are inner: a position with no `positions_race_eras` row at all
+   * has no race to put in the `"<name> (<race>)"` label, so there is nothing
+   * sensible to suggest for it, and excluding those rows is what makes the
+   * non-nullable `raceName` below true.
+   *
+   * Star positions are deliberately *not* excluded, matching the position
+   * deep dive itself: a star available to several races yields one suggestion
+   * per race, all pointing at the same position id.
+   *
+   * Ordering by position name then race name keeps the truncation the `LIMIT`
+   * performs deterministic across calls.
+   */
+  searchByNamePrefixWithRace(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; raceName: string }[]> {
+    return this.db
+      .selectDistinct({
+        id: positions.id,
+        name: positions.name,
+        raceName: races.name,
+      })
+      .from(positions)
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.positionId, positions.id),
+      )
+      .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
+      .innerJoin(races, eq(races.id, raceEras.raceId))
+      .where(ilike(positions.name, `${this.likePattern.escape(prefix)}%`))
+      .orderBy(asc(positions.name), asc(races.name))
+      .limit(limit);
+  }
+
+  /**
    * Upsert-only: inserts any of `data.raceEras` not already present, but
    * never removes a previously persisted row. Availability evidence
    * accumulates and is never revoked by a later sync.
