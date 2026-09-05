@@ -101,12 +101,18 @@ export class DeepdiveAutocompleteService {
       }));
     }
     if (focused.name === 'position') {
-      const positions = await this.positions.searchByNamePrefix(
+      // Labelled with the race because position names repeat across races —
+      // nearly every race has a "Lineman" — so a bare name would not say
+      // which roster a suggestion means. A position available to several
+      // races yields one suggestion per race, all carrying the same position
+      // id as their value: the position deepdive shows every race the
+      // position belongs to, so which of them was picked does not matter.
+      const positions = await this.positions.searchByNamePrefixWithRace(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
       return positions.map((row) => ({
-        name: row.name,
+        name: `${row.name} (${row.raceName})`,
         value: String(row.id),
       }));
     }
