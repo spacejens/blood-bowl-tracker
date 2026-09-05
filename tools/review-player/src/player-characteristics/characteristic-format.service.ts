@@ -11,7 +11,8 @@ export const NO_CHARACTERISTIC = '—';
  * Renders one of a player's characteristics the way its rules set displays
  * it: a bare number, a roll target with a trailing "+", or nothing at all.
  *
- * Only `null` renders as nothing. A stored 0 is printed as the number it is:
+ * Only `null` or an `absent` format renders as nothing. A stored 0 is
+ * printed as the number it is:
  * for Move, Strength, Agility and Armour that means the players table's
  * placeholder default shows itself instead of hiding behind a dash — which is
  * what a review tool is for — and for a `plus_zero_legal` Passing value it is
