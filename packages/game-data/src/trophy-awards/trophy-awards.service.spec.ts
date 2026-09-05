@@ -3,6 +3,7 @@ import { DB, trophyAwards } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
+import { DrizzleQueryError } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -57,17 +58,44 @@ const playerTrophyRow = [
 /** The competition-lookup row, in the same group as both trophy rows. */
 const matchingCompetitionRow = [{ competitionGroupId: 1 }];
 
+/**
+ * The shape production actually throws: a real `DrizzleQueryError` (imported
+ * from drizzle-orm itself, so a future release that moves the driver error
+ * breaks this test rather than silently hiding a regression) wrapping the
+ * `postgres` driver's error, which is the only place `code`, `table_name` and
+ * `constraint_name` live. The classifier under test unwraps that `.cause`
+ * chain, so the mock has to reproduce it rather than throwing a bare
+ * postgres-shaped error, which nothing issued through drizzle ever does.
+ * Mirrors the same helper in `../shared/upsert-by-external-ids.spec.ts`.
+ */
+function uniqueViolation(
+  tableName = 'trophy_awards',
+  constraintName = 'trophy_awards_trophy_competition_team_era_player_unique',
+): Error {
+  const pgError = Object.assign(
+    new Error('duplicate key value violates unique constraint'),
+    {
+      code: '23505',
+      table_name: tableName,
+      constraint_name: constraintName,
+    },
+  );
+  return new DrizzleQueryError('insert into "trophy_awards" ...', [], pgError);
+}
+
 describe('TrophyAwardsService', () => {
   let service: TrophyAwardsService;
 
   /**
    * `rowsPerQuery[0]` is always the trophy lookup (its `recipientKind` and
    * `competitionGroupId`), `rowsPerQuery[1]` the competition lookup (its
-   * `competitionGroupId`), `rowsPerQuery[2]` the conflict-tolerant insert,
-   * and `rowsPerQuery[3]` the natural-key lookup that only runs when that
-   * insert hits the unique constraint and returns nothing.
+   * `competitionGroupId`), `rowsPerQuery[2]` the insert, and `rowsPerQuery[3]`
+   * the natural-key lookup that only runs when that insert throws a
+   * `trophy_awards` unique violation. A slot may be an `Error` instead of a
+   * row array, which makes that one query reject - the only way to reach the
+   * conflict path now that the insert carries no `ON CONFLICT` clause.
    */
-  async function build(...rowsPerQuery: unknown[][]): Promise<{
+  async function build(...rowsPerQuery: (unknown[] | Error)[]): Promise<{
     db: Db;
     chains: QueryChain[];
   }> {
@@ -103,21 +131,19 @@ describe('TrophyAwardsService', () => {
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
   });
 
-  it('targets the natural-key constraint columns when inserting', async () => {
+  it('inserts without an ON CONFLICT clause, so a discarded row cannot orphan a history row', async () => {
     const { chains } = await build(teamTrophyRow, matchingCompetitionRow, [
       teamAwardRow,
     ]);
 
     await service.upsert(teamAward);
 
-    expect(chains[2].onConflictDoNothing).toHaveBeenCalledWith({
-      target: [
-        trophyAwards.trophyId,
-        trophyAwards.competitionId,
-        trophyAwards.teamEraId,
-        trophyAwards.playerId,
-      ],
-    });
+    // `trophy_awards` is history-tracked: its BEFORE INSERT trigger writes a
+    // history row for every *attempted* row, so a row ON CONFLICT DO NOTHING
+    // discards leaves a history row whose deferred FK has nothing to point at.
+    // A plain insert that fails on the unique constraint rolls the whole
+    // statement back instead, trigger writes included.
+    expect(chains[2].onConflictDoNothing).not.toHaveBeenCalled();
   });
 
   it('inserts all four natural-key ids, including a null playerId', async () => {
@@ -139,19 +165,20 @@ describe('TrophyAwardsService', () => {
     const { db, chains } = await build(
       teamTrophyRow,
       matchingCompetitionRow,
-      [],
+      uniqueViolation(),
       [teamAwardRow],
     );
 
     const result = await service.upsert(teamAward);
 
     expect(result).toEqual({ trophyAward: teamAwardRow, created: false });
-    // The insert is still attempted — that is the point of insert-first — but
-    // returns nothing, so the natural-key lookup supplies the existing row.
+    // The insert is still attempted - that is the point of insert-first - but
+    // raises the unique violation, so the natural-key lookup supplies the
+    // existing row.
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
     expect(chains).toHaveLength(4);
     // The fallback lookup must filter on IS NULL for a team award, not a
-    // literal playerId equality — otherwise it would never match.
+    // literal playerId equality - otherwise it would never match.
     expect(sqlText(firstCallArg(chains[3].where))).toContain('is null');
   });
 
@@ -159,22 +186,94 @@ describe('TrophyAwardsService', () => {
     const { chains } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
-      [],
+      uniqueViolation(),
       [playerAwardRow],
     );
 
     const result = await service.upsert(playerAward);
 
     expect(result).toEqual({ trophyAward: playerAwardRow, created: false });
-    // The fallback lookup must filter on the player id itself, not IS NULL —
+    // The fallback lookup must filter on the player id itself, not IS NULL -
     // otherwise a re-imported player award could return the wrong row.
     expect(extractAllFilterValues(firstCallArg(chains[3].where))).toEqual([
       1, 2, 3, 4,
     ]);
   });
 
+  it('propagates an insert failure that is not a unique violation', async () => {
+    const notNull = Object.assign(
+      new Error('null value in column violates not-null constraint'),
+      { code: '23502', table_name: 'trophy_awards', constraint_name: null },
+    );
+    const error = new DrizzleQueryError(
+      'insert into "trophy_awards" ...',
+      [],
+      notNull,
+    );
+    const { chains } = await build(
+      teamTrophyRow,
+      matchingCompetitionRow,
+      error,
+    );
+
+    await expect(service.upsert(teamAward)).rejects.toBe(error);
+    // No fallback lookup ran: the error was rethrown, not swallowed into the
+    // "already recorded" path.
+    expect(chains).toHaveLength(3);
+  });
+
+  it('propagates a unique violation raised by a different table', async () => {
+    const error = uniqueViolation(
+      'trophy_awards_history',
+      'trophy_awards_history_pkey',
+    );
+    const { chains } = await build(
+      teamTrophyRow,
+      matchingCompetitionRow,
+      error,
+    );
+
+    await expect(service.upsert(teamAward)).rejects.toBe(error);
+    expect(chains).toHaveLength(3);
+  });
+
+  it("propagates a unique violation on trophy_awards' own primary key", async () => {
+    // A 23505 on the primary key is a desynced sequence, not this award
+    // already existing, so it must not be reinterpreted as "already recorded".
+    const error = uniqueViolation('trophy_awards', 'trophy_awards_pkey');
+    const { chains } = await build(
+      teamTrophyRow,
+      matchingCompetitionRow,
+      error,
+    );
+
+    await expect(service.upsert(teamAward)).rejects.toBe(error);
+    expect(chains).toHaveLength(3);
+  });
+
+  it('throws when the insert reports success but returns no row', async () => {
+    const { db, chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      // An empty array from `.returning()` on a successful insert is not a
+      // real Postgres behavior, but guards against it defensively - see the
+      // check right after the insert.
+    ]);
+
+    await expect(service.upsert(teamAward)).rejects.toThrow(
+      /reported success but returned no row/,
+    );
+    // No fallback lookup ran: an empty `.returning()` is not the unique-
+    // violation conflict path, so it must not be reinterpreted as one.
+    expect(db.insert).toHaveBeenCalledWith(trophyAwards);
+    expect(chains).toHaveLength(3);
+  });
+
   it('throws when the insert conflicts but no matching row can be read back', async () => {
-    const { db } = await build(teamTrophyRow, matchingCompetitionRow, [], []);
+    const { db } = await build(
+      teamTrophyRow,
+      matchingCompetitionRow,
+      uniqueViolation(),
+      [],
+    );
 
     await expect(service.upsert(teamAward)).rejects.toThrow(
       /no matching row could be read back/,
