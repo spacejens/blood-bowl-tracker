@@ -152,10 +152,7 @@ export class TeamDeepdiveService {
     }
 
     const topPlayers: TopPlayer[] | null = await this.databaseTimeout.run(
-      this.teams.getTopPlayersByMatchEventCount(
-        teamId,
-        MAX_LEADERBOARD_ENTRIES,
-      ),
+      this.teams.getTopPlayersByTotalSpp(teamId, MAX_LEADERBOARD_ENTRIES),
       null,
     );
     if (topPlayers === null) {
@@ -296,7 +293,7 @@ export class TeamDeepdiveService {
       `Career: ${span.start} – ${span.end}`,
       ...(honorLines.length === 0 ? [] : ['', ...honorLines]),
       '',
-      'Top players by match events:',
+      'Top players by SPP:',
       ...playerLines,
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
