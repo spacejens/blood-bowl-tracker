@@ -11,20 +11,25 @@ export const NO_CHARACTERISTIC = '—';
  * Renders one of a player's characteristics the way its rules set displays
  * it: a bare number, a roll target with a trailing "+", or nothing at all.
  *
- * Zero is rendered as nothing, unlike the equivalent service in
- * tools/review-race: 0 is never a legal characteristic value under any rules
- * set, in either raw or imported data, so a stored 0 is always the players
- * table's placeholder default rather than a real value, and printing it as
- * "0" would read as a claim the data does not make.
+ * Only `null` renders as nothing. A stored 0 is printed as the number it is:
+ * for Move, Strength, Agility and Armour that means the players table's
+ * placeholder default shows itself instead of hiding behind a dash — which is
+ * what a review tool is for — and for a `plus_zero_legal` Passing value it is
+ * a real value ("structurally cannot pass"), rendered as a bare "0" since
+ * "0+" is not a meaningful die-roll target. This matches the equivalent
+ * service in tools/review-race.
  *
  * Pure and dependency-free, so specs inject it real.
  */
 @Injectable()
 export class CharacteristicFormatService {
   format(value: number | null, format: CharacteristicFormat): string {
-    if (value === null || value === 0 || format === 'absent') {
+    if (value === null || format === 'absent') {
       return NO_CHARACTERISTIC;
     }
-    return format === 'plus' ? `${value}+` : String(value);
+    if (format === 'plus' || (format === 'plus_zero_legal' && value !== 0)) {
+      return `${value}+`;
+    }
+    return String(value);
   }
 }

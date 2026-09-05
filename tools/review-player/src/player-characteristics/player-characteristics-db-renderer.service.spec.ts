@@ -109,14 +109,14 @@ describe('PlayerCharacteristicsDbRendererService', () => {
     expect(html).toContain('<td>8+ ▼</td>');
   });
 
-  it('marks a change to a real zero even though the cell shows a dash', async () => {
+  it('marks a change to a zero and shows the zero itself', async () => {
     const service = await makeService(
       mockDb([playerRow({ move: 0 })], [rulesSetRow()], [baselineRow()]),
     );
 
     const html = await service.render(player);
 
-    expect(html).toContain('<td>— ▼</td>');
+    expect(html).toContain('<td>0 ▼</td>');
   });
 
   it('treats Passing appearing where the baseline has none as a change', async () => {

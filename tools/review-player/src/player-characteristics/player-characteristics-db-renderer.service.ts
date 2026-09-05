@@ -53,8 +53,9 @@ const DECREASED = '▼';
  * single-player comparison does not need.
  *
  * **The comparison** is numeric and runs on the raw values, before
- * formatting, so a value moving to or from a real 0 still gets its marker
- * even though the cell shows a dash. Numeric, not "better/worse": under
+ * formatting, so a value moving to or from a 0 gets its marker like any
+ * other change, and the cell shows the 0 itself. Numeric, not
+ * "better/worse": under
  * BB2020 a lower Agility is a better Agility, and deciding which is which is
  * the reviewer's job, not this panel's. Passing is compared null-safely —
  * both sides null is unchanged; one side null and the other not is a change.
