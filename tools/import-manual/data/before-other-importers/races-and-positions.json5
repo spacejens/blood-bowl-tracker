@@ -626,31 +626,48 @@
       ],
     },
     {
-      // Lizardmen: BBL 'Chameleon Skinks' / TP 'Chameleon Skink'
+      // Lizardmen: BBL 'Chameleon Skinks' / TP 'Chameleon Skink' (id 313 on
+      // the older rosters, id 985 on the BB2025 roster) -- TP issues a fresh
+      // position id per rules-set generation even when the name does not
+      // change, so both ids are registered here to keep BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
       name: 'Chameleon Skink',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '286-12' },
+        { system: 'tourplay.net', id: '985' },
         { system: 'tourplay.net', id: '313' },
         { system: 'Name', id: 'Lizardmen: Chameleon Skink' },
       ],
     },
     {
-      // Lizardmen: BBL 'Saurus Blockers' / TP 'Saurus Blocker'
+      // Lizardmen: BBL 'Saurus Blockers' / TP 'Saurus Blocker' (id 314 on the
+      // older rosters, id 986 on the BB2025 roster) -- TP issues a fresh
+      // position id per rules-set generation even when the name does not
+      // change, so both ids are registered here to keep BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
       name: 'Saurus Blocker',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '81-12' },
+        { system: 'tourplay.net', id: '986' },
         { system: 'tourplay.net', id: '314' },
         { system: 'Name', id: 'Lizardmen: Saurus Blocker' },
       ],
     },
     {
-      // Lizardmen: BBL 'Skink Runner Linemen' / TP 'Skink Runner Lineman'
-      name: 'Skink Runner Lineman',
+      // Lizardmen: BBL 'Skink Runner Linemen' (typId 88, race 12) / TP 'Skink
+      // Runner Lineman' (id 312, older rosters) / TP 'Skink Lineman' (id 984,
+      // BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering every source's id here is what makes the merge work:
+      // without it TP's id-984 upsert would create a second, disconnected row
+      // and the position's characteristics history would split in two.
+      name: 'Skink Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '88-12' },
+        { system: 'tourplay.net', id: '984' },
         { system: 'tourplay.net', id: '312' },
         { system: 'Name', id: 'Lizardmen: Skink Runner Lineman' },
       ],

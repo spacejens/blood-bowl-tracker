@@ -608,7 +608,10 @@
 
     // --- CRP-era availability: Lizardmen Team (First era) ---
     {
-      name: 'Skink Runner Linemen',
+      // Renamed 'Skink Lineman' in BB2025; this phase overlays the position's
+      // name, so it has to re-state the merged row's final name rather than
+      // the older spelling its Name id uses.
+      name: 'Skink Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' },
