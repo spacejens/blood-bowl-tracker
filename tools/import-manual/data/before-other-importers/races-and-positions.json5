@@ -448,11 +448,17 @@
       ],
     },
     {
-      // Dwarf: BBL 'Dwarf Blocker Linemen' / TP 'Dwarf Blocker Lineman'
-      name: 'Dwarf Blocker Lineman',
+      // Dwarf: BBL 'Dwarf Blocker Linemen' (typId 57, race 5) / TP 'Dwarf
+      // Blocker Lineman' (id 280, older rosters) / TP 'Dwarf Lineman' (id
+      // 952, BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering every source's id here keeps BB2025 line-ups on this one
+      // row instead of creating a second, disconnected one and the position's characteristics history would split in two.
+      name: 'Dwarf Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '57-5' },
+        { system: 'tourplay.net', id: '952' },
         { system: 'tourplay.net', id: '280' },
         { system: 'Name', id: 'Dwarf: Dwarf Blocker Lineman' },
       ],
@@ -498,31 +504,46 @@
       ],
     },
     {
-      // Goblin: BBL 'Goblin Linemen' / TP 'Goblin Lineman'
+      // Goblin: BBL 'Goblin Linemen' / TP 'Goblin Lineman' (id 289 on the
+      // older rosters, id 961 on the BB2025 roster) -- TP issues a fresh
+      // position id per rules-set generation even when the name does not
+      // change, so both ids are registered here to keep BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
       name: 'Goblin Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '33-7' },
+        { system: 'tourplay.net', id: '961' },
         { system: 'tourplay.net', id: '289' },
         { system: 'Name', id: 'Goblin: Goblin Lineman' },
       ],
     },
     {
-      // Goblin: BBL 'Ooligan' / TP '’Ooligan'
+      // Goblin: BBL 'Ooligan' / TP '’Ooligan' (id 294 on the older rosters,
+      // id 964 on the BB2025 roster) -- TP issues a fresh position id per
+      // rules-set generation even when the name does not change, so both ids
+      // are registered here to keep BB2025 line-ups on this one row instead
+      // of creating a second, disconnected one.
       name: 'Ooligan',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '232-7' },
+        { system: 'tourplay.net', id: '964' },
         { system: 'tourplay.net', id: '294' },
         { system: 'Name', id: 'Goblin: ’Ooligan' },
       ],
     },
     {
-      // Halfling: BBL 'Hafling Treeman' / TP 'Altern Forest Treeman'
+      // Halfling: BBL 'Hafling Treeman' / TP 'Altern Forest Treeman' (id 300
+      // on the older rosters, id 972 on the BB2025 roster) -- TP issues a
+      // fresh position id per rules-set generation even when the name does
+      // not change, so both ids are registered here to keep BB2025 line-ups
+      // on this one row instead of creating a second, disconnected one.
       name: 'Altern Forest Treeman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '169-8' },
+        { system: 'tourplay.net', id: '972' },
         { system: 'tourplay.net', id: '300' },
         { system: 'Name', id: 'Halfling: Altern Forest Treeman' },
       ],
@@ -626,31 +647,48 @@
       ],
     },
     {
-      // Lizardmen: BBL 'Chameleon Skinks' / TP 'Chameleon Skink'
+      // Lizardmen: BBL 'Chameleon Skinks' / TP 'Chameleon Skink' (id 313 on
+      // the older rosters, id 985 on the BB2025 roster) -- TP issues a fresh
+      // position id per rules-set generation even when the name does not
+      // change, so both ids are registered here to keep BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
       name: 'Chameleon Skink',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '286-12' },
+        { system: 'tourplay.net', id: '985' },
         { system: 'tourplay.net', id: '313' },
         { system: 'Name', id: 'Lizardmen: Chameleon Skink' },
       ],
     },
     {
-      // Lizardmen: BBL 'Saurus Blockers' / TP 'Saurus Blocker'
+      // Lizardmen: BBL 'Saurus Blockers' / TP 'Saurus Blocker' (id 314 on the
+      // older rosters, id 986 on the BB2025 roster) -- TP issues a fresh
+      // position id per rules-set generation even when the name does not
+      // change, so both ids are registered here to keep BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
       name: 'Saurus Blocker',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '81-12' },
+        { system: 'tourplay.net', id: '986' },
         { system: 'tourplay.net', id: '314' },
         { system: 'Name', id: 'Lizardmen: Saurus Blocker' },
       ],
     },
     {
-      // Lizardmen: BBL 'Skink Runner Linemen' / TP 'Skink Runner Lineman'
-      name: 'Skink Runner Lineman',
+      // Lizardmen: BBL 'Skink Runner Linemen' (typId 88, race 12) / TP 'Skink
+      // Runner Lineman' (id 312, older rosters) / TP 'Skink Lineman' (id 984,
+      // BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering every source's id here is what makes the merge work:
+      // without it TP's id-984 upsert would create a second, disconnected row
+      // and the position's characteristics history would split in two.
+      name: 'Skink Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '88-12' },
+        { system: 'tourplay.net', id: '984' },
         { system: 'tourplay.net', id: '312' },
         { system: 'Name', id: 'Lizardmen: Skink Runner Lineman' },
       ],
@@ -708,11 +746,17 @@
       ],
     },
     {
-      // Norse: BBL 'Norse Raider Linemen' / TP 'Norse Raider Lineman'
-      name: 'Norse Raider Lineman',
+      // Norse: BBL 'Norse Raider Linemen' (typId 67, race 14) / TP 'Norse
+      // Raider Lineman' (id 530, older rosters) / TP 'Norse Raider' (id 1058,
+      // BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering every source's id here keeps BB2025 line-ups on this one
+      // row instead of creating a second, disconnected one and the position's characteristics history would split in two.
+      name: 'Norse Raider',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '67-14' },
+        { system: 'tourplay.net', id: '1058' },
         { system: 'tourplay.net', id: '530' },
         { system: 'Name', id: 'Norse: Norse Raider Lineman' },
       ],
@@ -882,51 +926,78 @@
       ],
     },
     {
-      // Underworld Denizens: BBL 'Underworld Skaven Blitzers' / TP 'Skaven Blitzer'
+      // Underworld Denizens: BBL 'Underworld Skaven Blitzers' / TP 'Skaven
+      // Blitzer' (id 366 on the older rosters, id 1038 on the BB2025 roster)
+      // -- TP issues a fresh position id per rules-set generation even when
+      // the name does not change, so both ids are registered here to keep
+      // BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Skaven Blitzer',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '154-24' },
+        { system: 'tourplay.net', id: '1038' },
         { system: 'tourplay.net', id: '366' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Blitzer' },
       ],
     },
     {
-      // Underworld Denizens: BBL 'Underworld Skaven Gutter Runner' / TP 'Gutter Runner'
+      // Underworld Denizens: BBL 'Underworld Skaven Gutter Runner' / TP
+      // 'Gutter Runner' (id 365 on the older rosters, id 1037 on the BB2025
+      // roster) -- TP issues a fresh position id per rules-set generation
+      // even when the name does not change, so both ids are registered here
+      // to keep BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Gutter Runner',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '293-24' },
+        { system: 'tourplay.net', id: '1037' },
         { system: 'tourplay.net', id: '365' },
         { system: 'Name', id: 'Underworld Denizens: Gutter Runner' },
       ],
     },
     {
-      // Underworld Denizens: BBL 'Underworld Skaven Lineman' / TP 'Skaven Clanrat'
+      // Underworld Denizens: BBL 'Underworld Skaven Lineman' / TP 'Skaven
+      // Clanrat' (id 363 on the older rosters, id 1035 on the BB2025 roster)
+      // -- TP issues a fresh position id per rules-set generation even when
+      // the name does not change, so both ids are registered here to keep
+      // BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Skaven Clanrat',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '152-24' },
+        { system: 'tourplay.net', id: '1035' },
         { system: 'tourplay.net', id: '363' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Clanrat' },
       ],
     },
     {
-      // Underworld Denizens: BBL 'Underworld Skaven Thrower' / TP 'Skaven Thrower'
+      // Underworld Denizens: BBL 'Underworld Skaven Thrower' / TP 'Skaven
+      // Thrower' (id 364 on the older rosters, id 1036 on the BB2025 roster)
+      // -- TP issues a fresh position id per rules-set generation even when
+      // the name does not change, so both ids are registered here to keep
+      // BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Skaven Thrower',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '153-24' },
+        { system: 'tourplay.net', id: '1036' },
         { system: 'tourplay.net', id: '364' },
         { system: 'Name', id: 'Underworld Denizens: Skaven Thrower' },
       ],
     },
     {
-      // Underworld Denizens: BBL 'Warpstone Troll' / TP 'Underworld Troll'
-      name: 'Underworld Troll',
+      // Underworld Denizens: BBL 'Warpstone Troll' (typId 155, race 24) / TP
+      // 'Underworld Troll' (id 367, older rosters) / TP 'Troll' (id 1039,
+      // BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering every source's id here keeps BB2025 line-ups on this one
+      // row instead of creating a second, disconnected one and the position's characteristics history would split in two. The bare name
+      // 'Troll' is unambiguous because positions are scoped per race.
+      name: 'Troll',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '155-24' },
+        { system: 'tourplay.net', id: '1039' },
         { system: 'tourplay.net', id: '367' },
         { system: 'Name', id: 'Underworld Denizens: Underworld Troll' },
       ],
