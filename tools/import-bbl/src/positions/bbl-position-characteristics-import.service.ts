@@ -9,6 +9,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import type { BblPositionCharacteristics } from './position-page-parser';
 
 export interface SyncPositionCharacteristicsOptions {
@@ -22,9 +23,11 @@ export interface SyncPositionCharacteristicsOptions {
 
 /**
  * Writes each position's characteristics under every rules set it played
- * under. BBL is a single BB2020-era snapshot, so the same scraped line is
- * written for older rules sets too; curated pre-BB2020 values are imported
- * separately afterwards and overwrite these.
+ * under. BBL is a single BB2020-era snapshot, so Agility and Armour are
+ * rewritten per rules set into the notation that rules set declares — one
+ * scraped line can therefore produce different stored values per rules set.
+ * Curated pre-BB2020 values are imported separately afterwards and overwrite
+ * these.
  *
  * BBL-local rather than shared: the era -> rules-set resolution feeding it is
  * BBL's own. The shared piece is PositionRulesSetsImportService, which this
@@ -35,6 +38,7 @@ export class BblPositionCharacteristicsImportService {
   constructor(
     private readonly positionRulesSetsImport: PositionRulesSetsImportService,
     private readonly importResults: ImportResultService,
+    private readonly notationConversion: CharacteristicNotationConversionService,
   ) {}
 
   /**
@@ -64,21 +68,34 @@ export class BblPositionCharacteristicsImportService {
       }
 
       const entries: PositionRulesSetEntry[] = [...rulesSetIds].map(
-        (rulesSetId) => ({
-          positionId,
-          rulesSetId,
-          move: characteristics.move,
-          strength: characteristics.strength,
-          agility: characteristics.agility,
-          // Two distinct states: a rules set with no Passing concept at all
-          // stores null, while a rules set that has Passing stores 0 for a
-          // position that cannot pass (the page's "-").
-          passing:
-            rulesSetsById.get(rulesSetId)?.passingFormat === 'absent'
-              ? null
-              : (characteristics.passing ?? 0),
-          armour: characteristics.armour,
-        }),
+        (rulesSetId) => {
+          const rulesSet = rulesSetsById.get(rulesSetId);
+          return {
+            positionId,
+            rulesSetId,
+            move: characteristics.move,
+            strength: characteristics.strength,
+            // BBL only ever shows BB2020 notation, so a rules set that
+            // writes bare numbers needs these two rewritten. `?? 'plus'`
+            // mirrors the passingFormat check below: an unresolvable rules
+            // set converts nothing, which is the pre-existing behaviour.
+            agility: this.notationConversion.convertAgility(
+              characteristics.agility,
+              rulesSet?.agilityFormat ?? 'plus',
+            ),
+            // Two distinct states: a rules set with no Passing concept at
+            // all stores null, while a rules set that has Passing stores 0
+            // for a position that cannot pass (the page's "-").
+            passing:
+              rulesSet?.passingFormat === 'absent'
+                ? null
+                : (characteristics.passing ?? 0),
+            armour: this.notationConversion.convertArmour(
+              characteristics.armour,
+              rulesSet?.armourFormat ?? 'plus',
+            ),
+          };
+        },
       );
       if (entries.length === 0) {
         continue;

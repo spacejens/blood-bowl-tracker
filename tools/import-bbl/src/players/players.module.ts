@@ -2,6 +2,7 @@ import { ImportModule } from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
 
 import { EraConfigModule } from '../eras/era-config.module';
+import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { SourceModule } from '../source/source.module';
 import { BblPlayersImportService } from './bbl-players-import.service';
@@ -15,6 +16,7 @@ import { PlayerPageParser } from './player-page-parser';
     BblPlayersImportService,
     BblSppAdjustmentsImportService,
     UpsertFieldNarrowingService,
+    CharacteristicNotationConversionService,
   ],
   exports: [
     PlayerPageParser,
