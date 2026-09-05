@@ -27,10 +27,14 @@ The command takes eleven optional string arguments, `era`, `coach`, `team`, `pla
 because player names are not unique across teams; `star-player` suggestions are
 a bare name with no parenthetical, because a star has no single team to name in
 one; `race` suggestions are a bare name with no parenthetical; `position`
-suggestions are a bare name with no parenthetical; `competition`
-suggestions are labelled `<competition> (<league>)`; `competition-group`
-suggestions are
-labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
+suggestions exclude star positions — those are looked up via `star-player`
+instead — and are labelled `<position> (<race>)`, because position names
+repeat across races — nearly every race has a "Lineman" — and a position
+available to several races produces one suggestion per race, all selecting
+the same position; a position with no race recorded is not suggested, since
+there would be no race to name; `competition` suggestions are labelled
+`<competition> (<league>)`; `competition-group` suggestions are labelled
+`<name> (<league>)`; `trophy` suggestions are labelled `<name>
 (<competition group>)`, or `<name> (<league>)` for a trophy the league awards
 directly; `league` suggestions are a bare name with no parenthetical):
 
@@ -215,12 +219,15 @@ played:` followed by their top five teams by matches played, one line per
   when identified, one button per candidate team when the side is ambiguous,
   none in the mysterious-circumstances case), then the team, era, race and
   position buttons — which follow the order of the header lines — so the most
-  specific content keeps button priority. The `Position: <position>` line
-  stays as text as well as gaining a button: unlike team/era/race, the button
-  can vanish under the 25-entry cap or when the list of drill-down targets
-  grows too long for buttons, so the text line is the reader's guaranteed way
-  to see the position even then. Neither the killer's own position, race or
-  coach has a button, nor a victim's.
+  specific content keeps button priority. The position button is labelled
+  `<position> (<race>)` rather than the bare position name, because position
+  names repeat across races — nearly every race has a "Lineman" — so the name
+  alone would not say which roster the button opens. The `Position: <position>`
+  line stays as text as well as gaining a button: unlike team/era/race, the
+  button can vanish under the 25-entry cap or when the list of drill-down
+  targets grows too long for buttons, so the text line is the reader's
+  guaranteed way to see the position even then. Neither the killer's own
+  position, race or coach has a button, nor a victim's.
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`star-player:<star>`** — the bot replies with an embed for that star: the
   star's name as the title, then one stat line per rules set the star has

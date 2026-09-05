@@ -633,31 +633,100 @@ describe('PositionsService', () => {
     });
   });
 
-  describe('searchByNamePrefix', () => {
+  describe('searchByNamePrefixWithRace', () => {
     it('escapes the typed prefix before building the LIKE pattern', async () => {
       likePattern.escape.mockReturnValue('50\\%');
-      const { chains } = await build([{ id: 1, name: '50% Blitzer' }]);
+      const { chains } = await build([
+        { id: 1, name: '50% Blitzer', raceName: 'Human' },
+      ]);
 
-      await service.searchByNamePrefix('50%', 25);
+      await service.searchByNamePrefixWithRace('50%', 25);
 
       // `ilike()`'s value isn't recoverable via `extractFilterValues` (it
       // embeds the raw interpolated value directly in the SQL query chunks
-      // rather than as a `Param`, the same reason `RacesService`'s own
-      // `searchByNamePrefix` spec doesn't attempt this assertion either), so
-      // this instead confirms the escaped pattern reached `where()` at all by
-      // checking it was called, and that the escape step ran on the raw
-      // typed prefix.
+      // rather than as a `Param`), so this instead confirms the escaped
+      // pattern reached `where()` at all and that the escape step ran on the
+      // raw typed prefix.
       expect(likePattern.escape).toHaveBeenCalledWith('50%');
       expect(chains[0].where).toHaveBeenCalledTimes(1);
       expect(firstCallArg(chains[0].limit)).toBe(25);
     });
 
-    it('returns the id/name rows the query resolves to', async () => {
-      likePattern.escape.mockReturnValue('Bl');
-      const rows = [{ id: 1, name: 'Blitzer' }];
+    it('returns one row per position/race pair the query resolves to', async () => {
+      likePattern.escape.mockReturnValue('Li');
+      const rows = [
+        { id: 1, name: 'Lineman', raceName: 'Human' },
+        { id: 2, name: 'Lineman', raceName: 'Orc' },
+      ];
       await build(rows);
 
-      await expect(service.searchByNamePrefix('Bl', 25)).resolves.toEqual(rows);
+      await expect(
+        service.searchByNamePrefixWithRace('Li', 25),
+      ).resolves.toEqual(rows);
+    });
+
+    it('selects distinct position/race pairs so multiple eras collapse to one row', async () => {
+      likePattern.escape.mockReturnValue('Li');
+      const { db } = await build([]);
+
+      await service.searchByNamePrefixWithRace('Li', 25);
+
+      expect(db.selectDistinct).toHaveBeenCalledTimes(1);
+      expect(Object.keys(firstCallArg(db.selectDistinct) as object)).toEqual([
+        'id',
+        'name',
+        'raceName',
+      ]);
+    });
+
+    it('excludes star positions', async () => {
+      likePattern.escape.mockReturnValue('Li');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefixWithRace('Li', 25);
+
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toContain(
+        'positions.is_star_player',
+      );
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(false);
+    });
+
+    it('reaches the race through positions_race_eras and race_eras', async () => {
+      likePattern.escape.mockReturnValue('Li');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefixWithRace('Li', 25);
+
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['positions_race_eras.position_id', 'positions.id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['race_eras.id', 'positions_race_eras.race_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['races.id', 'race_eras.race_id']);
+    });
+
+    it('orders by position name, then race name, and limits after the fan-out', async () => {
+      likePattern.escape.mockReturnValue('Li');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefixWithRace('Li', 25);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['positions.name'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['races.name'],
+      );
+      // One statement, so the LIMIT necessarily applies to the joined,
+      // deduplicated result — a multi-race position consumes one slot per
+      // race rather than one slot total.
+      expect(chains).toHaveLength(1);
+      expect(firstCallArg(chains[0].limit)).toBe(25);
     });
   });
 });
