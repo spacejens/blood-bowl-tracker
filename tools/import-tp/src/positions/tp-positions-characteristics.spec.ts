@@ -409,6 +409,59 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
   });
 
+  it('does not let a renamed group resurrect a rules set another group already dropped as conflicting', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 297,
+              name: 'Dwarf Runner Lineman',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 297,
+              name: 'Dwarf Runner Lineman',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 969,
+              name: 'Dwarf Runner',
+              characteristics: SLAYER,
+            },
+          ],
+          id: 3,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('Conflicting characteristics');
+  });
+
   it('accumulates star position characteristics the same way', async () => {
     const { service } = await makeService(upsertAndSyncMocks(80));
 

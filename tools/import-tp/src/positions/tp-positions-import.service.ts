@@ -428,14 +428,16 @@ export class TpPositionsImportService {
    * first use. Merging rather than replacing is what lets two groups sharing
    * one resolved position id each keep their own rules sets, using the same
    * `accumulateCharacteristics` conflict rules a single group already applies
-   * — authoritative-roster-wins, agreement is a no-op — including whether the
-   * value being contributed came from an authoritative roster. One difference
-   * from within-group accumulation: a group's own `conflictingRulesSetIds` are
-   * not carried into the accumulator, so a rules set one group dropped as
-   * internally ambiguous can still be filled from another group's clean
-   * observation, rather than being permanently poisoned across groups. With
-   * one group per position id — the common case — this is equivalent to
-   * storing the group's map directly.
+   * — authoritative-roster-wins, agreement is a no-op, and a rules set once
+   * dropped as ambiguous is never resurrected — including whether the value
+   * being contributed came from an authoritative roster. A group's own
+   * `conflictingRulesSetIds` are propagated into the accumulator first, so a
+   * rules set one group already dropped as internally ambiguous cannot be
+   * filled in by another group's otherwise-clean observation for the same
+   * rules set: the ambiguity is a property of the position under that rules
+   * set, not of one particular literal roster-slot name. With one group per
+   * position id — the common case — this is equivalent to storing the
+   * group's map directly.
    */
   private mergeGroupCharacteristics(options: {
     accumulators: Map<number, PositionCharacteristicsAccumulator>;
@@ -444,6 +446,7 @@ export class TpPositionsImportService {
       name: string;
       characteristics: Map<number, TpPositionCharacteristics>;
       authoritativeRulesSetIds: Set<number>;
+      conflictingRulesSetIds: Set<number>;
     };
     errors: ImportError[];
   }): void {
@@ -457,6 +460,11 @@ export class TpPositionsImportService {
         conflictingRulesSetIds: new Set(),
       };
       accumulators.set(positionId, accumulator);
+    }
+    for (const rulesSetId of group.conflictingRulesSetIds) {
+      accumulator.conflictingRulesSetIds.add(rulesSetId);
+      accumulator.characteristics.delete(rulesSetId);
+      accumulator.authoritativeRulesSetIds.delete(rulesSetId);
     }
     for (const [rulesSetId, characteristics] of group.characteristics) {
       this.accumulateCharacteristics({
