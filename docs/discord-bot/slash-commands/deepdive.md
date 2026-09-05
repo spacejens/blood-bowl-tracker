@@ -78,9 +78,11 @@ played:` followed by their top five teams by matches played, one line per
   the list ends with an exact `…and N more not shown.` note computed from the
   team's true award count. Then a blank line and
   `Top players by SPP:` followed by its top five players by career SPP total
-  — the player's stored total across every [era](../../glossary.md#era) the
-  team has played, manual adjustments included, exactly as the player deepdive
-  reports it — one line per player formatted
+  — each player's own stored total, manual adjustments included and exactly as
+  the player deepdive reports it, ranked across every
+  [era](../../glossary.md#era) the team has played (a player fielded in more
+  than one era has one record per era, each ranked separately) — one line per
+  player formatted
   `<rank>. <player> (<position>, <era>) — <SPP>`. Star players are not listed:
   each hire of a star is its own player record, so one star would otherwise
   take several of the five slots. Ties at the fifth-place cutoff are all
