@@ -1,5 +1,11 @@
-import type { StarPlayerHire } from '@blood-bowl-tracker/game-data';
-import { StarPlayersService } from '@blood-bowl-tracker/game-data';
+import type {
+  PositionCharacteristics,
+  StarPlayerHire,
+} from '@blood-bowl-tracker/game-data';
+import {
+  PositionRulesSetsService,
+  StarPlayersService,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -19,7 +25,9 @@ import {
   stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
+  DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -27,20 +35,27 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
 import { StarPlayerDeepdiveService } from './star-player-deepdive.service';
 
 interface MakeServiceOptions {
   stars: StarPlayersService;
+  positionRulesSets?: MockProxy<PositionRulesSetsService>;
+  lineFormatter?: MockProxy<PositionCharacteristicsLineFormatterService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
 }
 
 async function makeService({
   stars,
+  positionRulesSets = makeRulesSets([bb2020]),
+  lineFormatter = mockLineFormatter(),
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = passthroughEntityComponents(),
 }: MakeServiceOptions): Promise<{
   service: StarPlayerDeepdiveService;
+  positionRulesSets: MockProxy<PositionRulesSetsService>;
+  lineFormatter: MockProxy<PositionCharacteristicsLineFormatterService>;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
   entityComponents: MockProxy<EntityComponentsService>;
 }> {
@@ -48,12 +63,19 @@ async function makeService({
     providers: [
       StarPlayerDeepdiveService,
       { provide: StarPlayersService, useValue: stars },
+      { provide: PositionRulesSetsService, useValue: positionRulesSets },
+      {
+        provide: PositionCharacteristicsLineFormatterService,
+        useValue: lineFormatter,
+      },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
     ],
   }).compile();
   return {
     service: moduleRef.get(StarPlayerDeepdiveService),
+    positionRulesSets,
+    lineFormatter,
     databaseTimeout,
     entityComponents,
   };
@@ -88,6 +110,71 @@ const hires: StarPlayerHire[] = [
   },
 ];
 
+const bb2016: PositionCharacteristics = {
+  rulesSetId: 1,
+  rulesSetName: 'BB2016',
+  moveFormat: 'bare',
+  move: 7,
+  strengthFormat: 'bare',
+  strength: 4,
+  agilityFormat: 'bare',
+  agility: 4,
+  passingFormat: 'absent',
+  passing: null,
+  armourFormat: 'bare',
+  armour: 8,
+};
+
+const bb2020: PositionCharacteristics = {
+  rulesSetId: 2,
+  rulesSetName: 'BB2020',
+  moveFormat: 'bare',
+  move: 7,
+  strengthFormat: 'bare',
+  strength: 4,
+  agilityFormat: 'plus',
+  agility: 2,
+  passingFormat: 'plus',
+  passing: 3,
+  armourFormat: 'plus',
+  armour: 9,
+};
+
+function makeRulesSets(
+  rows: PositionCharacteristics[],
+): MockProxy<PositionRulesSetsService> {
+  const positionRulesSets = mock<PositionRulesSetsService>();
+  positionRulesSets.listByPosition.mockResolvedValue(rows);
+  return positionRulesSets;
+}
+
+/**
+ * Canned formatter output. The formatter has a dependency of its own, so it
+ * is mocked here rather than passed real; the text it actually produces is
+ * asserted in position-characteristics-line-formatter.service.spec.ts.
+ */
+const STUB_STAT_LINE = 'BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+';
+
+function mockLineFormatter(): MockProxy<PositionCharacteristicsLineFormatterService> {
+  const lineFormatter = mock<PositionCharacteristicsLineFormatterService>();
+  lineFormatter.formatLine.mockReturnValue(STUB_STAT_LINE);
+  return lineFormatter;
+}
+
+/**
+ * A `DatabaseTimeoutService` mock that passes the first `skip` calls through
+ * and times the next one out, so a test can pin which of the three queries a
+ * timeout message belongs to.
+ */
+function timeoutOnCall(skip: number): MockProxy<DatabaseTimeoutService> {
+  const databaseTimeout = mockDatabaseTimeout();
+  for (let index = 0; index < skip; index += 1) {
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+  }
+  stubDatabaseTimeoutOnce(databaseTimeout);
+  return databaseTimeout;
+}
+
 describe('StarPlayerDeepdiveService', () => {
   it('returns the not-found message when the position is not a star', async () => {
     const { service } = await makeService({
@@ -99,25 +186,29 @@ describe('StarPlayerDeepdiveService', () => {
   });
 
   it('returns the timeout message when the identity lookup times out', async () => {
-    const databaseTimeout = mockDatabaseTimeout();
-    stubDatabaseTimeoutOnce(databaseTimeout);
     const { service } = await makeService({
       stars: makeStars({ star: griff, hires }),
-      databaseTimeout,
+      databaseTimeout: timeoutOnCall(0),
     });
     expect(await service.resolve(20)).toBe(
       DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
     );
   });
 
-  it('returns the hires timeout message when the hire query times out', async () => {
-    const databaseTimeout = mockDatabaseTimeout();
-    databaseTimeout.run
-      .mockImplementationOnce(async (work) => work)
-      .mockImplementationOnce(async (_work, fallback) => fallback);
+  it('returns the characteristics timeout message when that query times out', async () => {
     const { service } = await makeService({
       stars: makeStars({ star: griff, hires }),
-      databaseTimeout,
+      databaseTimeout: timeoutOnCall(1),
+    });
+    expect(await service.resolve(20)).toBe(
+      DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('returns the hires timeout message when the hire query times out', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      databaseTimeout: timeoutOnCall(2),
     });
     expect(await service.resolve(20)).toBe(
       DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
@@ -145,6 +236,8 @@ describe('StarPlayerDeepdiveService', () => {
         {
           title: `${stubEntityEmoji(STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
           description: [
+            STUB_STAT_LINE,
+            '',
             'Reikland Reavers (Human, Rita) — 3 hires',
             'Gouged Eye (Orc, Bob) — 1 hire',
           ].join('\n'),
@@ -183,7 +276,8 @@ describe('StarPlayerDeepdiveService', () => {
 
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
-    expect(description.split('\n')[0]).toContain('Reikland Reavers');
+    const hireLines = description.split('\n\n')[1].split('\n');
+    expect(hireLines[0]).toContain('Reikland Reavers');
   });
 
   it('appends the overflow note when not every team got a component', async () => {
@@ -203,6 +297,8 @@ describe('StarPlayerDeepdiveService', () => {
       (result as { embeds: { description: string }[] }).embeds[0].description,
     ).toBe(
       [
+        STUB_STAT_LINE,
+        '',
         'Reikland Reavers (Human, Rita) — 3 hires',
         'Gouged Eye (Orc, Bob) — 1 hire',
         '…and 3 more without a link.',
@@ -250,5 +346,53 @@ describe('StarPlayerDeepdiveService', () => {
     });
 
     expect(await service.resolve(20)).not.toHaveProperty('components');
+  });
+
+  it('reports the missing characteristics rather than rendering a blank stat section', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSets: makeRulesSets([]),
+    });
+
+    const result = await service.resolve(20);
+
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toBe(
+      [
+        DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
+        '',
+        'Reikland Reavers (Human, Rita) — 3 hires',
+        'Gouged Eye (Orc, Bob) — 1 hire',
+      ].join('\n'),
+    );
+  });
+
+  it('puts one stat line per rules set above the hire list', async () => {
+    const lineFormatter = mockLineFormatter();
+    lineFormatter.formatLine
+      .mockReturnValueOnce('BB2016: MA 7 ST 4 AG 4 AV 8')
+      .mockReturnValueOnce('BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+');
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSets: makeRulesSets([bb2016, bb2020]),
+      lineFormatter,
+    });
+
+    const result = await service.resolve(20);
+
+    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(1, bb2016);
+    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(2, bb2020);
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toBe(
+      [
+        'BB2016: MA 7 ST 4 AG 4 AV 8',
+        'BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+',
+        '',
+        'Reikland Reavers (Human, Rita) — 3 hires',
+        'Gouged Eye (Orc, Bob) — 1 hire',
+      ].join('\n'),
+    );
   });
 });
