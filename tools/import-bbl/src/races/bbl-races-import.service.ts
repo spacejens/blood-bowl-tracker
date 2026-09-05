@@ -137,7 +137,7 @@ export class BblRacesImportService {
 
   /**
    * Upsert one parsed race unless its BBL id was already seen. Records the race
-   * under the BBL (numeric id) and Name (exact name) external systems and
+   * under the BBL (numeric id) and Name (canonical name) external systems and
    * populates the id/name/data maps (the last keyed by the race's local id, so
    * callers can re-upsert it later with an updated `eras` list). Returns true
    * iff a new race was upserted, so the caller can increment its `imported`
@@ -184,6 +184,9 @@ export class BblRacesImportService {
       return false;
     }
 
+    // Raw scraped name on purpose: downstream consumers of this map (e.g.
+    // BblPositionsImportService) use it only for log/error text, and
+    // re-canonicalize it themselves wherever it feeds a keying decision.
     racesByBblId.set(parsedRace.id, {
       id: upsertedRace.id,
       name: parsedRace.name,
