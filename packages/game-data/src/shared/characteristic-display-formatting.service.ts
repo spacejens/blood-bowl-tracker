@@ -2,11 +2,17 @@ import type { CharacteristicFormat } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 /**
- * What a characteristic with no usable value renders as. A stored zero is
- * always a not-yet-curated placeholder (see the `DEFAULT 0` note on
- * `players`/`position_rules_sets` in the schema): zero is not a legal value
- * for any characteristic under any rules set, so it can never be shown as a
- * number. `null` is treated the same way — the value is not there to show.
+ * What a characteristic renders as when there is no number to show. Two
+ * different situations collapse to this one marker, on purpose:
+ *
+ * - `null` — the value genuinely is not there to show.
+ * - `0` — either a not-yet-curated placeholder (see the `DEFAULT 0` note on
+ *   `players`/`position_rules_sets` in the schema, which applies to Move,
+ *   Strength, Agility and Armour), or, for a `plus_zero_legal` Passing
+ *   value, a real value meaning "structurally cannot pass". Discord shows
+ *   that real zero as a dash too, deliberately: a bare "0" reads oddly to
+ *   players. The review tools under tools/ do print it, since their job is
+ *   to expose exactly what the data says.
  */
 const NO_VALUE = '—';
 
@@ -36,6 +42,12 @@ export class CharacteristicDisplayFormattingService {
     if (value === null || value === 0) {
       return NO_VALUE;
     }
-    return characteristicFormat === 'plus' ? `${value}+` : String(value);
+    if (
+      characteristicFormat === 'plus' ||
+      characteristicFormat === 'plus_zero_legal'
+    ) {
+      return `${value}+`;
+    }
+    return String(value);
   }
 }

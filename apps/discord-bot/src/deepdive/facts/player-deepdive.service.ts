@@ -87,8 +87,9 @@ const MAX_PLAYER_KILLS = 30;
 
 /**
  * How a characteristic that has moved away from the position's baseline is
- * marked. Comparison is on the raw stored numbers, before formatting, so a
- * not-yet-curated 0 still reads as a decrease next to its dash.
+ * marked. Comparison is on the raw stored numbers, before formatting, so any
+ * 0 — an uncurated placeholder or a deliberately-hidden real plus_zero_legal
+ * value — still reads as a decrease next to its dash.
  */
 const INCREASED = '▲'; // the raw value is higher than the baseline
 const DECREASED = '▼'; // the raw value is lower than the baseline
@@ -534,8 +535,9 @@ export class PlayerDeepdiveService {
    * is nothing to compare: no baseline at all, or either side missing (a
    * rules set with no Passing characteristic never reaches this, since the
    * field is dropped before formatting). The comparison is on the raw stored
-   * numbers rather than the formatted text, so a not-yet-curated 0 is marked
-   * as a decrease even though it renders as a dash.
+   * numbers rather than the formatted text, so any 0 — an uncurated
+   * placeholder or a deliberately-hidden real plus_zero_legal value — is
+   * marked as a decrease even though it renders as a dash.
    */
   private baselineMarker(
     value: number | null,

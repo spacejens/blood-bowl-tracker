@@ -61,7 +61,7 @@ describe('PositionCharacteristicsLineFormatterService', () => {
     expect(service.formatLine(bb2016)).toBe('BB2016: MA 7 ST 3 AG 3 AV 8');
   });
 
-  it('renders a not-yet-curated zero as a dash', () => {
+  it('renders any zero as a dash (uncurated placeholder or a deliberately-hidden real plus_zero_legal value)', () => {
     expect(service.formatLine({ ...bb2020, move: 0 })).toBe(
       'BB2020: MA — ST 3 AG 3+ PA 4+ AV 9+',
     );

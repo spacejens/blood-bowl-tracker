@@ -107,7 +107,7 @@ describe('PlayerDeepdiveService characteristics line', () => {
     expect(description).not.toContain('PA');
   });
 
-  it('renders a not-yet-curated zero as a dash', async () => {
+  it('renders any zero as a dash (uncurated placeholder or a deliberately-hidden real plus_zero_legal value)', async () => {
     const { service } = await makeService({
       players: makePlayers({
         player: { ...griff, move: 0, strength: 0, agility: 0, armour: 0 },
@@ -173,7 +173,7 @@ describe('PlayerDeepdiveService characteristics line', () => {
     );
   });
 
-  it('marks a not-yet-curated zero as decreased while still showing a dash', async () => {
+  it('marks any zero as decreased while still showing a dash (uncurated placeholder or a deliberately-hidden real plus_zero_legal value)', async () => {
     const { service } = await makeService({
       players: makePlayers({ player: { ...griff, move: 0 } }),
       positionRulesSets: makePositionRulesSets(

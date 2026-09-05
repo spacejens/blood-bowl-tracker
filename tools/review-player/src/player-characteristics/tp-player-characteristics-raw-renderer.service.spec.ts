@@ -80,7 +80,10 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
     );
   });
 
-  it('renders a zero characteristic as the none marker', async () => {
+  it('renders a real zero characteristic as 0, not the none marker', async () => {
+    // This renderer shows raw TP data with no CharacteristicFormat context,
+    // so a stored 0 (e.g. a Kroxigor/Ogre's Passing) is a real value and
+    // must print like any other number. Only null means "no data".
     const { service, index } = await makeService();
     const aggregate: TpRawPlayerAggregate = {
       lineUpId: 1,
@@ -101,7 +104,7 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
     const html = await service.render('3');
 
     expect(html).toContain(
-      '<td>—</td><td>—</td><td>3</td><td>—</td><td>8</td>',
+      '<td>0</td><td>0</td><td>3</td><td>0</td><td>8</td>',
     );
   });
 

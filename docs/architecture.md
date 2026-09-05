@@ -322,8 +322,11 @@ match data is imported.
 `armour_format`), which say whether the rules set has each position
 characteristic at all and how it is displayed: `absent` (no such
 characteristic — only ever Passing, in the pre-BB2020 rules sets), `bare` (a
-plain number) or `plus` (a trailing "+", the value being a target a die roll
-has to meet).
+plain number), `plus` (a trailing "+", the value being a target a die roll
+has to meet) or `plus_zero_legal` (the same target-number format as `plus`,
+except a stored 0 is itself legal and renders as a bare "0" rather than the
+meaningless "0+" — used only for Passing, where 0 means the position
+structurally cannot pass).
 
 `position_rules_sets` is the position × rules-set association, holding that
 position's Move, Strength, Agility, Passing and Armour under that rules set,
@@ -343,8 +346,10 @@ stored alongside them (an era can list several rules sets in sequence, so
 none can be derived from a player unambiguously). `passing` is nullable with
 the same meaning as on `position_rules_sets`: NULL asserts that the player's
 rules set has no Passing characteristic. The other four are NOT NULL with a
-temporary `DEFAULT 0` — a placeholder, since 0 is not a legal value under any
-rules set — until the BBL and TP imports populate real values.
+temporary `DEFAULT 0` — a placeholder, since 0 is not a legal value for any of
+those four under any rules set — until the BBL and TP imports populate real
+values. This does not extend to `passing`, for which 0 is a real value under
+a `plus_zero_legal` rules set.
 `PlayersService.upsert` accepts the five as an all-or-nothing group paired
 with a `rulesSetId` that is used only to validate them (via the same
 `CharacteristicFormatValidationService` that `PositionRulesSetsService` uses)

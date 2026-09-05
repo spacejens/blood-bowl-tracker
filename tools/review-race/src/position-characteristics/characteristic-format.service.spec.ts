@@ -40,4 +40,21 @@ describe('CharacteristicFormatService', () => {
     const service = await makeService();
     expect(service.format(0, 'bare')).toBe('0');
   });
+
+  it('renders a non-zero plus_zero_legal value with a trailing "+"', async () => {
+    const service = await makeService();
+    expect(service.format(3, 'plus_zero_legal')).toBe('3+');
+  });
+
+  it('renders a plus_zero_legal zero as a bare "0", never "0+"', async () => {
+    const service = await makeService();
+    // A 0 here is a real value ("structurally cannot pass"), and "0+" is not
+    // a meaningful die-roll target.
+    expect(service.format(0, 'plus_zero_legal')).toBe('0');
+  });
+
+  it('renders a null plus_zero_legal value as the none marker', async () => {
+    const service = await makeService();
+    expect(service.format(null, 'plus_zero_legal')).toBe('—');
+  });
 });

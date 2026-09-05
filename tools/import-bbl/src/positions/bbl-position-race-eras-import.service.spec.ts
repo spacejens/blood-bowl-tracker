@@ -1,3 +1,4 @@
+import type { CharacteristicFormat } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -27,7 +28,7 @@ function makeEra(overrides: Partial<EraConfig> = {}): EraConfig {
 function makeRulesSet(
   id: number,
   name: string,
-  passingFormat: 'absent' | 'bare' | 'plus' = 'plus',
+  passingFormat: CharacteristicFormat = 'plus',
 ) {
   return {
     id,

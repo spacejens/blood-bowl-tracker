@@ -9,9 +9,10 @@ const HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
 
 /**
  * What the TP raw index says a player's MA/ST/AG/PA/AV are, read from the
- * downloaded roster files. A null value or a zero both render as the report's
- * none marker, since zero is never a real characteristic value (and TP reports
- * null for a characteristic the position doesn't have).
+ * downloaded roster files. Only a null value renders as the report's none
+ * marker; a zero (e.g. a Kroxigor/Ogre's Passing) is a real characteristic
+ * value and prints like any other number, since this renderer shows raw TP
+ * data with no `CharacteristicFormat` context to special-case it against.
  *
  * Two distinct gaps get two distinct notes, because they mean different
  * things: a line-up id in no match file at all is a player this tool cannot
@@ -55,10 +56,10 @@ export class TpPlayerCharacteristicsRawRendererService {
   }
 
   /**
-   * A null value and a zero both become the none marker; every other value is
-   * shown as a string.
+   * A null value becomes the none marker; every other value, including a
+   * real zero, is shown as a string.
    */
   private display(value: number | null): string {
-    return value === null || value === 0 ? NO_CHARACTERISTIC : String(value);
+    return value === null ? NO_CHARACTERISTIC : String(value);
   }
 }

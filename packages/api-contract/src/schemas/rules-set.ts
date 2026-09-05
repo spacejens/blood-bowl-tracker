@@ -5,8 +5,15 @@ import { ExternalIdSchema } from './external-id';
 /**
  * How one of a position's characteristics is expressed under a rules set:
  * `absent` (the rules set has no such characteristic — only ever Passing, in
- * the pre-BB2020 rules sets), `bare` (a plain number) or `plus` (a trailing
- * "+", the value being a target a die roll has to meet).
+ * the pre-BB2020 rules sets), `bare` (a plain number), `plus` (a trailing
+ * "+", the value being a target a die roll has to meet) or `plus_zero_legal`
+ * (the same target-number display, except a stored 0 is itself legal and
+ * means "structurally incapable", rendered as a bare `0` rather than `0+`).
+ *
+ * `plus_zero_legal` is its own value rather than a per-characteristic flag
+ * because Agility and Armour also use `plus` under BB2020/DB2021/BB2025 and 0
+ * is never legal for them, so only the format value can say whether 0 is
+ * meaningful.
  *
  * `absent` is only usable in practice for Passing today: `move`/`strength`/
  * `agility`/`armour` are non-nullable on `PositionRulesSetEntrySchema`, so
@@ -17,7 +24,12 @@ import { ExternalIdSchema } from './external-id';
  * The contract-side mirror of the db's `characteristic_format` enum; the two
  * are held together by packages/game-data/src/shared/enum-sync.spec.ts.
  */
-export const CharacteristicFormatSchema = z.enum(['absent', 'bare', 'plus']);
+export const CharacteristicFormatSchema = z.enum([
+  'absent',
+  'bare',
+  'plus',
+  'plus_zero_legal',
+]);
 
 export const RulesSetSchema = z.object({
   id: z.number(),

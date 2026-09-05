@@ -1,0 +1,1 @@
+ALTER TYPE "game_data"."characteristic_format" ADD VALUE 'plus_zero_legal';

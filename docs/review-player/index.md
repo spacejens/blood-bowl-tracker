@@ -122,10 +122,12 @@ plug in as another data-type module without touching the harness services.
      row for the player's position under their era's rules set, then the stored
      `players` row, each cell formatted the way that rules set displays it and
      marked with an increase or decrease arrow where it differs numerically from the
-     baseline directly above. A zero is shown as a dash everywhere, in both panels:
-     zero is not a legal characteristic under any rules set, so a stored zero is the
-     column default, not a value. A position with no baseline row for the resolved
-     rules set gets a highlighted `missing` row and no comparison.
+     baseline directly above. Only a `null` characteristic renders as a dash, in both
+     panels; a stored zero prints as-is, matching the convention `tools/review-race`
+     already used — it may be the not-yet-curated placeholder still sitting in
+     Move/Strength/Agility/Armour, or a real "structurally cannot pass" value for a
+     `plus_zero_legal` Passing characteristic. A position with no baseline row for the
+     resolved rules set gets a highlighted `missing` row and no comparison.
 
      The rules set is resolved from the database alone — the last rules set listed
      for the player's era (`era_rules_sets`, highest id first) — because this tool

@@ -39,10 +39,13 @@
 
   // Each rules set also declares which position characteristics it has and how
   // each is displayed: 'bare' is a plain number, 'plus' a target a die roll has
-  // to meet (shown with a trailing "+"), 'absent' means the rules set has no
+  // to meet (shown with a trailing "+"), 'plus_zero_legal' the same target
+  // number except that a stored 0 is itself legal and means "structurally
+  // cannot pass" (shown as a bare "0"), and 'absent' means the rules set has no
   // such characteristic. Move and Strength are never target numbers; Agility,
   // Passing and Armour became target numbers in BB2020, and the three older
-  // rules sets have no Passing characteristic at all.
+  // rules sets have no Passing characteristic at all. Only Passing uses
+  // 'plus_zero_legal': 0 is never a legal Agility or Armour value.
   rulesSets: [
     {
       name: 'CRP',
@@ -65,19 +68,19 @@
     {
       name: 'BB2020',
       moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'plus',
-      passingFormat: 'plus', armourFormat: 'plus',
+      passingFormat: 'plus_zero_legal', armourFormat: 'plus',
       externalIds: [{ system: 'Name', id: 'BB2020' }],
     },
     {
       name: 'DB2021',
       moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'plus',
-      passingFormat: 'plus', armourFormat: 'plus',
+      passingFormat: 'plus_zero_legal', armourFormat: 'plus',
       externalIds: [{ system: 'Name', id: 'DB2021' }],
     },
     {
       name: 'BB2025',
       moveFormat: 'bare', strengthFormat: 'bare', agilityFormat: 'plus',
-      passingFormat: 'plus', armourFormat: 'plus',
+      passingFormat: 'plus_zero_legal', armourFormat: 'plus',
       externalIds: [{ system: 'Name', id: 'BB2025' }],
     },
   ],
