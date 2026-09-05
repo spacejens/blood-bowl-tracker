@@ -76,11 +76,11 @@ describe('PositionCharacteristicsRawRendererService', () => {
       isStarPlayer: false,
       races: [],
       characteristics: {
-        move: 6,
-        strength: 3,
-        agility: 3,
+        move: '6',
+        strength: '3',
+        agility: '3',
         passing: null,
-        armour: 8,
+        armour: '8',
       },
     });
 
@@ -89,6 +89,31 @@ describe('PositionCharacteristicsRawRendererService', () => {
     expect(html).toContain('<h5>BBL</h5>');
     expect(html).toContain(
       '<td>Blitzer</td><td>310</td><td>6</td><td>3</td><td>3</td><td>—</td><td>8</td>',
+    );
+  });
+
+  it('renders BBL\'s "+" notation verbatim in the raw table', async () => {
+    const { service, typIds, bbl } = await makeService();
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
+    bbl.positionFor.mockResolvedValue({
+      typId: '310',
+      name: 'Dwarf Blitzer',
+      isStarPlayer: false,
+      races: [],
+      characteristics: {
+        move: '6',
+        strength: '3',
+        agility: '3+',
+        passing: '4+',
+        armour: '9+',
+      },
+    });
+
+    const html = await service.render(race);
+
+    expect(html).toContain('<h5>BBL</h5>');
+    expect(html).toContain(
+      '<td>Blitzer</td><td>310</td><td>6</td><td>3</td><td>3+</td><td>4+</td><td>9+</td>',
     );
   });
 
