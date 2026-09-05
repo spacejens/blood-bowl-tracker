@@ -8,7 +8,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
-import { MercenaryCharacteristicsConfigService } from './mercenary-characteristics-config.service';
+import { MercenaryConfigService } from './mercenary-config.service';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 
 /**
@@ -26,7 +26,7 @@ import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics
 @Injectable()
 export class TpMercenaryCharacteristicsService {
   constructor(
-    private readonly config: MercenaryCharacteristicsConfigService,
+    private readonly config: MercenaryConfigService,
     private readonly positionRulesSetsImport: PositionRulesSetsImportService,
     private readonly importResults: ImportResultService,
     private readonly lookup: ReferenceLookupService,

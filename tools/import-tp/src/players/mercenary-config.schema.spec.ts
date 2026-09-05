@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  mercenaryCharacteristicsEntrySchema,
-  mercenaryCharacteristicsShellSchema,
-} from './mercenary-characteristics-config.schema';
+  mercenaryEntrySchema,
+  mercenaryShellSchema,
+} from './mercenary-config.schema';
 
 const VALID = {
   positionName: 'Giant Mercenary',
@@ -15,17 +15,14 @@ const VALID = {
   armour: 11,
 };
 
-describe('mercenaryCharacteristicsShellSchema', () => {
+describe('mercenaryShellSchema', () => {
   it('accepts an array (including empty), leaving the entries unparsed', () => {
-    expect(mercenaryCharacteristicsShellSchema.parse([VALID, 7])).toEqual([
-      VALID,
-      7,
-    ]);
-    expect(mercenaryCharacteristicsShellSchema.parse([])).toEqual([]);
+    expect(mercenaryShellSchema.parse([VALID, 7])).toEqual([VALID, 7]);
+    expect(mercenaryShellSchema.parse([])).toEqual([]);
   });
 
   it('rejects a non-array', () => {
-    const result = mercenaryCharacteristicsShellSchema.safeParse('nope');
+    const result = mercenaryShellSchema.safeParse('nope');
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toBe(
       'must be an array of mercenary characteristics entries.',
@@ -33,20 +30,20 @@ describe('mercenaryCharacteristicsShellSchema', () => {
   });
 });
 
-describe('mercenaryCharacteristicsEntrySchema', () => {
+describe('mercenaryEntrySchema', () => {
   it('accepts a complete entry', () => {
-    const parsed = mercenaryCharacteristicsEntrySchema.parse(VALID);
+    const parsed = mercenaryEntrySchema.parse(VALID);
     expect(parsed).toEqual(VALID);
   });
 
   it('rejects a non-object at the root', () => {
-    const result = mercenaryCharacteristicsEntrySchema.safeParse(7);
+    const result = mercenaryEntrySchema.safeParse(7);
     expect(result.error?.issues[0].path).toEqual([]);
     expect(result.error?.issues[0].message).toBe('must be an object.');
   });
 
   it('rejects a blank positionName', () => {
-    const result = mercenaryCharacteristicsEntrySchema.safeParse({
+    const result = mercenaryEntrySchema.safeParse({
       ...VALID,
       positionName: '',
     });
@@ -55,7 +52,7 @@ describe('mercenaryCharacteristicsEntrySchema', () => {
   });
 
   it('rejects a blank rulesSetName', () => {
-    const result = mercenaryCharacteristicsEntrySchema.safeParse({
+    const result = mercenaryEntrySchema.safeParse({
       ...VALID,
       rulesSetName: '  ',
     });
@@ -65,7 +62,7 @@ describe('mercenaryCharacteristicsEntrySchema', () => {
   it.each(['move', 'strength', 'agility', 'armour'] as const)(
     'rejects a non-number %s',
     (field) => {
-      const result = mercenaryCharacteristicsEntrySchema.safeParse({
+      const result = mercenaryEntrySchema.safeParse({
         ...VALID,
         [field]: 'six',
       });
@@ -77,7 +74,7 @@ describe('mercenaryCharacteristicsEntrySchema', () => {
   );
 
   it('rejects a non-number passing', () => {
-    const result = mercenaryCharacteristicsEntrySchema.safeParse({
+    const result = mercenaryEntrySchema.safeParse({
       ...VALID,
       passing: 'six',
     });
@@ -91,7 +88,7 @@ describe('mercenaryCharacteristicsEntrySchema', () => {
     'rejects zero, a negative value, and a fraction for %s -- 0 is not a legal value under any rules set',
     (field) => {
       for (const value of [0, -1, 5.5]) {
-        const result = mercenaryCharacteristicsEntrySchema.safeParse({
+        const result = mercenaryEntrySchema.safeParse({
           ...VALID,
           [field]: value,
         });
@@ -101,15 +98,14 @@ describe('mercenaryCharacteristicsEntrySchema', () => {
   );
 
   it('accepts zero for passing -- a structurally-unable-to-pass mercenary is a legitimate value', () => {
-    expect(
-      mercenaryCharacteristicsEntrySchema.parse({ ...VALID, passing: 0 })
-        .passing,
-    ).toBe(0);
+    expect(mercenaryEntrySchema.parse({ ...VALID, passing: 0 }).passing).toBe(
+      0,
+    );
   });
 
   it('rejects a negative value and a fraction for passing', () => {
     for (const value of [-1, 5.5]) {
-      const result = mercenaryCharacteristicsEntrySchema.safeParse({
+      const result = mercenaryEntrySchema.safeParse({
         ...VALID,
         passing: value,
       });

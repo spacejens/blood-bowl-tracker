@@ -67,7 +67,7 @@ Top-level keys:
     characteristics under that rules set.
 
 See `import-tp-config.example.json5` for a worked example with real era
-names, rule sets, dates, and mercenary characteristics.
+names, rule sets, dates, and curated mercenaries.
 
 Rule-set names and era dates are config-supplied because TP's data carries
 only an opaque numeric rule-set code, not a name or a date range. The tool
@@ -257,7 +257,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire
   carries no `ma/st/ag/pa/av` — both the mercenary Position's
   `position_rules_sets` rows and each hire's own characteristics come from
-  `MercenaryCharacteristicsConfigService`, which reads the curated
+  `MercenaryConfigService`, which reads the curated
   `mercenaries` setting in import-tp-config.json5 (mercenary position name →
   rules-set name → characteristics) and is applied by
   `TpMercenaryCharacteristicsService`. The position sync runs once per

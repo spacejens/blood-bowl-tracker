@@ -5,7 +5,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
-import { MercenaryCharacteristicsConfigService } from './mercenary-characteristics-config.service';
+import { MercenaryConfigService } from './mercenary-config.service';
 
 const GIANT_MERCENARY_BB2020 = {
   positionName: 'Giant Mercenary',
@@ -17,22 +17,22 @@ const GIANT_MERCENARY_BB2020 = {
   armour: 11,
 };
 
-describe('MercenaryCharacteristicsConfigService', () => {
+describe('MercenaryConfigService', () => {
   let config: MockProxy<ImportTpConfigService>;
-  let service: MercenaryCharacteristicsConfigService;
+  let service: MercenaryConfigService;
 
   beforeEach(async () => {
     config = mock<ImportTpConfigService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
-        MercenaryCharacteristicsConfigService,
+        MercenaryConfigService,
         { provide: ImportTpConfigService, useValue: config },
         // Real, not mocked: a pure, dependency-free formatting service whose
         // exact output is what this spec's error assertions check.
         ConfigErrorMessageService,
       ],
     }).compile();
-    service = moduleRef.get(MercenaryCharacteristicsConfigService);
+    service = moduleRef.get(MercenaryConfigService);
   });
 
   function withMercenaries(entries: unknown): void {
@@ -136,7 +136,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
     withMercenaries(['Giant Mercenary']);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'MERCENARY_CHARACTERISTICS[0] must be an object',
+      'MERCENARIES[0] must be an object',
     );
   });
 
@@ -144,7 +144,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
     withMercenaries([{ ...GIANT_MERCENARY_BB2020, positionName: '' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'MERCENARY_CHARACTERISTICS[0].positionName must be a non-empty string',
+      'MERCENARIES[0].positionName must be a non-empty string',
     );
   });
 
@@ -152,7 +152,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
     withMercenaries([{ ...GIANT_MERCENARY_BB2020, rulesSetName: '' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'MERCENARY_CHARACTERISTICS[0].rulesSetName must be a non-empty string',
+      'MERCENARIES[0].rulesSetName must be a non-empty string',
     );
   });
 
@@ -160,7 +160,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
     withMercenaries([{ ...GIANT_MERCENARY_BB2020, move: 'six' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'MERCENARY_CHARACTERISTICS[0].move must be a positive whole number',
+      'MERCENARIES[0].move must be a positive whole number',
     );
   });
 });

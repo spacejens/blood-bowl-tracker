@@ -13,7 +13,7 @@ import {
   mockImportResultService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
-import { MercenaryCharacteristicsConfigService } from './mercenary-characteristics-config.service';
+import { MercenaryConfigService } from './mercenary-config.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 
 const TP_SYSTEM_ID = 1;
@@ -29,14 +29,14 @@ const GIANT_BB2020 = {
 
 describe('TpMercenaryCharacteristicsService', () => {
   let service: TpMercenaryCharacteristicsService;
-  let config: MockProxy<MercenaryCharacteristicsConfigService>;
+  let config: MockProxy<MercenaryConfigService>;
   let positionRulesSetsImport: MockProxy<PositionRulesSetsImportService>;
   let importResults: MockProxy<ImportResultService>;
   let lookup: MockProxy<ReferenceLookupService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
-    config = mock<MercenaryCharacteristicsConfigService>();
+    config = mock<MercenaryConfigService>();
     positionRulesSetsImport = mock<PositionRulesSetsImportService>();
     importResults = mockImportResultService();
     lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
@@ -48,7 +48,7 @@ describe('TpMercenaryCharacteristicsService', () => {
       providers: [
         TpMercenaryCharacteristicsService,
         {
-          provide: MercenaryCharacteristicsConfigService,
+          provide: MercenaryConfigService,
           useValue: config,
         },
         {

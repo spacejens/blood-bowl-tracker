@@ -3,9 +3,9 @@ import { Injectable } from '@nestjs/common';
 
 import { ImportTpConfigService } from '../config/import-tp-config.service';
 import {
-  mercenaryCharacteristicsEntrySchema,
-  mercenaryCharacteristicsShellSchema,
-} from './mercenary-characteristics-config.schema';
+  mercenaryEntrySchema,
+  mercenaryShellSchema,
+} from './mercenary-config.schema';
 
 /**
  * One mercenary position's characteristics under one rules set. Deliberately
@@ -21,9 +21,9 @@ export interface MercenaryCharacteristics {
 }
 
 /**
- * Curated characteristics for mercenary ("Big Guy") hires, keyed by the
- * mercenary position's name (a TP `lineUps[]` entry's inline
- * `fallbackPositionName`) and then by rules-set name.
+ * Curated data for mercenary ("Big Guy") hires, keyed by the mercenary
+ * position's name (a TP `lineUps[]` entry's inline `fallbackPositionName`)
+ * and then by rules-set name.
  *
  * TP supplies no characteristics for these hires anywhere: the name appears in
  * no roster catalog (`lineUpMasters`, `starPlayersMasters`), and the
@@ -48,7 +48,7 @@ export interface MercenaryCharacteristics {
  * importing without characteristics.
  */
 @Injectable()
-export class MercenaryCharacteristicsConfigService {
+export class MercenaryConfigService {
   constructor(
     private readonly config: ImportTpConfigService,
     private readonly messages: ConfigErrorMessageService,
@@ -95,7 +95,7 @@ export class MercenaryCharacteristicsConfigService {
       return byPositionName;
     }
 
-    const shell = mercenaryCharacteristicsShellSchema.safeParse(raw);
+    const shell = mercenaryShellSchema.safeParse(raw);
     if (!shell.success) {
       throw new Error(
         'mercenaries in import-tp-config.json5 must be an array of ' +
@@ -104,13 +104,10 @@ export class MercenaryCharacteristicsConfigService {
     }
 
     shell.data.forEach((entry, index) => {
-      const parsed = mercenaryCharacteristicsEntrySchema.safeParse(entry);
+      const parsed = mercenaryEntrySchema.safeParse(entry);
       if (!parsed.success) {
         throw new Error(
-          this.messages.format(
-            `MERCENARY_CHARACTERISTICS[${index}]`,
-            parsed.error,
-          ),
+          this.messages.format(`MERCENARIES[${index}]`, parsed.error),
         );
       }
       const { positionName, rulesSetName, ...characteristics } = parsed.data;
