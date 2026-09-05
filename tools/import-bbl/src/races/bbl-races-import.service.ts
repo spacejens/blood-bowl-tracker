@@ -9,6 +9,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import { BblRaceNameService } from '../source/bbl-race-name.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -41,6 +42,7 @@ export class BblRacesImportService {
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
+    private readonly bblRaceName: BblRaceNameService,
   ) {}
 
   /**
@@ -49,7 +51,7 @@ export class BblRacesImportService {
    * e.g. College of Shadow/Light). The team-page pass runs first and is
    * authoritative on any shared id; the `tl` pass only fills gaps. Each race
    * is keyed by its numeric BBL id under the BBL external system (canonical)
-   * and by its exact name under the Name external system (cross-tool
+   * and by its canonical name under the Name external system (cross-tool
    * matching). Idempotent: re-running upserts existing races.
    */
   async importRaces(): Promise<{
@@ -135,7 +137,7 @@ export class BblRacesImportService {
 
   /**
    * Upsert one parsed race unless its BBL id was already seen. Records the race
-   * under the BBL (numeric id) and Name (exact name) external systems and
+   * under the BBL (numeric id) and Name (canonical name) external systems and
    * populates the id/name/data maps (the last keyed by the race's local id, so
    * callers can re-upsert it later with an updated `eras` list). Returns true
    * iff a new race was upserted, so the caller can increment its `imported`
@@ -159,14 +161,21 @@ export class BblRacesImportService {
     }
     seen.add(parsedRace.id);
 
+    // BBL names a race after its team page ("<Race> Team"); TP and this
+    // project's canonical rows use the bare "<Race>". Canonicalize once and
+    // use it for both the displayed name and the Name external id, so the
+    // two sources key the same race to the same id instead of forking two
+    // rows -- the race-level twin of the position keying in
+    // BblPositionsImportService.raceExternalIds().
+    const canonicalName = this.bblRaceName.canonical(parsedRace.name);
     const data: UpsertRace = {
-      name: parsedRace.name,
+      name: canonicalName,
       eras: [],
       externalIds: [
         { externalSystemId: bblSystemId, externalId: parsedRace.id },
         {
           externalSystemId: nameSystemId,
-          externalId: this.nameExternalId.forRace(parsedRace.name),
+          externalId: this.nameExternalId.forRace(canonicalName),
         },
       ],
     };
@@ -175,6 +184,9 @@ export class BblRacesImportService {
       return false;
     }
 
+    // Raw scraped name on purpose: downstream consumers of this map (e.g.
+    // BblPositionsImportService) use it only for log/error text, and
+    // re-canonicalize it themselves wherever it feeds a keying decision.
     racesByBblId.set(parsedRace.id, {
       id: upsertedRace.id,
       name: parsedRace.name,
