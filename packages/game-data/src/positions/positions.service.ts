@@ -323,9 +323,11 @@ export class PositionsService {
    * sensible to suggest for it, and excluding those rows is what makes the
    * non-nullable `raceName` below true.
    *
-   * Star positions are deliberately *not* excluded, matching the position
-   * deep dive itself: a star available to several races yields one suggestion
-   * per race, all pointing at the same position id.
+   * Star positions are excluded, matching `countPlayersByPosition`: a star
+   * player is looked up through the separate `star-player` autocomplete
+   * instead, so it has no reason to also appear here. A non-star position
+   * available to several races (rare, but the schema allows it) still yields
+   * one suggestion per race, all pointing at the same position id.
    *
    * Ordering by position name then race name keeps the truncation the `LIMIT`
    * performs deterministic across calls.
@@ -347,7 +349,12 @@ export class PositionsService {
       )
       .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
       .innerJoin(races, eq(races.id, raceEras.raceId))
-      .where(ilike(positions.name, `${this.likePattern.escape(prefix)}%`))
+      .where(
+        and(
+          ilike(positions.name, `${this.likePattern.escape(prefix)}%`),
+          eq(positions.isStarPlayer, false),
+        ),
+      )
       .orderBy(asc(positions.name), asc(races.name))
       .limit(limit);
   }

@@ -146,20 +146,21 @@ describe('DeepdiveAutocompleteService', () => {
   });
 
   it('offers one position suggestion per race, all pointing at the same position id', async () => {
-    // A position available to several races (typically a star) fans out to
-    // one suggestion per race. Sharing the value is correct: the position
+    // A non-star position available to several races (rare, but the schema
+    // allows it — star positions are excluded server-side) fans out to one
+    // suggestion per race. Sharing the value is correct: the position
     // deepdive shows every race the position belongs to regardless of which
     // suggestion was picked.
     positions.searchByNamePrefixWithRace.mockResolvedValue([
-      { id: 9, name: 'Morg N Thorg', raceName: 'Human' },
-      { id: 9, name: 'Morg N Thorg', raceName: 'Orc' },
+      { id: 9, name: 'Enforcer', raceName: 'Human' },
+      { id: 9, name: 'Enforcer', raceName: 'Orc' },
     ]);
 
     await expect(
-      service.resolve(autocompleteInteraction('Mor', 'position')),
+      service.resolve(autocompleteInteraction('Enf', 'position')),
     ).resolves.toEqual([
-      { name: 'Morg N Thorg (Human)', value: '9' },
-      { name: 'Morg N Thorg (Orc)', value: '9' },
+      { name: 'Enforcer (Human)', value: '9' },
+      { name: 'Enforcer (Orc)', value: '9' },
     ]);
   });
 

@@ -679,6 +679,19 @@ describe('PositionsService', () => {
       ]);
     });
 
+    it('excludes star positions', async () => {
+      likePattern.escape.mockReturnValue('Li');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefixWithRace('Li', 25);
+
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toContain(
+        'positions.is_star_player',
+      );
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(false);
+    });
+
     it('reaches the race through positions_race_eras and race_eras', async () => {
       likePattern.escape.mockReturnValue('Li');
       const { chains } = await build([]);
