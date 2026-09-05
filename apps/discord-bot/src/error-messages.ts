@@ -69,7 +69,7 @@ export const STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE =
 export const STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE =
   'The commissioner is still auditing the whole league.';
 
-// --- Toplists (insights/facts/{player,team,coach,race}-toplist.ts) ---
+// --- Toplists (insights/facts/{player,team,coach,race,position}-toplist.ts) ---
 export const PLAYER_TOPLIST_TIMEOUT_MESSAGE =
   'The players are still trudging back from the locker room.';
 export const PLAYER_TOPLIST_NO_DATA_MESSAGE =
@@ -84,6 +84,10 @@ export const COACH_TOPLIST_NO_DATA_MESSAGE =
 export const RACE_TOPLIST_TIMEOUT_MESSAGE =
   'The team wagons are stuck in traffic outside the stadium.';
 export const RACE_TOPLIST_NO_DATA_MESSAGE = 'The NAF has collapsed.';
+export const POSITION_TOPLIST_TIMEOUT_MESSAGE =
+  'The roster clerk is still counting heads position by position.';
+export const POSITION_TOPLIST_NO_DATA_MESSAGE =
+  'Every roster in the league is blank.';
 
 // --- /insights command (slash-commands/insights-command.service.ts) ---
 export const INSIGHTS_UNMATCHED_CATEGORY_MESSAGE =

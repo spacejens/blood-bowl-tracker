@@ -12,6 +12,7 @@ import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
+import { PositionToplistService } from './facts/position-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
@@ -26,6 +27,7 @@ describe('FactTreeFactoryService', () => {
   let teamToplist: MockProxy<TeamToplistService>;
   let playerToplist: MockProxy<PlayerToplistService>;
   let raceToplist: MockProxy<RaceToplistService>;
+  let positionToplist: MockProxy<PositionToplistService>;
   let expensiveMistakes: MockProxy<ExpensiveMistakesToplistService>;
   let erasList: MockProxy<ErasListService>;
   let competitionGroupsList: MockProxy<CompetitionGroupsListService>;
@@ -41,6 +43,7 @@ describe('FactTreeFactoryService', () => {
     teamToplist = mock<TeamToplistService>();
     playerToplist = mock<PlayerToplistService>();
     raceToplist = mock<RaceToplistService>();
+    positionToplist = mock<PositionToplistService>();
     expensiveMistakes = mock<ExpensiveMistakesToplistService>();
     erasList = mock<ErasListService>();
     competitionGroupsList = mock<CompetitionGroupsListService>();
@@ -70,6 +73,7 @@ describe('FactTreeFactoryService', () => {
         { provide: TeamToplistService, useValue: teamToplist },
         { provide: PlayerToplistService, useValue: playerToplist },
         { provide: RaceToplistService, useValue: raceToplist },
+        { provide: PositionToplistService, useValue: positionToplist },
         {
           provide: ExpensiveMistakesToplistService,
           useValue: expensiveMistakes,
@@ -93,8 +97,8 @@ describe('FactTreeFactoryService', () => {
 
   it('build() returns the fully assembled fact tree', () => {
     const tree = factory.build();
-    // buildFactTree currently produces 62 leaves (see fact-tree.spec.ts).
-    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(62);
+    // buildFactTree currently produces 63 leaves (see fact-tree.spec.ts).
+    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(63);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
@@ -129,5 +133,17 @@ describe('FactTreeFactoryService', () => {
       leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
     ).resolve();
     expect(starPlayerToplist.resolveTotalHires).toHaveBeenCalled();
+  });
+
+  it('threads PositionToplistService into the tree so position.toplist.players calls it', async () => {
+    const leaf = factTreeUtils.resolvePath(
+      factory.build(),
+      'position.toplist.players',
+    );
+    expect(leaf).toBeDefined();
+    await (
+      leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
+    ).resolve();
+    expect(positionToplist.resolvePlayers).toHaveBeenCalled();
   });
 });

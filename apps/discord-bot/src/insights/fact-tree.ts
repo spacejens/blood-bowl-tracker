@@ -459,6 +459,20 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         },
       },
     },
+    position: {
+      toplist: {
+        players: {
+          // Not competition- or category-scopable: this counts rostered
+          // players, not match participation, so neither narrowing means
+          // anything here — the same reasoning as race.toplist.teams.
+          supportsLeague: true,
+          supportsEra: true,
+          supportsCompetition: false,
+          supportsMatchCategory: false,
+          resolve: (scope) => deps.positionToplist.resolvePlayers(scope),
+        },
+      },
+    },
     eras: {
       list: {
         supportsLeague: true,
