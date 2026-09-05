@@ -97,4 +97,134 @@ describe('TpPlayersImportService mercenary characteristics', () => {
       mercenaryCharacteristics.syncPositionCharacteristics,
     ).not.toHaveBeenCalled();
   });
+
+  it("sends a mercenary hire the curated characteristics for its era's rules set", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service, mercenaryCharacteristics } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+      mercenaryPlayerCharacteristics: {
+        move: 6,
+        strength: 7,
+        agility: 5,
+        passing: 5,
+        armour: 11,
+        rulesSetId: 900,
+      },
+    });
+
+    await service.importPlayers({
+      rosters: mercenaryRosters([{ id: 1399322 }]),
+      teamErasByRosterId: teamEras,
+    });
+
+    expect(mercenaryCharacteristics.forRosterPlayer).toHaveBeenCalledWith({
+      positionName: 'Giant Mercenary',
+      player: { id: 1399322, name: 'Giant' },
+      rulesSet: { name: 'BB2020', id: 900 },
+      errors: expect.anything() as ImportError[],
+    });
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Giant',
+        move: 6,
+        strength: 7,
+        agility: 5,
+        passing: 5,
+        armour: 11,
+        rulesSetId: 900,
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('imports a mercenary hire without characteristics when the curated table has no entry', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+      // mercenaryPlayerCharacteristics omitted: the curated lookup finds
+      // nothing and records its own error (asserted in that service's spec).
+    });
+
+    await service.importPlayers({
+      rosters: mercenaryRosters([{ id: 1399322 }]),
+      teamErasByRosterId: teamEras,
+    });
+
+    const payload = upsertPlayerResult.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(payload.name).toBe('Giant');
+    expect(payload).not.toHaveProperty('move');
+    expect(payload).not.toHaveProperty('rulesSetId');
+  });
+
+  it("prefers a mercenary hire's own embedded characteristics over the curated fallback", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service, mercenaryCharacteristics } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+      mercenaryPlayerCharacteristics: {
+        move: 6,
+        strength: 7,
+        agility: 5,
+        passing: 5,
+        armour: 11,
+        rulesSetId: 900,
+      },
+    });
+
+    await service.importPlayers({
+      rosters: mercenaryRosters([
+        {
+          id: 1399322,
+          characteristics: {
+            move: 5,
+            strength: 6,
+            agility: 4,
+            passing: 4,
+            armour: 10,
+          },
+        },
+      ]),
+      teamErasByRosterId: teamEras,
+    });
+
+    expect(mercenaryCharacteristics.forRosterPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        move: 5,
+        strength: 6,
+        agility: 4,
+        passing: 4,
+        armour: 10,
+        rulesSetId: 900,
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("passes no rules set when the hire's era resolved to none", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service, mercenaryCharacteristics } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+      rulesSetIdByEraName: new Map([['Fourth Era', 901]]),
+    });
+
+    await service.importPlayers({
+      rosters: mercenaryRosters([{ id: 1399322 }]),
+      teamErasByRosterId: teamEras,
+    });
+
+    expect(mercenaryCharacteristics.forRosterPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({ rulesSet: undefined }),
+    );
+  });
 });

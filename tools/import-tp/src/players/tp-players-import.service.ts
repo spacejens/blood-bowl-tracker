@@ -309,6 +309,10 @@ export class TpPlayersImportService {
         tpSystemId,
         errors,
       });
+    // The curated mercenary table is keyed by rules-set NAME while the
+    // resolver above yields ids, so the fallback below needs both.
+    const rulesSetNameByEraName =
+      this.mercenaryCharacteristics.rulesSetNameByEraName(eras);
     const mercenaryPositionIdsByName = new Map<string, number>();
 
     // One batched lookup for the whole run, not one per player: collect
@@ -412,11 +416,30 @@ export class TpPlayersImportService {
         // normal case for one physical player), but if a player id were ever
         // reused across two eras with different rules sets, one upsert would
         // validate against the wrong rules set's declared characteristics.
-        const characteristics = this.characteristicsBuilder.forRosterPlayer({
+        // A mercenary Big Guy hire is the one exception: TP embeds nothing for
+        // it, so it falls back to curated data below.
+        let characteristics = this.characteristicsBuilder.forRosterPlayer({
           characteristics: player.characteristics,
           eraName: era,
           rulesSetIdByEraName,
         });
+        // A mercenary Big Guy hire carries no ma/st/ag/pa/av anywhere in TP's
+        // data, so fall back to the curated table. Checked only after the
+        // player's own values, so a future TP payload that does embed real
+        // ones still wins.
+        if (characteristics === undefined && fromMercenary) {
+          const rulesSetName = rulesSetNameByEraName.get(era);
+          const rulesSetId = rulesSetIdByEraName.get(era);
+          characteristics = this.mercenaryCharacteristics.forRosterPlayer({
+            positionName: player.fallbackPositionName,
+            player: { id: player.id, name: player.name },
+            rulesSet:
+              rulesSetName !== undefined && rulesSetId !== undefined
+                ? { name: rulesSetName, id: rulesSetId }
+                : undefined,
+            errors,
+          });
+        }
 
         const upserted = await this.playersImport.upsertPlayerResult(
           {

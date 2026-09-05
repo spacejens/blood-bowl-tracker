@@ -226,4 +226,18 @@ describe('TpPlayersImportService characteristics', () => {
     expect(payload).not.toHaveProperty('rulesSetId');
     expect(resultArgs(importResults).errors).toHaveLength(0);
   });
+
+  it('does not reach for the mercenary fallback for a non-mercenary player without characteristics', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, mercenaryCharacteristics } = await makeService({
+      upsertPlayerResult,
+    });
+
+    await service.importPlayers({
+      rosters: rosterWith(undefined),
+      teamErasByRosterId: teamEras,
+    });
+
+    expect(mercenaryCharacteristics.forRosterPlayer).not.toHaveBeenCalled();
+  });
 });
