@@ -258,7 +258,7 @@ describe('PlayerDeepdiveService', () => {
       {
         customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
-        label: 'Blitzer',
+        label: 'Blitzer (Human)',
       },
     ]);
   });
@@ -453,7 +453,7 @@ describe('PlayerDeepdiveService', () => {
       'Reikland Reavers',
       'Season 5',
       'Human',
-      'Blitzer',
+      'Blitzer (Human)',
     ]);
   });
 
@@ -877,7 +877,7 @@ describe('PlayerDeepdiveService', () => {
       {
         customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
-        label: 'Blitzer',
+        label: 'Blitzer (Human)',
       },
     ]);
   });
@@ -985,7 +985,7 @@ describe('PlayerDeepdiveService', () => {
         {
           customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
           entityId: '4',
-          label: 'Blitzer',
+          label: 'Blitzer (Human)',
         },
       ]),
     );

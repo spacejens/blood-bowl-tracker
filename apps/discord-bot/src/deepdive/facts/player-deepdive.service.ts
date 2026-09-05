@@ -328,7 +328,11 @@ export class PlayerDeepdiveService {
         {
           customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(player.positionId),
-          label: player.positionName,
+          // Position names repeat across races — nearly every race has a
+          // "Lineman" — so the bare name would not say which roster this
+          // button opens. Matches how `position.toplist.players` labels its
+          // own position buttons.
+          label: `${player.positionName} (${player.raceName})`,
         },
         // A star's identity is its position, so this one hire's embed can only
         // ever show one team. The star-player deepdive shows every team that
