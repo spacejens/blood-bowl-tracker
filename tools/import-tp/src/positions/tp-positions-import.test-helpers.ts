@@ -87,6 +87,13 @@ export async function makeService({
   ]),
   raceIdsByCode = new Map([
     ['Dwarf', 50],
+    // Both suffixed variants resolve to the SAME race id as the bare code:
+    // TpRacesImportService groups a race's code variants into one race, which
+    // is precisely why two variants' positions can collide in one
+    // PositionGroup. `_BB2020` matches the rules set name the mocked
+    // EraDataConfigService declares for every era, so a `Dwarf_BB2020` roster
+    // is the authoritative one; `_BB2025` does not match, so it is not.
+    ['Dwarf_BB2020', 50],
     ['Dwarf_BB2025', 50],
     ['Human', 60],
     ['HU-1', 7],
