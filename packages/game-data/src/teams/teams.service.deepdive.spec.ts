@@ -177,6 +177,29 @@ describe('TeamsService lookups', () => {
     });
   });
 
+  describe('getTopPlayersByTotalSpp', () => {
+    it('delegates to TeamsStatisticsService and returns its result', async () => {
+      const rows = [
+        {
+          playerId: 1,
+          name: 'Griff',
+          count: 42,
+          positionId: 30,
+          positionName: 'Blitzer',
+          isStarPlayer: false,
+        },
+      ];
+      statistics.getTopPlayersByTotalSpp.mockResolvedValue(rows);
+      await build();
+
+      await expect(service.getTopPlayersByTotalSpp(7, 10)).resolves.toEqual(
+        rows,
+      );
+
+      expect(statistics.getTopPlayersByTotalSpp).toHaveBeenCalledWith(7, 10);
+    });
+  });
+
   describe('getRaceAndCoachNamesByIds', () => {
     it('delegates to TeamRaceCoachNamesService and returns its map', async () => {
       const expected = new Map([

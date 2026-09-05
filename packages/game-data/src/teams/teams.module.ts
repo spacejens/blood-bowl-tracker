@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { PlayersModule } from '../players/players.module';
 import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { MatchOutcomeCountsModule } from '../shared/match-outcome-counts.module';
@@ -12,6 +13,7 @@ import { TeamsStatisticsService } from './teams-statistics.service';
     LikePatternModule,
     MatchEventCountsModule,
     MatchOutcomeCountsModule,
+    PlayersModule,
     TeamRaceCoachNamesModule,
   ],
   providers: [TeamsService, TeamsStatisticsService],

@@ -14,6 +14,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
+import { PlayersService } from '../players/players.service';
 import type { FactScope } from '../shared/fact-scope';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
@@ -40,6 +41,7 @@ export class TeamsStatisticsService {
     @Inject(DB) private readonly db: Db,
     private readonly matchEventCounts: MatchEventCountsService,
     private readonly matchOutcomeCounts: MatchOutcomeCountsService,
+    private readonly players: PlayersService,
   ) {}
 
   getTopPlayersByMatchEventCount(
@@ -50,6 +52,19 @@ export class TeamsStatisticsService {
       teamId,
       limit,
     });
+  }
+
+  /**
+   * One team's top players by career SPP total. Thin delegation: the query
+   * itself lives on PlayersService next to the league-wide SPP ranking it
+   * mirrors, so both stay consistent about which column they read and which
+   * players they exclude.
+   */
+  getTopPlayersByTotalSpp(
+    teamId: number,
+    limit: number,
+  ): Promise<TeamTopPlayer[]> {
+    return this.players.topPlayersByTotalSppForTeam(teamId, limit);
   }
 
   async countMatchesPlayedByTeam(

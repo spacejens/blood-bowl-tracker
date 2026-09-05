@@ -215,6 +215,13 @@ export class TeamsService {
     return this.statistics.getTopPlayersByMatchEventCount(teamId, limit);
   }
 
+  getTopPlayersByTotalSpp(
+    teamId: number,
+    limit: number,
+  ): Promise<TeamTopPlayer[]> {
+    return this.statistics.getTopPlayersByTotalSpp(teamId, limit);
+  }
+
   async countMatchesPlayedByTeam(
     scope: FactScope,
     limit: number,
