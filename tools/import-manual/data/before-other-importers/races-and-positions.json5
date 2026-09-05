@@ -504,21 +504,31 @@
       ],
     },
     {
-      // Goblin: BBL 'Goblin Linemen' / TP 'Goblin Lineman'
+      // Goblin: BBL 'Goblin Linemen' / TP 'Goblin Lineman' (id 289 on the
+      // older rosters, id 961 on the BB2025 roster) -- TP issues a fresh
+      // position id per rules-set generation even when the name does not
+      // change, so both ids are registered here to keep BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
       name: 'Goblin Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '33-7' },
+        { system: 'tourplay.net', id: '961' },
         { system: 'tourplay.net', id: '289' },
         { system: 'Name', id: 'Goblin: Goblin Lineman' },
       ],
     },
     {
-      // Goblin: BBL 'Ooligan' / TP '’Ooligan'
+      // Goblin: BBL 'Ooligan' / TP ''Ooligan' (id 294 on the older rosters,
+      // id 964 on the BB2025 roster) -- TP issues a fresh position id per
+      // rules-set generation even when the name does not change, so both ids
+      // are registered here to keep BB2025 line-ups on this one row instead
+      // of creating a second, disconnected one.
       name: 'Ooligan',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '232-7' },
+        { system: 'tourplay.net', id: '964' },
         { system: 'tourplay.net', id: '294' },
         { system: 'Name', id: 'Goblin: ’Ooligan' },
       ],
