@@ -305,25 +305,6 @@ export class PositionsService {
   }
 
   /**
-   * Name-prefix search backing `/deepdive`'s position autocomplete. Star
-   * positions are deliberately *not* excluded: the position deep dive shows a
-   * position's characteristics per rules set, which a star has just like any
-   * other position, and the star-player target answers a different question
-   * (which teams hired them).
-   */
-  searchByNamePrefix(
-    prefix: string,
-    limit: number,
-  ): Promise<{ id: number; name: string }[]> {
-    return this.db
-      .select({ id: positions.id, name: positions.name })
-      .from(positions)
-      .where(ilike(positions.name, `${this.likePattern.escape(prefix)}%`))
-      .orderBy(asc(positions.name))
-      .limit(limit);
-  }
-
-  /**
    * Name-prefix search backing `/deepdive`'s position autocomplete, with each
    * suggestion's race so same-named positions can be told apart before the
    * reader commits to one — nearly every race has a "Lineman".

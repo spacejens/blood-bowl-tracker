@@ -134,15 +134,33 @@ describe('DeepdiveAutocompleteService', () => {
     ).resolves.toEqual([{ name: 'Orc', value: '4' }]);
   });
 
-  it('offers position choices with the position id as the value', async () => {
-    positions.searchByNamePrefix.mockResolvedValue([
-      { id: 4, name: 'Blitzer' },
+  it('returns position choices labelled "<name> (<race>)" with the position id as the value', async () => {
+    positions.searchByNamePrefixWithRace.mockResolvedValue([
+      { id: 4, name: 'Blitzer', raceName: 'Human' },
     ]);
 
     await expect(
       service.resolve(autocompleteInteraction('Bl', 'position')),
-    ).resolves.toEqual([{ name: 'Blitzer', value: '4' }]);
-    expect(positions.searchByNamePrefix).toHaveBeenCalledWith('Bl', 25);
+    ).resolves.toEqual([{ name: 'Blitzer (Human)', value: '4' }]);
+    expect(positions.searchByNamePrefixWithRace).toHaveBeenCalledWith('Bl', 25);
+  });
+
+  it('offers one position suggestion per race, all pointing at the same position id', async () => {
+    // A position available to several races (typically a star) fans out to
+    // one suggestion per race. Sharing the value is correct: the position
+    // deepdive shows every race the position belongs to regardless of which
+    // suggestion was picked.
+    positions.searchByNamePrefixWithRace.mockResolvedValue([
+      { id: 9, name: 'Morg N Thorg', raceName: 'Human' },
+      { id: 9, name: 'Morg N Thorg', raceName: 'Orc' },
+    ]);
+
+    await expect(
+      service.resolve(autocompleteInteraction('Mor', 'position')),
+    ).resolves.toEqual([
+      { name: 'Morg N Thorg (Human)', value: '9' },
+      { name: 'Morg N Thorg (Orc)', value: '9' },
+    ]);
   });
 
   it('returns competition choices labelled "<name> (<league>)" with id values', async () => {

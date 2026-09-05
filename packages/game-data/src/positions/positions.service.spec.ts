@@ -633,34 +633,6 @@ describe('PositionsService', () => {
     });
   });
 
-  describe('searchByNamePrefix', () => {
-    it('escapes the typed prefix before building the LIKE pattern', async () => {
-      likePattern.escape.mockReturnValue('50\\%');
-      const { chains } = await build([{ id: 1, name: '50% Blitzer' }]);
-
-      await service.searchByNamePrefix('50%', 25);
-
-      // `ilike()`'s value isn't recoverable via `extractFilterValues` (it
-      // embeds the raw interpolated value directly in the SQL query chunks
-      // rather than as a `Param`, the same reason `RacesService`'s own
-      // `searchByNamePrefix` spec doesn't attempt this assertion either), so
-      // this instead confirms the escaped pattern reached `where()` at all by
-      // checking it was called, and that the escape step ran on the raw
-      // typed prefix.
-      expect(likePattern.escape).toHaveBeenCalledWith('50%');
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(firstCallArg(chains[0].limit)).toBe(25);
-    });
-
-    it('returns the id/name rows the query resolves to', async () => {
-      likePattern.escape.mockReturnValue('Bl');
-      const rows = [{ id: 1, name: 'Blitzer' }];
-      await build(rows);
-
-      await expect(service.searchByNamePrefix('Bl', 25)).resolves.toEqual(rows);
-    });
-  });
-
   describe('searchByNamePrefixWithRace', () => {
     it('escapes the typed prefix before building the LIKE pattern', async () => {
       likePattern.escape.mockReturnValue('50\\%');

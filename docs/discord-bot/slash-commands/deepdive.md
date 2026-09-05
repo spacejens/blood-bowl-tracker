@@ -27,7 +27,10 @@ The command takes eleven optional string arguments, `era`, `coach`, `team`, `pla
 because player names are not unique across teams; `star-player` suggestions are
 a bare name with no parenthetical, because a star has no single team to name in
 one; `race` suggestions are a bare name with no parenthetical; `position`
-suggestions are a bare name with no parenthetical; `competition`
+suggestions are labelled `<position> (<race>)`, because position names repeat
+across races — nearly every race has a "Lineman" — and a position available to
+several races produces one suggestion per race, all selecting the same
+position; `competition`
 suggestions are labelled `<competition> (<league>)`; `competition-group`
 suggestions are
 labelled `<name> (<league>)`; `trophy` suggestions are labelled `<name>
