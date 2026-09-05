@@ -135,4 +135,34 @@ describe('mockDb', () => {
     };
     await expect(d.transaction(vi.fn())).rejects.toThrow('rolled back');
   });
+
+  it('rejects a query whose configured outcome is an error', async () => {
+    const boom = new Error('duplicate key value violates unique constraint');
+    const { db, chains } = mockDb(boom);
+    const d = db as never as { insert: (t: unknown) => Chainable };
+
+    await expect(
+      Promise.resolve(d.insert({}).values({ name: 'Griff' }).returning()),
+    ).rejects.toBe(boom);
+    // The chain is still recorded, so a spec can assert on what was attempted
+    // even though the query failed.
+    expect(chains).toHaveLength(1);
+    expect(chains[0].values).toHaveBeenCalledWith({ name: 'Griff' });
+  });
+
+  it('still resolves the queries that follow an erroring one', async () => {
+    const boom = new Error('boom');
+    const { db } = mockDb(boom, [{ id: 9 }]);
+    const d = db as never as {
+      select: () => Chainable;
+      insert: (t: unknown) => Chainable;
+    };
+
+    await expect(
+      Promise.resolve(d.insert({}).values({}).returning()),
+    ).rejects.toBe(boom);
+    await expect(
+      Promise.resolve(d.select().from({}).where('after')),
+    ).resolves.toEqual([{ id: 9 }]);
+  });
 });

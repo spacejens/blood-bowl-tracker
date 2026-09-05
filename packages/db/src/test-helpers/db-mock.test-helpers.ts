@@ -35,6 +35,14 @@ export type QueryChain = Record<string, Mock> & {
   ) => Promise<TResult1 | TResult2>;
 };
 
+/**
+ * What one mocked query does when awaited: resolve to these rows, or reject
+ * with this error. An `Error` slot is how a spec exercises a code path that is
+ * only reachable through a driver-level failure - a unique-constraint
+ * violation, say - which a resolving chain can never express.
+ */
+export type QueryOutcome = unknown[] | Error;
+
 export interface MockDbResult {
   /** Cast to `Db` so it can be supplied as `{ provide: DB, useValue: db }`. */
   db: Db;
@@ -52,15 +60,22 @@ export interface MockDbResult {
   transaction: Mock;
 }
 
-function makeChain(rows: unknown[]): QueryChain {
+function makeChain(outcome: QueryOutcome): QueryChain {
   // `mock()`'s `mockImplementation` parameter type does not loosen a
   // Mock-typed property (here `then`, via the QueryChain index signature)
   // down to a plain function the way ts-essentials' real `DeepPartial` does,
   // so the object literal is typed explicitly and passed through an
   // intentional cast; the `chain` variable itself keeps its real `QueryChain`
   // type, so callers still get full type safety.
+  //
+  // The settled promise is built inside `then` rather than alongside the
+  // chain, so a rejecting outcome that is never awaited cannot surface as an
+  // unhandled rejection.
   const thenImpl: QueryChain['then'] = (resolve, reject) =>
-    Promise.resolve(rows).then(resolve as never, reject as never) as never;
+    (outcome instanceof Error
+      ? Promise.reject(outcome)
+      : Promise.resolve(outcome)
+    ).then(resolve as never, reject as never) as never;
   const chain: QueryChain = mock<QueryChain>({ then: thenImpl } as never, {
     fallbackMockImplementation: () => chain,
   });
@@ -72,12 +87,14 @@ function makeChain(rows: unknown[]): QueryChain {
  *
  * Each `select` / `selectDistinct` / `insert` / `update` / `delete` call returns
  * a fresh chain; awaiting the nth chain resolves to `rowsPerQuery[n]`, or `[]`
- * when fewer row sets are supplied than queries issued.
+ * when fewer outcomes are supplied than queries issued. An entry that is an
+ * `Error` instead of a row array makes that one chain *reject* with it, leaving
+ * every other query unaffected.
  *
  * The `as unknown as Db` cast lives here, once, because drizzle's `select()`
  * return type varies with the field selection and cannot be faithfully mocked.
  */
-export function mockDb(...rowsPerQuery: unknown[][]): MockDbResult {
+export function mockDb(...rowsPerQuery: QueryOutcome[]): MockDbResult {
   const chains: QueryChain[] = [];
   const next = (): QueryChain => {
     const chain = makeChain(rowsPerQuery[chains.length] ?? []);
