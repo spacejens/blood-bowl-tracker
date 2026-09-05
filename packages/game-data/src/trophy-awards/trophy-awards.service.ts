@@ -450,6 +450,13 @@ export class TrophyAwardsService {
    * A tie is not a special case: two players winning the same trophy in one
    * competition differ in `playerId` and each gets a row. No cutoff on tie
    * size is applied — real BBL data has ties of up to four.
+   *
+   * Must not be called inside a caller-supplied transaction without a
+   * savepoint: a caught unique violation leaves that transaction aborted
+   * (Postgres SQLSTATE 25P02) until rolled back, so the fallback SELECT right
+   * after the catch would itself fail. `upsert-by-external-ids.ts` (around
+   * lines 325-338) deliberately catches its own equivalent violation outside
+   * its transaction for exactly this reason.
    */
   async upsert(
     data: UpsertTrophyAward,
@@ -467,6 +474,13 @@ export class TrophyAwardsService {
           playerId: data.playerId,
         })
         .returning();
+      if (inserted === undefined) {
+        throw new Error(
+          `trophy_awards insert for trophy ${data.trophyId}, competition ` +
+            `${data.competitionId}, team era ${data.teamEraId}, player ` +
+            `${data.playerId ?? 'none'} reported success but returned no row.`,
+        );
+      }
       return { trophyAward: inserted, created: true };
     } catch (error) {
       if (!this.isTrophyAwardUniqueViolation(error)) {

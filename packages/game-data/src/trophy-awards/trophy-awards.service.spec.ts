@@ -70,7 +70,7 @@ const matchingCompetitionRow = [{ competitionGroupId: 1 }];
  */
 function uniqueViolation(
   tableName = 'trophy_awards',
-  constraintName = 'trophy_awards_trophy_id_competition_id_team_era_id_player_id_unique',
+  constraintName = 'trophy_awards_trophy_competition_team_era_player_unique',
 ): Error {
   const pgError = Object.assign(
     new Error('duplicate key value violates unique constraint'),
