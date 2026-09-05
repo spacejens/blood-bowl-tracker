@@ -4,7 +4,6 @@ import type {
   PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
-  CharacteristicDisplayFormattingService,
   PositionRulesSetsService,
   PositionsService,
 } from '@blood-bowl-tracker/game-data';
@@ -43,6 +42,7 @@ import {
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
 import { PositionDeepdiveService } from './position-deepdive.service';
 
 const bb2016: PositionCharacteristics = {
@@ -75,6 +75,20 @@ const bb2020: PositionCharacteristics = {
   armour: 9,
 };
 
+/**
+ * Canned formatter output. The formatter is mocked here (it has a dependency
+ * of its own, so it is not one of CLAUDE.md's pass-real carve-outs); the real
+ * text it produces is asserted in
+ * position-characteristics-line-formatter.service.spec.ts.
+ */
+const STUB_STAT_LINE = 'BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+';
+
+function mockLineFormatter(): MockProxy<PositionCharacteristicsLineFormatterService> {
+  const lineFormatter = mock<PositionCharacteristicsLineFormatterService>();
+  lineFormatter.formatLine.mockReturnValue(STUB_STAT_LINE);
+  return lineFormatter;
+}
+
 interface MakeServiceOptions {
   positions: PositionsService;
   positionRulesSets: PositionRulesSetsService;
@@ -82,6 +96,7 @@ interface MakeServiceOptions {
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   playerContext?: MockProxy<PlayerContextService>;
+  lineFormatter?: MockProxy<PositionCharacteristicsLineFormatterService>;
 }
 
 async function makeService({
@@ -91,19 +106,21 @@ async function makeService({
   leaderboard = passthroughLeaderboard(),
   entityComponents = passthroughEntityComponents(),
   playerContext = passthroughPlayerContext(),
+  lineFormatter = mockLineFormatter(),
 }: MakeServiceOptions): Promise<{
   service: PositionDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
   playerContext: MockProxy<PlayerContextService>;
+  lineFormatter: MockProxy<PositionCharacteristicsLineFormatterService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionDeepdiveService,
-      // Real: a pure, dependency-free formatting service, per CLAUDE.md's
-      // carve-out. Mocking it would leave the rendered stat lines — the whole
-      // point of this view — unasserted.
-      CharacteristicDisplayFormattingService,
+      {
+        provide: PositionCharacteristicsLineFormatterService,
+        useValue: lineFormatter,
+      },
       { provide: PositionsService, useValue: positions },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
@@ -117,6 +134,7 @@ async function makeService({
     leaderboard,
     entityComponents,
     playerContext,
+    lineFormatter,
   };
 }
 
@@ -255,6 +273,10 @@ describe('PositionDeepdiveService', () => {
   });
 
   it('renders races, one stat line per rules set, the player count and the top players', async () => {
+    const lineFormatter = mockLineFormatter();
+    lineFormatter.formatLine
+      .mockReturnValueOnce('BB2016: MA 7 ST 3 AG 3 AV 8')
+      .mockReturnValueOnce('BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+');
     const { service } = await makeService({
       positions: makePositions({
         position: {
@@ -271,6 +293,7 @@ describe('PositionDeepdiveService', () => {
         ],
       }),
       positionRulesSets: makeRulesSets([bb2016, bb2020]),
+      lineFormatter,
     });
 
     const result = await service.resolve(1);
@@ -299,28 +322,26 @@ describe('PositionDeepdiveService', () => {
     });
   });
 
-  it('omits the Passing field for a rules set that has no Passing characteristic', async () => {
+  it('delegates each rules-set row to the shared line formatter, in order', async () => {
+    const lineFormatter = mockLineFormatter();
+    lineFormatter.formatLine
+      .mockReturnValueOnce('first line')
+      .mockReturnValueOnce('second line');
     const { service } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
         playerCount: 1,
       }),
-      positionRulesSets: makeRulesSets([bb2016]),
+      positionRulesSets: makeRulesSets([bb2016, bb2020]),
+      lineFormatter,
     });
 
-    expect(JSON.stringify(await service.resolve(1))).not.toContain('PA ');
-  });
+    const rendered = JSON.stringify(await service.resolve(1));
 
-  it('renders a not-yet-curated zero as a dash', async () => {
-    const { service } = await makeService({
-      positions: makePositions({
-        position: { name: 'Blitzer', races: [] },
-        playerCount: 1,
-      }),
-      positionRulesSets: makeRulesSets([{ ...bb2020, move: 0 }]),
-    });
-
-    expect(JSON.stringify(await service.resolve(1))).toContain('MA —');
+    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(1, bb2016);
+    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(2, bb2020);
+    expect(rendered).toContain('first line');
+    expect(rendered).toContain('second line');
   });
 
   it('reports the empty cases rather than rendering blank sections', async () => {
