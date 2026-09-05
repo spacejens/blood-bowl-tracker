@@ -320,13 +320,18 @@ describe('TpRawPlayerIndexService', () => {
     });
   });
 
-  it('reports TP pa 0 as no Passing characteristic', async () => {
+  it('passes a raw TP pa 0 through as a real Passing value, not null', async () => {
+    // Every rules set TP covers (BB2020, DB2021, BB2025) has a Passing
+    // characteristic, so a raw pa of 0 always means "structurally cannot
+    // pass" (a Kroxigor/Ogre) -- real data, never an absence marker -- and
+    // must reach the raw-display panel unchanged, exactly like import-tp
+    // already treats it.
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
     writeRoster(500, [{ id: 2477481, ma: 4, st: 5, ag: 4, pa: 0, av: 10 }]);
 
     const player = await service.aggregateFor('2477481');
 
-    expect(player?.passing).toBeNull();
+    expect(player?.passing).toBe(0);
   });
 
   it('leaves characteristics null for a player no roster file carries', async () => {

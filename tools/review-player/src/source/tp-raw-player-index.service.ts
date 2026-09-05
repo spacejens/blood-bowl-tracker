@@ -32,9 +32,9 @@ export interface TpRawPlayerAggregate {
    * The player's own MA/ST/AG/PA/AV, from the roster file that carries their
    * line-up id. Null when no downloaded roster file does — TP publishes a
    * player's characteristics only in `rosters_<id>.json`; the `lineUps[]`
-   * snapshots embedded in a match file carry none — and TP's `pa: 0`, which
-   * means "this position has no Passing characteristic at all", is reported
-   * here as null rather than as a zero.
+   * snapshots embedded in a match file carry none. A `passing` of 0 is a real
+   * "structurally cannot pass" value (every rules set TP covers has a
+   * Passing characteristic), not an absence marker.
    */
   move: number | null;
   strength: number | null;
@@ -271,14 +271,15 @@ export class TpRawPlayerIndexService {
       if (existing !== undefined && existing.rosterId >= rosterId) {
         continue;
       }
-      const passing = this.numberProperty(entry, 'pa');
       characteristics.set(id, {
         rosterId,
         move,
         strength: this.numberProperty(entry, 'st'),
         agility: this.numberProperty(entry, 'ag'),
-        // TP writes 0 for a position with no Passing characteristic at all.
-        passing: passing === 0 ? null : passing,
+        // A raw pa of 0 is a real "structurally cannot pass" value (every
+        // rules set TP covers has a Passing characteristic), not an absence
+        // marker, so it is passed through unchanged like the other four.
+        passing: this.numberProperty(entry, 'pa'),
         armour: this.numberProperty(entry, 'av'),
       });
     }
