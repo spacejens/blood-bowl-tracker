@@ -1,4 +1,7 @@
-import type { FactScope } from '@blood-bowl-tracker/game-data';
+import type {
+  FactScope,
+  PositionPlayerCount,
+} from '@blood-bowl-tracker/game-data';
 import {
   FACT_SCOPE_ALL_TIME,
   PositionsService,
@@ -20,14 +23,7 @@ import {
 } from '../leaderboard.service';
 import { PositionToplistService } from './position-toplist.service';
 
-interface PositionRow {
-  positionId: number;
-  name: string;
-  raceName: string;
-  count: number;
-}
-
-const rows: PositionRow[] = [
+const rows: PositionPlayerCount[] = [
   { positionId: 1, name: 'Lineman', raceName: 'Orc', count: 120 },
   { positionId: 2, name: 'Lineman', raceName: 'Human', count: 90 },
 ];
@@ -57,10 +53,10 @@ async function makeService(
 
 function capturedOptions(
   leaderboard: MockProxy<LeaderboardService>,
-): ResolveToplistOptions<PositionRow & { rank: number }> {
+): ResolveToplistOptions<PositionPlayerCount & { rank: number }> {
   return leaderboard.resolveToplist.mock
     .calls[0][0] as unknown as ResolveToplistOptions<
-    PositionRow & { rank: number }
+    PositionPlayerCount & { rank: number }
   >;
 }
 
