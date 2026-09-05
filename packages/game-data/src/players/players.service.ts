@@ -98,8 +98,10 @@ export class PlayersService {
         sppTotal: players.sppTotal,
         sppAdjustment: players.sppAdjustment,
         // The player's own current characteristics. No new join: they live on
-        // `players` itself. A stored 0 is the not-yet-curated placeholder and
-        // is passed through as-is — rendering it is the caller's decision.
+        // `players` itself. A stored 0 is passed through as-is — a
+        // placeholder for the four NOT NULL columns, a real value for a
+        // `plus_zero_legal` Passing value — because rendering it is the
+        // caller's decision.
         move: players.move,
         strength: players.strength,
         agility: players.agility,

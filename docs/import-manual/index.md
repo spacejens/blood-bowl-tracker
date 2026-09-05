@@ -173,18 +173,18 @@ a genuinely new entity.
 
 A `rulesSets` entry is `{ name, moveFormat?, strengthFormat?, agilityFormat?,
 passingFormat?, armourFormat?, externalIds }`. The five optional `*Format`
-fields say which position characteristics the rules set has and how each is
-displayed: `'bare'` is a plain number, `'plus'` is a target number a die roll
-has to meet (shown with a trailing "+"), and `'absent'` means the rules set
-has no such characteristic at all. Like every other optional field, an entry
-that omits a format leaves the stored value alone — a rename-only entry can
-still carry just `name` and `externalIds`.
+fields say which characteristic the rules set has and how it is displayed:
+`'bare'` a plain number, `'plus'` a target a die roll has to meet ("+"),
+`'plus_zero_legal'` the same except a stored 0 is itself legal and renders as
+a bare "0" rather than the meaningless "0+", and `'absent'` no such
+characteristic. An entry that omits a format leaves the stored value alone —
+a rename-only entry can still carry just `name` and `externalIds`.
 
-Move and Strength are never target numbers, so their formats are always
-`'bare'` in the curated data. Agility, Passing and Armour became target
-numbers starting with BB2020; the three older rules sets (CRP, CRP+, BB2016)
-have no Passing characteristic at all, so their `passingFormat` is `'absent'`
-rather than `'bare'`.
+Move and Strength are always `'bare'`. Agility and Armour became target
+numbers (`'plus'`) starting with BB2020; Passing did too, but as
+`'plus_zero_legal'`, since 0 is a legal Passing value (structurally cannot
+pass), unlike Agility or Armour. The older rules sets (CRP, CRP+, BB2016)
+have no Passing characteristic, so `passingFormat` is `'absent'` there.
 
 ### Position characteristics
 
