@@ -3,7 +3,28 @@ import { z } from 'zod';
 
 const NOT_AN_OBJECT = 'must be an object.';
 const NOT_AN_ARRAY = 'must be an array of mercenary characteristics entries.';
-const NOT_A_NUMBER = 'must be a number.';
+const NOT_A_POSITIVE_INTEGER = 'must be a positive whole number.';
+const NOT_A_NONNEGATIVE_INTEGER = 'must be a whole number, zero or greater.';
+
+/**
+ * Move, Strength, Agility and Armour: 0 is not a legal value under any rules
+ * set (see the `players` table's own DEFAULT 0 doc comment), so this schema
+ * enforces a positive whole number rather than accepting any number.
+ */
+const positiveIntegerSchema = z
+  .number({ error: NOT_A_POSITIVE_INTEGER })
+  .int(NOT_A_POSITIVE_INTEGER)
+  .min(1, NOT_A_POSITIVE_INTEGER);
+
+/**
+ * Passing: unlike the other four characteristics, 0 is a legitimate value --
+ * a structurally-unable-to-pass mercenary -- so this only rejects negative or
+ * fractional values, not zero.
+ */
+const nonNegativeIntegerSchema = z
+  .number({ error: NOT_A_NONNEGATIVE_INTEGER })
+  .int(NOT_A_NONNEGATIVE_INTEGER)
+  .min(0, NOT_A_NONNEGATIVE_INTEGER);
 
 /**
  * One entry of the top-level `mercenaryCharacteristics` setting in
@@ -19,11 +40,11 @@ export const mercenaryCharacteristicsEntrySchema = z.object(
   {
     positionName: nonBlankStringSchema,
     rulesSetName: nonBlankStringSchema,
-    move: z.number({ error: NOT_A_NUMBER }),
-    strength: z.number({ error: NOT_A_NUMBER }),
-    agility: z.number({ error: NOT_A_NUMBER }),
-    passing: z.number({ error: NOT_A_NUMBER }),
-    armour: z.number({ error: NOT_A_NUMBER }),
+    move: positiveIntegerSchema,
+    strength: positiveIntegerSchema,
+    agility: positiveIntegerSchema,
+    passing: nonNegativeIntegerSchema,
+    armour: positiveIntegerSchema,
   },
   { error: NOT_AN_OBJECT },
 );

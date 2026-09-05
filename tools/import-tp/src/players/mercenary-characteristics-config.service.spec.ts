@@ -153,7 +153,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
     withMercenaryCharacteristics([{ ...GIANT_MERCENARY_BB2020, move: 'six' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'MERCENARY_CHARACTERISTICS[0].move must be a number',
+      'MERCENARY_CHARACTERISTICS[0].move must be a positive whole number',
     );
   });
 });
