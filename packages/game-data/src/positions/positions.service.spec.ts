@@ -3,10 +3,12 @@ import { DB, positions } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
+import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
@@ -24,6 +26,20 @@ const fakePosition = {
   isStarPlayer: false,
   createdAt: new Date('2026-01-01'),
 };
+
+/**
+ * True when a captured aggregate expression is `countDistinct(...)` rather
+ * than plain `count(...)`. drizzle-orm renders `countDistinct` as
+ * `sql`count(distinct ${expr})`` — its first query chunk is a `StringChunk`
+ * whose text starts with "count(distinct ", vs. "count(" for plain `count`.
+ * Guards against double-counting: the race-era joins fan a position out to
+ * one row per era it is available in.
+ */
+function isCountDistinct(expr: unknown): boolean {
+  if (!is(expr, SQL)) return false;
+  const first = expr.queryChunks[0];
+  return is(first, StringChunk) && first.value.join('').includes('distinct');
+}
 
 describe('PositionsService', () => {
   let service: PositionsService;
@@ -450,6 +466,128 @@ describe('PositionsService', () => {
       await service.countPlayers(7);
 
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+    });
+  });
+
+  describe('countPlayersByPosition', () => {
+    const rows = [
+      { positionId: 1, name: 'Lineman', raceName: 'Orc', count: 120 },
+      { positionId: 2, name: 'Lineman', raceName: 'Human', count: 120 },
+      { positionId: 3, name: 'Blitzer', raceName: 'Orc', count: 44 },
+    ];
+
+    it('returns the rows the query resolves to, in the order the query produced them', async () => {
+      const { db } = await build(rows);
+
+      await expect(
+        service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns an empty array when no position has any player', async () => {
+      await build([]);
+
+      await expect(
+        service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual([]);
+    });
+
+    it('forwards the requested limit', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
+
+      expect(firstCallArg(chains[0].limit)).toBe(21);
+    });
+
+    it('excludes star positions', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
+
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'positions.is_star_player',
+      ]);
+    });
+
+    it('counts distinct players so the race-era joins cannot double-count', async () => {
+      // A position available in several eras joins to one positions_race_eras
+      // row per era, fanning each of its players out to several rows. Only a
+      // DISTINCT aggregate keeps the count honest.
+      const { db } = await build(rows);
+
+      await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
+
+      const selectedFields = firstCallArg(db.select, 0, 0) as {
+        count: unknown;
+      };
+      expect(isCountDistinct(selectedFields.count)).toBe(true);
+    });
+
+    it('joins race eras and players without an era join when unscoped', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
+
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(4);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 3, 1)),
+      ).toEqual(['players.position_id', 'positions.id']);
+    });
+
+    it('scopes to an era through the player own team era', async () => {
+      const eraRows = [
+        { positionId: 1, name: 'Lineman', raceName: 'Orc', count: 8 },
+      ];
+      const { chains } = await build(eraRows);
+
+      await expect(
+        service.countPlayersByPosition({ eraId: 20 }, 21),
+      ).resolves.toEqual(eraRows);
+      // Era path adds one innerJoin (team_eras) on top of the four unscoped ones.
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 4, 1)),
+      ).toEqual(['team_eras.id', 'players.team_era_id', 'team_eras.era_id']);
+    });
+
+    it('scopes to a league through the eras of the player own team era', async () => {
+      const leagueRows = [
+        { positionId: 1, name: 'Lineman', raceName: 'Orc', count: 5 },
+      ];
+      const { chains } = await build(leagueRows);
+
+      await expect(
+        service.countPlayersByPosition({ leagueId: 9 }, 21),
+      ).resolves.toEqual(leagueRows);
+      // League path adds two innerJoins (team_eras + eras) on top of the four.
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 4, 1)),
+      ).toEqual(['team_eras.id', 'players.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 5, 1)),
+      ).toEqual(['eras.id', 'team_eras.era_id', 'eras.league_id']);
+    });
+
+    it('groups by the position and its race, and orders by the player count', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
+
+      expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+      expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 0))).toEqual(
+        ['positions.id'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 1))).toEqual(
+        ['positions.name'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 2))).toEqual(
+        ['races.name'],
+      );
     });
   });
 
