@@ -26,7 +26,14 @@ interface PositionGroup {
   eraIds: Set<number>;
   /** Rules set DB id -> the characteristics every roster agreed on. */
   characteristics: Map<number, TpPositionCharacteristics>;
-  /** Rules sets whose observations disagreed; permanently dropped. */
+  /**
+   * Rules sets whose stored characteristics came from an authoritative
+   * roster (one whose TP team-race code carries the era's rules-set-name
+   * suffix). Bookkeeping local to conflict resolution — never returned to
+   * callers, which only ever see `characteristics`.
+   */
+  authoritativeRulesSetIds: Set<number>;
+  /** Rules sets whose observations disagreed unresolvably; permanently dropped. */
   conflictingRulesSetIds: Set<number>;
 }
 
@@ -36,6 +43,7 @@ interface StarPositionGroup {
   name: string;
   tpPositionIds: Set<number>;
   characteristics: Map<number, TpPositionCharacteristics>;
+  authoritativeRulesSetIds: Set<number>;
   conflictingRulesSetIds: Set<number>;
 }
 
@@ -76,9 +84,11 @@ export class TpPositionsImportService {
    * Alongside grouping, each group also accumulates the characteristics its
    * rosters report, keyed by rules-set DB id (resolved from each roster's era
    * via `EraDataConfigService.getEras()`). Two rosters disagreeing about the
-   * same (position, rules set) is treated as bad TP source data: the rules
-   * set is dropped for that position and one error is recorded, rather than
-   * letting either roster's observation silently win.
+   * same (position, rules set) is resolved in favour of whichever roster's
+   * TP team-race code carries the era's rules-set-name suffix (TP's own way
+   * of superseding a race's roster mid-rules-set); when both or neither
+   * qualify, the disagreement is unresolvable bad TP source data and the
+   * rules set is dropped for that position with one recorded error.
    */
   async importPositions(
     rosters: RosterEntry[],
@@ -147,6 +157,8 @@ export class TpPositionsImportService {
         errors,
       });
 
+    const rulesSetNameByEraName = this.buildRulesSetNameByEraName(eras);
+
     const raceIds = await this.lookup.lookupMap(
       'race',
       [...new Set(rosters.map(({ roster }) => roster.teamRaceCode))].map(
@@ -178,6 +190,10 @@ export class TpPositionsImportService {
         errors.push(this.rosterCollection.unknownEraError(era, roster));
       }
       const rulesSetId = rulesSetIdByEraName.get(era);
+      const authoritative = this.isAuthoritativeRoster(
+        roster.teamRaceCode,
+        rulesSetNameByEraName.get(era),
+      );
       for (const position of roster.positions) {
         const key = `${raceId} ${position.name}`;
         let group = groups.get(key);
@@ -188,6 +204,7 @@ export class TpPositionsImportService {
             tpPositionIds: new Set(),
             eraIds: new Set(),
             characteristics: new Map(),
+            authoritativeRulesSetIds: new Set(),
             conflictingRulesSetIds: new Set(),
           };
           groups.set(key, group);
@@ -201,6 +218,7 @@ export class TpPositionsImportService {
             group,
             rulesSetId,
             characteristics: position.characteristics,
+            authoritative,
             errors,
           });
         }
@@ -268,6 +286,10 @@ export class TpPositionsImportService {
     const starGroups = new Map<string, StarPositionGroup>();
     for (const { roster, era } of rosters) {
       const rulesSetId = rulesSetIdByEraName.get(era);
+      const authoritative = this.isAuthoritativeRoster(
+        roster.teamRaceCode,
+        rulesSetNameByEraName.get(era),
+      );
       for (const starPosition of roster.starPositions) {
         let group = starGroups.get(starPosition.name);
         if (!group) {
@@ -275,6 +297,7 @@ export class TpPositionsImportService {
             name: starPosition.name,
             tpPositionIds: new Set(),
             characteristics: new Map(),
+            authoritativeRulesSetIds: new Set(),
             conflictingRulesSetIds: new Set(),
           };
           starGroups.set(starPosition.name, group);
@@ -285,6 +308,7 @@ export class TpPositionsImportService {
             group,
             rulesSetId,
             characteristics: starPosition.characteristics,
+            authoritative,
             errors,
           });
         }
@@ -326,28 +350,82 @@ export class TpPositionsImportService {
   }
 
   /**
+   * Era name -> the single rules set name that era declares in
+   * import-tp-config.json5. Eras declaring zero or several rules sets are
+   * omitted, mirroring the gate TpEraRulesSetResolverService already applies:
+   * such an era never resolves a rules-set *id* either, so its rosters never
+   * reach accumulateCharacteristics in the first place.
+   */
+  private buildRulesSetNameByEraName(
+    eras: EraDataConfig[],
+  ): Map<string, string> {
+    const byEraName = new Map<string, string>();
+    for (const era of eras) {
+      if (era.rulesSets.length === 1) {
+        byEraName.set(era.name, era.rulesSets[0]);
+      }
+    }
+    return byEraName;
+  }
+
+  /**
+   * Whether a roster's own TP team-race code marks it as the current template
+   * for its era's rules set. When TP updates a race's roster mid-rules-set it
+   * keeps the legacy roster under the bare race code and publishes the new one
+   * under a code suffixed with the rules set name (e.g. `Vampire_BB2020`
+   * superseding `Vampire` within BB2020), so the suffixed roster is the
+   * authoritative, post-update template. A heuristic on TP's naming
+   * convention, applied only to break a disagreement — never to change what a
+   * single, unopposed observation records. `false` when the era declares no
+   * single rules set name.
+   */
+  private isAuthoritativeRoster(
+    teamRaceCode: string,
+    rulesSetName: string | undefined,
+  ): boolean {
+    return (
+      rulesSetName !== undefined && teamRaceCode.endsWith(`_${rulesSetName}`)
+    );
+  }
+
+  /**
    * Record one roster's observation of a position's characteristics under one
-   * rules set. Two rosters disagreeing is bad TP data, not something to pick a
-   * winner for: the rules set is dropped for this position (once, with one
-   * error), while every other rules set for the same position is unaffected.
+   * rules set. Two rosters disagreeing is resolved by TP's own suffix convention when it
+   * can be: an authoritative observation (see `isAuthoritativeRoster`) beats a
+   * non-authoritative one, silently — that is TP correctly describing a
+   * mid-rules-set roster update, not bad data, and this importer's only
+   * reporting channel (`errors`) would flip `ImportResult.success` to false if
+   * used for it. A disagreement where both or neither observation is
+   * authoritative is genuinely ambiguous and keeps the original behaviour:
+   * the rules set is dropped for this position (once, with one error) and is
+   * never resurrected by a later observation, while every other rules set for
+   * the same position is unaffected.
    */
   private accumulateCharacteristics(options: {
     group: {
       name: string;
       characteristics: Map<number, TpPositionCharacteristics>;
+      authoritativeRulesSetIds: Set<number>;
       conflictingRulesSetIds: Set<number>;
     };
     rulesSetId: number;
     characteristics: TpPositionCharacteristics;
+    authoritative: boolean;
     errors: ImportError[];
   }): void {
-    const { group, rulesSetId, characteristics, errors } = options;
+    const { group, rulesSetId, characteristics, authoritative, errors } =
+      options;
     if (group.conflictingRulesSetIds.has(rulesSetId)) {
       return;
     }
     const existing = group.characteristics.get(rulesSetId);
     if (existing === undefined) {
-      group.characteristics.set(rulesSetId, characteristics);
+      this.storeCharacteristics({
+        group,
+        rulesSetId,
+        characteristics,
+        authoritative,
+      });
       return;
     }
     if (
@@ -357,10 +435,32 @@ export class TpPositionsImportService {
       existing.passing === characteristics.passing &&
       existing.armour === characteristics.armour
     ) {
+      // Agreement, so nothing to store -- but an authoritative roster
+      // confirming the stored values still promotes them, so a later
+      // non-authoritative disagreement loses instead of being treated as
+      // ambiguous.
+      if (authoritative) {
+        group.authoritativeRulesSetIds.add(rulesSetId);
+      }
+      return;
+    }
+    const existingIsAuthoritative =
+      group.authoritativeRulesSetIds.has(rulesSetId);
+    if (authoritative && !existingIsAuthoritative) {
+      this.storeCharacteristics({
+        group,
+        rulesSetId,
+        characteristics,
+        authoritative,
+      });
+      return;
+    }
+    if (!authoritative && existingIsAuthoritative) {
       return;
     }
     group.conflictingRulesSetIds.add(rulesSetId);
     group.characteristics.delete(rulesSetId);
+    group.authoritativeRulesSetIds.delete(rulesSetId);
     errors.push(
       this.importResults.error({
         item: { position: group.name, rulesSetId, existing, characteristics },
@@ -372,6 +472,26 @@ export class TpPositionsImportService {
           'rules set for this position.',
       }),
     );
+  }
+
+  /** Store one observation as a group's characteristics for a rules set, and
+   * record whether it came from an authoritative roster. */
+  private storeCharacteristics(options: {
+    group: {
+      characteristics: Map<number, TpPositionCharacteristics>;
+      authoritativeRulesSetIds: Set<number>;
+    };
+    rulesSetId: number;
+    characteristics: TpPositionCharacteristics;
+    authoritative: boolean;
+  }): void {
+    const { group, rulesSetId, characteristics, authoritative } = options;
+    group.characteristics.set(rulesSetId, characteristics);
+    if (authoritative) {
+      group.authoritativeRulesSetIds.add(rulesSetId);
+    } else {
+      group.authoritativeRulesSetIds.delete(rulesSetId);
+    }
   }
 
   /** One characteristics set as a compact "MA 6 ST 3 AG 3 PA 4 AV 9" line. */

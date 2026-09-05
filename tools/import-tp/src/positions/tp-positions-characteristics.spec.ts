@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
 import {
   makeService,
   oneSystemUpsertMock,
@@ -292,6 +293,47 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
   });
 
+  it('lets an authoritative roster arriving second override the legacy one', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
   it('skips characteristics for an era the rules set resolver returned no id for', async () => {
     const { service } = await makeService({
       ...upsertAndSyncMocks(70),
@@ -342,5 +384,448 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
 
     expect(characteristicsByPositionId.size).toBe(0);
+  });
+
+  it('keeps agreeing characteristics from an authoritative and a legacy roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('imports a position that exists only in the authoritative roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 960,
+              name: 'Dwarf Thrower',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('keeps an authoritative roster arriving first over a later legacy one', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('promotes agreed characteristics an authoritative roster confirms', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        // Legacy roster observes RUNNER first...
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        // ...the authoritative roster agrees, which marks RUNNER
+        // authoritative even though nothing needed storing...
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+        // ...so a third, legacy, disagreeing roster loses rather than making
+        // the rules set ambiguous.
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 3,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('still drops a rules set when both disagreeing rosters are authoritative', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [1, 2].map((id) =>
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: id === 1 ? RUNNER : RUNNER_ALT,
+            },
+          ],
+          id,
+        }),
+      ),
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+    expect(resultArgs(importResults).errors[0].message).toContain(
+      'Dwarf Runner',
+    );
+  });
+
+  it('never resurrects a dropped rules set from a later authoritative roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        // Two legacy rosters disagree: unresolvable, rules set 900 dropped.
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+        // An authoritative roster arriving afterwards does not bring it back.
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: SLAYER,
+            },
+          ],
+          id: 3,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+  });
+
+  // This test deliberately constructs a combination that cannot occur in production:
+  // an era declaring 2+ rules sets (rulesSets: ['BB2020', 'BB2025']), yet with a
+  // stubbed rules-set id (900) for it. In real code, TpEraRulesSetResolverService
+  // only ever resolves a rules-set id for an era declaring exactly one rules set,
+  // making this combination unreachable from normal code paths. The test constructs
+  // it purely to isolate and test the `rulesSetName === undefined` branch of the
+  // private `isAuthoritativeRoster` method in TpPositionsImportService, which is
+  // otherwise unreachable from a unit test.
+  it('treats no roster as authoritative when its era declares several rules sets', async () => {
+    const multiRulesSetEras: EraDataConfig[] = [
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020', 'BB2025'],
+        startDate: '2020-01-01',
+      },
+    ];
+    const { service, importResults } = await makeService({
+      ...upsertAndSyncMocks(70),
+      getEras: () => multiRulesSetEras,
+      eraIdsByName: new Map([['Fourth era', 100]]),
+      rulesSetIdByEraName: new Map([['Fourth era', 900]]),
+    });
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.has(70)).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+  });
+
+  it('resolves a star position conflict in favour of the authoritative roster', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(80),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[80, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('keeps an authoritative star observation over a later legacy one', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(80),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [
+            {
+              tpPositionId: 5001,
+              name: 'Grim Ironjaw',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[80, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
+  });
+
+  it('does not treat a roster suffixed with the wrong rules set as authoritative', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2020',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 953,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([[70, new Map([[900, RUNNER_ALT]])]]),
+    );
+    expect(resultArgs(importResults).errors).toEqual([]);
   });
 });
