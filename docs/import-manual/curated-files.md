@@ -88,11 +88,12 @@ generation's id on the one existing curated row** in
 
 - Add the new id to the existing entry's `externalIds`; never remove the older
   one. Order the array BBL id, newest TP id, older TP id(s), `Name` id.
-- Where the name changed, set the entry's `name` to the **current** name. The
-  older name survives only in the entry's `Name` external id, which must stay
-  exactly as it is: `position-characteristics.json5` and
-  `position-availability.json5` reference that id, and `tools/import-bbl`
-  rebuilds the same id at import time.
+- Where the name changed, set the entry's `name` to the **current** name.
+  Leave the `Name` id alone: it is the id under which this row was first
+  curated, and the BBL/TP importers add their own `<race>: <source name>` ids
+  onto the same row as they run — those derived ids, not this one, are what
+  `position-characteristics.json5` and `position-availability.json5`
+  reference.
 - If the renamed position also appears in `position-availability.json5`, set
   that entry's `name` to the current name too. The after-other-importers phase
   overlays the position's name, so leaving the old spelling there silently
