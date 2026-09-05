@@ -4,7 +4,6 @@ import type {
   PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
-  CharacteristicDisplayFormattingService,
   PositionRulesSetsService,
   PositionsService,
 } from '@blood-bowl-tracker/game-data';
@@ -35,6 +34,7 @@ import {
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -45,13 +45,14 @@ const TOP_PLAYERS_TOP_ENTRIES = 5;
  * players by career SPP, into a single embed. Shared by
  * `/deepdive position:<id>` and the position drill-down buttons.
  *
- * Each stat line is rendered with *that rules set's own* declared formats
- * rather than a single uniform style: how a position's characteristics
- * changed between rules sets is the reason this view exists, so flattening
- * them would hide exactly what it is for. A rules set whose Passing
- * characteristic is `absent` omits the field entirely rather than printing a
- * placeholder — the characteristic does not exist there, which is different
- * from existing and being unknown.
+ * Each stat line is rendered by the shared
+ * `PositionCharacteristicsLineFormatterService`, which uses *that rules
+ * set's own* declared formats rather than a single uniform style: how a
+ * position's characteristics changed between rules sets is the reason this
+ * view exists, so flattening them would hide exactly what it is for. A
+ * rules set whose Passing characteristic is `absent` omits the field
+ * entirely rather than printing a placeholder. The same formatter renders
+ * the star player deepdive's lines, so the two views can never drift apart.
  *
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so
  * a timeout stays distinguishable from a genuine "not found" (`undefined`).
@@ -61,7 +62,7 @@ export class PositionDeepdiveService {
   constructor(
     private readonly positions: PositionsService,
     private readonly positionRulesSets: PositionRulesSetsService,
-    private readonly characteristics: CharacteristicDisplayFormattingService,
+    private readonly lineFormatter: PositionCharacteristicsLineFormatterService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -112,7 +113,7 @@ export class PositionDeepdiveService {
     const statLines =
       rulesSetRows.length === 0
         ? [DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE]
-        : rulesSetRows.map((row) => this.formatStatLine(row));
+        : rulesSetRows.map((row) => this.lineFormatter.formatLine(row));
 
     // `topRanksWithTies` ranks by a `count` field, so SPP is surfaced under
     // that name for ranking only; the rendered line still reads as SPP.
@@ -215,23 +216,5 @@ export class PositionDeepdiveService {
       return description;
     }
     return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
-  }
-
-  /** `BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+`. */
-  private formatStatLine(row: PositionCharacteristics): string {
-    const fields = [
-      `MA ${this.characteristics.format(row.move, row.moveFormat)}`,
-      `ST ${this.characteristics.format(row.strength, row.strengthFormat)}`,
-      `AG ${this.characteristics.format(row.agility, row.agilityFormat)}`,
-      // A rules set without a Passing characteristic drops the field rather
-      // than showing a placeholder: it does not exist there at all.
-      ...(row.passingFormat === 'absent'
-        ? []
-        : [
-            `PA ${this.characteristics.format(row.passing, row.passingFormat)}`,
-          ]),
-      `AV ${this.characteristics.format(row.armour, row.armourFormat)}`,
-    ];
-    return `${row.rulesSetName}: ${fields.join(' ')}`;
   }
 }
