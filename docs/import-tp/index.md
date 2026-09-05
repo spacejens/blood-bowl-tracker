@@ -202,8 +202,18 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   declaring zero or more than one causes characteristics to be skipped for
   every roster in it, with one recorded error, rather than decoding TP's raw
   numeric `ruleSet` field. Two rosters disagreeing about the same (position,
-  rules set) drops that rules set for that position with one recorded error,
-  instead of letting either observation silently win. Returns
+  rules set) is resolved by TP's own naming convention where it can be: when
+  TP updates a race's roster mid-rules-set it publishes the new template under
+  a team-race code suffixed with the rules set name (`Vampire_BB2020`
+  superseding `Vampire` within BB2020), so an observation whose
+  `teamRaceCode` ends in `_<the era's single declared rules set name>` wins
+  over one that does not, silently and regardless of which roster file was
+  read first. That is TP correctly describing an update, not bad data, so no
+  error is recorded — deliberately, since this importer's only reporting
+  channel would flip `ImportResult.success` to false. When both or neither
+  observation qualifies the disagreement is genuinely ambiguous: that rules
+  set is dropped for that position with one recorded error, and no later
+  observation resurrects it. Returns
   `characteristicsByPositionId` (positionId -> rulesSetId ->
   characteristics), consumed by `TpPositionCharacteristicsImportService`
   below.
