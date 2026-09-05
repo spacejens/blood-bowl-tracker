@@ -113,7 +113,10 @@
 
     // --- CRP-era availability: Dwarf Team (First era) ---
     {
-      name: 'Dwarf Blocker Linemen',
+      // Renamed 'Dwarf Lineman' in BB2025; this phase overlays the position's
+      // name, so it has to re-state the merged row's final name rather than
+      // the older spelling its Name id uses.
+      name: 'Dwarf Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' },

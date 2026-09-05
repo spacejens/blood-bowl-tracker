@@ -448,11 +448,17 @@
       ],
     },
     {
-      // Dwarf: BBL 'Dwarf Blocker Linemen' / TP 'Dwarf Blocker Lineman'
-      name: 'Dwarf Blocker Lineman',
+      // Dwarf: BBL 'Dwarf Blocker Linemen' (typId 57, race 5) / TP 'Dwarf
+      // Blocker Lineman' (id 280, older rosters) / TP 'Dwarf Lineman' (id
+      // 952, BB2025 roster) -- one roster slot renamed between rules-set
+      // generations rather than a spelling difference between sources.
+      // Registering every source's id here keeps BB2025 line-ups on this one
+      // row instead of creating a second, disconnected one.
+      name: 'Dwarf Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '57-5' },
+        { system: 'tourplay.net', id: '952' },
         { system: 'tourplay.net', id: '280' },
         { system: 'Name', id: 'Dwarf: Dwarf Blocker Lineman' },
       ],
