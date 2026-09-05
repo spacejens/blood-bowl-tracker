@@ -151,32 +151,6 @@ describe('TeamsService lookups', () => {
     });
   });
 
-  describe('getTopPlayersByMatchEventCount', () => {
-    it('delegates to TeamsStatisticsService and returns its result', async () => {
-      const rows = [
-        {
-          playerId: 1,
-          name: 'Griff',
-          count: 20,
-          positionId: 30,
-          positionName: 'Blitzer',
-          isStarPlayer: false,
-        },
-      ];
-      statistics.getTopPlayersByMatchEventCount.mockResolvedValue(rows);
-      await build();
-
-      await expect(
-        service.getTopPlayersByMatchEventCount(7, 10),
-      ).resolves.toEqual(rows);
-
-      expect(statistics.getTopPlayersByMatchEventCount).toHaveBeenCalledWith(
-        7,
-        10,
-      );
-    });
-  });
-
   describe('getTopPlayersByTotalSpp', () => {
     it('delegates to TeamsStatisticsService and returns its result', async () => {
       const rows = [

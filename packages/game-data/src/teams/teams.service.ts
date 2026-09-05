@@ -208,13 +208,6 @@ export class TeamsService {
   }
 
   // Delegations to TeamsStatisticsService for backward compatibility
-  getTopPlayersByMatchEventCount(
-    teamId: number,
-    limit: number,
-  ): Promise<TeamTopPlayer[]> {
-    return this.statistics.getTopPlayersByMatchEventCount(teamId, limit);
-  }
-
   getTopPlayersByTotalSpp(
     teamId: number,
     limit: number,

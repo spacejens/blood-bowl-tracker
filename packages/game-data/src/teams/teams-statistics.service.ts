@@ -44,16 +44,6 @@ export class TeamsStatisticsService {
     private readonly players: PlayersService,
   ) {}
 
-  getTopPlayersByMatchEventCount(
-    teamId: number,
-    limit: number,
-  ): Promise<TeamTopPlayer[]> {
-    return this.matchEventCounts.countAllMatchEventsByPlayerForTeam({
-      teamId,
-      limit,
-    });
-  }
-
   /**
    * One team's top players by career SPP total. Thin delegation: the query
    * itself lives on PlayersService next to the league-wide SPP ranking it

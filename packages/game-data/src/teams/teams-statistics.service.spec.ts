@@ -60,33 +60,6 @@ describe('TeamsStatisticsService', () => {
     players = mock<PlayersService>();
   });
 
-  describe('getTopPlayersByMatchEventCount', () => {
-    it('asks MatchEventCountsService for the team, capped to the limit, and returns its rows', async () => {
-      const rows = [
-        {
-          playerId: 1,
-          name: 'Griff',
-          count: 20,
-          positionId: 30,
-          positionName: 'Blitzer',
-          isStarPlayer: false,
-        },
-      ];
-      matchEventCounts.countAllMatchEventsByPlayerForTeam.mockResolvedValue(
-        rows,
-      );
-      await build();
-
-      await expect(
-        service.getTopPlayersByMatchEventCount(7, 10),
-      ).resolves.toEqual(rows);
-
-      expect(
-        matchEventCounts.countAllMatchEventsByPlayerForTeam,
-      ).toHaveBeenCalledWith({ teamId: 7, limit: 10 });
-    });
-  });
-
   describe('getTopPlayersByTotalSpp', () => {
     it('asks PlayersService for the team, capped to the limit, and returns its rows', async () => {
       const rows = [
