@@ -13,7 +13,18 @@ import {
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableName, isNull } from 'drizzle-orm';
+
+/** Postgres' SQLSTATE for a unique-constraint violation. */
+const UNIQUE_VIOLATION = '23505';
+
+/**
+ * How many `.cause` links to walk while unwrapping a caught error before
+ * giving up. drizzle-orm's pg-core session wraps exactly one level in
+ * practice, so 3 is generous headroom rather than a value tuned to a specific
+ * stack.
+ */
+const MAX_CAUSE_UNWRAP_DEPTH = 3;
 
 /**
  * The award's `playerId` does not fit the referenced trophy's
@@ -420,9 +431,21 @@ export class TrophyAwardsService {
    *
    * Insert-first rather than select-first, so the natural-key unique
    * constraint arbitrates and leaves no window for a concurrent importer to
-   * slip a duplicate through; the SELECT runs only on the conflict path. The
-   * conflict target is NULLS NOT DISTINCT, which is what makes a team award
+   * slip a duplicate through; the SELECT runs only on the conflict path. That
+   * constraint is NULLS NOT DISTINCT, which is what makes a team award
    * (always `playerId === null`) dedup at all.
+   *
+   * The insert deliberately carries no `ON CONFLICT DO NOTHING` clause; the
+   * conflict is detected by catching the unique violation instead.
+   * `trophy_awards` is history-tracked, and its `BEFORE INSERT` trigger writes
+   * a `trophy_awards_history` row for every *attempted* row - including one
+   * `DO NOTHING` then discards, leaving a history row whose deferred foreign
+   * key back to `trophy_awards.id` has nothing to point at, which aborts the
+   * statement with a raw Postgres error on every re-import. A plain insert
+   * that loses on the unique constraint raises the error itself, so Postgres
+   * rolls the entire statement back, trigger writes included, and nothing is
+   * orphaned. `spp-award-values.service.ts` and `upsert-by-external-ids.ts`
+   * avoid the same trap the same way.
    *
    * A tie is not a special case: two players winning the same trophy in one
    * competition differ in `playerId` and each gets a row. No cutoff on tie
@@ -434,26 +457,22 @@ export class TrophyAwardsService {
     const trophy = await this.assertRecipientFitsTrophy(data);
     await this.assertScopeMatchesTrophy(data, trophy);
 
-    const inserted = await this.db
-      .insert(trophyAwards)
-      .values({
-        trophyId: data.trophyId,
-        competitionId: data.competitionId,
-        teamEraId: data.teamEraId,
-        playerId: data.playerId,
-      })
-      .onConflictDoNothing({
-        target: [
-          trophyAwards.trophyId,
-          trophyAwards.competitionId,
-          trophyAwards.teamEraId,
-          trophyAwards.playerId,
-        ],
-      })
-      .returning();
-
-    if (inserted[0]) {
-      return { trophyAward: inserted[0], created: true };
+    try {
+      const [inserted] = await this.db
+        .insert(trophyAwards)
+        .values({
+          trophyId: data.trophyId,
+          competitionId: data.competitionId,
+          teamEraId: data.teamEraId,
+          playerId: data.playerId,
+        })
+        .returning();
+      return { trophyAward: inserted, created: true };
+    } catch (error) {
+      if (!this.isTrophyAwardUniqueViolation(error)) {
+        throw error;
+      }
+      // The award is already recorded; fall through to read it back below.
     }
 
     const [existingAward] = await this.db
@@ -480,6 +499,55 @@ export class TrophyAwardsService {
     }
 
     return { trophyAward: existingAward, created: false };
+  }
+
+  /**
+   * True only for the violation an already-recorded award raises: a 23505 on
+   * `trophy_awards` itself, on a constraint other than its primary key.
+   *
+   * The caught value never carries the fields to test. drizzle-orm wraps every
+   * query failure in a `DrizzleQueryError` that sets `cause` but copies neither
+   * `code` nor `table_name`, so the `postgres` driver's `PostgresError` is only
+   * reachable by walking `.cause` - bounded here defensively.
+   *
+   * Matching is on `table_name`, not the constraint name: Postgres truncates
+   * identifiers to 63 bytes (`NAMEDATALEN`), so a hand-reconstructed
+   * natural-key constraint name could silently never match. The primary key is
+   * excluded because a 23505 on `trophy_awards_pkey` (a desynced sequence, say)
+   * is an infrastructure bug, not this award already existing; comparing
+   * `constraint_name` is safe there specifically because `<table>_pkey` is
+   * always well under 63 bytes.
+   *
+   * Deliberately a private method rather than a shared helper, even though
+   * `upsert-by-external-ids.ts`'s `isExternalIdUniqueViolation` has the same
+   * shape: that code is working and unrelated, and the two would only be worth
+   * unifying once a third call site needs the logic.
+   */
+  private isTrophyAwardUniqueViolation(error: unknown): boolean {
+    const tableName = getTableName(trophyAwards);
+    let candidate: unknown = error;
+    for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
+      const typed = candidate as
+        | {
+            code?: unknown;
+            table_name?: unknown;
+            constraint_name?: unknown;
+            cause?: unknown;
+          }
+        | undefined;
+      if (
+        typed?.code === UNIQUE_VIOLATION &&
+        typed.table_name === tableName &&
+        typed.constraint_name !== `${tableName}_pkey`
+      ) {
+        return true;
+      }
+      if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {
+        return false;
+      }
+      candidate = typed.cause;
+    }
+    return false;
   }
 
   /**
