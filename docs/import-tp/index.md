@@ -213,7 +213,13 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   channel would flip `ImportResult.success` to false. When both or neither
   observation qualifies the disagreement is genuinely ambiguous: that rules
   set is dropped for that position with one recorded error, and no later
-  observation resurrects it. Returns
+  observation resurrects it. Groups are accumulated per _resolved_ position
+  id, not per group: TP renames a roster slot across rules-set generations
+  (`Halfling Hopeful Lineman` -> `Halfling Hopeful`) while both literal names
+  are registered as external ids of one `Position`, so two `(race, name)`
+  groups can upsert onto the same row — their per-rules-set characteristics
+  are merged under the same conflict rules described above, rather than one
+  group replacing the other's. Returns
   `characteristicsByPositionId` (positionId -> rulesSetId ->
   characteristics), consumed by `TpPositionCharacteristicsImportService`
   below.

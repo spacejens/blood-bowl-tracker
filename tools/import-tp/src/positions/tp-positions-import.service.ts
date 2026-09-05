@@ -47,6 +47,24 @@ interface StarPositionGroup {
   conflictingRulesSetIds: Set<number>;
 }
 
+/**
+ * Characteristics accumulated for one *resolved* DB position id, merged across
+ * every group whose upsert landed on that row. Two groups can share one row:
+ * TP renames a roster slot across rules-set generations (`Halfling Hopeful
+ * Lineman` -> `Halfling Hopeful`) while `tools/import-manual` registers both
+ * literal names as external ids of a single Position, so grouping by
+ * `${raceId} ${name}` yields two groups whose upserts resolve identically.
+ * Shaped to match what `accumulateCharacteristics` expects as its `group`, so
+ * the same conflict rules apply within a group and across groups.
+ */
+interface PositionCharacteristicsAccumulator {
+  /** The first contributing group's position name, used in error messages. */
+  name: string;
+  characteristics: Map<number, TpPositionCharacteristics>;
+  authoritativeRulesSetIds: Set<number>;
+  conflictingRulesSetIds: Set<number>;
+}
+
 interface ImportPositionsOptions {
   raceNamesById: Map<number, string>;
 }
@@ -109,6 +127,7 @@ export class TpPositionsImportService {
       number,
       Map<number, TpPositionCharacteristics>
     >();
+    const accumulators = new Map<number, PositionCharacteristicsAccumulator>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -254,9 +273,12 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
-      if (group.characteristics.size > 0) {
-        characteristicsByPositionId.set(upserted.id, group.characteristics);
-      }
+      this.mergeGroupCharacteristics({
+        accumulators,
+        positionId: upserted.id,
+        group,
+        errors,
+      });
       await this.positionsImport.syncRaceEras(
         {
           positionId: upserted.id,
@@ -337,8 +359,20 @@ export class TpPositionsImportService {
       }
       imported += 1;
       starPositionIds.add(upserted.id);
-      if (group.characteristics.size > 0) {
-        characteristicsByPositionId.set(upserted.id, group.characteristics);
+      this.mergeGroupCharacteristics({
+        accumulators,
+        positionId: upserted.id,
+        group,
+        errors,
+      });
+    }
+
+    for (const [positionId, accumulator] of accumulators) {
+      if (accumulator.characteristics.size > 0) {
+        characteristicsByPositionId.set(
+          positionId,
+          accumulator.characteristics,
+        );
       }
     }
 
@@ -389,6 +423,62 @@ export class TpPositionsImportService {
   }
 
   /**
+   * Fold one group's per-rules-set characteristics into the accumulator for
+   * the DB position id its upsert resolved to, creating that accumulator on
+   * first use. Merging rather than replacing is what lets two groups sharing
+   * one resolved position id each keep their own rules sets, using the same
+   * `accumulateCharacteristics` conflict rules a single group already applies
+   * — authoritative-roster-wins, agreement is a no-op, and a rules set once
+   * dropped as ambiguous is never resurrected — including whether the value
+   * being contributed came from an authoritative roster. A group's own
+   * `conflictingRulesSetIds` are propagated into the accumulator first, so a
+   * rules set one group already dropped as internally ambiguous cannot be
+   * filled in by another group's otherwise-clean observation for the same
+   * rules set: the ambiguity is a property of the position under that rules
+   * set, not of one particular literal roster-slot name. With one group per
+   * position id — the common case — this is equivalent to storing the
+   * group's map directly.
+   */
+  private mergeGroupCharacteristics(options: {
+    accumulators: Map<number, PositionCharacteristicsAccumulator>;
+    positionId: number;
+    group: {
+      name: string;
+      characteristics: Map<number, TpPositionCharacteristics>;
+      authoritativeRulesSetIds: Set<number>;
+      conflictingRulesSetIds: Set<number>;
+    };
+    errors: ImportError[];
+  }): void {
+    const { accumulators, positionId, group, errors } = options;
+    let accumulator = accumulators.get(positionId);
+    if (accumulator === undefined) {
+      accumulator = {
+        name: group.name,
+        characteristics: new Map(),
+        authoritativeRulesSetIds: new Set(),
+        conflictingRulesSetIds: new Set(),
+      };
+      accumulators.set(positionId, accumulator);
+    }
+    for (const rulesSetId of group.conflictingRulesSetIds) {
+      accumulator.conflictingRulesSetIds.add(rulesSetId);
+      accumulator.characteristics.delete(rulesSetId);
+      accumulator.authoritativeRulesSetIds.delete(rulesSetId);
+    }
+    for (const [rulesSetId, characteristics] of group.characteristics) {
+      this.accumulateCharacteristics({
+        group: accumulator,
+        rulesSetId,
+        characteristics,
+        authoritative: group.authoritativeRulesSetIds.has(rulesSetId),
+        errors,
+        positionId,
+      });
+    }
+  }
+
+  /**
    * Record one roster's observation of a position's characteristics under one
    * rules set. Two rosters disagreeing is resolved by TP's own suffix convention when it
    * can be: an authoritative observation (see `isAuthoritativeRoster`) beats a
@@ -400,6 +490,12 @@ export class TpPositionsImportService {
    * the rules set is dropped for this position (once, with one error) and is
    * never resurrected by a later observation, while every other rules set for
    * the same position is unaffected.
+   *
+   * `positionId` is supplied only when accumulating across groups sharing a
+   * resolved DB position id (via `mergeGroupCharacteristics`): the group's own
+   * `name` alone would otherwise identify a cross-group conflict by whichever
+   * literal roster-slot name first created the accumulator, hiding the other
+   * contributing name from the error.
    */
   private accumulateCharacteristics(options: {
     group: {
@@ -412,9 +508,16 @@ export class TpPositionsImportService {
     characteristics: TpPositionCharacteristics;
     authoritative: boolean;
     errors: ImportError[];
+    positionId?: number;
   }): void {
-    const { group, rulesSetId, characteristics, authoritative, errors } =
-      options;
+    const {
+      group,
+      rulesSetId,
+      characteristics,
+      authoritative,
+      errors,
+      positionId,
+    } = options;
     if (group.conflictingRulesSetIds.has(rulesSetId)) {
       return;
     }
@@ -463,10 +566,17 @@ export class TpPositionsImportService {
     group.authoritativeRulesSetIds.delete(rulesSetId);
     errors.push(
       this.importResults.error({
-        item: { position: group.name, rulesSetId, existing, characteristics },
+        item: {
+          position: group.name,
+          ...(positionId === undefined ? {} : { positionId }),
+          rulesSetId,
+          existing,
+          characteristics,
+        },
         message:
-          `Conflicting characteristics for position "${group.name}" under ` +
-          `rules set id ${rulesSetId}: ` +
+          `Conflicting characteristics for position "${group.name}"` +
+          (positionId === undefined ? '' : ` (position id ${positionId})`) +
+          ` under rules set id ${rulesSetId}: ` +
           `${this.formatCharacteristics(existing)} vs ` +
           `${this.formatCharacteristics(characteristics)}; skipping this ` +
           'rules set for this position.',
