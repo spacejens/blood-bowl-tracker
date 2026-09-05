@@ -568,8 +568,11 @@ describe('curated data files', () => {
     ).positionRulesSets;
     const bb2020 = entries.filter((entry) => entry.rulesSet.id === 'BB2020');
 
-    // BB2020 declares passingFormat: 'plus'; an entry omitting Passing is
-    // rejected by the API at import time.
+    // BB2020 declares passingFormat: 'plus_zero_legal'; an entry omitting
+    // Passing is rejected by the API at import time. The 1..6 bound below is
+    // about the curated data as it stands, not about what the format permits:
+    // a 0 would be legal under this format (meaning "structurally cannot
+    // pass"), and nothing curated here uses one yet.
     expect(bb2020.length).toBeGreaterThan(0);
     for (const entry of bb2020) {
       expect(entry.passing).toBeDefined();
