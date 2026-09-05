@@ -716,7 +716,10 @@
 
     // --- CRP-era availability: Norse Team (First era) ---
     {
-      name: 'Norse Raider Linemen',
+      // Renamed 'Norse Raider' in BB2025; this phase overlays the position's
+      // name, so it has to re-state the merged row's final name rather than
+      // the older spelling its Name id uses.
+      name: 'Norse Raider',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Norse: Norse Raider Linemen' }],
       raceEras: [
