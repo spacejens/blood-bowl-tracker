@@ -351,6 +351,7 @@ describe('schema', () => {
       'absent',
       'bare',
       'plus',
+      'plus_zero_legal',
     ]);
   });
 
