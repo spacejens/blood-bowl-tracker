@@ -24,6 +24,7 @@ import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 
 /**
@@ -108,6 +109,7 @@ export class TpPlayersImportService {
     private readonly lookup: ReferenceLookupService,
     private readonly eraRulesSetResolver: TpEraRulesSetResolverService,
     private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
+    private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
   ) {}
 
   /**
@@ -565,6 +567,8 @@ export class TpPlayersImportService {
    * `fallbackPositionName` -- see {@link importPlayers}'s doc comment for
    * why this fallback exists and why it's gated on `isBigGuy`. Returns
    * undefined (recording an `ImportError`) if the upsert itself fails.
+   * Also syncs the position's curated characteristics to
+   * `position_rules_sets`, once per distinct mercenary name.
    */
   private async resolveMercenaryPositionId(options: {
     player: TpRosterPlayer;
@@ -608,6 +612,16 @@ export class TpPlayersImportService {
       return undefined;
     }
     mercenaryPositionIdsByName.set(player.fallbackPositionName, position.id);
+    // TP has no characteristics for a mercenary position anywhere, so its
+    // position_rules_sets rows come from the curated table instead. Placed
+    // after the cache write, so the early `cached` return above makes this run
+    // once per distinct mercenary name per import run, not once per hire.
+    await this.mercenaryCharacteristics.syncPositionCharacteristics({
+      positionName: player.fallbackPositionName,
+      positionId: position.id,
+      tpSystemId,
+      errors,
+    });
     return position.id;
   }
 }

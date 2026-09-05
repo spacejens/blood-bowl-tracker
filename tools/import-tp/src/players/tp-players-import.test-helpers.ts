@@ -24,6 +24,8 @@ import {
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
+import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 import { TpPlayersImportService } from './tp-players-import.service';
 
@@ -51,6 +53,21 @@ export interface MakeServiceOptions {
    * ../eras/tp-era-rules-set-resolver.service.spec.ts.
    */
   rulesSetIdByEraName?: Map<string, number>;
+  /**
+   * The map the mocked TpMercenaryCharacteristicsService.rulesSetNameByEraName
+   * returns: era name -> rules set NAME. Only the mercenary fallback reads it;
+   * that derivation has its own spec at
+   * ./tp-mercenary-characteristics.service.spec.ts.
+   */
+  rulesSetNameByEraName?: Map<string, string>;
+  /**
+   * What the mocked TpMercenaryCharacteristicsService.forRosterPlayer returns
+   * for a mercenary hire carrying no embedded characteristics. Defaults to
+   * undefined -- i.e. "no curated entry" -- which is what keeps the existing
+   * exact-payload mercenary assertions in tp-players-import.service.spec.ts
+   * passing unchanged.
+   */
+  mercenaryPlayerCharacteristics?: TpPlayerCharacteristicsPayload;
 }
 
 /**
@@ -95,10 +112,16 @@ export async function makeService({
     ['Third Era', 900],
     ['Fourth Era', 901],
   ]),
+  rulesSetNameByEraName = new Map([
+    ['Third Era', 'BB2020'],
+    ['Fourth Era', 'BB2020'],
+  ]),
+  mercenaryPlayerCharacteristics,
 }: MakeServiceOptions): Promise<{
   service: TpPlayersImportService;
   importResults: MockProxy<ImportResultService>;
   lookup: MockProxy<ReferenceLookupService>;
+  mercenaryCharacteristics: MockProxy<TpMercenaryCharacteristicsService>;
 }> {
   const playersImport = mock<PlayersImportService>();
   playersImport.upsertPlayerResult.mockImplementation(
@@ -132,6 +155,16 @@ export async function makeService({
   eraRulesSetResolver.resolveRulesSetIdByEraName.mockResolvedValue(
     rulesSetIdByEraName,
   );
+  const mercenaryCharacteristics = mock<TpMercenaryCharacteristicsService>();
+  mercenaryCharacteristics.rulesSetNameByEraName.mockReturnValue(
+    rulesSetNameByEraName,
+  );
+  mercenaryCharacteristics.syncPositionCharacteristics.mockResolvedValue(
+    undefined,
+  );
+  mercenaryCharacteristics.forRosterPlayer.mockReturnValue(
+    mercenaryPlayerCharacteristics,
+  );
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -156,12 +189,17 @@ export async function makeService({
         useValue: eraRulesSetResolver,
       },
       TpPlayerCharacteristicsBuilderService,
+      {
+        provide: TpMercenaryCharacteristicsService,
+        useValue: mercenaryCharacteristics,
+      },
     ],
   }).compile();
   return {
     service: moduleRef.get(TpPlayersImportService),
     importResults,
     lookup,
+    mercenaryCharacteristics,
   };
 }
 
