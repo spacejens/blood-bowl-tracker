@@ -14,6 +14,7 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import {
   PositionsService,
@@ -510,6 +511,18 @@ describe('PositionsService', () => {
       expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
         'positions.is_star_player',
       ]);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(false);
+    });
+
+    it('aggregates the race name with min(), so a position with more than one distinct race name resolves to one row', async () => {
+      const { db } = await build(rows);
+
+      await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
+
+      const selectedFields = firstCallArg(db.select, 0, 0) as {
+        raceName: unknown;
+      };
+      expect(sqlText(selectedFields.raceName)).toContain('min(');
     });
 
     it('counts distinct players so the race-era joins cannot double-count', async () => {
@@ -572,22 +585,25 @@ describe('PositionsService', () => {
       ).toEqual(['eras.id', 'team_eras.era_id', 'eras.league_id']);
     });
 
-    it('groups by the position and its race, and orders by the player count', async () => {
+    it('groups by the position alone (not by race), and orders by the player count descending', async () => {
       const { chains } = await build(rows);
 
       await service.countPlayersByPosition(FACT_SCOPE_ALL_TIME, 21);
 
       expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
       expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
+      expect(chains[0].groupBy.mock.calls[0]).toHaveLength(2);
       expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 0))).toEqual(
         ['positions.id'],
       );
       expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 1))).toEqual(
         ['positions.name'],
       );
-      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 2))).toEqual(
-        ['races.name'],
-      );
+
+      const orderByArg = firstCallArg(chains[0].orderBy);
+      expect(extractJoinColumns(orderByArg)).toEqual(['players.id']);
+      expect(sqlText(orderByArg)).toContain('distinct');
+      expect(sqlText(orderByArg)).toContain(' desc');
     });
   });
 

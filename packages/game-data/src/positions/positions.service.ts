@@ -27,6 +27,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  sql,
 } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
@@ -208,6 +209,21 @@ export class PositionsService {
    * (`players.team_era_id`), the way `PlayersService` scopes its other player
    * counts — not through `positions_race_eras`, whose era says when the rules
    * made the position available rather than when anyone actually played it.
+   *
+   * A position with players but no `positions_race_eras` row at all is
+   * excluded: the inner joins to `positions_race_eras -> race_eras -> races`
+   * mean there is no race to put in the row's `"<name> (<race>)"` label, so
+   * there is nothing sensible to render for it.
+   *
+   * The row is grouped by the position alone (not by race): a regular
+   * position is expected to resolve to exactly one race across all of its
+   * race-era rows, but that is a data invariant `positions_race_eras` does
+   * not enforce, not something the schema guarantees. Grouping by
+   * `races.name` too would, if that invariant were ever violated by
+   * hand-curated data, split one position's players into two inflated
+   * duplicate rows instead of one correct one. `min(races.name)` keeps the
+   * query correct (one row per position) even then, since a real world with
+   * only one distinct race name per position makes `min` a no-op.
    */
   countPlayersByPosition(
     scope: FactScope,
@@ -217,7 +233,7 @@ export class PositionsService {
       .select({
         positionId: positions.id,
         name: positions.name,
-        raceName: races.name,
+        raceName: sql<string>`min(${races.name})`,
         count: countDistinct(players.id),
       })
       .from(positions)
@@ -236,7 +252,7 @@ export class PositionsService {
           and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
         )
         .where(eq(positions.isStarPlayer, false))
-        .groupBy(positions.id, positions.name, races.name)
+        .groupBy(positions.id, positions.name)
         .orderBy(desc(countDistinct(players.id)))
         .limit(limit);
     }
@@ -250,13 +266,13 @@ export class PositionsService {
           ),
         )
         .where(eq(positions.isStarPlayer, false))
-        .groupBy(positions.id, positions.name, races.name)
+        .groupBy(positions.id, positions.name)
         .orderBy(desc(countDistinct(players.id)))
         .limit(limit);
     }
     return base
       .where(eq(positions.isStarPlayer, false))
-      .groupBy(positions.id, positions.name, races.name)
+      .groupBy(positions.id, positions.name)
       .orderBy(desc(countDistinct(players.id)))
       .limit(limit);
   }

@@ -7,7 +7,10 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeout,
 } from '../database-timeout-mock.test-helpers';
-import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../deepdive/button-custom-ids';
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  POSITION_BUTTON_CUSTOM_ID_PREFIX,
+} from '../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../entity-components.service';
 import { entityComponentsMock } from '../entity-components-mock.test-helpers';
 import {
@@ -444,19 +447,19 @@ describe('formatLeaderboardEmbed', () => {
       ],
       noDataMessage: 'no data',
       entityLink: {
-        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
         entityId: (row) => row.positionId,
         label: (row) => `${row.name} (${row.raceName})`,
       },
     });
     expect(components.buildEntityComponents).toHaveBeenCalledWith([
       {
-        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '1',
         label: 'Lineman (Orc)',
       },
       {
-        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '2',
         label: 'Lineman (Human)',
       },

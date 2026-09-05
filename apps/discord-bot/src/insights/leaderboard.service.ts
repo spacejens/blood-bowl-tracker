@@ -150,12 +150,13 @@ export class LeaderboardService {
     if (entityLink === undefined) {
       return { embeds: [{ title, description: lines.join('\n') }] };
     }
+    const toLabel = entityLink.label ?? ((row: T) => row.name);
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(
         rankedRows.map((row) => ({
           customIdPrefix: entityLink.customIdPrefix,
           entityId: String(entityLink.entityId(row)),
-          label: (entityLink.label ?? ((r) => r.name))(row),
+          label: toLabel(row),
         })),
       );
     if (overflowNote !== null) {
