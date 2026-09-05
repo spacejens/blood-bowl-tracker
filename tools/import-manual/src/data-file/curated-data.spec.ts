@@ -787,4 +787,211 @@ describe('curated data files', () => {
     // merged row's final name rather than the older spelling its Name id uses.
     expect(entry?.name).toBe('Halfling Hopeful');
   });
+
+  /**
+   * Every other instance of the same cross-rules-set-rename pattern as the
+   * Halfling Hopeful case above: a curated row that pre-registers every
+   * source's id (so a BB2025-only id upserts onto the existing row instead of
+   * splitting off a second, disconnected one). Four of these also got renamed
+   * between rules-set generations and so carry an `overlay` -- the
+   * after-other-importers position-availability.json5 entry that re-states
+   * the row's post-rename name against its BBL/TP-rebuilt Name id (which
+   * differs from the row's own original Name id below by pluralization).
+   */
+  const CROSS_RULES_SET_MERGES = [
+    {
+      race: 'Lizardmen',
+      name: 'Chameleon Skink',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '286-12' },
+        { system: 'tourplay.net', id: '985' },
+        { system: 'tourplay.net', id: '313' },
+        { system: 'Name', id: 'Lizardmen: Chameleon Skink' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Lizardmen',
+      name: 'Saurus Blocker',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '81-12' },
+        { system: 'tourplay.net', id: '986' },
+        { system: 'tourplay.net', id: '314' },
+        { system: 'Name', id: 'Lizardmen: Saurus Blocker' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Lizardmen',
+      name: 'Skink Lineman',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '88-12' },
+        { system: 'tourplay.net', id: '984' },
+        { system: 'tourplay.net', id: '312' },
+        { system: 'Name', id: 'Lizardmen: Skink Runner Lineman' },
+      ],
+      overlay: {
+        nameId: 'Lizardmen: Skink Runner Linemen',
+        name: 'Skink Lineman',
+      },
+    },
+    {
+      race: 'Dwarf',
+      name: 'Dwarf Lineman',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '57-5' },
+        { system: 'tourplay.net', id: '952' },
+        { system: 'tourplay.net', id: '280' },
+        { system: 'Name', id: 'Dwarf: Dwarf Blocker Lineman' },
+      ],
+      overlay: {
+        nameId: 'Dwarf: Dwarf Blocker Linemen',
+        name: 'Dwarf Lineman',
+      },
+    },
+    {
+      race: 'Goblin',
+      name: 'Goblin Lineman',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '33-7' },
+        { system: 'tourplay.net', id: '961' },
+        { system: 'tourplay.net', id: '289' },
+        { system: 'Name', id: 'Goblin: Goblin Lineman' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Goblin',
+      name: 'Ooligan',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '232-7' },
+        { system: 'tourplay.net', id: '964' },
+        { system: 'tourplay.net', id: '294' },
+        { system: 'Name', id: 'Goblin: ’Ooligan' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Halfling',
+      name: 'Altern Forest Treeman',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '169-8' },
+        { system: 'tourplay.net', id: '972' },
+        { system: 'tourplay.net', id: '300' },
+        { system: 'Name', id: 'Halfling: Altern Forest Treeman' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Norse',
+      name: 'Norse Raider',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '67-14' },
+        { system: 'tourplay.net', id: '1058' },
+        { system: 'tourplay.net', id: '530' },
+        { system: 'Name', id: 'Norse: Norse Raider Lineman' },
+      ],
+      overlay: { nameId: 'Norse: Norse Raider Linemen', name: 'Norse Raider' },
+    },
+    {
+      race: 'Underworld Denizens',
+      name: 'Skaven Blitzer',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '154-24' },
+        { system: 'tourplay.net', id: '1038' },
+        { system: 'tourplay.net', id: '366' },
+        { system: 'Name', id: 'Underworld Denizens: Skaven Blitzer' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Underworld Denizens',
+      name: 'Gutter Runner',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '293-24' },
+        { system: 'tourplay.net', id: '1037' },
+        { system: 'tourplay.net', id: '365' },
+        { system: 'Name', id: 'Underworld Denizens: Gutter Runner' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Underworld Denizens',
+      name: 'Skaven Clanrat',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '152-24' },
+        { system: 'tourplay.net', id: '1035' },
+        { system: 'tourplay.net', id: '363' },
+        { system: 'Name', id: 'Underworld Denizens: Skaven Clanrat' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Underworld Denizens',
+      name: 'Skaven Thrower',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '153-24' },
+        { system: 'tourplay.net', id: '1036' },
+        { system: 'tourplay.net', id: '364' },
+        { system: 'Name', id: 'Underworld Denizens: Skaven Thrower' },
+      ],
+      overlay: null,
+    },
+    {
+      race: 'Underworld Denizens',
+      name: 'Troll',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '155-24' },
+        { system: 'tourplay.net', id: '1039' },
+        { system: 'tourplay.net', id: '367' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Troll' },
+      ],
+      overlay: {
+        nameId: 'Underworld Denizens: Warpstone Troll',
+        name: 'Troll',
+      },
+    },
+  ] as const;
+
+  describe.each(CROSS_RULES_SET_MERGES)(
+    '$race $name pre-registered across its rename',
+    (row) => {
+      it('registers every source id on one row in races-and-positions.json5', () => {
+        const positions = readFile(
+          'before-other-importers',
+          'races-and-positions.json5',
+        ).positions;
+        const ownNameId = row.externalIds.find(
+          (ref) => ref.system === 'Name',
+        )!.id;
+        const entry = positions.find((position) =>
+          position.externalIds.some(
+            (ref) => ref.system === 'Name' && ref.id === ownNameId,
+          ),
+        );
+
+        expect(entry?.externalIds).toEqual(row.externalIds);
+        expect(entry?.name).toBe(row.name);
+        expect(entry?.isStarPlayer).toBe(false);
+      });
+
+      if (row.overlay) {
+        const overlay = row.overlay;
+
+        it('curates the row under its post-rename name in position-availability.json5', () => {
+          const positions = readFile(
+            'after-other-importers',
+            'position-availability.json5',
+          ).positions;
+          const entry = positions.find((position) =>
+            position.externalIds.some(
+              (ref) => ref.system === 'Name' && ref.id === overlay.nameId,
+            ),
+          );
+
+          expect(entry?.name).toBe(overlay.name);
+        });
+      }
+    },
+  );
 });

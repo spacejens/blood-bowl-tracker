@@ -45,9 +45,11 @@
 // runs later and the upsert overlays whatever name is given here. A future
 // rename curated in a before-phase file for a position also listed below
 // would therefore be silently reverted by this file on the next import.
-// Currently inert -- no position name is curated in both places -- but
-// nothing here tests for the overlap, so it is worth knowing about before
-// adding one.
+// This overlap is active today for four positions renamed across rules-set
+// generations -- Dwarf Lineman, Skink Lineman, Norse Raider, and Troll --
+// whose before-phase entry in races-and-positions.json5 and after-phase
+// entry here both re-state the same current name on purpose, so the two
+// files agree and neither reverts the other's rename.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
@@ -113,7 +115,10 @@
 
     // --- CRP-era availability: Dwarf Team (First era) ---
     {
-      name: 'Dwarf Blocker Linemen',
+      // Renamed 'Dwarf Lineman' in BB2025; this phase overlays the position's
+      // name, so it has to re-state the merged row's final name rather than
+      // the older spelling its Name id uses.
+      name: 'Dwarf Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' },
@@ -608,7 +613,10 @@
 
     // --- CRP-era availability: Lizardmen Team (First era) ---
     {
-      name: 'Skink Runner Linemen',
+      // Renamed 'Skink Lineman' in BB2025; this phase overlays the position's
+      // name, so it has to re-state the merged row's final name rather than
+      // the older spelling its Name id uses.
+      name: 'Skink Lineman',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' },
@@ -710,7 +718,10 @@
 
     // --- CRP-era availability: Norse Team (First era) ---
     {
-      name: 'Norse Raider Linemen',
+      // Renamed 'Norse Raider' in BB2025; this phase overlays the position's
+      // name, so it has to re-state the merged row's final name rather than
+      // the older spelling its Name id uses.
+      name: 'Norse Raider',
       isStarPlayer: false,
       externalIds: [{ system: 'Name', id: 'Norse: Norse Raider Linemen' }],
       raceEras: [
@@ -1231,7 +1242,10 @@
       ],
     },
     {
-      name: 'Warpstone Troll',
+      // Renamed 'Troll' in BB2025; this phase overlays the position's name,
+      // so it has to re-state the merged row's final name rather than the
+      // older spelling its Name id uses.
+      name: 'Troll',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Underworld Denizens: Warpstone Troll' },
