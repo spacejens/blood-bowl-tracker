@@ -147,11 +147,11 @@ export interface FactTreeMocks {
 }
 
 /**
- * The fourteen fact services `buildFactTree` wires into leaves, each a
- * `MockProxy` with a default resolved reply — the same title/description
- * content the pre-migration game-data-fake-driven tree produced via real
- * computation, now canned directly since that computation belongs to these
- * services' own specs, not InsightsCommandService's.
+ * The fact services `buildFactTree` wires into leaves, each a `MockProxy`
+ * with a default resolved reply — the same title/description content the
+ * pre-migration game-data-fake-driven tree produced via real computation,
+ * now canned directly since that computation belongs to these services' own
+ * specs, not InsightsCommandService's.
  */
 function makeFactTreeMocks(): FactTreeMocks {
   const coachToplist = mock<CoachToplistService>();
