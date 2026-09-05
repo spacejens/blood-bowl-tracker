@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+/** How one characteristic is displayed under a rules set. */
 export type CharacteristicFormat =
   'absent' | 'bare' | 'plus' | 'plus_zero_legal';
 
