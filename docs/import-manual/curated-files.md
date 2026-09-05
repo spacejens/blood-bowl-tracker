@@ -98,6 +98,10 @@ generation's id on the one existing curated row** in
   that entry's `name` to the current name too. The after-other-importers phase
   overlays the position's name, so leaving the old spelling there silently
   renames the merged row back on every import.
+- `position-characteristics.json5` requires no change: each entry is keyed by
+  the position's `Name` external id, not a display name, so the renamed row's
+  merged identity (with both old and new ids registered) resolves the reference
+  correctly.
 - Leave a comment on the entry naming each source, its id, and which generation
   that id belongs to, so the next curator can tell a genuine rename from a
   spelling difference between the two sources.

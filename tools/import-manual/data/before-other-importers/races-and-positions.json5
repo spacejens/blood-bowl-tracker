@@ -453,7 +453,7 @@
       // 952, BB2025 roster) -- one roster slot renamed between rules-set
       // generations rather than a spelling difference between sources.
       // Registering every source's id here keeps BB2025 line-ups on this one
-      // row instead of creating a second, disconnected one.
+      // row instead of creating a second, disconnected one and the position's characteristics history would split in two.
       name: 'Dwarf Lineman',
       isStarPlayer: false,
       externalIds: [
@@ -751,7 +751,7 @@
       // BB2025 roster) -- one roster slot renamed between rules-set
       // generations rather than a spelling difference between sources.
       // Registering every source's id here keeps BB2025 line-ups on this one
-      // row instead of creating a second, disconnected one.
+      // row instead of creating a second, disconnected one and the position's characteristics history would split in two.
       name: 'Norse Raider',
       isStarPlayer: false,
       externalIds: [
@@ -930,7 +930,7 @@
       // Blitzer' (id 366 on the older rosters, id 1038 on the BB2025 roster)
       // -- TP issues a fresh position id per rules-set generation even when
       // the name does not change, so both ids are registered here to keep
-      // BB2025 line-ups on this one row.
+      // BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Skaven Blitzer',
       isStarPlayer: false,
       externalIds: [
@@ -945,7 +945,7 @@
       // 'Gutter Runner' (id 365 on the older rosters, id 1037 on the BB2025
       // roster) -- TP issues a fresh position id per rules-set generation
       // even when the name does not change, so both ids are registered here
-      // to keep BB2025 line-ups on this one row.
+      // to keep BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Gutter Runner',
       isStarPlayer: false,
       externalIds: [
@@ -960,7 +960,7 @@
       // Clanrat' (id 363 on the older rosters, id 1035 on the BB2025 roster)
       // -- TP issues a fresh position id per rules-set generation even when
       // the name does not change, so both ids are registered here to keep
-      // BB2025 line-ups on this one row.
+      // BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Skaven Clanrat',
       isStarPlayer: false,
       externalIds: [
@@ -975,7 +975,7 @@
       // Thrower' (id 364 on the older rosters, id 1036 on the BB2025 roster)
       // -- TP issues a fresh position id per rules-set generation even when
       // the name does not change, so both ids are registered here to keep
-      // BB2025 line-ups on this one row.
+      // BB2025 line-ups on this one row instead of creating a second, disconnected one.
       name: 'Skaven Thrower',
       isStarPlayer: false,
       externalIds: [
@@ -991,7 +991,7 @@
       // BB2025 roster) -- one roster slot renamed between rules-set
       // generations rather than a spelling difference between sources.
       // Registering every source's id here keeps BB2025 line-ups on this one
-      // row instead of creating a second, disconnected one. The bare name
+      // row instead of creating a second, disconnected one and the position's characteristics history would split in two. The bare name
       // 'Troll' is unambiguous because positions are scoped per race.
       name: 'Troll',
       isStarPlayer: false,
