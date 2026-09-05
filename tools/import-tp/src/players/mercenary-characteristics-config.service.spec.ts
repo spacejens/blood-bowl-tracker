@@ -62,6 +62,17 @@ describe('MercenaryCharacteristicsConfigService', () => {
     expect(curated?.get('DB2021')?.move).toBe(5);
   });
 
+  it('throws when two entries share the same positionName and rulesSetName', () => {
+    withMercenaryCharacteristics([
+      GIANT_MERCENARY_BB2020,
+      { ...GIANT_MERCENARY_BB2020, move: 5 },
+    ]);
+
+    expect(() => service.forPosition('Giant Mercenary')).toThrow(
+      'mercenaryCharacteristics: "Giant Mercenary" under rules set "BB2020" appears more than once',
+    );
+  });
+
   it('returns undefined for a mercenary position with no curated entry at all', () => {
     withMercenaryCharacteristics([GIANT_MERCENARY_BB2020]);
 

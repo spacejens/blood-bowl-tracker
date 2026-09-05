@@ -116,6 +116,12 @@ export class MercenaryCharacteristicsConfigService {
         byRulesSetName = new Map();
         byPositionName.set(positionName, byRulesSetName);
       }
+      if (byRulesSetName.has(rulesSetName)) {
+        throw new Error(
+          `mercenaryCharacteristics: "${positionName}" under rules set ` +
+            `"${rulesSetName}" appears more than once.`,
+        );
+      }
       byRulesSetName.set(rulesSetName, characteristics);
     });
 
