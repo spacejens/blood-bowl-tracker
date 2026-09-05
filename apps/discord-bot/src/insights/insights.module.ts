@@ -42,6 +42,7 @@ import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-topl
 import { MatchCategoryLabelService } from './facts/match-category-label.service';
 import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
+import { PositionToplistService } from './facts/position-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
@@ -100,6 +101,7 @@ const GAME_DATA_MODULES = [
     RandomInsightsScopeService,
     CoachToplistService,
     RaceToplistService,
+    PositionToplistService,
     TeamToplistService,
     PlayerToplistService,
     MatchCategoryLabelService,
@@ -141,6 +143,7 @@ const GAME_DATA_MODULES = [
     RandomInsightsScopeService,
     CoachToplistService,
     RaceToplistService,
+    PositionToplistService,
     TeamToplistService,
     PlayerToplistService,
     MatchCategoryLabelService,

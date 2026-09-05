@@ -13,6 +13,7 @@ import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
+import { PositionToplistService } from './facts/position-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
@@ -124,6 +125,9 @@ function deps(): FactTreeDeps {
   raceToplist.resolveMatchesLost.mockResolvedValue('race matches lost');
   raceToplist.resolveMatchesDrawn.mockResolvedValue('race matches drawn');
 
+  const positionToplist = mock<PositionToplistService>();
+  positionToplist.resolvePlayers.mockResolvedValue('position players');
+
   const expensiveMistakes = mock<ExpensiveMistakesToplistService>();
   expensiveMistakes.resolveTotal.mockResolvedValue('expensive mistakes total');
   expensiveMistakes.resolveBiggest.mockResolvedValue(
@@ -169,6 +173,7 @@ function deps(): FactTreeDeps {
     teamToplist,
     playerToplist,
     raceToplist,
+    positionToplist,
     expensiveMistakes,
     erasList,
     competitionGroupsList,
@@ -182,8 +187,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly sixty-two leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(62);
+  it('exposes exactly sixty-three leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(63);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -206,6 +211,7 @@ describe('buildFactTree', () => {
     ['race.toplist.matches.won', 'raceToplist', 'resolveMatchesWon'],
     ['race.toplist.matches.lost', 'raceToplist', 'resolveMatchesLost'],
     ['race.toplist.matches.drawn', 'raceToplist', 'resolveMatchesDrawn'],
+    ['position.toplist.players', 'positionToplist', 'resolvePlayers'],
   ] as const)('wires %s to %s.%s', async (path, dep, method) => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(buildFactTree(d), path);
@@ -984,7 +990,7 @@ describe('buildFactTree competition capabilities', () => {
 });
 
 describe('buildFactTree match category capabilities', () => {
-  it('excludes exactly the twelve leaves that are not scoped to matches', () => {
+  it('excludes exactly the thirteen leaves that are not scoped to matches', () => {
     const tree = buildFactTree(deps());
     const unsupported = factTreeUtils
       .collectLeaves(tree)
@@ -996,6 +1002,7 @@ describe('buildFactTree match category capabilities', () => {
         factTreeUtils.resolvePath(tree, 'team.toplist.eras.active'),
         factTreeUtils.resolvePath(tree, 'team.toplist.trophies.won'),
         factTreeUtils.resolvePath(tree, 'race.toplist.teams'),
+        factTreeUtils.resolvePath(tree, 'position.toplist.players'),
         factTreeUtils.resolvePath(tree, 'eras.list'),
         factTreeUtils.resolvePath(tree, 'trophies.list'),
         factTreeUtils.resolvePath(tree, 'competitionGroups.list'),
@@ -1008,7 +1015,7 @@ describe('buildFactTree match category capabilities', () => {
         ),
       ]),
     );
-    expect(unsupported).toHaveLength(12);
+    expect(unsupported).toHaveLength(13);
   });
 
   it('supports the match category on every other leaf', () => {
