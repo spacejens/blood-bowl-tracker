@@ -45,16 +45,22 @@ const playersTable = historyTrackedTable({
     // sets in sequence, so nothing here can resolve one unambiguously —
     // whichever caller needs one for validation supplies it explicitly.
     //
-    // The DEFAULT 0 on the four NOT NULL columns is temporary: it exists
-    // only so existing rows satisfy NOT NULL before the BBL and TP importers
-    // populate real values. 0 is not a legal value for any characteristic
-    // under any rules set, so it is purely a placeholder.
+    // The DEFAULT 0 on the four NOT NULL columns below (move, strength,
+    // agility, armour) is temporary: it exists only so existing rows satisfy
+    // NOT NULL before the BBL and TP importers populate real values. 0 is not
+    // a legal value for any of those four under any rules set, so for them it
+    // is purely a placeholder. This does NOT extend to `passing`, which is
+    // nullable, has no default, and for which 0 is a real value — see its own
+    // comment below.
     move: integer('move').notNull().default(0),
     strength: integer('strength').notNull().default(0),
     agility: integer('agility').notNull().default(0),
     // Nullable with no default, mirroring `position_rules_sets.passing`:
     // NULL permanently means "this player's rules set has no Passing
-    // characteristic" (an asserted absence), never "not yet known".
+    // characteristic" (an asserted absence), never "not yet known". A stored
+    // 0 is different again, and is a legitimate final value: the player
+    // structurally cannot pass (a BB2020 Kroxigor or Ogre), which the
+    // `plus_zero_legal` characteristic format renders as a bare "0".
     passing: integer('passing'),
     armour: integer('armour').notNull().default(0),
   },

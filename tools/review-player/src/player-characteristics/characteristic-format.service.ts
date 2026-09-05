@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-/** How one characteristic is displayed under a rules set. */
-export type CharacteristicFormat = 'absent' | 'bare' | 'plus';
+export type CharacteristicFormat =
+  'absent' | 'bare' | 'plus' | 'plus_zero_legal';
 
 /** What the report shows where there is no characteristic value to show. */
 export const NO_CHARACTERISTIC = '—';

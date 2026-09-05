@@ -12,7 +12,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
 
 /** How one characteristic is displayed under a rules set. */
-export type CharacteristicFormat = 'absent' | 'bare' | 'plus';
+export type CharacteristicFormat =
+  'absent' | 'bare' | 'plus' | 'plus_zero_legal';
 
 /** One era the race exists in. */
 export interface RaceEraRow {
