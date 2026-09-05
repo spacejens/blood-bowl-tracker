@@ -20,6 +20,7 @@ import type { FactScope } from './fact-scope';
 import type { ActionType, ConsequenceType } from './match-event-types';
 import { EXPENSIVE_MISTAKE_TYPES } from './match-event-types';
 import { MatchScopeFilterService } from './match-scope-filter.service';
+import type { TeamTopPlayer } from './team-top-player';
 
 /**
  * A role paired with the type set that role's filter operates over. Modelled
@@ -50,22 +51,6 @@ export interface CountMatchEventsOptions {
 export interface CountAllMatchEventsForTeamOptions {
   teamId: number;
   limit: number;
-}
-
-/**
- * One row of a team's top-players-by-match-events list. Carries the player's
- * position alongside the counts so a caller can tell a star player's hire
- * from a regular roster player without a second lookup per row — the deepdive
- * needs that to route the row's drill-down button to the star player deepdive
- * (whose id is a `positions.id`) rather than the per-team player one.
- */
-export interface TeamTopPlayer {
-  playerId: number;
-  name: string;
-  count: number;
-  positionId: number;
-  positionName: string;
-  isStarPlayer: boolean;
 }
 
 /** Options for the single-player, type-filtered event counter. */

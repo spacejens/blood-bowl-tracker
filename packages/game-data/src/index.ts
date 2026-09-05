@@ -101,10 +101,10 @@ export { CharacteristicFormatValidationService } from './shared/characteristic-f
 export type { CompetitionType } from './shared/competition-types';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
-export type { TeamTopPlayer } from './shared/match-event-counts.service';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
 export type { PlayerContextNames } from './shared/player-context-names.service';
 export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names.service';
+export type { TeamTopPlayer } from './shared/team-top-player';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';

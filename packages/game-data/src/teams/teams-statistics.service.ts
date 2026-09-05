@@ -15,7 +15,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
-import type { TeamTopPlayer } from '../shared/match-event-counts.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
   CASUALTY_CAUSED_TYPES,
@@ -33,6 +32,7 @@ import {
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
+import type { TeamTopPlayer } from '../shared/team-top-player';
 
 @Injectable()
 export class TeamsStatisticsService {
