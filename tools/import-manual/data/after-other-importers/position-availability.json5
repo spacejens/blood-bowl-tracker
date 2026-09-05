@@ -1240,7 +1240,10 @@
       ],
     },
     {
-      name: 'Warpstone Troll',
+      // Renamed 'Troll' in BB2025; this phase overlays the position's name,
+      // so it has to re-state the merged row's final name rather than the
+      // older spelling its Name id uses.
+      name: 'Troll',
       isStarPlayer: false,
       externalIds: [
         { system: 'Name', id: 'Underworld Denizens: Warpstone Troll' },
