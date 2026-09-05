@@ -534,11 +534,16 @@
       ],
     },
     {
-      // Halfling: BBL 'Hafling Treeman' / TP 'Altern Forest Treeman'
+      // Halfling: BBL 'Hafling Treeman' / TP 'Altern Forest Treeman' (id 300
+      // on the older rosters, id 972 on the BB2025 roster) -- TP issues a
+      // fresh position id per rules-set generation even when the name does
+      // not change, so both ids are registered here to keep BB2025 line-ups
+      // on this one row instead of creating a second, disconnected one.
       name: 'Altern Forest Treeman',
       isStarPlayer: false,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '169-8' },
+        { system: 'tourplay.net', id: '972' },
         { system: 'tourplay.net', id: '300' },
         { system: 'Name', id: 'Halfling: Altern Forest Treeman' },
       ],
