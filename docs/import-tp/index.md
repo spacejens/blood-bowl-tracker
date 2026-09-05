@@ -53,9 +53,19 @@ Top-level keys:
       files. TP's subdirectory names are its own slugs and don't necessarily
       match the era's display name. Every `identity.name` and every
       `dataSubdir` must be unique across the array.
+- `mercenaryCharacteristics` — curated characteristics for mercenary ("Big
+  Guy") hires (e.g. "Giant Mercenary"), which TP's own data never carries —
+  see the `TpPlayersImportService` entry below. Optional; an absent or empty
+  array just means no mercenary hire has been curated yet. An array of
+  entries, each:
+  - `positionName` — the mercenary position's name, matching the inline
+    `fallbackPositionName` TP embeds on the hire.
+  - `rulesSetName` — the rules set this entry's characteristics apply under.
+  - `move`, `strength`, `agility`, `passing`, `armour` — the position's
+    characteristics under that rules set.
 
 See `import-tp-config.example.json5` for a worked example with real era
-names, rule sets, and dates.
+names, rule sets, dates, and mercenary characteristics.
 
 Rule-set names and era dates are config-supplied because TP's data carries
 only an opaque numeric rule-set code, not a name or a date range. The tool
@@ -245,8 +255,9 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire
   carries no `ma/st/ag/pa/av` — both the mercenary Position's
   `position_rules_sets` rows and each hire's own characteristics come from
-  `MercenaryCharacteristicsConfigService`, a curated, source-controlled table
-  (mercenary position name → rules-set name → characteristics) applied by
+  `MercenaryCharacteristicsConfigService`, which reads the curated
+  `mercenaryCharacteristics` setting in import-tp-config.json5 (mercenary
+  position name → rules-set name → characteristics) and is applied by
   `TpMercenaryCharacteristicsService`. The position sync runs once per
   distinct mercenary name per import run; the per-hire fallback runs only when
   the hire embedded no characteristics of its own, so a future TP payload that
