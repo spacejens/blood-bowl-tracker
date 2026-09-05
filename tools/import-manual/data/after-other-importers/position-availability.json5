@@ -45,9 +45,11 @@
 // runs later and the upsert overlays whatever name is given here. A future
 // rename curated in a before-phase file for a position also listed below
 // would therefore be silently reverted by this file on the next import.
-// Currently inert -- no position name is curated in both places -- but
-// nothing here tests for the overlap, so it is worth knowing about before
-// adding one.
+// This overlap is active today for four positions renamed across rules-set
+// generations -- Dwarf Lineman, Skink Lineman, Norse Raider, and Troll --
+// whose before-phase entry in races-and-positions.json5 and after-phase
+// entry here both re-state the same current name on purpose, so the two
+// files agree and neither reverts the other's rename.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
