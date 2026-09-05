@@ -224,8 +224,7 @@ played:` followed by their top five teams by matches played, one line per
   AV <armour>` — the same shape and formatting rules as the position
   deepdive's stat lines (each value in that rules set's own recorded format,
   `PA` omitted entirely for a rules set with no Passing characteristic, a
-  stored zero rendering as a dash), since a star is stored as a position row
-  and the two views share the same rendering. A star with no characteristics
+  stored zero rendering as a dash). A star with no characteristics
   recorded for any rules set shows a short message instead of a stat-line
   list. Then a blank line and one line per team that has ever hired them,
   most-hires-first (ties broken by team name — the query itself supplies this
