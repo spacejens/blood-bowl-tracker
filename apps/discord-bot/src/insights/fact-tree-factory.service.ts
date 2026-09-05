@@ -9,6 +9,7 @@ import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
+import { PositionToplistService } from './facts/position-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
@@ -30,6 +31,7 @@ export class FactTreeFactoryService {
     private readonly teamToplist: TeamToplistService,
     private readonly playerToplist: PlayerToplistService,
     private readonly raceToplist: RaceToplistService,
+    private readonly positionToplist: PositionToplistService,
     private readonly expensiveMistakes: ExpensiveMistakesToplistService,
     private readonly erasList: ErasListService,
     private readonly competitionGroupsList: CompetitionGroupsListService,
@@ -47,6 +49,7 @@ export class FactTreeFactoryService {
       teamToplist: this.teamToplist,
       playerToplist: this.playerToplist,
       raceToplist: this.raceToplist,
+      positionToplist: this.positionToplist,
       expensiveMistakes: this.expensiveMistakes,
       erasList: this.erasList,
       competitionGroupsList: this.competitionGroupsList,

@@ -37,15 +37,16 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but twelve facts support
+replies with a per-scope refusal message. All but thirteen facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
-`race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`,
+`race.toplist.teams`, `position.toplist.players`,
+`coach.toplist.eras.active`, `team.toplist.eras.active`,
 `team.toplist.trophies.won`, `eras.list`, `trophies.list`,
 `competitionGroups.list`, `starPlayers.list`,
 `starPlayers.toplist.hires.total` and
-`starPlayers.toplist.hires.distinctTeams` — which list or count teams, eras,
-trophies, trophy awards, competition groups or star player hires rather than
-matches —
+`starPlayers.toplist.hires.distinctTeams` — which list or count teams,
+rostered players, eras, trophies, trophy awards, competition groups or star
+player hires rather than matches —
 and `stats`, which is excluded deliberately: only two of the dozen counts it
 reports (matches and match events) have a category at all, so a
 category-scoped `stats` would show two scoped numbers beside ten all-time
@@ -282,6 +283,16 @@ button, in the same order as the list, that opens that player's
   played by teams of that race. A drawn match between two teams of the same
   race adds 2 to that race's total, matching how `race.toplist.matches.played`
   counts. Same filtering as `race.toplist.matches.played`.
+- `position.toplist.players` — positions ranked by number of players who have
+  held them, most first. Each row reads `<position> (<race>)`, because
+  position names repeat across races — nearly every race has a "Lineman" — so
+  the name alone would not say which roster a row means. Star positions are
+  excluded: their availability spans every race that ever fielded them, so
+  there is no single race to put in that label. Each listed position also
+  gets a button that opens that position's [`/deepdive`](deepdive.md) detail
+  view. Supports league and era filtering (both scope the count through the
+  player's own team era — when they actually played, not when the rules made
+  the position available), but not competition or match-category filtering.
 - `starPlayers.list` — a single embed listing every star player that has been
   hired at least once (title "Star Players"), name-ascending. A star position
   that has never been hired has nothing to show and is excluded. Each listed

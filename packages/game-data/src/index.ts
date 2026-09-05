@@ -78,6 +78,7 @@ export { PositionRulesSetsService } from './position-rules-sets/position-rules-s
 export { PositionsModule } from './positions/positions.module';
 export type {
   PositionHeader,
+  PositionPlayerCount,
   PositionTopPlayer,
   SyncPositionRaceErasData,
 } from './positions/positions.service';
