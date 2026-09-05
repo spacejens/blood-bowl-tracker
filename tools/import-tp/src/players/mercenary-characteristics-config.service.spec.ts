@@ -35,14 +35,14 @@ describe('MercenaryCharacteristicsConfigService', () => {
     service = moduleRef.get(MercenaryCharacteristicsConfigService);
   });
 
-  function withMercenaryCharacteristics(entries: unknown): void {
+  function withMercenaries(entries: unknown): void {
     config.get.mockImplementation((key: string) =>
-      key === 'mercenaryCharacteristics' ? entries : undefined,
+      key === 'mercenaries' ? entries : undefined,
     );
   }
 
   it('returns every curated rules set for a known mercenary position', () => {
-    withMercenaryCharacteristics([GIANT_MERCENARY_BB2020]);
+    withMercenaries([GIANT_MERCENARY_BB2020]);
 
     const curated = service.forPosition('Giant Mercenary');
 
@@ -51,7 +51,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('accumulates more than one rules set for the same mercenary position', () => {
-    withMercenaryCharacteristics([
+    withMercenaries([
       GIANT_MERCENARY_BB2020,
       { ...GIANT_MERCENARY_BB2020, rulesSetName: 'DB2021', move: 5 },
     ]);
@@ -63,30 +63,30 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('throws when two entries share the same positionName and rulesSetName', () => {
-    withMercenaryCharacteristics([
+    withMercenaries([
       GIANT_MERCENARY_BB2020,
       { ...GIANT_MERCENARY_BB2020, move: 5 },
     ]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'mercenaryCharacteristics: "Giant Mercenary" under rules set "BB2020" appears more than once',
+      'mercenaries: "Giant Mercenary" under rules set "BB2020" appears more than once',
     );
   });
 
   it('returns undefined for a mercenary position with no curated entry at all', () => {
-    withMercenaryCharacteristics([GIANT_MERCENARY_BB2020]);
+    withMercenaries([GIANT_MERCENARY_BB2020]);
 
     expect(service.forPosition('Bogus Mercenary')).toBeUndefined();
   });
 
-  it('returns an empty table when mercenaryCharacteristics is not set', () => {
-    withMercenaryCharacteristics(undefined);
+  it('returns an empty table when mercenaries is not set', () => {
+    withMercenaries(undefined);
 
     expect(service.forPosition('Giant Mercenary')).toBeUndefined();
   });
 
   it('returns the curated characteristics for a known position and rules set', () => {
-    withMercenaryCharacteristics([GIANT_MERCENARY_BB2020]);
+    withMercenaries([GIANT_MERCENARY_BB2020]);
 
     expect(
       service.forPositionAndRulesSet({
@@ -103,7 +103,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('returns undefined for a known position under an uncurated rules set', () => {
-    withMercenaryCharacteristics([GIANT_MERCENARY_BB2020]);
+    withMercenaries([GIANT_MERCENARY_BB2020]);
 
     expect(
       service.forPositionAndRulesSet({
@@ -114,7 +114,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('returns undefined for an unknown position under a known rules set', () => {
-    withMercenaryCharacteristics([GIANT_MERCENARY_BB2020]);
+    withMercenaries([GIANT_MERCENARY_BB2020]);
 
     expect(
       service.forPositionAndRulesSet({
@@ -124,16 +124,16 @@ describe('MercenaryCharacteristicsConfigService', () => {
     ).toBeUndefined();
   });
 
-  it('throws when mercenaryCharacteristics is not an array', () => {
-    withMercenaryCharacteristics({ not: 'an array' });
+  it('throws when mercenaries is not an array', () => {
+    withMercenaries({ not: 'an array' });
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
-      'mercenaryCharacteristics in import-tp-config.json5 must be an array',
+      'mercenaries in import-tp-config.json5 must be an array',
     );
   });
 
   it('throws when an entry is not an object', () => {
-    withMercenaryCharacteristics(['Giant Mercenary']);
+    withMercenaries(['Giant Mercenary']);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
       'MERCENARY_CHARACTERISTICS[0] must be an object',
@@ -141,9 +141,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('throws when positionName is empty', () => {
-    withMercenaryCharacteristics([
-      { ...GIANT_MERCENARY_BB2020, positionName: '' },
-    ]);
+    withMercenaries([{ ...GIANT_MERCENARY_BB2020, positionName: '' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
       'MERCENARY_CHARACTERISTICS[0].positionName must be a non-empty string',
@@ -151,9 +149,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('throws when rulesSetName is empty', () => {
-    withMercenaryCharacteristics([
-      { ...GIANT_MERCENARY_BB2020, rulesSetName: '' },
-    ]);
+    withMercenaries([{ ...GIANT_MERCENARY_BB2020, rulesSetName: '' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
       'MERCENARY_CHARACTERISTICS[0].rulesSetName must be a non-empty string',
@@ -161,7 +157,7 @@ describe('MercenaryCharacteristicsConfigService', () => {
   });
 
   it('throws when a characteristic is not a number', () => {
-    withMercenaryCharacteristics([{ ...GIANT_MERCENARY_BB2020, move: 'six' }]);
+    withMercenaries([{ ...GIANT_MERCENARY_BB2020, move: 'six' }]);
 
     expect(() => service.forPosition('Giant Mercenary')).toThrow(
       'MERCENARY_CHARACTERISTICS[0].move must be a positive whole number',

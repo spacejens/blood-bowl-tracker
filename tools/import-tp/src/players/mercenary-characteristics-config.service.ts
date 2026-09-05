@@ -31,12 +31,15 @@ export interface MercenaryCharacteristics {
  * `ma/st/ag/pa/av` either. Without this table both the mercenary Position and
  * every hire of it would be left with no characteristics at all.
  *
- * Supplied via the top-level `mercenaryCharacteristics` setting in
- * import-tp-config.json5 -- the same config file (and the same "supply what
- * TP's data doesn't carry" role) `league.eras` already plays for rule sets and
- * dates. The committed `import-tp-config.example.json5` carries the real,
- * currently-known entries as its example value, so a developer copying it
- * starts with accurate data rather than a placeholder.
+ * Supplied via the top-level `mercenaries` setting in import-tp-config.json5
+ * -- the same config file (and the same "supply what TP's data doesn't carry"
+ * role) `league.eras` already plays for rule sets and dates. Named for the
+ * section, not the data it happens to hold today: characteristics are the
+ * only mercenary data curated so far, but the section is meant to hold
+ * whatever else a future mercenary needs. The committed
+ * `import-tp-config.example.json5` carries the real, currently-known entries
+ * as its example value, so a developer copying it starts with accurate data
+ * rather than a placeholder.
  *
  * Adding a rules set, or a newly-observed mercenary name, is one more entry in
  * the config -- no code change. A mercenary name with no entry at all, or
@@ -78,16 +81,16 @@ export class MercenaryCharacteristicsConfigService {
   }
 
   /**
-   * Parses `mercenaryCharacteristics` from import-tp-config.json5 into
-   * position name -> rules-set name -> characteristics. An absent setting is
-   * valid (no mercenary hire curated yet) and yields an empty table.
+   * Parses `mercenaries` from import-tp-config.json5 into position name ->
+   * rules-set name -> characteristics. An absent setting is valid (no
+   * mercenary hire curated yet) and yields an empty table.
    */
   private readTable(): Map<string, Map<string, MercenaryCharacteristics>> {
     const byPositionName = new Map<
       string,
       Map<string, MercenaryCharacteristics>
     >();
-    const raw = this.config.get('mercenaryCharacteristics');
+    const raw = this.config.get('mercenaries');
     if (raw === undefined) {
       return byPositionName;
     }
@@ -95,8 +98,8 @@ export class MercenaryCharacteristicsConfigService {
     const shell = mercenaryCharacteristicsShellSchema.safeParse(raw);
     if (!shell.success) {
       throw new Error(
-        'mercenaryCharacteristics in import-tp-config.json5 must be an ' +
-          'array of mercenary characteristics entries.',
+        'mercenaries in import-tp-config.json5 must be an array of ' +
+          'mercenary characteristics entries.',
       );
     }
 
@@ -118,8 +121,8 @@ export class MercenaryCharacteristicsConfigService {
       }
       if (byRulesSetName.has(rulesSetName)) {
         throw new Error(
-          `mercenaryCharacteristics: "${positionName}" under rules set ` +
-            `"${rulesSetName}" appears more than once.`,
+          `mercenaries: "${positionName}" under rules set "${rulesSetName}" ` +
+            'appears more than once.',
         );
       }
       byRulesSetName.set(rulesSetName, characteristics);

@@ -27,8 +27,8 @@ const nonNegativeIntegerSchema = z
   .min(0, NOT_A_NONNEGATIVE_INTEGER);
 
 /**
- * One entry of the top-level `mercenaryCharacteristics` setting in
- * import-tp-config.json5: one mercenary ("Big Guy") position's
+ * One entry of the top-level `mercenaries` setting in import-tp-config.json5:
+ * one mercenary ("Big Guy") position's
  * characteristics under one rules set. TP supplies no characteristics for a
  * mercenary hire anywhere -- not in a roster catalog, not on the
  * match-embedded hire itself -- so this is curated, config-supplied data; see
@@ -50,10 +50,10 @@ export const mercenaryCharacteristicsEntrySchema = z.object(
 );
 
 /**
- * The `mercenaryCharacteristics` array as
- * `MercenaryCharacteristicsConfigService` reads it: a (possibly empty) array,
- * whose elements are parsed one at a time by `mercenaryCharacteristicsEntrySchema`
- * so each error can name `MERCENARY_CHARACTERISTICS[i]` rather than a path
+ * The `mercenaries` array as `MercenaryCharacteristicsConfigService` reads
+ * it: a (possibly empty) array, whose elements are parsed one at a time by
+ * `mercenaryCharacteristicsEntrySchema` so each error can name
+ * `MERCENARY_CHARACTERISTICS[i]` rather than a path
  * through this array. Unlike `league.eras`, an empty or entirely absent
  * setting is valid -- it just means no mercenary hire has been curated yet,
  * which the config-reading service turns into an empty lookup table rather
