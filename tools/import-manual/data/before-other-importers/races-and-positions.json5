@@ -519,7 +519,7 @@
       ],
     },
     {
-      // Goblin: BBL 'Ooligan' / TP ''Ooligan' (id 294 on the older rosters,
+      // Goblin: BBL 'Ooligan' / TP '’Ooligan' (id 294 on the older rosters,
       // id 964 on the BB2025 roster) -- TP issues a fresh position id per
       // rules-set generation even when the name does not change, so both ids
       // are registered here to keep BB2025 line-ups on this one row instead
