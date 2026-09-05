@@ -251,6 +251,22 @@ describe('TrophyAwardsService', () => {
     expect(chains).toHaveLength(3);
   });
 
+  it('throws when the insert reports success but returns no row', async () => {
+    const { db, chains } = await build(teamTrophyRow, matchingCompetitionRow, [
+      // An empty array from `.returning()` on a successful insert is not a
+      // real Postgres behavior, but guards against it defensively - see the
+      // check right after the insert.
+    ]);
+
+    await expect(service.upsert(teamAward)).rejects.toThrow(
+      /reported success but returned no row/,
+    );
+    // No fallback lookup ran: an empty `.returning()` is not the unique-
+    // violation conflict path, so it must not be reinterpreted as one.
+    expect(db.insert).toHaveBeenCalledWith(trophyAwards);
+    expect(chains).toHaveLength(3);
+  });
+
   it('throws when the insert conflicts but no matching row can be read back', async () => {
     const { db } = await build(
       teamTrophyRow,
