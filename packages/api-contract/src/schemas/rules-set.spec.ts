@@ -44,13 +44,17 @@ describe('rules set schemas', () => {
     expect(parsed.name).toBeUndefined();
   });
 
-  it('CharacteristicFormatSchema accepts exactly the three formats', () => {
+  it('CharacteristicFormatSchema accepts exactly the four formats', () => {
     expect(CharacteristicFormatSchema.options).toEqual([
       'absent',
       'bare',
       'plus',
+      'plus_zero_legal',
     ]);
     expect(() => CharacteristicFormatSchema.parse('plus')).not.toThrow();
+    expect(() =>
+      CharacteristicFormatSchema.parse('plus_zero_legal'),
+    ).not.toThrow();
     expect(() => CharacteristicFormatSchema.parse('star')).toThrow();
   });
 
