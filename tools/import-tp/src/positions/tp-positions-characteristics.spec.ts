@@ -338,6 +338,77 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     expect(errors[0].message).toContain('Conflicting characteristics');
   });
 
+  it('merges characteristics from three roster-slot names that resolve to one position', async () => {
+    const { service } = await makeService({
+      ...upsertAndSyncMocks(70),
+      eraIdsByName: new Map([
+        ['Fourth era', 100],
+        ['Fifth era', 200],
+        ['Sixth era', 300],
+      ]),
+      rulesSetIdByEraName: new Map([
+        ['Fourth era', 900],
+        ['Fifth era', 901],
+        ['Sixth era', 902],
+      ]),
+    });
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 297,
+              name: 'Dwarf Runner Lineman',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fifth era', {
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 969,
+              name: 'Dwarf Runner',
+              characteristics: SLAYER,
+            },
+          ],
+          id: 2,
+        }),
+        rosterEntry('Sixth era', {
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 1200,
+              name: 'Dwarf Runner Veteran',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 3,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([
+        [
+          70,
+          new Map([
+            [900, RUNNER],
+            [901, SLAYER],
+            [902, RUNNER_ALT],
+          ]),
+        ],
+      ]),
+    );
+  });
+
   it('accumulates star position characteristics the same way', async () => {
     const { service } = await makeService(upsertAndSyncMocks(80));
 
