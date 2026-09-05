@@ -44,30 +44,6 @@ export interface CountMatchEventsOptions {
   limit: number;
 }
 
-/**
- * Options for the team-scoped, type-unfiltered per-player counter.
- */
-export interface CountAllMatchEventsForTeamOptions {
-  teamId: number;
-  limit: number;
-}
-
-/**
- * One row of a team's top-players-by-match-events list. Carries the player's
- * position alongside the counts so a caller can tell a star player's hire
- * from a regular roster player without a second lookup per row — the deepdive
- * needs that to route the row's drill-down button to the star player deepdive
- * (whose id is a `positions.id`) rather than the per-team player one.
- */
-export interface TeamTopPlayer {
-  playerId: number;
-  name: string;
-  count: number;
-  positionId: number;
-  positionName: string;
-  isStarPlayer: boolean;
-}
-
 /** Options for the single-player, type-filtered event counter. */
 export interface CountMatchEventsForPlayerOptions {
   playerId: number;
@@ -118,9 +94,9 @@ export class MatchEventCountsService {
    * slots of one global ranking — and stars, being the strongest players in the
    * game, tend to dominate these rankings outright. The filter lives here rather
    * than in the shared `matchEventFilter` because the per-team and per-coach
-   * counters do not join `players` at all, and `countMatchEventsForPlayer` /
-   * `countAllMatchEventsByPlayerForTeam` deliberately keep stars (see the design
-   * spec's "Deliberately left unchanged").
+   * counters do not join `players` at all, and `countMatchEventsForPlayer`
+   * deliberately keeps stars (see the design spec's "Deliberately left
+   * unchanged").
    */
   async countMatchEventsByPlayer(
     options: CountMatchEventsOptions,
@@ -242,53 +218,13 @@ export class MatchEventCountsService {
   }
 
   /**
-   * Every match event a team's players took part in as the acting player,
-   * counted per player and ordered most-first, capped to `limit`. Unlike
-   * `countMatchEventsByPlayer` this applies no action/consequence-type filter —
-   * it totals events of every type together — and scopes to a single team via
-   * the acting side's team-era. Kept as a separate method (rather than an
-   * optional type filter on the shared `MatchEventSelector`) so that union's
-   * role/type-set safety stays intact for the existing scoped counters.
-   */
-  async countAllMatchEventsByPlayerForTeam(
-    options: CountAllMatchEventsForTeamOptions,
-  ): Promise<TeamTopPlayer[]> {
-    const { teamId, limit } = options;
-    return this.db
-      .select({
-        playerId: players.id,
-        name: players.name,
-        count: count(matchEvents.id),
-        positionId: positions.id,
-        positionName: positions.name,
-        isStarPlayer: positions.isStarPlayer,
-      })
-      .from(matchEvents)
-      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(positions, eq(positions.id, players.positionId))
-      .where(eq(teams.id, teamId))
-      .groupBy(
-        players.id,
-        players.name,
-        positions.id,
-        positions.name,
-        positions.isStarPlayer,
-      )
-      .orderBy(desc(count(matchEvents.id)))
-      .limit(limit);
-  }
-
-  /**
    * Match events matching the selector for one specific player, returned as a
    * single total. Shares the join graph of `countMatchEventsByPlayer` but adds
    * an `eq(players.id, playerId)` filter and returns a scalar rather than a
    * per-player breakdown — the shape the player deepdive needs. Kept separate
-   * from `countMatchEventsByPlayer` for the same reason
-   * `countAllMatchEventsByPlayerForTeam` is: distinct result shape, not worth
-   * parameterizing over.
+   * from `countMatchEventsByPlayer` because the result shape differs — a
+   * scalar, not a per-player breakdown — which is not worth parameterizing
+   * over.
    */
   async countMatchEventsForPlayer(
     options: CountMatchEventsForPlayerOptions,

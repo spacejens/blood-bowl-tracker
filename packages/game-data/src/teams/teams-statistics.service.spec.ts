@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayersService } from '../players/players.service';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
@@ -33,6 +34,7 @@ describe('TeamsStatisticsService', () => {
   let service: TeamsStatisticsService;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
+  let players: MockProxy<PlayersService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -44,6 +46,7 @@ describe('TeamsStatisticsService', () => {
         TeamsStatisticsService,
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
+        { provide: PlayersService, useValue: players },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -54,32 +57,29 @@ describe('TeamsStatisticsService', () => {
   beforeEach(() => {
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
+    players = mock<PlayersService>();
   });
 
-  describe('getTopPlayersByMatchEventCount', () => {
-    it('asks MatchEventCountsService for the team, capped to the limit, and returns its rows', async () => {
+  describe('getTopPlayersByTotalSpp', () => {
+    it('asks PlayersService for the team, capped to the limit, and returns its rows', async () => {
       const rows = [
         {
           playerId: 1,
           name: 'Griff',
-          count: 20,
+          count: 42,
           positionId: 30,
           positionName: 'Blitzer',
           isStarPlayer: false,
         },
       ];
-      matchEventCounts.countAllMatchEventsByPlayerForTeam.mockResolvedValue(
-        rows,
-      );
+      players.topPlayersByTotalSppForTeam.mockResolvedValue(rows);
       await build();
 
-      await expect(
-        service.getTopPlayersByMatchEventCount(7, 10),
-      ).resolves.toEqual(rows);
+      await expect(service.getTopPlayersByTotalSpp(7, 10)).resolves.toEqual(
+        rows,
+      );
 
-      expect(
-        matchEventCounts.countAllMatchEventsByPlayerForTeam,
-      ).toHaveBeenCalledWith({ teamId: 7, limit: 10 });
+      expect(players.topPlayersByTotalSppForTeam).toHaveBeenCalledWith(7, 10);
     });
   });
 

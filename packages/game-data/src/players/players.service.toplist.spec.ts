@@ -31,6 +31,7 @@ import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
@@ -241,5 +242,83 @@ describe('PlayersService toplist queries', () => {
       21,
     );
     expect(db.select).not.toHaveBeenCalled();
+  });
+
+  describe('topPlayersByTotalSppForTeam', () => {
+    it('returns the team rows the query resolves to, capped to the limit', async () => {
+      const rows = [
+        {
+          playerId: 5,
+          name: 'Griff',
+          count: 42,
+          positionId: 60,
+          positionName: 'Blitzer',
+          isStarPlayer: false,
+        },
+        {
+          playerId: 8,
+          name: 'Grim',
+          count: 17,
+          positionId: 61,
+          positionName: 'Runner',
+          isStarPlayer: false,
+        },
+      ];
+      const { chains } = await build(rows);
+
+      await expect(service.topPlayersByTotalSppForTeam(7, 10)).resolves.toEqual(
+        rows,
+      );
+
+      expect(chains[0].limit).toHaveBeenCalledWith(10);
+    });
+
+    it('scopes to the given team, skips null totals and excludes star players', async () => {
+      const { chains } = await build([]);
+
+      await service.topPlayersByTotalSppForTeam(7, 10);
+
+      // The IS NOT NULL guard binds no value; the team id and the star-player
+      // exclusion each bind one.
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        7,
+        false,
+      ]);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'players.spp_total',
+        'teams.id',
+        'positions.is_star_player',
+      ]);
+    });
+
+    it('reaches the team through the player team-era, so every era counts', async () => {
+      const { chains } = await build([]);
+
+      await service.topPlayersByTotalSppForTeam(7, 10);
+
+      // players -> teamEras -> teams -> positions
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      const joinConditions = chains[0].innerJoin.mock.calls.map((call) =>
+        extractJoinColumns(call[1]),
+      );
+      expect(joinConditions).toEqual([
+        ['team_eras.id', 'players.team_era_id'],
+        ['teams.id', 'team_eras.team_id'],
+        ['positions.id', 'players.position_id'],
+      ]);
+    });
+
+    it('orders by the stored SPP total descending with no secondary tiebreak', async () => {
+      const { chains } = await build([]);
+
+      await service.topPlayersByTotalSppForTeam(7, 10);
+
+      expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+      expect(chains[0].orderBy.mock.calls[0]).toHaveLength(1);
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy))).toEqual([
+        'players.spp_total',
+      ]);
+      expect(sqlText(firstCallArg(chains[0].orderBy))).toContain(' desc');
+    });
   });
 });

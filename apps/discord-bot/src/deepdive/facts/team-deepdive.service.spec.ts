@@ -115,7 +115,7 @@ describe('TeamDeepdiveService', () => {
             'Eras: None recorded',
             'Career: 2021-09-01 – 2023-06-10',
             '',
-            'Top players by match events:',
+            'Top players by SPP:',
             '1. Griff — 20',
             '1. Morg — 11',
           ].join('\n'),
@@ -202,7 +202,7 @@ describe('TeamDeepdiveService', () => {
             'Eras: BB2016, BB2020',
             'Career: 2021-09-01 – 2023-06-10',
             '',
-            'Top players by match events:',
+            'Top players by SPP:',
             '1. Griff — 20',
           ].join('\n'),
         },
@@ -437,7 +437,7 @@ describe('TeamDeepdiveService', () => {
         },
       ],
     });
-    expect(teams.getTopPlayersByMatchEventCount).not.toHaveBeenCalled();
+    expect(teams.getTopPlayersByTotalSpp).not.toHaveBeenCalled();
   });
 
   // The no-matches early return builds its own components (header-only, since
@@ -608,6 +608,10 @@ describe('TeamDeepdiveService', () => {
             positionName: 'Blitzer',
             isStarPlayer: false,
           },
+          // The team SPP query excludes star players, but `TeamTopPlayer` is
+          // the shared row shape and `PlayerRowButtonService` routes on the
+          // flag regardless of which query produced the row — this case pins
+          // that routing down.
           {
             playerId: 8,
             name: 'Morg',
@@ -706,7 +710,7 @@ describe('TeamDeepdiveService', () => {
       'Season 4 trophies:',
       'Season 4 Major (Spike! Cup)',
       '',
-      'Top players by match events:',
+      'Top players by SPP:',
       '1. Griff — 20',
     ]);
   });
@@ -829,7 +833,7 @@ describe('TeamDeepdiveService', () => {
       'Eras: None recorded',
       'Career: 2021-09-01 – 2023-06-10',
       '',
-      'Top players by match events:',
+      'Top players by SPP:',
     ]);
     // A confirmed zero total means there is nothing left to list, so the list
     // query is never issued.

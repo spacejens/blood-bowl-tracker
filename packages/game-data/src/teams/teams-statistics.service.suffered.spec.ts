@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayersService } from '../players/players.service';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import {
@@ -20,6 +21,7 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   let service: TeamsStatisticsService;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
+  let players: MockProxy<PlayersService>;
 
   async function build(): Promise<void> {
     const moduleRef = await Test.createTestingModule({
@@ -27,6 +29,7 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
         TeamsStatisticsService,
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
+        { provide: PlayersService, useValue: players },
         { provide: DB, useValue: mock<Db>() },
       ],
     }).compile();
@@ -36,6 +39,7 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   beforeEach(() => {
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
+    players = mock<PlayersService>();
   });
 
   describe('toplist queries', () => {

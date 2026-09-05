@@ -177,8 +177,6 @@ export function makeTeams(options: {
   teams.findById.mockResolvedValue(options.team);
   teams.listEras.mockResolvedValue(options.eras ?? []);
   teams.getCareerSpan.mockResolvedValue(options.span);
-  teams.getTopPlayersByMatchEventCount.mockResolvedValue(
-    options.topPlayers ?? [],
-  );
+  teams.getTopPlayersByTotalSpp.mockResolvedValue(options.topPlayers ?? []);
   return teams;
 }
