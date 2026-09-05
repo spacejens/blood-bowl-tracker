@@ -40,6 +40,7 @@ import {
 } from '../shared/match-event-types';
 import type { PlayerContextNames } from '../shared/player-context-names.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
+import type { TeamTopPlayer } from '../shared/team-top-player';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
@@ -525,6 +526,62 @@ export class PlayersService {
           scope.eraId === undefined
             ? undefined
             : eq(teamEras.eraId, scope.eraId),
+          eq(positions.isStarPlayer, false),
+        ),
+      )
+      .orderBy(desc(players.sppTotal))
+      .limit(limit);
+  }
+
+  /**
+   * One team's players ranked by total Star Player Points, most first.
+   *
+   * Uses the stored `players.spp_total` — the same number the player deepdive
+   * shows for that player — rather than a per-event sum, so the two views can
+   * never disagree. The stored total also carries `players.spp_adjustment`
+   * (SPP granted outside the normal per-event flow), which an event sum would
+   * silently drop. A NULL total means no source has populated one, so there is
+   * nothing to rank and the player is excluded.
+   *
+   * The team is reached through the player's own `team_era`, with no era
+   * filter, so the ranking spans every era/season the team has played.
+   *
+   * Star players are excluded, matching every other SPP ranking here: each
+   * hire of a star is its own `players` row, so one star would otherwise
+   * occupy several of the five slots on a single team's list. `isStarPlayer`
+   * is still selected (and is therefore always `false` here) because
+   * `TeamTopPlayer` is the shared row shape the deepdive's drill-down button
+   * routing consumes.
+   *
+   * Ordered by the stored total alone — no secondary tiebreak — matching
+   * `topPlayersByTotalSpp` and `SppTotalsService.topPlayersBySppSum`. Equal
+   * totals come back in whatever order the database produces, and the caller
+   * groups them into one rank.
+   */
+  topPlayersByTotalSppForTeam(
+    teamId: number,
+    limit: number,
+  ): Promise<TeamTopPlayer[]> {
+    // Typed through sql<number> because the column is nullable in general;
+    // the isNotNull guard below is what makes every returned row a number.
+    const total = sql<number>`${players.sppTotal}`;
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: total,
+        positionId: positions.id,
+        positionName: positions.name,
+        isStarPlayer: positions.isStarPlayer,
+      })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(
+        and(
+          isNotNull(players.sppTotal),
+          eq(teams.id, teamId),
           eq(positions.isStarPlayer, false),
         ),
       )
