@@ -66,6 +66,48 @@ real-world entity differently:
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
 
+### Position renamed across rules-set generations
+
+TourPlay assigns a **fresh numeric position id for every rules-set generation**
+of a roster — whether or not the position's name changed. Blood Bowl also
+renames the occasional roster slot at a rules-set boundary while it stays the
+same slot: Lizardmen's "Skink Runner Lineman" became "Skink Lineman" in BB2025,
+Dwarf's "Dwarf Blocker Lineman" became "Dwarf Lineman", Norse's "Norse Raider
+Lineman" became "Norse Raider", and Underworld Denizens' "Underworld Troll"
+became "Troll".
+
+Position matching is strictly by external id, never by name text, so an
+unregistered new-generation id creates a brand new, disconnected `positions`
+row. The position's characteristics history then splits across two rows, and
+[review-race](../review-race/index.md) reports "missing" for every rules set
+the other row's era does not cover — even though it is genuinely one position.
+
+The fix, and the convention for any future rename, is to register **every
+generation's id on the one existing curated row** in
+`races-and-positions.json5` rather than letting a second row appear:
+
+- Add the new id to the existing entry's `externalIds`; never remove the older
+  one. Order the array BBL id, newest TP id, older TP id(s), `Name` id.
+- Where the name changed, set the entry's `name` to the **current** name. The
+  older name survives only in the entry's `Name` external id, which must stay
+  exactly as it is: `position-characteristics.json5` and
+  `position-availability.json5` reference that id, and `tools/import-bbl`
+  rebuilds the same id at import time.
+- If the renamed position also appears in `position-availability.json5`, set
+  that entry's `name` to the current name too. The after-other-importers phase
+  overlays the position's name, so leaving the old spelling there silently
+  renames the merged row back on every import.
+- Leave a comment on the entry naming each source, its id, and which generation
+  that id belongs to, so the next curator can tell a genuine rename from a
+  spelling difference between the two sources.
+
+Only merge ids you can positively confirm — same race, same roster slot, same
+characteristics — against locally downloaded source data. An ambiguous rename is
+deliberately left unpaired rather than guessed at, for the same reason
+`star-players.json5` leaves ambiguous star names unmerged: a wrong guess
+silently conflates two different positions' histories, which is far harder to
+notice and undo than a missing merge.
+
 ## Known after-other-importers cleanup files
 
 `data/after-other-importers/*.json5` files run once the BBL and TP importers
