@@ -33,6 +33,9 @@ export class PositionToplistService {
   private readonly positionLink: EntityLink<PositionToplistRow> = {
     customIdPrefix: POSITION_BUTTON_CUSTOM_ID_PREFIX,
     entityId: (row: PositionToplistRow) => row.positionId,
+    // Position names repeat across races (every race has a "Lineman"), so the
+    // button/select label carries the race too, matching formatRow below.
+    label: (row: PositionToplistRow) => `${row.name} (${row.raceName})`,
   };
 
   constructor(

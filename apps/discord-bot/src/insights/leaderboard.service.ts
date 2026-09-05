@@ -48,6 +48,12 @@ type TieRemainder = { type: 'exact'; count: number } | { type: 'approximate' };
 export interface EntityLink<T> {
   customIdPrefix: ButtonCustomIdPrefix;
   entityId: (row: T) => number | string;
+  /**
+   * Text shown on the drill-down button/select option. Defaults to `row.name`.
+   * Override when the name alone is ambiguous — e.g. positions, whose names
+   * repeat across races.
+   */
+  label?: (row: T) => string;
 }
 
 export interface RankedRows<T> {
@@ -149,7 +155,7 @@ export class LeaderboardService {
         rankedRows.map((row) => ({
           customIdPrefix: entityLink.customIdPrefix,
           entityId: String(entityLink.entityId(row)),
-          label: row.name,
+          label: (entityLink.label ?? ((r) => r.name))(row),
         })),
       );
     if (overflowNote !== null) {

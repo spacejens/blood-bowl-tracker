@@ -88,6 +88,23 @@ describe('PositionToplistService.resolvePlayers', () => {
     expect(options.entityLink?.entityId({ ...rows[0], rank: 1 })).toBe(1);
   });
 
+  it('labels the drill-down button/select entry with the race, so same-named positions stay distinguishable', async () => {
+    const positions = mock<PositionsService>();
+    positions.countPlayersByPosition.mockResolvedValue(rows);
+    const { service, leaderboard } = await makeService(positions);
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+
+    await service.resolvePlayers(FACT_SCOPE_ALL_TIME);
+
+    const options = capturedOptions(leaderboard);
+    expect(options.entityLink?.label?.({ ...rows[0], rank: 1 })).toBe(
+      'Lineman (Orc)',
+    );
+    expect(options.entityLink?.label?.({ ...rows[1], rank: 2 })).toBe(
+      'Lineman (Human)',
+    );
+  });
+
   it('renders each row as "<rank>. <name> (<race>) — <count>"', async () => {
     const positions = mock<PositionsService>();
     positions.countPlayersByPosition.mockResolvedValue(rows);

@@ -416,6 +416,53 @@ describe('formatLeaderboardEmbed', () => {
     });
   });
 
+  it('uses entityLink.label to build the component label when supplied, overriding row.name', async () => {
+    const cannedComponents = [{ type: 1, components: [] }];
+    const components = entityComponentsMock();
+    components.buildEntityComponents.mockReturnValue({
+      components: cannedComponents,
+      overflowNote: null,
+    });
+    const localService = await makeService(components);
+    localService.formatLeaderboardEmbed({
+      title: 'Positions by players',
+      rankedRows: [
+        {
+          positionId: 1,
+          name: 'Lineman',
+          raceName: 'Orc',
+          count: 120,
+          rank: 1,
+        },
+        {
+          positionId: 2,
+          name: 'Lineman',
+          raceName: 'Human',
+          count: 90,
+          rank: 2,
+        },
+      ],
+      noDataMessage: 'no data',
+      entityLink: {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: (row) => row.positionId,
+        label: (row) => `${row.name} (${row.raceName})`,
+      },
+    });
+    expect(components.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'Lineman (Orc)',
+      },
+      {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '2',
+        label: 'Lineman (Human)',
+      },
+    ]);
+  });
+
   it('appends the overflow note to the description when entries did not fit', async () => {
     const components = entityComponentsMock();
     components.buildEntityComponents.mockReturnValue({

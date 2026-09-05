@@ -387,8 +387,11 @@ opening the same `/deepdive team:<team>` view.
 All five race toplists (`race.toplist.teams`, `race.toplist.matches.played`,
 `race.toplist.matches.won`, `race.toplist.matches.lost`,
 `race.toplist.matches.drawn`) attach
-one button per listed race, opening the same `/deepdive race:<race>` view. With
-this, every `/insights` toplist has button coverage.
+one button per listed race, opening the same `/deepdive race:<race>` view.
+
+`position.toplist.players` attaches one button per listed position, opening
+the same `/deepdive position:<position>` view. With this, every `/insights`
+toplist has button coverage.
 
 Each of the fourteen `player.toplist.*` facts attaches one button per listed
 player, opening the same `/deepdive player:<player>` view. Note the button set
