@@ -373,7 +373,7 @@ describe('StarPlayerDeepdiveService', () => {
     lineFormatter.formatLine
       .mockReturnValueOnce('BB2016: MA 7 ST 4 AG 4 AV 8')
       .mockReturnValueOnce('BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+');
-    const { service } = await makeService({
+    const { service, positionRulesSets } = await makeService({
       stars: makeStars({ star: griff, hires }),
       positionRulesSets: makeRulesSets([bb2016, bb2020]),
       lineFormatter,
@@ -381,6 +381,7 @@ describe('StarPlayerDeepdiveService', () => {
 
     const result = await service.resolve(20);
 
+    expect(positionRulesSets.listByPosition).toHaveBeenCalledWith(20);
     expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(1, bb2016);
     expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(2, bb2020);
     expect(
