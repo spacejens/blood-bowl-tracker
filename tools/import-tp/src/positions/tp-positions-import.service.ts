@@ -47,6 +47,24 @@ interface StarPositionGroup {
   conflictingRulesSetIds: Set<number>;
 }
 
+/**
+ * Characteristics accumulated for one *resolved* DB position id, merged across
+ * every group whose upsert landed on that row. Two groups can share one row:
+ * TP renames a roster slot across rules-set generations (`Halfling Hopeful
+ * Lineman` -> `Halfling Hopeful`) while `tools/import-manual` registers both
+ * literal names as external ids of a single Position, so grouping by
+ * `${raceId} ${name}` yields two groups whose upserts resolve identically.
+ * Shaped to match what `accumulateCharacteristics` expects as its `group`, so
+ * the same conflict rules apply within a group and across groups.
+ */
+interface PositionCharacteristicsAccumulator {
+  /** The first contributing group's position name, used in error messages. */
+  name: string;
+  characteristics: Map<number, TpPositionCharacteristics>;
+  authoritativeRulesSetIds: Set<number>;
+  conflictingRulesSetIds: Set<number>;
+}
+
 interface ImportPositionsOptions {
   raceNamesById: Map<number, string>;
 }
@@ -109,6 +127,7 @@ export class TpPositionsImportService {
       number,
       Map<number, TpPositionCharacteristics>
     >();
+    const accumulators = new Map<number, PositionCharacteristicsAccumulator>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -254,9 +273,12 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
-      if (group.characteristics.size > 0) {
-        characteristicsByPositionId.set(upserted.id, group.characteristics);
-      }
+      this.mergeGroupCharacteristics({
+        accumulators,
+        positionId: upserted.id,
+        group,
+        errors,
+      });
       await this.positionsImport.syncRaceEras(
         {
           positionId: upserted.id,
@@ -337,8 +359,20 @@ export class TpPositionsImportService {
       }
       imported += 1;
       starPositionIds.add(upserted.id);
-      if (group.characteristics.size > 0) {
-        characteristicsByPositionId.set(upserted.id, group.characteristics);
+      this.mergeGroupCharacteristics({
+        accumulators,
+        positionId: upserted.id,
+        group,
+        errors,
+      });
+    }
+
+    for (const [positionId, accumulator] of accumulators) {
+      if (accumulator.characteristics.size > 0) {
+        characteristicsByPositionId.set(
+          positionId,
+          accumulator.characteristics,
+        );
       }
     }
 
@@ -386,6 +420,48 @@ export class TpPositionsImportService {
     return (
       rulesSetName !== undefined && teamRaceCode.endsWith(`_${rulesSetName}`)
     );
+  }
+
+  /**
+   * Fold one group's per-rules-set characteristics into the accumulator for
+   * the DB position id its upsert resolved to, creating that accumulator on
+   * first use. Merging rather than replacing is what lets two groups sharing
+   * one resolved position id each keep their own rules sets; the conflict
+   * rules are exactly the ones `accumulateCharacteristics` already applies
+   * within a single group, including whether the value being contributed came
+   * from an authoritative roster. With one group per position id — the common
+   * case — this is equivalent to storing the group's map directly.
+   */
+  private mergeGroupCharacteristics(options: {
+    accumulators: Map<number, PositionCharacteristicsAccumulator>;
+    positionId: number;
+    group: {
+      name: string;
+      characteristics: Map<number, TpPositionCharacteristics>;
+      authoritativeRulesSetIds: Set<number>;
+    };
+    errors: ImportError[];
+  }): void {
+    const { accumulators, positionId, group, errors } = options;
+    let accumulator = accumulators.get(positionId);
+    if (accumulator === undefined) {
+      accumulator = {
+        name: group.name,
+        characteristics: new Map(),
+        authoritativeRulesSetIds: new Set(),
+        conflictingRulesSetIds: new Set(),
+      };
+      accumulators.set(positionId, accumulator);
+    }
+    for (const [rulesSetId, characteristics] of group.characteristics) {
+      this.accumulateCharacteristics({
+        group: accumulator,
+        rulesSetId,
+        characteristics,
+        authoritative: group.authoritativeRulesSetIds.has(rulesSetId),
+        errors,
+      });
+    }
   }
 
   /**

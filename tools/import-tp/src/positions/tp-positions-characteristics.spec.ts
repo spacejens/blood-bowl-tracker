@@ -237,6 +237,107 @@ describe('TpPositionsImportService characteristics accumulation', () => {
     );
   });
 
+  it('merges characteristics from two roster-slot names that resolve to one position', async () => {
+    const { service } = await makeService(upsertAndSyncMocks(70));
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 297,
+              name: 'Dwarf Runner Lineman',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fifth era', {
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 969,
+              name: 'Dwarf Runner',
+              characteristics: SLAYER,
+            },
+          ],
+          id: 2,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId).toEqual(
+      new Map([
+        [
+          70,
+          new Map([
+            [900, RUNNER],
+            [901, SLAYER],
+          ]),
+        ],
+      ]),
+    );
+  });
+
+  it('drops one conflicting rules set across two roster-slot names, keeping the others', async () => {
+    const { service, importResults } = await makeService(
+      upsertAndSyncMocks(70),
+    );
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 297,
+              name: 'Dwarf Runner Lineman',
+              characteristics: RUNNER,
+            },
+          ],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 969,
+              name: 'Dwarf Runner',
+              characteristics: RUNNER_ALT,
+            },
+          ],
+          id: 2,
+        }),
+        rosterEntry('Fifth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [
+            {
+              tpPositionId: 969,
+              name: 'Dwarf Runner',
+              characteristics: SLAYER,
+            },
+          ],
+          id: 3,
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(characteristicsByPositionId.get(70)).toEqual(
+      new Map([[901, SLAYER]]),
+    );
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('Conflicting characteristics');
+  });
+
   it('accumulates star position characteristics the same way', async () => {
     const { service } = await makeService(upsertAndSyncMocks(80));
 
