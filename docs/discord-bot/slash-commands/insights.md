@@ -37,12 +37,12 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but thirteen facts support
+replies with a per-scope refusal message. All but fourteen facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
-`race.toplist.teams`, `position.toplist.players`,
-`coach.toplist.eras.active`, `team.toplist.eras.active`,
-`team.toplist.trophies.won`, `eras.list`, `trophies.list`,
-`competitionGroups.list`, `starPlayers.list`,
+`race.toplist.teams.descending`, `race.toplist.teams.ascending`,
+`position.toplist.players`, `coach.toplist.eras.active`,
+`team.toplist.eras.active`, `team.toplist.trophies.won`, `eras.list`,
+`trophies.list`, `competitionGroups.list`, `starPlayers.list`,
 `starPlayers.toplist.hires.total` and
 `starPlayers.toplist.hires.distinctTeams` — which list or count teams,
 rostered players, eras, trophies, trophy awards, competition groups or star
@@ -265,9 +265,18 @@ Each player listed by the fourteen `player.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that player's
 [`/deepdive`](deepdive.md) detail view.
 
-- `race.toplist.teams` — races ranked by number of teams that have chosen
-  them. Supports league and era filtering (an era scopes the count to teams
-  active in that era).
+- `race.toplist.teams.descending` — races ranked by how many teams have ever
+  chosen them, most-chosen first. The count is always the race's all-time
+  total across every league and era; a league or era scope instead narrows
+  which races are listed at all, to the ones available in that league or era
+  according to their recorded eras. A race available under the current scope
+  that nobody has ever chosen is still listed, with a count of zero. Ties
+  break on the race's most recent match, most-recently-played first. Supports
+  league and era filtering, but not competition or match-category filtering.
+- `race.toplist.teams.ascending` — the same all-time team count ranked from
+  the other end: the races hardly anyone picks, least-chosen first, with any
+  race nobody has ever picked heading the list at zero. Ties break the other
+  way too, least-recently-played first. Same filtering as above.
 - `race.toplist.matches.played` — races ranked by number of matches played by
   teams of that race. Counts one participation per participating team, so a
   match between two teams of the same race adds 2 to that race's total.

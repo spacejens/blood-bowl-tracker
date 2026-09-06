@@ -421,11 +421,20 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
     race: {
       toplist: {
         teams: {
-          supportsLeague: true,
-          supportsEra: true,
-          supportsCompetition: false,
-          supportsMatchCategory: false,
-          resolve: (scope) => deps.raceToplist.resolveTeams(scope),
+          descending: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: false,
+            resolve: (scope) => deps.raceToplist.resolveTeamsDescending(scope),
+          },
+          ascending: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: false,
+            resolve: (scope) => deps.raceToplist.resolveTeamsAscending(scope),
+          },
         },
         matches: {
           played: {
@@ -464,7 +473,7 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         players: {
           // Not competition- or category-scopable: this counts rostered
           // players, not match participation, so neither narrowing means
-          // anything here — the same reasoning as race.toplist.teams.
+          // anything here — the same reasoning as race.toplist.teams.*.
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: false,

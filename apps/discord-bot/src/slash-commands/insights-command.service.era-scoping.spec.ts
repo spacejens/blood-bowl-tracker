@@ -67,10 +67,16 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       expectedDescription: '1. Griff Oberwald — 7',
     },
     {
-      factPath: 'race.toplist.teams',
-      selectMock: (deps) => deps.raceToplist.resolveTeams,
-      expectedTitle: 'Races by teams — BB2020',
+      factPath: 'race.toplist.teams.descending',
+      selectMock: (deps) => deps.raceToplist.resolveTeamsDescending,
+      expectedTitle: 'Races by teams (descending) — BB2020',
       expectedDescription: '1. Orc — 12',
+    },
+    {
+      factPath: 'race.toplist.teams.ascending',
+      selectMock: (deps) => deps.raceToplist.resolveTeamsAscending,
+      expectedTitle: 'Races by teams (ascending) — BB2020',
+      expectedDescription: '1. Halfling — 0',
     },
     {
       factPath: 'race.toplist.matches.played',

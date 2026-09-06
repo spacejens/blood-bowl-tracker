@@ -1,9 +1,8 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, raceEras, races } from '@blood-bowl-tracker/db';
+import { DB, matches, raceEras, races, teams } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -16,23 +15,9 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { RacesService, RaceUpsertConflictError } from './races.service';
-
-/**
- * True when a captured aggregate expression is `countDistinct(...)` rather
- * than plain `count(...)`. drizzle-orm renders `countDistinct` as
- * `sql`count(distinct ${expr})`` — its first query chunk is a `StringChunk`
- * whose text starts with "count(distinct ", vs. "count(" for plain `count`.
- * Used to guard against double-counting when a join can legitimately produce
- * more than one row per grouped entity (e.g. a team with `teamEras` rows in
- * two eras of the same league).
- */
-function isCountDistinct(expr: unknown): boolean {
-  if (!is(expr, SQL)) return false;
-  const first = expr.queryChunks[0];
-  return is(first, StringChunk) && first.value.join('').includes('distinct');
-}
 
 const fakeRace = {
   id: 1,
@@ -190,46 +175,6 @@ describe('RacesService', () => {
   });
 
   describe('toplist queries', () => {
-    it('countTeamsByRace returns the rows the query resolves to', async () => {
-      const rows = [
-        { raceId: 1, name: 'Orc', count: 12 },
-        { raceId: 2, name: 'Skaven', count: 7 },
-      ];
-      const { db } = await build(rows);
-      await expect(
-        service.countTeamsByRace(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
-    });
-
-    it('countTeamsByRace returns an empty array when there is no data', async () => {
-      await build([]);
-      await expect(
-        service.countTeamsByRace(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual([]);
-    });
-
-    it('countTeamsByRace joins team_eras when an eraId is given', async () => {
-      const rows = [{ raceId: 1, name: 'Orc', count: 3 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countTeamsByRace({ eraId: 20 }, 21),
-      ).resolves.toEqual(rows);
-      // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['teams.race_id', 'races.id']);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
-      ).toEqual(['team_eras.team_id', 'teams.id', 'team_eras.era_id']);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-    });
-
     it('countMatchesPlayedByRace returns the rows the query resolves to', async () => {
       const rows = [
         { raceId: 1, name: 'Orc', count: 40 },
@@ -292,6 +237,163 @@ describe('RacesService', () => {
     );
   });
 
+  describe('team toplists', () => {
+    // Elf has never been picked: it exists only because the availability side
+    // of the query keeps it, and it must come back with a count of 0.
+    const rows = [
+      { raceId: 3, name: 'Elf', count: 0 },
+      { raceId: 2, name: 'Skaven', count: 7 },
+      { raceId: 1, name: 'Orc', count: 12 },
+    ];
+
+    /**
+     * All-time: chains[0] is the team-count subquery, chains[1] the
+     * latest-match subquery, chains[2] the ranking query — the only one that
+     * is awaited, so it is the one holding `rows`.
+     */
+    function buildUnscoped(): Promise<{ db: Db; chains: QueryChain[] }> {
+      return build([], [], rows);
+    }
+
+    /**
+     * League/era-scoped: the availability subquery is built first, so every
+     * later chain shifts by one.
+     */
+    function buildScoped(): Promise<{ db: Db; chains: QueryChain[] }> {
+      return build([], [], [], rows);
+    }
+
+    it('countTeamsByRaceDescending returns the rows the ranking query resolves to', async () => {
+      const { chains } = await buildUnscoped();
+      await expect(
+        service.countTeamsByRaceDescending(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      expect(chains).toHaveLength(3);
+      expect(chains[2].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('countTeamsByRaceAscending returns the rows the ranking query resolves to', async () => {
+      const { chains } = await buildUnscoped();
+      await expect(
+        service.countTeamsByRaceAscending(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      expect(chains).toHaveLength(3);
+      expect(chains[2].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('ranks every race and left joins the counts, so a race with no teams survives', async () => {
+      const { db, chains } = await buildUnscoped();
+      await service.countTeamsByRaceAscending(FACT_SCOPE_ALL_TIME, 21);
+      expect(firstCallArg(chains[2].from)).toBe(races);
+      expect(chains[2].leftJoin).toHaveBeenCalledTimes(2);
+      expect(
+        extractJoinColumns(firstCallArg(chains[2].leftJoin, 0, 1)),
+      ).toContain('races.id');
+      expect(
+        extractJoinColumns(firstCallArg(chains[2].leftJoin, 1, 1)),
+      ).toContain('races.id');
+      const fields = firstCallArg(db.select, 2) as { count: unknown };
+      expect(sqlText(fields.count)).toContain('coalesce');
+    });
+
+    it('counts every team of a race all-time, with no scope filter on the count itself', async () => {
+      const { db, chains } = await buildScoped();
+      await service.countTeamsByRaceDescending({ eraId: 20 }, 21);
+      // chains[1] is the team-count subquery and chains[2] the latest-match
+      // subquery: neither may narrow by the requested era.
+      expect(chains[1].where).not.toHaveBeenCalled();
+      expect(chains[2].where).not.toHaveBeenCalled();
+      expect(firstCallArg(chains[1].from)).toBe(teams);
+      expect(extractJoinColumns(firstCallArg(chains[1].groupBy))).toEqual([
+        'teams.race_id',
+      ]);
+      const countFields = firstCallArg(db.select, 1) as { count: unknown };
+      expect(sqlText(countFields.count)).toContain('distinct');
+    });
+
+    it('narrows an era scope to the races available in that era, via race_eras', async () => {
+      const { chains } = await buildScoped();
+      await service.countTeamsByRaceDescending({ eraId: 20 }, 21);
+      expect(chains).toHaveLength(4);
+      expect(firstCallArg(chains[0].from)).toBe(raceEras);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        20,
+      ]);
+      expect(extractJoinColumns(firstCallArg(chains[3].where))).toContain(
+        'races.id',
+      );
+    });
+
+    it('narrows a league scope to the races available in an era of that league', async () => {
+      const { chains } = await buildScoped();
+      await service.countTeamsByRaceAscending({ leagueId: 9 }, 21);
+      expect(chains).toHaveLength(4);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['eras.id', 'race_eras.era_id']);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        9,
+      ]);
+    });
+
+    it('applies no availability filter when the scope is all-time', async () => {
+      const { chains } = await buildUnscoped();
+      await service.countTeamsByRaceDescending(FACT_SCOPE_ALL_TIME, 21);
+      expect(chains).toHaveLength(3);
+      expect(firstCallArg(chains[2].where)).toBeUndefined();
+    });
+
+    it('finds each race latest match through match teams and team eras', async () => {
+      const { db, chains } = await buildUnscoped();
+      await service.countTeamsByRaceDescending(FACT_SCOPE_ALL_TIME, 21);
+      expect(firstCallArg(chains[1].from)).toBe(matches);
+      expect(
+        extractJoinColumns(firstCallArg(chains[1].innerJoin, 0, 1)),
+      ).toEqual(['match_teams.match_id', 'matches.id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[1].innerJoin, 1, 1)),
+      ).toEqual(['team_eras.id', 'match_teams.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[1].innerJoin, 2, 1)),
+      ).toEqual(['teams.id', 'team_eras.team_id']);
+      const latestFields = firstCallArg(db.select, 1) as {
+        latestMatch: unknown;
+      };
+      expect(sqlText(latestFields.latestMatch)).toContain('max(');
+    });
+
+    it('orders the descending toplist by count, then by the most recent match', async () => {
+      const { chains } = await buildUnscoped();
+      await service.countTeamsByRaceDescending(FACT_SCOPE_ALL_TIME, 21);
+      const orderBy = chains[2].orderBy.mock.calls[0];
+      expect(sqlText(orderBy[0])).toContain('coalesce');
+      expect(sqlText(orderBy[0])).toContain(' desc');
+      expect(sqlText(orderBy[1])).toContain(' desc');
+    });
+
+    it('orders the ascending toplist by count, then by the least recent match', async () => {
+      const { chains } = await buildUnscoped();
+      await service.countTeamsByRaceAscending(FACT_SCOPE_ALL_TIME, 21);
+      const orderBy = chains[2].orderBy.mock.calls[0];
+      expect(sqlText(orderBy[0])).toContain('coalesce');
+      expect(sqlText(orderBy[0])).toContain(' asc');
+      expect(sqlText(orderBy[0])).not.toContain(' desc');
+      expect(sqlText(orderBy[1])).toContain(' asc');
+      expect(sqlText(orderBy[1])).not.toContain(' desc');
+    });
+
+    it('breaks remaining ties deterministically by race name, ascending, even on the descending toplist', async () => {
+      const { chains } = await buildUnscoped();
+      await service.countTeamsByRaceDescending(FACT_SCOPE_ALL_TIME, 21);
+      const orderBy = chains[2].orderBy.mock.calls[0];
+      expect(orderBy).toHaveLength(3);
+      expect(extractJoinColumns(firstCallArg(chains[2].orderBy, 0, 2))).toEqual(
+        ['races.name'],
+      );
+      expect(sqlText(orderBy[2])).toContain(' asc');
+    });
+  });
+
   describe('league scoping', () => {
     it('countMatchesPlayedByRace filters by league via the eras join', async () => {
       const { chains } = await build([]);
@@ -301,36 +403,6 @@ describe('RacesService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
       ).toEqual(['eras.id', 'team_eras.era_id']);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
-    });
-
-    it('countTeamsByRace counts teams of the race active in an era of the league', async () => {
-      const rows = [{ raceId: 1, name: 'Orc', count: 2 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countTeamsByRace({ leagueId: 9 }, 21),
-      ).resolves.toEqual(rows);
-      // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
-      ).toEqual(['eras.id', 'team_eras.era_id', 'eras.league_id']);
-    });
-
-    it('countTeamsByRace does not double-count a team with teamEras rows in two eras of the same league', async () => {
-      // The league scope joins teamEras unfiltered by era, then filters by
-      // eras.leagueId. A team with separate teamEras rows in two different
-      // eras of the *same* league (no unique constraint on teamId alone)
-      // would join to two rows and be counted twice unless the aggregate
-      // uses DISTINCT on teams.id.
-      const rows = [{ raceId: 1, name: 'Orc', count: 1 }];
-      const { db } = await build(rows);
-      await expect(
-        service.countTeamsByRace({ leagueId: 9 }, 21),
-      ).resolves.toEqual(rows);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
   });
 

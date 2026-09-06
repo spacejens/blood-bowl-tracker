@@ -20,7 +20,17 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, countDistinct, desc, eq, ilike } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  countDistinct,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  max,
+  sql,
+} from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
@@ -48,6 +58,13 @@ export interface RacePosition {
   name: string;
   eraId: number;
   eraName: string;
+}
+
+/** One race and how many teams have ever picked it. */
+export interface RaceTeamCount {
+  raceId: number;
+  name: string;
+  count: number;
 }
 
 @Injectable()
@@ -207,49 +224,127 @@ export class RacesService {
     return [...existingIds, ...toInsert];
   }
 
-  async countTeamsByRace(
+  /**
+   * The races usable under this scope, as a one-column subquery of race ids.
+   * Availability comes from `race_eras` — which eras a race may be played in
+   * — never from whether anyone has ever picked it, so a race with no teams
+   * at all is still a candidate.
+   *
+   * The `eras` join is unconditional: `raceEras.eraId` is a non-null foreign
+   * key so it drops no rows, and it is what exposes `eras.leagueId` to the
+   * league filter. Only called when at least one of the two scopes is set —
+   * with neither, every race is available and no filter is applied at all.
+   */
+  private availableRaceIds(scope: FactScope) {
+    return this.db
+      .select({ raceId: raceEras.raceId })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(
+        and(
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+          scope.eraId === undefined
+            ? undefined
+            : eq(raceEras.eraId, scope.eraId),
+        ),
+      );
+  }
+
+  /**
+   * How many teams have ever picked each race, as a subquery. Deliberately
+   * unscoped: the league/era scope decides which races are listed, never what
+   * number is shown beside a listed race. `countDistinct` guards the count
+   * against any future join here multiplying rows per team.
+   */
+  private allTimeTeamCountsByRace() {
+    return this.db
+      .select({
+        raceId: teams.raceId,
+        count: countDistinct(teams.id).as('count'),
+      })
+      .from(teams)
+      .groupBy(teams.raceId)
+      .as('race_team_counts');
+  }
+
+  /**
+   * The most recent match any team of each race ever played, as a subquery —
+   * the tiebreaker between races on equal counts. All-time, for the same
+   * reason the counts are: a tiebreaker scoped differently from the value it
+   * breaks ties on would rank two equal rows by an unrelated measure.
+   */
+  private allTimeLatestMatchByRace() {
+    return this.db
+      .select({
+        raceId: teams.raceId,
+        latestMatch: max(matches.playedAt).as('latest_match'),
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .groupBy(teams.raceId)
+      .as('race_latest_matches');
+  }
+
+  /**
+   * `direction` is the only difference between the two public toplists: they
+   * are the same metric read from opposite ends. Both subqueries are
+   * left-joined so a race with no teams — or no match — is ranked at zero
+   * rather than dropped, which is the whole point of the ascending list.
+   * A final tiebreak by race name (always ascending, regardless of
+   * `direction`) keeps the ranking deterministic once both the count and the
+   * latest-match date are tied — the common case for never-picked races,
+   * where the ascending list would otherwise list them in an arbitrary order.
+   */
+  private rankRacesByTeamCount(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
-    const base = this.db
-      .select({
-        raceId: races.id,
-        name: races.name,
-        count: countDistinct(teams.id),
-      })
+    direction: 'asc' | 'desc',
+  ): Promise<RaceTeamCount[]> {
+    const available =
+      scope.leagueId === undefined && scope.eraId === undefined
+        ? undefined
+        : inArray(races.id, this.availableRaceIds(scope));
+    const counts = this.allTimeTeamCountsByRace();
+    const latest = this.allTimeLatestMatchByRace();
+    const count = sql<number>`coalesce(${counts.count}, 0)::int`;
+    const order = direction === 'desc' ? desc : asc;
+    return this.db
+      .select({ raceId: races.id, name: races.name, count })
       .from(races)
-      .innerJoin(teams, eq(teams.raceId, races.id));
-    if (scope.leagueId !== undefined) {
-      return base
-        .innerJoin(teamEras, eq(teamEras.teamId, teams.id))
-        .innerJoin(
-          eras,
-          and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
-        )
-        .groupBy(races.id, races.name)
-        .orderBy(desc(countDistinct(teams.id)))
-        .limit(limit);
-    }
-    if (scope.eraId !== undefined) {
-      return base
-        .innerJoin(
-          teamEras,
-          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
-        )
-        .groupBy(races.id, races.name)
-        .orderBy(desc(countDistinct(teams.id)))
-        .limit(limit);
-    }
-    return base
-      .groupBy(races.id, races.name)
-      .orderBy(desc(countDistinct(teams.id)))
+      .leftJoin(counts, eq(counts.raceId, races.id))
+      .leftJoin(latest, eq(latest.raceId, races.id))
+      .where(available)
+      .orderBy(order(count), order(latest.latestMatch), asc(races.name))
       .limit(limit);
+  }
+
+  /** The races the most teams have ever picked, most-picked first. */
+  countTeamsByRaceDescending(
+    scope: FactScope,
+    limit: number,
+  ): Promise<RaceTeamCount[]> {
+    return this.rankRacesByTeamCount(scope, limit, 'desc');
+  }
+
+  /**
+   * The same metric read from the other end: the races hardly anyone picks,
+   * including any race nobody has ever picked at all.
+   */
+  countTeamsByRaceAscending(
+    scope: FactScope,
+    limit: number,
+  ): Promise<RaceTeamCount[]> {
+    return this.rankRacesByTeamCount(scope, limit, 'asc');
   }
 
   async countMatchesPlayedByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return (
       this.db
         .select({
@@ -294,7 +389,7 @@ export class RacesService {
   countMatchesWonByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'won',
       scope,
@@ -305,7 +400,7 @@ export class RacesService {
   countMatchesLostByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'lost',
       scope,
@@ -316,7 +411,7 @@ export class RacesService {
   countMatchesDrawnByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'drawn',
       scope,
