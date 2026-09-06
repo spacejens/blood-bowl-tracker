@@ -224,45 +224,6 @@ export class RacesService {
     return [...existingIds, ...toInsert];
   }
 
-  async countTeamsByRace(
-    scope: FactScope,
-    limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
-    const base = this.db
-      .select({
-        raceId: races.id,
-        name: races.name,
-        count: countDistinct(teams.id),
-      })
-      .from(races)
-      .innerJoin(teams, eq(teams.raceId, races.id));
-    if (scope.leagueId !== undefined) {
-      return base
-        .innerJoin(teamEras, eq(teamEras.teamId, teams.id))
-        .innerJoin(
-          eras,
-          and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
-        )
-        .groupBy(races.id, races.name)
-        .orderBy(desc(countDistinct(teams.id)))
-        .limit(limit);
-    }
-    if (scope.eraId !== undefined) {
-      return base
-        .innerJoin(
-          teamEras,
-          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
-        )
-        .groupBy(races.id, races.name)
-        .orderBy(desc(countDistinct(teams.id)))
-        .limit(limit);
-    }
-    return base
-      .groupBy(races.id, races.name)
-      .orderBy(desc(countDistinct(teams.id)))
-      .limit(limit);
-  }
-
   /**
    * The races usable under this scope, as a one-column subquery of race ids.
    * Availability comes from `race_eras` — which eras a race may be played in

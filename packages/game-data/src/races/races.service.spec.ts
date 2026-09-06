@@ -3,7 +3,6 @@ import { DB, matches, raceEras, races, teams } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -19,21 +18,6 @@ import {
   sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { RacesService, RaceUpsertConflictError } from './races.service';
-
-/**
- * True when a captured aggregate expression is `countDistinct(...)` rather
- * than plain `count(...)`. drizzle-orm renders `countDistinct` as
- * `sql`count(distinct ${expr})`` — its first query chunk is a `StringChunk`
- * whose text starts with "count(distinct ", vs. "count(" for plain `count`.
- * Used to guard against double-counting when a join can legitimately produce
- * more than one row per grouped entity (e.g. a team with `teamEras` rows in
- * two eras of the same league).
- */
-function isCountDistinct(expr: unknown): boolean {
-  if (!is(expr, SQL)) return false;
-  const first = expr.queryChunks[0];
-  return is(first, StringChunk) && first.value.join('').includes('distinct');
-}
 
 const fakeRace = {
   id: 1,
@@ -191,46 +175,6 @@ describe('RacesService', () => {
   });
 
   describe('toplist queries', () => {
-    it('countTeamsByRace returns the rows the query resolves to', async () => {
-      const rows = [
-        { raceId: 1, name: 'Orc', count: 12 },
-        { raceId: 2, name: 'Skaven', count: 7 },
-      ];
-      const { db } = await build(rows);
-      await expect(
-        service.countTeamsByRace(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
-    });
-
-    it('countTeamsByRace returns an empty array when there is no data', async () => {
-      await build([]);
-      await expect(
-        service.countTeamsByRace(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual([]);
-    });
-
-    it('countTeamsByRace joins team_eras when an eraId is given', async () => {
-      const rows = [{ raceId: 1, name: 'Orc', count: 3 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countTeamsByRace({ eraId: 20 }, 21),
-      ).resolves.toEqual(rows);
-      // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['teams.race_id', 'races.id']);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
-      ).toEqual(['team_eras.team_id', 'teams.id', 'team_eras.era_id']);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
-    });
-
     it('countMatchesPlayedByRace returns the rows the query resolves to', async () => {
       const rows = [
         { raceId: 1, name: 'Orc', count: 40 },
@@ -448,36 +392,6 @@ describe('RacesService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
       ).toEqual(['eras.id', 'team_eras.era_id']);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
-    });
-
-    it('countTeamsByRace counts teams of the race active in an era of the league', async () => {
-      const rows = [{ raceId: 1, name: 'Orc', count: 2 }];
-      const { chains } = await build(rows);
-      await expect(
-        service.countTeamsByRace({ leagueId: 9 }, 21),
-      ).resolves.toEqual(rows);
-      // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
-      ).toEqual(['eras.id', 'team_eras.era_id', 'eras.league_id']);
-    });
-
-    it('countTeamsByRace does not double-count a team with teamEras rows in two eras of the same league', async () => {
-      // The league scope joins teamEras unfiltered by era, then filters by
-      // eras.leagueId. A team with separate teamEras rows in two different
-      // eras of the *same* league (no unique constraint on teamId alone)
-      // would join to two rows and be counted twice unless the aggregate
-      // uses DISTINCT on teams.id.
-      const rows = [{ raceId: 1, name: 'Orc', count: 1 }];
-      const { db } = await build(rows);
-      await expect(
-        service.countTeamsByRace({ leagueId: 9 }, 21),
-      ).resolves.toEqual(rows);
-      const selectedFields = firstCallArg(db.select, 0, 0) as {
-        count: unknown;
-      };
-      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
   });
 
