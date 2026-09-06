@@ -58,22 +58,22 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     );
   }
 
-  it('still reports an empty-body review that carries inline comments', async () => {
+  it('still reports an empty-body review that carries a genuinely new inline comment', async () => {
     mockPoll(EMPTY_BODY_FOUND, rollingResult({}));
-    reviewComments.hasInlineComments.mockResolvedValue(true);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(true);
 
     const result = await runWait(OPTIONS);
 
     expect(result).toEqual({ found: true, review: EMPTY_BODY_REVIEW });
-    expect(reviewComments.hasInlineComments).toHaveBeenCalledWith(
+    expect(reviewComments.hasGenuineInlineComments).toHaveBeenCalledWith(
       'PRR_empty1',
       expect.any(Number),
     );
   });
 
-  it('discards an empty-body review with no inline comments', async () => {
+  it('discards an empty-body review with no genuine inline comments', async () => {
     mockPoll(EMPTY_BODY_FOUND, rollingResult({}));
-    reviewComments.hasInlineComments.mockResolvedValue(false);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
 
     const result = await runWait({
       ...OPTIONS,
@@ -86,7 +86,7 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
 
   it('discards an empty-body review when the comment lookup itself fails', async () => {
     mockPoll(EMPTY_BODY_FOUND, rollingResult({}));
-    reviewComments.hasInlineComments.mockResolvedValue(undefined);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(undefined);
 
     const result = await runWait({
       ...OPTIONS,
@@ -104,7 +104,7 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     const result = await runWait(OPTIONS);
 
     expect(result).toEqual({ found: true, review: nonObjectCandidate });
-    expect(reviewComments.hasInlineComments).not.toHaveBeenCalled();
+    expect(reviewComments.hasGenuineInlineComments).not.toHaveBeenCalled();
   });
 
   it('trusts a review candidate missing a string id as-is, without an inline-comment lookup', async () => {
@@ -119,21 +119,21 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     const result = await runWait(OPTIONS);
 
     expect(result).toEqual({ found: true, review: candidateWithoutId });
-    expect(reviewComments.hasInlineComments).not.toHaveBeenCalled();
+    expect(reviewComments.hasGenuineInlineComments).not.toHaveBeenCalled();
   });
 
-  it('never looks up inline comments for a review that has a body', async () => {
+  it('never looks up genuine inline comments for a review that has a body', async () => {
     processRunner.run.mockResolvedValue(FOUND);
 
     const result = await runWait(OPTIONS);
 
     expect(result).toEqual({ found: true, review: REVIEW });
-    expect(reviewComments.hasInlineComments).not.toHaveBeenCalled();
+    expect(reviewComments.hasGenuineInlineComments).not.toHaveBeenCalled();
   });
 
   it('keeps polling the rolling comment after discarding an artifact review', async () => {
     mockPoll(EMPTY_BODY_FOUND, rollingResult({}));
-    reviewComments.hasInlineComments.mockResolvedValue(false);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
 
     await runWait({ ...OPTIONS, timeoutMs: 30_000, intervalMs: 30_000 });
 
@@ -151,7 +151,7 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
       .mockResolvedValueOnce(EMPTY_BODY_FOUND) // poll 1: the artifact review
       .mockResolvedValueOnce(rollingResult({})) // poll 1: rolling comment
       .mockResolvedValueOnce(FOUND); // poll 2: the genuine review
-    reviewComments.hasInlineComments.mockResolvedValue(false);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
 
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
@@ -165,7 +165,7 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     expect(jqProgramOf(prViewCalls[0][1])).not.toContain('.id !=');
     expect(jqProgramOf(prViewCalls[1][1])).toContain('.id != "PRR_empty1"');
     // The artifact is verified once, not re-verified on every later poll.
-    expect(reviewComments.hasInlineComments).toHaveBeenCalledTimes(1);
+    expect(reviewComments.hasGenuineInlineComments).toHaveBeenCalledTimes(1);
   });
 
   it('keeps advancing the exclusion when a caller already passed one', async () => {
@@ -173,7 +173,7 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
       .mockResolvedValueOnce(EMPTY_BODY_FOUND)
       .mockResolvedValueOnce(rollingResult({}))
       .mockResolvedValueOnce(FOUND);
-    reviewComments.hasInlineComments.mockResolvedValue(false);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
 
     await runWait({
       ...OPTIONS,
@@ -221,7 +221,7 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
       // Poll 1: the artifact review, not yet discarded.
       return Promise.resolve(EMPTY_BODY_FOUND);
     });
-    reviewComments.hasInlineComments.mockResolvedValue(false);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
 
     const result = await runWait({
       ...OPTIONS,

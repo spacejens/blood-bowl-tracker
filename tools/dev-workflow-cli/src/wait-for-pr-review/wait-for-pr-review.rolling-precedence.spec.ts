@@ -85,7 +85,7 @@ describe('WaitForPrReviewService rolling-comment precedence', () => {
     // accepts it — but it is not evidence CodeRabbit's own pass ran, and a
     // rate limit edited into the rolling comment in the same window is.
     mockPoll(EMPTY_BODY_FOUND, rateLimitEditResult(RATE_LIMIT_EDIT_CANDIDATE));
-    reviewComments.hasInlineComments.mockResolvedValue(true);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(true);
 
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
@@ -96,7 +96,7 @@ describe('WaitForPrReviewService rolling-comment precedence', () => {
     });
     // The review really was accepted by the inline-comment check — this is
     // the sequencing decision under test, not the discard path.
-    expect(reviewComments.hasInlineComments).toHaveBeenCalledWith(
+    expect(reviewComments.hasGenuineInlineComments).toHaveBeenCalledWith(
       'PRR_empty1',
       expect.any(Number),
     );
@@ -173,7 +173,7 @@ describe('WaitForPrReviewService rolling-comment precedence', () => {
       prViewCalls += 1;
       return Promise.resolve(prViewCalls === 1 ? EMPTY_BODY_FOUND : EMPTY);
     });
-    reviewComments.hasInlineComments.mockResolvedValue(false);
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
 
     const result = await runWait({
       ...OPTIONS,
