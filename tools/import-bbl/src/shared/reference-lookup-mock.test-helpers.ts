@@ -7,25 +7,37 @@ import type { MockProxy } from 'vitest-mock-extended';
 /**
  * Test-only helper. Do not import from production code.
  *
- * Configures a mocked `ReferenceLookupService`'s `keyOf` and `lookupMap`.
+ * Stubs a mocked `ReferenceLookupService`'s `keyOf` with a made-up key
+ * format that is deliberately *unlike* the real one. Nothing asserts on the
+ * literal value: the key is only an internal correlation id between this
+ * stub and whichever `lookupMap` stub the same test configures. Keeping the
+ * format visibly different from production's guarantees no test can quietly
+ * depend on the real derivation -- every test must build its expected keys
+ * by calling `lookup.keyOf({ ... })`, never by writing a key out by hand.
+ */
+export function mockKeyOf(lookup: MockProxy<ReferenceLookupService>): void {
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalId}::${ref.externalSystemId}`,
+  );
+}
+
+/**
+ * Test-only helper. Do not import from production code.
  *
- * `keyOf` is a pure, deterministic key derivation with no branching that
- * could drift from the real implementation, so it is exempt from the
- * canned-response rule and always gets the same passthrough stub.
+ * Configures a mocked `ReferenceLookupService`'s `keyOf` (via `mockKeyOf`)
+ * and `lookupMap`.
  *
  * `lookupMap` resolves any ref whose external id appears in the map
  * registered for that call's `kind` in `idsByKind`, keyed via the mocked
  * `keyOf`. Each kind's map is supplied by the caller, not derived here, so
- * this mirrors what `ReferenceLookupService` itself does without
- * reimplementing its resolution algorithm.
+ * this answers canned ids without reimplementing `ReferenceLookupService`'s
+ * own resolution algorithm.
  */
 export function mockReferenceLookup(
   lookup: MockProxy<ReferenceLookupService>,
   idsByKind: Partial<Record<ResolvableEntityKind, Map<string, number>>>,
 ): void {
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
+  mockKeyOf(lookup);
   lookup.lookupMap.mockImplementation((kind, refs) => {
     const idsByExternalId = idsByKind[kind] ?? new Map<string, number>();
     return Promise.resolve(

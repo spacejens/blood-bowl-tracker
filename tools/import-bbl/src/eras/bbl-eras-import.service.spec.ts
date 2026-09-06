@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { mockKeyOf } from '../shared/reference-lookup-mock.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblErasImportService } from './bbl-eras-import.service';
 import { type EraConfig, EraConfigService } from './era-config.service';
@@ -101,8 +102,8 @@ describe('BblErasImportService', () => {
   /**
    * Builds the service under test through a TestingModule with every
    * collaborator mocked. Deterministic collaborators (name resolution, error
-   * building, key derivation) mirror the real production logic so a regression
-   * in the service under test still fails these tests.
+   * building) mirror the real production logic so a regression in the
+   * service under test still fails these tests.
    */
   beforeEach(async () => {
     const eraConfig = mock<EraConfigService>();
@@ -132,17 +133,30 @@ describe('BblErasImportService', () => {
     importResults.result.mockReturnValue(CANNED_RESULT);
 
     const lookup = mock<ReferenceLookupService>();
-    // `keyOf` is a pure, deterministic key derivation with no branching that
-    // could drift from ReferenceLookupService's own real implementation --
-    // exempt from the canned-response rule, same as the other passthroughs.
-    lookup.keyOf.mockImplementation(
-      (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-    );
+    mockKeyOf(lookup);
+    // A canned resolution per kind. Keys come from the mocked `keyOf`, so
+    // this never depends on the real key format.
     lookup.lookupMap.mockImplementation((kind) =>
       Promise.resolve(
         kind === 'league'
-          ? new Map([[`${BBL_SYSTEM_ID}\tMy League`, 11]])
-          : new Map([[`${BBL_SYSTEM_ID}\tCRP`, 22]]),
+          ? new Map([
+              [
+                lookup.keyOf({
+                  externalSystemId: BBL_SYSTEM_ID,
+                  externalId: 'My League',
+                }),
+                11,
+              ],
+            ])
+          : new Map([
+              [
+                lookup.keyOf({
+                  externalSystemId: BBL_SYSTEM_ID,
+                  externalId: 'CRP',
+                }),
+                22,
+              ],
+            ]),
       ),
     );
 
@@ -269,7 +283,15 @@ describe('BblErasImportService', () => {
     mocks.lookup.lookupMap.mockImplementation((kind) =>
       Promise.resolve(
         kind === 'league'
-          ? new Map([[`${BBL_SYSTEM_ID}\tMy League`, 11]])
+          ? new Map([
+              [
+                mocks.lookup.keyOf({
+                  externalSystemId: BBL_SYSTEM_ID,
+                  externalId: 'My League',
+                }),
+                11,
+              ],
+            ])
           : new Map<string, number>(),
       ),
     );
@@ -294,10 +316,30 @@ describe('BblErasImportService', () => {
     mocks.lookup.lookupMap.mockImplementation((kind) =>
       Promise.resolve(
         kind === 'league'
-          ? new Map([[`${BBL_SYSTEM_ID}\tMy League`, 11]])
+          ? new Map([
+              [
+                mocks.lookup.keyOf({
+                  externalSystemId: BBL_SYSTEM_ID,
+                  externalId: 'My League',
+                }),
+                11,
+              ],
+            ])
           : new Map([
-              [`${BBL_SYSTEM_ID}\tCRP`, 20],
-              [`${BBL_SYSTEM_ID}\tCRP+`, 21],
+              [
+                mocks.lookup.keyOf({
+                  externalSystemId: BBL_SYSTEM_ID,
+                  externalId: 'CRP',
+                }),
+                20,
+              ],
+              [
+                mocks.lookup.keyOf({
+                  externalSystemId: BBL_SYSTEM_ID,
+                  externalId: 'CRP+',
+                }),
+                21,
+              ],
             ]),
       ),
     );

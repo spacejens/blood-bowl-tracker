@@ -13,6 +13,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import { CoachPageParser } from '../coaches/coach-page-parser';
 import { RacePageParser } from '../races/race-page-parser';
 import { mockBblSourceReader } from '../shared/bbl-source-reader-mock.test-helpers';
+import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -166,19 +167,10 @@ async function makeService(
   pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
   const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
-  lookup.lookupMap.mockImplementation((kind) =>
-    Promise.resolve(
-      kind === 'race'
-        ? new Map([[`${BBL_SYSTEM_ID}\t16`, 500]])
-        : new Map([[`${BBL_SYSTEM_ID}\tHugo E`, 900]]),
-    ),
-  );
+  mockReferenceLookup(lookup, {
+    race: new Map([['16', 500]]),
+    coach: new Map([['Hugo E', 900]]),
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
