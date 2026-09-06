@@ -190,20 +190,9 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
   });
 
   it('does not let a discarded artifact drop the caller-supplied exclusion, letting an already-handled review re-match', async () => {
-    // Poll 2's `gh pr view` mock simulates jq's own exclusion logic: it
-    // returns the already-handled `PRR_previous` review only if the jq
-    // program it was called with no longer excludes that id — i.e. only if
-    // the caller's original `excludeReviewId` was dropped. On the buggy code
-    // (which overwrites `excludeReviewId` with the discarded artifact's id),
-    // poll 2's jq program excludes `PRR_empty1` but not `PRR_previous`, so
-    // this mock reports `FOUND` (the `PRR_review1` fixture) as newly found —
-    // standing in for jq re-matching the already-handled `PRR_previous`
-    // review once its exclusion was lost — a real regression of the bug
-    // this test guards against, where overwriting `excludeReviewId` instead
-    // of layering `excludeReviewIds` on top of it drops the caller's own
-    // exclusion. On the fixed code, poll 2's jq program still excludes
-    // `PRR_previous`, so this mock reports nothing, and the wait times out
-    // instead of returning a false `found: true`.
+    // Poll 2's mock reports `FOUND` only if the jq program it receives no
+    // longer excludes `PRR_previous` — verifying that `excludeReviewId` isn't
+    // dropped when layering in a discarded artifact's id.
     processRunner.run.mockImplementation((_command, args) => {
       if (args[0] === 'api') {
         return Promise.resolve(rollingResult({}));
