@@ -16,14 +16,14 @@ import type { UpsertHandlerService } from './upsert-handler.service';
 
 /**
  * Route-building for procedures that are fully hand-written forever — they
- * never use any of RpcRouterFactoryService's generic route builders, in this
- * task or any later one, either because the whole entity is non-standard
- * (sppAwardValues, trophyAwards, externalSystems) or because the procedure
- * is a one-off extra alongside an otherwise-standard entity (e.g.
- * positions.syncRaceEras). Pulled out of rpc-router-factory.service.ts (as
- * opposed to the generic builder methods themselves) purely to keep that
- * file under its 500-line ESLint cap; the WHY-hand-written rationale in each
- * comment below is unchanged from when it lived there. This fits CLAUDE.md's
+ * never use any of RpcRouterFactoryService's generic route builders, either
+ * because the whole entity is non-standard (sppAwardValues, trophyAwards,
+ * externalSystems) or because the procedure is a one-off extra alongside an
+ * otherwise-standard entity (e.g. positions.syncRaceEras). These live here
+ * rather than in rpc-router-factory.service.ts (as opposed to the generic
+ * builder methods themselves) purely to keep that file under its 500-line
+ * ESLint cap; each comment below records why its own procedure is
+ * hand-written. This fits CLAUDE.md's
  * "Service vs. loose function" exemption 2 — pure assembly wrapped by a
  * factory service — the same pattern as `buildFactTree`/`FactTreeFactoryService`:
  * each function here is pure declarative assembly of a route object, invoked
