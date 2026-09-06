@@ -91,10 +91,10 @@ export function mockKeyOf(lookup: MockProxy<ReferenceLookupService>): void {
  * `mockKeyOf` (a made-up, non-production key format used purely as a
  * correlation id with the `lookupMap` stub below) and whose
  * `lookupMap(kind, ...)` resolves from a plain external-id -> DB-id map per
- * kind, keyed under `tpSystemId`. `era` always comes from `eraIdsByName`; `race`/`coach`/`position`/`competition`/
- * `rulesSet` come from `extra`'s matching map when supplied. A kind with no map (or an
- * id the map doesn't declare) resolves to nothing, matching a real
- * unresolved reference.
+ * kind, keyed under `tpSystemId`. `era` always comes from `eraIdsByName`;
+ * `race`/`coach`/`position`/`competition`/`rulesSet` come from `extra`'s
+ * matching map when supplied. A kind with no map (or an id the map doesn't
+ * declare) resolves to nothing, matching a real unresolved reference.
  *
  * Limitation: the returned `lookupMap` stub ignores its `refs` argument
  * entirely and always answers every entry declared for the requested

@@ -1,4 +1,3 @@
-import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type {
   ReferenceLookupService,
   ResolvableEntityKind,
@@ -18,7 +17,7 @@ import type { MockProxy } from 'vitest-mock-extended';
  */
 export function mockKeyOf(lookup: MockProxy<ReferenceLookupService>): void {
   lookup.keyOf.mockImplementation(
-    (ref: ExternalId) => `${ref.externalId}::${ref.externalSystemId}`,
+    (ref) => `${ref.externalId}::${ref.externalSystemId}`,
   );
 }
 

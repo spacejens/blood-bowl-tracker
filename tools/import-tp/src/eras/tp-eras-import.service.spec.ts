@@ -143,9 +143,7 @@ async function makeService({
   leagueConfig.getLeagueName.mockImplementation(getLeagueName);
   const lookup = mock<ReferenceLookupService>();
   mockKeyOf(lookup);
-  lookup.lookupMap.mockImplementation((kind) =>
-    lookupMap(kind, (ref) => lookup.keyOf(ref)),
-  );
+  lookup.lookupMap.mockImplementation((kind) => lookupMap(kind, lookup.keyOf));
 
   const moduleRef = await Test.createTestingModule({
     providers: [

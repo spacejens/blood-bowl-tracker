@@ -102,8 +102,8 @@ describe('BblErasImportService', () => {
   /**
    * Builds the service under test through a TestingModule with every
    * collaborator mocked. Deterministic collaborators (name resolution, error
-   * building) mirror the real production logic so a regression
-   * in the service under test still fails these tests.
+   * building) mirror the real production logic so a regression in the
+   * service under test still fails these tests.
    */
   beforeEach(async () => {
     const eraConfig = mock<EraConfigService>();
