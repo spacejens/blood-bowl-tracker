@@ -111,9 +111,10 @@ async function run(): Promise<ImportResult> {
     // them: the map is keyed by the position ids that step just upserted, and
     // by the rules set ids its era config resolved. This runs in the same TP
     // importer invocation that writes position availability, which is a
-    // separate (and later) invocation than the BBL importer's -- so TP's
-    // per-rules-set values overwrite BBL's converted snapshot for every
-    // position the two sources share, which is the intent of issue #669.
+    // separate (and later) invocation than the BBL importer's -- so for every
+    // position both sources describe, TP's values overwrite BBL's. That
+    // ordering is deliberate: TP's values are per-rules-set and authoritative,
+    // where BBL's are a converted single snapshot.
     // Star players need no special casing: position_rules_sets is keyed by
     // positionId alone.
     const positionCharacteristicsOutcome = await app
