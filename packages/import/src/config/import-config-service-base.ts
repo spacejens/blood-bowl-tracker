@@ -42,9 +42,13 @@ export type ImportConfigServiceConstructor = new (
  * import tools share, with the tool's own config file name and api-token env
  * var substituted into the error messages.
  *
- * A loose function rather than a service by the "generic over entity type"
- * exemption in CLAUDE.md's "Service vs. loose function" — it is parameterized
- * by a config object and returns the class NestJS DI then manages. The
+ * A class-factory rather than a service: what it returns is the
+ * `@Injectable()` class each import tool's config service extends, so NestJS
+ * DI manages the result directly instead of injecting this function's output
+ * anywhere. None of the four exemptions in CLAUDE.md's "Service vs. loose
+ * function" describes that shape — the "generic over entity/table type" one
+ * least of all, since the parameter is a runtime config object (`pathToken`,
+ * `fileBaseName`, `apiTokenEnvVar`) rather than a compile-time generic. The
  * `@Injectable()` decorator and the base's `@Inject(pathToken)` parameter
  * decorator are found through the subclass's prototype chain, which is why a
  * subclass needs no constructor of its own.

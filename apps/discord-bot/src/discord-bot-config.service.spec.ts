@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from './discord-bot-config.service';
@@ -21,7 +21,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('returns the configured database URL', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'DATABASE_URL' ? 'postgres://x' : undefined,
     );
     expect(service.getDatabaseUrl()).toBe('postgres://x');
@@ -29,7 +29,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the database URL is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() => service.getDatabaseUrl()).toThrow(
       'DATABASE_URL is not configured',
     );
@@ -37,7 +37,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('returns the configured Discord bot token', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'DISCORD_BOT_TOKEN' ? 'tkn' : undefined,
     );
     expect(service.getDiscordBotToken()).toBe('tkn');
@@ -45,7 +45,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the Discord bot token is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() => service.getDiscordBotToken()).toThrow(
       'DISCORD_BOT_TOKEN is not configured',
     );
@@ -53,7 +53,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('returns the configured startup message channel', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'STARTUP_MESSAGE_DISCORD_CHANNEL' ? '42' : undefined,
     );
     expect(service.getStartupMessageDiscordChannel()).toBe('42');
@@ -63,14 +63,14 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the startup message channel is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() => service.getStartupMessageDiscordChannel()).toThrow(
       'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
     );
   });
 
   it('returns the configured random insights cron expression', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'RANDOM_INSIGHTS_CRON' ? '0 * * * *' : undefined,
     );
     expect(service.getRandomInsightsCron()).toBe('0 * * * *');
@@ -78,14 +78,14 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the random insights cron expression is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() => service.getRandomInsightsCron()).toThrow(
       'RANDOM_INSIGHTS_CRON is not configured',
     );
   });
 
   it('returns the configured random insights channel', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'RANDOM_INSIGHTS_DISCORD_CHANNEL' ? '99' : undefined,
     );
     expect(service.getRandomInsightsDiscordChannel()).toBe('99');
@@ -95,14 +95,14 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the random insights channel is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() => service.getRandomInsightsDiscordChannel()).toThrow(
       'RANDOM_INSIGHTS_DISCORD_CHANNEL is not configured',
     );
   });
 
   it('returns the filter probability as a number', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'RANDOM_INSIGHTS_FILTER_PROBABILITY' ? '50' : undefined,
     );
     expect(service.getRandomInsightsFilterProbability()).toBe(50);
@@ -112,43 +112,43 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('accepts 0 and 100 as filter probabilities', () => {
-    configService.get.mockReturnValue('0');
+    vi.mocked(configService.get).mockReturnValue('0');
     expect(service.getRandomInsightsFilterProbability()).toBe(0);
-    configService.get.mockReturnValue('100');
+    vi.mocked(configService.get).mockReturnValue('100');
     expect(service.getRandomInsightsFilterProbability()).toBe(100);
   });
 
   it('throws when the filter probability is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() => service.getRandomInsightsFilterProbability()).toThrow(
       'RANDOM_INSIGHTS_FILTER_PROBABILITY is not configured',
     );
   });
 
   it('throws when the filter probability is not an integer', () => {
-    configService.get.mockReturnValue('half');
+    vi.mocked(configService.get).mockReturnValue('half');
     expect(() => service.getRandomInsightsFilterProbability()).toThrow(
       'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
     );
-    configService.get.mockReturnValue('12.5');
+    vi.mocked(configService.get).mockReturnValue('12.5');
     expect(() => service.getRandomInsightsFilterProbability()).toThrow(
       'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
     );
   });
 
   it('throws when the filter probability is out of range', () => {
-    configService.get.mockReturnValue('101');
+    vi.mocked(configService.get).mockReturnValue('101');
     expect(() => service.getRandomInsightsFilterProbability()).toThrow(
       'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
     );
-    configService.get.mockReturnValue('-1');
+    vi.mocked(configService.get).mockReturnValue('-1');
     expect(() => service.getRandomInsightsFilterProbability()).toThrow(
       'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
     );
   });
 
   it('returns the current-era filter probability as a number', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY'
         ? '75'
         : undefined,
@@ -160,7 +160,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the current-era filter probability is not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(() =>
       service.getRandomInsightsFilterCurrentEraProbability(),
     ).toThrow(
@@ -169,7 +169,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('throws when the current-era filter probability is out of range', () => {
-    configService.get.mockReturnValue('200');
+    vi.mocked(configService.get).mockReturnValue('200');
     expect(() =>
       service.getRandomInsightsFilterCurrentEraProbability(),
     ).toThrow(
@@ -178,7 +178,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('returns the configured port as a number', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'PORT' ? '4000' : undefined,
     );
     expect(service.getPort()).toBe(4000);
@@ -186,13 +186,13 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('defaults to port 3000 when not configured', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(service.getPort()).toBe(3000);
     expect(configService.get).toHaveBeenCalledWith('PORT');
   });
 
   it('enables the standby startup message when the toggle is unset', () => {
-    configService.get.mockReturnValue(undefined);
+    vi.mocked(configService.get).mockReturnValue(undefined);
     expect(service.getStandbyStartupMessageEnabled()).toBe(true);
     expect(configService.get).toHaveBeenCalledWith(
       'STANDBY_STARTUP_MESSAGE_ENABLED',
@@ -200,7 +200,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('enables the standby startup message when the toggle is "true"', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'true' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(true);
@@ -210,7 +210,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('disables the standby startup message when the toggle is "false"', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'false' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(false);
@@ -220,7 +220,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('reads the standby startup message toggle case-insensitively', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? '  FALSE  ' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(false);
@@ -230,7 +230,7 @@ describe('DiscordBotConfigService', () => {
   });
 
   it('treats any other standby startup message toggle value as enabled', () => {
-    configService.get.mockImplementation((key: string) =>
+    vi.mocked(configService.get).mockImplementation((key: string) =>
       key === 'STANDBY_STARTUP_MESSAGE_ENABLED' ? 'yes' : undefined,
     );
     expect(service.getStandbyStartupMessageEnabled()).toBe(true);
