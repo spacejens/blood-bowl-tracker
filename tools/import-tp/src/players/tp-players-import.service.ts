@@ -24,6 +24,7 @@ import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 
 /**
@@ -108,6 +109,7 @@ export class TpPlayersImportService {
     private readonly lookup: ReferenceLookupService,
     private readonly eraRulesSetResolver: TpEraRulesSetResolverService,
     private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
+    private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
   ) {}
 
   /**
@@ -307,6 +309,10 @@ export class TpPlayersImportService {
         tpSystemId,
         errors,
       });
+    // The curated mercenary table is keyed by rules-set NAME while the
+    // resolver above yields ids, so the fallback below needs both.
+    const rulesSetNameByEraName =
+      this.mercenaryCharacteristics.rulesSetNameByEraName(eras);
     const mercenaryPositionIdsByName = new Map<string, number>();
 
     // One batched lookup for the whole run, not one per player: collect
@@ -410,11 +416,30 @@ export class TpPlayersImportService {
         // normal case for one physical player), but if a player id were ever
         // reused across two eras with different rules sets, one upsert would
         // validate against the wrong rules set's declared characteristics.
-        const characteristics = this.characteristicsBuilder.forRosterPlayer({
+        // A mercenary Big Guy hire is the one exception: TP embeds nothing for
+        // it, so it falls back to curated data below.
+        let characteristics = this.characteristicsBuilder.forRosterPlayer({
           characteristics: player.characteristics,
           eraName: era,
           rulesSetIdByEraName,
         });
+        // A mercenary Big Guy hire carries no ma/st/ag/pa/av anywhere in TP's
+        // data, so fall back to the curated table. Checked only after the
+        // player's own values, so a future TP payload that does embed real
+        // ones still wins.
+        if (characteristics === undefined && fromMercenary) {
+          const rulesSetName = rulesSetNameByEraName.get(era);
+          const rulesSetId = rulesSetIdByEraName.get(era);
+          characteristics = this.mercenaryCharacteristics.forRosterPlayer({
+            positionName: player.fallbackPositionName,
+            player: { id: player.id, name: player.name },
+            rulesSet:
+              rulesSetName !== undefined && rulesSetId !== undefined
+                ? { name: rulesSetName, id: rulesSetId }
+                : undefined,
+            errors,
+          });
+        }
 
         const upserted = await this.playersImport.upsertPlayerResult(
           {
@@ -565,6 +590,8 @@ export class TpPlayersImportService {
    * `fallbackPositionName` -- see {@link importPlayers}'s doc comment for
    * why this fallback exists and why it's gated on `isBigGuy`. Returns
    * undefined (recording an `ImportError`) if the upsert itself fails.
+   * Also syncs the position's curated characteristics to
+   * `position_rules_sets`, once per distinct mercenary name.
    */
   private async resolveMercenaryPositionId(options: {
     player: TpRosterPlayer;
@@ -608,6 +635,16 @@ export class TpPlayersImportService {
       return undefined;
     }
     mercenaryPositionIdsByName.set(player.fallbackPositionName, position.id);
+    // TP has no characteristics for a mercenary position anywhere, so its
+    // position_rules_sets rows come from the curated table instead. Placed
+    // after the cache write, so the early `cached` return above makes this run
+    // once per distinct mercenary name per import run, not once per hire.
+    await this.mercenaryCharacteristics.syncPositionCharacteristics({
+      positionName: player.fallbackPositionName,
+      positionId: position.id,
+      tpSystemId,
+      errors,
+    });
     return position.id;
   }
 }

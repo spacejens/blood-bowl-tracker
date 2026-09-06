@@ -80,4 +80,34 @@
       },
     ],
   },
+
+  // Curated data for mercenary ("Big Guy") hires -- e.g. "Giant Mercenary" --
+  // named for the section, not the single kind of data it holds today:
+  // characteristics are all that's curated so far, but this is where any
+  // future mercenary data would live too.
+  //
+  // Characteristics exist here because TP supplies none for a mercenary hire
+  // anywhere: the name is in no roster catalog, and the match-embedded
+  // lineUps[] entry for an actual hire carries no ma/st/ag/pa/av either. Each
+  // entry is one mercenary position's characteristics under one rules set; a
+  // mercenary hired under a rules set with no entry here is recorded as an
+  // import error rather than importing without characteristics. Optional --
+  // an absent or empty array just means no mercenary hire has been curated
+  // yet.
+  //
+  // Giant Mercenary / BB2020 matches the position_rules_sets row BBL already
+  // imports for the Giant Mercenary position. BB2025 has no Giant Mercenary
+  // published yet, so it has no entry here either -- that absence is
+  // intentional, not a gap to fill.
+  mercenaries: [
+    {
+      positionName: 'Giant Mercenary',
+      rulesSetName: 'BB2020',
+      move: 6,
+      strength: 7,
+      agility: 5,
+      passing: 5,
+      armour: 11,
+    },
+  ],
 }
