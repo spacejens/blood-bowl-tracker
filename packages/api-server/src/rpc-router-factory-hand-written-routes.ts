@@ -1,6 +1,5 @@
 import { contract } from '@blood-bowl-tracker/api-contract';
 import {
-  CharacteristicFormatMismatchError,
   CompetitionGroupsService,
   ExternalSystemsService,
   MatchOutcomesService,
@@ -122,28 +121,23 @@ export function buildPlayerSppAdjustmentRoutes(
   };
 }
 
-// positionRulesSets: not routed through the upsert handler, for the same
-// reason sppAwardValues.sync is not — a row is keyed by (positionId,
-// rulesSetId) rather than external ids, so there is no CONFLICT to map and no
-// entity+created shape to return. The one error it does map is the service's
-// format mismatch: characteristics that disagree with what the rules set
-// declares are authored-data feedback the importer reports per entry, so
-// BAD_REQUEST rather than an internal error.
+// positionRulesSets: not routed through the upsert handler's `run`/
+// `runWithoutConflict`, for the same reason sppAwardValues.sync is not — a row
+// is keyed by (positionId, rulesSetId) rather than external ids, so there is no
+// CONFLICT to map and no entity+created shape to return. It does still go
+// through the handler's `runSync`, which owns the one classification this
+// procedure needs: a characteristic format mismatch is authored-data feedback
+// the importer reports per entry, so BAD_REQUEST rather than an internal error.
 export function buildPositionRulesSetsRoutes(
+  upsertHandler: UpsertHandlerService,
   positionRulesSetsService: PositionRulesSetsService,
 ) {
   return {
     sync: implement(contract.positionRulesSets.sync).handler(
-      async ({ input, errors }) => {
-        try {
-          return await positionRulesSetsService.sync(input);
-        } catch (error) {
-          if (error instanceof CharacteristicFormatMismatchError) {
-            throw errors.BAD_REQUEST({ message: error.message });
-          }
-          throw error;
-        }
-      },
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          positionRulesSetsService.sync(input),
+        ),
     ),
   };
 }
@@ -175,21 +169,15 @@ export function buildMatchResolveOutcomesRoute(
 }
 
 // competitionGroups.list: not one of the standard upsert/resolve shapes at
-// all — it lists every group, mapping the drizzle row explicitly because it
-// also carries the history-tracking columns, which are not part of the
-// contract's CompetitionGroupSchema.
+// all — it lists every group. The service's `listAllForApi` projects the
+// contract's CompetitionGroupSchema fields in the query, so the
+// history-tracking columns the contract does not carry are never read here.
 export function buildCompetitionGroupsListRoute(
   competitionGroupsService: CompetitionGroupsService,
 ) {
   return {
-    list: implement(contract.competitionGroups.list).handler(async () => {
-      const groups = await competitionGroupsService.listAll();
-      return groups.map((group) => ({
-        id: group.id,
-        name: group.name,
-        leagueId: group.leagueId,
-        createdAt: group.createdAt,
-      }));
-    }),
+    list: implement(contract.competitionGroups.list).handler(() =>
+      competitionGroupsService.listAllForApi(),
+    ),
   };
 }
