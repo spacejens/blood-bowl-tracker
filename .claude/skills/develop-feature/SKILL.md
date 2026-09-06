@@ -442,6 +442,8 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
       ```bash
       cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
       ```
+      If this does not print `{"released": true}` (a non-zero exit, unparseable output, or `{"released": false}` when this session is the one that should be holding the lock — not the normal Skip-branch case described below), retry it once after a couple of seconds. If it still cannot be confirmed, print a one-line warning that the lock may still be held and proceed to present the question anyway — never refuse to ask the developer over a lock-release failure. The worst case is bounded by the same 100-minute staleness reclaim that already backstops every other lock failure mode in this design, not an unrecoverable block.
+
       If the developer chooses **Keep waiting**, re-acquire before re-running the wait — step 3's identical `acquire-review-lock <holder-id>` command, backgrounded the same way; it rejoins the back of the queue. If they choose **Skip the review loop**, leave it released: the after-the-loop release below then prints `{"released": false}`, which is a normal no-op, not an error.
 
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
@@ -465,7 +467,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         - **Wait for it, then trigger a review** — run the procedure below.
         - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
-        **Release the review lock before asking, and re-acquire if the loop continues** — exactly as in (b), and for the same reason. Run `release-review-lock <holder-id>` immediately before presenting the `AskUserQuestion`; if the developer chooses **Wait for it, then trigger a review**, re-acquire with step 3's `acquire-review-lock <holder-id>` before running the procedure below. If they choose **Skip the review loop**, leave it released.
+        **Release the review lock before asking, and re-acquire if the loop continues** — exactly as in (b), and for the same reason, including retrying an unconfirmed release once before proceeding anyway. Run `release-review-lock <holder-id>` immediately before presenting the `AskUserQuestion`; if the developer chooses **Wait for it, then trigger a review**, re-acquire with step 3's `acquire-review-lock <holder-id>` before running the procedure below. If they choose **Skip the review loop**, leave it released.
 
         This applies only to this long/unknown-wait branch. The **short wait** branch above never Pauses — it continues automatically within a bounded window — so it holds the lock straight through, exactly as the rest of the loop does. Releasing there would hand the lock to another session in the middle of a wait this one is about to resume.
 
@@ -518,7 +520,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here (with a further-advanced comment watermark and the newest comment's id) if CodeRabbit reports the same failure again with a *new* comment.
       - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
-      **Release the review lock before asking, and re-acquire if the loop continues** — exactly as in (b) and (b2), and for the same reason. Run `release-review-lock <holder-id>` immediately before presenting the `AskUserQuestion`; if the developer chooses **Retry (re-trigger a review)**, re-acquire with step 3's `acquire-review-lock <holder-id>` before re-running the wait. If they choose **Skip the review loop**, leave it released.
+      **Release the review lock before asking, and re-acquire if the loop continues** — exactly as in (b) and (b2), and for the same reason, including retrying an unconfirmed release once before proceeding anyway. Run `release-review-lock <holder-id>` immediately before presenting the `AskUserQuestion`; if the developer chooses **Retry (re-trigger a review)**, re-acquire with step 3's `acquire-review-lock <holder-id>` before re-running the wait. If they choose **Skip the review loop**, leave it released.
 
       This is a Pause rather than an automatic decision for the same reason as (b) and (b2): only the developer can judge whether to keep waiting on a CodeRabbit-side hiccup or move on. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
