@@ -291,10 +291,12 @@ played:` followed by their top five teams by matches played, one line per
   recorded for any rules set shows a short message instead of a stat-line
   list. Then a blank line, `Held by <N> player(s)`, a blank line, and
   `Top players by SPP:` followed by its top five players by career SPP total,
-  one line per player formatted `<rank>. <player> (<team>, <coach>) — <SPP>`
-  — the player's position is left off, since every listed player already
-  holds this one, and the list is not scoped to one race or one
-  [era](../../glossary.md#era), so neither belongs on the row either. Ties at the
+  one line per player formatted `<rank>. <player> (<team>, <era>, <coach>) —
+  <SPP>` — the player's position is left off, since every listed player
+  already holds this one, and so is the race, since the list is not scoped to
+  one; the [era](../../glossary.md#era) is shown because a position's roster
+  slot spans many eras, so it is what tells two of its top players apart.
+  Ties at the
   fifth-place cutoff are all shown, up to ten players — the same convention
   `/insights` toplists use, though at most ten players are fetched, so the
   "…and N more tied." note never actually appears here. A position with no

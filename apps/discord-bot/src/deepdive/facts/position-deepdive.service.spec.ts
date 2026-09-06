@@ -405,22 +405,24 @@ describe('PositionDeepdiveService', () => {
     );
   });
 
-  it("appends each top player's team and coach context to their name", async () => {
+  it("appends each top player's team, era and coach context to their name", async () => {
     const { service } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
         topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
-      playerContext: passthroughPlayerContext(' (Reikland Reavers, Bob)'),
+      playerContext: passthroughPlayerContext(
+        ' (Reikland Reavers, Second Era, Bob)',
+      ),
     });
 
     expect(JSON.stringify(await service.resolve(1))).toContain(
-      '1. Griff (Reikland Reavers, Bob) — 130',
+      '1. Griff (Reikland Reavers, Second Era, Bob) — 130',
     );
   });
 
-  it('decorates top players with their team and coach only, not position, race or era', async () => {
+  it('decorates top players with their team, era and coach, but not position or race', async () => {
     const { service, playerContext } = await makeService({
       positions: makePositions({
         position: { name: 'Blitzer', races: [] },
@@ -431,9 +433,11 @@ describe('PositionDeepdiveService', () => {
 
     await service.resolve(1);
 
-    // Every player already holds this same position — repeating it on each
-    // row would say nothing new — and a position is not scoped to one race
-    // or one era, so neither belongs here either.
+    // Every player already holds this same position, so repeating it on each
+    // row would say nothing new, and a position is not scoped to one race.
+    // Era is different: one position's roster slot spans many eras, so two
+    // top players for it can come from very different points in history, and
+    // the era is what tells them apart.
     expect(playerContext.attachSuffixes).toHaveBeenCalledWith(
       [{ id: 9, name: 'Griff', sppTotal: 130, count: 130, rank: 1 }],
       expect.any(Function) as (row: unknown) => number,
@@ -441,7 +445,7 @@ describe('PositionDeepdiveService', () => {
         includePosition: false,
         includeTeam: true,
         includeRace: false,
-        includeEra: false,
+        includeEra: true,
         includeCoach: true,
       },
     );
