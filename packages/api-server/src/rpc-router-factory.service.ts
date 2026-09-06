@@ -348,6 +348,7 @@ export class RpcRouterFactoryService {
         }),
       },
       positionRulesSets: buildPositionRulesSetsRoutes(
+        this.upsertHandler,
         this.positionRulesSetsService,
       ),
       rulesSets: this.buildStandardEntityRoutes({
