@@ -169,21 +169,15 @@ export function buildMatchResolveOutcomesRoute(
 }
 
 // competitionGroups.list: not one of the standard upsert/resolve shapes at
-// all — it lists every group, mapping the drizzle row explicitly because it
-// also carries the history-tracking columns, which are not part of the
-// contract's CompetitionGroupSchema.
+// all — it lists every group. The service's `listAllForApi` projects the
+// contract's CompetitionGroupSchema fields in the query, so the
+// history-tracking columns the contract does not carry are never read here.
 export function buildCompetitionGroupsListRoute(
   competitionGroupsService: CompetitionGroupsService,
 ) {
   return {
-    list: implement(contract.competitionGroups.list).handler(async () => {
-      const groups = await competitionGroupsService.listAll();
-      return groups.map((group) => ({
-        id: group.id,
-        name: group.name,
-        leagueId: group.leagueId,
-        createdAt: group.createdAt,
-      }));
-    }),
+    list: implement(contract.competitionGroups.list).handler(() =>
+      competitionGroupsService.listAllForApi(),
+    ),
   };
 }
