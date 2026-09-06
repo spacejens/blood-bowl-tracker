@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
@@ -19,56 +19,46 @@ const race: SampledRace = {
   selectedFor: ['Random sample'],
 };
 
-async function makeService(): Promise<{
-  service: PositionCharacteristicsRawRendererService;
-  query: ReturnType<typeof mock<RacePositionsQueryService>>;
-  positionIds: ReturnType<typeof mock<PositionExternalIdsService>>;
-  raceIds: ReturnType<typeof mock<RaceExternalIdsService>>;
-  bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
-  tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
-  manual: ReturnType<typeof mock<ManualRawDataService>>;
-  typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
-}> {
-  const query = mock<RacePositionsQueryService>();
-  const positionIds = mock<PositionExternalIdsService>();
-  const raceIds = mock<RaceExternalIdsService>();
-  const bbl = mock<BblRawPositionPageService>();
-  const tp = mock<TpRawRosterIndexService>();
-  const manual = mock<ManualRawDataService>();
-  const typIds = mock<BblPositionTypIdsService>();
-  query.positionsFor.mockResolvedValue([]);
-  positionIds.forPositions.mockResolvedValue(new Map());
-  raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
-  manual.characteristics.mockResolvedValue([]);
-  typIds.forRace.mockResolvedValue(new Map());
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      PositionCharacteristicsRawRendererService,
-      { provide: RacePositionsQueryService, useValue: query },
-      { provide: PositionExternalIdsService, useValue: positionIds },
-      { provide: RaceExternalIdsService, useValue: raceIds },
-      { provide: BblRawPositionPageService, useValue: bbl },
-      { provide: TpRawRosterIndexService, useValue: tp },
-      { provide: ManualRawDataService, useValue: manual },
-      { provide: BblPositionTypIdsService, useValue: typIds },
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(PositionCharacteristicsRawRendererService),
-    query,
-    positionIds,
-    raceIds,
-    bbl,
-    tp,
-    manual,
-    typIds,
-  };
-}
-
 describe('PositionCharacteristicsRawRendererService', () => {
+  let service: PositionCharacteristicsRawRendererService;
+  let query: ReturnType<typeof mock<RacePositionsQueryService>>;
+  let positionIds: ReturnType<typeof mock<PositionExternalIdsService>>;
+  let raceIds: ReturnType<typeof mock<RaceExternalIdsService>>;
+  let bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
+  let tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
+  let manual: ReturnType<typeof mock<ManualRawDataService>>;
+  let typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
+
+  beforeEach(async () => {
+    query = mock<RacePositionsQueryService>();
+    positionIds = mock<PositionExternalIdsService>();
+    raceIds = mock<RaceExternalIdsService>();
+    bbl = mock<BblRawPositionPageService>();
+    tp = mock<TpRawRosterIndexService>();
+    manual = mock<ManualRawDataService>();
+    typIds = mock<BblPositionTypIdsService>();
+    query.positionsFor.mockResolvedValue([]);
+    positionIds.forPositions.mockResolvedValue(new Map());
+    raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
+    manual.characteristics.mockResolvedValue([]);
+    typIds.forRace.mockResolvedValue(new Map());
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PositionCharacteristicsRawRendererService,
+        { provide: RacePositionsQueryService, useValue: query },
+        { provide: PositionExternalIdsService, useValue: positionIds },
+        { provide: RaceExternalIdsService, useValue: raceIds },
+        { provide: BblRawPositionPageService, useValue: bbl },
+        { provide: TpRawRosterIndexService, useValue: tp },
+        { provide: ManualRawDataService, useValue: manual },
+        { provide: BblPositionTypIdsService, useValue: typIds },
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(PositionCharacteristicsRawRendererService);
+  });
+
   it('lists each stored position\'s BBL characteristics, with — for a "-" passing cell', async () => {
-    const { service, typIds, bbl } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue({
       typId: '310',
@@ -93,7 +83,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it('renders BBL\'s "+" notation verbatim in the raw table', async () => {
-    const { service, typIds, bbl } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue({
       typId: '310',
@@ -118,7 +107,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it('renders "no characteristics table on the page" when the page has none', async () => {
-    const { service, typIds, bbl } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue({
       typId: '310',
@@ -137,7 +125,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it('renders "page not in the mirror" when the BBL position page cannot be read', async () => {
-    const { service, typIds, bbl } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue(null);
 
@@ -151,7 +138,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it('lists TP roster characteristics deduplicated by tpPositionId, excluding star players', async () => {
-    const { service, raceIds, tp } = await makeService();
     raceIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf', 'dwarf2'],
@@ -202,7 +188,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it("lists a manual curation entry whose Name-system position id matches the race's positions", async () => {
-    const { service, query, positionIds, manual } = await makeService();
     query.positionsFor.mockResolvedValue([
       {
         positionId: 1,
@@ -245,7 +230,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it('excludes a curated entry for a position of a different race', async () => {
-    const { service, query, positionIds, manual } = await makeService();
     query.positionsFor.mockResolvedValue([
       {
         positionId: 1,
@@ -275,8 +259,6 @@ describe('PositionCharacteristicsRawRendererService', () => {
   });
 
   it('omits empty sub-sections, and renders one note when all are empty', async () => {
-    const { service } = await makeService();
-
     const html = await service.render(race);
 
     expect(html).not.toContain('<h5>BBL</h5>');
