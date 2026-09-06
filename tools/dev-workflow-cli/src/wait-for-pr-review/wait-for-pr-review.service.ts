@@ -17,6 +17,7 @@ import {
   codeRabbitCommentSchema,
   CompletionCandidate,
   completionCandidateSchema,
+  emptyBodyReviewCandidateSchema,
   headRefOidSchema,
   jsonObjectSchema,
   SectionCandidate,
@@ -592,16 +593,21 @@ export class WaitForPrReviewService {
    * poll, so discarding it would loop forever on the same value. jq only ever
    * emits real GitHub review objects here, so this is a defensive branch, not
    * a live path.
+   *
+   * The body check stays in TypeScript rather than moving into the schema on
+   * purpose — see `emptyBodyReviewCandidateSchema`'s own comment: a schema
+   * that rejected a non-string body would fail the whole candidate, and a
+   * failed candidate here means "trust it", the opposite of what a null body
+   * must do.
    */
   private emptyBodyReviewId(candidate: unknown): string | undefined {
-    if (typeof candidate !== 'object' || candidate === null) {
+    const review = this.validate(emptyBodyReviewCandidateSchema, candidate);
+    if (review === undefined) {
       return undefined;
     }
-    const { id, body } = candidate as { id?: unknown; body?: unknown };
-    if (typeof id !== 'string') {
-      return undefined;
-    }
-    return typeof body === 'string' && body.trim() !== '' ? undefined : id;
+    return typeof review.body === 'string' && review.body.trim() !== ''
+      ? undefined
+      : review.id;
   }
 
   /**
