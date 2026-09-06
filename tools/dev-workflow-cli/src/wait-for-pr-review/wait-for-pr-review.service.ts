@@ -110,8 +110,9 @@ interface PollOutcome {
   readonly headRefOid?: string;
   /**
    * A review that matched the jq filter but was discarded as a content-free
-   * artifact — empty body, no inline comments (see `checkedReview`). Carried
-   * out so `run` can exclude it from later polls in this same wait.
+   * artifact — empty body, no genuine (non-reply) inline comments (see
+   * `checkedReview`). Carried out so `run` can exclude it from later polls in
+   * this same wait.
    */
   readonly discardedEmptyReviewId?: string;
   /**
@@ -419,8 +420,8 @@ export class WaitForPrReviewService {
    * trusts outright rather than trying to verify (a non-object candidate, or
    * one missing a string `id`). Everything else the reviews call can return
    * is either not evidence a pass actually ran (an empty-bodied review that
-   * reached here only because it carries inline comments — see
-   * `checkedReview`) or a CodeRabbit-specific comment that a rolling-comment
+   * reached here only because it carries genuine, non-reply inline comments —
+   * see `checkedReview`) or a CodeRabbit-specific comment that a rolling-comment
    * signal should be allowed to outrank: a rate-limit edit CodeRabbit only
    * ever reports by editing that comment in place, or a completion notice
    * cross-checked against the PR's current head commit. In those cases the
@@ -559,11 +560,13 @@ export class WaitForPrReviewService {
   /**
    * A matched review, or the id of one discarded as a content-free artifact.
    *
-   * CodeRabbit can submit a formally valid review carrying nothing at all —
-   * empty body, no inline comments — while its actual pass was blocked by the
+   * CodeRabbit can submit a formally valid review carrying nothing new at
+   * all — empty body, and no inline comments beyond replies continuing
+   * threads that already existed — while its actual pass was blocked by the
    * developer's review rate limit. The jq filter cannot tell that apart from
    * a real review, so an empty-bodied candidate is verified with one extra
-   * lookup before it is trusted.
+   * lookup before it is trusted; a review whose only content is replies
+   * counts as carrying nothing.
    *
    * Fails closed, matching `coversHeadCommit`'s precedent: a lookup that could
    * not answer (`undefined`) discards the candidate rather than trusting an
@@ -581,7 +584,7 @@ export class WaitForPrReviewService {
     if (reviewId === undefined) {
       return { review: candidate };
     }
-    const hasComments = await this.reviewComments.hasInlineComments(
+    const hasComments = await this.reviewComments.hasGenuineInlineComments(
       reviewId,
       timeoutMs,
     );
