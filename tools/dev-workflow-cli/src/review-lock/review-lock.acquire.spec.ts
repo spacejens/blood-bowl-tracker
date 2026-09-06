@@ -111,15 +111,23 @@ describe('ReviewLockService acquire', () => {
     }));
     await vi.advanceTimersByTimeAsync(30_000);
 
-    // The exact waitedMs depends on where inside the advanced window the
-    // poll's own microtasks land, so assert the shape, not a fixed number.
+    // The exact waitedMs, acquiredAt, and heartbeatAt all depend on where
+    // inside the advanced window the poll's own microtasks land (fake-timer
+    // time keeps advancing while the poll runs), so assert their shape, not
+    // fixed values.
     await expect(pending).resolves.toEqual({
       acquired: true,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real number
       waitedMs: expect.any(Number),
     });
     expect(store.current()).toEqual({
-      holder: { id: 'branch-a', acquiredAt: NOW, heartbeatAt: NOW },
+      holder: {
+        id: 'branch-a',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real string
+        acquiredAt: expect.any(String),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real string
+        heartbeatAt: expect.any(String),
+      },
       queue: [],
     });
   });
