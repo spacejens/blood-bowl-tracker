@@ -19,13 +19,13 @@ import type { UpsertHandlerService } from './upsert-handler.service';
  * never use any of RpcRouterFactoryService's generic route builders, either
  * because the whole entity is non-standard (sppAwardValues, trophyAwards,
  * externalSystems) or because the procedure is a one-off extra alongside an
- * otherwise-standard entity (e.g. positions.syncRaceEras). These live here
- * rather than in rpc-router-factory.service.ts (as opposed to the generic
- * builder methods themselves) purely to keep that file under its 500-line
- * ESLint cap; each comment below records why its own procedure is
- * hand-written. This fits CLAUDE.md's
- * "Service vs. loose function" exemption 2 — pure assembly wrapped by a
- * factory service — the same pattern as `buildFactTree`/`FactTreeFactoryService`:
+ * otherwise-standard entity (e.g. positions.syncRaceEras). These live here —
+ * rather than the generic builder methods, which stay in
+ * rpc-router-factory.service.ts — purely to keep that file under its
+ * 500-line ESLint cap; each comment below records why its own procedure is
+ * hand-written. This fits CLAUDE.md's "Service vs. loose function"
+ * exemption 2 — pure assembly wrapped by a factory service — the same
+ * pattern as `buildFactTree`/`FactTreeFactoryService`:
  * each function here is pure declarative assembly of a route object, invoked
  * only from `RpcRouterFactoryService.build()`, itself a thin `@Injectable()`
  * factory that supplies the real, already-injected dependencies once.
