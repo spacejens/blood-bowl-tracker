@@ -10,6 +10,9 @@ export const REVIEW_LOCK_USAGE =
 /** Below this, `--interval-ms` would spin on the state file in a tight loop. */
 const MIN_INTERVAL_MS = 1000;
 
+/** The only flags this parser understands. */
+const KNOWN_FLAG_PREFIXES = ['--timeout-ms=', '--interval-ms='] as const;
+
 /**
  * Turns the review-lock subcommands' argv into their options object. Split
  * out of `main.ts` so the flag parsing and its validation are unit-testable —
@@ -29,6 +32,12 @@ export class ReviewLockArgsService {
       throw new Error(REVIEW_LOCK_USAGE);
     }
     const flags = argv.slice(4);
+    const unknownFlag = flags.find(
+      (arg) => !KNOWN_FLAG_PREFIXES.some((prefix) => arg.startsWith(prefix)),
+    );
+    if (unknownFlag !== undefined) {
+      throw new Error(`${REVIEW_LOCK_USAGE} (unknown flag: ${unknownFlag})`);
+    }
     const timeoutMs = this.readIntFlag(flags, 'timeout-ms', 0);
     const intervalMs = this.readIntFlag(flags, 'interval-ms', MIN_INTERVAL_MS);
     return {
@@ -49,7 +58,11 @@ export class ReviewLockArgsService {
     if (flag === undefined) {
       return undefined;
     }
-    const value = Number(flag.slice(prefix.length));
+    const rawValue = flag.slice(prefix.length);
+    if (rawValue.trim() === '') {
+      throw new Error(`${REVIEW_LOCK_USAGE} (bad --${name} value)`);
+    }
+    const value = Number(rawValue);
     if (!Number.isInteger(value) || value < minimum) {
       throw new Error(`${REVIEW_LOCK_USAGE} (bad --${name} value)`);
     }

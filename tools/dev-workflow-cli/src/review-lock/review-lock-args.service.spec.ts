@@ -67,4 +67,22 @@ describe('ReviewLockArgsService', () => {
       'bad --timeout-ms value',
     );
   });
+
+  it('rejects an unrecognized flag', () => {
+    expect(() => service.parse(argv('branch-a', '--timeout=600000'))).toThrow(
+      'Usage:',
+    );
+  });
+
+  it('rejects an empty --timeout-ms value', () => {
+    expect(() => service.parse(argv('branch-a', '--timeout-ms='))).toThrow(
+      'bad --timeout-ms value',
+    );
+  });
+
+  it('rejects an empty --interval-ms value', () => {
+    expect(() => service.parse(argv('branch-a', '--interval-ms='))).toThrow(
+      'bad --interval-ms value',
+    );
+  });
 });
