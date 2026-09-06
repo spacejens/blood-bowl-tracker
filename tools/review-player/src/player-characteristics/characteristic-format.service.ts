@@ -13,8 +13,8 @@ export const NO_CHARACTERISTIC = '—';
  *
  * Only `null` or an `absent` format renders as nothing. A stored 0 is
  * printed as the number it is:
- * for Move, Strength, Agility and Armour a stored 0 is a legacy row written
- * before these columns stopped allowing new ones — it is shown as the real
+ * for Move, Strength, Agility and Armour, 0 is not a legal value under any
+ * rules set, so a stored 0 is a stale legacy row — it is shown as the real
  * number it is instead of hiding behind a dash, which is what a review tool
  * is for — and for a `plus_zero_legal` Passing value it is
  * a real value ("structurally cannot pass"), rendered as a bare "0" since

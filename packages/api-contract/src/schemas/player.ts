@@ -20,11 +20,11 @@ export const PlayerSchema = z.object({
   teamEraId: z.number().int(),
   positionId: z.number().int(),
   // The player's own current characteristics. Required, not optional: every
-  // stored row has concrete values — the four NOT NULL columns have no
-  // database default, so a stored 0 (where one still exists from before
-  // this column stopped allowing new placeholders) reflects a legacy row,
-  // not an in-progress import. `passing` is nullable because null asserts
-  // that the player's rules set has no Passing characteristic at all.
+  // stored row has concrete values — 0 is not a legal value for the four
+  // NOT NULL columns under any rules set, so a stored 0 reflects a stale
+  // legacy row, not an in-progress import. `passing` is nullable because
+  // null asserts that the player's rules set has no Passing characteristic
+  // at all.
   move: z.number().int(),
   strength: z.number().int(),
   agility: z.number().int(),

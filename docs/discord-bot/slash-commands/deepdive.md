@@ -132,7 +132,7 @@ played:` followed by their top five teams by matches played, one line per
   as the position deepdive's stat line below. Each value that has moved away
   from the [position](../../glossary.md#position)'s own recorded baseline
   under that rules set carries a trailing `▲` (increased) or `▼` (decreased);
-  the comparison is on the raw stored numbers, so a not-yet-curated zero
+  the comparison is on the raw stored numbers, so a stale legacy zero
   still carries `▼` next to its dash. Nothing is marked when the position has
   no recorded baseline under the resolved rules set — the values are shown
   unmarked rather than guessing — and the whole line is omitted when no rules

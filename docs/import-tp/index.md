@@ -278,7 +278,12 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   (absent from the standalone `rosters_<id>.json` file) is still imported,
   with `roster.players`' own data winning on conflict for a given id — see
   [file-format-rosters.md](./file-format-rosters.md)
-  for why. Also imports every star player hired via an `inducements_roll`
+  for why. A player merged in only from a match-embedded snapshot — never
+  seen on a standalone roster — carries no characteristics; if such a player
+  has never been imported before, there is nothing "previously imported" to
+  fall back on, so the create throws `MissingRequiredFieldError` and the row
+  is recorded as an `ImportError` instead of created, with any match events
+  referencing that player id losing their link. Also imports every star player hired via an `inducements_roll`
   match event (gathered by `main.ts` from the already-parsed match events,
   not from any roster field), each getting a reused `isStarPlayer: true`
   Position and a Player scoped to the hiring roster's team-era; returns

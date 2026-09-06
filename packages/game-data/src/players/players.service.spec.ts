@@ -411,10 +411,10 @@ describe('PlayersService', () => {
     });
 
     it('passes through a legacy zero and a null passing untouched', async () => {
-      // A stored 0 is a legacy value from before these columns stopped
-      // allowing new ones, and `null` passing is a rules set with no Passing
-      // characteristic; the deepdive renders both as a dash, so findById must
-      // not coerce either.
+      // A stored 0 is a stale legacy value (0 is not a legal value for these
+      // columns under any rules set), and `null` passing is a rules set with
+      // no Passing characteristic; the deepdive renders both as a dash, so
+      // findById must not coerce either.
       const row = {
         id: 3,
         name: 'Uncurated Lineman',

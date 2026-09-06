@@ -72,7 +72,7 @@ plug in as another data-type module without touching the harness services.
       where a mis-parsed stat line shows up. The comparison is numeric, not
       "better/worse" — under BB2020 a lower Agility is a better Agility, and which is
       which is the reviewer's call. A player whose characteristics were never imported
-      still carries the column defaults of 0 and so appears as decreased, which is
+      may still carry a stale legacy 0 and so appears as decreased, which is
       itself worth seeing. The imported-panel view marks a Passing change whenever
       either side has a value and the other doesn't, so a Passing-only change can show
       a marker there without selecting the player into either stratum here, since both
@@ -124,7 +124,7 @@ plug in as another data-type module without touching the harness services.
      marked with an increase or decrease arrow where it differs numerically from the
      baseline directly above. Only a `null` characteristic renders as a dash, in both
      panels; a stored zero prints as-is, matching the convention `tools/review-race`
-     already used — it may be the not-yet-curated placeholder still sitting in
+     already used — it may be a stale legacy value still sitting in
      Move/Strength/Agility/Armour, or a real "structurally cannot pass" value for a
      `plus_zero_legal` Passing characteristic. A position with no baseline row for the
      resolved rules set gets a highlighted `missing` row and no comparison.

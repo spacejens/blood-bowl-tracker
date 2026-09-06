@@ -41,9 +41,10 @@ const DECREASED = 'characteristic-decreased';
  * a better Agility, and which is which is the reviewer's call. Passing is
  * compared only where both sides have one, so a rules set without Passing
  * never makes every one of its players match. Note that a player whose
- * characteristics were never imported may still carry legacy zeroes written
- * before these columns stopped allowing new ones, and will surface as
- * decreased — which is exactly the kind of gap this tool exists to show.
+ * characteristics were never imported may still carry stale legacy zeroes —
+ * 0 is not a legal value for these columns under any rules set — and will
+ * surface as decreased, which is exactly the kind of gap this tool exists
+ * to show.
  */
 @Injectable()
 export class CharacteristicsChangeStratificationService implements PlayerStratifier {

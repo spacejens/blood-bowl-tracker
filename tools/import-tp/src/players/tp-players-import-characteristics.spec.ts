@@ -110,6 +110,9 @@ describe('TpPlayersImportService characteristics', () => {
   });
 
   it('sends no characteristics for a player carrying none', async () => {
+    // upsertPlayerResult is mocked, so this only exercises the payload the
+    // importer sends for an existing player; it does not exercise the real
+    // create-without-characteristics throw.
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service } = await makeService({ upsertPlayerResult });
 
@@ -194,7 +197,7 @@ describe('TpPlayersImportService characteristics', () => {
     );
   });
 
-  it('imports an induced star hire without characteristics when the position has none, recording no extra error, for an existing player', async () => {
+  it('imports an induced star hire for an existing player when the position has no characteristics, recording no extra error', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 950 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 70 });
     const { service, importResults } = await makeService({
