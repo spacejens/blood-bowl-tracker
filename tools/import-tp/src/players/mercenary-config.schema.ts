@@ -8,8 +8,8 @@ const NOT_A_NONNEGATIVE_INTEGER = 'must be a whole number, zero or greater.';
 
 /**
  * Move, Strength, Agility and Armour: 0 is not a legal value under any rules
- * set (see the `players` table's own DEFAULT 0 doc comment), so this schema
- * enforces a positive whole number rather than accepting any number.
+ * set (see the `players` table's own characteristic doc comment), so this
+ * schema enforces a positive whole number rather than accepting any number.
  */
 const positiveIntegerSchema = z
   .number({ error: NOT_A_POSITIVE_INTEGER })

@@ -21,7 +21,8 @@ import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics
  * because every "this mercenary is not curated" error message belongs in one
  * place. Every path that leaves a mercenary without characteristics records an
  * `ImportError`, so a missing curation shows up in the import run's result
- * instead of silently landing on `players`' illegal `DEFAULT 0` placeholder.
+ * instead of the hire reaching `players`, whose Move, Strength, Agility and
+ * Armour columns are NOT NULL with no fallback value to fill in.
  */
 @Injectable()
 export class TpMercenaryCharacteristicsService {
