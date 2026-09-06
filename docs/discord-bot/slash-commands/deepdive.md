@@ -391,7 +391,8 @@ coach, opening the same `/deepdive coach:<coach>` view. See
 Each of the twenty-two `team.toplist.*` facts attaches one button per listed team,
 opening the same `/deepdive team:<team>` view.
 
-All five race toplists (`race.toplist.teams`, `race.toplist.matches.played`,
+All six race toplists (`race.toplist.teams.descending`,
+`race.toplist.teams.ascending`, `race.toplist.matches.played`,
 `race.toplist.matches.won`, `race.toplist.matches.lost`,
 `race.toplist.matches.drawn`) attach
 one button per listed race, opening the same `/deepdive race:<race>` view.
