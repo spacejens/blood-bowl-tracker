@@ -73,7 +73,8 @@ describe('InsightsCommandService — random pick', () => {
       eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
     }
     const teamsCalled =
-      factTreeDeps.raceToplist.resolveTeams.mock.calls.length > 0;
+      factTreeDeps.raceToplist.resolveTeamsDescending.mock.calls.length > 0 ||
+      factTreeDeps.raceToplist.resolveTeamsAscending.mock.calls.length > 0;
     const matchesCalled =
       factTreeDeps.raceToplist.resolveMatchesPlayed.mock.calls.length > 0;
     expect(teamsCalled || matchesCalled).toBe(true);

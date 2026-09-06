@@ -326,8 +326,11 @@ function makeFactTreeMocks(): FactTreeMocks {
   );
 
   const raceToplist = mock<RaceToplistService>();
-  raceToplist.resolveTeams.mockResolvedValue(
-    sampleEmbedReply('Races by teams', '1. Orc — 12'),
+  raceToplist.resolveTeamsDescending.mockResolvedValue(
+    sampleEmbedReply('Races by teams (descending)', '1. Orc — 12'),
+  );
+  raceToplist.resolveTeamsAscending.mockResolvedValue(
+    sampleEmbedReply('Races by teams (ascending)', '1. Halfling — 0'),
   );
   raceToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Races by matches played', '1. Orc — 40'),

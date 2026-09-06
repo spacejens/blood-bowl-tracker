@@ -41,7 +41,8 @@ interface RaceRow {
 }
 
 type RaceCountMethod =
-  | 'countTeamsByRace'
+  | 'countTeamsByRaceDescending'
+  | 'countTeamsByRaceAscending'
   | 'countMatchesPlayedByRace'
   | 'countMatchesWonByRace'
   | 'countMatchesLostByRace'
@@ -58,16 +59,28 @@ interface RaceCase {
 
 const cases: RaceCase[] = [
   {
-    describeName: 'resolveTeams',
-    method: 'countTeamsByRace',
-    resolve: (service, scope) => service.resolveTeams(scope),
+    describeName: 'resolveTeamsDescending',
+    method: 'countTeamsByRaceDescending',
+    resolve: (service, scope) => service.resolveTeamsDescending(scope),
     rows: [
       { raceId: 1, name: 'Orc', count: 12 },
       { raceId: 2, name: 'Skaven', count: 12 },
       { raceId: 3, name: 'Elf', count: 4 },
     ],
     eraRows: [{ raceId: 1, name: 'Orc', count: 3 }],
-    expectedTitle: 'Races by teams',
+    expectedTitle: 'Races by teams (descending)',
+  },
+  {
+    describeName: 'resolveTeamsAscending',
+    method: 'countTeamsByRaceAscending',
+    resolve: (service, scope) => service.resolveTeamsAscending(scope),
+    rows: [
+      { raceId: 4, name: 'Halfling', count: 0 },
+      { raceId: 3, name: 'Elf', count: 4 },
+      { raceId: 1, name: 'Orc', count: 12 },
+    ],
+    eraRows: [{ raceId: 4, name: 'Halfling', count: 0 }],
+    expectedTitle: 'Races by teams (ascending)',
   },
   {
     describeName: 'resolveMatchesPlayed',

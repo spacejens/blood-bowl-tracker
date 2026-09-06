@@ -146,7 +146,12 @@ describe('InsightsCommandService — match category scoping', () => {
     }
     expect(factTreeDeps.erasList.resolve).not.toHaveBeenCalled();
     expect(factTreeDeps.statsSummary.resolve).not.toHaveBeenCalled();
-    expect(factTreeDeps.raceToplist.resolveTeams).not.toHaveBeenCalled();
+    expect(
+      factTreeDeps.raceToplist.resolveTeamsDescending,
+    ).not.toHaveBeenCalled();
+    expect(
+      factTreeDeps.raceToplist.resolveTeamsAscending,
+    ).not.toHaveBeenCalled();
   });
 
   it('treats an unrecognised match-category value as no match-category scope', async () => {

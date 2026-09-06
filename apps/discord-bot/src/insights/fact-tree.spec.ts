@@ -119,7 +119,8 @@ function deps(): FactTreeDeps {
   playerToplist.resolveTotalSpp.mockResolvedValue('player total spp');
 
   const raceToplist = mock<RaceToplistService>();
-  raceToplist.resolveTeams.mockResolvedValue('race teams');
+  raceToplist.resolveTeamsDescending.mockResolvedValue('race teams descending');
+  raceToplist.resolveTeamsAscending.mockResolvedValue('race teams ascending');
   raceToplist.resolveMatchesPlayed.mockResolvedValue('race matches played');
   raceToplist.resolveMatchesWon.mockResolvedValue('race matches won');
   raceToplist.resolveMatchesLost.mockResolvedValue('race matches lost');
@@ -187,8 +188,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly sixty-three leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(63);
+  it('exposes exactly sixty-four leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(64);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -638,14 +639,24 @@ describe('buildFactTree', () => {
     expect(d.playerToplist.resolveTotalSpp).toHaveBeenCalled();
   });
 
-  it('wires race.toplist.teams to RaceToplistService.resolveTeams', async () => {
+  it('wires race.toplist.teams.descending to RaceToplistService.resolveTeamsDescending', async () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(
       buildFactTree(d),
-      'race.toplist.teams',
+      'race.toplist.teams.descending',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    expect(d.raceToplist.resolveTeams).toHaveBeenCalled();
+    expect(d.raceToplist.resolveTeamsDescending).toHaveBeenCalled();
+  });
+
+  it('wires race.toplist.teams.ascending to RaceToplistService.resolveTeamsAscending', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'race.toplist.teams.ascending',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.raceToplist.resolveTeamsAscending).toHaveBeenCalled();
   });
 
   it('wires race.toplist.matches.played to RaceToplistService.resolveMatchesPlayed', async () => {
@@ -990,7 +1001,7 @@ describe('buildFactTree competition capabilities', () => {
 });
 
 describe('buildFactTree match category capabilities', () => {
-  it('excludes exactly the thirteen leaves that are not scoped to matches', () => {
+  it('excludes exactly the fourteen leaves that are not scoped to matches', () => {
     const tree = buildFactTree(deps());
     const unsupported = factTreeUtils
       .collectLeaves(tree)
@@ -1001,7 +1012,8 @@ describe('buildFactTree match category capabilities', () => {
         factTreeUtils.resolvePath(tree, 'coach.toplist.eras.active'),
         factTreeUtils.resolvePath(tree, 'team.toplist.eras.active'),
         factTreeUtils.resolvePath(tree, 'team.toplist.trophies.won'),
-        factTreeUtils.resolvePath(tree, 'race.toplist.teams'),
+        factTreeUtils.resolvePath(tree, 'race.toplist.teams.descending'),
+        factTreeUtils.resolvePath(tree, 'race.toplist.teams.ascending'),
         factTreeUtils.resolvePath(tree, 'position.toplist.players'),
         factTreeUtils.resolvePath(tree, 'eras.list'),
         factTreeUtils.resolvePath(tree, 'trophies.list'),
@@ -1015,7 +1027,7 @@ describe('buildFactTree match category capabilities', () => {
         ),
       ]),
     );
-    expect(unsupported).toHaveLength(13);
+    expect(unsupported).toHaveLength(14);
   });
 
   it('supports the match category on every other leaf', () => {
