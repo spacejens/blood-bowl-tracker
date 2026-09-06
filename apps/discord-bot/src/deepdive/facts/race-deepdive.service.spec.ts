@@ -455,8 +455,7 @@ describe('RaceDeepdiveService', () => {
       }),
       leaderboard: passthroughLeaderboard(),
       // Mirrors the trophy/competition-group deep dives' own per-era section
-      // rendering: one heading per era, then one row per item under it —
-      // not the single packed line per era this section used to render.
+      // rendering: one heading per era, then one row per item under it.
       eraSectionGrouper: cannedEraSectionGrouper([
         { eraName: 'BB2016', rows: positions.slice(0, 2) },
         { eraName: 'BB2020', rows: positions.slice(2) },
