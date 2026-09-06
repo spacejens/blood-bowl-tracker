@@ -9,6 +9,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { mockKeyOf } from '../shared/reference-lookup-mock.test-helpers';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
@@ -77,11 +78,12 @@ interface Mocks {
 /**
  * Configures `lookup.lookupMap` to answer a fixed 'competition' resolution: a
  * db id for every entry in `competitionIdsByBblId`, keyed via the mocked
- * (deterministic) `keyOf`. This is a canned response, not a re-derivation of
- * ReferenceLookupService's own algorithm -- it ignores the `refs` argument
- * entirely, so a test asserting on the request the service makes (e.g.
- * "resolves every competition id in one batched call") is exercising the
- * service's own call, not an echo of it.
+ * `keyOf` (whose made-up, non-production key format is only a correlation id
+ * between the two stubs -- see `mockKeyOf`). This is a canned response, not a
+ * re-derivation of ReferenceLookupService's own algorithm -- it ignores the
+ * `refs` argument entirely, so a test asserting on the request the service
+ * makes (e.g. "resolves every competition id in one batched call") is
+ * exercising the service's own call, not an echo of it.
  */
 function mockCompetitionLookup(
   lookup: MockProxy<ReferenceLookupService>,
@@ -139,12 +141,7 @@ async function makeService(
   categoryConfig.getCategoryOverrides.mockReturnValue(new Map());
 
   const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
+  mockKeyOf(lookup);
   mockCompetitionLookup(lookup, competitionIdsByBblId);
 
   const moduleRef = await Test.createTestingModule({
