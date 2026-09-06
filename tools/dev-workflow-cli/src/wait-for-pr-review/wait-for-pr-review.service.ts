@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
+import { z } from 'zod';
 
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
 import {
@@ -12,6 +13,10 @@ import {
   WaitForPrReviewFilterOptions,
   WaitForPrReviewFiltersService,
 } from './wait-for-pr-review-filters.service';
+import {
+  headRefOidSchema,
+  jsonObjectSchema,
+} from './wait-for-pr-review-schemas';
 
 /** One wait's inputs; the optional fields fall back to the defaults below. */
 export interface WaitForPrReviewOptions {
@@ -540,8 +545,7 @@ export class WaitForPrReviewService {
       parsed.starGateComment,
       STAR_GATE_PHRASE_REGEX,
     );
-    const headRefOid =
-      typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
+    const headRefOid = this.validate(headRefOidSchema, parsed.headRefOid);
     const checked = await this.checkedReview(
       parsed.review,
       this.budgetMs(deadline, intervalMs),
@@ -793,9 +797,23 @@ export class WaitForPrReviewService {
   }
 
   /**
+   * Shape-checks a value, fail-closed: an unexpected shape resolves to
+   * `undefined`, never a thrown error. `safeParse`, not `parse`, is the
+   * whole point — every validation spot in this service treats a malformed
+   * `gh`/jq response as "no match" so the poll loop retries on the next
+   * interval instead of aborting the wait. Expressed once here rather than
+   * repeated at each of the six call sites.
+   */
+  private validate<T>(schema: z.ZodType<T>, value: unknown): T | undefined {
+    const result = schema.safeParse(value);
+    return result.success ? result.data : undefined;
+  }
+
+  /**
    * One JSON object out of a `gh --jq` result. `undefined` for empty output,
    * a jq `null` (what `[] | first` yields for no match), unparseable text,
-   * or any non-object — none of which is a reason to abort the wait.
+   * or anything that is not a JSON object — none of which is a reason to
+   * abort the wait.
    */
   private parseJsonObject(stdout: string): Record<string, unknown> | undefined {
     const trimmed = stdout.trim();
@@ -808,9 +826,7 @@ export class WaitForPrReviewService {
     } catch {
       return undefined;
     }
-    return parsed !== null && typeof parsed === 'object'
-      ? (parsed as Record<string, unknown>)
-      : undefined;
+    return this.validate(jsonObjectSchema, parsed);
   }
 
   /**
