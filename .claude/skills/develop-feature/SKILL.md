@@ -533,7 +533,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
       Failing CI checks need no separate tracking: `handle-pr-reviews`'s "nothing unhandled" signal already covers them, and a push that fixes review comments can itself trigger new CI runs worth checking on the next pass.
 
-   **After the loop** — whether it exited early or reached the 10-iteration cap — release the review lock before continuing, so the next queued session can start immediately rather than waiting out the 15-minute staleness threshold:
+   **After the loop** — whether it exited early or reached the 10-iteration cap — release the review lock before continuing, so the next queued session can start immediately rather than waiting out the 100-minute staleness threshold:
    ```bash
    cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
    ```

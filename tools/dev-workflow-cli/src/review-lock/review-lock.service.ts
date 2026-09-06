@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   ReviewLockHolder,
   ReviewLockMutation,
+  ReviewLockQueueEntry,
   ReviewLockState,
   ReviewLockStateService,
 } from './review-lock-state.service';
@@ -13,12 +14,16 @@ export const NOT_CURRENT_HOLDER = 'not the current holder';
 /** Matches `wait-for-pr-review`'s own poll gap; skills document both as 30s. */
 export const REVIEW_LOCK_DEFAULT_INTERVAL_MS = 30_000;
 /**
- * 15 minutes. Comfortably longer than the gap between any two heartbeat
- * checkpoints in normal operation (a review wait is at most 20 minutes but is
- * heartbeated on both sides of itself), yet short enough that a crashed
+ * 100 minutes. Comfortably longer than the longest normal gap between two
+ * heartbeat checkpoints: `develop-feature`'s Phase 6 loop step (b2)'s
+ * short-wait rate-limit branch can hold the lock through a
+ * `wait-for-pr-review` wait of up to ~60 minutes (the rate limit's own
+ * reported wait, capped below the 1-hour auto-continue threshold) plus a
+ * 20-minute post-trigger review window right after it — up to ~80 minutes
+ * with zero heartbeats in between — yet still short enough that a crashed
  * session's lock is recovered well within an unattended overnight run.
  */
-export const REVIEW_LOCK_STALE_MS = 900_000;
+export const REVIEW_LOCK_STALE_MS = 6_000_000;
 
 export interface AcquireReviewLockOptions {
   readonly holderId: string;
@@ -119,12 +124,8 @@ export class ReviewLockService {
         result: true,
       };
     }
-    const queue = state.queue.some((entry) => entry.id === holderId)
-      ? state.queue
-      : [...state.queue, { id: holderId, enqueuedAt: now }];
+    const queue = this.liveQueue(state.queue, holderId, now);
     if (queue[0]?.id !== holderId || !this.isFree(state.holder, now)) {
-      // Persist the (possibly new) ticket even though the lock was not won —
-      // that is what reserves this session's place in line.
       return { state: { holder: state.holder, queue }, result: false };
     }
     return {
@@ -137,20 +138,40 @@ export class ReviewLockService {
   }
 
   /**
-   * Free means unheld, or held by a session that stopped heartbeating. An
-   * unparseable `heartbeatAt` counts as stale: a holder whose timestamp
-   * cannot be read can never be judged alive, and blocking forever on it
-   * would defeat the point of recovering without manual intervention.
+   * This session's own ticket, refreshed to `now` (proof of life — its
+   * staleness clock resets on every poll, but its position in the array,
+   * which is what encodes FIFO order, is untouched), plus every other entry
+   * that has not gone stale. A queue entry nobody is polling for anymore (the
+   * session behind it was killed while waiting) would otherwise block every
+   * session behind it forever, since only the front of the queue may ever
+   * acquire.
    */
+  private liveQueue(
+    queue: readonly ReviewLockQueueEntry[],
+    holderId: string,
+    now: string,
+  ): readonly ReviewLockQueueEntry[] {
+    const withSelf = queue.some((entry) => entry.id === holderId)
+      ? queue.map((entry) =>
+          entry.id === holderId ? { id: holderId, enqueuedAt: now } : entry,
+        )
+      : [...queue, { id: holderId, enqueuedAt: now }];
+    return withSelf.filter(
+      (entry) => entry.id === holderId || !this.isStale(entry.enqueuedAt, now),
+    );
+  }
+
+  /** An unparseable timestamp counts as stale — it can never be judged alive. */
+  private isStale(timestamp: string, now: string): boolean {
+    const ms = new Date(timestamp).getTime();
+    if (Number.isNaN(ms)) {
+      return true;
+    }
+    return new Date(now).getTime() - ms > REVIEW_LOCK_STALE_MS;
+  }
+
   private isFree(holder: ReviewLockHolder | null, now: string): boolean {
-    if (holder === null) {
-      return true;
-    }
-    const heartbeatMs = new Date(holder.heartbeatAt).getTime();
-    if (Number.isNaN(heartbeatMs)) {
-      return true;
-    }
-    return new Date(now).getTime() - heartbeatMs > REVIEW_LOCK_STALE_MS;
+    return holder === null || this.isStale(holder.heartbeatAt, now);
   }
 
   private sleep(milliseconds: number): Promise<void> {

@@ -5,7 +5,7 @@ import { AcquireReviewLockOptions } from './review-lock.service';
 export const REVIEW_LOCK_USAGE =
   'Usage: node dist/main.js ' +
   '<acquire-review-lock|heartbeat-review-lock|release-review-lock> ' +
-  '<holder-id> [--timeout-ms=<ms>] [--interval-ms=30000]';
+  '<holder-id> [--timeout-ms=<ms>] [--interval-ms=<ms>]';
 
 /** Below this, `--interval-ms` would spin on the state file in a tight loop. */
 const MIN_INTERVAL_MS = 1000;
@@ -21,7 +21,11 @@ const MIN_INTERVAL_MS = 1000;
 export class ReviewLockArgsService {
   parse(argv: readonly string[]): AcquireReviewLockOptions {
     const holderId = argv[3];
-    if (holderId === undefined || holderId.trim() === '') {
+    if (
+      holderId === undefined ||
+      holderId.trim() === '' ||
+      holderId.startsWith('--')
+    ) {
       throw new Error(REVIEW_LOCK_USAGE);
     }
     const flags = argv.slice(4);

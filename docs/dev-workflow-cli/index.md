@@ -71,7 +71,7 @@ Prints one of four JSON outcomes:
 ### Review lock usage
 
 ```bash
-node tools/dev-workflow-cli/dist/main.js acquire-review-lock <holder-id> [--timeout-ms=<ms>] [--interval-ms=30000]
+node tools/dev-workflow-cli/dist/main.js acquire-review-lock <holder-id> [--timeout-ms=<ms>] [--interval-ms=<ms>]
 node tools/dev-workflow-cli/dist/main.js heartbeat-review-lock <holder-id>
 node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
 ```
@@ -93,13 +93,13 @@ The file holds one current `holder` (or `null` when free) and a FIFO `queue`:
 }
 ```
 
-- `acquire-review-lock` appends the holder id to the queue if it is not already queued or holding, then polls (every `--interval-ms`, default 30 seconds) until that id is at the front of the queue **and** the lock is free — either `holder` is `null`, or the current holder's `heartbeatAt` is more than 15 minutes old, which reclaims a lock left behind by a killed or crashed session. It prints `{"acquired": true, "waitedMs": <n>}`. With no `--timeout-ms` it waits indefinitely, which is the intended use: waiting quietly is cheaper than competing for the review quota. With `--timeout-ms` it prints `{"acquired": false, "timedOut": true}` on expiry and leaves the caller's ticket in the queue.
+- `acquire-review-lock` appends the holder id to the queue if it is not already queued or holding, then polls (every `--interval-ms`, default 30 seconds) until that id is at the front of the queue **and** the lock is free — either `holder` is `null`, or the current holder's `heartbeatAt` is more than 100 minutes old, which reclaims a lock left behind by a killed or crashed session. It prints `{"acquired": true, "waitedMs": <n>}`. With no `--timeout-ms` it waits indefinitely, which is the intended use: waiting quietly is cheaper than competing for the review quota. With `--timeout-ms` it prints `{"acquired": false, "timedOut": true}` on expiry and leaves the caller's ticket in the queue. Every other queued session's own ticket is subject to the same 100-minute staleness reclaim on each poll, so a killed session waiting (not just holding) cannot permanently block everyone behind it in the queue.
 - `heartbeat-review-lock` prints `{"ok": true}` after refreshing `heartbeatAt`. If the caller is not the current holder — someone else holds it, or it was reclaimed as stale — it changes nothing and prints `{"ok": false, "reason": "not the current holder"}`. A caller that sees this must re-acquire before doing anything that would trigger another review.
 - `release-review-lock` clears `holder` when the caller holds it, or removes the caller's queue ticket when it is only waiting, printing `{"released": true}` either way. A caller present in neither place gets `{"released": false}` — a stale double-release, not an error.
 
 Corrupted or unparseable state is treated as the empty state rather than failing: losing lock bookkeeping costs some extra rate-limit contention, which is exactly the thing this reduces rather than guarantees, and is far better than deadlocking an unattended overnight run.
 
-Every mutation is serialized across processes by a sibling `state.json.lock` file created with the exclusive `wx` flag, and written by writing a temp file and renaming it over the target, so a reader never sees a half-written file. That mutex guards one read-plus-write only, so a `.lock` left behind by a crash mid-mutation is cleared by its own age (seconds), independently of the review lock's 15-minute heartbeat.
+Every mutation is serialized across processes by a sibling `state.json.lock` file created with the exclusive `wx` flag, and written by writing a temp file and renaming it over the target, so a reader never sees a half-written file. That mutex guards one read-plus-write only, so a `.lock` left behind by a crash mid-mutation is cleared by its own age (seconds), independently of the review lock's 100-minute heartbeat.
 
 ### `check-dependency-dashboard` usage
 

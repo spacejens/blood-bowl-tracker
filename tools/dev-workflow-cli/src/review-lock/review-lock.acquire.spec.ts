@@ -14,8 +14,12 @@ import {
 } from './review-lock-state.service';
 
 const NOW = '2026-09-06T03:10:00.000Z';
-/** Older than the 15-minute staleness threshold, relative to NOW. */
-const STALE_HEARTBEAT = '2026-09-06T02:50:00.000Z';
+/**
+ * Older than the 100-minute staleness threshold, relative to NOW. Used for
+ * both a holder's `heartbeatAt` and a queue entry's `enqueuedAt` — the same
+ * threshold governs both.
+ */
+const STALE_HEARTBEAT = '2026-09-06T01:25:00.000Z';
 /** Well inside the staleness threshold, relative to NOW. */
 const FRESH_HEARTBEAT = '2026-09-06T03:08:00.000Z';
 
@@ -87,9 +91,13 @@ describe('ReviewLockService acquire', () => {
     expect(store.current().holder).toEqual(
       holderOf('branch-b', FRESH_HEARTBEAT),
     );
-    expect(store.current().queue).toEqual([
-      { id: 'branch-a', enqueuedAt: NOW },
-    ]);
+    // The ticket's own enqueuedAt is refreshed on each poll (proof of life),
+    // so after more than one attempt it no longer equals the original NOW.
+    const queue = store.current().queue;
+    expect(queue.map((entry) => entry.id)).toEqual(['branch-a']);
+    expect(
+      new Date(queue[0]?.enqueuedAt ?? '').getTime(),
+    ).toBeGreaterThanOrEqual(new Date(NOW).getTime());
   });
 
   it('acquires on a later poll once the holder releases', async () => {
@@ -199,9 +207,53 @@ describe('ReviewLockService acquire', () => {
       120_000,
     );
 
-    expect(store.current().queue).toEqual([
-      queuedOf('branch-a', '2026-09-06T03:02:00.000Z'),
+    // Only one entry for branch-a — its own ticket is refreshed in place
+    // (proof of life) rather than duplicated, so its enqueuedAt now reflects
+    // the latest poll rather than the original timestamp.
+    const queue = store.current().queue;
+    expect(queue).toHaveLength(1);
+    expect(queue[0]?.id).toBe('branch-a');
+  });
+
+  it('drops a stale queue entry ahead of the caller, letting it acquire', async () => {
+    const service = await makeService({
+      holder: null,
+      queue: [queuedOf('branch-stale', STALE_HEARTBEAT)],
+    });
+
+    const result = await service.acquire({ holderId: 'branch-a' });
+
+    expect(result).toEqual({ acquired: true, waitedMs: 0 });
+    expect(store.current()).toEqual({
+      holder: { id: 'branch-a', acquiredAt: NOW, heartbeatAt: NOW },
+      queue: [],
+    });
+  });
+
+  it("keeps a caller's own ticket in place while refreshing it across multiple polls", async () => {
+    const service = await makeService({
+      holder: holderOf('branch-b', FRESH_HEARTBEAT),
+      queue: [queuedOf('branch-front')],
+    });
+
+    await runAcquire(
+      service,
+      { holderId: 'branch-a', timeoutMs: 90_000, intervalMs: 30_000 },
+      150_000,
+    );
+
+    // FIFO order among live entries is untouched: branch-front (enqueued
+    // first) still precedes branch-a even though branch-a's own ticket was
+    // refreshed on every one of the three polls.
+    const queue = store.current().queue;
+    expect(queue.map((entry) => entry.id)).toEqual([
+      'branch-front',
+      'branch-a',
     ]);
+    expect(queue[0]).toEqual(queuedOf('branch-front'));
+    expect(new Date(queue[1]?.enqueuedAt ?? '').getTime()).toBeGreaterThan(
+      new Date(NOW).getTime(),
+    );
   });
 
   it('polls at the requested interval', async () => {

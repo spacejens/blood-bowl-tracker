@@ -46,6 +46,10 @@ describe('ReviewLockArgsService', () => {
     expect(() => service.parse(argv('   '))).toThrow('Usage:');
   });
 
+  it('rejects a flag-shaped value in the holder-id position', () => {
+    expect(() => service.parse(argv('--timeout-ms=5'))).toThrow('Usage:');
+  });
+
   it('rejects an interval below the 1000ms minimum', () => {
     expect(() => service.parse(argv('branch-a', '--interval-ms=10'))).toThrow(
       'bad --interval-ms value',
