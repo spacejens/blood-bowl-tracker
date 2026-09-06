@@ -16,7 +16,7 @@ describe('DeploymentInfoService', () => {
 
   /** Builds a config mock whose `get` answers from a plain record. */
   function withEnv(env: Record<string, string>): void {
-    configService.get.mockImplementation((key: string) => env[key]);
+    vi.mocked(configService.get).mockImplementation((key: string) => env[key]);
   }
 
   /**
