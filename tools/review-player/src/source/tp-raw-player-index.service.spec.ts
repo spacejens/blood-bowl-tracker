@@ -56,7 +56,7 @@ function withOrderedEntries(
   order: string[],
 ): void {
   const proto = Object.getPrototypeOf(targetService) as { entries: EntriesFn };
-  const original = proto.entries.bind(targetService) as EntriesFn;
+  const original = proto.entries.bind(targetService);
   vi.spyOn(
     targetService as unknown as { entries: EntriesFn },
     'entries',

@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -22,7 +22,7 @@ describe('ApiClientConfigService', () => {
   });
 
   it('returns the configured API_BASE_URL', () => {
-    config.get.mockReturnValue('http://prod.example.com');
+    vi.mocked(config.get).mockReturnValue('http://prod.example.com');
     expect(service.getApiBaseUrl()).toBe('http://prod.example.com');
   });
 
@@ -32,7 +32,9 @@ describe('ApiClientConfigService', () => {
     // does not apply that default itself, so this makes the mock echo back whatever
     // default value it was called with, mirroring the real fallback behaviour, and then
     // asserts the service actually requested the expected key and default.
-    config.get.mockImplementation((_key, defaultValue) => defaultValue);
+    vi.mocked(config.get).mockImplementation(
+      (_key: string, defaultValue?: string) => defaultValue,
+    );
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
     expect(config.get).toHaveBeenCalledWith(
       'API_BASE_URL',

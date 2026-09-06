@@ -16,12 +16,12 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.29",
+    "@nestjs/common": "^12.0.0",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.29",
+    "@nestjs/testing": "^12.0.0",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^6.0.3",
