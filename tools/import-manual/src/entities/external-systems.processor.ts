@@ -7,91 +7,91 @@ import type {
   ManualDataFile,
 } from '../data-file/manual-data-file.schema';
 
-/** Every distinct external-system name referenced anywhere in the pooled data. */
-function collectSystemNames(data: ManualDataFile): string[] {
-  const names = new Set<string>();
-  const add = (ref: ExternalRef): void => {
-    names.add(ref.system);
-  };
-  const addAll = (refs: readonly ExternalRef[]): void => refs.forEach(add);
-  const addIfPresent = (ref: ExternalRef | undefined): void => {
-    if (ref !== undefined) {
-      add(ref);
-    }
-  };
-
-  for (const entry of data.externalSystems) {
-    names.add(entry.name);
-  }
-  for (const entry of data.rulesSets) {
-    addAll(entry.externalIds);
-  }
-  for (const entry of data.leagues) {
-    addAll(entry.externalIds);
-  }
-  for (const entry of data.eras) {
-    addAll(entry.externalIds);
-    addIfPresent(entry.league);
-    addAll(entry.rulesSets);
-  }
-  for (const entry of data.races) {
-    addAll(entry.externalIds);
-    addAll(entry.eras);
-  }
-  for (const entry of data.positions) {
-    addAll(entry.externalIds);
-    for (const raceEra of entry.raceEras) {
-      add(raceEra.race);
-      add(raceEra.era);
-    }
-  }
-  for (const entry of data.coaches) {
-    addAll(entry.externalIds);
-  }
-  for (const entry of data.teams) {
-    addAll(entry.externalIds);
-    addIfPresent(entry.race);
-    addIfPresent(entry.coach);
-    addAll(entry.eras);
-  }
-  for (const entry of data.competitions) {
-    addAll(entry.externalIds);
-    addIfPresent(entry.era);
-  }
-  for (const entry of data.sppAwardValues) {
-    add(entry.rulesSet);
-    addIfPresent(entry.race);
-  }
-  return [...names];
-}
-
-/**
- * Every declared system's category, by name. Throws if the same name is
- * declared twice with conflicting categories — the pooled data comes from
- * every `.json5` file in a directory, so the same well-known system (e.g.
- * "Name") is commonly declared in more than one file and must agree.
- */
-function collectCategories(
-  data: ManualDataFile,
-): Map<string, ExternalSystemCategory> {
-  const categories = new Map<string, ExternalSystemCategory>();
-  for (const entry of data.externalSystems) {
-    const existing = categories.get(entry.name);
-    if (existing !== undefined && existing !== entry.category) {
-      throw new Error(
-        `External system "${entry.name}" is declared with conflicting categories: "${existing}" and "${entry.category}"`,
-      );
-    }
-    categories.set(entry.name, entry.category);
-  }
-  return categories;
-}
-
 @Injectable()
 export class ExternalSystemsProcessor {
   constructor(
     private readonly externalSystemsImport: ExternalSystemsImportService,
   ) {}
+
+  /** Every distinct external-system name referenced anywhere in the pooled data. */
+  private collectSystemNames(data: ManualDataFile): string[] {
+    const names = new Set<string>();
+    const add = (ref: ExternalRef): void => {
+      names.add(ref.system);
+    };
+    const addAll = (refs: readonly ExternalRef[]): void => refs.forEach(add);
+    const addIfPresent = (ref: ExternalRef | undefined): void => {
+      if (ref !== undefined) {
+        add(ref);
+      }
+    };
+
+    for (const entry of data.externalSystems) {
+      names.add(entry.name);
+    }
+    for (const entry of data.rulesSets) {
+      addAll(entry.externalIds);
+    }
+    for (const entry of data.leagues) {
+      addAll(entry.externalIds);
+    }
+    for (const entry of data.eras) {
+      addAll(entry.externalIds);
+      addIfPresent(entry.league);
+      addAll(entry.rulesSets);
+    }
+    for (const entry of data.races) {
+      addAll(entry.externalIds);
+      addAll(entry.eras);
+    }
+    for (const entry of data.positions) {
+      addAll(entry.externalIds);
+      for (const raceEra of entry.raceEras) {
+        add(raceEra.race);
+        add(raceEra.era);
+      }
+    }
+    for (const entry of data.coaches) {
+      addAll(entry.externalIds);
+    }
+    for (const entry of data.teams) {
+      addAll(entry.externalIds);
+      addIfPresent(entry.race);
+      addIfPresent(entry.coach);
+      addAll(entry.eras);
+    }
+    for (const entry of data.competitions) {
+      addAll(entry.externalIds);
+      addIfPresent(entry.era);
+    }
+    for (const entry of data.sppAwardValues) {
+      add(entry.rulesSet);
+      addIfPresent(entry.race);
+    }
+    return [...names];
+  }
+
+  /**
+   * Every declared system's category, by name. Throws if the same name is
+   * declared twice with conflicting categories — the pooled data comes from
+   * every `.json5` file in a directory, so the same well-known system (e.g.
+   * "Name") is commonly declared in more than one file and must agree.
+   */
+  private collectCategories(
+    data: ManualDataFile,
+  ): Map<string, ExternalSystemCategory> {
+    const categories = new Map<string, ExternalSystemCategory>();
+    for (const entry of data.externalSystems) {
+      const existing = categories.get(entry.name);
+      if (existing !== undefined && existing !== entry.category) {
+        throw new Error(
+          `External system "${entry.name}" is declared with conflicting categories: "${existing}" and "${entry.category}"`,
+        );
+      }
+      categories.set(entry.name, entry.category);
+    }
+    return categories;
+  }
 
   /**
    * Bootstrap every external system referenced in the pooled data, returning a
@@ -104,9 +104,9 @@ export class ExternalSystemsProcessor {
    * can't import anything).
    */
   async bootstrap(data: ManualDataFile): Promise<Map<string, number>> {
-    const categories = collectCategories(data);
+    const categories = this.collectCategories(data);
     const systemIds = new Map<string, number>();
-    for (const name of collectSystemNames(data)) {
+    for (const name of this.collectSystemNames(data)) {
       const category = categories.get(name);
       if (category === undefined) {
         throw new Error(
