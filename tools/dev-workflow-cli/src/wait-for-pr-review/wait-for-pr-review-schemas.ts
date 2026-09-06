@@ -1,14 +1,12 @@
 import { z } from 'zod';
 
-/**
- * Every schema here is consumed through
- * `WaitForPrReviewService.validate`, which uses `safeParse` and turns any
- * failure into `undefined`. That is deliberate and load-bearing: unlike
- * `check-dependency-dashboard` and `post-review-questions`, which throw on a
- * bad shape, a malformed `gh`/jq response here must read as "no match" so
- * the poll loop retries on the next interval instead of aborting the whole
- * wait. Never call `.parse()` on any of these.
- */
+// Every schema here is consumed through `WaitForPrReviewService.validate`,
+// which uses `safeParse` and turns any failure into `undefined`. That is
+// deliberate and load-bearing: unlike `check-dependency-dashboard` and
+// `post-review-questions`, which throw on a bad shape, a malformed `gh`/jq
+// response here must read as "no match" so the poll loop retries on the next
+// interval instead of aborting the whole wait. Never call `.parse()` on any
+// of these.
 
 /**
  * One JSON object out of a `gh --jq` result. Unknown keys are kept rather
@@ -36,7 +34,10 @@ export const codeRabbitCommentSchema = z.object({
  * id, the `updated_at` that stands in for a review's `submittedAt`, and the
  * bounded section extracted from its body. A half that matched nothing is
  * `null` (what jq's `[] | first` yields), which fails this schema and so
- * reads as "no match" rather than as a half-built signal.
+ * reads as "no match" rather than as a half-built signal. `section` is kept
+ * only long enough for the TypeScript phrase re-check (and, for a rate
+ * limit, the composite id and wait-duration parse) — the completion half
+ * never lets it reach the caller.
  */
 export const sectionCandidateSchema = z.object({
   id: z.string(),

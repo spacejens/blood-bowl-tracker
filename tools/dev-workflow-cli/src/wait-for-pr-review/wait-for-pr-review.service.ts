@@ -771,6 +771,12 @@ export class WaitForPrReviewService {
    * `gh`/jq response as "no match" so the poll loop retries on the next
    * interval instead of aborting the wait. Expressed once here rather than
    * repeated at each of the six call sites.
+   *
+   * None of this service's schemas can successfully parse to `undefined`, so
+   * a returned `undefined` always means "invalid" here. A future schema that
+   * legitimately produces `undefined` on success (e.g. a top-level
+   * `.optional()`) would be indistinguishable from a validation failure
+   * through this helper alone.
    */
   private validate<T>(schema: z.ZodType<T>, value: unknown): T | undefined {
     const result = schema.safeParse(value);
