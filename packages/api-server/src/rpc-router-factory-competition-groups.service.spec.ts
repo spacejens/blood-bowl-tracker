@@ -75,8 +75,5 @@ describe('RpcRouterFactoryService competitionGroups router', () => {
     const result = await call(harness.router.competitionGroups.list, {});
 
     expect(result).toEqual(rows);
-    expect(
-      harness.mocks.competitionGroupsService.listAll,
-    ).not.toHaveBeenCalled();
   });
 });
