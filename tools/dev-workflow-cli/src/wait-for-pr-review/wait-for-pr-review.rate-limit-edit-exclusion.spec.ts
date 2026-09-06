@@ -34,21 +34,12 @@ const RATE_LIMIT_EDIT_START_MARKER =
 
 /**
  * Two independent detectors can see the same CodeRabbit rate-limit notice:
- * `rateLimitFilter` (GraphQL, via `gh pr view`), which reports the comment's
- * *raw* id, and `rateLimitEditFilter`/`rateLimitEditComment` (REST, via
- * `gh api`), which reports a composite id pairing that raw id with a
- * fingerprint of the extracted section.
- *
- * Before this exclusion existed they collided whenever CodeRabbit rate-limited
- * a pass before any `recent_review` section had been written — the comment
- * carried `RATE_LIMIT_EDIT_START_MARKER` but not yet
- * `RECENT_REVIEW_START_MARKER`, so the GraphQL detector matched it too. The
- * caller round-tripping either id as `--exclude-comment-id` then suppressed
- * only one of the two detectors, and the wait alternated between the two id
- * forms indefinitely (issue #687).
- *
- * Excluding the marker from `rateLimitFilter` gives the rolling-edit detector
- * exclusive ownership of that comment, so the two id spaces never collide.
+ * `rateLimitFilter` (GraphQL), which reports the comment's raw id, and
+ * `rateLimitEditFilter`/`rateLimitEditComment` (REST), which reports a
+ * composite id pairing that raw id with a fingerprint of the extracted
+ * section. Excluding the marker from `rateLimitFilter` gives the rolling-edit
+ * detector exclusive ownership of that comment, so the two id spaces never
+ * collide.
  */
 describe('WaitForPrReviewService rate-limit-edit exclusion', () => {
   let service: WaitForPrReviewService;
@@ -104,13 +95,8 @@ describe('WaitForPrReviewService rate-limit-edit exclusion', () => {
   });
 
   it('reports only the rolling detector composite id when both detectors see the same rate-limit comment', async () => {
-    // The collision scenario from issue #687: the reviews call's own match
-    // carries the rate-limit-edit marker (so it is really the rolling
-    // walkthrough comment, not a standalone notice), and the rolling call
-    // reports the same underlying comment behind its composite id. The
-    // caller must only ever see the composite form — the raw-id shape must
-    // never surface, or round-tripping it as `--exclude-comment-id` would
-    // suppress neither detector consistently.
+    // Both detectors see the same rate-limited comment; the caller must only
+    // ever see the composite id — the raw-id form must never surface.
     processRunner.run.mockImplementation((_command, args) =>
       Promise.resolve(
         args[0] === 'api'
