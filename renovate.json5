@@ -55,12 +55,10 @@
       // paid Mend Repository Integration and is not available on the free
       // Renovate GitHub App this repo uses — see
       // https://docs.mend.io/wsk/renovate-github-app ("Smart Merge Control
-      // is not a feature offered on this edition of Renovate"). Minor is in
-      // scope on the evidence of this repo's own history instead: across
-      // dozens of patch and minor dependency updates made by hand before
-      // Renovate was introduced, exactly one needed a code change, and that
-      // change fixed a newly-surfaced lint error — which CI catches, and a
-      // red CI run blocks automerge anyway. Major updates did need real
+      // is not a feature offered on this edition of Renovate"). Minor is in scope on the evidence of this repo's own history: across
+      // dozens of patch/minor updates made by hand before Renovate, exactly
+      // one needed a code change, and that fixed a lint error — which CI
+      // catches, and a red CI run blocks automerge anyway. Major updates did need real
       // code changes when tested the same way, so they are deliberately not
       // listed here and keep waiting for a human.
       // Deliberately no groupName here: this rule only sets automerge, so it
