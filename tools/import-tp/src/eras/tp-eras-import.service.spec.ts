@@ -1,3 +1,4 @@
+import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
@@ -16,6 +17,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import {
   asProviderMethod,
   mockImportResultService,
+  mockKeyOf,
   mockNameExternalIdService,
 } from '../import-package.test-helpers';
 import { LeagueConfigService } from '../leagues/league-config.service';
@@ -36,7 +38,15 @@ interface MakeServiceOptions {
   upsertEra: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
   getLeagueName?: () => string;
-  lookupMap?: (kind: ResolvableEntityKind) => Promise<Map<string, number>>;
+  /**
+   * Answers a canned resolution per kind. `keyOf` is the mocked
+   * `ReferenceLookupService.keyOf` -- build every key with it, never by
+   * hand, so no test depends on the real key format.
+   */
+  lookupMap?: (
+    kind: ResolvableEntityKind,
+    keyOf: (ref: ExternalId) => string,
+  ) => Promise<Map<string, number>>;
 }
 
 /**
@@ -76,13 +86,27 @@ async function makeService({
   upsertEra,
   getTpSystemName = () => 'TP',
   getLeagueName = () => 'My League',
-  lookupMap = (kind) =>
+  lookupMap = (kind, keyOf) =>
     Promise.resolve(
       kind === 'league'
-        ? new Map([[`${TP_SYSTEM_ID}\tMy League`, 10]])
+        ? new Map([
+            [
+              keyOf({
+                externalSystemId: TP_SYSTEM_ID,
+                externalId: 'My League',
+              }),
+              10,
+            ],
+          ])
         : new Map([
-            [`${TP_SYSTEM_ID}\tLRB6`, 100],
-            [`${TP_SYSTEM_ID}\tBB2020`, 200],
+            [
+              keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'LRB6' }),
+              100,
+            ],
+            [
+              keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'BB2020' }),
+              200,
+            ],
           ]),
     ),
 }: MakeServiceOptions): Promise<{
@@ -118,13 +142,10 @@ async function makeService({
   const leagueConfig = mock<LeagueConfigService>();
   leagueConfig.getLeagueName.mockImplementation(getLeagueName);
   const lookup = mock<ReferenceLookupService>();
-  // `keyOf` is a pure, deterministic key derivation with no branching that
-  // could drift from ReferenceLookupService's own real implementation --
-  // exempt from the canned-response rule, same as the other passthroughs.
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
+  mockKeyOf(lookup);
+  lookup.lookupMap.mockImplementation((kind) =>
+    lookupMap(kind, (ref) => lookup.keyOf(ref)),
   );
-  lookup.lookupMap.mockImplementation(lookupMap);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -227,11 +248,24 @@ describe('TpErasImportService', () => {
       files: makeFiles([]),
       bootstrap,
       upsertEra,
-      lookupMap: (kind) =>
+      lookupMap: (kind, keyOf) =>
         Promise.resolve(
           kind === 'league'
-            ? new Map([[`${TP_SYSTEM_ID}\tMy League`, 10]])
-            : new Map([[`${TP_SYSTEM_ID}\tCRP`, 100]]),
+            ? new Map([
+                [
+                  keyOf({
+                    externalSystemId: TP_SYSTEM_ID,
+                    externalId: 'My League',
+                  }),
+                  10,
+                ],
+              ])
+            : new Map([
+                [
+                  keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'CRP' }),
+                  100,
+                ],
+              ]),
         ),
     });
 
@@ -358,11 +392,24 @@ describe('TpErasImportService', () => {
       files: makeFiles([]),
       bootstrap,
       upsertEra,
-      lookupMap: (kind) =>
+      lookupMap: (kind, keyOf) =>
         Promise.resolve(
           kind === 'league'
-            ? new Map([[`${TP_SYSTEM_ID}\tMy League`, 10]])
-            : new Map([[`${TP_SYSTEM_ID}\tLRB6`, 100]]),
+            ? new Map([
+                [
+                  keyOf({
+                    externalSystemId: TP_SYSTEM_ID,
+                    externalId: 'My League',
+                  }),
+                  10,
+                ],
+              ])
+            : new Map([
+                [
+                  keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'LRB6' }),
+                  100,
+                ],
+              ]),
         ),
     });
 
