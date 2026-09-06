@@ -75,15 +75,20 @@ describe('PlayersService', () => {
     ];
 
     it('creates a new player when no external IDs match', async () => {
-      // query 0: external-id lookup finds nothing; query 1: the insert
-      // returns the row; query 2: both external IDs are new, so they get
-      // inserted.
-      const { db, chains } = await build([], [fakePlayer]);
+      // query 0: rules-set format lookup; query 1: external-id lookup finds
+      // nothing; query 2: the insert returns the row; query 3: both external
+      // IDs are new, so they get inserted.
+      const { db, chains } = await build([bb2020Formats], [], [fakePlayer]);
 
-      const result = await service.upsert({ ...base, externalIds });
+      const result = await service.upsert({
+        ...base,
+        ...characteristics,
+        rulesSetId: 4,
+        externalIds,
+      });
 
       expect(result).toEqual({ player: fakePlayer, created: true });
-      expect(chains).toHaveLength(3);
+      expect(chains).toHaveLength(4);
       expect(db.insert).toHaveBeenCalledWith(players);
       expect(db.update).not.toHaveBeenCalled();
     });
@@ -166,21 +171,32 @@ describe('PlayersService', () => {
     });
 
     it('writes sppTotal through to the entity columns', async () => {
-      const { chains } = await build([], [fakePlayer]);
+      const { chains } = await build([bb2020Formats], [], [fakePlayer]);
 
-      await service.upsert({ ...base, sppTotal: 176, externalIds });
+      await service.upsert({
+        ...base,
+        ...characteristics,
+        rulesSetId: 4,
+        sppTotal: 176,
+        externalIds,
+      });
 
-      // chains[1] is the insert; its .values() carries the entity columns.
-      expect(firstCallArg(chains[1].values)).toMatchObject({ sppTotal: 176 });
+      // chains[2] is the insert; its .values() carries the entity columns.
+      expect(firstCallArg(chains[2].values)).toMatchObject({ sppTotal: 176 });
     });
 
     it('leaves sppTotal undefined in the columns when the caller omits it', async () => {
-      const { chains } = await build([], [fakePlayer]);
+      const { chains } = await build([bb2020Formats], [], [fakePlayer]);
 
-      await service.upsert({ ...base, externalIds });
+      await service.upsert({
+        ...base,
+        ...characteristics,
+        rulesSetId: 4,
+        externalIds,
+      });
 
       expect(
-        (firstCallArg(chains[1].values) as { sppTotal?: number }).sppTotal,
+        (firstCallArg(chains[2].values) as { sppTotal?: number }).sppTotal,
       ).toBeUndefined();
     });
 
@@ -237,16 +253,27 @@ describe('PlayersService', () => {
     });
 
     it('leaves the characteristic columns untouched when the caller omits them', async () => {
-      // No format lookup at all: query 0 is the external-id lookup, exactly
-      // as before this feature existed.
-      const { chains } = await build([], [fakePlayer]);
+      // No format lookup at all: query 0 is the external-id lookup (which
+      // finds the existing owner), query 1 is the update.
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [fakePlayer],
+      );
 
       await service.upsert({ ...base, externalIds });
 
-      expect(chains).toHaveLength(3);
-      const values = firstCallArg(chains[1].values) as Record<string, unknown>;
+      const values = firstCallArg(chains[1].set) as Record<string, unknown>;
       expect(values.move).toBeUndefined();
       expect(values.passing).toBeUndefined();
+    });
+
+    it('throws when creating a new player without characteristics', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await expect(service.upsert({ ...base, externalIds })).rejects.toThrow(
+        'Cannot create new players: missing required field(s): move, strength, agility, armour',
+      );
+      expect(chains).toHaveLength(1);
     });
 
     it('rejects a Passing value the rules set declares absent, writing nothing', async () => {
