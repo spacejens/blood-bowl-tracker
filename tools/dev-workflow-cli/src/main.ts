@@ -18,6 +18,8 @@ import {
   POST_REVIEW_QUESTIONS_USAGE,
   PostReviewQuestionsArgsService,
 } from './post-review-questions/post-review-questions-args.service';
+import { ReviewLockService } from './review-lock/review-lock.service';
+import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
 import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
 
@@ -28,6 +30,9 @@ const SUBCOMMANDS = [
   'check-dependency-dashboard',
   'wait-for-pr-review',
   'post-review-questions',
+  'acquire-review-lock',
+  'heartbeat-review-lock',
+  'release-review-lock',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -70,6 +75,18 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .get(WaitForPrReviewArgsService)
         .parse(process.argv);
       return app.get(WaitForPrReviewService).run(waitOptions);
+    }
+    case 'acquire-review-lock': {
+      const lockOptions = app.get(ReviewLockArgsService).parse(process.argv);
+      return app.get(ReviewLockService).acquire(lockOptions);
+    }
+    case 'heartbeat-review-lock': {
+      const { holderId } = app.get(ReviewLockArgsService).parse(process.argv);
+      return app.get(ReviewLockService).heartbeat(holderId);
+    }
+    case 'release-review-lock': {
+      const { holderId } = app.get(ReviewLockArgsService).parse(process.argv);
+      return app.get(ReviewLockService).release(holderId);
     }
     case 'check-dependency-dashboard': {
       if (options.stdin === undefined) {
