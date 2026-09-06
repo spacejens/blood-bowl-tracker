@@ -488,8 +488,8 @@
     { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 4, agility: 4, armour: 8 },
 
     // Teams of Legend is 9 pages total and does not cover the BB2016
-    // boxed-set teams or CRP-legacy races -- those are transcribed from the
-    // developer's physical rulebooks (Task 14).
+    // boxed-set teams or BB2016 CRP-legacy races -- those are transcribed
+    // from the developer's physical rulebooks (Task 14).
 
     // --- BB2016: Human (physical rulebook) ---
     { position: { system: 'Name', id: 'Human: Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
