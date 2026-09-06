@@ -72,6 +72,11 @@ Work through each phase in order.
    ```bash
    BASE_SHA=$(git rev-parse HEAD)
    ```
+5. **Decide this run's review-lock mode.** Pushing a fix triggers a fresh CodeRabbit review, and CodeRabbit's review rate limit is shared across every PR and every session on this machine — so parallel sessions must not push at the same time. `develop-feature` Phase 6 coordinates that through a machine-wide FIFO lock (see `docs/development-workflow.md`'s "Serializing review activity across parallel sessions"), and this skill participates in the same lock — but only in one of its two contexts:
+   - **`--skip-deploy-local` was passed** — this run is nested inside `develop-feature`'s automated review loop. Record `LOCK_MODE = nested`. Take **no** lock of your own: the outer session already holds it for the whole loop and heartbeats it around this dispatch, so a nested acquire would be a no-op at best, and a nested release would hand the lock to another queued session mid-loop while `develop-feature` still expects to hold it.
+   - **Flag absent** — a developer ran this skill directly. Record `LOCK_MODE = standalone`. Phase 4 acquires the lock immediately before its push and releases it immediately after. The holder id is `HEAD_REF`, recorded in step 1, matching `develop-feature`'s own branch-name convention.
+
+   Nothing else in this skill takes the lock. Phase 1's discovery wait is passive — it only polls GitHub's own state and triggers no review — and Phase 4 is the only place this skill pushes.
 
 ---
 
@@ -249,10 +254,30 @@ This prints JSON. If it prints `{"isWorktree": false}`, work is happening in pla
   - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
   - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
 
+**Acquire the review lock — standalone runs only.** If Phase 0 step 5 recorded `LOCK_MODE = nested`, skip this and the release below entirely; the outer `develop-feature` session already holds the lock. Otherwise take it now:
+
+```bash
+node tools/dev-workflow-cli/dist/main.js acquire-review-lock $HEAD_REF
+```
+
+`$HEAD_REF` stands for the branch recorded in Phase 0 step 1, substituted literally — these commands do not share a shell session.
+
+This deliberately sits *after* the "Sync with `main`" step above and *before* the push: that sync step can stop and wait for the developer to resolve conflicts by hand, and holding a machine-wide lock across an unbounded human wait would stall every other session.
+
+The command enqueues this session and polls internally every 30 seconds until the lock is free, staying silent until it prints `{"acquired": true, "waitedMs": <n>}`. It has no default timeout — waiting quietly is the point. Run it via `Bash` with `run_in_background: true` and read its result from the harness's own completion notification: it can wait far longer than a foreground `Bash` call allows. Report a one-line status from `waitedMs`. If it fails outright — non-zero exit, or output that will not parse — print a one-line warning and continue with the push anyway, and skip the release below too; the lock must never block real work.
+
 Then push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:
 ```bash
 git push
 ```
+
+**Release the review lock — standalone runs only.** Immediately after the push command returns, hand the lock to whichever session is next in the queue:
+
+```bash
+node tools/dev-workflow-cli/dist/main.js release-review-lock $HEAD_REF
+```
+
+Release it whether or not the push itself succeeded: the lock exists to serialize review-*triggering* pushes, and a push that failed triggered none. It prints `{"released": true}`. A non-zero exit, or `{"released": false}`, is a one-line warning and never a stop — everything after this point (the self-assign, the replies, the `deploy-local` offer) triggers no review, so there is nothing left in this run worth holding the lock for.
 
 After the push succeeds, self-assign the PR so it shows who pushed the fixes:
 ```bash
