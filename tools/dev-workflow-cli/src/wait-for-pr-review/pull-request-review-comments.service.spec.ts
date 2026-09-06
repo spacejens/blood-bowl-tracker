@@ -25,34 +25,48 @@ describe('PullRequestReviewCommentsService', () => {
     return { exitCode, stdout, stderr: '' };
   }
 
-  it('reports true when the review carries inline comments', async () => {
-    processRunner.run.mockResolvedValue(ghResult('3\n'));
+  it('reports true when the review carries a genuinely new inline comment', async () => {
+    processRunner.run.mockResolvedValue(ghResult('1\n'));
 
-    await expect(service.hasInlineComments('PRR_kwDO1', 5_000)).resolves.toBe(
-      true,
-    );
+    await expect(
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
+    ).resolves.toBe(true);
   });
 
-  it('reports false when the review carries no inline comments', async () => {
-    processRunner.run.mockResolvedValue(ghResult('0\n'));
+  it('reports true when new comments are mixed in among replies', async () => {
+    processRunner.run.mockResolvedValue(ghResult('2\n'));
 
-    await expect(service.hasInlineComments('PRR_kwDO1', 5_000)).resolves.toBe(
-      false,
-    );
+    await expect(
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
+    ).resolves.toBe(true);
   });
 
-  it('queries the review node by id, bounded by the given timeout', async () => {
+  it('reports false when every inline comment is a reply', async () => {
     processRunner.run.mockResolvedValue(ghResult('0\n'));
 
-    await service.hasInlineComments('PRR_kwDO1', 5_000);
+    await expect(
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
+    ).resolves.toBe(false);
+  });
+
+  it('counts only non-reply comments, over a bounded page, by review id', async () => {
+    processRunner.run.mockResolvedValue(ghResult('0\n'));
+
+    await service.hasGenuineInlineComments('PRR_kwDO1', 5_000);
 
     const [command, args, timeoutMs] = processRunner.run.mock.calls[0];
     expect(command).toBe('gh');
     expect(args[0]).toBe('api');
     expect(args[1]).toBe('graphql');
-    expect(args.join(' ')).toContain('id=PRR_kwDO1');
-    expect(args.join(' ')).toContain('on PullRequestReview');
-    expect(args).toContain('.data.node.comments.totalCount');
+    const joined = args.join(' ');
+    expect(joined).toContain('id=PRR_kwDO1');
+    expect(joined).toContain('on PullRequestReview');
+    expect(joined).toContain('comments(first: 100)');
+    expect(joined).toContain('replyTo');
+    expect(joined).not.toContain('totalCount');
+    expect(args).toContain(
+      '[.data.node.comments.nodes[] | select(.replyTo == null)] | length',
+    );
     expect(timeoutMs).toBe(5_000);
   });
 
@@ -60,7 +74,7 @@ describe('PullRequestReviewCommentsService', () => {
     processRunner.run.mockResolvedValue(ghResult('', 1));
 
     await expect(
-      service.hasInlineComments('PRR_kwDO1', 5_000),
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
     ).resolves.toBeUndefined();
   });
 
@@ -68,7 +82,7 @@ describe('PullRequestReviewCommentsService', () => {
     processRunner.run.mockResolvedValue(ghResult('\n'));
 
     await expect(
-      service.hasInlineComments('PRR_kwDO1', 5_000),
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
     ).resolves.toBeUndefined();
   });
 
@@ -76,7 +90,7 @@ describe('PullRequestReviewCommentsService', () => {
     processRunner.run.mockResolvedValue(ghResult('null\n'));
 
     await expect(
-      service.hasInlineComments('PRR_kwDO1', 5_000),
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
     ).resolves.toBeUndefined();
   });
 
@@ -84,7 +98,7 @@ describe('PullRequestReviewCommentsService', () => {
     processRunner.run.mockRejectedValue(new Error('spawn gh ENOENT'));
 
     await expect(
-      service.hasInlineComments('PRR_kwDO1', 5_000),
+      service.hasGenuineInlineComments('PRR_kwDO1', 5_000),
     ).resolves.toBeUndefined();
   });
 });
