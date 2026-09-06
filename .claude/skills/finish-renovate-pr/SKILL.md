@@ -57,7 +57,7 @@ Work through each phase in order. Transitions marked **Pause** wait for the deve
    gh pr edit <PR> --add-assignee @me
    gh pr edit <PR> --add-label "in progress"
    ```
-   Run these as two separate commands so a failure in one does not mask the other. Either failure is a one-line warning and the run **continues** — matching `develop-feature`'s assign/label failure tolerance. Do not add a kind label (`feature`/`bug`/`development`): a Renovate PR already carries its own `renovate:<updateType>` label, and this skill opens no PR that would need one.
+   Run these as two separate commands so a failure in one does not mask the other. Either failure is a one-line warning and the run **continues** — matching `develop-feature`'s assign/label failure tolerance. Do not add a kind label (`feature`/`bug`/`development`/`internal`): a Renovate PR already carries its own `renovate:<updateType>` label, and this skill opens no PR that would need one.
 
 3. **Create a worktree on Renovate's existing branch, then enter it.** This is a deliberate departure from `develop-feature`'s Setup phase, which uses `superpowers:using-git-worktrees`' native `EnterWorktree` tool in its `name` mode — that mode only ever creates a *new* branch off the default branch, and this skill needs the worktree checked out on `headRefName` itself, because fixes must land on that exact branch to update the existing PR. So this skill does the `git worktree add` step itself first, using the plain git-worktree fallback path (`superpowers:using-git-worktrees` Step 1b):
    ```bash
