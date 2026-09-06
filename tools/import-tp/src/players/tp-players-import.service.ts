@@ -536,9 +536,11 @@ export class TpPlayersImportService {
 
           // A star hired mid-season has no lineUps[] entry, so no
           // characteristics of their own: use the star position's template
-          // values for the hiring era's rules set. Missing values are not an
-          // error here -- the positions step that produced this map would
-          // already have recorded one if something were wrong upstream.
+          // values for the hiring era's rules set. A missing template value
+          // isn't reported again here -- the positions step that produced
+          // this map already recorded that problem. But this hire is a new
+          // players row, so a missing template still means create fails with
+          // MissingRequiredFieldError, recorded as an ImportError below.
           const starEraName = eraNameByEraId.get(eraId);
           const starCharacteristics =
             starEraName === undefined

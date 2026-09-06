@@ -123,11 +123,14 @@ export class TpMercenaryCharacteristicsService {
    * exactly like `TpPlayerCharacteristicsBuilderService`'s return value so the
    * caller can spread either into the same upsert payload. Returns `undefined`
    * (recording an error naming the position, rules set and hire) when the
-   * table has no entry for that specific rules set -- the player row is still
-   * created, just without characteristics, and the gap is visible in the
-   * import result. A `rulesSet` of `undefined` (the era resolved to no single
-   * rules set) returns `undefined` silently: the era resolver already recorded
-   * that problem, and duplicating it per hire would only add noise.
+   * table has no entry for that specific rules set -- an omitted group leaves
+   * an existing player's stored characteristics untouched, but if this hire's
+   * player row does not exist yet, the create fails with
+   * `MissingRequiredFieldError`, recorded as its own `ImportError` alongside
+   * the one just pushed here. A `rulesSet` of `undefined` (the era resolved to
+   * no single rules set) returns `undefined` silently: the era resolver
+   * already recorded that problem, and duplicating it per hire would only add
+   * noise.
    */
   forRosterPlayer(options: {
     positionName: string;
