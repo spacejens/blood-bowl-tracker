@@ -293,11 +293,11 @@ played:` followed by their top five teams by matches played, one line per
   `Top players by SPP:` followed by its top five players by career SPP total,
   one line per player formatted `<rank>. <player> (<team>, <era>, <coach>) —
   <SPP>` — the player's position is left off, since every listed player
-  already holds this one, and so is the race, since the list is not scoped to
-  one; the [era](../../glossary.md#era) is shown because a position's roster
-  slot spans many eras, so it is what tells two of its top players apart.
-  Ties at the
-  fifth-place cutoff are all shown, up to ten players — the same convention
+  already holds this one, and the race is left off too, since the list is not
+  scoped to a single race; the [era](../../glossary.md#era) is shown because a
+  position's roster slot spans many eras, so it is what tells two of its top
+  players apart. Ties at the fifth-place cutoff are all shown, up to ten
+  players — the same convention
   `/insights` toplists use, though at most ten players are fetched, so the
   "…and N more tied." note never actually appears here. A position with no
   players shows a short message instead of a list. Every listed race is
