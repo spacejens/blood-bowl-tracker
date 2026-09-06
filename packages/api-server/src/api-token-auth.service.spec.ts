@@ -22,7 +22,7 @@ describe('ApiTokenAuthService', () => {
   async function makeService(
     configured: Record<string, string | undefined> = tokens,
   ): Promise<ApiTokenAuthService> {
-    config.get.mockImplementation((key: string) => configured[key]);
+    vi.mocked(config.get).mockImplementation((key: string) => configured[key]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         ApiTokenAuthService,

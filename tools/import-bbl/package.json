@@ -22,14 +22,14 @@
     "@blood-bowl-tracker/api-client": "workspace:*",
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
-    "@nestjs/common": "^11.1.29",
-    "@nestjs/core": "^11.1.29",
+    "@nestjs/common": "^12.0.0",
+    "@nestjs/core": "^12.0.0",
     "cheerio": "^1.2.0",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.29",
+    "@nestjs/testing": "^12.0.0",
     "@swc/core": "^1.15.47",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.10",
