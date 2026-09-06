@@ -22,6 +22,9 @@ needs it.
 | `check-dependency-dashboard` | Answer whether gh-shaped issue JSON on stdin is Renovate's standing Dependency Dashboard issue, so skills refuse to treat it as work |
 | `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — one command a worktree-isolated session can run, rather than a multi-line shell poll loop inline |
 | `post-review-questions` | Post drafted review questions as PR comments (inline or top-level) from JSON on stdin |
+| `acquire-review-lock` | Take the machine-wide review lock, waiting in a FIFO queue until it is free — serializes review-triggering activity across parallel sessions in different worktrees |
+| `heartbeat-review-lock` | Refresh the lock this session holds so another session does not reclaim it as stale |
+| `release-review-lock` | Hand the lock to the next queued session, or drop this session's queue ticket |
 
 ## Running it
 
@@ -64,6 +67,39 @@ Prints one of four JSON outcomes:
 **Detection precedence.** When more than one of the above could match at once, a formal review this service trusts outright wins and nothing else is even queried — one carrying real body content, or one of two malformed shapes trusted as-is because they cannot be verified or excluded: a non-object candidate, or one missing a string id. Every other match is checked against CodeRabbit's rolling walkthrough comment before it is reported, because a rate-limit notice edited into that comment, and a completion notice verified against the PR's current head commit, are both fresher evidence than a formally-valid-but-empty review or a standalone CodeRabbit comment. So a rolling-comment match — a rate-limit edit first, then a completion — outranks an empty-bodied review that only carries genuine (non-reply) inline comments, a rate-limit comment, a comment-update-failure comment, and the star-gate comment; when the rolling comment matches nothing, those four keep their own ordering among themselves, in that order. A caller-requested retrigger (`--trigger-after`) — or the wait's own star-gate-triggered retrigger — still fires once due even when a stale rate-limit or comment-update-failure comment is found at the same time — it is not skipped just because that poll's early return is about to happen. A rate-limit block found inside the rolling comment is exclusively owned by the rolling-comment check — the standalone rate-limit comment match never reports it — so a `rateLimitComment.id` for that case is always the composite `<id>@<fingerprint>` form, never a raw comment id.
 
 **False-positive safeguards.** Matching ignores failure phrases quoted inside Markdown code spans. The top-level detectors (the standalone rate-limit, comment-update-failure, and star-gate checks) never match CodeRabbit's own rolling walkthrough comment — its prose (a summary, a changes table) can incidentally contain a failure phrase, which would otherwise abort the wait on a false positive before any real review or genuine failure notice exists. This exclusion is deliberately scoped to those top-level checks only: the dedicated rolling-comment detector still intentionally matches the bounded rate-limit-edit and completion sections inside that same comment — see "Detection precedence" above.
+
+### Review lock usage
+
+```bash
+node tools/dev-workflow-cli/dist/main.js acquire-review-lock <holder-id> [--timeout-ms=<ms>] [--interval-ms=30000]
+node tools/dev-workflow-cli/dist/main.js heartbeat-review-lock <holder-id>
+node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
+```
+
+These three subcommands share one lock: a JSON file at `.claude/review-lock/state.json` in the repository's **main checkout** (resolved the same way `resolve-main-root` resolves it), so every worktree on the machine coordinates through the same file. It is gitignored, and both the directory and an initial empty state are created lazily on first use.
+
+`<holder-id>` identifies the session. Callers pass the current worktree's branch name (`git branch --show-current`).
+
+The file holds one current `holder` (or `null` when free) and a FIFO `queue`:
+
+```json
+{
+  "holder": {
+    "id": "worktree-issue-757-serialize-review-loop",
+    "acquiredAt": "2026-09-06T03:00:00.000Z",
+    "heartbeatAt": "2026-09-06T03:04:30.000Z"
+  },
+  "queue": [{ "id": "worktree-issue-758-foo", "enqueuedAt": "2026-09-06T03:01:00.000Z" }]
+}
+```
+
+- `acquire-review-lock` appends the holder id to the queue if it is not already queued or holding, then polls (every `--interval-ms`, default 30 seconds) until that id is at the front of the queue **and** the lock is free — either `holder` is `null`, or the current holder's `heartbeatAt` is more than 15 minutes old, which reclaims a lock left behind by a killed or crashed session. It prints `{"acquired": true, "waitedMs": <n>}`. With no `--timeout-ms` it waits indefinitely, which is the intended use: waiting quietly is cheaper than competing for the review quota. With `--timeout-ms` it prints `{"acquired": false, "timedOut": true}` on expiry and leaves the caller's ticket in the queue.
+- `heartbeat-review-lock` prints `{"ok": true}` after refreshing `heartbeatAt`. If the caller is not the current holder — someone else holds it, or it was reclaimed as stale — it changes nothing and prints `{"ok": false, "reason": "not the current holder"}`. A caller that sees this must re-acquire before doing anything that would trigger another review.
+- `release-review-lock` clears `holder` when the caller holds it, or removes the caller's queue ticket when it is only waiting, printing `{"released": true}` either way. A caller present in neither place gets `{"released": false}` — a stale double-release, not an error.
+
+Corrupted or unparseable state is treated as the empty state rather than failing: losing lock bookkeeping costs some extra rate-limit contention, which is exactly the thing this reduces rather than guarantees, and is far better than deadlocking an unattended overnight run.
+
+Every mutation is serialized across processes by a sibling `state.json.lock` file created with the exclusive `wx` flag, and written by writing a temp file and renaming it over the target, so a reader never sees a half-written file. That mutex guards one read-plus-write only, so a `.lock` left behind by a crash mid-mutation is cleared by its own age (seconds), independently of the review lock's 15-minute heartbeat.
 
 ### `check-dependency-dashboard` usage
 
