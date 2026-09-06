@@ -209,7 +209,10 @@ export class ReviewLockStateService {
       }
       const ageMs = this.mutexAgeMs(mutexPath);
       if (ageMs === undefined) {
-        // It vanished between the failed create and the stat — just retry.
+        // It vanished between the failed create and the stat. Retry at the
+        // same bounded pace as a still-held mutex below, rather than
+        // spinning the event loop on a rapid create/remove race.
+        await this.sleep(MUTEX_RETRY_MS);
         continue;
       }
       if (ageMs > MUTEX_STALE_MS || Date.now() - start >= MUTEX_MAX_WAIT_MS) {
