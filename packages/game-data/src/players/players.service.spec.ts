@@ -73,6 +73,27 @@ describe('PlayersService', () => {
       { externalSystemId: 1, externalId: '12345' },
       { externalSystemId: 2, externalId: 'Griff Oberwald' },
     ];
+    const bb2020Formats = {
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
+    };
+    const crpFormats = {
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'bare',
+      passingFormat: 'absent',
+      armourFormat: 'bare',
+    };
+    const characteristics = {
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
+    };
 
     it('creates a new player when no external IDs match', async () => {
       // query 0: rules-set format lookup; query 1: external-id lookup finds
@@ -200,28 +221,6 @@ describe('PlayersService', () => {
       ).toBeUndefined();
     });
 
-    const bb2020Formats = {
-      moveFormat: 'bare',
-      strengthFormat: 'bare',
-      agilityFormat: 'plus',
-      passingFormat: 'plus',
-      armourFormat: 'plus',
-    };
-    const crpFormats = {
-      moveFormat: 'bare',
-      strengthFormat: 'bare',
-      agilityFormat: 'bare',
-      passingFormat: 'absent',
-      armourFormat: 'bare',
-    };
-    const characteristics = {
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 4,
-      armour: 9,
-    };
-
     it('writes the five characteristics when they match the rules set', async () => {
       // Query 0: the rules-set format lookup. Query 1: the external-id
       // lookup finds nothing. Query 2: the insert. Query 3: external ids.
@@ -254,7 +253,8 @@ describe('PlayersService', () => {
 
     it('leaves the characteristic columns untouched when the caller omits them', async () => {
       // No format lookup at all: query 0 is the external-id lookup (which
-      // finds the existing owner), query 1 is the update.
+      // finds the existing owner), query 1 is the update, and query 2 is the
+      // insert of the one still-missing external ID.
       const { chains } = await build(
         [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
         [fakePlayer],
@@ -262,6 +262,7 @@ describe('PlayersService', () => {
 
       await service.upsert({ ...base, externalIds });
 
+      expect(chains).toHaveLength(3);
       const values = firstCallArg(chains[1].set) as Record<string, unknown>;
       expect(values.move).toBeUndefined();
       expect(values.passing).toBeUndefined();
@@ -409,10 +410,11 @@ describe('PlayersService', () => {
       );
     });
 
-    it('passes through a placeholder zero and a null passing untouched', async () => {
-      // A stored 0 is the not-yet-curated placeholder and `null` passing is a
-      // rules set with no Passing characteristic; the deepdive renders both as
-      // a dash, so findById must not coerce either.
+    it('passes through a legacy zero and a null passing untouched', async () => {
+      // A stored 0 is a legacy value from before these columns stopped
+      // allowing new ones, and `null` passing is a rules set with no Passing
+      // characteristic; the deepdive renders both as a dash, so findById must
+      // not coerce either.
       const row = {
         id: 3,
         name: 'Uncurated Lineman',

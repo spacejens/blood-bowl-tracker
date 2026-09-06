@@ -409,7 +409,13 @@ export class TpPlayersImportService {
         // TP embeds every player's OWN current characteristics in lineUps[],
         // star and mercenary hires included, so no path is special-cased here.
         // A player merged in from a match-embedded snapshot carries none and
-        // sends none, leaving any previously-imported values untouched.
+        // sends none. If the player already exists (imported from a
+        // standalone roster elsewhere), this leaves their stored values
+        // untouched. If the player has never appeared on a standalone
+        // roster, though, there is nothing "previously imported" to fall
+        // back on: the create throws MissingRequiredFieldError, the row is
+        // recorded as an ImportError instead of created, and any match
+        // events referencing that player id lose their link.
         // Unlike sppTotal above, this is not deduplicated across a player id
         // recurring in more than one era's roster: whichever entry this loop
         // processes last wins. Fine when the values genuinely agree (the

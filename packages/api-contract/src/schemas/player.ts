@@ -20,10 +20,11 @@ export const PlayerSchema = z.object({
   teamEraId: z.number().int(),
   positionId: z.number().int(),
   // The player's own current characteristics. Required, not optional: every
-  // stored row has concrete values (a placeholder 0 for the four NOT NULL
-  // columns until the BBL and TP imports populate real ones). `passing` is
-  // nullable because null asserts that the player's rules set has no Passing
-  // characteristic at all.
+  // stored row has concrete values — the four NOT NULL columns have no
+  // database default, so a stored 0 (where one still exists from before
+  // this column stopped allowing new placeholders) reflects a legacy row,
+  // not an in-progress import. `passing` is nullable because null asserts
+  // that the player's rules set has no Passing characteristic at all.
   move: z.number().int(),
   strength: z.number().int(),
   agility: z.number().int(),
@@ -50,8 +51,12 @@ export const UpsertPlayerSchema = z
     sppTotal: z.number().int().optional(),
     // The five characteristics form one optional, all-or-nothing group: a
     // caller supplies all of them (with `passing` possibly null) or none.
-    // A partial line cannot be meaningfully validated or stored, and an
-    // omitted group leaves whatever is stored untouched.
+    // A partial line cannot be meaningfully validated or stored. Optional in
+    // this Zod schema for update's overlay semantics: an omitted group on
+    // update leaves the stored values alone. On create the group is now
+    // effectively required — the four non-`passing` columns are NOT NULL
+    // with no database default, so an omitted group on create throws
+    // MissingRequiredFieldError.
     move: z.number().int().optional(),
     strength: z.number().int().optional(),
     agility: z.number().int().optional(),

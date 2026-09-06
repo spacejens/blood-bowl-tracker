@@ -43,8 +43,9 @@ describe('CharacteristicDisplayFormattingService', () => {
   });
 
   it('renders a negative value as-is rather than as a dash', () => {
-    // Only zero is the not-yet-curated placeholder; nothing else is
-    // special-cased, so an unexpected value shows itself rather than hiding.
+    // Only zero gets special-cased display treatment (it can be a legacy
+    // value from before these columns stopped allowing new ones); nothing
+    // else is, so an unexpected value shows itself rather than hiding.
     expect(service.format(-1, 'bare')).toBe('-1');
   });
 });

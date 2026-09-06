@@ -32,7 +32,11 @@ export class TpPlayerCharacteristicsBuilderService {
    * set the player's era declares. Returns `undefined` when the player carried
    * none (a match-embedded-only entry: `lineUps[]` snapshots inside a match
    * file have no `ma/st/ag/pa/av`) or when the era resolved to no single rules
-   * set -- an omitted group leaves whatever is already stored untouched.
+   * set. Sending `undefined` is fine when the player already exists — the
+   * upsert leaves their stored characteristics untouched — but if this is the
+   * player's first-ever upsert, the create path has no default to fall back
+   * on and throws `MissingRequiredFieldError`, which the caller records as an
+   * `ImportError`.
    */
   forRosterPlayer(options: {
     characteristics: TpPlayerCharacteristics | undefined;
@@ -55,9 +59,13 @@ export class TpPlayerCharacteristicsBuilderService {
    * `lineUps[]` entry, so no characteristics of their own; a freshly-hired
    * star's values are the position template's, which the positions import step
    * already accumulated per rules set. Returns `undefined` when the position
-   * has no accumulated characteristics for this era's rules set -- unexpected,
-   * but not an error here: the positions step would already have recorded one
-   * if something were wrong upstream.
+   * has no accumulated characteristics for this era's rules set — unexpected,
+   * since the positions step would already have recorded one if something
+   * were wrong upstream. Sending `undefined` is harmless when the star player
+   * already exists (the upsert leaves their stored characteristics
+   * untouched), but on a genuinely new star player the create path has no
+   * default to fall back on and throws `MissingRequiredFieldError`, which the
+   * caller records as an `ImportError`.
    */
   forStarPosition(options: {
     positionId: number;

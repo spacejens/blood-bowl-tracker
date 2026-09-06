@@ -144,7 +144,9 @@ describe('TpPlayersImportService characteristics', () => {
     >;
     expect(payload).not.toHaveProperty('move');
     expect(payload).not.toHaveProperty('rulesSetId');
-    // The player itself still imports; only characteristics are skipped.
+    // upsertPlayerResult is mocked, so this only exercises the payload the
+    // importer sends for an existing player; it does not exercise the real
+    // create-without-characteristics throw.
     expect(payload.name).toBe('The Agitated Deviation');
   });
 
@@ -192,7 +194,7 @@ describe('TpPlayersImportService characteristics', () => {
     );
   });
 
-  it('imports an induced star hire without characteristics when the position has none, recording no extra error', async () => {
+  it('imports an induced star hire without characteristics when the position has none, recording no extra error, for an existing player', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 950 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 70 });
     const { service, importResults } = await makeService({
