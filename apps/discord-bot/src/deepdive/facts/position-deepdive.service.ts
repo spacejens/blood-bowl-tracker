@@ -122,13 +122,15 @@ export class PositionDeepdiveService {
       TOP_PLAYERS_TOP_ENTRIES,
     );
     // Every listed player already holds this position, so repeating it would
-    // say nothing new, and a position is not scoped to one race or one era
-    // the way this decoration's other options assume — only team and coach
-    // add information here. Wrapped in the same timeout handling as every
-    // other DB call in this method, since attachSuffixes does its own DB
-    // round trip — skipped entirely when there is nothing to decorate, so a
-    // position with no players never risks the player-context timeout
-    // message in place of the correct "no players" view.
+    // say nothing new, and a position is not scoped to one race. Era is a
+    // different case: a position's roster slot spans many eras, so two of
+    // its top players can come from very different points in the game's
+    // history, and the era is what tells them apart. Wrapped in the same
+    // timeout handling as every other DB call in this method, since
+    // attachSuffixes does its own DB round trip — skipped entirely when
+    // there is nothing to decorate, so a position with no players never
+    // risks the player-context timeout message in place of the correct
+    // "no players" view.
     const decorated:
       | (PositionTopPlayer & {
           count: number;
@@ -143,7 +145,7 @@ export class PositionDeepdiveService {
               includePosition: false,
               includeTeam: true,
               includeRace: false,
-              includeEra: false,
+              includeEra: true,
               includeCoach: true,
             }),
             null,
