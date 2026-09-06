@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
@@ -14,31 +14,26 @@ const race: SampledRace = {
   selectedFor: ['Random sample'],
 };
 
-async function makeService(): Promise<{
-  service: RaceIdentityDbRendererService;
-  externalIds: ReturnType<typeof mock<RaceExternalIdsService>>;
-  query: ReturnType<typeof mock<RacePositionsQueryService>>;
-}> {
-  const externalIds = mock<RaceExternalIdsService>();
-  const query = mock<RacePositionsQueryService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      RaceIdentityDbRendererService,
-      { provide: RaceExternalIdsService, useValue: externalIds },
-      { provide: RacePositionsQueryService, useValue: query },
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(RaceIdentityDbRendererService),
-    externalIds,
-    query,
-  };
-}
-
 describe('RaceIdentityDbRendererService', () => {
+  let service: RaceIdentityDbRendererService;
+  let externalIds: ReturnType<typeof mock<RaceExternalIdsService>>;
+  let query: ReturnType<typeof mock<RacePositionsQueryService>>;
+
+  beforeEach(async () => {
+    externalIds = mock<RaceExternalIdsService>();
+    query = mock<RacePositionsQueryService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RaceIdentityDbRendererService,
+        { provide: RaceExternalIdsService, useValue: externalIds },
+        { provide: RacePositionsQueryService, useValue: query },
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(RaceIdentityDbRendererService);
+  });
+
   it('renders the database id and name rows', async () => {
-    const { service, externalIds, query } = await makeService();
     query.erasFor.mockResolvedValue([]);
     externalIds.allForRace.mockResolvedValue([]);
 
@@ -49,7 +44,6 @@ describe('RaceIdentityDbRendererService', () => {
   });
 
   it('renders one Era row per era, with its date range', async () => {
-    const { service, externalIds, query } = await makeService();
     query.erasFor.mockResolvedValue([
       {
         eraId: 1,
@@ -77,7 +71,6 @@ describe('RaceIdentityDbRendererService', () => {
   });
 
   it('renders Era as none when the race has no eras', async () => {
-    const { service, externalIds, query } = await makeService();
     query.erasFor.mockResolvedValue([]);
     externalIds.allForRace.mockResolvedValue([]);
 
@@ -87,7 +80,6 @@ describe('RaceIdentityDbRendererService', () => {
   });
 
   it('renders one External id row per external id', async () => {
-    const { service, externalIds, query } = await makeService();
     query.erasFor.mockResolvedValue([]);
     externalIds.allForRace.mockResolvedValue([
       { systemName: 'BBL', externalId: '5' },
@@ -101,7 +93,6 @@ describe('RaceIdentityDbRendererService', () => {
   });
 
   it('renders External id as none when the race carries none', async () => {
-    const { service, externalIds, query } = await makeService();
     query.erasFor.mockResolvedValue([]);
     externalIds.allForRace.mockResolvedValue([]);
 
@@ -111,7 +102,6 @@ describe('RaceIdentityDbRendererService', () => {
   });
 
   it('escapes a name containing < and &', async () => {
-    const { service, externalIds, query } = await makeService();
     query.erasFor.mockResolvedValue([]);
     externalIds.allForRace.mockResolvedValue([]);
 

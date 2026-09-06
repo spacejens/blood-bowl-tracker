@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { BblPositionTypIdsService } from '../shared/bbl-position-typ-ids.service';
@@ -18,48 +18,40 @@ const race: SampledRace = {
   selectedFor: ['Random sample'],
 };
 
-async function makeService(): Promise<{
-  service: PositionAvailabilityRawRendererService;
-  raceIds: ReturnType<typeof mock<RaceExternalIdsService>>;
-  bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
-  tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
-  manual: ReturnType<typeof mock<ManualRawDataService>>;
-  typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
-}> {
-  const raceIds = mock<RaceExternalIdsService>();
-  const bbl = mock<BblRawPositionPageService>();
-  const tp = mock<TpRawRosterIndexService>();
-  const manual = mock<ManualRawDataService>();
-  const typIds = mock<BblPositionTypIdsService>();
-  raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
-  raceIds.allForRace.mockResolvedValue([]);
-  manual.availability.mockResolvedValue([]);
-  typIds.forRace.mockResolvedValue(new Map());
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      PositionAvailabilityRawRendererService,
-      { provide: RaceExternalIdsService, useValue: raceIds },
-      { provide: BblRawPositionPageService, useValue: bbl },
-      { provide: TpRawRosterIndexService, useValue: tp },
-      { provide: ManualRawDataService, useValue: manual },
-      { provide: BblPositionTypIdsService, useValue: typIds },
-      ManualEntryMatcherService,
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(PositionAvailabilityRawRendererService),
-    raceIds,
-    bbl,
-    tp,
-    manual,
-    typIds,
-  };
-}
-
 describe('PositionAvailabilityRawRendererService', () => {
+  let service: PositionAvailabilityRawRendererService;
+  let raceIds: ReturnType<typeof mock<RaceExternalIdsService>>;
+  let bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
+  let tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
+  let manual: ReturnType<typeof mock<ManualRawDataService>>;
+  let typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
+
+  beforeEach(async () => {
+    raceIds = mock<RaceExternalIdsService>();
+    bbl = mock<BblRawPositionPageService>();
+    tp = mock<TpRawRosterIndexService>();
+    manual = mock<ManualRawDataService>();
+    typIds = mock<BblPositionTypIdsService>();
+    raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
+    raceIds.allForRace.mockResolvedValue([]);
+    manual.availability.mockResolvedValue([]);
+    typIds.forRace.mockResolvedValue(new Map());
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PositionAvailabilityRawRendererService,
+        { provide: RaceExternalIdsService, useValue: raceIds },
+        { provide: BblRawPositionPageService, useValue: bbl },
+        { provide: TpRawRosterIndexService, useValue: tp },
+        { provide: ManualRawDataService, useValue: manual },
+        { provide: BblPositionTypIdsService, useValue: typIds },
+        ManualEntryMatcherService,
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(PositionAvailabilityRawRendererService);
+  });
+
   it('renders a BBL row showing the page name and "listed" when the page lists this race', async () => {
-    const { service, raceIds, bbl, typIds } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     raceIds.forRace.mockResolvedValue({ bbl: ['44'], tp: [], name: [] });
     bbl.positionFor.mockResolvedValue({
@@ -80,7 +72,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('highlights a BBL row with NOT LISTED when the page does not list this race', async () => {
-    const { service, raceIds, bbl, typIds } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     raceIds.forRace.mockResolvedValue({ bbl: ['44'], tp: [], name: [] });
     bbl.positionFor.mockResolvedValue({
@@ -98,7 +89,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('renders "page not in the mirror" when the BBL position page cannot be read', async () => {
-    const { service, bbl, typIds } = await makeService();
     typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
     bbl.positionFor.mockResolvedValue(null);
 
@@ -109,8 +99,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('omits the BBL sub-section when the race has no BBL typIds', async () => {
-    const { service, bbl } = await makeService();
-
     const html = await service.render(race);
 
     expect(bbl.positionFor).not.toHaveBeenCalled();
@@ -118,7 +106,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('lists the TP roster positions merged and deduplicated by tpPositionId across codes, excluding star players', async () => {
-    const { service, raceIds, tp } = await makeService();
     raceIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf', 'dwarf2'],
@@ -166,7 +153,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('omits the TP sub-section when every TP position is a star player', async () => {
-    const { service, raceIds, tp } = await makeService();
     raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf'], name: [] });
     tp.raceFor.mockResolvedValue({
       teamRaceCode: 'dwarf',
@@ -194,7 +180,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('lists a manual curation entry only when its raceEras race matches one of the race external ids', async () => {
-    const { service, raceIds, manual } = await makeService();
     raceIds.allForRace.mockResolvedValue([
       { systemName: 'Name', externalId: 'Dwarf: Blitzer' },
     ]);
@@ -229,7 +214,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('omits each sub-section entirely when that source has nothing', async () => {
-    const { service, raceIds, tp } = await makeService();
     raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf'], name: [] });
     tp.raceFor.mockResolvedValue(null);
 
@@ -241,8 +225,6 @@ describe('PositionAvailabilityRawRendererService', () => {
   });
 
   it('renders a single note when all three sources are empty', async () => {
-    const { service } = await makeService();
-
     const html = await service.render(race);
 
     expect(html).toBe(
