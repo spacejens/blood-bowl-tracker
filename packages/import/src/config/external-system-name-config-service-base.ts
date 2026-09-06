@@ -31,9 +31,12 @@ export type ExternalSystemNameConfigServiceConstructor = new (
  * whenever the value is unset or unusable. Unlike the other import config
  * getters, this one never throws.
  *
- * A loose function rather than a service by the "generic over entity type"
- * exemption in CLAUDE.md's "Service vs. loose function" — it is parameterized
- * by a config object and returns the class NestJS DI then manages. The
+ * A class-factory rather than a service: it produces the `@Injectable()` base
+ * class a tool's own external-system-name service extends, which is what
+ * NestJS DI ends up managing. That is outside all four exemptions CLAUDE.md's
+ * "Service vs. loose function" lists — notably the "generic over entity/table
+ * type" one, whose subject is a compile-time generic, whereas the parameter
+ * here is a runtime config object (`configService`, `defaultSystemName`). The
  * `@Injectable()` and `@Inject(configService)` metadata is found through the
  * subclass's prototype chain, so a subclass needs no constructor of its own.
  */

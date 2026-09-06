@@ -39,11 +39,15 @@ export type SourceConfigServiceConstructor = new (
  * directory), or throw the tool's own friendly error naming its config file
  * and what the folder should hold.
  *
- * A loose function rather than a service by the "generic over entity type"
- * exemption in CLAUDE.md's "Service vs. loose function" — it is parameterized
- * by a config object and returns the class NestJS DI then manages. The
- * `@Injectable()` and `@Inject(configService)` metadata is found through the
- * subclass's prototype chain, so a subclass needs no constructor of its own.
+ * A class-factory rather than a service: its return value is the
+ * `@Injectable()` base class a tool's source config service extends, not a
+ * computed result handed to a caller. CLAUDE.md's "Service vs. loose
+ * function" lists four exemptions and none of them covers this shape; the
+ * "generic over entity/table type" one in particular does not, because the
+ * parameter is a runtime config object (`configService`, `fileName`,
+ * `dataDirDescription`) and not a compile-time generic. The `@Injectable()`
+ * and `@Inject(configService)` metadata is found through the subclass's
+ * prototype chain, so a subclass needs no constructor of its own.
  */
 export function createSourceConfigServiceBase(
   config: SourceConfigServiceConfig,
