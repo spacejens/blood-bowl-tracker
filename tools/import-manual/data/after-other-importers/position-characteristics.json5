@@ -487,14 +487,9 @@
     { position: { system: 'Name', id: 'Vampire: Thrall Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
     { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 4, agility: 4, armour: 8 },
 
-    // Teams of Legend is 9 pages total (no page 10). It does not cover the
-    // BB2016 boxed-set teams (Human, Orc, Dwarf, Skaven, Elf variants) --
-    // those still need transcription from the physical rulebooks (Task 14).
-
-    // The remaining boxed-set teams and CRP-legacy races below (BB2016) are
-    // transcribed from the developer's physical rulebooks (Task 14) --
-    // Teams of Legend does not cover these (see the note above the Vampire
-    // block).
+    // Teams of Legend is 9 pages total and does not cover the BB2016
+    // boxed-set teams or CRP-legacy races -- those are transcribed from the
+    // developer's physical rulebooks (Task 14).
 
     // --- BB2016: Human (physical rulebook) ---
     { position: { system: 'Name', id: 'Human: Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
