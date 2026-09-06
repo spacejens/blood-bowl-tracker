@@ -53,7 +53,7 @@ export const UpsertPlayerSchema = z
     // caller supplies all of them (with `passing` possibly null) or none.
     // A partial line cannot be meaningfully validated or stored. Optional in
     // this Zod schema for update's overlay semantics: an omitted group on
-    // update leaves the stored values alone. On create the group is now
+    // update leaves the stored values alone. On create the group is
     // effectively required — the four non-`passing` columns are NOT NULL
     // with no database default, so an omitted group on create throws
     // MissingRequiredFieldError.

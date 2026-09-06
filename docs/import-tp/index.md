@@ -283,8 +283,9 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   has never been imported before, there is nothing "previously imported" to
   fall back on, so the create throws `MissingRequiredFieldError` and the row
   is recorded as an `ImportError` instead of created, with any match events
-  referencing that player id losing their link. Also imports every star player hired via an `inducements_roll`
-  match event (gathered by `main.ts` from the already-parsed match events,
+  referencing that player id losing their link. Also imports every star
+  player hired via an `inducements_roll` match event (gathered by `main.ts`
+  from the already-parsed match events,
   not from any roster field), each getting a reused `isStarPlayer: true`
   Position and a Player scoped to the hiring roster's team-era; returns
   `starPlayerIdsByRosterAndMaster`, keyed

@@ -354,7 +354,7 @@ rules set.
 `PlayersService.upsert` accepts the five as an all-or-nothing group paired
 with a `rulesSetId` that is used only to validate them (via the same
 `CharacteristicFormatValidationService` that `PositionRulesSetsService` uses)
-and is never persisted. On create the group is now effectively required — an
+and is never persisted. On create the group is effectively required — an
 omitted group throws `MissingRequiredFieldError`; an omitted group on update
 simply leaves the stored values alone.
 

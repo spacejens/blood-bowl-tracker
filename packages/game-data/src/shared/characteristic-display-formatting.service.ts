@@ -9,8 +9,8 @@ import { Injectable } from '@nestjs/common';
  * - `0` — either a stale legacy value for Move, Strength, Agility or Armour
  *   (0 is not a legal value for any of them under any rules set — see the
  *   characteristic comments on `players` and `position_rules_sets` in the
- *   schema), or, for a `plus_zero_legal` Passing
- *   value, a real value meaning "structurally cannot pass". Discord shows
+ *   schema), or, for a `plus_zero_legal` Passing value, a real value meaning
+ *   "structurally cannot pass". Discord shows
  *   that real zero as a dash too, deliberately: a bare "0" reads oddly to
  *   players. The review tools under tools/ do print it, since their job is
  *   to expose exactly what the data says.

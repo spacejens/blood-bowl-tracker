@@ -130,6 +130,9 @@ describe('TpPlayersImportService characteristics', () => {
   });
 
   it("sends no characteristics when the player's era resolved to no rules set", async () => {
+    // upsertPlayerResult is mocked, so this only exercises the payload the
+    // importer sends for an existing player; it does not exercise the real
+    // create-without-characteristics throw.
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service } = await makeService({
       upsertPlayerResult,
@@ -147,9 +150,7 @@ describe('TpPlayersImportService characteristics', () => {
     >;
     expect(payload).not.toHaveProperty('move');
     expect(payload).not.toHaveProperty('rulesSetId');
-    // upsertPlayerResult is mocked, so this only exercises the payload the
-    // importer sends for an existing player; it does not exercise the real
-    // create-without-characteristics throw.
+    // The player itself still imports; only characteristics are skipped.
     expect(payload.name).toBe('The Agitated Deviation');
   });
 
