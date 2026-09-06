@@ -215,29 +215,38 @@ describe('ReviewLockStateService', () => {
       return realStatSync(...args);
     });
 
-    const pending = service.mutate(() => ({
-      state: HOLDER_STATE,
-      result: null,
-    }));
+    try {
+      const pending = service.mutate(() => ({
+        state: HOLDER_STATE,
+        result: null,
+      }));
 
-    // Flush microtasks (but advance no real timer delay). The old, unpaced
-    // code re-enters the loop synchronously on every `ageMs === undefined`
-    // hit — no `await` in that branch — so it would burn through all 5
-    // mocked "vanished" responses in this single tick before ever reaching
-    // an `await`. The fixed code awaits `sleep(MUTEX_RETRY_MS)` on the very
-    // first hit, which suspends execution before a second `statSync` call
-    // can happen.
-    await vi.advanceTimersByTimeAsync(0);
-    expect(statMock).toHaveBeenCalledTimes(1);
+      // Flush microtasks (but advance no real timer delay). The old, unpaced
+      // code re-enters the loop synchronously on every `ageMs === undefined`
+      // hit — no `await` in that branch — so it would burn through all 5
+      // mocked "vanished" responses in this single tick before ever reaching
+      // an `await`. The fixed code awaits `sleep(MUTEX_RETRY_MS)` on the very
+      // first hit, which suspends execution before a second `statSync` call
+      // can happen.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(statMock).toHaveBeenCalledTimes(1);
 
-    // Let the paced retries run their course: exhaust the mocked
-    // "vanished" responses, then let a real tryCreateMutex succeed once
-    // the mutex file is actually removed.
-    rmSync(mutexPath);
-    await vi.advanceTimersByTimeAsync(5 * 50 + 50);
-    await pending;
-
-    statMock.mockImplementation(realStatSync);
+      // Remove the real mutex file, then advance past the paced retry delay
+      // so the next tryCreateMutex succeeds. Only the first of the 5 mocked
+      // "vanished" responses is ever actually consumed — the point of this
+      // test is that the branch pauses after that first hit rather than
+      // spinning through all of them synchronously (asserted above); the
+      // remaining stubbed responses exist only so an unpaced regression
+      // would have something to spin through.
+      rmSync(mutexPath);
+      await vi.advanceTimersByTimeAsync(5 * 50 + 50);
+      await pending;
+    } finally {
+      // Always restore, even if an assertion above throws — an unrestored
+      // mock would return `undefined` from every later statSync call in
+      // this file, poisoning every other test that touches `mutexAgeMs`.
+      statMock.mockImplementation(realStatSync);
+    }
   });
 
   it('serializes concurrent mutations so neither overwrites the other', async () => {
