@@ -15,8 +15,12 @@ import {
 } from './wait-for-pr-review-filters.service';
 import {
   codeRabbitCommentSchema,
+  CompletionCandidate,
+  completionCandidateSchema,
   headRefOidSchema,
   jsonObjectSchema,
+  SectionCandidate,
+  sectionCandidateSchema,
 } from './wait-for-pr-review-schemas';
 
 /** One wait's inputs; the optional fields fall back to the defaults below. */
@@ -150,28 +154,6 @@ interface RollingCommentPollContext {
   readonly options: PollOptions;
   /** The PR's current head commit; `undefined` when the reviews call could not report it. */
   readonly headRefOid: string | undefined;
-}
-
-/**
- * The fields both halves of the rolling-comment filter emit: the comment's
- * id, the `updated_at` that stands in for a review's `submittedAt`, and the
- * bounded section extracted from its body. `section` is kept only long enough
- * for the TypeScript phrase re-check (and, for a rate limit, the composite id
- * and wait-duration parse) — the completion half never lets it reach the
- * caller.
- */
-interface SectionCandidate {
-  readonly id: string;
-  readonly submittedAt: string;
-  readonly section: string;
-}
-
-/**
- * What the completion half emits: a `SectionCandidate` plus the author the
- * synthesized review is attributed to.
- */
-interface CompletionCandidate extends SectionCandidate {
-  readonly author: { readonly login: string };
 }
 
 /**
@@ -742,35 +724,14 @@ export class WaitForPrReviewService {
    * read as "no match" rather than as a half-built signal.
    */
   private parseSectionCandidate(value: unknown): SectionCandidate | undefined {
-    if (value === null || typeof value !== 'object') {
-      return undefined;
-    }
-    const { id, submittedAt, section } = value as {
-      id?: unknown;
-      submittedAt?: unknown;
-      section?: unknown;
-    };
-    return typeof id === 'string' &&
-      typeof submittedAt === 'string' &&
-      typeof section === 'string'
-      ? { id, submittedAt, section }
-      : undefined;
+    return this.validate(sectionCandidateSchema, value);
   }
 
   /** The same validation plus the author the synthesized review needs. */
   private parseCompletionCandidate(
     value: unknown,
   ): CompletionCandidate | undefined {
-    const base = this.parseSectionCandidate(value);
-    if (base === undefined) {
-      return undefined;
-    }
-    const author = (value as { author?: { login?: unknown } }).author;
-    const login =
-      typeof author === 'object' && author !== null ? author.login : undefined;
-    return typeof login === 'string'
-      ? { ...base, author: { login } }
-      : undefined;
+    return this.validate(completionCandidateSchema, value);
   }
 
   /**
