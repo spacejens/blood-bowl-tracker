@@ -105,6 +105,30 @@ describe('CompetitionGroupsService', () => {
     expect(db.chains[0].from).toHaveBeenCalledWith(competitionGroups);
   });
 
+  it('lists every competition group in the API contract shape', async () => {
+    const rows = [
+      {
+        id: 1,
+        name: 'Major Season',
+        leagueId: 1,
+        createdAt: new Date('2026-01-01'),
+      },
+      {
+        id: 2,
+        name: 'Chaos Cup',
+        leagueId: 1,
+        createdAt: new Date('2026-01-02'),
+      },
+    ];
+    const { service, db } = await makeService(rows);
+
+    await expect(service.listAllForApi()).resolves.toEqual(rows);
+    expect(db.chains[0].from).toHaveBeenCalledWith(competitionGroups);
+    expect(
+      Object.keys(firstCallArg(db.db.select) as Record<string, unknown>),
+    ).toEqual(['id', 'name', 'leagueId', 'createdAt']);
+  });
+
   it('lists the competition groups of one league, ordered by name', async () => {
     const { service, db } = await makeService([
       { id: 1, name: 'Chaos Cup' },

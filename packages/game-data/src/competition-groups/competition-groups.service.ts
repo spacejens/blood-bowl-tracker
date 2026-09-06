@@ -41,6 +41,27 @@ export class CompetitionGroupsService {
     return this.db.select().from(competitionGroups);
   }
 
+  /**
+   * Every competition group in the shape the API contract's
+   * `CompetitionGroupSchema` declares. Projected in the query rather than
+   * mapped afterward — the same pattern as `listByLeague` and
+   * `searchByNamePrefix` below — so the history-tracking columns the contract
+   * does not carry are never read. Distinct from {@link listAll}, which stays
+   * the full-row read its importer caller needs.
+   */
+  listAllForApi(): Promise<
+    { id: number; name: string; leagueId: number; createdAt: Date }[]
+  > {
+    return this.db
+      .select({
+        id: competitionGroups.id,
+        name: competitionGroups.name,
+        leagueId: competitionGroups.leagueId,
+        createdAt: competitionGroups.createdAt,
+      })
+      .from(competitionGroups);
+  }
+
   /** One competition group's deepdive header, or `undefined` when no such group exists. */
   async findByIdWithLeague(id: number): Promise<
     | {
