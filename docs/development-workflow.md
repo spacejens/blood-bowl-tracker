@@ -104,11 +104,12 @@ A typical cycle: `develop-feature` takes an issue to a PR → the automated revi
 
 ## Issue labels
 
-Every issue, and every pull request opened by `develop-feature`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `develop-feature` decide the kind label(s) by applying the tests below; this section is the reference they check against.
+Every issue, and every pull request opened by `develop-feature`, carries at least one **kind label** — one or more of `feature`, `bug`, `development`, `internal`. (Renovate's own dependency PRs are the exception: they carry only a `renovate:*` label, see below.) `write-issue` and `develop-feature` decide the kind label(s) by applying the tests below; this section is the reference they check against.
 
 - **`feature`** — the change is visible to, or usable by, an end user of one of this repo's apps (e.g. the Discord bot). _Test: would a user of the app notice a difference, or be able to do something they couldn't before?_
 - **`bug`** — existing end-user-visible behavior is currently wrong, and the issue is about restoring the intended behavior. _Test: is something an end user can see or use currently broken or incorrect?_
-- **`development`** — internal developer tooling, CI/build/deploy process, or dev-workflow changes with no end-user-visible effect. _Test: if it doesn't change what an end user sees or can do, it's `development` — regardless of whether the work itself is new._ Newness is not the test; end-user visibility is.
+- **`development`** — internal developer tooling (`tools/`), automated tests, CI/build/deploy process, documentation, or Claude-skill / dev-workflow changes — work that is not part of the deployed application at all. _Test: is this dev-process work outside the deployed application — `tools/`, tests, CI, docs, or skills — rather than application code under `apps/` or the `packages/` that back them?_ Newness is not the test; whether the work is part of the deployed application is.
+- **`internal`** — the change is inside the deployed application (`apps/`, or the `packages/` that back it) but has no end-user-visible effect. _Test: is this application code that an end user's experience is entirely unaffected by (backend logic, internal refactor, internal data plumbing)?_ A `packages/` package that backs both the deployed application and a `tools/` CLI (e.g. `packages/db`, `packages/api-client`) is labeled by where the specific change lands, not by the package as a whole — a change only a CLI tool exercises is `development`, one that changes application behavior (even invisibly) is `internal`.
 
 More than one kind label may apply — e.g. a fix for an incorrect stat shown to users that also requires updating the import tooling that produced the bad data gets both `bug` (the user-visible stat was wrong) and `development` (the tooling that produced it also needed fixing).
 
@@ -119,7 +120,8 @@ Worked examples:
 - A stat shown to users that was computing an incorrect value, now fixed → `bug`.
 - A new CLI subcommand for a local-dev-only import tool → `development`.
 - A refactor of internal skill or CLI code with no behavior change visible to app users → `development`.
-- A refactor of `apps/discord-bot` or `tools/import-bbl` internals (e.g. restructuring services, no behavior change) → `development`.
+- A refactor of `apps/discord-bot` internals (e.g. restructuring services, no behavior change) → `internal` — it's inside the deployed application.
+- A refactor of `tools/import-bbl` internals (e.g. restructuring services, no behavior change) → `development` — import tooling is dev-process, not deployed to end users.
 
 The remaining labels are **state or meta labels**. They are never chosen at issue-creation time and are not part of the kind-label decision:
 
