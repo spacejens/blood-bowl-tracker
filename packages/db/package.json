@@ -30,14 +30,14 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.29",
-    "@nestjs/core": "^11.1.29",
+    "@nestjs/common": "^12.0.0",
+    "@nestjs/core": "^12.0.0",
     "drizzle-orm": "rc",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.29",
+    "@nestjs/testing": "^12.0.0",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "rc",
