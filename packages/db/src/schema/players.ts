@@ -45,16 +45,15 @@ const playersTable = historyTrackedTable({
     // sets in sequence, so nothing here can resolve one unambiguously —
     // whichever caller needs one for validation supplies it explicitly.
     //
-    // The DEFAULT 0 on the four NOT NULL columns below (move, strength,
-    // agility, armour) is temporary: it exists only so existing rows satisfy
-    // NOT NULL before the BBL and TP importers populate real values. 0 is not
-    // a legal value for any of those four under any rules set, so for them it
-    // is purely a placeholder. This does NOT extend to `passing`, which is
-    // nullable, has no default, and for which 0 is a real value — see its own
-    // comment below.
-    move: integer('move').notNull().default(0),
-    strength: integer('strength').notNull().default(0),
-    agility: integer('agility').notNull().default(0),
+    // move, strength, agility and armour are NOT NULL with no default,
+    // matching `position_rules_sets`: 0 is not a legal value for any of the
+    // four under any rules set, so there is nothing a database-level fallback
+    // could legitimately write — every writer must supply a real number. This
+    // does NOT extend to `passing`, which is nullable, has no default, and for
+    // which 0 is a real value — see its own comment below.
+    move: integer('move').notNull(),
+    strength: integer('strength').notNull(),
+    agility: integer('agility').notNull(),
     // Nullable with no default, mirroring `position_rules_sets.passing`:
     // NULL permanently means "this player's rules set has no Passing
     // characteristic" (an asserted absence), never "not yet known". A stored
@@ -62,7 +61,7 @@ const playersTable = historyTrackedTable({
     // structurally cannot pass (a BB2020 Kroxigor or Ogre), which the
     // `plus_zero_legal` characteristic format renders as a bare "0".
     passing: integer('passing'),
-    armour: integer('armour').notNull().default(0),
+    armour: integer('armour').notNull(),
   },
 });
 

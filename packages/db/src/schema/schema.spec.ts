@@ -178,6 +178,31 @@ describe('schema', () => {
     expect(sppAdjustment!.getSQLType()).toBe('integer');
   });
 
+  it('exports players move/strength/agility/armour as not-null integers with no default', () => {
+    const config = getTableConfig(players);
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    for (const name of ['move', 'strength', 'agility', 'armour']) {
+      expect(byName.get(name)!.notNull).toBe(true);
+      // No default on purpose: 0 is not a legal value for any of these four
+      // under any rules set, so a database-level fallback could only ever
+      // write a value the rules forbid. Every writer supplies a real number.
+      expect(byName.get(name)!.hasDefault).toBe(false);
+      expect(byName.get(name)!.getSQLType()).toBe('integer');
+    }
+  });
+
+  it('exports players.passing as a nullable integer column with no default', () => {
+    const config = getTableConfig(players);
+    const passing = config.columns.find((c) => c.name === 'passing');
+    expect(passing).toBeDefined();
+    // Nullable permanently: NULL asserts that the player's rules set has no
+    // Passing characteristic. A stored 0 is a real value there ("structurally
+    // cannot pass" under a plus_zero_legal rules set), unlike the other four.
+    expect(passing!.notNull).toBe(false);
+    expect(passing!.hasDefault).toBe(false);
+    expect(passing!.getSQLType()).toBe('integer');
+  });
+
   it('exports matches table', () => {
     expect(matches.id).toBeDefined();
     expect(matches.competitionId).toBeDefined();
