@@ -72,12 +72,26 @@ export function mockEraDataConfigService(
 }
 
 /**
- * A `MockProxy<ReferenceLookupService>` whose `keyOf` mirrors the real
- * tab-joined key derivation (pure, no branching -- exempt from the
- * canned-response rule, same as `tp-eras-import.service.spec.ts`'s own
- * `lookup.keyOf` stub) and whose `lookupMap(kind, ...)` resolves from a
- * plain external-id -> DB-id map per kind, keyed under `tpSystemId`. `era`
- * always comes from `eraIdsByName`; `race`/`coach`/`position`/`competition`/
+ * Stubs a mocked `ReferenceLookupService`'s `keyOf` with a made-up key
+ * format that is deliberately *unlike* the real one. Nothing asserts on the
+ * literal value: the key is only an internal correlation id between this
+ * stub and whichever `lookupMap` stub the same test configures. Keeping the
+ * format visibly different from production's guarantees no test can quietly
+ * depend on the real derivation -- every test must build its expected keys
+ * by calling `lookup.keyOf({ ... })`, never by writing a key out by hand.
+ */
+export function mockKeyOf(lookup: MockProxy<ReferenceLookupService>): void {
+  lookup.keyOf.mockImplementation(
+    (ref) => `${ref.externalId}::${ref.externalSystemId}`,
+  );
+}
+
+/**
+ * A `MockProxy<ReferenceLookupService>` whose `keyOf` is stubbed by
+ * `mockKeyOf` (a made-up, non-production key format used purely as a
+ * correlation id with the `lookupMap` stub below) and whose
+ * `lookupMap(kind, ...)` resolves from a plain external-id -> DB-id map per
+ * kind, keyed under `tpSystemId`. `era` always comes from `eraIdsByName`; `race`/`coach`/`position`/`competition`/
  * `rulesSet` come from `extra`'s matching map when supplied. A kind with no map (or an
  * id the map doesn't declare) resolves to nothing, matching a real
  * unresolved reference.
@@ -103,9 +117,7 @@ export function mockReferenceLookupService(
   },
 ): MockProxy<ReferenceLookupService> {
   const lookup = mock<ReferenceLookupService>();
-  lookup.keyOf.mockImplementation(
-    (ref) => `${ref.externalSystemId}\t${ref.externalId}`,
-  );
+  mockKeyOf(lookup);
   const idsByExternalIdByKind: Record<string, Map<string, number>> = {
     era: eraIdsByName,
     race: extra?.raceIdsByCode ?? new Map<string, number>(),
@@ -119,7 +131,7 @@ export function mockReferenceLookupService(
       idsByExternalIdByKind[kind] ?? new Map<string, number>();
     const map = new Map<string, number>();
     for (const [externalId, id] of idsByExternalId) {
-      map.set(`${tpSystemId}\t${externalId}`, id);
+      map.set(lookup.keyOf({ externalSystemId: tpSystemId, externalId }), id);
     }
     return Promise.resolve(map);
   });
