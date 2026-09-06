@@ -111,8 +111,8 @@ interface PollOutcome {
   /**
    * A review that matched the jq filter but was discarded as a content-free
    * artifact — empty body, no genuine (non-reply) inline comments (see
-   * `checkedReview`). Carried
-   * out so `run` can exclude it from later polls in this same wait.
+   * `checkedReview`). Carried out so `run` can exclude it from later polls in
+   * this same wait.
    */
   readonly discardedEmptyReviewId?: string;
   /**
