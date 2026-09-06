@@ -390,6 +390,8 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```
    It prints `{"ok": true}` while this session still holds the lock. `{"ok": false, "reason": "not the current holder"}` means the lock was reclaimed as stale (or otherwise released) while this session was busy: **stop before doing anything else that would trigger a review**, re-run step 3's `acquire-review-lock <holder-id>` command (which rejoins the back of the queue, backgrounded the same way), and only then continue from the checkpoint where the heartbeat failed. A non-zero exit or unparseable output is a one-line warning, never a stop — same reasoning as step 3's failure handling.
 
+   **One expected exception:** if the just-completed step (c) `handle-pr-reviews` dispatch itself stopped on an ambiguous item (its own Phase 2 "Ambiguous" behavior), that skill deliberately released the review lock before reporting — see its Phase 2 step 2. The immediately-following heartbeat here will therefore legitimately report `{"ok": false}`, which is not an error and needs no re-acquire: step (d)'s exit check below already treats an ambiguous stop as a loop-exit condition, and the "after the loop" release a few steps down handles cleanup (a release of a lock this session no longer holds there is a harmless no-op). Go straight to step (d) in this case rather than re-acquiring first — re-acquiring only to immediately release again once the loop exits would needlessly delay surfacing the ambiguous item to the developer.
+
    These are cheap, local, and non-interactive; run them in the foreground.
 
    **Each iteration:**

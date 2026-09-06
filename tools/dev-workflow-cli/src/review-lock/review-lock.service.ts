@@ -144,7 +144,11 @@ export class ReviewLockService {
    * that has not gone stale. A queue entry nobody is polling for anymore (the
    * session behind it was killed while waiting) would otherwise block every
    * session behind it forever, since only the front of the queue may ever
-   * acquire.
+   * acquire. This is also why `tryAcquire`'s losing branch still persists the
+   * returned queue rather than the original one unchanged: a first attempt
+   * that doesn't win the lock still reserves this session's place in line and
+   * prunes anyone who has gone stale, which is what lets a later retry pick
+   * up from the right position instead of starting over.
    */
   private liveQueue(
     queue: readonly ReviewLockQueueEntry[],
