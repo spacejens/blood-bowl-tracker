@@ -216,8 +216,8 @@
     //   differently-named Snotling Team roster -- e.g. that "Pump Wagon" is
     //   move 4/strength 5/agility 5/armour 9, versus this handbook's Pump
     //   Wagons at move 4/strength 6/agility 1/armour 9, a different entity
-    //   under a similar name, not the same position. Same class of mismatch
-    //   as Task 10's Gnome skip.
+    //   under a similar name, not the same position. A shared name is not
+    //   enough to match on when the characteristics disagree this far.
     // - Squig Herder (Stunty Leeg handbook p.11): Squig Herders, Squigs,
     //   Squig Hoppers -- no matching race.
     // - Strigoyan (Stunty Leeg handbook p.11): Thralls, Crypt Ghouls,
@@ -388,9 +388,8 @@
     //   Renegade Team" exists but lists an unrelated roster (Renegade
     //   Skaven/Dark Elf/Goblin/Human/Orc/Ogre/Minotaur/Troll/Rat Ogre with
     //   different naming and, being a BB2020-era race, different stats), so
-    //   it is not a safe match. Per the brief, Chaos Pact falls in Task 8's
-    //   page range; if #668/#669 still haven't imported this race by then,
-    //   this stays unmatched.
+    //   it is not a safe match. This stays unmatched until a genuine "Chaos
+    //   Pact" race exists in the inventory for these rows to attach to.
 
     // --- BB2016: Amazon (Teams of Legend p.1) ---
     { position: { system: 'Name', id: 'Amazon: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 7 },
@@ -489,12 +488,11 @@
 
     // Teams of Legend is 9 pages total (no page 10). It does not cover the
     // BB2016 boxed-set teams (Human, Orc, Dwarf, Skaven, Elf variants) --
-    // those still need transcription from the physical rulebooks (Task 14).
+    // those are transcribed from the physical rulebooks instead.
 
     // The remaining boxed-set teams and CRP-legacy races below (BB2016) are
-    // transcribed from the developer's physical rulebooks (Task 14) --
-    // Teams of Legend does not cover these (see the note above the Vampire
-    // block).
+    // transcribed from the developer's physical rulebooks -- Teams of Legend
+    // does not cover these (see the note above the Vampire block).
 
     // --- BB2016: Human (physical rulebook) ---
     { position: { system: 'Name', id: 'Human: Human Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 3, agility: 3, armour: 8 },
@@ -565,10 +563,9 @@
 
     // --- BB2020 gap-fill: Giant Mercenary ---
     // Giant Mercenary is a Blood Bowl 2020 mercenary/star player (Death Zone
-    // Season 2 "Mercenaries" chapter). Task 12's initial values were a
-    // low-confidence estimate from general series knowledge; the values below
-    // are the developer's correction, transcribed from the physical
-    // supplement.
+    // Season 2 "Mercenaries" chapter). The values below are transcribed from
+    // the developer's physical copy of that supplement, not estimated from
+    // general series knowledge.
     { position: { system: 'Name', id: 'Giant Mercenary' }, rulesSet: { system: 'Name', id: 'BB2020' }, move: 6, strength: 7, agility: 5, passing: 5, armour: 11 },
   ],
 }
