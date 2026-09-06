@@ -84,6 +84,12 @@ tools/download-tp/data
 # download-tp-config.example.json5)
 tools/download-tp/download-tp-config.json5
 
+# Cross-session review-loop lock state, written by dev-workflow-cli's
+# acquire/heartbeat/release-review-lock subcommands. It lives in the main
+# checkout and is shared by every worktree on this machine; it is pure
+# local coordination state, never repository content.
+.claude/review-lock/
+
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans
 docs/superpowers/

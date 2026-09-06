@@ -85,6 +85,14 @@ Its behavior is configured by `.coderabbit.yaml` at the repo root: auto-review i
 
 CodeRabbit's review is **informational** — it is deliberately not wired in as a required status check. `gatekeeper` remains the only check branch protection requires; see "Requiring the gatekeeper check" above.
 
+### Serializing review activity across parallel sessions
+
+CodeRabbit enforces a per-developer review rate limit shared across every PR in the repository. Several `develop-feature` sessions running at once in different worktrees — the normal shape of unattended overnight work — would each open a PR and drive their own review loop, all competing for the same handful of reviews per hour, so every session crawls instead of one finishing quickly and the rest following.
+
+A machine-wide FIFO lock serializes that. `develop-feature` Phase 6 takes it just before `gh pr create` (PR creation is itself what triggers the first review) and holds it until its review loop ends, temporarily releasing it across any indefinite wait for the developer; a standalone `handle-pr-reviews` run takes it only around its Phase 4 push, the one action in that skill that triggers a fresh review. Sessions that cannot get it wait quietly, in the order they started waiting, and take their turn automatically. A session that is killed without releasing the lock stops heartbeating, and the next waiting session reclaims it after 100 minutes — no manual intervention, which is what makes this safe to leave running overnight. A session killed while only queued (not yet holding) is handled the same way: its own queue ticket goes stale on the same 100-minute clock and is dropped, so it cannot permanently block every session behind it.
+
+The lock is three `tools/dev-workflow-cli` subcommands over one gitignored JSON file in the main checkout — see [dev-workflow-cli's "Review lock usage"](dev-workflow-cli/index.md#review-lock-usage). It coordinates sessions on one machine only; nothing about it is shared through GitHub.
+
 ### Installing the CodeRabbit app (one-time, manual)
 
 Like branch protection, this can't be configured by code in this repo — a GitHub App has to be installed through the browser. Do this once:

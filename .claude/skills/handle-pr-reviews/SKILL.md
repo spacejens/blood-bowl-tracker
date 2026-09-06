@@ -72,6 +72,13 @@ Work through each phase in order.
    ```bash
    BASE_SHA=$(git rev-parse HEAD)
    ```
+5. **Decide this run's review-lock mode.** Pushing a fix triggers a fresh CodeRabbit review, and CodeRabbit's review rate limit is shared across every PR and every session on this machine — so parallel sessions must not push at the same time. `develop-feature` Phase 6 coordinates that through a machine-wide FIFO lock (see `docs/development-workflow.md`'s "Serializing review activity across parallel sessions"), and this skill participates in the same lock — but only in one of its two contexts:
+   - **`--skip-deploy-local` was passed** — this run is nested inside `develop-feature`'s automated review loop. Record `LOCK_MODE = nested`. Take **no** lock of your own in the normal case: the outer session already holds it for the whole loop and heartbeats it around this dispatch, so a nested acquire would be a no-op at best, and a nested release would hand the lock to another queued session mid-loop while `develop-feature` still expects to hold it. The two exceptions are Phase 2's "Ambiguous" stop and Phase 4's "Provenance unclear" question below, which release (and, in Phase 4's case, re-acquire) around their own indefinite human waits — see those steps for why.
+
+     One edge case this cannot detect: if the outer `develop-feature` session's own initial `acquire-review-lock` call failed outright (see its Phase 6 step 3), it proceeds unlocked and still dispatches this skill with `--skip-deploy-local` — so `LOCK_MODE = nested` is recorded here even though no lock is actually held upstream. In that rare case, Phase 4's provenance-unclear carve-out below would take a real lock the outer session doesn't know to heartbeat or release. This is accepted as a known, bounded degradation, not a new failure mode: a lock left unmanaged this way still self-heals through the same staleness reclaim (100 minutes) that recovers any other stuck lock — it is not a permanent deadlock, just a bounded delay in the rare compound case where both this edge case and Phase 4's stray-check pause occur on the same run.
+   - **Flag absent** — a developer ran this skill directly. Record `LOCK_MODE = standalone`. Phase 4 acquires the lock immediately before its push and releases it immediately after. The holder id is `HEAD_REF`, recorded in step 1, matching `develop-feature`'s own branch-name convention.
+
+   Nothing else in this skill takes the lock. Phase 1's discovery wait is passive — it only polls GitHub's own state and triggers no review — and Phase 4 is the only place this skill pushes.
 
 ---
 
@@ -193,7 +200,7 @@ Process items in the order discovered. For each item:
    - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. **One commit per addressed item** — never bundle unrelated items into one commit just because they're being handled in the same run. A single commit may address more than one item only when they share the same fix (e.g. the same rationale applied to two near-identical locations, like a parallel edit in two modes of the same skill). The commit message references the item(s) addressed. A **failing CI check** is always classification (a): fetch its failing log (`gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`), diagnose the failure with `superpowers:systematic-debugging`, fix it under `superpowers:test-driven-development`, and make one commit per failing check (consistent with the one-commit-per-item rule above). There is no comment thread to answer or suggestion to reject for a CI item.
    - **(b) Is a question** — draft an answer. No code change.
    - **(c) Is a suggestion to reject** — **REQUIRED SUB-SKILL:** Use `superpowers:receiving-code-review` to evaluate it (verify against the actual codebase, check YAGNI, no performative agreement) before drafting the rejection reasoning.
-   - **Ambiguous** — if the right classification or fix approach genuinely isn't clear, **stop triaging further items now**: report which item is ambiguous and why, and wait for the developer's direction on it before triaging it or any item not yet reached. Do not skip or guess. Proceed to Phase 3 with whatever items were already triaged before this one — their fixes, rejections, and answers still get verified, pushed, and replied to in the phases below; only the ambiguous item and anything after it in discovery order are left for a future run.
+   - **Ambiguous** — if the right classification or fix approach genuinely isn't clear, **stop triaging further items now**: report which item is ambiguous and why, and wait for the developer's direction on it before triaging it or any item not yet reached. Do not skip or guess. Proceed to Phase 3 with whatever items were already triaged before this one — their fixes, rejections, and answers still get verified, pushed, and replied to in the phases below; only the ambiguous item and anything after it in discovery order are left for a future run. If Phase 0 step 5 recorded `LOCK_MODE = nested`, release the review lock (`node tools/dev-workflow-cli/dist/main.js release-review-lock $HEAD_REF`), retrying once if it doesn't confirm `{"released": true}` before proceeding anyway (see `develop-feature`'s step (b) for the full reasoning), after Phase 5's replies for the already-triaged items, immediately before this skill's final report on the ambiguous item and stopping — the outer `develop-feature` session is the one holding it, and an indefinite wait for developer direction here must not hold it hostage. Do not re-acquire it afterward: this stop ends this skill's own run, and `develop-feature`'s own exit-check logic treats it as a loop-exit condition, so cleanup/continuation from here is `develop-feature`'s job, not this skill's. In `LOCK_MODE = standalone`, no lock is held yet at this point, so there is nothing to release.
 3. Record the outcome (fixed / rejected / answered) and draft the reply text used in Phase 5.
 
 ---
@@ -247,12 +254,32 @@ This prints JSON. If it prints `{"isWorktree": false}`, work is happening in pla
   ```
   and use the printed `mainRoot` value as `<main-root>` below.
   - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
-  - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
+  - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work. If Phase 0 step 5 recorded `LOCK_MODE = nested`, this pre-push check runs while the outer `develop-feature` session is already holding the lock, with no heartbeat during this indefinite wait for a developer answer — release it (`node tools/dev-workflow-cli/dist/main.js release-review-lock $HEAD_REF`), retrying once if it doesn't confirm `{"released": true}` before proceeding anyway (see `develop-feature`'s step (b) for the full reasoning), immediately before asking, and re-acquire it (`node tools/dev-workflow-cli/dist/main.js acquire-review-lock $HEAD_REF`, rejoining the queue) immediately after the developer answers and this step continues, since this skill's own later Phase 4 steps (including its own acquire-before-push below) depend on the lock being available again. Run the re-acquire via `Bash` with `run_in_background: true` and read its result from the harness's completion notification, exactly as the acquire block below this one does — it has no default timeout and can wait far longer than a foreground call allows. In `LOCK_MODE = standalone`, no lock has been taken yet at this point, so nothing needs to happen here — the acquire block below already handles that case.
+
+**Acquire the review lock — standalone runs only.** If Phase 0 step 5 recorded `LOCK_MODE = nested`, skip this and the release below entirely; the outer `develop-feature` session already holds the lock. Otherwise take it now:
+
+```bash
+node tools/dev-workflow-cli/dist/main.js acquire-review-lock $HEAD_REF
+```
+
+`$HEAD_REF` stands for the branch recorded in Phase 0 step 1, substituted literally — these commands do not share a shell session.
+
+This deliberately sits *after* the "Sync with `main`" step above and *before* the push: that sync step can stop and wait for the developer to resolve conflicts by hand, and holding a machine-wide lock across an unbounded human wait would stall every other session.
+
+The command enqueues this session and polls internally every 30 seconds until the lock is free, staying silent until it prints `{"acquired": true, "waitedMs": <n>}`. It has no default timeout — waiting quietly is the point. Run it via `Bash` with `run_in_background: true` and read its result from the harness's own completion notification: it can wait far longer than a foreground `Bash` call allows. Report a one-line status from `waitedMs`. If it fails outright — non-zero exit, or output that will not parse — print a one-line warning and continue with the push anyway, and skip the release below too; the lock must never block real work.
 
 Then push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:
 ```bash
 git push
 ```
+
+**Release the review lock — standalone runs only.** Immediately after the push command returns, hand the lock to whichever session is next in the queue:
+
+```bash
+node tools/dev-workflow-cli/dist/main.js release-review-lock $HEAD_REF
+```
+
+Release it whether or not the push itself succeeded: the lock exists to serialize review-*triggering* pushes, and a push that failed triggered none. It prints `{"released": true}`. A non-zero exit, or `{"released": false}`, is a one-line warning and never a stop — everything after this point (the self-assign, the replies, the `deploy-local` offer) triggers no review, so there is nothing left in this run worth holding the lock for.
 
 After the push succeeds, self-assign the PR so it shows who pushed the fixes:
 ```bash

@@ -8,6 +8,9 @@ import { CheckMainStrayService } from './check-main-stray/check-main-stray.servi
 import { DiffHunkMembershipService } from './post-review-questions/diff-hunk-membership.service';
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import { PostReviewQuestionsArgsService } from './post-review-questions/post-review-questions-args.service';
+import { ReviewLockService } from './review-lock/review-lock.service';
+import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
+import { ReviewLockStateService } from './review-lock/review-lock-state.service';
 import { PullRequestReviewCommentsService } from './wait-for-pr-review/pull-request-review-comments.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
 import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
@@ -21,6 +24,9 @@ import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-
     CheckDriftService,
     DriftDiffRedactionService,
     DiffHunkMembershipService,
+    ReviewLockStateService,
+    ReviewLockService,
+    ReviewLockArgsService,
     PostReviewQuestionsService,
     PostReviewQuestionsArgsService,
     WaitForPrReviewService,
