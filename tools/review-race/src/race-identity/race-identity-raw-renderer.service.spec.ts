@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { ManualEntryMatcherService } from '../shared/manual-entry-matcher.service';
@@ -18,44 +18,36 @@ const race: SampledRace = {
   selectedFor: ['Random sample'],
 };
 
-async function makeService(): Promise<{
-  service: RaceIdentityRawRendererService;
-  externalIds: ReturnType<typeof mock<RaceExternalIdsService>>;
-  bbl: ReturnType<typeof mock<BblRawRaceIndexService>>;
-  tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
-  manual: ReturnType<typeof mock<ManualRawDataService>>;
-}> {
-  const externalIds = mock<RaceExternalIdsService>();
-  const bbl = mock<BblRawRaceIndexService>();
-  const tp = mock<TpRawRosterIndexService>();
-  const manual = mock<ManualRawDataService>();
-  externalIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
-  externalIds.allForRace.mockResolvedValue([]);
-  manual.races.mockResolvedValue([]);
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      RaceIdentityRawRendererService,
-      { provide: RaceExternalIdsService, useValue: externalIds },
-      { provide: BblRawRaceIndexService, useValue: bbl },
-      { provide: TpRawRosterIndexService, useValue: tp },
-      { provide: ManualRawDataService, useValue: manual },
-      RaceNameComparisonService,
-      ManualEntryMatcherService,
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(RaceIdentityRawRendererService),
-    externalIds,
-    bbl,
-    tp,
-    manual,
-  };
-}
-
 describe('RaceIdentityRawRendererService', () => {
+  let service: RaceIdentityRawRendererService;
+  let externalIds: ReturnType<typeof mock<RaceExternalIdsService>>;
+  let bbl: ReturnType<typeof mock<BblRawRaceIndexService>>;
+  let tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
+  let manual: ReturnType<typeof mock<ManualRawDataService>>;
+
+  beforeEach(async () => {
+    externalIds = mock<RaceExternalIdsService>();
+    bbl = mock<BblRawRaceIndexService>();
+    tp = mock<TpRawRosterIndexService>();
+    manual = mock<ManualRawDataService>();
+    externalIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
+    externalIds.allForRace.mockResolvedValue([]);
+    manual.races.mockResolvedValue([]);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RaceIdentityRawRendererService,
+        { provide: RaceExternalIdsService, useValue: externalIds },
+        { provide: BblRawRaceIndexService, useValue: bbl },
+        { provide: TpRawRosterIndexService, useValue: tp },
+        { provide: ManualRawDataService, useValue: manual },
+        RaceNameComparisonService,
+        ManualEntryMatcherService,
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(RaceIdentityRawRendererService);
+  });
   it('renders a BBL sub-heading and the race-list name, team-page name and count', async () => {
-    const { service, externalIds, bbl } = await makeService();
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue({
       bblId: '5',
@@ -73,15 +65,12 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('omits the BBL sub-heading entirely when forRace reports no BBL id', async () => {
-    const { service } = await makeService();
-
     const html = await service.render(race);
 
     expect(html).not.toContain('<h5>BBL</h5>');
   });
 
   it('renders the BBL id with an explanatory note when the id exists but raceFor returns null', async () => {
-    const { service, externalIds, bbl } = await makeService();
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue(null);
 
@@ -93,7 +82,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('falls back to em-dashes for a BBL row when listName and teamPageName are both absent', async () => {
-    const { service, externalIds, bbl } = await makeService();
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue({
       bblId: '5',
@@ -110,7 +98,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('appends an "and N more" note to team codes truncated below the team page count', async () => {
-    const { service, externalIds, bbl } = await makeService();
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue({
       bblId: '5',
@@ -126,7 +113,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('shows team codes with no "and N more" note when nothing was truncated', async () => {
-    const { service, externalIds, bbl } = await makeService();
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue({
       bblId: '5',
@@ -143,7 +129,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('renders one TP row per TP code, with rosterMaster.name and the roster count', async () => {
-    const { service, externalIds, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf', 'dwarf2'],
@@ -167,7 +152,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('renders a TP row with an explanatory note when no roster file carries that code', async () => {
-    const { service, externalIds, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['ghost'],
@@ -183,7 +167,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('falls back to an em-dash for a TP row when rosterMaster.name is absent', async () => {
-    const { service, externalIds, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf'],
@@ -203,7 +186,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('skips a null BBL/TP entry when finding the first name for the agreement row', async () => {
-    const { service, externalIds, bbl, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
       bbl: ['1', '2'],
       tp: ['a', 'b'],
@@ -243,7 +225,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('renders the Manual curation sub-section listing the curated entry name and system:id pairs', async () => {
-    const { service, externalIds, manual } = await makeService();
     externalIds.allForRace.mockResolvedValue([
       { systemName: 'BBL', externalId: '5' },
     ]);
@@ -259,7 +240,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('omits Manual curation when no curated entry matches by external id or name', async () => {
-    const { service, externalIds, manual } = await makeService();
     externalIds.allForRace.mockResolvedValue([
       { systemName: 'BBL', externalId: '5' },
     ]);
@@ -273,7 +253,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('renders a non-highlighted agreement row when BBL and TP names agree after suffix stripping', async () => {
-    const { service, externalIds, bbl, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
       bbl: ['5'],
       tp: ['dwarf'],
@@ -302,7 +281,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('renders a highlighted MISMATCH agreement row when names genuinely disagree', async () => {
-    const { service, externalIds, bbl, tp } = await makeService();
     externalIds.forRace.mockResolvedValue({
       bbl: ['9'],
       tp: ['woodelf'],
@@ -329,7 +307,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('omits the agreement table when either side has no name', async () => {
-    const { service, externalIds, bbl } = await makeService();
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue({
       bblId: '5',
@@ -345,8 +322,6 @@ describe('RaceIdentityRawRendererService', () => {
   });
 
   it('renders a single note when no source has anything for the race', async () => {
-    const { service } = await makeService();
-
     const html = await service.render(race);
 
     expect(html).toBe(
