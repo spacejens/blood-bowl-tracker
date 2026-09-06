@@ -54,11 +54,14 @@ export class ReviewLockArgsService {
     minimum: number,
   ): number | undefined {
     const prefix = `--${name}=`;
-    const flag = flags.find((arg) => arg.startsWith(prefix));
-    if (flag === undefined) {
+    const matches = flags.filter((arg) => arg.startsWith(prefix));
+    if (matches.length === 0) {
       return undefined;
     }
-    const rawValue = flag.slice(prefix.length);
+    if (matches.length > 1) {
+      throw new Error(`${REVIEW_LOCK_USAGE} (duplicate --${name} flag)`);
+    }
+    const rawValue = matches[0].slice(prefix.length);
     if (rawValue.trim() === '') {
       throw new Error(`${REVIEW_LOCK_USAGE} (bad --${name} value)`);
     }

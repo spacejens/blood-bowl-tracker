@@ -85,4 +85,16 @@ describe('ReviewLockArgsService', () => {
       'bad --interval-ms value',
     );
   });
+
+  it('rejects a duplicate --timeout-ms flag even when the first is valid and the second is malformed', () => {
+    expect(() =>
+      service.parse(argv('branch-a', '--timeout-ms=5', '--timeout-ms=')),
+    ).toThrow('duplicate --timeout-ms flag');
+  });
+
+  it('rejects a duplicate --interval-ms flag regardless of order', () => {
+    expect(() =>
+      service.parse(argv('branch-a', '--interval-ms=', '--interval-ms=5000')),
+    ).toThrow('duplicate --interval-ms flag');
+  });
 });
