@@ -294,7 +294,27 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      and use the printed `mainRoot` value as `<main-root>` below.
      - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
      - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
-3. Create the PR using the appropriate command for the active mode:
+3. **Acquire the review lock, then create the PR.** Creating the PR is itself what triggers CodeRabbit's first review, and CodeRabbit's review rate limit is shared across every PR in the repo. Several `develop-feature` sessions running in parallel worktrees on this machine would otherwise all consume that quota at once and all crawl. Take the machine-wide review lock here and hold it through the end of step 5's review loop, so exactly one session drives a review loop at a time and the rest wait their turn in the order they started waiting. See `docs/development-workflow.md`'s "Serializing review activity across parallel sessions".
+
+   Steps 1–2 above deliberately ran unlocked: neither syncing with `main` nor the stray-work check triggers a review, and step 1 can stop and wait for a developer to resolve a merge conflict by hand — holding a machine-wide lock across an unbounded human wait would stall every other session.
+
+   First record this session's holder id — the current worktree's branch name:
+   ```bash
+   cd <worktree-path> && git branch --show-current
+   ```
+   Record the printed value as `<holder-id>`. Every lock command in this phase substitutes it literally; none of them run in a shared shell session, so it cannot be carried in a shell variable.
+
+   Then acquire the lock:
+   ```bash
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js acquire-review-lock <holder-id>
+   ```
+   The command enqueues this session and polls internally every 30 seconds until it reaches the front of the queue and the lock is free — or until the current holder's heartbeat has gone stale, which reclaims a lock left behind by a killed session so an unattended run recovers on its own. It stays silent until it exits, then prints `{"acquired": true, "waitedMs": <n>}`. It has no timeout by default; waiting quietly, however long it takes, is the point. If `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`.
+
+   Run it via `Bash` with `run_in_background: true`, for the same reason step 5a's wait is backgrounded: it produces exactly one result at exit and can easily outlive a foreground `Bash` call's cap. Wait for the harness's own completion notification, then read the printed JSON. Report a one-line status from `waitedMs` — either that the lock was free, or how long this session waited behind others.
+
+   **If the command fails outright** — a non-zero exit, or output that will not parse — print a one-line warning that the review lock could not be taken and **continue anyway**. A lock that cannot be coordinated costs some extra rate-limit contention, which is the very thing this reduces rather than guarantees, and it must never block an unattended run. Treat the rest of this phase as unlocked in that case: skip the heartbeat, release, and re-acquire calls below.
+
+   Then create the PR using the appropriate command for the active mode:
 
    **Issue mode:**
    ```bash
@@ -362,7 +382,15 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ```bash
    gh api user --jq .login
    ```
-   If this command fails, skip the loop entirely (report a one-line warning that the review loop was skipped because the current `gh` user could not be determined) and continue to step 6 — without a login there is no way to tell a bot's review apart from the developer's own.
+   If this command fails, skip the loop entirely (report a one-line warning that the review loop was skipped because the current `gh` user could not be determined), release the review lock with the `release-review-lock` command from "After the loop" below, and continue to step 6 — without a login there is no way to tell a bot's review apart from the developer's own, and there is no reason to keep every other session queued behind a loop that is not going to run.
+
+   **Heartbeat the review lock at every checkpoint in this loop.** The lock taken in step 3 goes stale if it is not refreshed — that is what lets another session reclaim it after a crash — so refresh it at the top of each iteration (before step (a)'s wait), immediately after that wait returns, and immediately before and after each step (c) `handle-pr-reviews` dispatch:
+   ```bash
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js heartbeat-review-lock <holder-id>
+   ```
+   It prints `{"ok": true}` while this session still holds the lock. `{"ok": false, "reason": "not the current holder"}` means the lock was reclaimed as stale (or otherwise released) while this session was busy: **stop before doing anything else that would trigger a review**, re-run step 3's `acquire-review-lock <holder-id>` command (which rejoins the back of the queue, backgrounded the same way), and only then continue from the checkpoint where the heartbeat failed. A non-zero exit or unparseable output is a one-line warning, never a stop — same reasoning as step 3's failure handling.
+
+   These are cheap, local, and non-interactive; run them in the foreground.
 
    **Each iteration:**
 
@@ -408,6 +436,12 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
       - **Keep waiting** — re-run the identical `wait-for-pr-review` command with the same watermark epoch for another 20 minutes (this does not consume an extra loop iteration; the watermark does not change, only the wait continues).
       - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
+      **Release the review lock before asking, and re-acquire if the loop continues.** An overnight Pause that nobody answers for hours must not keep every other session on this machine queued behind it. Run this immediately before presenting the `AskUserQuestion`:
+      ```bash
+      cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
+      ```
+      If the developer chooses **Keep waiting**, re-acquire before re-running the wait — step 3's identical `acquire-review-lock <holder-id>` command, backgrounded the same way; it rejoins the back of the queue. If they choose **Skip the review loop**, leave it released: the after-the-loop release below then prints `{"released": false}`, which is a normal no-op, not an error.
+
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
    b2. **Rate-limit handling.** If the command returns `{"found": false, "rateLimited": true, ...}`, CodeRabbit hit its own per-developer review rate limit and posted a warning comment instead of reviewing. Capture the current epoch — it is needed both to report the wait and to decide whether to Pause at all:
@@ -428,6 +462,10 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
       - **Long or unknown wait — `availableAtEpochSeconds` is present but 3600 seconds or more away, *or* it is absent entirely:** **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
         - **Wait for it, then trigger a review** — run the procedure below.
         - **Skip the review loop** — leave the loop immediately and continue to step 6.
+
+        **Release the review lock before asking, and re-acquire if the loop continues** — exactly as in (b), and for the same reason. Run `release-review-lock <holder-id>` immediately before presenting the `AskUserQuestion`; if the developer chooses **Wait for it, then trigger a review**, re-acquire with step 3's `acquire-review-lock <holder-id>` before running the procedure below. If they choose **Skip the review loop**, leave it released.
+
+        This applies only to this long/unknown-wait branch. The **short wait** branch above never Pauses — it continues automatically within a bounded window — so it holds the lock straight through, exactly as the rest of the loop does. Releasing there would hand the lock to another session in the middle of a wait this one is about to resume.
 
         This is a Pause rather than an automatic decision for the same reason as (b): the wait may be long enough that the developer would rather move on, and only they can judge that — which is exactly why a *short*, known wait skips the prompt instead. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
@@ -478,6 +516,8 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here (with a further-advanced comment watermark and the newest comment's id) if CodeRabbit reports the same failure again with a *new* comment.
       - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
+      **Release the review lock before asking, and re-acquire if the loop continues** — exactly as in (b) and (b2), and for the same reason. Run `release-review-lock <holder-id>` immediately before presenting the `AskUserQuestion`; if the developer chooses **Retry (re-trigger a review)**, re-acquire with step 3's `acquire-review-lock <holder-id>` before re-running the wait. If they choose **Skip the review loop**, leave it released.
+
       This is a Pause rather than an automatic decision for the same reason as (b) and (b2): only the developer can judge whether to keep waiting on a CodeRabbit-side hiccup or move on. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
    c. **Handle the review.** **REQUIRED SUB-SKILL:** Use the `handle-pr-reviews` skill, targeting this PR by number and always passing its `--skip-deploy-local` flag (`/handle-pr-reviews <PR> --skip-deploy-local`), to discover and triage everything outstanding — inline review comments, top-level comments, and failing CI checks alike, exactly as it does when a developer runs it standalone. Nothing about its own discovery, triage, or reply behavior changes here; the loop only calls it. The flag suppresses just one thing: its Phase 6 `deploy-local` hand-off, which would otherwise stall this unattended loop waiting on a developer decision. Step 6 below still makes that offer once, after the loop ends.
@@ -493,7 +533,13 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
       Failing CI checks need no separate tracking: `handle-pr-reviews`'s "nothing unhandled" signal already covers them, and a push that fixes review comments can itself trigger new CI runs worth checking on the next pass.
 
-   **After the loop** — whether it exited early or reached the 10-iteration cap — continue into step 6 unchanged. Print a brief status line noting how the loop ended (clean, ambiguous item surfaced, no fix commits pushed, iteration cap reached, timed out and skipped, or skipped because the login lookup failed). CodeRabbit still being mid-review is never an ending on its own — it appears only as the proximate cause of whichever ending does occur, e.g. "iteration cap reached — still waiting on CodeRabbit" or "timed out and skipped while CodeRabbit was still mid-review".
+   **After the loop** — whether it exited early or reached the 10-iteration cap — release the review lock before continuing, so the next queued session can start immediately rather than waiting out the 15-minute staleness threshold:
+   ```bash
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
+   ```
+   It prints `{"released": true}` normally, or `{"released": false}` if a Skip branch already released it — both are fine, and neither is an error. A non-zero exit is a one-line warning, never a stop. Step 6's `deploy-local` offer then runs unlocked: it triggers no review, and it can wait indefinitely on a developer.
+
+   Then continue into step 6 unchanged. Print a brief status line noting how the loop ended (clean, ambiguous item surfaced, no fix commits pushed, iteration cap reached, timed out and skipped, or skipped because the login lookup failed). CodeRabbit still being mid-review is never an ending on its own — it appears only as the proximate cause of whichever ending does occur, e.g. "iteration cap reached — still waiting on CodeRabbit" or "timed out and skipped while CodeRabbit was still mid-review".
 6. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. This is the **only** `deploy-local` offer this workflow produces: step 5c dispatches `handle-pr-reviews` with `--skip-deploy-local`, so its own Phase 6 hand-off never fires inside the loop, no matter how many times it pushed a fix. That makes this invocation the single, intentional chance to see the fully-reviewed state — not a bug to suppress or skip. (A developer running `handle-pr-reviews` standalone outside this workflow still gets its own offer; that is out of scope here.) `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
    - **Discord slash-command propagation reminder.** Check whether the branch's diff touches Discord slash-command registration or definitions:
      ```bash
