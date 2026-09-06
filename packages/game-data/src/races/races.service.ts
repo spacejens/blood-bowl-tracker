@@ -297,7 +297,7 @@ export class RacesService {
    * A final tiebreak by race name (always ascending, regardless of
    * `direction`) keeps the ranking deterministic once both the count and the
    * latest-match date are tied — the common case for never-picked races,
-   * which is the whole point of the ascending list.
+   * where the ascending list would otherwise list them in an arbitrary order.
    */
   private rankRacesByTeamCount(
     scope: FactScope,
@@ -344,7 +344,7 @@ export class RacesService {
   async countMatchesPlayedByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return (
       this.db
         .select({
@@ -389,7 +389,7 @@ export class RacesService {
   countMatchesWonByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'won',
       scope,
@@ -400,7 +400,7 @@ export class RacesService {
   countMatchesLostByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'lost',
       scope,
@@ -411,7 +411,7 @@ export class RacesService {
   countMatchesDrawnByRace(
     scope: FactScope,
     limit: number,
-  ): Promise<{ raceId: number; name: string; count: number }[]> {
+  ): Promise<RaceTeamCount[]> {
     return this.matchOutcomeCounts.countMatchesWithOutcomeByRace({
       outcome: 'drawn',
       scope,

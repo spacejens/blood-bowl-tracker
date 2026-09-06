@@ -382,7 +382,7 @@ describe('RacesService', () => {
       expect(sqlText(orderBy[1])).not.toContain(' desc');
     });
 
-    it('breaks remaining ties deterministically by race name, ascending, regardless of direction', async () => {
+    it('breaks remaining ties deterministically by race name, ascending, even on the descending toplist', async () => {
       const { chains } = await buildUnscoped();
       await service.countTeamsByRaceDescending(FACT_SCOPE_ALL_TIME, 21);
       const orderBy = chains[2].orderBy.mock.calls[0];
@@ -390,7 +390,7 @@ describe('RacesService', () => {
       expect(extractJoinColumns(firstCallArg(chains[2].orderBy, 0, 2))).toEqual(
         ['races.name'],
       );
-      expect(sqlText(orderBy[2])).not.toContain(' desc');
+      expect(sqlText(orderBy[2])).toContain(' asc');
     });
   });
 
