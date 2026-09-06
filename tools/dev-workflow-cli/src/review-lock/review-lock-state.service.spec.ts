@@ -249,6 +249,47 @@ describe('ReviewLockStateService', () => {
     }
   });
 
+  it('eventually throws when a vanished mutex never resolves (persistent race)', async () => {
+    vi.useFakeTimers();
+    mkdirSync(join(mainRoot, '.claude/review-lock'), { recursive: true });
+    // The mutex genuinely exists on disk for the whole test, so
+    // tryCreateMutex's real openSync(path, 'wx') keeps throwing EEXIST and
+    // never succeeds. statSync is mocked to report it as permanently gone,
+    // simulating a persistent create/remove race in which this process can
+    // never resolve ageMs. Before this fix, that branch just paced itself
+    // forever without ever checking MUTEX_MAX_WAIT_MS, so it would hang
+    // rather than reach the forced-clear-then-throw failure path.
+    writeFileSync(mutexPath, '', 'utf8');
+    const statMock = vi.mocked(statSync);
+    const realStatSync = statMock.getMockImplementation();
+    if (realStatSync === undefined) {
+      throw new Error(
+        'expected the mocked statSync to default to the real implementation',
+      );
+    }
+    statMock.mockImplementation(() => undefined);
+
+    try {
+      const pending = service.mutate(() => ({
+        state: HOLDER_STATE,
+        result: null,
+      }));
+      // Attach the rejection assertion before advancing timers, so the
+      // rejection (which happens mid-advance) is never briefly unhandled.
+      const expectation = expect(pending).rejects.toThrow(
+        'still held after a forced clear',
+      );
+      // Advance well past MUTEX_MAX_WAIT_MS (5000ms) twice over: once to
+      // trip the forced clear, once more for the still-vanished retry to
+      // hit the throw path.
+      await vi.advanceTimersByTimeAsync(11_000);
+      await expectation;
+    } finally {
+      statMock.mockImplementation(realStatSync);
+      rmSync(mutexPath, { force: true });
+    }
+  });
+
   it('serializes concurrent mutations so neither overwrites the other', async () => {
     vi.useFakeTimers();
 

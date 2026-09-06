@@ -208,14 +208,10 @@ export class ReviewLockStateService {
         return;
       }
       const ageMs = this.mutexAgeMs(mutexPath);
-      if (ageMs === undefined) {
-        // It vanished between the failed create and the stat. Retry at the
-        // same bounded pace as a still-held mutex below, rather than
-        // spinning the event loop on a rapid create/remove race.
-        await this.sleep(MUTEX_RETRY_MS);
-        continue;
-      }
-      if (ageMs > MUTEX_STALE_MS || Date.now() - start >= MUTEX_MAX_WAIT_MS) {
+      const overdue =
+        (ageMs !== undefined && ageMs > MUTEX_STALE_MS) ||
+        Date.now() - start >= MUTEX_MAX_WAIT_MS;
+      if (overdue) {
         if (forced) {
           throw new Error(
             `Could not take the review-lock mutation mutex at ${mutexPath}: ` +
@@ -223,7 +219,13 @@ export class ReviewLockStateService {
           );
         }
         forced = true;
-        this.unlockMutex(mutexPath);
+        // A vanished mutex (ageMs undefined) left nothing to unlink; only a
+        // still-present, stale/overdue one needs force-clearing. Either way
+        // this is the one chance a genuinely persistent create/remove race
+        // gets before the next overdue check throws for good.
+        if (ageMs !== undefined) {
+          this.unlockMutex(mutexPath);
+        }
         continue;
       }
       await this.sleep(MUTEX_RETRY_MS);
