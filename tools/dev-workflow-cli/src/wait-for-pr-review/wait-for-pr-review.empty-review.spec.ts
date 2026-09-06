@@ -84,6 +84,40 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
+  /**
+   * A `body` of `null` (rather than `''`) is still an empty body: the review
+   * must be verified against its inline comments, not trusted outright.
+   * Guards the shape-validation boundary — a schema that rejected a
+   * non-string `body` outright would fail the whole candidate, and a failed
+   * candidate here means "trust it as-is", which would turn an unverified
+   * artifact review into a reported `found`.
+   */
+  it('verifies a review whose body is null rather than an empty string', async () => {
+    mockPoll(
+      foundReview({
+        id: 'PRR_nullbody1',
+        author: { login: 'coderabbitai' },
+        state: 'COMMENTED',
+        body: null,
+        submittedAt: '2026-08-11T10:00:00Z',
+      }),
+      rollingResult({}),
+    );
+    reviewComments.hasGenuineInlineComments.mockResolvedValue(false);
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+    expect(reviewComments.hasGenuineInlineComments).toHaveBeenCalledWith(
+      'PRR_nullbody1',
+      expect.any(Number),
+    );
+  });
+
   it('discards an empty-body review when the comment lookup itself fails', async () => {
     mockPoll(EMPTY_BODY_FOUND, rollingResult({}));
     reviewComments.hasGenuineInlineComments.mockResolvedValue(undefined);
