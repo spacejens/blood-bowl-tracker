@@ -12,6 +12,7 @@ describe('ManualEntryMatcherService', () => {
     }).compile();
     service = moduleRef.get(ManualEntryMatcherService);
   });
+
   describe('matchesRace', () => {
     it('matches when the entry name equals the race name', () => {
       expect(

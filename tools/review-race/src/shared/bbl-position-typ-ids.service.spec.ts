@@ -29,6 +29,7 @@ describe('BblPositionTypIdsService', () => {
     }).compile();
     service = moduleRef.get(BblPositionTypIdsService);
   });
+
   it("maps a position's name to the typId half of its BBL external id", async () => {
     query.positionsFor.mockResolvedValue([
       {

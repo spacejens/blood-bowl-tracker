@@ -46,6 +46,7 @@ describe('ReviewService', () => {
     }).compile();
     service = moduleRef.get(ReviewService);
   });
+
   it('reports each sampled race unchanged', async () => {
     await service.run();
 

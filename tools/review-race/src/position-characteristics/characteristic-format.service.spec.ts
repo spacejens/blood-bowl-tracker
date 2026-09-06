@@ -12,6 +12,7 @@ describe('CharacteristicFormatService', () => {
     }).compile();
     service = moduleRef.get(CharacteristicFormatService);
   });
+
   it('renders a bare value as the plain number', () => {
     expect(service.format(3, 'bare')).toBe('3');
   });

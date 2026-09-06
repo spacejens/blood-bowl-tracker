@@ -47,6 +47,7 @@ describe('RaceIdentityRawRendererService', () => {
     }).compile();
     service = moduleRef.get(RaceIdentityRawRendererService);
   });
+
   it('renders a BBL sub-heading and the race-list name, team-page name and count', async () => {
     externalIds.forRace.mockResolvedValue({ bbl: ['5'], tp: [], name: [] });
     bbl.raceFor.mockResolvedValue({

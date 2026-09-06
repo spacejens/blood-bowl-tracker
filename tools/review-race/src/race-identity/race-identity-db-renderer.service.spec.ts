@@ -32,6 +32,7 @@ describe('RaceIdentityDbRendererService', () => {
     }).compile();
     service = moduleRef.get(RaceIdentityDbRendererService);
   });
+
   it('renders the database id and name rows', async () => {
     query.erasFor.mockResolvedValue([]);
     externalIds.allForRace.mockResolvedValue([]);
