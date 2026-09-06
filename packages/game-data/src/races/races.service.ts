@@ -294,8 +294,10 @@ export class RacesService {
    * are the same metric read from opposite ends. Both subqueries are
    * left-joined so a race with no teams — or no match — is ranked at zero
    * rather than dropped, which is the whole point of the ascending list.
-   * Ties beyond the latest-match tiebreaker (races with equal counts and no
-   * match at all) come back in whatever order PostgreSQL produces.
+   * A final tiebreak by race name (always ascending, regardless of
+   * `direction`) keeps the ranking deterministic once both the count and the
+   * latest-match date are tied — the common case for never-picked races,
+   * which is the whole point of the ascending list.
    */
   private rankRacesByTeamCount(
     scope: FactScope,
@@ -316,7 +318,7 @@ export class RacesService {
       .leftJoin(counts, eq(counts.raceId, races.id))
       .leftJoin(latest, eq(latest.raceId, races.id))
       .where(available)
-      .orderBy(order(count), order(latest.latestMatch))
+      .orderBy(order(count), order(latest.latestMatch), asc(races.name))
       .limit(limit);
   }
 

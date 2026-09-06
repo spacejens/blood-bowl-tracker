@@ -40,10 +40,9 @@ none of them is skipped when that scope is in play, and asking for it by name
 replies with a per-scope refusal message. All but fourteen facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams.descending`, `race.toplist.teams.ascending`,
-`position.toplist.players`,
-`coach.toplist.eras.active`, `team.toplist.eras.active`,
-`team.toplist.trophies.won`, `eras.list`, `trophies.list`,
-`competitionGroups.list`, `starPlayers.list`,
+`position.toplist.players`, `coach.toplist.eras.active`,
+`team.toplist.eras.active`, `team.toplist.trophies.won`, `eras.list`,
+`trophies.list`, `competitionGroups.list`, `starPlayers.list`,
 `starPlayers.toplist.hires.total` and
 `starPlayers.toplist.hires.distinctTeams` — which list or count teams,
 rostered players, eras, trophies, trophy awards, competition groups or star
