@@ -165,7 +165,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 
 ## Key decisions
 
-**Drizzle in its own package.** The pre-release Drizzle dependency is isolated to `packages/db`, so the risk of breaking changes is contained to one place.
+**Drizzle in its own package.** The pre-release Drizzle dependency is isolated to `packages/db`, so the risk of breaking changes is contained to one place. Every other workspace builds queries with the operators and types `packages/db` re-exports — and, in specs, the test-only ones on its `/test-helpers` subpath — rather than importing `drizzle-orm` itself. The boundary is enforced by an automated test, not convention alone: `packages/db/src/dependency-boundary.spec.ts` scans every workspace's `package.json` and fails if anything but `packages/db` declares `drizzle-orm` or `postgres`. `AdvisoryLockService` — leader election's session-scoped Postgres advisory lock — lives in `packages/db` for the same driver-isolation reason: it needs its own `postgres.js` connection rather than drizzle's pool, and keeping it here is what lets `apps/discord-bot` declare no driver dependency at all.
 
 **oRPC over ts-rest.** ts-rest's development had stalled — its only zod 4-compatible release was an unpromoted release candidate over a year old — which was blocking a needed zod upgrade. oRPC is actively maintained and supports zod 4.
 
