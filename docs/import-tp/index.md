@@ -351,6 +351,16 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   match. Idempotent; a roster id or `lineUpId` that can't be resolved is
   recorded as a non-fatal error and the event is still emitted with that
   field omitted.
+- **TpSppAdjustmentsImportService** — reconciles `players.spp_adjustment` for
+  every imported player. Unlike BBL, TP's own career SPP total is already
+  trusted and stored as `players.spp_total` by the players step, so this step
+  only measures the gap between that total and what the player's imported
+  events explain — it never rewrites `spp_total`. Because TP's total is
+  career-wide and can include competitions not yet downloaded, each player's
+  TP-reported career action counts are sent along so the server can price and
+  discount those not-yet-imported events instead of misattributing them as
+  unexplained adjustment. Runs after match events, since it depends on
+  `match_events.spp_value` already being populated.
 - **TpMatchOutcomesImportService** — runs last of every match-related step
   (after match events, since it counts scores from the `touchdown` events they
   import): per competition, it sends `matches.resolveOutcomes` a tie-break for
