@@ -14,7 +14,8 @@ chronological list of the era's competitions, one line per competition
 formatted `<name> (<type>)`. Competitions are ordered by their earliest
 recorded match; competitions with no played matches yet sort last. An era
 with no competitions shows a short "nothing played yet" message instead of a
-list.
+list. Every listed competition is rendered as a drill-down button to that
+competition's deepdive.
 
 ## `coach`
 
@@ -27,7 +28,8 @@ are all shown, up to ten teams — the same convention `/insights` toplists
 use, though at most ten teams are fetched for a deepdive, so the toplists'
 "…and N more tied." truncation note never actually appears here. A coach who
 exists but has recorded no matches shows a short "hasn't played yet" message
-instead of a career span and team list.
+instead of a career span and team list. Every listed team is rendered as a
+drill-down button to that team's deepdive, ahead of the era header buttons.
 
 ## `team`
 
