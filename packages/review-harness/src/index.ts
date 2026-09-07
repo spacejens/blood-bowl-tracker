@@ -5,6 +5,11 @@ export {
 } from './characteristic-format.service';
 export type { DataTypeReviewer } from './data-type-reviewer';
 export { DATA_TYPE_REVIEWERS } from './data-type-reviewer';
+export type {
+  ExternalSystemLookupServiceBase,
+  ExternalSystemLookupServiceConstructor,
+} from './external-system-lookup-base.service';
+export { createExternalSystemLookupServiceBase } from './external-system-lookup-base.service';
 export type { TableCell, TableRow } from './html.service';
 export { HtmlService } from './html.service';
 export { createRegistryProvider } from './registry-provider';

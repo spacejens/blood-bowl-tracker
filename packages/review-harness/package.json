@@ -28,6 +28,7 @@
     "@blood-bowl-tracker/config-loader": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
     "@nestjs/common": "^12.0.0",
+    "drizzle-orm": "rc",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },
