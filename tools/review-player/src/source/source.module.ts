@@ -1,3 +1,4 @@
+import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
 import { Module } from '@nestjs/common';
 
 import { BblRawPlayerPageLoaderService } from './bbl-raw-player-page-loader.service';
@@ -8,6 +9,7 @@ import { TpRawPlayerIndexService } from './tp-raw-player-index.service';
  * every interpretation of what they return lives in a data-type module.
  */
 @Module({
+  imports: [BblMirrorReaderModule],
   providers: [BblRawPlayerPageLoaderService, TpRawPlayerIndexService],
   exports: [BblRawPlayerPageLoaderService, TpRawPlayerIndexService],
 })
