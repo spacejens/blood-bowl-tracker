@@ -1,9 +1,11 @@
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  HtmlService,
+  NO_CHARACTERISTIC,
+} from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
 import { BblRawPlayerPageLoaderService } from '../source/bbl-raw-player-page-loader.service';
-import { NO_CHARACTERISTIC } from './characteristic-format.service';
 
 /** The characteristics table's header cells, in column order. */
 const HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'] as const;
