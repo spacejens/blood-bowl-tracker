@@ -2,7 +2,7 @@
 
 Definitions of all named concepts used in this project. See [spec-conventions.md](spec-conventions.md) for how specs reference this glossary.
 
-Entries are split into two sections: terms a [coach](#coach) directly encounters when using the tracker or playing the game, and terms that only describe the project's own internals. Entries are alphabetical within each section.
+Entries are split into two sections: terms a [coach](#coach) directly encounters when using the tracker or playing the game, and terms that only describe the project's own internals. Entries are roughly alphabetical within each section.
 
 ---
 
