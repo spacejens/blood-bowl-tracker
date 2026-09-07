@@ -9,7 +9,7 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 - `teamName` — the team's registered name, used as a Name external id for teams.
 - `teamRaceCode` — extracted from the `teamRace` field (which carries a
   rule-set-looking suffix like `"Dwarf"` or `"Snotling_BB2025"`). This code
-  is looked up in the `raceIdsByTeamRaceCode` map from `TpRacesImportService`
+  is looked up in the `raceIdsByCode` map from `TpRacesImportService`
   to resolve which race row each team belongs to.
 - `raceName` — extracted from `rosterMaster.name`, the display name for the
   race (e.g. `"Dwarf"`, `"Skaven"`, `"Snotling"`). Stable across every
@@ -59,19 +59,19 @@ separately: grouped by name only (not race — the same named star player is
 the same entity regardless of team), upserted with `isStarPlayer: true` and a
 bare-name TP external id, matching the hired-star-player convention below so
 both paths dedupe onto the same `Position` row. Their ids merge into the same
-`positionIdsByTpPositionId` map the regular positions use — see "Embedded
+`positionIdsByExternalId` map the regular positions use — see "Embedded
 roster star players" below for how that shared map lets these players
 resolve.
 
 **Teams** (via `TpTeamsImportService`) are keyed by roster `id` and `teamName`
-(one TP and one Name external id). Their race resolves via `raceIdsByTeamRaceCode`
+(one TP and one Name external id). Their race resolves via `raceIdsByCode`
 and their coach via `coachIdsByTpId`; a team whose race or coach cannot be
 resolved is recorded as an error and skipped.
 
 **Players** (via `TpPlayersImportService`) import every roster's `players`
 entry: each resolves a team era (roster id + era, via
 `teamErasByRosterId`) and a position (`lineUpMasterId`, via
-`positionIdsByTpPositionId`). If that lookup fails but the player is flagged
+`positionIdsByExternalId`). If that lookup fails but the player is flagged
 `isBigGuy: true` (a mercenary Big Guy hire like "Giant", with no catalog
 entry in either `rosterMaster` array at all — see "Still not handled" below
 for why), it falls back to a reused `isStarPlayer: true` Position keyed by
@@ -111,7 +111,7 @@ future event type that would need it.
 
 **Embedded roster star players** (permanently on a roster's line-up, as
 opposed to the ones hired for a single match via `inducements_roll`):
-`positionIdsByTpPositionId` covers both `lineUpMasters` and
+`positionIdsByExternalId` covers both `lineUpMasters` and
 `starPlayersMasters` ids, so a `lineUps[]` entry whose `lineUpMasterId`
 points into either catalog resolves correctly; no change is needed to
 `TpPlayersImportService` or match-event resolution, since both already

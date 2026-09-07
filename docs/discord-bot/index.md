@@ -125,9 +125,9 @@ The bot registers these slash commands globally rather than per server, so they
 work both in every server the bot belongs to and in a direct message to the bot
 (see each command's page for details), though DM use still requires the user to
 share a server with the bot — this is the guild-install model, not a broader
-user-install. If the database does not respond in time,
-a command falls back to the message `I am stunned` instead of its normal reply,
-so it always answers within Discord's response window.
+user-install. If the database does not respond in time, a command falls back to
+a themed timeout message instead of its normal reply, so it always answers
+within Discord's response window.
 
 Global registration is what makes DM use possible, and it trades away the
 near-instant propagation that per-server registration had. After a deploy that

@@ -86,14 +86,15 @@ after 2023-06-28 — after the mirror's data ends. There is no BBL data to
 cross-reference against for any of these competitions.
 
 `matchEvents[]` — TP's per-roll event log for the match — is decoded by
-`packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
-raw numeric `matchEventType` code. **Modeled codes**: `3` completion, `4`
-touchdown, `5` interception, `25` deflection, `31` foul, and `46` successful
-landing are all structurally identical single-actor action events
-(`lineUpId`, acting `rosterId`); `7` mvp_award is the same shape (`lineUpId`
-of the awarded player, their team's `rosterId` — occurs essentially exactly
-once per team per completed match); `32` sent off is the same raw shape again
-but consequence-side (the player sent off, not an actor earning credit); `6`
+`packages/parse-tp`'s `MatchEventParserService.parse()` into `TpMatchEvent[]`,
+keyed by the raw numeric `matchEventType` code. **Modeled codes**: `3`
+completion, `4` touchdown, `5` interception, `25` deflection, `31` foul, and
+`46` successful landing are all structurally identical single-actor action
+events (`lineUpId`, acting `rosterId`); `7` mvp_award is the same shape
+(`lineUpId` of the awarded player, their team's `rosterId` — occurs
+essentially exactly once per team per completed match); `32` sent off is the
+same raw shape again but consequence-side (the player sent off, not an actor
+earning credit); `6`
 casualty_caused (`lineUpId`, ACTING `rosterId`, optional `turnNumber` — see
 below) is the action of a player breaking armor; `8` injury (`lineUpId`,
 victim `rosterId`, optional `turnRosterId` — the acting team's roster id when

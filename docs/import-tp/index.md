@@ -151,8 +151,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   `league.eras[].identity.rulesSets`.
 - **TpErasImportService** — upserts each configured era, linking it to the
   league and its rule sets. Also cross-checks TP's numeric rule-set code for
-  consistency within each era's data directory, using `parseTournament` from
-  `packages/parse-tp`.
+  consistency within each era's data directory, using
+  `TournamentParserService.parse()` from `packages/parse-tp`.
 - **TpCompetitionsImportService** — upserts each competition found under the
   era directories. A competition is one `<era>/<competition>` subdirectory: its
   base `tournament_<slug>.json` gives the name and TP id, its `match_*.json`
@@ -187,10 +187,10 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   by display name (`rosterMaster.name`) so rule-set-variant codes merge onto
   one row. Each upsert carries every distinct code as a TP external id (all in
   one call for merge semantics), the display name as a Name external id, and
-  every era any contributing roster was seen under. Returns `raceIdsByTeamRaceCode`
+  every era any contributing roster was seen under. Returns `raceIdsByCode`
   keyed by code for the positions/teams imports to resolve their races.
 - **TpTeamsImportService** — upserts each team (keyed by roster id + name),
-  resolving race via `raceIdsByTeamRaceCode` and coach via `coachIdsByTpId`;
+  resolving race via `raceIdsByCode` and coach via `coachIdsByTpId`;
   skips any team whose race or coach cannot be resolved. Teams are grouped by
   id so one seen under multiple eras unions its eras.
 - **TpPositionsImportService** — upserts each regular position grouped by
@@ -203,7 +203,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   same entity regardless of team — then upserted with `isStarPlayer: true` and
   a bare-name TP external id (matching the convention the hired-star-player
   path below already uses, so both paths dedupe onto the same `Position` row).
-  Their ids merge into the same `positionIdsByTpPositionId` map the regular
+  Their ids merge into the same `positionIdsByExternalId` map the regular
   positions use; a star catalog id that collides with an already-mapped id is
   skipped with a non-fatal error instead of overwriting it.
   Alongside grouping, each group also accumulates the MA/ST/AG/PA/AV
@@ -247,7 +247,7 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
 - **TpPlayersImportService** — imports every roster player instance from
   `lineUps[]`: each resolves a team era (roster id + era, via
   `teamErasByRosterId`) and a position (`lineUpMasterId`, via
-  `positionIdsByTpPositionId`); if that fails but the player is a mercenary
+  `positionIdsByExternalId`); if that fails but the player is a mercenary
   Big Guy (`isBigGuy: true`, e.g. "Giant" — no catalog entry in either
   `rosterMaster` array at all), it falls back to a reused `isStarPlayer: true`
   Position keyed by the player's own inline `fallbackPositionName`, the same
