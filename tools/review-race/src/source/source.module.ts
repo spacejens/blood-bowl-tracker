@@ -1,3 +1,4 @@
+import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
 import { Module } from '@nestjs/common';
 
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
@@ -22,6 +23,7 @@ const SOURCES = [
 ];
 
 @Module({
+  imports: [BblMirrorReaderModule],
   providers: SOURCES,
   exports: SOURCES,
 })
