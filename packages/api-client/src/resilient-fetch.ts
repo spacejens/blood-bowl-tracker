@@ -4,8 +4,16 @@
 // oRPC `RPCLink` at the provider-bootstrap point that constructs the very
 // client instance NestJS DI then manages.
 
-/** Each individual attempt is abandoned after this long. */
-const REQUEST_TIMEOUT_MS = 30_000;
+/**
+ * Each individual attempt is abandoned after this long. Generous rather than
+ * tight: `matchEvents`/`players`/`positions` upserts arrive in chunks of up
+ * to 500 (see `packages/import`'s `DEFAULT_BATCH_CHUNK_SIZE`), and the
+ * server processes a batch's items sequentially (`UpsertHandlerService.
+ * runBatch`), so this has to comfortably outlast the slowest such chunk —
+ * catching a genuinely stalled connection is still the point, not shaving
+ * seconds off a healthy one.
+ */
+const REQUEST_TIMEOUT_MS = 180_000;
 
 /** Retries after the first attempt, so 6 total attempts. */
 const MAX_RETRIES = 5;
@@ -67,7 +75,9 @@ export async function resilientFetch(
       // Discarding a retried response without draining its body would pin
       // the underlying connection until GC reclaims it; across a long
       // import with many retried calls that adds up to real socket leakage.
-      await response.body?.cancel();
+      // Best-effort: a stream that's already errored can reject cancel()
+      // too, and that's not itself a reason to treat this attempt as failed.
+      await response.body?.cancel().catch(() => undefined);
     } catch (error) {
       // A thrown fetch is a network failure, a connection reset, or our own
       // timeout abort — all worth another attempt, until they are not.

@@ -32,29 +32,35 @@ own config (`connection.apiBaseUrl` and `connection.apiToken`).
 
 `packages/api-client` does not call the global `fetch` directly. It hands
 `RPCLink` a wrapper (`resilientFetch`) that bounds every individual attempt
-at 30 seconds and retries a failed attempt up to five times — six attempts
+at 180 seconds and retries a failed attempt up to five times — six attempts
 in all — waiting 1s, 2s, 4s, 8s and then 16s in between. The timeout, retry
 count, and backoff base are all fixed constants in the client; there is
-deliberately no configuration surface for them. The 30-second timeout bounds
-the whole request/response exchange, including the caller reading the
-response body after `resilientFetch` returns — a response still being read
-30 seconds after the request started aborts mid-stream, outside the retry
-loop, and reaches the caller unretried.
+deliberately no configuration surface for them. The timeout is generous
+rather than tight because `matchEvents`/`players`/`positions` upserts arrive
+in chunks of up to 500 items and the server processes a batch's items
+sequentially, so a healthy chunk can legitimately take well over a minute —
+the timeout only needs to catch a connection that has actually stalled, not
+shave time off a slow-but-working one. It bounds the whole request/response
+exchange, including the caller reading the response body after
+`resilientFetch` returns — a response still being read 180 seconds after the
+request started aborts mid-stream, outside the retry loop, and reaches the
+caller unretried.
 
 An attempt is retried when `fetch` itself throws (a network failure, a
-connection reset, or the 30-second timeout aborting a stalled request) or
-when the response carries a `502`, `503`, or `504` status — the
+connection reset, or the timeout aborting a stalled request) or when the
+response carries a `502`, `503`, or `504` status — the
 gateway/infrastructure statuses a Fly machine restart or an overloaded
 upstream actually produces. A bare `500` is deliberately **not** retried: it
 means the server ran and threw, which every retry would reproduce
 identically, and because each importer continues past a failed record
 rather than aborting the run, retrying every `500` would turn one systematic
 server-side fault into a multi-hour stall across an entire import instead of
-a fast, loud failure. Every other response — 2xx, 3xx, `500`, and notably
-4xx — is returned to the caller immediately and unchanged, because a record
-the API rejected as bad or incomplete would be rejected identically on every
-retry. When all six attempts fail, the last error or the last retryable
-response reaches the caller exactly as an unretried failure would.
+a fast, loud failure. A `4xx` is likewise never retried, since it means the
+API rejected the record as bad or incomplete and would reject it identically
+on every retry; every other non-retried response (2xx, 3xx, `500`) is
+returned to the caller immediately and unchanged. When all six attempts
+fail, the last error or the last retryable response reaches the caller
+exactly as an unretried failure would.
 
 This matters because every import here works by upserting, which makes a
 repeated request safe, and because a full import can run for hours while any

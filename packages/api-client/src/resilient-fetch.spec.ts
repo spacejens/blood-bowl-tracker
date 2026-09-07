@@ -76,13 +76,13 @@ describe('resilientFetch', () => {
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it('bounds each attempt with a 30 second timeout signal', async () => {
+  it('bounds each attempt with a 180 second timeout signal', async () => {
     const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
     fetchMock.mockResolvedValue(makeResponse(200));
 
     await resilientFetch(makeRequest(), {});
 
-    expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    expect(timeoutSpy).toHaveBeenCalledWith(180_000);
   });
 
   it('retries a thrown fetch error and returns the later success', async () => {
@@ -126,6 +126,50 @@ describe('resilientFetch', () => {
     await promise;
 
     expect(cancelSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries anyway when draining a discarded response body rejects', async () => {
+    const discarded = makeResponse(503);
+    vi.spyOn(discarded.body as ReadableStream, 'cancel').mockRejectedValue(
+      new Error('stream already errored'),
+    );
+    const response = makeResponse(200);
+    fetchMock.mockResolvedValueOnce(discarded).mockResolvedValue(response);
+
+    const promise = resilientFetch(makeRequest(), {});
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await expect(promise).resolves.toBe(response);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('never drains the body of the response it hands back to the caller', async () => {
+    const returned = makeResponse(200);
+    const cancelSpy = vi.spyOn(returned.body as ReadableStream, 'cancel');
+    fetchMock.mockResolvedValue(returned);
+
+    const result = await resilientFetch(makeRequest(), {});
+
+    expect(result).toBe(returned);
+    expect(cancelSpy).not.toHaveBeenCalled();
+  });
+
+  it('never drains the final retryable response after six failed attempts', async () => {
+    const finalResponse = makeResponse(503);
+    const cancelSpy = vi.spyOn(finalResponse.body as ReadableStream, 'cancel');
+    fetchMock
+      .mockResolvedValueOnce(makeResponse(502))
+      .mockResolvedValueOnce(makeResponse(503))
+      .mockResolvedValueOnce(makeResponse(504))
+      .mockResolvedValueOnce(makeResponse(502))
+      .mockResolvedValueOnce(makeResponse(503))
+      .mockResolvedValue(finalResponse);
+
+    const promise = resilientFetch(makeRequest(), {});
+    await vi.advanceTimersByTimeAsync(31_000);
+    await promise;
+
+    expect(cancelSpy).not.toHaveBeenCalled();
   });
 
   it('sends a fresh, still-readable clone of the request on each attempt', async () => {
