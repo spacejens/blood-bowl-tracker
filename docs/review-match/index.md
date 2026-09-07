@@ -26,11 +26,12 @@ comparison predicates and label/lookup tables — and nothing else. The
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in
 contracts and the app-module wiring) is shared on purpose with
-`tools/review-player` via `packages/review-harness`: a bug there cannot "agree
-with itself" against a raw source, because that code never touches a source's
-meaning. Locating and byte-decoding a BBL mirror file is shared on the same
-basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type awareness or
-HTML parsing, so depending on it does not weaken the boundary above.
+`tools/review-player` and `tools/review-race` via `packages/review-harness`: a
+bug there cannot "agree with itself" against a raw source, because that code
+never touches a source's meaning. Locating and byte-decoding a BBL mirror file
+is shared on the same basis, via `packages/read-bbl-mirror`: it carries no
+BBL-page-type awareness or HTML parsing, so depending on it does not weaken
+the boundary above.
 The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-match section and

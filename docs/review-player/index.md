@@ -14,8 +14,9 @@ table — is duplicated on purpose: sharing it would let a bug agree with itself
 of showing up as a difference. That rule covers the **domain-specific** half only. The
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing, JSON5
 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the app-module
-wiring) is shared with `tools/review-match` through `packages/review-harness` — it never
-touches a raw source's meaning, so it cannot agree with itself about one.
+wiring) is shared with `tools/review-match` and `tools/review-race` through
+`packages/review-harness` — it never touches a raw source's meaning, so it
+cannot agree with itself about one.
 Locating and byte-decoding a BBL mirror file is shared on the same basis, via
 `packages/read-bbl-mirror`: it carries no BBL-page-type awareness or HTML
 parsing, so depending on it does not weaken the boundary above.
