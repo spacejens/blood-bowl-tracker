@@ -1,8 +1,12 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, positions } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { is, SQL, StringChunk } from '@blood-bowl-tracker/db/test-helpers';
+import {
+  is,
+  mockDb,
+  SQL,
+  StringChunk,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
