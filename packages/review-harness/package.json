@@ -25,9 +25,9 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
+    "@blood-bowl-tracker/config-loader": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
     "@nestjs/common": "^12.0.0",
-    "json5": "^2.2.3",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },
