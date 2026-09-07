@@ -66,22 +66,14 @@ describe('RpcRouterFactoryService competitionGroups router', () => {
         name: 'Major Season',
         leagueId: 1,
         createdAt: new Date('2026-01-01'),
-        updatedAt: new Date('2026-01-01'),
-        historyVersion: 1,
-        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
     ];
-    harness.mocks.competitionGroupsService.listAll.mockResolvedValue(rows);
+    harness.mocks.competitionGroupsService.listAllForApi.mockResolvedValue(
+      rows,
+    );
 
     const result = await call(harness.router.competitionGroups.list, {});
 
-    expect(result).toEqual([
-      {
-        id: 1,
-        name: 'Major Season',
-        leagueId: 1,
-        createdAt: rows[0].createdAt,
-      },
-    ]);
+    expect(result).toEqual(rows);
   });
 });

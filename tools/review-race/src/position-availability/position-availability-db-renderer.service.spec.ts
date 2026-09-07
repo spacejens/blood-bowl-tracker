@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { RacePositionsQueryService } from '../shared/race-positions-query.service';
@@ -13,27 +13,23 @@ const race: SampledRace = {
   selectedFor: ['Random sample'],
 };
 
-async function makeService(): Promise<{
-  service: PositionAvailabilityDbRendererService;
-  query: ReturnType<typeof mock<RacePositionsQueryService>>;
-}> {
-  const query = mock<RacePositionsQueryService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      PositionAvailabilityDbRendererService,
-      { provide: RacePositionsQueryService, useValue: query },
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(PositionAvailabilityDbRendererService),
-    query,
-  };
-}
-
 describe('PositionAvailabilityDbRendererService', () => {
+  let service: PositionAvailabilityDbRendererService;
+  let query: ReturnType<typeof mock<RacePositionsQueryService>>;
+
+  beforeEach(async () => {
+    query = mock<RacePositionsQueryService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PositionAvailabilityDbRendererService,
+        { provide: RacePositionsQueryService, useValue: query },
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(PositionAvailabilityDbRendererService);
+  });
+
   it('renders one row per (era, position), grouped in query order', async () => {
-    const { service, query } = await makeService();
     query.positionsFor.mockResolvedValue([
       {
         positionId: 1,
@@ -60,7 +56,6 @@ describe('PositionAvailabilityDbRendererService', () => {
   });
 
   it('renders a note when the race has no availability rows at all', async () => {
-    const { service, query } = await makeService();
     query.positionsFor.mockResolvedValue([]);
 
     const html = await service.render(race);
@@ -71,7 +66,6 @@ describe('PositionAvailabilityDbRendererService', () => {
   });
 
   it('escapes a position name containing markup', async () => {
-    const { service, query } = await makeService();
     query.positionsFor.mockResolvedValue([
       {
         positionId: 1,

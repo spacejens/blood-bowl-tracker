@@ -19,19 +19,19 @@ export interface TpSourceFile {
   content: unknown;
 }
 
-/** Filename text before the first `_`, or the basename (minus `.json`). */
-function extractType(filename: string): string {
-  const base = filename.replace(/\.json$/, '');
-  const underscore = base.indexOf('_');
-  return underscore === -1 ? base : base.slice(0, underscore);
-}
-
 @Injectable()
 export class TpSourceReader {
   constructor(
     private readonly sourceConfig: SourceConfigService,
     private readonly eraConfig: EraDataConfigService,
   ) {}
+
+  /** Filename text before the first `_`, or the basename (minus `.json`). */
+  private extractType(filename: string): string {
+    const base = filename.replace(/\.json$/, '');
+    const underscore = base.indexOf('_');
+    return underscore === -1 ? base : base.slice(0, underscore);
+  }
 
   /**
    * True for a base tournament file `tournament_<slug>.json` (slugs use
@@ -90,7 +90,7 @@ export class TpSourceReader {
           if (!entry.isFile() || !entry.name.endsWith('.json')) {
             continue;
           }
-          const fileType = extractType(entry.name);
+          const fileType = this.extractType(entry.name);
           if (type !== undefined && fileType !== type) {
             continue;
           }

@@ -338,4 +338,50 @@ describe('UpsertHandlerService', () => {
 
     expect(order).toEqual([1, 2]);
   });
+
+  describe('runSync', () => {
+    it('returns the result of a successful run untouched', async () => {
+      await expect(
+        handler.runSync(errors, () =>
+          Promise.resolve({ positionRulesSetIds: [21] }),
+        ),
+      ).resolves.toEqual({ positionRulesSetIds: [21] });
+      expect(errors.BAD_REQUEST).not.toHaveBeenCalled();
+    });
+
+    it('translates a characteristic format mismatch into a BAD_REQUEST reply', async () => {
+      await expect(
+        handler.runSync(errors, () => {
+          throw new CharacteristicFormatMismatchError(
+            'Rules set 5 has no Passing',
+          );
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'Rules set 5 has no Passing',
+      });
+    });
+
+    it('lets any other error through untouched', async () => {
+      const boom = new Error('connection lost');
+
+      await expect(
+        handler.runSync(errors, () => {
+          throw boom;
+        }),
+      ).rejects.toBe(boom);
+      expect(errors.BAD_REQUEST).not.toHaveBeenCalled();
+    });
+
+    it('does not classify the other domain errors runWithoutConflict maps', async () => {
+      const missing = new MissingRequiredFieldError('missing name');
+
+      await expect(
+        handler.runSync(errors, () => {
+          throw missing;
+        }),
+      ).rejects.toBe(missing);
+      expect(errors.BAD_REQUEST).not.toHaveBeenCalled();
+    });
+  });
 });

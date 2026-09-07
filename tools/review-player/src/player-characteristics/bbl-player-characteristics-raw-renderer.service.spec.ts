@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -21,27 +21,23 @@ function page(cells: string[]): string {
     </body></html>`;
 }
 
-async function makeService(): Promise<{
-  service: BblPlayerCharacteristicsRawRendererService;
-  loader: MockProxy<BblRawPlayerPageLoaderService>;
-}> {
-  const loader = mock<BblRawPlayerPageLoaderService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      BblPlayerCharacteristicsRawRendererService,
-      { provide: BblRawPlayerPageLoaderService, useValue: loader },
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(BblPlayerCharacteristicsRawRendererService),
-    loader,
-  };
-}
-
 describe('BblPlayerCharacteristicsRawRendererService', () => {
+  let service: BblPlayerCharacteristicsRawRendererService;
+  let loader: MockProxy<BblRawPlayerPageLoaderService>;
+
+  beforeEach(async () => {
+    loader = mock<BblRawPlayerPageLoaderService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        BblPlayerCharacteristicsRawRendererService,
+        { provide: BblRawPlayerPageLoaderService, useValue: loader },
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(BblPlayerCharacteristicsRawRendererService);
+  });
+
   it('renders the five values as the page shows them', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(page(['5', '3', '3+', '4+', '8+']));
 
     const html = await service.render('1000');
@@ -55,7 +51,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('renders a literal dash Passing cell as the none marker', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(page(['6', '3', '3', '-', '9']));
 
     const html = await service.render('1000');
@@ -66,7 +61,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('renders a zero cell as the none marker rather than "0"', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(page(['0', '0', '0', '0', '0']));
 
     const html = await service.render('1000');
@@ -77,7 +71,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('notes a player whose page is not in the mirror', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(null);
 
     const html = await service.render('1000');
@@ -88,7 +81,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('skips a header row from an unrelated table before finding the real one', async () => {
-    const { service, loader } = await makeService();
     const unrelatedTable = `
       <table class="tblist">
         <tr class="trlisthead">
@@ -108,7 +100,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('notes a page with no characteristics table at all', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(
       '<html><body><h1>x</h1></body></html>',
     );
@@ -121,7 +112,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('notes a characteristics row with fewer than five value cells', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(page(['5', '3', '3']));
 
     const html = await service.render('1000');
@@ -132,7 +122,6 @@ describe('BblPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('renders an unreadable cell verbatim so the reviewer sees what the page says', async () => {
-    const { service, loader } = await makeService();
     loader.loadPlayerPage.mockResolvedValue(
       page(['5', '3', '3+', 'n/a', '8+']),
     );

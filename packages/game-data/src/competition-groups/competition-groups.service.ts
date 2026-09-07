@@ -30,15 +30,26 @@ export class CompetitionGroupsService {
   ) {}
 
   /**
-   * Every curated competition group. The only read in this service: an
-   * importer that holds a competition's `competitionGroupId` needs the
-   * group's curated *name* to build a trophy's TP external id
-   * (`${disambiguator}-${groupName}`), and the group catalog is 16 rows, so
-   * one unfiltered read per import run is cheaper and simpler than a
-   * per-competition lookup.
+   * Every curated competition group, in the shape the API contract's
+   * `CompetitionGroupSchema` declares. Projected in the query rather than
+   * mapped afterward — the same pattern as `listByLeague` and
+   * `searchByNamePrefix` below — so the history-tracking columns the contract
+   * does not carry are never read. The only caller is `competitionGroups.list`
+   * (via `RpcRouterFactoryService`); an importer that holds a competition's
+   * `competitionGroupId` reaches it the same way to get the group's curated
+   * *name* for a trophy's TP external id (`${disambiguator}-${groupName}`).
    */
-  async listAll(): Promise<CompetitionGroup[]> {
-    return this.db.select().from(competitionGroups);
+  listAllForApi(): Promise<
+    { id: number; name: string; leagueId: number; createdAt: Date }[]
+  > {
+    return this.db
+      .select({
+        id: competitionGroups.id,
+        name: competitionGroups.name,
+        leagueId: competitionGroups.leagueId,
+        createdAt: competitionGroups.createdAt,
+      })
+      .from(competitionGroups);
   }
 
   /** One competition group's deepdive header, or `undefined` when no such group exists. */
