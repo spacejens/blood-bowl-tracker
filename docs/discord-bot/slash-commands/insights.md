@@ -14,8 +14,7 @@ the fact tree (for example `coach.toplist.teams`):
   returns that fact.
 - **A branch path** (e.g. `coach.toplist`) — the bot picks a random fact from
   under that branch.
-- **A path that matches nothing** — the bot replies
-  `Even the Apothecary can't make sense of that one.`
+- **A path that matches nothing** — the bot replies with a not-found message.
 
 As you type the argument, autocomplete suggests the next segment of valid paths
 so you can navigate the tree without memorizing it.
@@ -24,8 +23,8 @@ so you can navigate the tree without memorizing it.
 
 Besides `category`, the command takes four optional scope options — `league`,
 `era`, `competition` and `match-category`, in that drill-down order. They are
-mutually exclusive: supplying more than one replies `The referee rejects your
-request.` With none of them, facts are all-time and the embed title ends in
+mutually exclusive: supplying more than one replies with a conflict message.
+With none of them, facts are all-time and the embed title ends in
 `— All time`; with one, the title ends in that league, era, competition or
 match category's name instead.
 
@@ -408,4 +407,4 @@ behavior as invoking `/insights` with no argument.
 
 Leaderboards show the top five ranks; ties share a rank, so a leaderboard can
 list more than five entries. If the database does not respond in time, the
-command falls back to the message `I am stunned`.
+command falls back to a themed timeout message.
