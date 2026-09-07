@@ -14,3 +14,5 @@ export {
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from './process-runner.service';
+export type { RunCliOptions } from './run-cli';
+export { runCli } from './run-cli';
