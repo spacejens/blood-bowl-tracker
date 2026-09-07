@@ -45,7 +45,7 @@ const RATE_LIMIT_EDIT_START_MARKER =
  * `RECENT_REVIEW_START_MARKER`, so the GraphQL detector matched it too. The
  * caller round-tripping either id as `--exclude-comment-id` then suppressed
  * only one of the two detectors, and the wait alternated between the two id
- * forms indefinitely (issue #687).
+ * forms indefinitely.
  *
  * Excluding the marker from `rateLimitFilter` gives the rolling-edit detector
  * exclusive ownership of that comment, so the two id spaces never collide.
@@ -104,7 +104,7 @@ describe('WaitForPrReviewService rate-limit-edit exclusion', () => {
   });
 
   it('reports only the rolling detector composite id when both detectors see the same rate-limit comment', async () => {
-    // The collision scenario from issue #687: the reviews call's own match
+    // The collision scenario this guards against: the reviews call's own match
     // carries the rate-limit-edit marker (so it is really the rolling
     // walkthrough comment, not a standalone notice), and the rolling call
     // reports the same underlying comment behind its composite id. The

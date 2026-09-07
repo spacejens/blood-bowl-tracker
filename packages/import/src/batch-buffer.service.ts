@@ -47,8 +47,8 @@ export interface BatchBuffer<TInput> {
 /**
  * Accumulates upsert payloads and sends them in fixed-size chunks, so an
  * importer makes one RPC round trip per chunk instead of one per entity.
- * Failure reporting is unchanged from the single-item path: each failed item
- * still produces one `ImportError` with its own payload as `item`.
+ * Failure reporting stays per item: each failed item produces one
+ * `ImportError` with its own payload as `item`.
  */
 @Injectable()
 export class BatchBufferService {

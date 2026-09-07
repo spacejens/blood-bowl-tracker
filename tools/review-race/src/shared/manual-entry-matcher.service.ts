@@ -13,9 +13,8 @@ export interface ManualEntryLike {
  * Decides whether a curated entry (from `races-and-positions.json5` or
  * `position-availability.json5`) belongs to a given race — the one question
  * every raw renderer and stratifier that reads the curated files needs to
- * answer, previously reimplemented three times with three different rules
- * (a `:` vs ` ` separator, and whether external-id matching happened at
- * all).
+ * answer, and the single shared rule all of them use, so no caller decides on
+ * its own separator convention or on whether to match external ids at all.
  *
  * A curated entry belongs to a race when its `name` equals the race's own
  * stored name, or when any one of its `externalIds` `{system, id}` pairs

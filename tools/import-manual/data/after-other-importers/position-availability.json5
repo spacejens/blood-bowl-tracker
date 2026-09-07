@@ -5,9 +5,9 @@
 // position was played -- a config override, star-player status, or a recorded
 // player use in a matching era. That is deliberately strict: the looser "this
 // race fielded no teams in this era, so assume the position was available"
-// rule it used to apply produced wrong rows (Halfling positions available to
-// Human teams). Genuine availability the source data cannot show is restored
-// here from the rulebook rosters.
+// rule is avoided on purpose, because it produces wrong rows (Halfling
+// positions available to Human teams). Genuine availability the source data
+// cannot show is restored here from the rulebook rosters.
 //
 // This file lives in after-other-importers, never before, and that is load
 // bearing: many of the position references below use the "<raceName>:

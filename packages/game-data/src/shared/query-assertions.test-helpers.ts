@@ -37,7 +37,7 @@ export function firstCallArg(
 /**
  * Recover the literal value(s) passed to `eq()` / `inArray()` from a captured
  * `SQL` condition, so tests assert the exact filter list rather than just that
- * `where()` was called. Hoisted unchanged from players/teams specs.
+ * `where()` was called.
  */
 export function extractFilterValues(
   condition: unknown,
