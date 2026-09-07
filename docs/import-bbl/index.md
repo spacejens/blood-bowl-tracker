@@ -273,7 +273,7 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   valuation on every event via `computeSppValue: true`, since BBL reports no
   SPP of its own). A merged match's events come from both source rows' pages.
   Runs after matches, teams, and players (all referenced).
-- **SppAdjustmentsModule** — `BblSppAdjustmentsImportService` reconciles
+- **SPP adjustments** (in `PlayersModule`) — `BblSppAdjustmentsImportService` reconciles
   `players.spp_adjustment` and `players.spp_total` for every imported player:
   since BBL's displayed career SPP total was recalculated at BB2020 rates when
   the site re-platformed, the server compares it against a forced-rate replay
@@ -288,7 +288,7 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   previously-curated trophy (seeded by `tools/import-manual`, which always runs
   first) and to the winning team era or player. Runs after team participation
   and players (it needs their resolved team-era/player ids) and after match
-  outcomes (see the note in the existing MatchesModule paragraph).
+  outcomes (see the note in the MatchesModule paragraph above).
 
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through

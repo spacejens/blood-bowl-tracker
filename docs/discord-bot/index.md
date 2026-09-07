@@ -64,8 +64,9 @@ Configuration is supplied through an environment file in the app directory.
    - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from section 3. The
      bot posts a deployment status message here on every startup.
    - `STANDBY_STARTUP_MESSAGE_ENABLED` — optional, and enabled by default.
-     Only an explicit `false` disables it; an unset, empty, or unrecognised
-     value keeps the default. It controls whether a _standby_ instance also
+     Only a `false` value (case-insensitive, surrounding whitespace ignored)
+     disables it; an unset, empty, or otherwise unrecognised value keeps the
+     default. It controls whether a _standby_ instance also
      posts a startup announcement — the active instance always posts its own,
      regardless of this setting. It matters only where a standby actually
      runs, which is why `apps/discord-bot/.env.example` leaves it commented

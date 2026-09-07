@@ -27,13 +27,12 @@ domain-agnostic scaffolding (HTML fragment assembly, timestamped report
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in
 contracts and the app-module wiring) is shared on purpose with
 `tools/review-player` and `tools/review-race` via `packages/review-harness`: a
-bug there cannot "agree
-with itself" against a raw source, because that code never touches a source's
-meaning. The report document is shared the same way: `report-builder.service.ts` and
-`review.service.ts` are thin subclasses of the harness's
-`ReportBuilderBase`/`ReviewServiceBase`, adding only the per-match section and
-the match-result lookup. `harness.module.ts` stays local because it _is_ this
-tool's own composition.
+bug there cannot "agree with itself" against a raw source, because that code
+never touches a source's meaning. The report document is shared the same way:
+`report-builder.service.ts` and `review.service.ts` are thin subclasses of
+the harness's `ReportBuilderBase`/`ReviewServiceBase`, adding only the
+per-match section and the match-result lookup. `harness.module.ts` stays
+local because it _is_ this tool's own composition.
 
 Scope today is match events; the tool is structured so a future data type
 (rosters, standings) plugs in as another module without touching the harness

@@ -345,12 +345,12 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   for the full decode table). Unlike BBL, which correlates separately
   scraped action/consequence occurrences, TP embeds the acting/victim player
   and team directly on each event, so no correlation step is needed. Runs
-  last: it needs `match_teams` (populated by team participation, above), the
-  players step's `playerIdsByLineUpId`/`starPlayerIdsByRosterAndMaster`
-  maps, and `matchIdsByTpId` (from matches import) to resolve each event's
-  match. Idempotent; a roster id or `lineUpId` that can't be resolved is
-  recorded as a non-fatal error and the event is still emitted with that
-  field omitted.
+  after the team-participation and players steps: it needs `match_teams`
+  (populated by team participation, above), the players step's
+  `playerIdsByLineUpId`/`starPlayerIdsByRosterAndMaster` maps, and
+  `matchIdsByTpId` (from matches import) to resolve each event's match.
+  Idempotent; a roster id or `lineUpId` that can't be resolved is recorded as
+  a non-fatal error and the event is still emitted with that field omitted.
 - **TpSppAdjustmentsImportService** — reconciles `players.spp_adjustment` for
   every imported player. Unlike BBL, TP's own career SPP total is already
   trusted and stored as `players.spp_total` by the players step, so this step
