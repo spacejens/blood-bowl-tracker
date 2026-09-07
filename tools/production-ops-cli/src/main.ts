@@ -2,8 +2,8 @@
 
 import { readFileSync } from 'node:fs';
 
+import { runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
@@ -21,10 +21,6 @@ const SUBCOMMANDS = [
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
 
-function isSubcommand(value: string | undefined): value is Subcommand {
-  return SUBCOMMANDS.includes(value as Subcommand);
-}
-
 const CHECK_PRODUCTION_CONFIG_PORT_USAGE =
   'Usage: node dist/main.js check-production-config-port <expected-api-base-url>';
 
@@ -41,9 +37,7 @@ interface StartProductionTunnelInput {
   readonly remotePort: number;
 }
 
-interface DispatchOptions {
-  readonly app: INestApplicationContext;
-  readonly subcommand: Subcommand;
+interface DispatchArgs {
   readonly expectedApiBaseUrl?: string;
   readonly startProductionTunnel?: StartProductionTunnelInput;
   readonly runProductionQueryStdin?: string;
@@ -79,89 +73,67 @@ function readRunProductionQueryStdin(): string {
   return readFileSync(0, 'utf8');
 }
 
-function dispatch(options: DispatchOptions): Promise<unknown> {
-  const { app, subcommand } = options;
+function readArgs(subcommand: Subcommand): DispatchArgs {
+  return {
+    expectedApiBaseUrl:
+      subcommand === 'check-production-config-port'
+        ? readExpectedApiBaseUrl()
+        : undefined,
+    startProductionTunnel:
+      subcommand === 'start-production-tunnel'
+        ? readStartProductionTunnelInput()
+        : undefined,
+    runProductionQueryStdin:
+      subcommand === 'run-production-query'
+        ? readRunProductionQueryStdin()
+        : undefined,
+  };
+}
+
+function dispatch(
+  app: INestApplicationContext,
+  subcommand: Subcommand,
+  args: DispatchArgs,
+): Promise<unknown> {
   switch (subcommand) {
     case 'check-production-config-port': {
-      if (options.expectedApiBaseUrl === undefined) {
+      if (args.expectedApiBaseUrl === undefined) {
         throw new Error(CHECK_PRODUCTION_CONFIG_PORT_USAGE);
       }
       return app
         .get(CheckProductionConfigPortService)
-        .run(options.expectedApiBaseUrl);
+        .run(args.expectedApiBaseUrl);
     }
     case 'start-production-tunnel': {
-      if (options.startProductionTunnel === undefined) {
+      if (args.startProductionTunnel === undefined) {
         throw new Error(START_PRODUCTION_TUNNEL_USAGE);
       }
       return app
         .get(ProductionTunnelService)
         .start(
-          options.startProductionTunnel.localPort,
-          options.startProductionTunnel.remotePort,
+          args.startProductionTunnel.localPort,
+          args.startProductionTunnel.remotePort,
         );
     }
     case 'stop-production-tunnel':
       return app.get(ProductionTunnelService).stop();
     case 'run-production-query': {
-      if (options.runProductionQueryStdin === undefined) {
+      if (args.runProductionQueryStdin === undefined) {
         throw new Error(RUN_PRODUCTION_QUERY_USAGE);
       }
       return app
         .get(RunProductionQueryService)
-        .run(options.runProductionQueryStdin);
+        .run(args.runProductionQueryStdin);
     }
     case 'reset-production-schema':
       return app.get(ResetProductionSchemaService).run();
   }
 }
 
-async function run(): Promise<unknown> {
-  const subcommand = process.argv[2];
-  if (!isSubcommand(subcommand)) {
-    throw new Error(
-      `Usage: node dist/main.js <${SUBCOMMANDS.join('|')}>` +
-        (subcommand === undefined || subcommand === ''
-          ? ''
-          : ` (got '${subcommand}')`),
-    );
-  }
-
-  const expectedApiBaseUrl =
-    subcommand === 'check-production-config-port'
-      ? readExpectedApiBaseUrl()
-      : undefined;
-  const startProductionTunnel =
-    subcommand === 'start-production-tunnel'
-      ? readStartProductionTunnelInput()
-      : undefined;
-  const runProductionQueryStdin =
-    subcommand === 'run-production-query'
-      ? readRunProductionQueryStdin()
-      : undefined;
-
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: false,
-  });
-  try {
-    return await dispatch({
-      app,
-      subcommand,
-      expectedApiBaseUrl,
-      startProductionTunnel,
-      runProductionQueryStdin,
-    });
-  } finally {
-    await app.close();
-  }
-}
-
-run()
-  .then((result) => {
-    console.log(JSON.stringify(result, null, 2));
-  })
-  .catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(JSON.stringify({ error: message }));
-    process.exit(1);
-  });
+void runCli({
+  argv: process.argv,
+  subcommands: SUBCOMMANDS,
+  module: AppModule,
+  readArgs,
+  dispatch,
+});

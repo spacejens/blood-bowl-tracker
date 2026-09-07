@@ -1,4 +1,5 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
+import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
 import { Module } from '@nestjs/common';
 
 import { BblPageService } from './bbl-page.service';
@@ -10,7 +11,7 @@ import { PageParseErrorService } from './page-parse-error.service';
 import { SourceConfigService } from './source-config.service';
 
 @Module({
-  imports: [ImportModule],
+  imports: [ImportModule, BblMirrorReaderModule],
   providers: [
     SourceConfigService,
     BblSourceReader,
