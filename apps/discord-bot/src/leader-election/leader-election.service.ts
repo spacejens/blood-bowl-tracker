@@ -1,10 +1,10 @@
+import { AdvisoryLockService } from '@blood-bowl-tracker/db';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 import { RandomInsightsSchedulerService } from '../insights/random-insights-scheduler.service';
 import { SlashCommandRegistryService } from '../slash-commands/slash-command-registry.service';
 import { StartupNotifierService } from '../startup-notifier.service';
-import { AdvisoryLockService } from './advisory-lock.service';
 import { ProcessExitService } from './process-exit.service';
 import { SleepService } from './sleep.service';
 
