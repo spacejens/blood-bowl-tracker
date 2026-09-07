@@ -13,8 +13,9 @@ the title
 visually matches the button or dropdown entry that opened it. These are the
 same emoji the drill-down components carry, read from the single map in
 `apps/discord-bot/src/entity-components.service.ts`, so the two can never drift
-apart. Where a target's description below says "the `<x>` name as the title",
-that title carries this prefix too. The not-found and database-timeout replies
+apart. Where a target's description in
+[`/deepdive` embed formats](deepdive-embeds.md) says "the `<x>` name as the
+title", that title carries this prefix too. The not-found and database-timeout replies
 are plain messages with no embed, so they have no headline to prefix.
 
 ## Arguments
@@ -78,9 +79,10 @@ for each, including its drill-down buttons, is in
   positions grouped by era, and its top five teams by matches played. See
   [the full format](deepdive-embeds.md#race).
 - **A race that matches nothing** — the bot replies with a not-found message.
-- **`position:<position>`** — an embed for that position: its race(s), one stat
-  line per rules set, how many players hold it, and its top five players by SPP.
-  See [the full format](deepdive-embeds.md#position).
+- **`position:<position>`** — an embed for that
+  [position](../../glossary.md#position): its race(s), one stat line per rules
+  set, how many players hold it, and its top five players by SPP. See
+  [the full format](deepdive-embeds.md#position).
 - **A position that matches nothing** — the bot replies with a not-found
   message.
 - **`competition:<competition>`** — an embed for that competition: its type,
