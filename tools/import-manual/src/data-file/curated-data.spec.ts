@@ -599,7 +599,7 @@ describe('curated data files', () => {
     // Teams of Legend covers 14 CRP-legacy races; the 4 boxed-set races
     // (Human, Orc, Dwarf, Skaven) and the 6 further CRP-legacy races Teams of
     // Legend itself skipped (Dark Elf, Elven Union, High Elf, Wood Elf,
-    // Nurgle, Slann) are transcribed from the physical rulebooks (Task 14).
+    // Nurgle, Slann) are transcribed from the physical rulebooks.
     expect(races.size).toBeGreaterThanOrEqual(24);
     for (const entry of bb2016) {
       expect(entry.passing).toBeUndefined();

@@ -29,17 +29,12 @@ export interface ResetProductionSchemaResult {
  * removes any quoting risk from constructing the command.
  *
  * All three schemas matter, not just `public`: application tables live under
- * `game_data` (see `packages/db/src/schema/pg-schema.ts`), not `public` --
- * `public` only holds the shared `versioning()`/`set_updated_at()` trigger
- * functions the schema's history-tracking depends on. Dropping `public`
- * alone (a bug fixed here) removes those functions -- and, by cascade, the
- * triggers on `game_data` tables that call them -- without touching
- * `game_data` itself, leaving every table and all its data completely
- * intact. `drizzle` holds drizzle-orm's own migration journal
- * (`drizzle.__drizzle_migrations`, see `packages/db/src/db.ts`); leaving it
- * in place after dropping `game_data` would have the journal assert every
- * migration already ran against a database that no longer has any of their
- * effects, so the next startup's `migrate()` would rebuild nothing.
+ * `game_data`, not `public` — `public` only holds the shared
+ * `versioning()`/`set_updated_at()` trigger functions the schema's
+ * history-tracking depends on. `drizzle` holds drizzle-orm's own migration
+ * journal; leaving it in place after dropping `game_data` would have the
+ * journal assert every migration already ran against a database with none of
+ * their effects, so the next startup's `migrate()` would rebuild nothing.
  *
  * `--single-transaction` wraps all four `-c` statements in one
  * `BEGIN`/`COMMIT`, so a later statement failing (with `ON_ERROR_STOP=1`

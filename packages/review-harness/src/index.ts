@@ -29,7 +29,11 @@ export type {
 export { createReviewAppModule } from './review-app-module';
 export type { ReviewOutcome, ReviewSampler } from './review-base.service';
 export { ReviewServiceBase } from './review-base.service';
-export type { ReviewConfigOptions } from './review-config-base.service';
-export { ReviewConfigServiceBase } from './review-config-base.service';
+export type {
+  ReviewConfigService,
+  ReviewConfigServiceConfig,
+  ReviewConfigServiceConstructor,
+} from './review-config-base.service';
+export { createReviewConfigServiceBase } from './review-config-base.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
 export { STRATIFIERS } from './stratifier';

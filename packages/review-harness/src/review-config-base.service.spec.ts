@@ -2,31 +2,27 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { ReviewConfigServiceBase } from './review-config-base.service';
+import { createReviewConfigServiceBase } from './review-config-base.service';
 
 const CONFIG_PATH = Symbol('TEST_CONFIG_PATH');
 
 /** Minimal concrete subclass, standing in for a real tool's config service. */
 @Injectable()
-class TestConfigService extends ReviewConfigServiceBase {
-  constructor(@Inject(CONFIG_PATH) filePath: string) {
-    super({
-      filePath,
-      fileName: 'review-test-config.json5',
-      overrideLabel: 'external test ids',
-    });
-  }
-
+class TestConfigService extends createReviewConfigServiceBase({
+  pathToken: CONFIG_PATH,
+  fileName: 'review-test-config.json5',
+  overrideLabel: 'external test ids',
+}) {
   getThingsPerStratum(): number {
     return this.positiveInteger('thingsPerStratum', 3);
   }
 }
 
-describe('ReviewConfigServiceBase', () => {
+describe('createReviewConfigServiceBase', () => {
   let dir: string;
 
   beforeEach(() => {

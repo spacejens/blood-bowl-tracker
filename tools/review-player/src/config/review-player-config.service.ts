@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
-import { ReviewConfigServiceBase } from '@blood-bowl-tracker/review-harness';
-import { Inject, Injectable } from '@nestjs/common';
+import { createReviewConfigServiceBase } from '@blood-bowl-tracker/review-harness';
+import { Injectable } from '@nestjs/common';
 
 /** DI token carrying the absolute path to the JSON5 config file. */
 export const REVIEW_PLAYER_CONFIG_PATH = Symbol('REVIEW_PLAYER_CONFIG_PATH');
@@ -26,15 +26,11 @@ const DEFAULT_PLAYERS_PER_STRATUM = 3;
  * setting only this tool has.
  */
 @Injectable()
-export class ReviewPlayerConfigService extends ReviewConfigServiceBase {
-  constructor(@Inject(REVIEW_PLAYER_CONFIG_PATH) filePath: string) {
-    super({
-      filePath,
-      fileName: CONFIG_FILE_NAME,
-      overrideLabel: 'external player ids',
-    });
-  }
-
+export class ReviewPlayerConfigService extends createReviewConfigServiceBase({
+  pathToken: REVIEW_PLAYER_CONFIG_PATH,
+  fileName: CONFIG_FILE_NAME,
+  overrideLabel: 'external player ids',
+}) {
   /** How many players the random-sample stratum picks, per source. */
   getPlayersPerStratum(): number {
     return this.positiveInteger(
