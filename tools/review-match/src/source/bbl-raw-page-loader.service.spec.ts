@@ -44,14 +44,14 @@ describe('BblRawPageLoaderService', () => {
     await expect(service.loadMatchPage('404')).resolves.toBeNull();
   });
 
-  it('builds the filename verbatim, even for an id with path-escape characters', async () => {
-    mirror.readFile.mockResolvedValue(null);
-
+  it('rejects a non-numeric id without reading the mirror', async () => {
     await expect(service.loadMatchPage('../../etc/passwd')).resolves.toBeNull();
-    expect(mirror.readFile).toHaveBeenCalledWith(
-      DATA_DIR,
-      'default.asp?p=m&m=../../etc/passwd',
-    );
+    expect(mirror.readFile).not.toHaveBeenCalled();
+  });
+
+  it('rejects an id with a query-string suffix without reading the mirror', async () => {
+    await expect(service.loadMatchPage('1830&foo=bar')).resolves.toBeNull();
+    expect(mirror.readFile).not.toHaveBeenCalled();
   });
 
   it('propagates a read failure instead of swallowing it', async () => {
