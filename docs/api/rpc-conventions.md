@@ -28,6 +28,29 @@ Callers send the header through `packages/api-client`:
 `ApiClientModule.forRootAsync`'s factory supplies both values from the tool's
 own config (`connection.apiBaseUrl` and `connection.apiToken`).
 
+## Client transport resilience
+
+`packages/api-client` does not call the global `fetch` directly. It hands
+`RPCLink` a wrapper (`resilientFetch`) that bounds every individual attempt
+at 30 seconds and retries a failed attempt up to five times — six attempts
+in all — waiting 1s, 2s, 4s, 8s and then 16s in between. Both values are
+fixed constants in the client; there is deliberately no configuration
+surface for them.
+
+An attempt is retried when `fetch` itself throws (a network failure, a
+connection reset, or the 30-second timeout aborting a stalled request) or
+when the response carries a 5xx status. Every other response — 2xx, 3xx and
+notably 4xx — is returned to the caller immediately and unchanged, because a
+record the API rejected as bad or incomplete would be rejected identically
+on every retry. When all six attempts fail, the last error or the last 5xx
+response reaches the caller exactly as an unretried failure would.
+
+This matters because every import here works by upserting, which makes a
+repeated request safe, and because a full import can run for hours while any
+merge to `main` redeploys production underneath it. Retries need no special
+reporting: each tool's existing per-record pass/fail output already covers
+the outcome.
+
 ## Standard procedures
 
 Most importable entities expose an `upsert` procedure (e.g.

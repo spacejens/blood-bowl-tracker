@@ -3,6 +3,8 @@ import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import type { ContractRouterClient } from '@orpc/contract';
 
+import { resilientFetch } from './resilient-fetch';
+
 type Client = ContractRouterClient<typeof contract>;
 
 export function createApiClient(baseUrl: string, apiToken: string): Client {
@@ -13,6 +15,10 @@ export function createApiClient(baseUrl: string, apiToken: string): Client {
     // either a static value or a function returning one; a function is used
     // here to build the Authorization header from the captured `apiToken`.
     headers: () => ({ Authorization: `Bearer ${apiToken}` }),
+    // RPCLink calls this in place of the global fetch for every RPC call,
+    // which is what gives every caller of this client the per-attempt
+    // timeout and the bounded retry with no change of their own.
+    fetch: resilientFetch,
   });
   const client: Client = createORPCClient(link);
 
