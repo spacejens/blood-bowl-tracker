@@ -16,6 +16,9 @@ domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing,
 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the app-module
 wiring) is shared with `tools/review-match` through `packages/review-harness` — it never
 touches a raw source's meaning, so it cannot agree with itself about one.
+Locating and byte-decoding a BBL mirror file is shared on the same basis, via
+`packages/read-bbl-mirror`: it carries no BBL-page-type awareness or HTML
+parsing, so depending on it does not weaken the boundary above.
 The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-player section — the

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { Injectable } from '@nestjs/common';
 
 /** A filename that could escape the data directory it is resolved against. */
-const UNSAFE_FILENAME = /[/\\]|(^|[/\\])\.\.($|[/\\])/;
+const UNSAFE_FILENAME = /[/\\]|^\.\.$/;
 
 /**
  * Reads files out of a BBL wget mirror directory. Mirror filenames encode

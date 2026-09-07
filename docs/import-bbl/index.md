@@ -164,9 +164,10 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
 ## Architecture
 
 - **SourceModule** — reusable, data-type-agnostic core. `BblSourceReader`
-  walks the data folder, classifies files by page type (`p=` param), decodes
-  ISO-8859-1, and streams pages one at a time (`pages(type)`), keeping memory
-  bounded. This is the pattern future data types reuse.
+  classifies files by page type (`p=` param) and streams pages one at a time
+  (`pages(type)`), keeping memory bounded; listing the data folder and
+  decoding ISO-8859-1 are delegated to `packages/read-bbl-mirror`, shared with
+  the review tools. This is the pattern future data types reuse.
 - **CoachesModule** — first data-type extractor. `CoachPageParser` reads a
   coach from a team page; `BblCoachesImportService` streams team pages,
   deduplicates coaches by exact name, and upserts each through the API.

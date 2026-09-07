@@ -19,7 +19,9 @@ only. The domain-agnostic scaffolding (HTML fragment assembly, timestamped repor
 writing, JSON5 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts
 and the app-module wiring) is shared with `tools/review-match` and `tools/review-player`
 through `packages/review-harness` — it never touches a raw source's meaning, so it
-cannot agree with itself about one.
+cannot agree with itself about one. Locating and byte-decoding a BBL mirror file is
+shared on the same basis, via `packages/read-bbl-mirror`: it carries no BBL-page-type
+awareness or HTML parsing, so depending on it does not weaken the boundary above.
 
 The manual curation data under `tools/import-manual/data/before-other-importers/` and
 `after-other-importers/` is treated here as a **raw source**, not as part of the
