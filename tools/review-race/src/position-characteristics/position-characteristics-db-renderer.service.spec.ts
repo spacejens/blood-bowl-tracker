@@ -1,14 +1,16 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  CharacteristicFormatService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { RacePositionsQueryService } from '../shared/race-positions-query.service';
 import type { SampledRace } from '../shared/review.types';
-import { CharacteristicFormatService } from './characteristic-format.service';
 import { PositionCharacteristicsDbRendererService } from './position-characteristics-db-renderer.service';
 
 const race: SampledRace = {
