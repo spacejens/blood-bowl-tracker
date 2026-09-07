@@ -1,11 +1,5 @@
-export type { AdvisoryLockModuleAsyncOptions } from './advisory-lock.module';
-export { AdvisoryLockModule, LOCK_DATABASE_URL } from './advisory-lock.module';
-export {
-  AdvisoryLockService,
-  LOCK_CLASS_ID,
-  LOCK_OBJECT_ID,
-  LOCK_SQL,
-} from './advisory-lock.service';
+export { AdvisoryLockModule } from './advisory-lock.module';
+export { AdvisoryLockService } from './advisory-lock.service';
 export type { Db } from './db';
 export { createDb } from './db';
 export type { DbModuleAsyncOptions } from './db.module';

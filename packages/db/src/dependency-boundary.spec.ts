@@ -36,12 +36,14 @@ function workspaceGlobs(): string[] {
       continue;
     }
     if (!inPackages) continue;
+    if (/^\s*#/.test(line)) continue;
     const entry = /^\s+-\s*["']?([^"'\s]+)["']?\s*$/.exec(line);
     if (entry) {
       globs.push(entry[1]);
       continue;
     }
-    // The first non-list, non-blank line is the next top-level key.
+    // The first non-list, non-blank, non-comment line is the next top-level
+    // key.
     if (line.trim() !== '') break;
   }
   return globs;
