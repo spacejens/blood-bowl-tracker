@@ -14,11 +14,6 @@ import { LeaderboardService } from '../leaderboard.service';
 import { TeamContextService } from '../team-context.service';
 import { MatchCategoryLabelService } from './match-category-label.service';
 
-/** Money rendered with a thousands separator and a `gp` suffix, e.g. `150,000 gp`. */
-function gp(amount: number): string {
-  return `${amount.toLocaleString('en-US')} gp`;
-}
-
 type MistakeRow = { teamId: number; name: string; count: number };
 type BiggestMistakeRow = MistakeRow & {
   date: string;
@@ -47,6 +42,11 @@ export class ExpensiveMistakesToplistService {
     private readonly teamContext: TeamContextService,
   ) {}
 
+  /** Money rendered with a thousands separator and a `gp` suffix, e.g. `150,000 gp`. */
+  private gp(amount: number): string {
+    return `${amount.toLocaleString('en-US')} gp`;
+  }
+
   /**
    * Neither list is scoped to a single race or coach, so both toplists show
    * both, matching every TeamToplistService toplist.
@@ -73,7 +73,7 @@ export class ExpensiveMistakesToplistService {
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
       formatRow: (row) =>
-        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${gp(row.count)}`,
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${this.gp(row.count)}`,
     });
   }
 
@@ -90,7 +90,7 @@ export class ExpensiveMistakesToplistService {
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
       formatRow: (row) =>
-        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${gp(row.count)} (${this.suffix(row)})`,
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${this.gp(row.count)} (${this.suffix(row)})`,
     });
   }
 

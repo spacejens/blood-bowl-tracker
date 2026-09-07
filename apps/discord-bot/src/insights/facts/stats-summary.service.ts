@@ -24,8 +24,6 @@ import {
   STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 
-const fmt = (n: number): string => n.toLocaleString('en-US');
-
 /**
  * The one description every stats view renders, in the one order. Leagues, eras
  * and competitions arrive pre-rendered because the era and competition views
@@ -123,6 +121,10 @@ export class StatsSummaryFactsService {
     private readonly databaseTimeout: DatabaseTimeoutService,
   ) {}
 
+  private fmt(n: number): string {
+    return n.toLocaleString('en-US');
+  }
+
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
     if (scope.leagueId !== undefined) {
       return this.resolveLeagueStats(scope.leagueId);
@@ -141,16 +143,16 @@ export class StatsSummaryFactsService {
     const description = [
       `Leagues: ${values.leagues}`,
       `Eras: ${values.eras}`,
-      `External systems: ${fmt(values.externalSystems)}`,
-      `Rules sets: ${fmt(values.rulesSets)}`,
-      `Races: ${fmt(values.races)}`,
-      `Positions: ${fmt(values.positions)}`,
-      `Coaches: ${fmt(values.coaches)}`,
+      `External systems: ${this.fmt(values.externalSystems)}`,
+      `Rules sets: ${this.fmt(values.rulesSets)}`,
+      `Races: ${this.fmt(values.races)}`,
+      `Positions: ${this.fmt(values.positions)}`,
+      `Coaches: ${this.fmt(values.coaches)}`,
       `Competitions: ${values.competitions}`,
-      `Teams: ${fmt(values.teams)}`,
-      `Players: ${fmt(values.players)}`,
-      `Matches: ${fmt(values.matches)}`,
-      `Match events: ${fmt(values.matchEvents)}`,
+      `Teams: ${this.fmt(values.teams)}`,
+      `Players: ${this.fmt(values.players)}`,
+      `Matches: ${this.fmt(values.matches)}`,
+      `Match events: ${this.fmt(values.matchEvents)}`,
     ].join('\n');
 
     return { embeds: [{ title: 'Statistics', description }] };
@@ -199,14 +201,14 @@ export class StatsSummaryFactsService {
     ] = counts;
 
     return this.statsSummaryEmbed({
-      leagues: fmt(leagues),
-      eras: fmt(eras),
+      leagues: this.fmt(leagues),
+      eras: this.fmt(eras),
       externalSystems,
       rulesSets,
       races,
       positions,
       coaches,
-      competitions: `${fmt(competitions)} (${fmt(seasons)} seasons, ${fmt(cups)} cups)`,
+      competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
       teams,
       players,
       matches,
@@ -260,7 +262,7 @@ export class StatsSummaryFactsService {
       races,
       positions,
       coaches,
-      competitions: `${fmt(competitions)} (${fmt(seasons)} seasons, ${fmt(cups)} cups)`,
+      competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
       teams,
       players,
       matches,
@@ -365,13 +367,13 @@ export class StatsSummaryFactsService {
 
     return this.statsSummaryEmbed({
       leagues: '1',
-      eras: fmt(eraCount),
+      eras: this.fmt(eraCount),
       externalSystems,
       rulesSets: rulesSetNames.length,
       races,
       positions,
       coaches,
-      competitions: `${fmt(competitions)} (${fmt(seasons)} seasons, ${fmt(cups)} cups)`,
+      competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
       teams,
       players,
       matches,

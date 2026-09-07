@@ -109,6 +109,31 @@ export class UpsertHandlerService {
   }
 
   /**
+   * The classification half of {@link runWithoutConflict} for a procedure
+   * whose service does not answer with an `{entity, created}` pair —
+   * `positionRulesSets.sync` returns its sync result shape directly, so it
+   * cannot reuse that method's entity-flattening body. It maps only
+   * `CharacteristicFormatMismatchError`: characteristics that disagree with
+   * what their rules set declares are authored-data feedback the importer
+   * reports per entry, so BAD_REQUEST rather than an internal error. The
+   * other domain errors `runWithoutConflict` classifies are deliberately not
+   * mapped here — this procedure's callers have never raised them.
+   */
+  async runSync<T>(
+    errors: BadRequestErrors,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await run();
+    } catch (err) {
+      if (err instanceof CharacteristicFormatMismatchError) {
+        throw errors.BAD_REQUEST({ message: err.message });
+      }
+      throw err;
+    }
+  }
+
+  /**
    * The batch counterpart of {@link run}: performs each item's upsert in
    * turn and answers with one result per item, in input order. It classifies
    * failures exactly as `run` does, but a known domain failure (this
