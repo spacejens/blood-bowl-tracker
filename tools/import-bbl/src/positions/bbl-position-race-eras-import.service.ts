@@ -194,12 +194,8 @@ export class BblPositionRaceErasImportService {
           // Availability and characteristics use exactly the same rule: a
           // config override wins outright, otherwise a star player is always
           // available, otherwise an actual recorded player use in a matching
-          // era counts. An era's silence is not evidence of availability, so
-          // the looser "no team fielded this race in this era, so assume the
-          // position was available" rule is deliberately not applied here: it
-          // fabricates wrong rows (Halfling positions marked available to
-          // Human teams under BB2016).
-          // Genuine availability with no evidence in the source data is
+          // era counts. An era's silence is not evidence of availability —
+          // genuine availability with no evidence in the source data is
           // restored by hand in
           // tools/import-manual/data/after-other-importers/position-availability.json5.
           const include =

@@ -31,19 +31,9 @@ const OVERRIDE_REASON = 'override';
  * carrying both reasons, rather than appearing as two report rows.
  *
  * Each stratum is sampled exactly once, using the first source it declares —
- * never once per declared source. Every current stratifier either declares
- * exactly one source (the per-source coverage strata), for which sampling
- * once per stratum and once per source are the same thing, or declares
- * several sources purely as a formality because its query doesn't vary by
- * source at all (era availability, characteristics change, name mismatch,
- * the random baseline). For the latter, calling `sampleStratum` once per
- * declared source
- * would run the same `ORDER BY random() LIMIT n` query two or three
- * independent times, each drawing a different random sample — so a stratum
- * configured for 3 races per source could select up to 9 distinct races
- * instead of 3. Sampling once per stratum avoids that over-selection outright,
- * and avoids the multiplied gaps it would otherwise produce, which would then
- * need deduplicating.
+ * not once per source. A stratum that declares several sources purely as a
+ * formality (its query doesn't vary by source) would otherwise multiply its
+ * `ORDER BY random() LIMIT n` draws and over-select.
  */
 @Injectable()
 export class RaceSamplerService implements ReviewSampler<SampledRace> {

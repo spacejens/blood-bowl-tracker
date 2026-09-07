@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -8,27 +8,23 @@ import type { TpRawPlayerAggregate } from '../source/tp-raw-player-index.service
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
 import { TpPlayerCharacteristicsRawRendererService } from './tp-player-characteristics-raw-renderer.service';
 
-async function makeService(): Promise<{
-  service: TpPlayerCharacteristicsRawRendererService;
-  index: MockProxy<TpRawPlayerIndexService>;
-}> {
-  const index = mock<TpRawPlayerIndexService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      TpPlayerCharacteristicsRawRendererService,
-      { provide: TpRawPlayerIndexService, useValue: index },
-      HtmlService,
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(TpPlayerCharacteristicsRawRendererService),
-    index,
-  };
-}
-
 describe('TpPlayerCharacteristicsRawRendererService', () => {
+  let service: TpPlayerCharacteristicsRawRendererService;
+  let index: MockProxy<TpRawPlayerIndexService>;
+
+  beforeEach(async () => {
+    index = mock<TpRawPlayerIndexService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpPlayerCharacteristicsRawRendererService,
+        { provide: TpRawPlayerIndexService, useValue: index },
+        HtmlService,
+      ],
+    }).compile();
+    service = moduleRef.get(TpPlayerCharacteristicsRawRendererService);
+  });
+
   it('renders the five values from the TP index', async () => {
-    const { service, index } = await makeService();
     const aggregate: TpRawPlayerAggregate = {
       lineUpId: 1,
       name: 'Test Player',
@@ -56,7 +52,6 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('renders a null characteristic as the none marker', async () => {
-    const { service, index } = await makeService();
     const aggregate: TpRawPlayerAggregate = {
       lineUpId: 1,
       name: 'Test Player',
@@ -84,7 +79,6 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
     // This renderer shows raw TP data with no CharacteristicFormat context,
     // so a stored 0 (e.g. a Kroxigor/Ogre's Passing) is a real value and
     // must print like any other number. Only null means "no data".
-    const { service, index } = await makeService();
     const aggregate: TpRawPlayerAggregate = {
       lineUpId: 1,
       name: 'Test Player',
@@ -109,7 +103,6 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('notes a player who appears in no downloaded TP match file', async () => {
-    const { service, index } = await makeService();
     index.aggregateFor.mockResolvedValue(null);
 
     const html = await service.render('9999');
@@ -120,7 +113,6 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
   });
 
   it('notes a player no downloaded roster file carries characteristics for', async () => {
-    const { service, index } = await makeService();
     const aggregate: TpRawPlayerAggregate = {
       lineUpId: 1,
       name: 'Test Player',
