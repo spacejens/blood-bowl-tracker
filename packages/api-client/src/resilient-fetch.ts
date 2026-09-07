@@ -28,8 +28,21 @@ export type ResilientFetchInit = {
   redirect?: Request['redirect'];
 };
 
-const wait = (milliseconds: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
+// Abort-aware: a caller cancelling mid-backoff shouldn't have to wait out
+// the rest of a delay that can run up to 16 seconds before the loop even
+// checks the signal again.
+const wait = (milliseconds: number, signal: AbortSignal): Promise<void> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, milliseconds);
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
+  });
 
 // Only the gateway/infrastructure statuses a Fly machine restart or an
 // overloaded upstream actually produces — the api-server never returns
@@ -88,6 +101,12 @@ export async function resilientFetch(
         throw error;
       }
     }
-    await wait(INITIAL_RETRY_DELAY_MS * 2 ** attempt);
+    // Reached only on a retryable outcome that isn't the last attempt, so a
+    // caller abort here hasn't already been thrown above — check once more
+    // before committing to a whole backoff delay.
+    if (request.signal.aborted) {
+      throw request.signal.reason;
+    }
+    await wait(INITIAL_RETRY_DELAY_MS * 2 ** attempt, request.signal);
   }
 }
