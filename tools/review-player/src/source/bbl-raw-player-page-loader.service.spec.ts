@@ -42,10 +42,14 @@ describe('BblRawPlayerPageLoaderService', () => {
     expect(await service.loadPlayerPage('4242')).toBeNull();
   });
 
-  it('returns null for an id that does not name a real mirror file', async () => {
+  it('builds the filename verbatim, even for an id with path-escape characters', async () => {
     mirror.readFile.mockResolvedValue(null);
 
     expect(await service.loadPlayerPage('../secret')).toBeNull();
+    expect(mirror.readFile).toHaveBeenCalledWith(
+      DATA_DIR,
+      'default.asp?p=pl&pid=../secret',
+    );
   });
 
   it('propagates a read failure instead of swallowing it', async () => {
