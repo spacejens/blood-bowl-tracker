@@ -14,6 +14,7 @@ import type {
   Interaction,
   InteractionReplyOptions,
   MessageCreateOptions,
+  RESTPostAPIChannelMessageJSONBody,
   StringSelectMenuInteraction,
 } from 'discord.js';
 import {
@@ -21,6 +22,8 @@ import {
   Client,
   GatewayIntentBits,
   InteractionContextType,
+  REST,
+  Routes,
 } from 'discord.js';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
@@ -137,6 +140,31 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       throw new Error(`Discord channel is not sendable: ${channelId}`);
     }
     await channel.send(content as string | MessageCreateOptions);
+  }
+
+  /**
+   * Sends a message through Discord's plain REST API, deliberately never
+   * through `this.client`. A standby machine must never open a gateway
+   * session — it would receive, and race to answer, the same interactions as
+   * the elected machine, which is exactly what leader election prevents — but
+   * it can still post over REST.
+   *
+   * The `REST` client is built per call: it is a cheap, stateless object with
+   * no connection to open, and this path runs once at standby startup, so
+   * caching it as an instance field would buy nothing. If a future caller
+   * ever sends repeatedly, promote it to a cached instance field instead —
+   * a fresh client per call also means a fresh rate-limit bucket per call,
+   * which would lose the shared rate-limit tracking this method exists to
+   * gain.
+   *
+   * Errors propagate to the caller, matching `sendMessage`.
+   */
+  async sendMessageOverRest(
+    channelId: string,
+    content: RESTPostAPIChannelMessageJSONBody,
+  ): Promise<void> {
+    const rest = new REST({ version: '10' }).setToken(this.token);
+    await rest.post(Routes.channelMessages(channelId), { body: content });
   }
 
   /**

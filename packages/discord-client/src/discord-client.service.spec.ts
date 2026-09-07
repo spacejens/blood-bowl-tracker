@@ -23,6 +23,11 @@ interface MockClient {
   user: { tag: string | undefined };
 }
 
+interface MockRest {
+  setToken: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+}
+
 const mockChannel: MockChannel = {
   isSendable: vi.fn(),
   send: vi.fn(),
@@ -40,10 +45,23 @@ const mockClient: MockClient = {
   user: { tag: 'test-bot#0001' },
 };
 
+const mockRest: MockRest = {
+  setToken: vi.fn(),
+  post: vi.fn(),
+};
+
 vi.mock('discord.js', () => ({
   Client: vi.fn(function () {
     return mockClient;
   }),
+  REST: vi.fn(function () {
+    return mockRest;
+  }),
+  // A distinguishable fake route, so tests can assert the right endpoint was
+  // targeted without depending on discord-api-types' real route building.
+  Routes: {
+    channelMessages: vi.fn((id: string) => `/fake/channels/${id}/messages`),
+  },
   GatewayIntentBits: { Guilds: 1 },
   // Real discord-api-types values, so assertions can compare against the
   // genuine enum members the service passes to Discord.
@@ -51,7 +69,12 @@ vi.mock('discord.js', () => ({
   ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
 }));
 
-import { ApplicationIntegrationType, InteractionContextType } from 'discord.js';
+import {
+  ApplicationIntegrationType,
+  InteractionContextType,
+  REST,
+  Routes,
+} from 'discord.js';
 
 import {
   DISCORD_BOT_TOKEN,
@@ -83,6 +106,8 @@ describe('DiscordClientService', () => {
     mockClient.application.commands.set.mockResolvedValue(undefined);
     mockClient.destroy.mockResolvedValue(undefined);
     mockChannel.isSendable.mockReturnValue(true);
+    mockRest.setToken.mockReturnValue(mockRest);
+    mockRest.post.mockResolvedValue(undefined);
     const moduleRef = await Test.createTestingModule({
       providers: [
         DiscordClientService,
@@ -145,6 +170,36 @@ describe('DiscordClientService', () => {
     await expect(service.sendMessage('123', 'hello')).rejects.toThrow(
       'Discord channel is not sendable: 123',
     );
+  });
+
+  it('posts a message over REST without touching the gateway client', async () => {
+    const body = { embeds: [{ title: 'Bot starting as standby' }] };
+
+    await service.sendMessageOverRest('123', body);
+
+    expect(REST).toHaveBeenCalledWith({ version: '10' });
+    expect(mockRest.setToken).toHaveBeenCalledWith('my-token');
+    expect(Routes.channelMessages).toHaveBeenCalledWith('123');
+    expect(mockRest.post).toHaveBeenCalledWith('/fake/channels/123/messages', {
+      body,
+    });
+    expect(mockClient.channels.fetch).not.toHaveBeenCalled();
+    expect(mockClient.login).not.toHaveBeenCalled();
+  });
+
+  it('propagates a rejection from the REST client', async () => {
+    mockRest.post.mockRejectedValue(new Error('401 Unauthorized'));
+
+    await expect(
+      service.sendMessageOverRest('123', { content: 'hi' }),
+    ).rejects.toThrow('401 Unauthorized');
+  });
+
+  it('builds a fresh REST client on every call', async () => {
+    await service.sendMessageOverRest('123', { content: 'one' });
+    await service.sendMessageOverRest('456', { content: 'two' });
+
+    expect(REST).toHaveBeenCalledTimes(2);
   });
 
   it('destroys the client on module destroy', async () => {
