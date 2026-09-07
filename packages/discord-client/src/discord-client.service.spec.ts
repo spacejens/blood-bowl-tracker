@@ -195,6 +195,13 @@ describe('DiscordClientService', () => {
     ).rejects.toThrow('401 Unauthorized');
   });
 
+  it('builds a fresh REST client on every call', async () => {
+    await service.sendMessageOverRest('123', { content: 'one' });
+    await service.sendMessageOverRest('456', { content: 'two' });
+
+    expect(REST).toHaveBeenCalledTimes(2);
+  });
+
   it('destroys the client on module destroy', async () => {
     await service.onModuleDestroy();
     expect(mockClient.destroy).toHaveBeenCalled();

@@ -151,7 +151,11 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    *
    * The `REST` client is built per call: it is a cheap, stateless object with
    * no connection to open, and this path runs once at standby startup, so
-   * caching it as an instance field would buy nothing.
+   * caching it as an instance field would buy nothing. If a future caller
+   * ever sends repeatedly, promote it to a cached instance field instead —
+   * a fresh client per call also means a fresh rate-limit bucket per call,
+   * which would lose the shared rate-limit tracking this method exists to
+   * gain.
    *
    * Errors propagate to the caller, matching `sendMessage`.
    */
