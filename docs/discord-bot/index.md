@@ -63,6 +63,16 @@ Configuration is supplied through an environment file in the app directory.
    - `DISCORD_BOT_TOKEN` — the token from step 1.
    - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from section 3. The
      bot posts a deployment status message here on every startup.
+   - `STANDBY_STARTUP_MESSAGE_ENABLED` — optional, and enabled by default.
+     Only a `false` value (case-insensitive, surrounding whitespace ignored)
+     disables it; an unset, empty, or otherwise unrecognised value keeps the
+     default. It controls whether a _standby_ instance also
+     posts a startup announcement — the active instance always posts its own,
+     regardless of this setting. It matters only where a standby actually
+     runs, which is why `apps/discord-bot/.env.example` leaves it commented
+     out. See [Production topology](production-topology.md) and
+     [Production monitoring](production-monitoring.md) for how the standby
+     works and why silencing its announcement can be useful.
    - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
      as a standard 5-field cron expression (an optional sixth leading field is
      seconds), in the bot process's local time zone (in the Docker deployment
@@ -142,12 +152,12 @@ effect immediately.
 - [`/insights`](slash-commands/insights.md) — shares a random or chosen fact
   from a tree of categorized insights, with autocomplete to navigate the fact
   tree.
-- [`/deepdive`](slash-commands/deepdive.md) — a lookup/drill-down command;
-  currently shows a detail view for a single era (league, dates, rules sets,
-  and its competitions in chronological order), a single coach (career span
-  and top teams), or a single team (race, coach, career span, and top players
-  by match events), reachable both directly and via the buttons on `/insights`'
-  era list, coach toplists, and team toplists.
+- [`/deepdive`](slash-commands/deepdive.md) — a lookup/drill-down command for
+  a single recorded subject. It supports eleven targets — an era, a coach, a
+  team, a player, a star player, a race, a position, a competition, a
+  competition group, a trophy, and a league — each reachable both directly and
+  via the drill-down buttons and select menus on `/insights` and on other
+  `/deepdive` embeds.
 - [`/onthisdate`](slash-commands/on-this-date.md) — what happened on one
   calendar date across every recorded year.
 

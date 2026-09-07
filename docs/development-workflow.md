@@ -30,7 +30,7 @@ Verifies that work the developer says is finished is actually finished — check
 
 ## deploy-local
 
-Builds and starts the full stack locally via Docker Compose, confirms both containers come up healthy, and can also run the `tools/import-bbl` and `tools/import-tp` data imports (and the manual import, the match/player review tools, and SchemaSpy diagram generation) against the running instance, so a developer can see a change running end to end (`/deploy-local`). Invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes. It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
+Builds and starts the full stack locally via Docker Compose, confirms both containers come up healthy, and can also run the `tools/import-bbl` and `tools/import-tp` data imports (and the manual import, the match/player/race review tools, and SchemaSpy diagram generation) against the running instance, so a developer can see a change running end-to-end (`/deploy-local`). Invoked directly, or offered by `develop-feature` after a PR is created and by `handle-pr-reviews` after pushing fixes. It leaves the containers running — it's a manual-inspection tool, not a one-shot smoke test.
 
 ## deploy-production
 
