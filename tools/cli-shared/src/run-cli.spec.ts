@@ -215,4 +215,26 @@ describe('runCli', () => {
     );
     expect(exit).toHaveBeenCalledWith(1);
   });
+
+  it('reports a Nest bootstrap failure without dispatching or closing an app', async () => {
+    createApplicationContext.mockRejectedValue(new Error('bootstrap blew up'));
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: TestModule,
+      readArgs: vi
+        .fn<(subcommand: Subcommand) => TestArgs>()
+        .mockReturnValue({ value: 'x' }),
+      dispatch,
+    });
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({ error: 'bootstrap blew up' }),
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
 });
