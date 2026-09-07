@@ -21,9 +21,9 @@ import {
 import { DateToplistService } from './date-toplist.service';
 
 describe('DateToplistService', () => {
-  // A scope narrow enough that most of the calendar has no matches at all:
-  // the zero-count dates are exactly what used to be missing, and Feb 29 is
-  // one of them.
+  // A scope narrow enough that most of the calendar has no matches at all, so
+  // these rows check that zero-count dates — Feb 29 among them — are still
+  // included in the result.
   const rows = [
     { month: 1, day: 1, count: 0 },
     { month: 2, day: 29, count: 0 },

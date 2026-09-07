@@ -105,13 +105,8 @@ describe('RunProductionQueryService', () => {
   });
 
   it('passes a multi-line query containing a line that looks like a shell heredoc delimiter through unchanged', async () => {
-    // The service itself never parses `query` as shell syntax (it's one
-    // execFile argv entry, not shell input), so a line that happens to
-    // match a delimiter some *caller* used to pipe the query in is inert
-    // here -- the risk that class of content posed was entirely in how the
-    // query text got INTO this process (a shell heredoc in the skill's own
-    // example invocation, since fixed to use the Write tool instead), never
-    // in how this service handles the text once received.
+    // The service never parses `query` as shell syntax — it's one `execFile`
+    // argv entry — so a line matching a shell heredoc delimiter is inert here.
     const multilineQuery =
       "SELECT * FROM game_data.leagues WHERE name = 'QUERYEOF';\n" +
       'QUERYEOF\n' +
