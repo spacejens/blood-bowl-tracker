@@ -1,3 +1,8 @@
+export type { CharacteristicFormat } from './characteristic-format.service';
+export {
+  CharacteristicFormatService,
+  NO_CHARACTERISTIC,
+} from './characteristic-format.service';
 export type { DataTypeReviewer } from './data-type-reviewer';
 export { DATA_TYPE_REVIEWERS } from './data-type-reviewer';
 export type { TableCell, TableRow } from './html.service';
