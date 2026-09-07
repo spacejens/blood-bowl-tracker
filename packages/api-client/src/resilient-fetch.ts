@@ -108,5 +108,12 @@ export async function resilientFetch(
       throw request.signal.reason;
     }
     await wait(INITIAL_RETRY_DELAY_MS * 2 ** attempt, request.signal);
+    // wait() also settles early when the signal aborts mid-delay, rather
+    // than only on a full timeout — recheck immediately so that case stops
+    // here too, instead of spending one more fetch attempt on a request
+    // that's already been cancelled.
+    if (request.signal.aborted) {
+      throw request.signal.reason;
+    }
   }
 }

@@ -102,13 +102,9 @@ describe('resilientFetch', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('settles the backoff wait immediately when the caller aborts during it', async () => {
+  it('settles the backoff wait immediately when the caller aborts during it, without a further fetch attempt', async () => {
     const controller = new AbortController();
-    fetchMock
-      .mockResolvedValueOnce(makeResponse(503))
-      .mockRejectedValueOnce(
-        new DOMException('The operation was aborted.', 'AbortError'),
-      );
+    fetchMock.mockResolvedValueOnce(makeResponse(503));
 
     const promise = resilientFetch(makeRequest(controller.signal), {});
     promise.catch(() => undefined);
@@ -117,8 +113,8 @@ describe('resilientFetch', () => {
     controller.abort();
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    await expect(promise).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(promise).rejects.toBeInstanceOf(Error);
   });
 
   it('rejects immediately without waiting once the caller has already aborted', async () => {
