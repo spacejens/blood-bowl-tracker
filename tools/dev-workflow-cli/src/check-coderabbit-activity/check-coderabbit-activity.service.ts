@@ -9,10 +9,12 @@ const CHECK_CODERABBIT_ACTIVITY_USAGE =
  * history — comments and reviews alike. Matches the login case-insensitively
  * by substring, the same way every CodeRabbit-login check in
  * `wait-for-pr-review-filters.service.ts` does, rather than pinning one exact
- * spelling of the bot's account name.
+ * spelling of the bot's account name. Each `.author.login` is coalesced with
+ * `// ""` — a deleted/ghost account reports `author: null`, and without the
+ * fallback `test()` throws on that `null` instead of simply not matching it.
  */
 const CODERABBIT_ACTIVITY_JQ =
-  '([.comments[]?.author.login, .reviews[]?.author.login] | ' +
+  '([(.comments[]?.author.login // ""), (.reviews[]?.author.login // "")] | ' +
   'any(test("coderabbit"; "i")))';
 
 export interface CheckCoderabbitActivityResult {

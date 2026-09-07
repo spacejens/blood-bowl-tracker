@@ -56,7 +56,7 @@ describe('CheckCoderabbitActivityService', () => {
       '--json',
       'comments,reviews',
       '--jq',
-      '([.comments[]?.author.login, .reviews[]?.author.login] | ' +
+      '([(.comments[]?.author.login // ""), (.reviews[]?.author.login // "")] | ' +
         'any(test("coderabbit"; "i")))',
     ]);
   });
