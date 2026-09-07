@@ -1119,9 +1119,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
