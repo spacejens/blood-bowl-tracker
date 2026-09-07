@@ -1,88 +1,58 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
+import { BblMirrorReaderService } from '@blood-bowl-tracker/read-bbl-mirror';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { ReviewMatchConfigService } from '../config/review-match-config.service';
 import { BblRawPageLoaderService } from './bbl-raw-page-loader.service';
 
+const DATA_DIR = '/bbl/data';
+
 describe('BblRawPageLoaderService', () => {
-  let dir: string;
+  let service: BblRawPageLoaderService;
+  let mirror: MockProxy<BblMirrorReaderService>;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'bbl-raw-loader-'));
-  });
-
-  afterEach(async () => {
-    await rm(dir, { recursive: true, force: true });
-  });
-
-  async function makeService(dataDir = dir): Promise<BblRawPageLoaderService> {
     const config = mock<ReviewMatchConfigService>();
-    config.getDataDir.mockReturnValue(dataDir);
+    config.getDataDir.mockReturnValue(DATA_DIR);
+    mirror = mock<BblMirrorReaderService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblRawPageLoaderService,
         { provide: ReviewMatchConfigService, useValue: config },
+        { provide: BblMirrorReaderService, useValue: mirror },
       ],
     }).compile();
-    return moduleRef.get(BblRawPageLoaderService);
-  }
+    service = moduleRef.get(BblRawPageLoaderService);
+  });
 
-  it('reads the match page named after the external id', async () => {
-    await writeFile(join(dir, 'default.asp?p=m&m=1830'), '<html>ok</html>');
-    const service = await makeService();
+  it('reads the match page named after the external id, from the BBL data dir', async () => {
+    mirror.readFile.mockResolvedValue('<html>ok</html>');
 
     await expect(service.loadMatchPage('1830')).resolves.toBe(
       '<html>ok</html>',
     );
-  });
-
-  it('decodes the page as ISO-8859-1, not UTF-8', async () => {
-    // 0xE4 is "ä" in Latin-1 and an invalid lone byte in UTF-8.
-    await writeFile(
-      join(dir, 'default.asp?p=m&m=7'),
-      Buffer.from([0x42, 0x72, 0xe4, 0x6b]),
+    expect(mirror.readFile).toHaveBeenCalledWith(
+      DATA_DIR,
+      'default.asp?p=m&m=1830',
     );
-    const service = await makeService();
-
-    await expect(service.loadMatchPage('7')).resolves.toBe('Bräk');
   });
 
-  it('preserves 0x80-0x9F bytes as their identical code points, not Windows-1252', async () => {
-    await writeFile(join(dir, 'default.asp?p=m&m=8'), Buffer.from([0x80]));
-    const service = await makeService();
-
-    await expect(service.loadMatchPage('8')).resolves.toBe('\u0080');
-  });
-
-  it('returns null when the page file does not exist', async () => {
-    const service = await makeService();
+  it('returns null when the page is not in the mirror', async () => {
+    mirror.readFile.mockResolvedValue(null);
 
     await expect(service.loadMatchPage('404')).resolves.toBeNull();
   });
 
-  it('returns null when the whole data directory is missing', async () => {
-    const service = await makeService(join(dir, 'nope'));
-
-    await expect(service.loadMatchPage('1')).resolves.toBeNull();
-  });
-
-  it('rethrows a non-ENOENT filesystem error instead of treating it as missing', async () => {
-    // A directory in place of the page file makes readFile fail with
-    // EISDIR, not ENOENT — that error must propagate.
-    await mkdir(join(dir, 'default.asp?p=m&m=999'));
-    const service = await makeService();
-
-    await expect(service.loadMatchPage('999')).rejects.toThrow(/EISDIR/);
-  });
-
-  it('returns null for a non-numeric external id instead of joining it into a path', async () => {
-    const service = await makeService();
+  it('returns null for an id that does not name a real mirror file', async () => {
+    mirror.readFile.mockResolvedValue(null);
 
     await expect(service.loadMatchPage('../../etc/passwd')).resolves.toBeNull();
+  });
+
+  it('propagates a read failure instead of swallowing it', async () => {
+    mirror.readFile.mockRejectedValue(new Error('EISDIR'));
+
+    await expect(service.loadMatchPage('999')).rejects.toThrow(/EISDIR/);
   });
 });
