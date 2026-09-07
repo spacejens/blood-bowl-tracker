@@ -6,6 +6,7 @@ import { GitRootsService, runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
 
 import { AppModule } from './app.module';
+import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
 import {
   CHECK_DEPENDENCY_DASHBOARD_USAGE,
   CheckDependencyDashboardService,
@@ -27,6 +28,7 @@ const SUBCOMMANDS = [
   'check-main-stray',
   'check-drift',
   'check-dependency-dashboard',
+  'check-coderabbit-activity',
   'wait-for-pr-review',
   'post-review-questions',
   'acquire-review-lock',
@@ -70,6 +72,10 @@ function dispatch(
       return app.get(CheckMainStrayService).run();
     case 'check-drift':
       return app.get(CheckDriftService).run();
+    case 'check-coderabbit-activity':
+      // argv[3] is the PR number; the service validates it, so a missing or
+      // malformed value surfaces as this CLI's standard JSON error + exit 1.
+      return app.get(CheckCoderabbitActivityService).run(process.argv[3]);
     case 'wait-for-pr-review': {
       const waitOptions = app
         .get(WaitForPrReviewArgsService)
