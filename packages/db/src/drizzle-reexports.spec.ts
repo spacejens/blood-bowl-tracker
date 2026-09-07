@@ -5,7 +5,6 @@ import {
   count,
   countDistinct,
   desc,
-  DrizzleQueryError,
   eq,
   exists,
   getColumnTable,
@@ -63,7 +62,6 @@ describe('drizzle re-exports from the main entry point', () => {
     ['getTableColumns', getTableColumns],
     ['getTableName', getTableName],
     ['getColumnTable', getColumnTable],
-    ['DrizzleQueryError', DrizzleQueryError],
     ['alias', alias],
   ])('re-exports %s', (name, original) => {
     expect((db as unknown as Record<string, unknown>)[name]).toBe(original);

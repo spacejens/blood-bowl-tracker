@@ -2,12 +2,12 @@ import type { Db } from '@blood-bowl-tracker/db';
 import {
   competitionGroupExternalIds,
   competitionGroups,
-  DrizzleQueryError,
   eraExternalIds,
   eras,
   rulesSetExternalIds,
   rulesSets,
 } from '@blood-bowl-tracker/db';
+import { DrizzleQueryError } from '@blood-bowl-tracker/db/test-helpers';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MissingRequiredFieldError } from './missing-required-field-error';

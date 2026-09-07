@@ -47,31 +47,50 @@ function workspaceGlobs(): string[] {
   return globs;
 }
 
-/** Every workspace directory, relative to the repo root. */
+/**
+ * Every workspace directory, relative to the repo root, plus `''` for the
+ * repo root's own `package.json`. pnpm installs the root manifest's
+ * dependencies into the shared root `node_modules`, which every workspace's
+ * Node resolution walks up into — so a driver package declared there would be
+ * importable from anywhere and would otherwise slip past this guard entirely.
+ */
 function workspaceDirs(): string[] {
-  return workspaceGlobs().flatMap((glob) => {
-    const [dir, star] = glob.split('/');
-    if (star !== '*') {
-      throw new Error(
-        `Unsupported workspace glob in pnpm-workspace.yaml: ${glob}`,
-      );
-    }
-    return readdirSync(join(repoRoot, dir))
-      .filter((name) => existsSync(join(repoRoot, dir, name, 'package.json')))
-      .map((name) => `${dir}/${name}`);
-  });
+  return [
+    '',
+    ...workspaceGlobs().flatMap((glob) => {
+      const [dir, star] = glob.split('/');
+      if (star !== '*') {
+        throw new Error(
+          `Unsupported workspace glob in pnpm-workspace.yaml: ${glob}`,
+        );
+      }
+      return readdirSync(join(repoRoot, dir))
+        .filter((name) => existsSync(join(repoRoot, dir, name, 'package.json')))
+        .map((name) => `${dir}/${name}`);
+    }),
+  ];
 }
 
+/**
+ * Reads all four dependency fields, not just `dependencies` /
+ * `devDependencies`: `peerDependencies` and `optionalDependencies` also
+ * resolve at install time (pnpm auto-installs peers by default), so a driver
+ * package declared in either would be just as real a boundary leak.
+ */
 function declaredDependencies(workspace: string): string[] {
   const manifest = JSON.parse(
     readFileSync(join(repoRoot, workspace, 'package.json'), 'utf8'),
   ) as {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
+    peerDependencies?: Record<string, string>;
+    optionalDependencies?: Record<string, string>;
   };
   return Object.keys({
     ...manifest.dependencies,
     ...manifest.devDependencies,
+    ...manifest.peerDependencies,
+    ...manifest.optionalDependencies,
   });
 }
 

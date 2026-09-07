@@ -30,7 +30,6 @@ export {
   count,
   countDistinct,
   desc,
-  DrizzleQueryError,
   eq,
   exists,
   getColumnTable,

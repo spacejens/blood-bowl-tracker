@@ -12,6 +12,9 @@
  * - `is`, `SQL`, `Column`, `Param`, `StringChunk` are the primitives a spec
  *   needs to walk a captured condition tree and recover the filter values or
  *   join columns a service passed to `.where()` / `.innerJoin()`.
+ * - `DrizzleQueryError` is constructed directly by specs that need to shape a
+ *   real query-failure error the way a live session would throw it; no
+ *   production code in any consumer constructs or imports it.
  *
  * `is()` (rather than `instanceof`) matters: tables imported from this
  * package's CommonJS main entry point are constructed against a different
@@ -20,6 +23,13 @@
  * `Symbol.for('drizzle:entityKind')` tag, which is shared across module
  * instances through Node's global symbol registry.
  */
-export { Column, is, Param, SQL, StringChunk } from 'drizzle-orm';
+export {
+  Column,
+  DrizzleQueryError,
+  is,
+  Param,
+  SQL,
+  StringChunk,
+} from 'drizzle-orm';
 export { PgDialect } from 'drizzle-orm/pg-core';
 export { drizzle } from 'drizzle-orm/postgres-js';
