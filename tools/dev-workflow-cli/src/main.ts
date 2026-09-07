@@ -2,9 +2,8 @@
 
 import { readFileSync } from 'node:fs';
 
-import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
+import { GitRootsService, runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import {
@@ -37,13 +36,7 @@ const SUBCOMMANDS = [
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
 
-function isSubcommand(value: string | undefined): value is Subcommand {
-  return SUBCOMMANDS.includes(value as Subcommand);
-}
-
-interface DispatchOptions {
-  readonly app: INestApplicationContext;
-  readonly subcommand: Subcommand;
+interface DispatchArgs {
   /** Present only for the subcommands that take JSON on stdin. */
   readonly stdin?: string;
 }
@@ -61,8 +54,15 @@ function readStdin(): string {
   return readFileSync(0, 'utf8');
 }
 
-function dispatch(options: DispatchOptions): Promise<unknown> {
-  const { app, subcommand } = options;
+function readArgs(subcommand: Subcommand): DispatchArgs {
+  return { stdin: readsStdin(subcommand) ? readStdin() : undefined };
+}
+
+function dispatch(
+  app: INestApplicationContext,
+  subcommand: Subcommand,
+  args: DispatchArgs,
+): Promise<unknown> {
   switch (subcommand) {
     case 'resolve-main-root':
       return app.get(GitRootsService).resolve();
@@ -89,54 +89,29 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
       return app.get(ReviewLockService).release(holderId);
     }
     case 'check-dependency-dashboard': {
-      if (options.stdin === undefined) {
+      if (args.stdin === undefined) {
         throw new Error(CHECK_DEPENDENCY_DASHBOARD_USAGE);
       }
       return Promise.resolve(
-        app.get(CheckDependencyDashboardService).run(options.stdin),
+        app.get(CheckDependencyDashboardService).run(args.stdin),
       );
     }
     case 'post-review-questions': {
-      if (options.stdin === undefined) {
+      if (args.stdin === undefined) {
         throw new Error(POST_REVIEW_QUESTIONS_USAGE);
       }
       const postReviewQuestionsInput = app
         .get(PostReviewQuestionsArgsService)
-        .parse(process.argv, options.stdin);
+        .parse(process.argv, args.stdin);
       return app.get(PostReviewQuestionsService).run(postReviewQuestionsInput);
     }
   }
 }
 
-async function run(): Promise<unknown> {
-  const subcommand = process.argv[2];
-  if (!isSubcommand(subcommand)) {
-    throw new Error(
-      `Usage: node dist/main.js <${SUBCOMMANDS.join('|')}>` +
-        (subcommand === undefined || subcommand === ''
-          ? ''
-          : ` (got '${subcommand}')`),
-    );
-  }
-
-  const stdin = readsStdin(subcommand) ? readStdin() : undefined;
-
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: false,
-  });
-  try {
-    return await dispatch({ app, subcommand, stdin });
-  } finally {
-    await app.close();
-  }
-}
-
-run()
-  .then((result) => {
-    console.log(JSON.stringify(result, null, 2));
-  })
-  .catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(JSON.stringify({ error: message }));
-    process.exit(1);
-  });
+void runCli({
+  argv: process.argv,
+  subcommands: SUBCOMMANDS,
+  module: AppModule,
+  readArgs,
+  dispatch,
+});
