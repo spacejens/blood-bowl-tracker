@@ -1,13 +1,14 @@
 # `/insights`
 
-`/insights` shares a fact drawn from a growing tree of categorized insights
-derived from the recorded game data. When invoked, the bot replies in the same
-channel — most facts reply with an embedded leaderboard.
+`/insights` shares a fact drawn from a growing tree of categorized
+[insights](../../glossary.md#insight) derived from the recorded game data. When
+invoked, the bot replies in the same channel — most facts reply with an embedded
+leaderboard.
 
 ## Argument
 
 The command takes one optional string argument, `category`, a dotted path into
-the fact tree (for example `coach.toplist.teams`):
+the [fact tree](../../glossary.md#fact-tree) (for example `coach.toplist.teams`):
 
 - **No argument** — the bot picks a random fact from the whole tree.
 - **A specific fact path** (e.g. `coach.toplist.matches.played`) — the bot
