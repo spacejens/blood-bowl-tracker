@@ -14,8 +14,9 @@ table — is duplicated on purpose: sharing it would let a bug agree with itself
 of showing up as a difference. That rule covers the **domain-specific** half only. The
 domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing, JSON5
 config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the app-module
-wiring) is shared with `tools/review-match` through `packages/review-harness` — it never
-touches a raw source's meaning, so it cannot agree with itself about one.
+wiring) is shared with `tools/review-match` and `tools/review-race` through
+`packages/review-harness` — it never touches a raw source's meaning, so it
+cannot agree with itself about one.
 The report document is shared the same way: `report-builder.service.ts` and
 `review.service.ts` are thin subclasses of the harness's
 `ReportBuilderBase`/`ReviewServiceBase`, adding only the per-player section — the
