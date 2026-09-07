@@ -56,6 +56,16 @@ describe('resilientFetch', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('does not retry a bare 500 response', async () => {
+    const response = makeResponse(500);
+    fetchMock.mockResolvedValue(response);
+
+    const result = await resilientFetch(makeRequest(), {});
+
+    expect(result).toBe(response);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('forwards the init options to fetch', async () => {
     fetchMock.mockResolvedValue(makeResponse(200));
 
@@ -91,7 +101,7 @@ describe('resilientFetch', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('retries a 5xx response and returns the later success', async () => {
+  it('retries a 503 response and returns the later success', async () => {
     const response = makeResponse(200);
     fetchMock
       .mockResolvedValueOnce(makeResponse(503))
@@ -102,6 +112,20 @@ describe('resilientFetch', () => {
 
     await expect(promise).resolves.toBe(response);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('drains the body of a discarded retryable response', async () => {
+    const discarded = makeResponse(503);
+    const cancelSpy = vi.spyOn(discarded.body as ReadableStream, 'cancel');
+    fetchMock
+      .mockResolvedValueOnce(discarded)
+      .mockResolvedValue(makeResponse(200));
+
+    const promise = resilientFetch(makeRequest(), {});
+    await vi.advanceTimersByTimeAsync(1000);
+    await promise;
+
+    expect(cancelSpy).toHaveBeenCalledTimes(1);
   });
 
   it('sends a fresh, still-readable clone of the request on each attempt', async () => {
@@ -156,14 +180,14 @@ describe('resilientFetch', () => {
     expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 
-  it('returns the last 5xx response after six failed attempts', async () => {
-    const finalResponse = makeResponse(500);
+  it('returns the last retryable response after six failed attempts', async () => {
+    const finalResponse = makeResponse(503);
     fetchMock
-      .mockResolvedValueOnce(makeResponse(500))
       .mockResolvedValueOnce(makeResponse(502))
       .mockResolvedValueOnce(makeResponse(503))
       .mockResolvedValueOnce(makeResponse(504))
-      .mockResolvedValueOnce(makeResponse(500))
+      .mockResolvedValueOnce(makeResponse(502))
+      .mockResolvedValueOnce(makeResponse(503))
       .mockResolvedValue(finalResponse);
 
     const promise = resilientFetch(makeRequest(), {});

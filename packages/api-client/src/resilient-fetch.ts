@@ -23,12 +23,20 @@ export type ResilientFetchInit = {
 const wait = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-// HTTP status codes never exceed 599, so a lower bound is the whole test:
-// 5xx means the server failed to handle an otherwise valid request, which
-// a later attempt may well succeed at. Every other status — 2xx, 3xx and
-// notably 4xx (a record the API rejected as bad or incomplete) — is a
-// settled answer; retrying it would just loop on the same rejection.
-const isRetryableStatus = (status: number): boolean => status >= 500;
+// Only the gateway/infrastructure statuses a Fly machine restart or an
+// overloaded upstream actually produces — the api-server never returns
+// them itself. A bare 500 means the server ran and threw (an unclassified
+// application fault — see UpsertHandlerService's "anything else propagates
+// untouched"), which every retry would reproduce identically: since
+// packages/import continues past a failed record rather than aborting the
+// run, retrying every 500 would turn one systematic server-side fault into
+// a multi-hour stall across an entire import instead of a fast, loud
+// failure. 2xx, 3xx and 4xx (a record the API rejected as bad or
+// incomplete) are likewise settled answers; retrying them would just loop
+// on the same outcome.
+const RETRYABLE_STATUSES = new Set([502, 503, 504]);
+const isRetryableStatus = (status: number): boolean =>
+  RETRYABLE_STATUSES.has(status);
 
 /**
  * `fetch` for oRPC's `RPCLink`, bounding each attempt with a timeout and
@@ -56,6 +64,10 @@ export async function resilientFetch(
       if (!isRetryableStatus(response.status) || isLastAttempt) {
         return response;
       }
+      // Discarding a retried response without draining its body would pin
+      // the underlying connection until GC reclaims it; across a long
+      // import with many retried calls that adds up to real socket leakage.
+      await response.body?.cancel();
     } catch (error) {
       // A thrown fetch is a network failure, a connection reset, or our own
       // timeout abort — all worth another attempt, until they are not.
