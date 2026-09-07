@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resilientFetch } from './resilient-fetch';
 
-const makeRequest = (): Request =>
+const makeRequest = (signal?: AbortSignal): Request =>
   new Request('http://localhost:3000/rpc', {
     method: 'POST',
     body: '{"input":1}',
+    signal,
   });
 
 const makeResponse = (status: number): Response =>
@@ -99,6 +100,17 @@ describe('resilientFetch', () => {
 
     await expect(promise).resolves.toBe(response);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry once the caller aborts the request', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    fetchMock.mockRejectedValue(new Error('aborted'));
+
+    const promise = resilientFetch(makeRequest(controller.signal), {});
+
+    await expect(promise).rejects.toThrow('aborted');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('retries a 503 response and returns the later success', async () => {

@@ -6,8 +6,8 @@
 
 /**
  * Each individual attempt is abandoned after this long. Generous rather than
- * tight: `matchEvents`/`players`/`positions` upserts arrive in chunks of up
- * to 500 (see `packages/import`'s `DEFAULT_BATCH_CHUNK_SIZE`), and the
+ * tight: `matches`/`matchEvents` upserts arrive in chunks of up to 500 (see
+ * `packages/import`'s `DEFAULT_BATCH_CHUNK_SIZE`), and the
  * server processes a batch's items sequentially (`UpsertHandlerService.
  * runBatch`), so this has to comfortably outlast the slowest such chunk —
  * catching a genuinely stalled connection is still the point, not shaving
@@ -61,7 +61,8 @@ export async function resilientFetch(
     try {
       // A Request body can only be consumed once, so each attempt gets its
       // own clone. The caller's own signal is preserved alongside ours, so
-      // an externally aborted call still aborts.
+      // an externally aborted call ends the retry loop instead of being
+      // retried through the full backoff schedule.
       const response = await fetch(request.clone(), {
         ...init,
         signal: AbortSignal.any([
@@ -80,8 +81,10 @@ export async function resilientFetch(
       await response.body?.cancel().catch(() => undefined);
     } catch (error) {
       // A thrown fetch is a network failure, a connection reset, or our own
-      // timeout abort — all worth another attempt, until they are not.
-      if (isLastAttempt) {
+      // timeout abort — all worth another attempt, until they are not. A
+      // caller-initiated abort is different: retrying it would just burn
+      // through the whole backoff schedule before rethrowing regardless.
+      if (isLastAttempt || request.signal.aborted) {
         throw error;
       }
     }
