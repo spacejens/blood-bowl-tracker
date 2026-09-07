@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { ProcessRunnerService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
+import { z } from 'zod';
 
 import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
 import {
@@ -12,6 +13,16 @@ import {
   WaitForPrReviewFilterOptions,
   WaitForPrReviewFiltersService,
 } from './wait-for-pr-review-filters.service';
+import {
+  codeRabbitCommentSchema,
+  CompletionCandidate,
+  completionCandidateSchema,
+  emptyBodyReviewCandidateSchema,
+  headRefOidSchema,
+  jsonObjectSchema,
+  SectionCandidate,
+  sectionCandidateSchema,
+} from './wait-for-pr-review-schemas';
 
 /** One wait's inputs; the optional fields fall back to the defaults below. */
 export interface WaitForPrReviewOptions {
@@ -144,28 +155,6 @@ interface RollingCommentPollContext {
   readonly options: PollOptions;
   /** The PR's current head commit; `undefined` when the reviews call could not report it. */
   readonly headRefOid: string | undefined;
-}
-
-/**
- * The fields both halves of the rolling-comment filter emit: the comment's
- * id, the `updated_at` that stands in for a review's `submittedAt`, and the
- * bounded section extracted from its body. `section` is kept only long enough
- * for the TypeScript phrase re-check (and, for a rate limit, the composite id
- * and wait-duration parse) — the completion half never lets it reach the
- * caller.
- */
-interface SectionCandidate {
-  readonly id: string;
-  readonly submittedAt: string;
-  readonly section: string;
-}
-
-/**
- * What the completion half emits: a `SectionCandidate` plus the author the
- * synthesized review is attributed to.
- */
-interface CompletionCandidate extends SectionCandidate {
-  readonly author: { readonly login: string };
 }
 
 /**
@@ -540,8 +529,7 @@ export class WaitForPrReviewService {
       parsed.starGateComment,
       STAR_GATE_PHRASE_REGEX,
     );
-    const headRefOid =
-      typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
+    const headRefOid = this.validate(headRefOidSchema, parsed.headRefOid);
     const checked = await this.checkedReview(
       parsed.review,
       this.budgetMs(deadline, intervalMs),
@@ -605,16 +593,21 @@ export class WaitForPrReviewService {
    * poll, so discarding it would loop forever on the same value. jq only ever
    * emits real GitHub review objects here, so this is a defensive branch, not
    * a live path.
+   *
+   * The body check stays in TypeScript rather than moving into the schema on
+   * purpose — see `emptyBodyReviewCandidateSchema`'s own comment: a schema
+   * that rejected a non-string body would fail the whole candidate, and a
+   * failed candidate here means "trust it", the opposite of what a null body
+   * must do.
    */
   private emptyBodyReviewId(candidate: unknown): string | undefined {
-    if (typeof candidate !== 'object' || candidate === null) {
+    const review = this.validate(emptyBodyReviewCandidateSchema, candidate);
+    if (review === undefined) {
       return undefined;
     }
-    const { id, body } = candidate as { id?: unknown; body?: unknown };
-    if (typeof id !== 'string') {
-      return undefined;
-    }
-    return typeof body === 'string' && body.trim() !== '' ? undefined : id;
+    return typeof review.body === 'string' && review.body.trim() !== ''
+      ? undefined
+      : review.id;
   }
 
   /**
@@ -737,35 +730,14 @@ export class WaitForPrReviewService {
    * read as "no match" rather than as a half-built signal.
    */
   private parseSectionCandidate(value: unknown): SectionCandidate | undefined {
-    if (value === null || typeof value !== 'object') {
-      return undefined;
-    }
-    const { id, submittedAt, section } = value as {
-      id?: unknown;
-      submittedAt?: unknown;
-      section?: unknown;
-    };
-    return typeof id === 'string' &&
-      typeof submittedAt === 'string' &&
-      typeof section === 'string'
-      ? { id, submittedAt, section }
-      : undefined;
+    return this.validate(sectionCandidateSchema, value);
   }
 
   /** The same validation plus the author the synthesized review needs. */
   private parseCompletionCandidate(
     value: unknown,
   ): CompletionCandidate | undefined {
-    const base = this.parseSectionCandidate(value);
-    if (base === undefined) {
-      return undefined;
-    }
-    const author = (value as { author?: { login?: unknown } }).author;
-    const login =
-      typeof author === 'object' && author !== null ? author.login : undefined;
-    return typeof login === 'string'
-      ? { ...base, author: { login } }
-      : undefined;
+    return this.validate(completionCandidateSchema, value);
   }
 
   /**
@@ -793,9 +765,29 @@ export class WaitForPrReviewService {
   }
 
   /**
+   * Shape-checks a value, fail-closed: an unexpected shape resolves to
+   * `undefined`, never a thrown error. `safeParse`, not `parse`, is the
+   * whole point — every validation spot in this service treats a malformed
+   * `gh`/jq response as "no match" so the poll loop retries on the next
+   * interval instead of aborting the wait. Expressed once here rather than
+   * repeated at each of the six call sites.
+   *
+   * None of this service's schemas can successfully parse to `undefined`, so
+   * a returned `undefined` always means "invalid" here. A future schema that
+   * legitimately produces `undefined` on success (e.g. a top-level
+   * `.optional()`) would be indistinguishable from a validation failure
+   * through this helper alone.
+   */
+  private validate<T>(schema: z.ZodType<T>, value: unknown): T | undefined {
+    const result = schema.safeParse(value);
+    return result.success ? result.data : undefined;
+  }
+
+  /**
    * One JSON object out of a `gh --jq` result. `undefined` for empty output,
    * a jq `null` (what `[] | first` yields for no match), unparseable text,
-   * or any non-object — none of which is a reason to abort the wait.
+   * or anything that is not a JSON object — none of which is a reason to
+   * abort the wait.
    */
   private parseJsonObject(stdout: string): Record<string, unknown> | undefined {
     const trimmed = stdout.trim();
@@ -808,9 +800,7 @@ export class WaitForPrReviewService {
     } catch {
       return undefined;
     }
-    return parsed !== null && typeof parsed === 'object'
-      ? (parsed as Record<string, unknown>)
-      : undefined;
+    return this.validate(jsonObjectSchema, parsed);
   }
 
   /**
@@ -831,26 +821,20 @@ export class WaitForPrReviewService {
    * One comment-shaped candidate out of the reviews call, kept only if it
    * survives the stricter TypeScript phrase re-check. jq's own phrase test is
    * a coarse first pass and can be fooled by a phrase appearing only inside
-   * markdown code formatting; the `typeof` guards on every field additionally
-   * make a malformed jq response read as "no match" rather than crash the
-   * wait (the reviews half's shape is asserted by a cast, not checked). All
-   * three fields are validated, not just `body`: a caller retrying off a
-   * candidate missing `id` or `submittedAt` (develop-feature's Phase 6 steps
-   * b2/b3) would build an unusable exclusion value or watermark.
+   * markdown code formatting; `codeRabbitCommentSchema` additionally makes a
+   * malformed jq response read as "no match" rather than crash the wait (the
+   * reviews half's shape is asserted by a cast, not checked). All three
+   * fields are validated, not just `body`: a caller retrying off a candidate
+   * missing `id` or `submittedAt` (develop-feature's Phase 6 steps b2/b3)
+   * would build an unusable exclusion value or watermark.
    */
   private prosePhraseComment(
     candidate: unknown,
     phrase: RegExp,
   ): CodeRabbitComment | undefined {
-    if (candidate === null || typeof candidate !== 'object') {
-      return undefined;
-    }
-    const comment = candidate as Partial<CodeRabbitComment>;
-    return typeof comment.id === 'string' &&
-      typeof comment.body === 'string' &&
-      typeof comment.submittedAt === 'string' &&
-      this.hasProsePhrase(comment.body, phrase)
-      ? { id: comment.id, body: comment.body, submittedAt: comment.submittedAt }
+    const comment = this.validate(codeRabbitCommentSchema, candidate);
+    return comment !== undefined && this.hasProsePhrase(comment.body, phrase)
+      ? comment
       : undefined;
   }
 
