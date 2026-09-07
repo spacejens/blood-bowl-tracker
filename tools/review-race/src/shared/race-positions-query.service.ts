@@ -1,6 +1,9 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   DB,
+  eq,
   eraRulesSets,
   eras,
   positions,
@@ -9,7 +12,6 @@ import {
   rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq } from 'drizzle-orm';
 
 /** How one characteristic is displayed under a rules set. */
 export type CharacteristicFormat =

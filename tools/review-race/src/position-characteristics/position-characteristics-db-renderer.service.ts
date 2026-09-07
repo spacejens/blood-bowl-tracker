@@ -1,9 +1,8 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, positionRulesSets } from '@blood-bowl-tracker/db';
+import { DB, inArray, positionRulesSets } from '@blood-bowl-tracker/db';
 import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-import { inArray } from 'drizzle-orm';
 
 import type { RaceRulesSetRow } from '../shared/race-positions-query.service';
 import { RacePositionsQueryService } from '../shared/race-positions-query.service';
