@@ -264,6 +264,32 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   maps it re-upserts to attach the links). Team ids that don't match an imported
   team, and matches with no detail page, are recorded as errors and skipped.
 
+- **MatchEventsModule** — `BblMatchEventsReaderService` reads each match's raw
+  event occurrences; `MatchEventCorrelationService` correlates casualty
+  actions with Sustained-Injury consequences and emits correlated events;
+  `BblMatchEventsImportService` resolves each event's team codes to team-era
+  ids and each player pid to its DB id, synthesizes a stable external id per
+  event side, and upserts into `match_events` (requesting server-side SPP
+  valuation on every event via `computeSppValue: true`, since BBL reports no
+  SPP of its own). A merged match's events come from both source rows' pages.
+  Runs after matches, teams, and players (all referenced).
+- **SppAdjustmentsModule** — `BblSppAdjustmentsImportService` reconciles
+  `players.spp_adjustment` and `players.spp_total` for every imported player:
+  since BBL's displayed career SPP total was recalculated at BB2020 rates when
+  the site re-platformed, the server compares it against a forced-rate replay
+  of the player's events to recover the unexplained remainder as
+  `spp_adjustment`, then rebuilds `spp_total` as the era-correct event sum plus
+  that adjustment. Runs after match events, since it depends on
+  `match_events.spp_value` already being populated.
+- **TrophyAwardsModule** — `BblTrophyAwardsImportService` records every team
+  and player award from the competition results pages' trophy tables (read via
+  the already-described `CompetitionTrophyPageParser` /
+  `BblCompetitionTrophyReaderService`), resolving each award to a
+  previously-curated trophy (seeded by `tools/import-manual`, which always runs
+  first) and to the winning team era or player. Runs after team participation
+  and players (it needs their resolved team-era/player ids) and after match
+  outcomes (see the note in the existing MatchesModule paragraph).
+
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through
 `packages/api-client`. No tool talks to the API directly.
@@ -410,7 +436,9 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   there is no `Name` external id, since matches have no natural name. The
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
-  future work.
+  both imported by later steps: see the MatchesModule bullet in Architecture
+  above for per-team results and outcomes, and the MatchEventsModule bullet for
+  per-player events.
   A pair configured under an era's `matches.merges` (per-era; see
   Configuration above) is imported as a single match rather than two: BBL
   cannot record a match with
