@@ -3,7 +3,11 @@ import { NestFactory } from '@nestjs/core';
 
 /** Everything a CLI entrypoint supplies that is specific to that tool. */
 export interface RunCliOptions<TSubcommand extends string, TArgs> {
-  /** Normally `process.argv`; the subcommand is read from index 2. */
+  /**
+   * Normally `process.argv`; the subcommand is read from index 2. `readArgs`
+   * and `dispatch` read any further positional arguments straight off
+   * `process.argv` themselves rather than through this array.
+   */
   readonly argv: readonly string[];
   /** The tool's full subcommand list, used for validation and usage text. */
   readonly subcommands: readonly TSubcommand[];
@@ -46,8 +50,7 @@ export async function runCli<TSubcommand extends string, TArgs>(
 ): Promise<void> {
   try {
     const subcommand = readSubcommand(options.argv, options.subcommands);
-    // fd 0 is stdin: `readArgs` reads it fully before the Nest context is
-    // created.
+    // Must complete before the Nest context is created — see readArgs.
     const args = options.readArgs(subcommand);
     const app = await NestFactory.createApplicationContext(options.module, {
       logger: false,
