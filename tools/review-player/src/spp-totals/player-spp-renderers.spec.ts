@@ -1,6 +1,6 @@
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { PlayerSppComputedRendererService } from './player-spp-computed-renderer.service';
 import { PlayerSppImportedRendererService } from './player-spp-imported-renderer.service';
@@ -18,10 +18,10 @@ function totals(overrides: Partial<PlayerSppTotals> = {}): PlayerSppTotals {
   };
 }
 
-async function makeServices(): Promise<{
-  computed: PlayerSppComputedRendererService;
-  imported: PlayerSppImportedRendererService;
-}> {
+let computed: PlayerSppComputedRendererService;
+let imported: PlayerSppImportedRendererService;
+
+beforeEach(async () => {
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerSppComputedRendererService,
@@ -29,16 +29,12 @@ async function makeServices(): Promise<{
       HtmlService,
     ],
   }).compile();
-  return {
-    computed: moduleRef.get(PlayerSppComputedRendererService),
-    imported: moduleRef.get(PlayerSppImportedRendererService),
-  };
-}
+  computed = moduleRef.get(PlayerSppComputedRendererService);
+  imported = moduleRef.get(PlayerSppImportedRendererService);
+});
 
 describe('PlayerSppComputedRendererService', () => {
-  it('renders the event-derived total and the events behind it', async () => {
-    const { computed } = await makeServices();
-
+  it('renders the event-derived total and the events behind it', () => {
     const html = computed.render(totals());
 
     expect(html).toContain(
@@ -47,32 +43,24 @@ describe('PlayerSppComputedRendererService', () => {
     expect(html).toContain('<td>SPP-earning events</td><td>5</td>');
   });
 
-  it('highlights and labels a disagreement', async () => {
-    const { computed } = await makeServices();
-
+  it('highlights and labels a disagreement', () => {
     const html = computed.render(totals({ mismatch: true, sppTotal: 20 }));
 
     expect(html).toContain('<tr class="mismatch">');
     expect(html).toContain('<td>MISMATCH</td>');
   });
 
-  it('leaves an agreeing pair unmarked', async () => {
-    const { computed } = await makeServices();
-
+  it('leaves an agreeing pair unmarked', () => {
     expect(computed.render(totals())).not.toContain('MISMATCH');
   });
 
-  it('renders no non-standard-events table when there are no such events', async () => {
-    const { computed } = await makeServices();
-
+  it('renders no non-standard-events table when there are no such events', () => {
     const html = computed.render(totals());
 
     expect(html).not.toContain('<th>Action type</th>');
   });
 
-  it('renders a highlighted row per non-standard event', async () => {
-    const { computed } = await makeServices();
-
+  it('renders a highlighted row per non-standard event', () => {
     const html = computed.render(
       totals({
         nonStandardEvents: [
@@ -90,18 +78,14 @@ describe('PlayerSppComputedRendererService', () => {
 });
 
 describe('PlayerSppImportedRendererService', () => {
-  it('renders the stored total and adjustment', async () => {
-    const { imported } = await makeServices();
-
+  it('renders the stored total and adjustment', () => {
     const html = imported.render(totals({ sppTotal: 16, sppAdjustment: 2 }));
 
     expect(html).toContain('<td>spp_total</td><td>16</td>');
     expect(html).toContain('<td>spp_adjustment</td><td>2</td>');
   });
 
-  it('renders a missing stored total as an em dash and flags it', async () => {
-    const { imported } = await makeServices();
-
+  it('renders a missing stored total as an em dash and flags it', () => {
     const html = imported.render(
       totals({ sppTotal: null, sppAdjustment: null, mismatch: true }),
     );
