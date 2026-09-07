@@ -86,7 +86,8 @@ after 2023-06-28 — after the mirror's data ends. There is no BBL data to
 cross-reference against for any of these competitions.
 
 `matchEvents[]` — TP's per-roll event log for the match — is decoded by
-`packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
+`packages/parse-tp`'s `MatchEventParserService.parse()` into `TpMatchEvent[]`,
+keyed by the
 raw numeric `matchEventType` code. **Modeled codes**: `3` completion, `4`
 touchdown, `5` interception, `25` deflection, `31` foul, and `46` successful
 landing are all structurally identical single-actor action events

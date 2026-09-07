@@ -2,7 +2,8 @@
 
 See [file-format.md](./file-format.md) for the other pages.
 
-Fully handled in code: `packages/parse-tp`'s `parseTournament()` extracts
+Fully handled in code: `packages/parse-tp`'s `TournamentParserService.parse()`
+extracts
 only `{ id: number, name: string, ruleSet: number }`. The body carries much
 more — `nameNormalized` (the slug used for the competition subdirectory
 name), `country`/`locality`/`region`/`address`/`postalCode`, `creationDate`,

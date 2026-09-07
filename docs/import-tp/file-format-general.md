@@ -55,7 +55,7 @@ rule-set codes are — and are not — used. See
   include a `teamRace` field that
   embeds a rule-set-looking suffix, e.g. `"Snotling_BB2025"`,
   `"Khemri_BB2025"`. Parsed as `teamRaceCode` (see [`rosters_<id>.json`](./file-format-rosters.md)) and
-  used to resolve each team's/position's race via `raceIdsByTeamRaceCode`
+  used to resolve each team's/position's race via `raceIdsByCode`
   during races/teams/positions import, but note the embedded suffix does NOT
   necessarily match this project's own rule-set names (compare to the opaque
   `ruleSet` numeric code above, which is the field actually used for
