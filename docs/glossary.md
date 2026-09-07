@@ -197,3 +197,21 @@ The premature end of a team's [turn](#turn), triggered by specific failed action
 ---
 
 ## Internal terms
+
+### External ID
+
+One of the identifiers a record can be known by within a given [external system](#external-system), used by an [upsert](#upsert) to match incoming data to existing records across import runs.
+
+See [api/imports.md](api/imports.md).
+
+### Fact Tree
+
+The categorized tree of [insights](#insight) that the `/insights` command's `category` argument navigates as a dotted path (e.g. `coach.toplist.teams`).
+
+See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights.md).
+
+### Upsert
+
+The operation importable entities expose to importers: given a candidate identity (see [external ID](#external-id)), the server finds a matching existing record and updates it, or creates a new record if none matches. An upsert overlays fields onto an existing record rather than replacing the whole record.
+
+See [api/imports.md](api/imports.md).
