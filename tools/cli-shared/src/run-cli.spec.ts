@@ -237,4 +237,27 @@ describe('runCli', () => {
     );
     expect(exit).toHaveBeenCalledWith(1);
   });
+
+  it('reports the error when app.close() rejects, suppressing success output', async () => {
+    close.mockRejectedValue(new Error('close blew up'));
+    const dispatch = vi.fn().mockResolvedValue({ ok: true });
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: TestModule,
+      readArgs: vi
+        .fn<(subcommand: Subcommand) => TestArgs>()
+        .mockReturnValue({ value: 'x' }),
+      dispatch,
+    });
+
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(log).not.toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({ error: 'close blew up' }),
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
 });
