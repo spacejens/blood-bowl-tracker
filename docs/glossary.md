@@ -8,6 +8,10 @@ Entries are split into two sections: terms a [coach](#coach) directly encounters
 
 ## User-facing terms
 
+### Apothecary
+
+Team staff who can be called upon during a [match](#match) to attempt to heal or reduce the severity of an injury that would otherwise be a [casualty](#casualty). See also [regeneration](#regeneration), a similar effect rolled on the [player](#player)'s own skill rather than provided by team staff.
+
 ### Coach
 
 The person who manages and controls a [team](#team), making decisions during [matches](#match) and between them (roster changes, treasury spending, etc.).
@@ -68,6 +72,16 @@ One of the two periods of a [match](#match). Each half consists of up to eight [
 
 A temporary hire, piece of equipment, or other advantage that a team purchases before a [match](#match), typically using extra gold gained from a treasury or a lower team value than the opponent.
 
+### Insight
+
+A statistic, top list, or other piece of derived or human-submitted content about recorded game data, organized into the [fact tree](#fact-tree) that the `/insights` command draws from.
+
+See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights.md).
+
+### Journeyman
+
+A temporary [player](#player) fielded by a [team](#team) that has too few available players for a [match](#match), rather than a permanent member of its [roster](#roster). Unlike a [mercenary](#mercenary), a journeyman is drawn from the team's own basic [positions](#position) rather than hired in.
+
 ### League
 
 An organized group of [teams](#team) that play [matches](#match) against each other over multiple [competitions](#competition). A league may be divided into [eras](#era) when the [rules set](#rules-set) changes.
@@ -80,11 +94,21 @@ A single game of Blood Bowl played between two [teams](#team). Consists of two [
 
 See [game-concepts/matches](game-concepts/matches/index.md).
 
+### Match Category
+
+Each [match](#match) has exactly one match category, describing its competitive stage within its [competition](#competition) — for example routine play versus a semi-final or a final. [Insights](#insight) and importers can scope or classify by match category.
+
+See [game-concepts/matches](game-concepts/matches/index.md).
+
 ### Match Event
 
 A noteworthy occurrence during a [match](#match), such as a [touchdown](#touchdown) or [casualty](#casualty) being scored. Match events are the primary unit of data recorded during a game.
 
 See [game-concepts/match-events](game-concepts/match-events/index.md).
+
+### Mercenary
+
+A [player](#player) hired for a single [match](#match) only (e.g. a Big Guy), rather than a permanent member of a [team](#team)'s [roster](#roster). Unlike a [journeyman](#journeyman), a mercenary is an outside hire rather than drawn from the team's own [positions](#position).
 
 ### Player
 
@@ -103,6 +127,10 @@ See [game-concepts/positions](game-concepts/positions/index.md).
 The species or faction a [team](#team) belongs to (e.g. Humans, Orcs, Elves). Race determines which [positions](#position) are available on the [roster](#roster) and the team's overall play style. A race's availability is tracked per [era](#era).
 
 See [game-concepts/races](game-concepts/races/index.md).
+
+### Regeneration
+
+A skill that gives a [player](#player) a chance to avoid what would otherwise be a [casualty](#casualty). See also [apothecary](#apothecary), a similar effect provided by team staff rather than by the player's own skill.
 
 ### Roster
 
