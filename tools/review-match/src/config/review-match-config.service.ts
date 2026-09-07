@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
-import { ReviewConfigServiceBase } from '@blood-bowl-tracker/review-harness';
-import { Inject, Injectable } from '@nestjs/common';
+import { createReviewConfigServiceBase } from '@blood-bowl-tracker/review-harness';
+import { Injectable } from '@nestjs/common';
 
 /** DI token carrying the absolute path to the JSON5 config file. */
 export const REVIEW_MATCH_CONFIG_PATH = Symbol('REVIEW_MATCH_CONFIG_PATH');
@@ -26,15 +26,11 @@ const DEFAULT_MATCHES_PER_STRATUM = 3;
  * setting only this tool has.
  */
 @Injectable()
-export class ReviewMatchConfigService extends ReviewConfigServiceBase {
-  constructor(@Inject(REVIEW_MATCH_CONFIG_PATH) filePath: string) {
-    super({
-      filePath,
-      fileName: CONFIG_FILE_NAME,
-      overrideLabel: 'external match ids',
-    });
-  }
-
+export class ReviewMatchConfigService extends createReviewConfigServiceBase({
+  pathToken: REVIEW_MATCH_CONFIG_PATH,
+  fileName: CONFIG_FILE_NAME,
+  overrideLabel: 'external match ids',
+}) {
   /** How many matches to sample per stratum, per source. */
   getMatchesPerStratum(): number {
     return this.positiveInteger(
