@@ -6,14 +6,20 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, NewPositionRulesSet } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   DB,
+  desc,
+  eq,
   eraRulesSets,
   eras,
+  inArray,
+  min,
   positionRulesSets,
   rulesSets,
+  sql,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, min, sql } from 'drizzle-orm';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';

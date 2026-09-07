@@ -1,10 +1,17 @@
 import type { UpsertTrophyAward } from '@blood-bowl-tracker/api-contract';
 import type { Db, TrophyAward } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   competitionGroups,
   competitions,
+  count,
   DB,
+  desc,
+  eq,
   eras,
+  getTableName,
+  isNull,
   players,
   positions,
   teamEras,
@@ -13,7 +20,6 @@ import {
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, getTableName, isNull } from 'drizzle-orm';
 
 /** Postgres' SQLSTATE for a unique-constraint violation. */
 const UNIQUE_VIOLATION = '23505';

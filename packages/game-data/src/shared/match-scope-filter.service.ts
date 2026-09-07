@@ -1,7 +1,6 @@
-import { eras, matches, teamEras } from '@blood-bowl-tracker/db';
+import type { SQL } from '@blood-bowl-tracker/db';
+import { and, eq, eras, matches, teamEras } from '@blood-bowl-tracker/db';
 import { Injectable } from '@nestjs/common';
-import type { SQL } from 'drizzle-orm';
-import { and, eq } from 'drizzle-orm';
 
 import type { FactScope } from './fact-scope';
 

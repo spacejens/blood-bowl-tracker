@@ -1,9 +1,8 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, trophyAwards } from '@blood-bowl-tracker/db';
+import { DB, DrizzleQueryError, trophyAwards } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { DrizzleQueryError } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
 import {

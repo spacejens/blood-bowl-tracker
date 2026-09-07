@@ -1,12 +1,11 @@
+import { getColumnTable, getTableName } from '@blood-bowl-tracker/db';
 import {
   Column,
-  getColumnTable,
-  getTableName,
   is,
   Param,
   SQL,
   StringChunk,
-} from 'drizzle-orm';
+} from '@blood-bowl-tracker/db/test-helpers';
 
 /**
  * Shared introspection helpers for game-data service specs. The service methods
@@ -91,19 +90,25 @@ export function extractAllFilterValues(condition: unknown): unknown[] {
  * for `Column` instances, mirroring how extractFilterValues walks for `Param`s.
  *
  * Uses drizzle's `is()` type guard rather than `instanceof` because the table
- * objects imported from `@blood-bowl-tracker/db` are constructed against that
- * package's compiled CJS `drizzle-orm` module instance, while this file (run
- * through Vitest/Vite as ESM) imports the ESM `drizzle-orm` module instance.
- * Those are two distinct copies of the `Column` class in Node's dual-package
- * hazard sense, so `instanceof Column` silently fails to match real columns.
- * `is()` instead compares a `Symbol.for('drizzle:entityKind')` tag, which is
- * shared across module instances via Node's global symbol registry.
+ * objects imported from `@blood-bowl-tracker/db` come from that package's
+ * compiled CommonJS main entry point, while these primitives come from its
+ * ESM `test-helpers` build. Those are two distinct copies of the `Column`
+ * class in Node's dual-package hazard sense, so `instanceof Column` silently
+ * fails to match real columns. `is()` instead compares a
+ * `Symbol.for('drizzle:entityKind')` tag, which is shared across module
+ * instances via Node's global symbol registry.
  */
 export function extractJoinColumns(condition: unknown): string[] {
   const columns: string[] = [];
   const walk = (node: unknown): void => {
     if (is(node, Column)) {
-      columns.push(`${getTableName(getColumnTable(node))}.${node.name}`);
+      // `node` narrows to the ESM `test-helpers` copy of `Column`, but
+      // `getColumnTable`/`getTableName` are typed against the CJS copy
+      // re-exported from the main entry (see the class comment above) — a
+      // structural-typing artifact of the dual-package split, not a real
+      // type mismatch, since both copies describe the same runtime shape.
+      const column = node as unknown as Parameters<typeof getColumnTable>[0];
+      columns.push(`${getTableName(getColumnTable(column))}.${node.name}`);
     } else if (is(node, SQL)) {
       for (const chunk of node.queryChunks) walk(chunk);
     } else if (Array.isArray(node)) {
