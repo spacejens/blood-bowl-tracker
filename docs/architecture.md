@@ -116,9 +116,10 @@ tools/
                         by the root .markdownlint-cli2.jsonc
   cli-shared/         — library package with the plumbing the three CLI
                         packages below share: git main-checkout/worktree
-                        resolution, child-process running and spawning, and
-                        the canonical gitignored file/directory lists; no CLI
-                        entry point of its own
+                        resolution, child-process running and spawning, the
+                        canonical gitignored file/directory lists, and the
+                        shared runCli subcommand-dispatcher driver all three
+                        entrypoints run on; no CLI entry point of its own
   dev-workflow-cli/   — NestJS CLI application providing the developer/PR
                         workflow helpers the Claude Code skills in
                         .claude/skills/ call instead of hand-rolling the
