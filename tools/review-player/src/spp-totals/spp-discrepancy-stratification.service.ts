@@ -1,16 +1,21 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   DB,
+  eq,
   eras,
+  isNotNull,
   matchEvents,
+  or,
   playerExternalIds,
   players,
   positions,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, isNotNull, or, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type {
