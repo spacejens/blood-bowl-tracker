@@ -363,8 +363,8 @@ string constant.
 
 - **One constant per call site.** Each constant is referenced from exactly one
   place in production code — or, for a fact backed by a shared helper (e.g.
-  `resolveToplist` in `insights/leaderboard.ts`), from every call site within
-  that one originating fact, since the helper takes the message as a
+  `resolveToplist` in `insights/leaderboard.service.ts`), from every call site
+  within that one originating fact, since the helper takes the message as a
   parameter rather than hardcoding it. When a user reports a message,
   searching the codebase for that exact text points to the single code path
   (or single fact) that produced it.
