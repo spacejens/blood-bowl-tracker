@@ -299,7 +299,13 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
    d. Apply `develop-feature`'s exit check unchanged: leave the loop early on "No unhandled review comments or failing CI checks found", on a stop for an ambiguous item, or on a Phase 7 summary reporting that no fix commits were pushed. A "still in progress" report is **not** an exit condition — start the next iteration.
 
-   After the loop, print a brief status line naming how it ended, then continue.
+   **After the loop** — however it ended (clean, handled without code changes, an ambiguous item, no fix commits, the iteration cap, or timed out and skipped) — release the review lock before continuing, so the next queued session can start immediately rather than waiting out the staleness threshold:
+   ```bash
+   node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>
+   ```
+   It prints `{"released": true}` normally, or `{"released": false}` if a Pause branch in (b)/(b2)/(b3) already released it — both are fine, and neither is an error. A non-zero exit is a one-line warning, never a stop.
+
+   Then print a brief status line naming how the loop ended, and continue. Step 6's `deploy-local` offer and step 7's mergeability re-check both run unlocked, exactly as in `develop-feature`: neither triggers a review, and `deploy-local` can wait indefinitely on a developer.
 
 6. **Offer a local look.** **REQUIRED SUB-SKILL:** Use the `deploy-local` skill, exactly as `develop-feature`'s Phase 6 step 6 does — this is the only `deploy-local` offer this skill produces, since step 5c suppresses `handle-pr-reviews`' own. It is worth making even for a dependency bump: an updated runtime library can break at startup in ways no unit test covers. Do not ask the developer separately before invoking it — `deploy-local` asks which of its actions to run.
 
