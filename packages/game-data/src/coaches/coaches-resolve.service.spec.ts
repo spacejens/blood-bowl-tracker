@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachesService } from './coaches.service';
 
 async function makeService(rows: unknown[]) {
@@ -23,6 +24,10 @@ async function makeService(rows: unknown[]) {
       {
         provide: MatchOutcomeCountsService,
         useValue: mock<MatchOutcomeCountsService>(),
+      },
+      {
+        provide: TrophyAwardCountsService,
+        useValue: mock<TrophyAwardCountsService>(),
       },
     ],
   }).compile();
