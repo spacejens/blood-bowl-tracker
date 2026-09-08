@@ -11,11 +11,8 @@ import {
   raceEras,
   rulesSets,
 } from '@blood-bowl-tracker/db';
+import type { CharacteristicFormat } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-
-/** How one characteristic is displayed under a rules set. */
-export type CharacteristicFormat =
-  'absent' | 'bare' | 'plus' | 'plus_zero_legal';
 
 /** One era the race exists in. */
 export interface RaceEraRow {

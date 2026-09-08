@@ -6,7 +6,8 @@ import { Injectable } from '@nestjs/common';
 /** DI token carrying the absolute path to the JSON5 config file. */
 export const REVIEW_MATCH_CONFIG_PATH = Symbol('REVIEW_MATCH_CONFIG_PATH');
 
-const CONFIG_FILE_NAME = 'review-match-config.json5';
+/** File name this tool's config lives in, named in every error about it. */
+export const CONFIG_FILE_NAME = 'review-match-config.json5';
 
 /**
  * Default config-file location: `review-match-config.json5` in the current

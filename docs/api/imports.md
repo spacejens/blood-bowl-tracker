@@ -18,7 +18,7 @@ Re-running an import is not the same as idempotency: a later run of the same
 import might need to add new information to a record created by an earlier
 run (for example, a coach gaining an external ID from a second import
 source), so a plain "insert if missing, otherwise do nothing" is not enough.
-Instead, importable entities expose an **upsert** operation: given a
+Instead, importable entities expose an [**upsert**](../glossary.md#upsert) operation: given a
 candidate identity, the server finds a matching existing record (if any),
 updates it, and attaches any new identifying information from the request; if
 no match is found, it creates a new record instead.
@@ -79,7 +79,7 @@ nothing to classify the event as.
 
 To find a previous record across import runs — and across different import
 tools that might import the same real-world entity — importable entities
-record a set of **external IDs**: one row per `(external system, identifier)`
+record a set of [**external IDs**](../glossary.md#external-id): one row per `(external system, identifier)`
 pair the record is known by. An identifier is an opaque string scoped to its
 external system; by convention it is namespaced by kind, e.g. `id:47` for a
 source's own numeric ID, or `name:bob` for a lowercased name used as a
