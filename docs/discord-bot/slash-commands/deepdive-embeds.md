@@ -5,13 +5,19 @@ contains, in what order, and which drill-down buttons the embed carries. See
 [`/deepdive`](deepdive.md) for the command's arguments, its per-target
 one-line summaries, and its not-found and timeout behavior.
 
+This page describes what each embed says and why, not the literal text it
+renders. For exact wording, punctuation, markers and row formats, see the
+per-target resolver services listed at the end of
+[`/deepdive`](deepdive.md) — one `*-deepdive.service.ts` per target under
+`apps/discord-bot/src/deepdive/facts/`.
+
 ## `era`
 
 The era name as
-the title, then its league, its start–end dates (an ongoing era shows
-`present`), its rules sets (comma-joined, or "None recorded"), and a
+the title, then its league, its start–end dates, with an ongoing era marked
+as still running, its rules sets (comma-joined, or "None recorded"), and a
 chronological list of the era's competitions, one line per competition
-formatted `<name> (<type>)`. Competitions are ordered by their earliest
+naming it and its type. Competitions are ordered by their earliest
 recorded match; competitions with no played matches yet sort last. An era
 with no competitions shows a short "nothing played yet" message instead of a
 list. Every listed competition is rendered as a drill-down button to that
@@ -21,12 +27,11 @@ competition's deepdive.
 
 The coach
 name as the title, then their career span (the first and last dates across
-every match they have played), a blank line, and `Top teams by matches
-played:` followed by their top five teams by matches played, one line per
-team formatted `<rank>. <team> — <matches>`. Ties at the fifth-place cutoff
+every match they have played), a blank line, then a ranked list of their top
+five teams by matches played. Ties at the fifth-place cutoff
 are all shown, up to ten teams — the same convention `/insights` toplists
-use, though at most ten teams are fetched for a deepdive, so the toplists'
-"…and N more tied." truncation note never actually appears here. A coach who
+use; at most ten teams are fetched for a deepdive, so the toplists'
+truncation note never actually appears here. A coach who
 exists but has recorded no matches shows a short "hasn't played yet" message
 instead of a career span and team list. Every listed team is rendered as a
 drill-down button to that team's deepdive, ahead of the era header buttons.
@@ -38,28 +43,26 @@ name as the title, then its race, its coach, its era list, its career span
 (the first and last dates across every match it has played), then — only
 when the team has recorded trophies, with the whole section omitted
 otherwise rather than a placeholder line — a blank line and one
-`<era> trophies:` heading per era, newest era first, each followed by that
-era's awards newest-first, one line per award formatted
-`<competition> (<trophy>)` for a trophy won by the team itself or
-`<competition> (<trophy>): <player> (<position>)` for a trophy won by one
+heading per era, newest era first, each followed by that
+era's awards newest-first, one line per award naming the competition and
+trophy, plus the winning player and their position for a trophy won by one
 of its players — the two kinds are interleaved within an era rather than
 split, since both are that era's trophies, and the team, race, coach and
 era are left off the rows because the header, the embed's own subject and
 the section heading already name them. A blank line separates each era
-section from the next. At most 30 trophies are shown; when there are more,
-the list ends with an exact `…and N more not shown.` note computed from the
-team's true award count. Then a blank line and
-`Top players by SPP:` followed by its top five players by career
+section from the next. The list is capped, and when it is truncated the
+embed says exactly how many awards are not shown, computed from the
+team's true award count. Then a blank line, then a ranked list of its top
+five players by career
 [SPP](../../glossary.md#star-player-points-spp) total — each player's own
 stored total, manual adjustments included and exactly as the player deepdive
 reports it, ranked across every [era](../../glossary.md#era) the team has
 played (a player fielded in more than one era has one record per era, each
-ranked separately) — one line per player formatted
-`<rank>. <player> (<position>, <era>) — <SPP>`. Star players are not listed:
+ranked separately). Star players are not listed:
 each hire of a star is its own player record, so one star would otherwise
 take several of the five slots. Ties at the fifth-place cutoff are all
 shown, up to ten players (the same convention `/insights` toplists use,
-though at most ten players are fetched, so the "…and N more tied." note
+though at most ten players are fetched, so the toplists' truncation note
 never actually appears here). Each trophy is rendered as a drill-down button to the trophy,
 plus a button to the player for a player award; those come before the
 top-players buttons, which in turn come before the race/coach/era header
@@ -73,47 +76,39 @@ race and coach.
 ### Header lines
 
 The
-player name as the title, then `Team: <team>`, `Era: <era>`, `Race: <race>`,
-and `Position: <position>` (every player always has all four — a player
+player name as the title, then its team, era, race and position lines
+(every player always has all four — a player
 belongs to exactly one team-era, and therefore to exactly one era).
 
 ### Killer status
 
-Then —
-only for a player who died — a `Status:` line naming whoever was
-responsible, at the best precision the recorded match event supports:
-`Status: Killed by <player> (<position>, <team>, <race>, <coach>)` when the
-killer is a specific indexed player;
-`Status: Killed by <team> (<race>, <coach>)` when only the killing side is
-known (the source named a journeyman or mercenary rather than linking a
-player row), or when the event recorded no acting side but the match had
-exactly one other team;
-`Status: Killed by <team A> (…), <team B> (…), or <team C> (…)` — an
-"or"-joined list, with a plain `X or Y` for exactly two and an Oxford comma
-before the `or` for three or more — when a multi-team match leaves several
-possible killers; and `Status: Killed in mysterious circumstances` as a
-fallback when nothing can be attributed at all.
+Then — only for a player who died — a status line naming whoever was
+responsible, at the best precision the recorded match event supports: the
+specific killer player, with their position, team, race and coach, when the
+event indexes one; the killing team alone, with its race and coach, when
+only the side is known (the source named a journeyman or mercenary rather
+than linking a player row), or when the event recorded no acting side but
+the match had exactly one other team; an "or"-joined list of the possible
+killing teams when a multi-team match leaves several candidates; and a
+"mysterious circumstances" fallback when nothing can be attributed at all.
 When the fatal event was recorded as a foul rather than a regular blocking
-action, the line ends with `(via a foul)` — e.g.
-`Status: Killed by Gouged Eye (Orc, Grimly) (via a foul)` — in all four of
-those forms.
-Only the `death` consequence produces this line; a player who has not died
-shows no `Status:` line at all, rather than a placeholder.
+action, the line notes that, in all four of those forms.
+Only a fatal consequence produces this line; a player who has not died
+shows no status line at all, rather than a placeholder.
 
 ### Characteristics
 
 Then a blank
-line, and a
-`Characteristics: MA <move> ST <strength> AG <agility> [PA <passing>]
-AV <armour>` line, the player's own current values written using the
+line, and a characteristics line carrying the player's own current values
+written using the
 format of whichever [rules set](../../glossary.md#rules-set) applies to
 their era — a bare number, or a number with a trailing `+` for a target a
 die roll has to meet — with the same `PA`-omission and dash-for-zero rules
 as the position deepdive's stat line below. Each value that has moved away
 from the [position](../../glossary.md#position)'s own recorded baseline
-under that rules set carries a trailing `▲` (increased) or `▼` (decreased);
+under that rules set is marked as increased or decreased;
 the comparison is on the raw stored numbers, so a not-yet-curated zero
-still carries `▼` next to its dash. Nothing is marked when the position has
+is still marked as decreased. Nothing is marked when the position has
 no recorded baseline under the resolved rules set — the values are shown
 unmarked rather than guessing — and the whole line is omitted when no rules
 set can be resolved for the player's era at all.
@@ -122,27 +117,26 @@ set can be resolved for the player's era at all.
 
 Then —
 only when the player has recorded trophies, with the whole section omitted
-otherwise rather than a placeholder line — a blank line, a `Trophies:`
+otherwise rather than a placeholder line — a blank line, a trophies
 heading, and that player's own awards newest-competition-first, one line per
-award formatted `<competition> (<trophy>)`. Neither the team nor the era is
+award naming the competition and trophy. Neither the team nor the era is
 repeated on those rows, and there is no per-era grouping as on the team
 deepdive: a player belongs to exactly one team-era for their whole career,
-so the header already names both. At most 30 trophies are shown; when there
-are more, the list ends with an exact `…and N more not shown.` note computed
+so the header already names both. The list is capped, and when it is
+truncated the embed says exactly how many awards are not shown, computed
 from the player's true award count.
 
 ### Per-match-event counters
 
-Then a blank line, and one line per
-non-zero event category the player caused, formatted `<label>: <count>`. The
+Then a blank line, and
+one labelled line per non-zero event category the player caused. The
 categories are the acting-role tallies — things the player did, never
 things done to them: MVP awards, touchdowns scored, completions,
-interceptions and deflections as plain `<label>: <count>` lines, followed by
-two lines that carry their own severity breakdown,
-`Casualties inflicted: <total> (<N> serious injuries, <N> killed)` and
-`Fouls committed: <total> (<N> serious injuries, <N> killed)`. A zero
-sub-count is dropped from the parenthetical along with its comma, the
-parenthetical disappears when both sub-counts are zero, and the whole line
+interceptions and deflections as plain lines, followed by
+the casualties-inflicted and fouls-committed lines, each carrying a
+breakdown of how many were serious injuries and how many were kills. A zero
+sub-count is dropped from the breakdown, the
+breakdown disappears when both sub-counts are zero, and the whole line
 disappears when the total is zero. Fouls carry their own breakdown rather
 than folding into the casualty one because Blood Bowl awards no casualty
 credit for a foul, so a foul-caused injury is deliberately not counted as a
@@ -161,39 +155,36 @@ nothing-memorable-yet-style message instead of an empty list.
 ### Star player points
 
 Then — only when the player has a computed star player point total, with no
-line at all otherwise — a blank line, an optional
-`Star player points adjustment: <+N|-N> (included)` line shown only when a
-nonzero manual adjustment has been applied (the total already includes it;
-the line is just calling that out), and `Total star player points: <total>`.
+line at all otherwise — a blank line, an optional adjustment line, shown
+only when a nonzero manual adjustment has been applied (the total already
+includes it; the line is just calling that out), and the player's total
+star player points.
 
 ### Kills list
 
 Then — only when the player has killed someone, with the whole section
-omitted otherwise rather than a placeholder line — a blank line, a `Kills:`
+omitted otherwise rather than a placeholder line — a blank line, a kills
 heading, and one line per kill, newest match first. A kill whose victim is a
-specific indexed player reads
-`<player> (<position>, <team>, <race>, <coach>)`; one where only the victim's
-side is known reads `An unidentified player from <team> (<race>, <coach>)`;
-one where a multi-team match leaves the side ambiguous reads
-`An unidentified player from <team A> (…) or <team B> (…)`, "or"-joined with
-an Oxford comma for three or more; and one with nothing attributable at all
-reads `An opponent, in mysterious circumstances`. A death this player
-caused but that was saved by an apothecary or by regeneration reads
-`An unidentified player from <team> (<race>, <coach>), saved by an apothecary` or
-`...saved by regeneration` — the team is known and the victim player is
+specific indexed player names that player with their position, team, race
+and coach; one where only the victim's side is known names the team, with
+its race and coach; one where a multi-team match leaves the side ambiguous
+names the candidate teams, "or"-joined; and one with nothing attributable at
+all reads as an anonymous opponent in mysterious circumstances. A death this
+player caused but that was prevented carries
+a note saying the death was saved by an apothecary or by regeneration — the
+team is known and the victim player is
 never named, in the normal case; a defensive fallback (not expected from any
 known importer behaviour) can instead render a prevented kill through the
 generic resolution logic like any other unresolvable kill, when the
 recorded team can't be matched or the save reason is missing. Any of them
-ends with `(via a foul)` when
-the fatal (or prevented) event was a foul, the same note the `Status:` line
+notes when the fatal (or prevented) event was a foul, the same note the status line
 uses — including the prevented row. The list also includes a death attempt
 with no recorded outcome at all; its victim's team is resolved the same way
 an event with an ambiguous or unattributed killer team already is resolved
 elsewhere in this document. One line is shown per kill event, so a victim
-killed more than once by this player appears once per kill. At most 30
-kills are shown; when
-there are more, the list ends with an exact `…and N more not shown.` note
+killed more than once by this player appears once per kill. The list is
+capped, and when it is
+truncated the embed says exactly how many kills are not shown,
 computed from the player's true kill count. The same note can also appear
 with 30 or fewer total kills: long team, player, race or coach names can
 exhaust the embed's description-length budget before all of the fetched
@@ -217,9 +208,9 @@ when identified, one button per candidate team when the side is ambiguous,
 none in the mysterious-circumstances case), then the team, era, race and
 position buttons — which follow the order of the header lines — so the most
 specific content keeps button priority. The position button is labelled
-`<position> (<race>)` rather than the bare position name, because position
-names repeat across races — nearly every race has a "Lineman" — so the name
-alone would not say which roster the button opens. The `Position: <position>`
+with the position and its race rather than the bare position name, because
+position names repeat across races — nearly every race has a "Lineman" — so
+the name alone would not say which roster the button opens. The position
 line stays as text as well as gaining a button: unlike team/era/race, the
 button can vanish under the 25-entry cap or when the list of drill-down
 targets grows too long for buttons, so the text line is the reader's
