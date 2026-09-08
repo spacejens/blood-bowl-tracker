@@ -1,8 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, externalSystems } from '@blood-bowl-tracker/db';
+import { DB, eq, externalSystems } from '@blood-bowl-tracker/db';
 import type { Type } from '@nestjs/common';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
 
 import type { ReviewSource } from './review.types';
 import type { ReviewConfigService } from './review-config-base.service';

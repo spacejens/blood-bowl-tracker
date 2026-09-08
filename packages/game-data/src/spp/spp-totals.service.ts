@@ -1,16 +1,22 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   DB,
+  desc,
+  eq,
   eras,
+  inArray,
   matches,
   matchEvents,
   matchTeams,
+  ne,
   players,
   positions,
+  sql,
+  sum,
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray, ne, sql, sum } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';

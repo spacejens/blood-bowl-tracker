@@ -1,7 +1,11 @@
-import type { Db } from '@blood-bowl-tracker/db';
-import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { eq, getTableColumns, getTableName } from 'drizzle-orm';
-import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
+import type {
+  Db,
+  InferInsertModel,
+  InferSelectModel,
+  PgColumn,
+  PgTable,
+} from '@blood-bowl-tracker/db';
+import { eq, getTableColumns, getTableName } from '@blood-bowl-tracker/db';
 
 import type { DbOrTx } from './db-or-tx';
 import { MissingRequiredFieldError } from './missing-required-field-error';

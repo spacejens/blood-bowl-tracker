@@ -1,9 +1,14 @@
 import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   competitions,
   competitionTeams,
+  count,
+  countDistinct,
   DB,
+  desc,
+  eq,
   eras,
   matches,
   matchTeams,
@@ -12,7 +17,6 @@ import {
   trophyAwards,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import { PlayersService } from '../players/players.service';
 import type { FactScope } from '../shared/fact-scope';

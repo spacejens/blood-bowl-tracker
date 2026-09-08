@@ -5,30 +5,28 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Position } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   competitionTeams,
+  countDistinct,
   DB,
+  desc,
+  eq,
   eras,
+  ilike,
+  inArray,
+  isNotNull,
   players,
   positionExternalIds,
   positions,
   positionsRaceEras,
   raceEras,
   races,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  and,
-  asc,
-  countDistinct,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  isNotNull,
-  sql,
-} from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';

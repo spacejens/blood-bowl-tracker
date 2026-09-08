@@ -8,11 +8,13 @@ import {
   competitionGroupExternalIds,
   competitionGroups,
   competitions,
+  count,
   DB,
+  eq,
+  ilike,
   leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { count, eq, ilike } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';

@@ -187,9 +187,6 @@ importers:
       discord.js:
         specifier: ^14.27.0
         version: 14.27.0
-      postgres:
-        specifier: ^3.4.9
-        version: 3.4.9
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -488,9 +485,6 @@ importers:
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -636,9 +630,6 @@ importers:
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1125,9 +1116,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1180,9 +1168,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1235,9 +1220,6 @@ importers:
       cheerio:
         specifier: ^1.2.0
         version: 1.2.0
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.5.4)
       json5:
         specifier: ^2.2.3
         version: 2.2.3

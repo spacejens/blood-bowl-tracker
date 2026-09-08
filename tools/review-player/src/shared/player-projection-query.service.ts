@@ -1,6 +1,8 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   DB,
+  eq,
   eras,
   playerExternalIds,
   players,
@@ -9,7 +11,6 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
 
 /**
  * The six-column player projection (`playerId`, `externalId`, `playerName`,

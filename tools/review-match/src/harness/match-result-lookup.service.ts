@@ -1,13 +1,14 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   DB,
+  eq,
+  inArray,
   matches,
   matchTeams,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
 
 interface MatchResultTeam {
   matchTeamId: number;

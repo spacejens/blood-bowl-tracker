@@ -3,34 +3,31 @@ import type {
   ResolveResult,
   UpsertRace,
 } from '@blood-bowl-tracker/api-contract';
-import type { Race } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, Race } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   competitionTeams,
+  countDistinct,
+  DB,
+  desc,
+  eq,
   eras,
+  ilike,
+  inArray,
   matches,
   matchTeams,
+  max,
   positions,
   positionsRaceEras,
   raceEras,
   raceExternalIds,
   races,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  and,
-  asc,
-  countDistinct,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  max,
-  sql,
-} from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';

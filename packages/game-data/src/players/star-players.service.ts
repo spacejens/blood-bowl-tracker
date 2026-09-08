@@ -1,7 +1,15 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   coaches,
+  count,
+  countDistinct,
   DB,
+  desc,
+  eq,
+  exists,
+  ilike,
   players,
   positions,
   races,
@@ -9,16 +17,6 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  and,
-  asc,
-  count,
-  countDistinct,
-  desc,
-  eq,
-  exists,
-  ilike,
-} from 'drizzle-orm';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 

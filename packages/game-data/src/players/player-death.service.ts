@@ -1,10 +1,16 @@
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
+  and,
   coaches,
+  count,
   DB,
+  desc,
+  eq,
+  isNull,
   matches,
   matchEvents,
   matchTeams,
+  or,
   players,
   positions,
   races,
@@ -12,7 +18,6 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, isNull, or, type SQL } from 'drizzle-orm';
 
 import type { ConsequenceAvoidedBy } from '../shared/match-event-types';
 
