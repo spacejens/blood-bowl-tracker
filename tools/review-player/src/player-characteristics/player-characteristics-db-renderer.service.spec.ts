@@ -1,12 +1,14 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import {
+  CharacteristicFormatService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import type { SampledPlayer } from '../shared/review.types';
-import { CharacteristicFormatService } from './characteristic-format.service';
 import { PlayerCharacteristicsDbRendererService } from './player-characteristics-db-renderer.service';
 
 const player: SampledPlayer = {

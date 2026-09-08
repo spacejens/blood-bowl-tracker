@@ -7,14 +7,19 @@ import {
   rulesSets,
   teamEras,
 } from '@blood-bowl-tracker/db';
-import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
-import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import type {
+  CharacteristicFormat,
+  TableCell,
+  TableRow,
+} from '@blood-bowl-tracker/review-harness';
+import {
+  CharacteristicFormatService,
+  HtmlService,
+} from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 
 import type { SampledPlayer } from '../shared/review.types';
-import type { CharacteristicFormat } from './characteristic-format.service';
-import { CharacteristicFormatService } from './characteristic-format.service';
 
 /** One characteristics line: the player's own, or a position baseline. */
 interface Line {
