@@ -255,11 +255,21 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    - **Iteration cap reached** — all 10 iterations ran without reaching a clean verdict (e.g. CodeRabbit stayed mid-review, or kept surfacing new findings each pass). A bot pass may have partially run, but did not conclude clean.
    - **Ambiguous item surfaced** — a `handle-pr-reviews` run stopped mid-triage on an item needing developer judgment. The loop exited before a clean verdict.
 
+   **Before the first iteration — proactive CodeRabbit trigger for a silent PR.** Renovate opens these PRs under a bot account, and CodeRabbit does not reliably auto-review bot-opened PRs — on PR #634 it never engaged with the PR at all, for its entire lifetime, and the loop burned its full 20-minute timeout for nothing. Run this check once, after the push, before the loop's first wait:
+   ```bash
+   node tools/dev-workflow-cli/dist/main.js check-coderabbit-activity <PR>
+   ```
+   - **The command fails** (non-zero exit, `{"error": ...}` on stderr, unparseable output) — print a one-line warning and run the loop below exactly as it runs today, with no proactive trigger. Warn-and-continue, like this skill's other coordination failures (assignee/label): the worst case is one wasted 20-minute wait, which is the status quo, not a regression.
+   - **`{"hasActivity": false}`** — CodeRabbit has never posted a comment or review on this PR, so waiting for an automatic review would wait forever. Add `--trigger-after=<watermark-epoch>` to the **first** iteration's `wait-for-pr-review` call only, passing the same step 2 watermark epoch that call already uses as its `<watermark-epoch>` argument. That instant is already at or before "now" by the time the loop starts, so the very first poll posts the `@coderabbitai review` comment immediately rather than idling through a wasted interval, then keeps polling. Do **not** adjust `--timeout-ms`: the default 20-minute window already covers "trigger immediately, then wait a normal review window".
+   - **`{"hasActivity": true}`** — no change; the first call runs exactly as described below, with no `--trigger-after`. This is the common case for a Renovate PR that *was* reviewed but is stuck for another reason (failing CI, a needs-manual-review bump), and for a PR where an earlier run already triggered a review.
+
+   This affects the first iteration only. Every later iteration's watermark already derives from a found review's own `submittedAt`, so once CodeRabbit has engaged — from this trigger or naturally — the existing watermark-advancement logic below takes over unmodified, and no later iteration ever passes `--trigger-after`.
+
    a. Wait for a non-author review with a single backgrounded command:
    ```bash
    node tools/dev-workflow-cli/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
    ```
-   The **first** iteration's `<watermark-epoch>` is the epoch captured in step 2 above — not the PR's `createdAt` — and omits `--exclude-review-id` entirely (there is nothing to exclude yet). Every later iteration uses the previous iteration's found `review.submittedAt` converted to epoch seconds, and passes that review's `id` as `--exclude-review-id`. Run it with `run_in_background: true` and branch on the JSON it prints at exit; never use `ScheduleWakeup` for this wait.
+   The **first** iteration's `<watermark-epoch>` is the epoch captured in step 2 above — not the PR's `createdAt` — and omits `--exclude-review-id` entirely (there is nothing to exclude yet); it additionally passes `--trigger-after=<watermark-epoch>` (that same epoch) when, and only when, the pre-loop check above reported `{"hasActivity": false}`. Every later iteration uses the previous iteration's found `review.submittedAt` converted to epoch seconds, and passes that review's `id` as `--exclude-review-id`. Run it with `run_in_background: true` and branch on the JSON it prints at exit; never use `ScheduleWakeup` for this wait.
 
    b. Handle `{"found": false, ...}` results exactly as `develop-feature`'s Phase 6 steps (b), (b2), and (b3) describe — timeout, CodeRabbit rate-limit, and comment-update-failure respectively, including their retry commands, their watermark-advancement rules, and which of them Pause versus continue automatically. None of that behavior changes here; do not restate or re-derive it, read it there.
 
