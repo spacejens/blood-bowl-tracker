@@ -14,8 +14,8 @@ per-target resolver services listed at the end of
 ## `era`
 
 The era name as
-the title, then its league, its start–end dates, with an ongoing era marked
-as still running, its rules sets (comma-joined, or "None recorded"), and a
+the title, then its league, its start–end dates (an ongoing era is marked
+as still running), its rules sets (comma-joined, or "None recorded"), and a
 chronological list of the era's competitions, one line per competition
 naming it and its type. Competitions are ordered by their earliest
 recorded match; competitions with no played matches yet sort last. An era
@@ -102,9 +102,9 @@ Then a blank
 line, and a characteristics line carrying the player's own current values
 written using the
 format of whichever [rules set](../../glossary.md#rules-set) applies to
-their era — a bare number, or a number with a trailing `+` for a target a
-die roll has to meet — with the same `PA`-omission and dash-for-zero rules
-as the position deepdive's stat line below. Each value that has moved away
+their era — a bare number, or a number with a trailing plus for a target a
+die roll has to meet — with the same Passing-omission and dash-for-zero
+rules as the position deepdive's stat line below. Each value that has moved away
 from the [position](../../glossary.md#position)'s own recorded baseline
 under that rules set is marked as increased or decreased;
 the comparison is on the raw stored numbers, so a not-yet-curated zero
@@ -140,12 +140,12 @@ breakdown disappears when both sub-counts are zero, and the whole line
 disappears when the total is zero. Fouls carry their own breakdown rather
 than folding into the casualty one because Blood Bowl awards no casualty
 credit for a foul, so a foul-caused injury is deliberately not counted as a
-casualty inflicted. The `killed` sub-counts (on both lines) and the fouls
-`seriousInjuries` sub-count mean "attempted", not just "confirmed": they
+casualty inflicted. The kill sub-counts (on both lines) and the fouls'
+serious-injury sub-count mean "attempted", not just "confirmed": they
 fold in an attempt that was saved by an apothecary or by regeneration, and
-— for casualties' `killed` only — a death attempt with no recorded outcome
-at all. The fouls `seriousInjuries` sub-count includes every foul-caused
-serious injury, whichever form the injury takes. These per-match-event
+— for casualties' kill sub-count only — a death attempt with no recorded
+outcome at all. The fouls' serious-injury sub-count includes every
+foul-caused serious injury, whichever form the injury takes. These per-match-event
 tallies are a separate
 concept from the competition-level trophies above: the "MVP awards" count is
 match MVPs, not an end-of-competition MVP trophy. Zero categories are
@@ -186,10 +186,10 @@ killed more than once by this player appears once per kill. The list is
 capped, and when it is
 truncated the embed says exactly how many kills are not shown,
 computed from the player's true kill count. The same note can also appear
-with 30 or fewer total kills: long team, player, race or coach names can
-exhaust the embed's description-length budget before all of the fetched
-rows fit, in which case the rows that do not fit are dropped the same way
-and the note reports them too. Either way the note's count is always exact
+even when the kill count itself was not capped: long team, player, race or
+coach names can exhaust the embed's description-length budget before all of
+the fetched rows fit, in which case the rows that do not fit are dropped the
+same way and the note reports them too. Either way the note's count is always exact
 — it is computed from the player's true kill total, not from how many rows
 happened to be fetched or rendered — regardless of which of the two
 overflow reasons caused rows to be dropped. The player's true kill count
@@ -269,8 +269,8 @@ buttons.
 ### Characteristics stat lines
 
 The position name as the title,
-then its race or races, or a note when none is recorded — a position can
-in principle belong to more than one race — a blank line, and one stat
+then its race or races (a position can in principle belong to more than one
+race), or a note when none is recorded, then a blank line, and one stat
 line per rules set the position has recorded characteristics for, oldest
 rules set first. Each value is written using that
 rules set's own recorded format — a bare number, or a number with a
