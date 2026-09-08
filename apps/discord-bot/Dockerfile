@@ -11,6 +11,7 @@ COPY packages/api-contract/package.json packages/api-contract/
 COPY packages/api-server/package.json packages/api-server/
 COPY packages/db/package.json packages/db/
 COPY packages/discord-client/package.json packages/discord-client/
+COPY packages/domain-enums/package.json packages/domain-enums/
 COPY packages/game-data/package.json packages/game-data/
 COPY packages/import/package.json packages/import/
 COPY tools/import-bbl/package.json tools/import-bbl/
@@ -34,6 +35,7 @@ COPY packages/api-contract/package.json packages/api-contract/
 COPY packages/api-server/package.json packages/api-server/
 COPY packages/db/package.json packages/db/
 COPY packages/discord-client/package.json packages/discord-client/
+COPY packages/domain-enums/package.json packages/domain-enums/
 COPY packages/game-data/package.json packages/game-data/
 COPY packages/import/package.json packages/import/
 COPY tools/import-bbl/package.json tools/import-bbl/
@@ -47,6 +49,7 @@ COPY --from=builder /build/packages/api-server/dist ./packages/api-server/dist
 COPY --from=builder /build/packages/db/dist ./packages/db/dist
 COPY --from=builder /build/packages/db/migrations ./packages/db/migrations
 COPY --from=builder /build/packages/discord-client/dist ./packages/discord-client/dist
+COPY --from=builder /build/packages/domain-enums/dist ./packages/domain-enums/dist
 COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
 
 # Identity of the code in this image, surfaced in the bot's startup message.
