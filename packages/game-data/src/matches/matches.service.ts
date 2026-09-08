@@ -5,7 +5,10 @@ import type {
 import type { Db, Match } from '@blood-bowl-tracker/db';
 import {
   competitions,
+  count,
+  countDistinct,
   DB,
+  eq,
   eras,
   matches,
   matchEvents,
@@ -14,7 +17,6 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { count, countDistinct, eq } from 'drizzle-orm';
 
 import type { CompetitionType } from '../shared/competition-types';
 import { countRows } from '../shared/count-all';

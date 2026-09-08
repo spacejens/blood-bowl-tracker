@@ -2,12 +2,12 @@ import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
 import type { Db, MatchEvent } from '@blood-bowl-tracker/db';
 import {
   DB,
+  eq,
   matchEventExternalIds,
   matchEvents,
   matchTeams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
 
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';

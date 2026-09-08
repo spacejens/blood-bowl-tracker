@@ -5,19 +5,23 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Competition, Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   competitionExternalIds,
   competitionGroups,
   competitions,
   competitionTeams,
+  count,
   DB,
+  eq,
   eras,
+  ilike,
   leagues,
   matches,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, ilike, sql } from 'drizzle-orm';
 
 import type { CompetitionType } from '../shared/competition-types';
 import { countRows } from '../shared/count-all';

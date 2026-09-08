@@ -1,7 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, races } from '@blood-bowl-tracker/db';
+import { DB, races, sql } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 
 import type {
   RaceStratifier,

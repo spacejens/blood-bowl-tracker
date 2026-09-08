@@ -3,12 +3,14 @@ import type { Db, Trophy } from '@blood-bowl-tracker/db';
 import {
   competitionGroups,
   DB,
+  eq,
+  ilike,
   leagues,
+  or,
   trophies,
   trophyExternalIds,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, ilike, or } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';

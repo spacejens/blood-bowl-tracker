@@ -4,9 +4,17 @@ import type {
   ResolveMatchOutcomesResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matches, matchEvents, matchTeams } from '@blood-bowl-tracker/db';
+import {
+  and,
+  count,
+  DB,
+  eq,
+  isNotNull,
+  matches,
+  matchEvents,
+  matchTeams,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, isNotNull } from 'drizzle-orm';
 
 import type {
   OutcomeMatch,

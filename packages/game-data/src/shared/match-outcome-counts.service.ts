@@ -1,25 +1,22 @@
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
+  and,
   coaches,
+  countDistinct,
   DB,
+  desc,
+  eq,
   eras,
+  isNotNull,
+  isNull,
   matches,
   matchTeams,
+  ne,
   races,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import type { SQL } from 'drizzle-orm';
-import {
-  and,
-  countDistinct,
-  desc,
-  eq,
-  isNotNull,
-  isNull,
-  ne,
-} from 'drizzle-orm';
 
 import type { FactScope } from './fact-scope';
 
