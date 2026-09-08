@@ -2,8 +2,8 @@
 
 import { readFileSync } from 'node:fs';
 
+import { runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
@@ -12,10 +12,6 @@ import { WriteFileService } from './write-file/write-file.service';
 const SUBCOMMANDS = ['sync-gitignored', 'write-file'] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
-
-function isSubcommand(value: string | undefined): value is Subcommand {
-  return SUBCOMMANDS.includes(value as Subcommand);
-}
 
 const WRITE_FILE_USAGE =
   'Usage: node dist/main.js write-file <repo-relative-path> ' +
@@ -27,9 +23,7 @@ interface WriteFileInput {
   readonly content: string;
 }
 
-interface DispatchOptions {
-  readonly app: INestApplicationContext;
-  readonly subcommand: Subcommand;
+interface DispatchArgs {
   readonly writeFile?: WriteFileInput;
 }
 
@@ -42,52 +36,35 @@ function readWriteFileInput(): WriteFileInput {
   return { path, content: readFileSync(0, 'utf8') };
 }
 
-function dispatch(options: DispatchOptions): Promise<unknown> {
-  const { app, subcommand } = options;
+function readArgs(subcommand: Subcommand): DispatchArgs {
+  return {
+    writeFile: subcommand === 'write-file' ? readWriteFileInput() : undefined,
+  };
+}
+
+function dispatch(
+  app: INestApplicationContext,
+  subcommand: Subcommand,
+  args: DispatchArgs,
+): Promise<unknown> {
   switch (subcommand) {
     case 'sync-gitignored':
       return app.get(SyncGitignoredService).run();
     case 'write-file': {
-      if (options.writeFile === undefined) {
+      if (args.writeFile === undefined) {
         throw new Error(WRITE_FILE_USAGE);
       }
       return app
         .get(WriteFileService)
-        .run(options.writeFile.path, options.writeFile.content);
+        .run(args.writeFile.path, args.writeFile.content);
     }
   }
 }
 
-async function run(): Promise<unknown> {
-  const subcommand = process.argv[2];
-  if (!isSubcommand(subcommand)) {
-    throw new Error(
-      `Usage: node dist/main.js <${SUBCOMMANDS.join('|')}>` +
-        (subcommand === undefined || subcommand === ''
-          ? ''
-          : ` (got '${subcommand}')`),
-    );
-  }
-
-  const writeFile =
-    subcommand === 'write-file' ? readWriteFileInput() : undefined;
-
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: false,
-  });
-  try {
-    return await dispatch({ app, subcommand, writeFile });
-  } finally {
-    await app.close();
-  }
-}
-
-run()
-  .then((result) => {
-    console.log(JSON.stringify(result, null, 2));
-  })
-  .catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(JSON.stringify({ error: message }));
-    process.exit(1);
-  });
+void runCli({
+  argv: process.argv,
+  subcommands: SUBCOMMANDS,
+  module: AppModule,
+  readArgs,
+  dispatch,
+});
