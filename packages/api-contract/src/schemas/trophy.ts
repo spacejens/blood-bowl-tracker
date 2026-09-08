@@ -1,8 +1,13 @@
+import { TROPHY_RECIPIENT_KINDS } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
 
-export const TrophyRecipientKindSchema = z.enum(['team', 'player']);
+/**
+ * See `TROPHY_RECIPIENT_KINDS` in `@blood-bowl-tracker/domain-enums` for what
+ * each value means.
+ */
+export const TrophyRecipientKindSchema = z.enum(TROPHY_RECIPIENT_KINDS);
 
 export const TrophySchema = z.object({
   id: z.number(),

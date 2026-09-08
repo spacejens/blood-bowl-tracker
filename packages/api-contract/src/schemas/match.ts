@@ -1,20 +1,14 @@
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
 
 /**
- * Every match category, in the same order as `game_data.match_category`
- * (packages/db). Exported as a tuple so consumers can iterate the values as
- * well as use the inferred union type.
+ * Re-exported from `@blood-bowl-tracker/domain-enums` so existing consumers
+ * keep importing it from the contract. See that package for what each value
+ * means.
  */
-export const MATCH_CATEGORIES = [
-  'normal',
-  'cup_final',
-  'season_semi_final',
-  'season_final',
-  'season_bronze',
-  'season_qualifier',
-] as const;
+export { MATCH_CATEGORIES };
 
 export type MatchCategory = (typeof MATCH_CATEGORIES)[number];
 
