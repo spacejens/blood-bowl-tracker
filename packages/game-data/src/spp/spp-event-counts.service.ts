@@ -1,9 +1,8 @@
 import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import { SPP_CAREER_COUNT_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matchEvents } from '@blood-bowl-tracker/db';
+import { and, count, DB, inArray, matchEvents } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, inArray } from 'drizzle-orm';
 
 import type {
   ActionType,

@@ -1,6 +1,5 @@
-import type { Db } from '@blood-bowl-tracker/db';
-import { count } from 'drizzle-orm';
-import type { PgTable } from 'drizzle-orm/pg-core';
+import type { Db, PgTable } from '@blood-bowl-tracker/db';
+import { count } from '@blood-bowl-tracker/db';
 
 /**
  * Shared count query used by every game-data service's `countAll()`. Kept

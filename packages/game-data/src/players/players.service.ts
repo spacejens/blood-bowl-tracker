@@ -2,19 +2,25 @@ import type { UpsertPlayer } from '@blood-bowl-tracker/api-contract';
 import { PLAYER_CHARACTERISTIC_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
+  and,
   competitionTeams,
+  count,
   DB,
+  desc,
+  eq,
   eras,
+  ilike,
+  isNotNull,
   playerExternalIds,
   players,
   positions,
   races,
   rulesSets,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, ilike, isNotNull, sql } from 'drizzle-orm';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
 import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';

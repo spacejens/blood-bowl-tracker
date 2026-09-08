@@ -1,14 +1,21 @@
-import type { ExternalSystem, NewExternalSystem } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
+import type {
+  Db,
+  ExternalSystem,
+  NewExternalSystem,
+} from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   competitionExternalIds,
+  count,
+  countDistinct,
+  DB,
+  eq,
   eraExternalIds,
   eras,
   externalSystems,
 } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, countDistinct, eq } from 'drizzle-orm';
 
 /**
  * Only systems in this category are counted or listed anywhere in stats and

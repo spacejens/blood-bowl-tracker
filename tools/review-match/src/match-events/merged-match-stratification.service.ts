@@ -1,12 +1,14 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   competitions,
   DB,
+  eq,
   matches,
   matchExternalIds,
+  sql,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type {

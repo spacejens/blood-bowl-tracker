@@ -1,5 +1,5 @@
 import type { ResolveResult } from '@blood-bowl-tracker/api-contract';
-import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
+import type { PgColumn, PgTable } from '@blood-bowl-tracker/db';
 
 import type { DbOrTx } from './db-or-tx';
 import { resolveExistingByExternalIds } from './resolve-existing-by-external-ids';

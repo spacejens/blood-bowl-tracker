@@ -1,5 +1,5 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import type { PgTable } from 'drizzle-orm/pg-core';
+import type { PgTable } from '@blood-bowl-tracker/db';
 import { describe, expect, it, vi } from 'vitest';
 
 import { countRows } from './count-all';

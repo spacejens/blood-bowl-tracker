@@ -1,5 +1,5 @@
 import { players, teamEras } from '@blood-bowl-tracker/db';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from '@blood-bowl-tracker/db';
 import { describe, expect, it, vi } from 'vitest';
 
 import {

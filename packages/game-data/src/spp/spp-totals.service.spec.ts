@@ -1,8 +1,8 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import { is, SQL } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { is, SQL } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';

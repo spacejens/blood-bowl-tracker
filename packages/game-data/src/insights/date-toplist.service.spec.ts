@@ -1,9 +1,8 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, sql } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';

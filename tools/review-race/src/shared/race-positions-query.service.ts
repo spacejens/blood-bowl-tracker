@@ -1,6 +1,9 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   DB,
+  eq,
   eraRulesSets,
   eras,
   positions,
@@ -10,7 +13,6 @@ import {
 } from '@blood-bowl-tracker/db';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq } from 'drizzle-orm';
 
 /** One era the race exists in. */
 export interface RaceEraRow {

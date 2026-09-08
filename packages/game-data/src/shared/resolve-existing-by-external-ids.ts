@@ -1,5 +1,5 @@
-import { and, eq, or } from 'drizzle-orm';
-import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
+import type { PgColumn, PgTable } from '@blood-bowl-tracker/db';
+import { and, eq, or } from '@blood-bowl-tracker/db';
 
 import type { DbOrTx } from './db-or-tx';
 import type { ExternalIdPair } from './sync-external-ids';

@@ -117,3 +117,5 @@ export function mockDb(...rowsPerQuery: QueryOutcome[]): MockDbResult {
   );
   return { db: db as unknown as Db, chains, transaction };
 }
+
+export * from './drizzle.test-helpers.js';

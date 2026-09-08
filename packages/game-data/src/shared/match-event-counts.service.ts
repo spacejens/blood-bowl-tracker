@@ -1,20 +1,25 @@
 import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
+  and,
   coaches,
+  count,
   DB,
+  desc,
+  eq,
   eras,
+  inArray,
+  isNotNull,
   matches,
   matchEvents,
   matchTeams,
   players,
   positions,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import type { SQL } from 'drizzle-orm';
-import { and, count, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 
 import type { FactScope } from './fact-scope';
 import type { ActionType, ConsequenceType } from './match-event-types';

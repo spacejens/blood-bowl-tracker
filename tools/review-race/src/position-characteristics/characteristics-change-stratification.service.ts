@@ -1,16 +1,22 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  alias,
+  and,
   DB,
+  eq,
   eraRulesSets,
+  isNull,
+  lt,
+  ne,
+  or,
   positionRulesSets,
   positions,
   positionsRaceEras,
   raceEras,
   races,
+  sql,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, lt, ne, or, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 
 import type {
   RaceStratifier,

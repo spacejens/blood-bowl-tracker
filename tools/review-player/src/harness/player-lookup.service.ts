@@ -1,6 +1,6 @@
 import { playerExternalIds } from '@blood-bowl-tracker/db';
+import { inArray } from '@blood-bowl-tracker/db';
 import { Injectable } from '@nestjs/common';
-import { inArray } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';

@@ -1,11 +1,13 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  asc,
   DB,
+  eq,
   externalSystems,
+  inArray,
   positionExternalIds,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, eq, inArray } from 'drizzle-orm';
 
 /** One external id a position carries. */
 export interface PositionExternalIdRow {

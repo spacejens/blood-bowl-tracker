@@ -1,30 +1,28 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   coaches,
+  count,
+  countDistinct,
   DB,
+  desc,
+  eq,
   eras,
+  inArray,
+  isNull,
   matches,
   matchEvents,
   matchTeams,
+  or,
   players,
   positions,
   races,
+  SQL,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  and,
-  count,
-  countDistinct,
-  desc,
-  eq,
-  inArray,
-  isNull,
-  or,
-  SQL,
-  sql,
-} from 'drizzle-orm';
 
 import type { PlayerKillerInfo } from '../players/player-death.service';
 import { PlayerDeathService } from '../players/player-death.service';

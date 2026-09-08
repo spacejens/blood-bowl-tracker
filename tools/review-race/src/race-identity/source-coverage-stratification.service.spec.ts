@@ -1,9 +1,7 @@
 import { DB } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import { mockDb, PgDialect, SQL } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import type { SQL } from 'drizzle-orm';
-import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';

@@ -1,15 +1,20 @@
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
+  alias,
+  and,
   DB,
+  eq,
   eraRulesSets,
+  gt,
+  isNotNull,
+  lt,
+  or,
   players,
   positionRulesSets,
+  sql,
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import type { SQL } from 'drizzle-orm';
-import { and, eq, gt, isNotNull, lt, or, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';

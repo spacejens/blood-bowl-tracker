@@ -1,7 +1,15 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matchEvents } from '@blood-bowl-tracker/db';
+import {
+  and,
+  count,
+  DB,
+  eq,
+  inArray,
+  isNull,
+  matchEvents,
+  or,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import type { MatchEventSelector } from '../shared/match-event-counts.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';

@@ -20,7 +20,6 @@
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
     "@nestjs/common": "^12.0.0",
-    "drizzle-orm": "rc",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
