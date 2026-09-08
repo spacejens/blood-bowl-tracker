@@ -162,8 +162,9 @@ star player points.
 
 ### Kills list
 
-Then — only when the player has killed someone, with the whole section
-omitted otherwise rather than a placeholder line — a blank line, a kills
+Then — only when the player has a recorded kill event, including a
+prevented or unresolved death attempt, with the whole section omitted
+otherwise rather than a placeholder line — a blank line, a kills
 heading, and one line per kill, newest match first. A kill whose victim is a
 specific indexed player names that player with their position, team, race
 and coach; one where only the victim's side is known names the team, with
