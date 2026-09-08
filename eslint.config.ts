@@ -40,6 +40,7 @@ export default tseslint.config(
             'packages/db/vitest.config.ts',
             'packages/discord-client/test/*.ts',
             'packages/discord-client/vitest.config.ts',
+            'packages/domain-enums/vitest.config.ts',
             'packages/game-data/test/*.ts',
             'packages/game-data/vitest.config.ts',
             'packages/import/test/*.ts',

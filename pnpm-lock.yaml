@@ -477,6 +477,24 @@ importers:
         specifier: ^4.1.10
         version: 4.1.11(@types/node@24.13.3)(@vitest/coverage-v8@4.1.11)(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
+  packages/domain-enums:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      '@vitest/coverage-v8':
+        specifier: ^4.1.10
+        version: 4.1.11
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.2.1
+        version: 8.2.2
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.11
+
   packages/game-data:
     dependencies:
       '@blood-bowl-tracker/api-contract':
