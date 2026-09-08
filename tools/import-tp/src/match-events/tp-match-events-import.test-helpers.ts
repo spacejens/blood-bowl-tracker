@@ -197,10 +197,10 @@ export async function makeService(
   matchEventsImport: MockProxy<MatchEventsImportService>;
 }> {
   const matchEventsImport = mock<MatchEventsImportService>();
-  // The parameter still means "what happens to each event"; it just arrives
-  // through the batch buffer now. The fake buffer is inert state, and
-  // addToBatch forwards each event to the supplied fn, reporting 1 import
-  // per accepted event so `imported` accounting is exercised as before.
+  // The `upsertMatchEvent` parameter means "what happens to each event". The
+  // fake buffer is inert state, and addToBatch forwards each event to the
+  // supplied fn, reporting 1 import per accepted event so the service's
+  // `imported` accounting is exercised.
   const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatchEvent>;
   matchEventsImport.createBatch.mockReturnValue(batch);
   matchEventsImport.addToBatch.mockImplementation(async (_batch, data) => {

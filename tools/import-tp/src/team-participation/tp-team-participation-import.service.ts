@@ -123,7 +123,7 @@ export class TpTeamParticipationImportService {
       }
     } finally {
       // Return value discarded on purpose: `imported` counts competitions
-      // only, exactly as it did on the single-item path.
+      // only, never the matches flushed here.
       await this.matchesImport.flushBatch(matchBatch);
     }
 
