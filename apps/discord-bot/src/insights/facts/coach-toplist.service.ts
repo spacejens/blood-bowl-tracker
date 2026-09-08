@@ -110,10 +110,10 @@ export class CoachToplistService {
   }
 
   /**
-   * The only competition-scopable coach toplist: the whole scope is handed
-   * to the query rather than trimmed, because a trophy award belongs to a
-   * competition. Rows need no decoration — bare coachId/name/count, like
-   * every other factory-built coach toplist.
+   * The only competition-scopable coach toplist: `CoachesService.countTrophiesByCoach`
+   * forwards the competition, unlike the match-event-backed coach counts.
+   * Rows need no decoration — bare coachId/name/count, like every other
+   * factory-built coach toplist.
    */
   resolveTrophiesWon(
     scope: FactScope,

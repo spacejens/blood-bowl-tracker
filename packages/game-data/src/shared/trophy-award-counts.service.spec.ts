@@ -46,6 +46,14 @@ describe('TrophyAwardCountsService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
       ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
       expect(chains[0].innerJoin).toHaveBeenCalledTimes(3);
+      // Grouped by team, not coach - distinguishes this from its
+      // countTrophiesByCoach sibling, which shares the same select shape.
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 0))).toEqual(
+        ['teams.id'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 1))).toEqual(
+        ['teams.name'],
+      );
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
@@ -108,6 +116,14 @@ describe('TrophyAwardCountsService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 3, 1)),
       ).toEqual(['coaches.id', 'teams.coach_id']);
+      // Grouped by coach, not team - the coach's total sums every team they
+      // have coached, unlike the team-grouped sibling above.
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 0))).toEqual(
+        ['coaches.id'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 1))).toEqual(
+        ['coaches.name'],
+      );
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
