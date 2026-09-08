@@ -1,9 +1,14 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { competitions, competitionTeams, DB } from '@blood-bowl-tracker/db';
+import {
+  competitions,
+  competitionTeams,
+  DB,
+  getColumnTable,
+  getTableName,
+} from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
-import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
+import { Column, is, mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { Column, getColumnTable, getTableName, is } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -496,9 +501,17 @@ describe('CompetitionsService', () => {
 
       const eraOrderColumn = firstCallArg(chains[0].orderBy, 0, 0);
       expect(is(eraOrderColumn, Column)).toBe(true);
-      expect(getTableName(getColumnTable(eraOrderColumn as Column))).toBe(
-        'eras',
-      );
+      // `Column` (from `/test-helpers`) and `getColumnTable`'s parameter type
+      // (from the main entry) are two structurally-incompatible copies of
+      // the same drizzle class — the dual-package split's type-level
+      // counterpart to why `is()` replaces `instanceof` above.
+      expect(
+        getTableName(
+          getColumnTable(
+            eraOrderColumn as Parameters<typeof getColumnTable>[0],
+          ),
+        ),
+      ).toBe('eras');
       expect((eraOrderColumn as Column).name).toBe('start_date');
     });
 
@@ -509,9 +522,13 @@ describe('CompetitionsService', () => {
 
       const tiebreakerColumn = firstCallArg(chains[0].orderBy, 0, 1);
       expect(is(tiebreakerColumn, Column)).toBe(true);
-      expect(getTableName(getColumnTable(tiebreakerColumn as Column))).toBe(
-        'eras',
-      );
+      expect(
+        getTableName(
+          getColumnTable(
+            tiebreakerColumn as Parameters<typeof getColumnTable>[0],
+          ),
+        ),
+      ).toBe('eras');
       expect((tiebreakerColumn as Column).name).toBe('id');
     });
   });

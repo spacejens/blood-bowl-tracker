@@ -2,7 +2,9 @@ import type { Db } from '@blood-bowl-tracker/db';
 import {
   coaches,
   DB,
+  eq,
   eras,
+  inArray,
   players,
   positions,
   races,
@@ -10,7 +12,6 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
 
 /** The position, team, race, era and coach a player belongs to, by display name. */
 export interface PlayerContextNames {

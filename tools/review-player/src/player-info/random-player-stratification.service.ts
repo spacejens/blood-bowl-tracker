@@ -1,6 +1,6 @@
 import { positions } from '@blood-bowl-tracker/db';
+import { eq, sql } from '@blood-bowl-tracker/db';
 import { Injectable } from '@nestjs/common';
-import { eq, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';

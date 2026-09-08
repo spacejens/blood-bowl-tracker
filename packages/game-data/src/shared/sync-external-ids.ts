@@ -1,5 +1,5 @@
-import type { InferInsertModel } from 'drizzle-orm';
-import type { PgTable } from 'drizzle-orm/pg-core';
+import type { InferInsertModel } from '@blood-bowl-tracker/db';
+import type { PgTable } from '@blood-bowl-tracker/db';
 
 import type { DbOrTx } from './db-or-tx';
 

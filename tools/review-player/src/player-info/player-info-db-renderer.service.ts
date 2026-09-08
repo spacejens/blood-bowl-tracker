@@ -1,8 +1,12 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
+  asc,
   DB,
+  eq,
   eras,
   externalSystems,
+  ne,
   playerExternalIds,
   players,
   positions,
@@ -12,7 +16,6 @@ import {
 import type { TableCell } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, ne } from 'drizzle-orm';
 
 import type { SampledPlayer } from '../shared/review.types';
 

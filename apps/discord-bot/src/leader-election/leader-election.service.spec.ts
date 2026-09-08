@@ -1,3 +1,4 @@
+import { AdvisoryLockService } from '@blood-bowl-tracker/db';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -6,7 +7,6 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import { RandomInsightsSchedulerService } from '../insights/random-insights-scheduler.service';
 import { SlashCommandRegistryService } from '../slash-commands/slash-command-registry.service';
 import { StartupNotifierService } from '../startup-notifier.service';
-import { AdvisoryLockService } from './advisory-lock.service';
 import {
   LeaderElectionService,
   LOCK_HEALTH_CHECK_INTERVAL_MS,

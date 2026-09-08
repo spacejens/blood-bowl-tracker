@@ -1,7 +1,6 @@
-import { players } from '@blood-bowl-tracker/db';
+import type { SQL } from '@blood-bowl-tracker/db';
+import { between, eq, gte, players, sql } from '@blood-bowl-tracker/db';
 import { Injectable } from '@nestjs/common';
-import type { SQL } from 'drizzle-orm';
-import { between, eq, gte, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';

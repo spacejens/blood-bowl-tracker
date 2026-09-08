@@ -1,7 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, sql } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 
 /**
  * Every calendar date that can exist, as a subquery — the candidate set for

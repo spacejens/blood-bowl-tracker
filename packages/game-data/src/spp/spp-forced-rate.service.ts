@@ -1,16 +1,21 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
+  count,
   DB,
+  eq,
   eraRulesSets,
+  inArray,
+  isNotNull,
   matchEvents,
   players,
   rulesSets,
   sppAwardValues,
+  sum,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, inArray, isNotNull, sum } from 'drizzle-orm';
 
 /**
  * The rules set BBL's site recalculated older players' displayed totals

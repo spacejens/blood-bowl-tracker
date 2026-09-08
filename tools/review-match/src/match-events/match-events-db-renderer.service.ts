@@ -1,18 +1,21 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  alias,
+  and,
+  asc,
   DB,
+  eq,
   matchEventExternalIds,
   matchEvents,
   matchTeams,
   players,
+  sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import type { TableCell } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { SampledMatch } from '../shared/review.types';

@@ -1,7 +1,12 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, externalSystems, raceExternalIds } from '@blood-bowl-tracker/db';
+import {
+  asc,
+  DB,
+  eq,
+  externalSystems,
+  raceExternalIds,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, eq } from 'drizzle-orm';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
 

@@ -6,9 +6,8 @@ import type {
   SyncSppAdjustmentsResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, players } from '@blood-bowl-tracker/db';
+import { and, DB, inArray, isNotNull, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, inArray, isNotNull } from 'drizzle-orm';
 
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';

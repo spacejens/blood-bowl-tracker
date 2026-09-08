@@ -1,14 +1,14 @@
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
   DB,
+  eq,
   eraRulesSets,
   raceEras,
   races,
   rulesSets,
+  sql,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import type { SQL } from 'drizzle-orm';
-import { eq, sql } from 'drizzle-orm';
 
 import type {
   RaceStratifier,

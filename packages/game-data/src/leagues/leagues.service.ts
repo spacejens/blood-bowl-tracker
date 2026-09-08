@@ -3,12 +3,15 @@ import type {
   ResolveResult,
   UpsertLeague,
 } from '@blood-bowl-tracker/api-contract';
-import type { League } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
-import { leagueExternalIds, leagues } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import type { Db, League } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eq,
+  ilike,
+  leagueExternalIds,
+  leagues,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { LikePatternService } from '../shared/like-pattern.service';

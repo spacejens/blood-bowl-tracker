@@ -1,10 +1,9 @@
 import { ApiServerModule } from '@blood-bowl-tracker/api-server';
-import { DbModule } from '@blood-bowl-tracker/db';
+import { AdvisoryLockModule, DbModule } from '@blood-bowl-tracker/db';
 import { DiscordClientModule } from '@blood-bowl-tracker/discord-client';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import postgres from 'postgres';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -13,10 +12,6 @@ import { DiscordBotConfigModule } from './discord-bot-config.module';
 import { DiscordBotConfigService } from './discord-bot-config.service';
 import { InsightsModule } from './insights/insights.module';
 import { RandomInsightsSchedulerService } from './insights/random-insights-scheduler.service';
-import {
-  AdvisoryLockService,
-  LOCK_SQL,
-} from './leader-election/advisory-lock.service';
 import { LeaderElectionService } from './leader-election/leader-election.service';
 import { ProcessExitService } from './leader-election/process-exit.service';
 import { SleepService } from './leader-election/sleep.service';
@@ -29,6 +24,10 @@ import { StartupNotifierService } from './startup-notifier.service';
     ScheduleModule.forRoot(),
     DiscordBotConfigModule,
     DbModule.forRootAsync({
+      useFactory: (config: DiscordBotConfigService) => config.getDatabaseUrl(),
+      inject: [DiscordBotConfigService],
+    }),
+    AdvisoryLockModule.forRootAsync({
       useFactory: (config: DiscordBotConfigService) => config.getDatabaseUrl(),
       inject: [DiscordBotConfigService],
     }),
@@ -47,17 +46,6 @@ import { StartupNotifierService } from './startup-notifier.service';
     DeploymentInfoService,
     StartupNotifierService,
     RandomInsightsSchedulerService,
-    {
-      // Its own postgres.js client, deliberately separate from drizzle's
-      // pooled one: advisory locks are session-scoped (see
-      // AdvisoryLockService). `max: 1` because exactly one reserved
-      // connection is ever needed.
-      provide: LOCK_SQL,
-      useFactory: (config: DiscordBotConfigService) =>
-        postgres(config.getDatabaseUrl(), { max: 1 }),
-      inject: [DiscordBotConfigService],
-    },
-    AdvisoryLockService,
     ProcessExitService,
     SleepService,
     LeaderElectionService,

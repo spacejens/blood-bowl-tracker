@@ -1,7 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { coaches, DB, races, teams } from '@blood-bowl-tracker/db';
+import { coaches, DB, eq, inArray, races, teams } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
 
 /** The race and coach a team belongs to, by display name. */
 export interface TeamRaceAndCoachNames {

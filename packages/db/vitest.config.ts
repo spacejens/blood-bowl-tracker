@@ -16,6 +16,7 @@ export default defineConfig({
         'src/**/*.module.ts',
         'src/schema/**',
         'src/db.ts',
+        'src/lock-client.ts',
         'src/scripts/db-generate.ts',
       ],
       thresholds: {
