@@ -20,6 +20,7 @@ needs it.
 | `check-main-stray` | Find uncommitted files and unpushed commits left in the main checkout |
 | `check-drift` | Find gitignored config that differs between a worktree and the main checkout |
 | `check-dependency-dashboard` | Answer whether gh-shaped issue JSON on stdin is Renovate's standing Dependency Dashboard issue, so skills refuse to treat it as work |
+| `check-coderabbit-activity` | Answer whether CodeRabbit has ever posted any comment or review on a PR, so a skill can tell a silently-ignored PR from one it has already engaged with |
 | `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — one command a worktree-isolated session can run, rather than a multi-line shell poll loop inline |
 | `post-review-questions` | Post drafted review questions as PR comments (inline or top-level) from JSON on stdin |
 | `acquire-review-lock` | Take the machine-wide review lock, waiting in a FIFO queue until it is free — serializes review-triggering activity across parallel sessions in different worktrees |
@@ -117,6 +118,22 @@ Reads JSON on stdin, either a single issue object (as `gh issue view` prints) or
 Prints the same shape back (object in, object out; array in, array out) with `isDependencyDashboard` added to each item. It is `true` only when the title is exactly `Dependency Dashboard` **and** the author's login is exactly `app/renovate` — Renovate's standing status issue, which it rewrites itself and which is never a piece of work to pick up. Both conditions are required, so a coincidentally-titled human-authored issue does not match, and detection survives Renovate recreating the issue under a new number.
 
 Malformed JSON, or an item missing `title`/`author.login`, is an error (exit 1) rather than a `false` — callers use this as a safety gate and must fail closed.
+
+### `check-coderabbit-activity` usage
+
+```bash
+node tools/dev-workflow-cli/dist/main.js check-coderabbit-activity <pr-number>
+```
+
+Prints `{"hasActivity": true}` when CodeRabbit has posted at least one comment or review on the PR at any point in its history, and `{"hasActivity": false}` when it has never posted either.
+
+The login match is a case-insensitive substring test (`test("coderabbit"; "i")`) against every comment author and every review author — the same rule `wait-for-pr-review` already applies, rather than pinning one exact spelling of the bot's account name. A `null` author (a deleted/ghost account) is coalesced to an empty string before matching, so it reads as "no match" rather than erroring.
+
+This is a read-only historical check over the PR's whole lifetime: it is not scoped to a watermark or a time window, and it does not distinguish a real review from a rate-limit notice or any other CodeRabbit comment. That is deliberate — any CodeRabbit-authored activity at all means the automatic-review path has engaged with the PR at least once, which is the only question this answers.
+
+Its caller is `finish-renovate-pr`, which runs it once before its review loop: CodeRabbit does not reliably auto-review PRs opened by bot accounts such as Renovate, and a `false` here tells the skill to pass `--trigger-after` on the loop's first `wait-for-pr-review` call so a `@coderabbitai review` comment is posted immediately instead of waiting out a 20-minute timeout for a review that would never arrive. Skills operating on developer-authored PRs deliberately do **not** use this — nudging unconditionally there would pre-empt CodeRabbit's normal automatic review and spend rate-limit budget for nothing.
+
+A failing `gh` lookup, or output that is neither `true` nor `false`, is an error (exit 1) rather than a `false` — callers decide how to handle it (see `finish-renovate-pr`'s Phase 4 Integration step 5, which warns and continues with no trigger).
 
 ## Development
 
