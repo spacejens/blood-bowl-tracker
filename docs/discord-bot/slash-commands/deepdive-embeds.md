@@ -221,46 +221,44 @@ position, race or coach has a button, nor a victim's.
 
 The
 star's name as the title, then one stat line per rules set the star has
-recorded characteristics for, oldest rules set first, formatted
-`<rules set>: MA <move> ST <strength> AG <agility> [PA <passing>]
-AV <armour>` — the same shape and formatting rules as the position
-deepdive's stat lines (each value in that rules set's own recorded format,
-`PA` omitted entirely for a rules set with no Passing characteristic, a
-stored zero rendering as a dash). A star with no characteristics
+recorded characteristics for, oldest rules set first — the same shape and
+formatting rules as the position deepdive's stat lines (each value in that
+rules set's own recorded format, the Passing characteristic omitted entirely
+for a rules set with no Passing characteristic, a stored zero rendering as a
+dash). A star with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list. Then a blank line and one line per team that has ever hired them,
 most-hires-first (ties broken by team name — the query itself supplies this
-order, so the description and the buttons can never disagree), formatted
-`<team> (<race>, <coach>) — <N> hire(s)`. Each hire is a
+order, so the description and the buttons can never disagree), with its race
+and coach and how many times it hired the star. Each hire is a
 separate signing: a team that brings the same star back counts once per hire,
 and hires are never split by era. Each listed team is rendered as a
 drill-down button to that team. A star that resolves but has never been hired
 by anyone is treated as not found — the same not-found reply as a star
 matching no name at all — because there is no hire history to show. The
-description is truncated with a trailing `…` if it would otherwise exceed
+description is truncated if it would otherwise exceed
 Discord's embed description limit, mirroring the regular player deepdive's
 own safety net.
 
 ## `race`
 
 The race
-name as the title, then `Eras: <eras>` (the eras this race has appeared in,
-comma-joined by name, or "None recorded" if it is in none), then — only when
+name as the title, then the eras this race has appeared in, or a note when
+it is in none, then — only when
 the race has (non-star) positions recorded for at least one era, with the
 whole section omitted otherwise — a blank line and one
-`<era> positions:` heading per era, oldest era first, each followed by that
+heading per era, oldest era first, each followed by that
 era's positions as one line per position, name-ascending — the same
 heading-then-rows shape the trophy and competition-group deepdives use for
 their own per-era lists. A position recurring across several eras appears
 once per era it belongs to. Star positions are never listed here: they are
 shared across every race that can hire them rather than belonging to this
 one race, and are already reachable from their own star-player deepdive.
-Then a blank line and
-`Top teams by matches played:` followed by its top five teams by matches
-played, one line per team formatted `<rank>. <team> — <matches>`. Ties at the
+Then a blank line, then a ranked list of its top five teams by matches
+played. Ties at the
 fifth-place cutoff are all shown, up to ten teams — the same convention
-`/insights` toplists use, though at most ten teams are fetched, so the "…and N
-more tied." note never actually appears here. The top-teams list is not
+`/insights` toplists use, though at most ten teams are fetched, so the
+toplists' truncation note never actually appears here. The top-teams list is not
 era-scoped. A race with no recorded team appearances shows a short "no teams
 yet" message in place of the list. Every listed position is rendered as a
 drill-down button to that position's deepdive, ahead of the top-teams
@@ -271,33 +269,30 @@ buttons.
 ### Characteristics stat lines
 
 The position name as the title,
-then `Race(s): <races>` (comma-joined by name, or "None recorded" if the
-position has no [race](../../glossary.md#race) recorded — a position can
-in principle belong to more than one race), a blank line, and one stat
+then its race or races, or a note when none is recorded — a position can
+in principle belong to more than one race — a blank line, and one stat
 line per rules set the position has recorded characteristics for, oldest
-rules set first, formatted `<rules set>: MA <move> ST <strength>
-AG <agility> [PA <passing>] AV <armour>`. Each value is written using that
+rules set first. Each value is written using that
 rules set's own recorded format — a bare number, or a number with a
-trailing `+` for a target a die roll has to meet — and a rules set with no
-Passing characteristic at all omits the `PA` field entirely rather than
+trailing plus for a target a die roll has to meet — and a rules set with no
+Passing characteristic at all omits that field entirely rather than
 showing a placeholder for it; a stored value of zero (not yet curated)
-renders as a dash instead of `0`. A position with no characteristics
+renders as a dash instead of the number. A position with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list.
 
 ### Top players by SPP
 
-Then a blank line, `Held by <N> player(s)`, a blank line, and
-`Top players by SPP:` followed by its top five players by career SPP total,
-one line per player formatted `<rank>. <player> (<team>, <era>, <coach>) —
-<SPP>` — the player's position is left off, since every listed player
+Then a blank line, a count of how many players have held the position, then
+a ranked list of its top five players by career SPP total, each shown with
+their team, era and coach — the player's position is left off, since every listed player
 already holds this one, and the race is left off too, since the list is not
 scoped to a single race; the [era](../../glossary.md#era) is shown because a
 position's roster slot spans many eras, so it is what tells two of its top
 players apart. Ties at the fifth-place cutoff are all shown, up to ten
 players — the same convention
 `/insights` toplists use, though at most ten players are fetched, so the
-"…and N more tied." note never actually appears here. A position with no
+toplists' truncation note never actually appears here. A position with no
 players shows a short message instead of a list.
 
 ### Buttons
@@ -308,11 +303,10 @@ button per listed top player.
 
 ## `competition`
 
-The competition name as the title, then `Type: <type>` (`season`
-or `cup`), `Era: <era>`, `Group: <competition group>`, `Duration: <range>`
-(an ongoing competition shows `present`), a blank line, and
-`Participating teams:` followed by every participating team, one line per
-team formatted `<team>` with its race and coach appended as a suffix. A
+The competition name as the title, then its type — a season or a cup — its
+era, its competition group, and its duration, with an ongoing competition
+marked as still running, a blank line, and
+every participating team, one line each with its race and coach. A
 competition with no participating teams shows a short "nobody has signed up
 yet" message instead of a list. Every participating team and the era are
 each rendered as a drill-down button (teams take priority over the era entry
@@ -322,13 +316,13 @@ recurring group, last of all.
 
 ## `competition-group`
 
-The group name as the title, then `League: <league>`, a
-blank line, `Trophies:` followed by every trophy the group awards, one line
-per trophy (or "Not one piece of silverware rides on this one." when it
-awards none), a blank line, and one `<era> competitions:` heading per era,
+The group name as the title, then its league, then every trophy the group
+awards, one line
+per trophy (or a themed message saying so when it
+awards none), a blank line, and one heading per era,
 oldest era first, each followed by that era's competition instances, oldest
-first, one line per competition formatted `<name>: <date range>` (or "This
-fixture has never actually been played." when the group has no instances at
+first, one line per competition with its date range (or a themed message
+saying so when the group has no instances at
 all, in which case no era heading is shown) — a blank line separates each
 era section from the next, so a multi-era group doesn't read as one packed
 block. Competitions are rendered as
@@ -339,12 +333,11 @@ menus).
 ## `league`
 
 The
-league name as the title, then `Trophies:` followed by every trophy the
+league name as the title, then every trophy the
 league itself awards directly — not through one of its competition groups —
-one line per trophy (or "This league keeps no silverware of its own." when it
-awards none directly), a blank line, and `Competition groups:` followed by
-every competition group the league runs, one line per group (or "This league
-has never scheduled a single fixture." when it has none). Competition groups
+one line per trophy (or a themed message saying so when it
+awards none directly), then every competition group the league runs, one line per group (or a themed message
+saying so when it has none). Competition groups
 are rendered as drill-down buttons before trophies (groups take priority over
 trophies when the combined list is too long for buttons and switches to
 select menus).
@@ -352,19 +345,19 @@ select menus).
 ## `trophy`
 
 The
-trophy name as the title, then `Awarded for: <competition group>` and, only
-when the trophy has one, `Description: <description>`, a blank line, then
-one `<era> recipients:` heading per era, newest era first, each followed by
-that era's awards, newest-first, one line per award formatted
-`<competition>: <team> (<race>, <coach>)` for a team trophy or
-`<competition>: <player> (<position>, <team>, <race>, <coach>)` for a player
-trophy — the same race/coach and position/team/race/coach context the
+trophy name as the title, then the competition group it is awarded for and,
+only when the trophy has one, its description, a blank line, then
+one heading per era, newest era first, each followed by
+that era's awards, newest-first, one line per award naming the competition
+and the recipient — a team with its race and coach, or a player with their
+position, team, race and coach — the same race/coach and
+position/team/race/coach context the
 `team.toplist` and `player.toplist` insights append to their own rows (the
 era is left off the row, since the section heading already names it). A
 blank line separates each era section from the next, so a long-running
 trophy doesn't read as one packed block.
-At most 30 recipients are shown; when there are more, the list ends with an
-exact `…and N more not shown.` note computed from the trophy's true award
+The list is capped, and when it is truncated the embed says exactly how many
+awards are not shown, computed from the trophy's true award
 count. A trophy with no recorded awards shows a short "nobody has got their
 hands on this one yet" message instead of a list. Each shown recipient is
 rendered as a drill-down button to whoever actually received the trophy —
