@@ -977,8 +977,8 @@ describe('MatchEventCorrelationService', () => {
 
     it('merges nothing when neither side of an equal-count group is identical', () => {
       // Two distinct causers and two distinct victims: the source says nothing
-      // about which caused which, so the pairing would be a guess. Stays
-      // unmerged, exactly as before.
+      // about which caused which, so the pairing would be a guess. The
+      // occurrences stay unmerged and are emitted as separate events.
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [
