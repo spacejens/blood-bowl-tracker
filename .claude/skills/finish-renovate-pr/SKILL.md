@@ -303,7 +303,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```bash
    node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>
    ```
-   It prints `{"released": true}` normally, or `{"released": false}` if a **Skip the review loop** choice in (b)/(b2)/(b3) left it released, or if a nested `handle-pr-reviews` dispatch already released it for its own ambiguous-item stop — both are fine, and neither is an error. A non-zero exit is a one-line warning, never a stop.
+   It prints `{"released": true}` normally, or `{"released": false}` if a **Skip the review loop** choice in (b)/(b2)/(b3) left it released, or if a nested `handle-pr-reviews` dispatch already released it for its own ambiguous-item stop — all of these are fine, and none is an error. A non-zero exit is a one-line warning, never a stop.
 
    Then print a brief status line naming how the loop ended, and continue. Step 6's `deploy-local` offer and step 7's mergeability re-check both run unlocked, exactly as in `develop-feature`: neither triggers a review, and `deploy-local` can wait indefinitely on a developer.
 
