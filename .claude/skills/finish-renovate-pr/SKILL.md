@@ -228,7 +228,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```bash
    node tools/dev-workflow-cli/dist/main.js acquire-review-lock <headRefName>
    ```
-   The command enqueues this session and polls internally until it reaches the front of the queue and the lock is free — or until the current holder's heartbeat goes stale, which reclaims a lock left behind by a killed session. It has no timeout by default. Run it via `Bash` with `run_in_background: true`, for the same reason step 5's wait is backgrounded: it produces exactly one result at exit and can easily outlive a foreground `Bash` call's cap. Wait for the harness's own completion notification, then read the printed `{"acquired": true, "waitedMs": <n>}` and report a one-line status from `waitedMs` — either that the lock was free, or how long this session waited behind others. Identical wording and handling to `develop-feature`'s Phase 6 step 3.
+   The command enqueues this session and polls internally until it reaches the front of the queue and the lock is free — or until the current holder's heartbeat goes stale, which reclaims a lock left behind by a killed session. It has no timeout by default. Run it via `Bash` with `run_in_background: true`, for the same reason step 5a's wait is backgrounded: it produces exactly one result at exit and can easily outlive a foreground `Bash` call's cap. Wait for the harness's own completion notification, then read the printed `{"acquired": true, "waitedMs": <n>}` and report a one-line status from `waitedMs` — either that the lock was free, or how long this session waited behind others. Same handling as `develop-feature`'s Phase 6 step 3, condensed here rather than restated in full.
 
    If `dist/main.js` is missing, build it first — Phase 1 step 4's `pnpm build` already builds it, so this is only needed if that build failed:
    ```bash
@@ -247,7 +247,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```bash
    git push origin <headRefName>
    ```
-   If this command fails (a non-zero exit — a rejected non-fast-forward push, a permissions error, a network failure), **stop immediately**: report the failure verbatim and do not proceed to step 4's question-posting, step 5's review loop, or step 6's `deploy-local` offer. None of those make sense against a PR that still doesn't have this run's fix — the commits exist locally in the worktree, so nothing is lost, but reporting success or continuing as if the push landed would be actively misleading.
+   If this command fails (a non-zero exit — a rejected non-fast-forward push, a permissions error, a network failure), release the review lock taken in step 2 (`node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>`; a non-zero exit here is a one-line warning, never a stop) before reporting, then **stop immediately**: report the failure verbatim and do not proceed to step 4's question-posting, step 5's review loop, or step 6's `deploy-local` offer. None of those make sense against a PR that still doesn't have this run's fix — the commits exist locally in the worktree, so nothing is lost, but reporting success or continuing as if the push landed would be actively misleading. Releasing here matters because this is the one exit path between the step 2 acquire and step 5's loop — every other queued session must not wait behind a dead holder for a failed push that will never reach the loop.
 
    Once the push succeeds: this updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
 
@@ -303,7 +303,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```bash
    node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>
    ```
-   It prints `{"released": true}` normally, or `{"released": false}` if a Pause branch in (b)/(b2)/(b3) already released it — both are fine, and neither is an error. A non-zero exit is a one-line warning, never a stop.
+   It prints `{"released": true}` normally, or `{"released": false}` if a **Skip the review loop** choice in (b)/(b2)/(b3) left it released, or if a nested `handle-pr-reviews` dispatch already released it for its own ambiguous-item stop — both are fine, and neither is an error. A non-zero exit is a one-line warning, never a stop.
 
    Then print a brief status line naming how the loop ended, and continue. Step 6's `deploy-local` offer and step 7's mergeability re-check both run unlocked, exactly as in `develop-feature`: neither triggers a review, and `deploy-local` can wait indefinitely on a developer.
 
