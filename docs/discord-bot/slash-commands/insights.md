@@ -83,11 +83,11 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
   scoped to the selected era.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
   Supports league, era and match-category filtering, but not competition
-  filtering (like the other `coach.toplist.*` facts).
+  filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.matches.won` — coaches ranked by number of matches won.
   Counts matches whose recorded winner is one of the coach's own teams.
   Supports league, era and match-category filtering, but not competition
-  filtering (like the other `coach.toplist.*` facts).
+  filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.matches.lost` — coaches ranked by number of matches lost:
   matches with a recorded winner that was not one of the coach's own teams.
   Ranked most-losses-first, as its own leaderboard rather than an inverted
@@ -99,7 +99,7 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
 - `coach.toplist.competitions.played` — coaches ranked by number of distinct
   competitions their teams have entered. Supports league, era and
   match-category filtering, but not competition filtering (like the other
-  `coach.toplist.*` facts).
+  match-backed `coach.toplist.*` facts).
 - `coach.toplist.eras.active` — coaches ranked by number of distinct eras their
   teams have existed across. Supports none of the four scope options — scoping
   to a single era would always yield 0 or 1, so era filtering in particular is
@@ -107,7 +107,7 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
 - `coach.toplist.fouls.committed` — coaches ranked by fouls committed. Counts
   foul events credited to the acting team, attributed to that team's coach.
   Supports league, era and match-category filtering, but not competition
-  filtering (like the other `coach.toplist.*` facts).
+  filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.trophies.won` — coaches ranked by number of trophies their
   teams have won. Counts every recorded trophy award tied to any of the
   coach's teams, including player awards (MVP, most casualties, ...) won by
@@ -118,7 +118,7 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
   longest gap between two of their consecutive matches, longest first, shown in
   whole days. Coaches with fewer than two matches in scope are excluded (they
   have no gap). Supports league, era and match-category filtering, but not
-  competition filtering (like the other `coach.toplist.*` facts).
+  competition filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.timeBetweenMatches.longest.ascending` — the same longest-gap value,
   ranked smallest first: the coaches whose longest break between matches is the
   shortest, i.e. the most consistently active ones. Same exclusions and

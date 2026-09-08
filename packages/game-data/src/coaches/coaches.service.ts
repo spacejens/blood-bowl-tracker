@@ -493,8 +493,9 @@ export class CoachesService {
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     // Deliberately does not forward scope.competitionId: coach toplists are
-    // league/era/match-category-scoped only, matching every other
-    // coach.toplist.* fact.
+    // league/era/match-category-scoped only, matching the other
+    // match-event-backed coach.toplist.* facts (the trophy toplist below is
+    // the exception, since a trophy award belongs to a competition).
     return this.matchEventCounts.countMatchEventsByCoach({
       selector: { role: 'acting', types: FOUL_TYPES },
       scope: {
