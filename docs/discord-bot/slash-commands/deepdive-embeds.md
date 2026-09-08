@@ -193,7 +193,7 @@ same way and the note reports them too. Either way the note's count is always ex
 — it is computed from the player's true kill total, not from how many rows
 happened to be fetched or rendered — regardless of which of the two
 overflow reasons caused rows to be dropped. The player's true kill count
-always equals the killed sub-counts of the casualty and foul lines added
+always equals the kill sub-counts of the casualty and foul lines added
 together, exactly — not merely typically.
 
 ### Button ordering
