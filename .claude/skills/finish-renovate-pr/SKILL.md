@@ -221,7 +221,23 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```
    `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/dev-workflow-cli/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
 
-2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
+2. **Acquire the review lock, then capture the push watermark.** Step 3's push onto Renovate's branch is what triggers a fresh CodeRabbit review, and CodeRabbit's review rate limit is shared across every PR and every session on this machine — so parallel sessions must not push at the same time. Take the machine-wide review lock here and hold it through the end of step 5's review loop, so exactly one session drives a review loop at a time and the rest wait their turn in the order they started waiting. This mirrors `develop-feature`'s Phase 6 step 3, which acquires the lock immediately before its own review-triggering action; see `docs/development-workflow.md`'s "Serializing review activity across parallel sessions". Step 1 above deliberately ran unlocked — the stray-work check triggers no review and can wait indefinitely on a developer's answer.
+
+   The holder id is `headRefName`, recorded in Phase 1 step 1 — substituted literally into every lock command in this phase, since none of them share a shell session. It matches `handle-pr-reviews`' own `$HEAD_REF` convention and `develop-feature`'s branch-name holder id; the worktree is checked out on Renovate's branch, so all three are the same value.
+
+   ```bash
+   node tools/dev-workflow-cli/dist/main.js acquire-review-lock <headRefName>
+   ```
+   The command enqueues this session and polls internally until it reaches the front of the queue and the lock is free — or until the current holder's heartbeat goes stale, which reclaims a lock left behind by a killed session. It has no timeout by default. Run it via `Bash` with `run_in_background: true`, for the same reason step 5's wait is backgrounded: it produces exactly one result at exit and can easily outlive a foreground `Bash` call's cap. Wait for the harness's own completion notification, then read the printed `{"acquired": true, "waitedMs": <n>}` and report a one-line status from `waitedMs` — either that the lock was free, or how long this session waited behind others. Identical wording and handling to `develop-feature`'s Phase 6 step 3.
+
+   If `dist/main.js` is missing, build it first — Phase 1 step 4's `pnpm build` already builds it, so this is only needed if that build failed:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build
+   ```
+
+   **If the command fails outright** — a non-zero exit, or output that will not parse — print a one-line warning that the review lock could not be taken and **continue anyway, unlocked**: skip every heartbeat, release, and re-acquire call for the rest of Phase 4. A lock that cannot be coordinated costs some extra rate-limit contention, which is the thing this reduces rather than guarantees, and it must never block real work.
+
+   Then capture the push watermark, immediately *before* pushing — the review loop below needs it:
    ```bash
    date +%s
    ```
