@@ -29,7 +29,7 @@ interface CoachRow {
   count: number;
 }
 
-/** The seven coach toplists the factory builds. */
+/** The eight coach toplists the factory builds. */
 type CoachFactoryMethod =
   | 'countFoulsCommittedByCoach'
   | 'countMatchesPlayedByCoach'
@@ -37,7 +37,8 @@ type CoachFactoryMethod =
   | 'countMatchesLostByCoach'
   | 'countMatchesDrawnByCoach'
   | 'countTeamsByCoach'
-  | 'countCompetitionsByCoach';
+  | 'countCompetitionsByCoach'
+  | 'countTrophiesByCoach';
 
 interface MadeService {
   service: CoachToplistService;
@@ -154,6 +155,16 @@ const factoryCases: FactoryCase[] = [
       { coachId: 2, name: 'Grashnak', count: 4 },
     ],
     expectedTitle: 'Coaches by fouls committed',
+  },
+  {
+    describeName: 'resolveTrophiesWon',
+    method: 'countTrophiesByCoach',
+    resolve: (service) => service.resolveTrophiesWon(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 7 },
+      { coachId: 2, name: 'Grashnak', count: 1 },
+    ],
+    expectedTitle: 'Coaches by trophies won',
   },
 ];
 
@@ -415,6 +426,20 @@ describe('CoachToplistService time-between-matches rendering', () => {
       expect.objectContaining({
         noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       }),
+    );
+  });
+});
+
+describe('CoachToplistService.resolveTrophiesWon', () => {
+  it('passes the competition scope through to the factory resolver', async () => {
+    // Unlike the other coach toplists, this fact is competition-scopable:
+    // a trophy award belongs to a competition.
+    const coaches = mock<CoachesService>();
+    const { service, toplist } = await makeService(coaches);
+    await service.resolveTrophiesWon({ leagueId: 9, competitionId: 30 });
+    expect(toplist.resolver('countTrophiesByCoach')).toHaveBeenCalledWith(
+      coaches,
+      { leagueId: 9, competitionId: 30 },
     );
   });
 });

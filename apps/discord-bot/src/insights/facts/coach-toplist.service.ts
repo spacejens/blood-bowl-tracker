@@ -21,7 +21,8 @@ type CoachToplistMethod =
   | 'countMatchesLostByCoach'
   | 'countMatchesDrawnByCoach'
   | 'countTeamsByCoach'
-  | 'countCompetitionsByCoach';
+  | 'countCompetitionsByCoach'
+  | 'countTrophiesByCoach';
 
 interface CoachCountRow {
   coachId: number;
@@ -60,6 +61,7 @@ export class CoachToplistService {
         countMatchesDrawnByCoach: 'Coaches by matches drawn',
         countTeamsByCoach: 'Coaches by teams coached',
         countCompetitionsByCoach: 'Coaches by competitions played',
+        countTrophiesByCoach: 'Coaches by trophies won',
       },
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
@@ -105,6 +107,18 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolvers.countCompetitionsByCoach(this.coaches, scope);
+  }
+
+  /**
+   * The only competition-scopable coach toplist: the whole scope is handed
+   * to the query rather than trimmed, because a trophy award belongs to a
+   * competition. Rows need no decoration — bare coachId/name/count, like
+   * every other factory-built coach toplist.
+   */
+  resolveTrophiesWon(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countTrophiesByCoach(this.coaches, scope);
   }
 
   /**
