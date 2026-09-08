@@ -37,12 +37,13 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but fourteen facts support
+replies with a per-scope refusal message. All but fifteen facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams.descending`, `race.toplist.teams.ascending`,
 `position.toplist.players`, `coach.toplist.eras.active`,
-`team.toplist.eras.active`, `team.toplist.trophies.won`, `eras.list`,
-`trophies.list`, `competitionGroups.list`, `starPlayers.list`,
+`team.toplist.eras.active`, `coach.toplist.trophies.won`,
+`team.toplist.trophies.won`, `eras.list`, `trophies.list`,
+`competitionGroups.list`, `starPlayers.list`,
 `starPlayers.toplist.hires.total` and
 `starPlayers.toplist.hires.distinctTeams` — which list or count teams,
 rostered players, eras, trophies, trophy awards, competition groups or star
@@ -107,6 +108,12 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
   foul events credited to the acting team, attributed to that team's coach.
   Supports league, era and match-category filtering, but not competition
   filtering (like the other `coach.toplist.*` facts).
+- `coach.toplist.trophies.won` — coaches ranked by number of trophies their
+  teams have won. Counts every recorded trophy award tied to any of the
+  coach's teams, including player awards (MVP, most casualties, ...) won by
+  one of their players, summed across all of the coach's teams. Supports
+  league, era and competition filtering, but not match-category filtering: a
+  trophy award is not a match event, so it has no category.
 - `coach.toplist.timeBetweenMatches.longest.descending` — coaches ranked by the
   longest gap between two of their consecutive matches, longest first, shown in
   whole days. Coaches with fewer than two matches in scope are excluded (they
@@ -123,7 +130,7 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
   Same exclusions and filtering as above, plus the same minimum-5-matches floor
   as `.longest.ascending`.
 
-Each coach listed by the eleven `coach.toplist.*` facts above also gets a
+Each coach listed by the twelve `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 
