@@ -8,6 +8,10 @@ the event (the acting side or the consequence side), the **set of event types** 
 **grouping entity** (player, team, or coach). Role and join columns co-vary: an acting-role count
 joins through the acting columns, a consequence-role count through the consequence columns.
 
+For the exact query shape behind all of these — which columns each role joins
+through, and how the grouping and filters are applied — see
+`packages/game-data/src/shared/match-event-counts.service.ts`.
+
 ## The player/team grid is deliberately incomplete
 
 Not every count exists for both grouping entities, and that is by design — not an oversight:
@@ -16,11 +20,10 @@ Not every count exists for both grouping entities, and that is by design — not
   top list of deaths suffered would be a list of ones.
 - MVP awards are counted by player but not by team. The award is a per-player honour; totalling it
   per team measures matches played, not merit.
-- Fouls committed are additionally counted by **coach** (`countMatchEventsByCoach`, the per-team join
-  graph plus a `teams.coachId -> coaches.id` hop). It is the only coach-grouped count today: coaches
-  are ranked on fouls because someone wanted to read that list, not because every player/team count
-  needs a coach twin. The coach grouping is also league/era-scoped only — coach toplists take no
-  competition scope.
+- Fouls committed are additionally counted by **coach**, reached from the per-team count by way of
+  the team's coach. It is the only coach-grouped count today: coaches are ranked on fouls because
+  someone wanted to read that list, not because every player/team count needs a coach twin. The
+  coach grouping is also league/era-scoped only — coach toplists take no competition scope.
 
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.
@@ -36,15 +39,16 @@ awards, for the same reason the team grouping does above.
 ## Expensive-mistake money queries
 
 Two `/insights` team toplists rank money rather than counting events, but reuse
-the same consequence-side join graph (`matchEvents → matchTeams → matches →
-teamEras → teams`, filtered to `consequenceType = 'expensive_mistake'`):
+the same consequence-side grouping the counts do, narrowed to expensive-mistake
+events:
 
-- **Total lost per team** sums `matchEvents.expensiveMistake` grouped by team.
+- **Total lost per team** sums the money lost, grouped by team.
 - **Biggest individual events** returns one row per event (no grouping), each
-  labelled with the team and the match's `playedAt` date, ordered by amount.
+  labelled with the team and the date of the match it happened in, ordered by amount.
 
-Both return the full matching row set (no `LIMIT`); the application layer ranks
-and truncates via `topRanksWithTies`, exactly as the count toplists do.
+Both return every matching row rather than a database-side top slice; the
+application layer ranks and truncates them with ties, exactly as the count
+toplists do.
 
 ## Total SPP: one toplist, two calculations
 
