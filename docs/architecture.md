@@ -22,6 +22,11 @@ apps/
 packages/
   db/                 — Drizzle schema + migrations; the only package that
                         imports directly from the database driver
+  domain-enums/       — single source of truth for every Blood Bowl domain
+                        enum's member list, as plain as-const string arrays;
+                        deliberately depends on no other workspace package so
+                        packages/db and packages/api-contract can each build
+                        from it while staying mutually independent
   game-data/          — DB-backed business logic for core game entities;
                         depends on packages/db and on packages/api-contract
                         for shared contract types (Upsert* shapes, ActionType,
