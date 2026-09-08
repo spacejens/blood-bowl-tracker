@@ -60,6 +60,10 @@ they reached), rather than every competition entered.
 
 ## Available facts
 
+The exact event and consequence kinds these facts count live in the database
+schema rather than here — see `packages/db/src/schema/match-events.ts`
+(`actionTypeEnum` and `consequenceTypeEnum`) for the authoritative list.
+
 - `stats` — a combined embed of entity counts (title "Statistics"): leagues,
   eras, external systems, rules sets, races, positions, coaches, competitions
   (with a season/cup breakdown), teams, players, matches, and match events.
@@ -100,8 +104,8 @@ they reached), rather than every competition entered.
   to a single era would always yield 0 or 1, so era filtering in particular is
   excluded outright.
 - `coach.toplist.fouls.committed` — coaches ranked by fouls committed. Counts
-  `foul` match events credited to the acting team, attributed to that team's
-  coach. Supports league, era and match-category filtering, but not competition
+  foul events credited to the acting team, attributed to that team's coach.
+  Supports league, era and match-category filtering, but not competition
   filtering (like the other `coach.toplist.*` facts).
 - `coach.toplist.timeBetweenMatches.longest.descending` — coaches ranked by the
   longest gap between two of their consecutive matches, longest first, shown in
@@ -148,53 +152,56 @@ button, in the same order as the list, that opens that coach's
   era and competition filtering, but not match-category filtering: a trophy
   award is not a match event, so it has no category.
 - `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
-  scored. Counts raw `touchdown` match events credited to the team. Supports
-  league, era, competition and match-category filtering.
+  scored. Counts touchdown events credited to the team. Supports league, era,
+  competition and match-category filtering.
 - `team.toplist.completions` — teams ranked by number of passes completed.
-  Counts raw `completion` match events credited to the team. Supports league,
-  era, competition and match-category filtering.
+  Counts completed-pass events credited to the team. Supports league, era,
+  competition and match-category filtering.
 - `team.toplist.interceptions` — teams ranked by number of interceptions made.
-  Counts raw `interception` match events credited to the team. Supports league,
-  era, competition and match-category filtering.
+  Counts interception events credited to the team. Supports league, era,
+  competition and match-category filtering.
 - `team.toplist.deflections` — teams ranked by number of passes deflected.
-  Counts raw `deflection` match events credited to the team. Supports league,
-  era, competition and match-category filtering.
+  Counts pass-deflection events credited to the team. Supports league, era,
+  competition and match-category filtering.
 - `team.toplist.casualties.caused` — teams ranked by casualties inflicted.
-  Counts `casualty`, `badly_hurt`, `serious_injury`, and `death` match events
-  credited to the acting team. Supports league, era, competition and
-  match-category filtering.
+  Counts every casualty event credited to the acting team, from a plain
+  knock-out through serious injuries and deaths. Supports league, era,
+  competition and match-category filtering.
 - `team.toplist.casualties.suffered` — teams ranked by casualties suffered.
-  Counts match events whose consequence is `casualty`, `badly_hurt`, `death`,
-  `serious_injury`, `niggling_injury`, `miss_next_game`, or any
-  `stat_reduction_*`, credited to the team the victim belongs to. Supports
-  league, era, competition and match-category filtering.
+  Counts every match event whose consequence for the victim is a casualty of
+  any severity — a plain knock-out, a serious injury, a missed next game, a
+  niggling injury, a lasting characteristic reduction, or death — credited to
+  the team the victim belongs to. Supports league, era, competition and
+  match-category filtering.
 - `team.toplist.injuries.serious.caused` — teams ranked by serious injuries
-  inflicted. Counts `serious_injury` match events credited to the acting team.
-  Supports league, era, competition and match-category filtering.
+  inflicted. Counts serious-injury events credited to the acting team. Supports
+  league, era, competition and match-category filtering.
 - `team.toplist.injuries.serious.suffered` — teams ranked by serious injuries
-  suffered. Counts `serious_injury`, `niggling_injury`, `miss_next_game`, and
-  any `stat_reduction_*` consequence, credited to the team the victim belongs
-  to. Supports league, era, competition and match-category filtering.
-- `team.toplist.injuries.lasting.suffered` — teams ranked by lasting injuries
-  suffered. Counts `niggling_injury` and any `stat_reduction_*` consequence
-  (the career-spanning outcomes), credited to the team the victim belongs to.
-  Supports league, era, competition and match-category filtering.
-- `team.toplist.deaths.caused` — teams ranked by opponents killed. Counts
-  `death` match events credited to the acting team. Supports league, era,
-  competition and match-category filtering.
-- `team.toplist.deaths.suffered` — teams ranked by players killed. Counts match
-  events whose consequence is `death`, credited to the team the dead player
-  belongs to. Supports league, era, competition and match-category filtering.
-- `team.toplist.fouls.committed` — teams ranked by fouls committed. Counts
-  `foul` match events credited to the acting team. Supports league, era,
-  competition and match-category filtering.
-- `team.toplist.sent_off` — teams ranked by players sent off. Counts match
-  events whose consequence is `sent_off`, credited to the team the sent-off
-  player belongs to. Supports league, era, competition and match-category
+  suffered. Counts the consequences that keep a player out of action or leave a
+  mark on them — a serious injury, a missed next game, a niggling injury, or a
+  lasting characteristic reduction — credited to the team the victim belongs to.
+  Plain knock-outs and deaths are counted by the casualty and death facts
+  instead, not here. Supports league, era, competition and match-category
   filtering.
+- `team.toplist.injuries.lasting.suffered` — teams ranked by lasting injuries
+  suffered. Counts only the career-spanning consequences — a niggling injury or a
+  lasting characteristic reduction — credited to the team the victim belongs to.
+  Supports league, era, competition and match-category filtering.
+- `team.toplist.deaths.caused` — teams ranked by opponents killed. Counts fatal
+  events credited to the acting team. Supports league, era, competition and
+  match-category filtering.
+- `team.toplist.deaths.suffered` — teams ranked by players killed. Counts match
+  events that killed a player, credited to the team the dead player belongs to.
+  Supports league, era, competition and match-category filtering.
+- `team.toplist.fouls.committed` — teams ranked by fouls committed. Counts foul
+  events credited to the acting team. Supports league, era, competition and
+  match-category filtering.
+- `team.toplist.sent_off` — teams ranked by players sent off. Counts match
+  events that sent a player off, credited to the team that player belongs to.
+  Supports league, era, competition and match-category filtering.
 - `team.toplist.expensiveMistakes.total` — teams ranked by the total money lost
-  to expensive mistakes across their history (summed `expensive_mistake`
-  consequence amounts, not event count). Amounts render with a thousands
+  to expensive mistakes across their history (the amounts lost are summed, not
+  the events counted). Amounts render with a thousands
   separator and a `gp` suffix (e.g. `150,000 gp`). Supports league, era,
   competition and match-category filtering.
 - `team.toplist.expensiveMistakes.biggest` — individual expensive-mistake events
@@ -207,52 +214,55 @@ button, in the same order as the list, that opens that team's
 [`/deepdive`](deepdive.md) detail view. For the biggest-events fact, buttons are
 deduplicated so a team that appears on multiple rows gets a single button.
 
-- `player.toplist.mvps` — players ranked by number of MVP awards won.
-  Counts raw `mvp_award` match events per player, so a player credited with
-  more than one MVP in a single match has each award counted. Supports league,
-  era, competition and match-category filtering.
-- `player.toplist.touchdowns.scored` — players ranked by number of touchdowns
-  scored. Counts raw `touchdown` match events credited to the player. Supports
-  league, era, competition and match-category filtering.
-- `player.toplist.completions` — players ranked by number of passes completed.
-  Counts raw `completion` match events credited to the player. Supports league,
-  era, competition and match-category filtering.
-- `player.toplist.interceptions` — players ranked by number of interceptions
-  made. Counts raw `interception` match events credited to the player. Supports
-  league, era, competition and match-category filtering.
-- `player.toplist.deflections` — players ranked by number of passes deflected.
-  Counts raw `deflection` match events credited to the player. Supports league,
-  era, competition and match-category filtering.
-- `player.toplist.casualties.caused` — players ranked by casualties inflicted.
-  Counts `casualty`, `badly_hurt`, `serious_injury`, and `death` match events
-  credited to the acting player. Supports league, era, competition and
+- `player.toplist.mvps` — players ranked by number of MVP awards won. Counts MVP
+  awards per player, so a player credited with more than one MVP in a single
+  match has each award counted. Supports league, era, competition and
   match-category filtering.
-- `player.toplist.casualties.suffered` — players ranked by casualties suffered.
-  Counts match events whose consequence is `casualty`, `badly_hurt`, `death`,
-  `serious_injury`, `niggling_injury`, `miss_next_game`, or any
-  `stat_reduction_*`, credited to the victim player. Supports league, era,
+- `player.toplist.touchdowns.scored` — players ranked by number of touchdowns
+  scored. Counts touchdown events credited to the player. Supports league, era,
   competition and match-category filtering.
+- `player.toplist.completions` — players ranked by number of passes completed.
+  Counts completed-pass events credited to the player. Supports league, era,
+  competition and match-category filtering.
+- `player.toplist.interceptions` — players ranked by number of interceptions
+  made. Counts interception events credited to the player. Supports league, era,
+  competition and match-category filtering.
+- `player.toplist.deflections` — players ranked by number of passes deflected.
+  Counts pass-deflection events credited to the player. Supports league, era,
+  competition and match-category filtering.
+- `player.toplist.casualties.caused` — players ranked by casualties inflicted.
+  Counts every casualty event credited to the acting player, from a plain
+  knock-out through serious injuries and deaths. Supports league, era,
+  competition and match-category filtering.
+- `player.toplist.casualties.suffered` — players ranked by casualties suffered.
+  Counts every match event whose consequence for the victim is a casualty of
+  any severity — a plain knock-out, a serious injury, a missed next game, a
+  niggling injury, a lasting characteristic reduction, or death — credited to
+  the victim player. Supports league, era, competition and match-category
+  filtering.
 - `player.toplist.injuries.serious.caused` — players ranked by serious injuries
-  inflicted. Counts `serious_injury` match events credited to the acting
-  player. Supports league, era, competition and match-category filtering.
+  inflicted. Counts serious-injury events credited to the acting player.
+  Supports league, era, competition and match-category filtering.
 - `player.toplist.injuries.serious.suffered` — players ranked by serious
-  injuries suffered. Counts `serious_injury`, `niggling_injury`,
-  `miss_next_game`, and any `stat_reduction_*` consequence, credited to the
-  victim player. Supports league, era, competition and match-category
+  injuries suffered. Counts the consequences that keep a player out of action
+  or leave a mark on them — a serious injury, a missed next game, a niggling
+  injury, or a lasting characteristic reduction — credited to the victim player.
+  Plain knock-outs and deaths are counted by the casualty and death facts
+  instead, not here. Supports league, era, competition and match-category
   filtering.
 - `player.toplist.injuries.lasting.suffered` — players ranked by lasting
-  injuries suffered. Counts `niggling_injury` and any `stat_reduction_*`
-  consequence (the career-spanning outcomes), credited to the victim player.
+  injuries suffered. Counts only the career-spanning consequences — a niggling
+  injury or a lasting characteristic reduction — credited to the victim player.
   Supports league, era, competition and match-category filtering.
 - `player.toplist.deaths.caused` — players ranked by opponents killed. Counts
-  `death` match events credited to the acting player. Supports league, era,
-  competition and match-category filtering.
+  fatal events credited to the acting player. Supports league, era, competition
+  and match-category filtering.
 - `player.toplist.fouls.committed` — players ranked by fouls committed. Counts
-  `foul` match events credited to the acting player. Supports league, era,
-  competition and match-category filtering.
+  foul events credited to the acting player. Supports league, era, competition
+  and match-category filtering.
 - `player.toplist.sent_off` — players ranked by times sent off. Counts match
-  events whose consequence is `sent_off`, credited to the sent-off player.
-  Supports league, era, competition and match-category filtering.
+  events that sent this player off. Supports league, era, competition and
+  match-category filtering.
 - `player.toplist.totalSpp` — players ranked by total star player points. For
   the unfiltered, league, and era views this is the same stored total the
   player's own [`/deepdive`](deepdive.md) shows on its

@@ -102,23 +102,19 @@ this document does not name them — each exempt router carries its own comment
 in `packages/api-contract/src/contract.ts` explaining why that particular
 entity is exempt.
 
-**Standard entity routes are built, not written.** `RpcRouterFactoryService`
-composes each entity's block from `buildUpsertRoute`, `buildUpsertBatchRoute`,
-`buildResolveRoute` and `buildResolveBatchRoute`; an entity whose contract is
-exactly those four procedures uses the composite `buildStandardEntityRoutes`
-instead. An entity that adds a procedure (`positions.syncRaceEras`,
-`matches.resolveOutcomes`, the players SPP-adjustment syncs,
-`competitionGroups.list`) spreads only the builders that apply and
-hand-writes the rest, so the extra procedure stays visible at its own block.
-`sppAwardValues`, `trophyAwards` and `externalSystems` stay fully
-hand-written — they use a different upsert handler method or return a
-different result shape, and each carries a comment saying so. Those
-permanently hand-written blocks, plus the players SPP-sync procedures,
-`positions.syncRaceEras`, `positionRulesSets.sync`, `matches.resolveOutcomes` and
-`competitionGroups.list`, live in
-`rpc-router-factory-hand-written-routes.ts`, which `build()` calls into
-directly, keeping `rpc-router-factory.service.ts` itself under its line
-budget.
+**Standard entity routes are built, not written.** Each entity's block is
+assembled from shared, composable pieces rather than spelled out by hand, so
+the routine upsert/batch/resolve procedures stay uniform across entities
+without repetition. An entity that adds a procedure of its own
+(`positions.syncRaceEras`, `matches.resolveOutcomes`, the players
+SPP-adjustment syncs, `competitionGroups.list`) composes only the pieces that
+apply to it and hand-writes the rest, so the extra procedure stays visible at
+its own block. A few entities — `sppAwardValues`, `trophyAwards` and
+`externalSystems` — stay fully hand-written because they use a different
+upsert handler or return a different result shape; each carries its own
+comment in `packages/api-contract/src/contract.ts` saying why. The assembly
+mechanism itself is `RpcRouterFactoryService`
+(`packages/api-server/src/rpc-router-factory.service.ts`).
 
 ## Reference resolution
 
