@@ -132,6 +132,7 @@ describe('TpRawOfficialTeamsIndexService', () => {
         {
           name: 'Dwarf Blocker',
           isStar: false,
+          isOfficial: true,
           rulesSet: 'BB2025',
           tpPositionId: 929,
           characteristics: {
@@ -185,6 +186,7 @@ describe('TpRawOfficialTeamsIndexService', () => {
     expect(race?.positions).toContainEqual({
       name: 'Grim Ironjaw',
       isStar: true,
+      isOfficial: true,
       rulesSet: 'BB2025',
       tpPositionId: 41,
       characteristics: {
@@ -286,6 +288,41 @@ describe('TpRawOfficialTeamsIndexService', () => {
 
     expect(await service.raceFor('HighElf_BB2025_Legacy')).not.toBeNull();
   });
+
+  it('marks a legacy roster’s positions as not official', async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({ teamRace: 'HighElf_BB2025_Legacy', teamRosterType: 1 }),
+      ],
+    });
+
+    const race = await service.raceFor('HighElf_BB2025_Legacy');
+
+    expect(race?.positions.map((entry) => entry.isOfficial)).toEqual([false]);
+  });
+
+  it.each([
+    ['legacy first', [1, 0]],
+    ['official first', [0, 1]],
+  ])(
+    'prefers an official roster’s characteristics over a legacy one for the same code and position (%s)',
+    async (_name, order) => {
+      write('BB2025', {
+        rosterMasters: order.map((teamRosterType) =>
+          roster({
+            teamRosterType,
+            lineUpMasters: [lineman({ av: teamRosterType === 0 ? 10 : 9 })],
+          }),
+        ),
+      });
+
+      const race = await service.raceFor('Dwarf_BB2025');
+
+      expect(race?.positions).toHaveLength(1);
+      expect(race?.positions[0]?.characteristics.armour).toBe(10);
+      expect(race?.positions[0]?.isOfficial).toBe(true);
+    },
+  );
 
   it('ignores Secret Bowl and experimental rosters', async () => {
     write('BB2025', {

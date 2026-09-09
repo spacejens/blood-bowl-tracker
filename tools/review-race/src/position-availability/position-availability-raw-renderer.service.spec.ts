@@ -121,6 +121,7 @@ describe('PositionAvailabilityRawRendererService', () => {
             tpPositionId: 100,
             name: 'Blitzer',
             isStar: false,
+            isOfficial: true,
             rulesSet: 'BB2025',
             characteristics: {
               move: 5,
@@ -134,6 +135,7 @@ describe('PositionAvailabilityRawRendererService', () => {
             tpPositionId: 200,
             name: 'Deathroller',
             isStar: true,
+            isOfficial: true,
             rulesSet: 'BB2025',
             characteristics: {
               move: 3,
@@ -165,6 +167,7 @@ describe('PositionAvailabilityRawRendererService', () => {
         tpPositionId: 100,
         name: 'Blitzer',
         isStar: false,
+        isOfficial: true,
         rulesSet,
         characteristics: {
           move: 5,
@@ -194,6 +197,7 @@ describe('PositionAvailabilityRawRendererService', () => {
           tpPositionId: 200,
           name: 'Deathroller',
           isStar: true,
+          isOfficial: true,
           rulesSet: 'BB2025',
           characteristics: {
             move: 3,

@@ -9,6 +9,7 @@ import { RacePositionsQueryService } from '../shared/race-positions-query.servic
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
+import type { TpRawOfficialPosition } from '../source/tp-raw-official-teams-index.service';
 import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 
 const NONE = '—';
@@ -109,32 +110,51 @@ export class PositionCharacteristicsRawRendererService {
     );
   }
 
-  /** Star players are excluded — this tool reviews ordinary positions only. */
+  /**
+   * Star players are excluded — this tool reviews ordinary positions only.
+   *
+   * A race's TP codes cover both its official (`teamRosterType === 0`) and its
+   * legacy (`1`) rosters, and the two can carry different characteristics for
+   * the same `(rules set, position)` — three BB2020 positions really do. The
+   * importer keeps the official value there (`TpPositionsImportService`'s
+   * `recordCharacteristicsForRulesSet`), so this panel shows the official one
+   * too: deduping first-seen-wins would otherwise show the legacy stat line
+   * against a database holding the official one, and read as an importer bug
+   * that isn't there. The rule is applied independently here, on this tool's
+   * own reading of the files, not by importing the importer's.
+   */
   private async tpSection(race: SampledRace): Promise<string | null> {
     const ids = await this.raceIds.forRace(race.raceId);
-    const rows: TableCell[][] = [];
-    const seen = new Set<string>();
+    const byKey = new Map<string, TpRawOfficialPosition>();
     for (const code of ids.tp) {
       const tpRace = await this.tp.raceFor(code);
       for (const position of tpRace?.positions ?? []) {
-        const key = `${position.rulesSet} ${position.name}`;
-        if (seen.has(key) || position.isStar) {
+        if (position.isStar) {
           continue;
         }
-        seen.add(key);
-        const { move, strength, agility, passing, armour } =
-          position.characteristics;
-        rows.push([
-          position.name,
-          position.rulesSet,
-          String(move),
-          String(strength),
-          String(agility),
-          String(passing),
-          String(armour),
-        ]);
+        const key = `${position.rulesSet} ${position.name}`;
+        const existing = byKey.get(key);
+        if (
+          existing === undefined ||
+          (!existing.isOfficial && position.isOfficial)
+        ) {
+          byKey.set(key, position);
+        }
       }
     }
+    const rows: TableCell[][] = [...byKey.values()].map((position) => {
+      const { move, strength, agility, passing, armour } =
+        position.characteristics;
+      return [
+        position.name,
+        position.rulesSet,
+        String(move),
+        String(strength),
+        String(agility),
+        String(passing),
+        String(armour),
+      ];
+    });
     if (rows.length === 0) {
       return null;
     }

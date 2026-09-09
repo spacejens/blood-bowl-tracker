@@ -144,6 +144,7 @@ describe('RaceIdentityRawRendererService', () => {
           {
             name: 'Dwarf Blocker',
             isStar: false,
+            isOfficial: true,
             rulesSet: 'BB2025',
             tpPositionId: 929,
             characteristics: {

@@ -153,6 +153,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
             tpPositionId: 100,
             name: 'Blitzer',
             isStar: false,
+            isOfficial: true,
             rulesSet: 'BB2025',
             characteristics: {
               move: 6,
@@ -166,6 +167,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
             tpPositionId: 200,
             name: 'Deathroller',
             isStar: true,
+            isOfficial: true,
             rulesSet: 'BB2025',
             characteristics: {
               move: 3,
@@ -200,6 +202,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
           tpPositionId: 100,
           name: 'Blitzer',
           isStar: false,
+          isOfficial: true,
           rulesSet: 'BB2020',
           characteristics: {
             move: 6,
@@ -213,6 +216,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
           tpPositionId: 100,
           name: 'Blitzer',
           isStar: false,
+          isOfficial: true,
           rulesSet: 'BB2025',
           characteristics: {
             move: 6,
@@ -234,6 +238,47 @@ describe('PositionCharacteristicsRawRendererService', () => {
       '<td>Blitzer</td><td>BB2025</td><td>6</td><td>3</td><td>3</td><td>0</td><td>9</td>',
     );
   });
+
+  it.each([
+    ['legacy code first', ['Norse', 'Norse_BB2020']],
+    ['official code first', ['Norse_BB2020', 'Norse']],
+  ])(
+    'shows the official roster’s characteristics, not the legacy one’s, for the same (rules set, position) (%s)',
+    async (_name, tpCodes) => {
+      raceIds.forRace.mockResolvedValue({ bbl: [], tp: tpCodes, name: [] });
+      tp.raceFor.mockImplementation((code: string) => {
+        const isOfficial = code === 'Norse_BB2020';
+        return Promise.resolve({
+          teamRaceCode: code,
+          raceName: 'Norse',
+          rulesSets: ['BB2020'],
+          positions: [
+            {
+              tpPositionId: isOfficial ? 100 : 200,
+              name: 'Yhetee',
+              isStar: false,
+              isOfficial,
+              rulesSet: 'BB2020',
+              characteristics: {
+                move: 5,
+                strength: 5,
+                agility: isOfficial ? 4 : 5,
+                passing: 0,
+                armour: 9,
+              },
+            },
+          ],
+        });
+      });
+
+      const html = await service.render(race);
+
+      expect(html.match(/Yhetee/g)?.length).toBe(1);
+      expect(html).toContain(
+        '<td>Yhetee</td><td>BB2020</td><td>5</td><td>5</td><td>4</td><td>0</td><td>9</td>',
+      );
+    },
+  );
 
   it("lists a manual curation entry whose Name-system position id matches the race's positions", async () => {
     query.positionsFor.mockResolvedValue([

@@ -34,6 +34,15 @@ export interface TpRawOfficialPosition {
   name: string;
   /** True for a star-player entry. */
   isStar: boolean;
+  /**
+   * True when this entry came from an official (`teamRosterType === 0`)
+   * roster rather than a legacy (`1`) one. Both kinds are read (see
+   * `IMPORTED_ROSTER_TYPES`), and the two can carry DIFFERENT characteristics
+   * for the same position under the same rules set, so consumers have to know
+   * which is which to show the value the importer would keep — the official
+   * one.
+   */
+  isOfficial: boolean;
   /** The `teams/<rulesSet>/` folder this entry was read from. */
   rulesSet: string;
   /** TP's own numeric id, when the official list carries one. */
@@ -48,7 +57,10 @@ export interface TpRawOfficialRace {
   raceName: string | null;
   /** Rules sets whose official list carries this code, in folder order. */
   rulesSets: string[];
-  /** Positions, deduplicated by (rules set, name). */
+  /**
+   * Positions, deduplicated by (rules set, name) with an official entry
+   * winning over a legacy one carrying the same key.
+   */
   positions: TpRawOfficialPosition[];
 }
 
@@ -57,6 +69,14 @@ interface AbsorbSource {
   rulesSet: string;
   stars: unknown[];
   roster: unknown;
+}
+
+/** One batch of entries to absorb, all from the same roster. */
+interface EntrySource {
+  rulesSet: string;
+  entries: unknown[];
+  isStar: boolean;
+  isOfficial: boolean;
 }
 
 /**
@@ -139,35 +159,55 @@ export class TpRawOfficialTeamsIndexService {
     if (!race.rulesSets.includes(rulesSet)) {
       race.rulesSets.push(rulesSet);
     }
-    const seen = new Set(
-      race.positions.map((entry) => this.key(entry.rulesSet, entry.name)),
+    const isOfficial = rosterType === 0;
+    const seen = new Map(
+      race.positions.map((entry) => [
+        this.key(entry.rulesSet, entry.name),
+        entry,
+      ]),
     );
     this.absorbEntries(race, seen, {
       rulesSet,
       entries: this.arrayProperty(roster, 'lineUpMasters'),
       isStar: false,
+      isOfficial,
     });
     this.absorbEntries(race, seen, {
       rulesSet,
       entries: source.stars.filter((star) => this.isAvailableTo(star, roster)),
       isStar: true,
+      isOfficial,
     });
     races.set(teamRaceCode, race);
   }
 
+  /**
+   * Absorb one roster's entries, first-seen winning EXCEPT that an official
+   * entry replaces a legacy one already holding the same (rules set, name):
+   * the two can disagree on characteristics, and the official value is the one
+   * the importer keeps, so it is the one the raw panel must show. Order-
+   * independent — a legacy entry never displaces an official one.
+   */
   private absorbEntries(
     race: TpRawOfficialRace,
-    seen: Set<string>,
-    source: { rulesSet: string; entries: unknown[]; isStar: boolean },
+    seen: Map<string, TpRawOfficialPosition>,
+    source: EntrySource,
   ): void {
     for (const entry of source.entries) {
       const position = this.position(entry, source);
-      if (
-        position !== null &&
-        !seen.has(this.key(source.rulesSet, position.name))
-      ) {
-        seen.add(this.key(source.rulesSet, position.name));
+      if (position === null) {
+        continue;
+      }
+      const key = this.key(source.rulesSet, position.name);
+      const existing = seen.get(key);
+      if (existing === undefined) {
+        seen.set(key, position);
         race.positions.push(position);
+        continue;
+      }
+      if (!existing.isOfficial && position.isOfficial) {
+        seen.set(key, position);
+        race.positions.splice(race.positions.indexOf(existing), 1, position);
       }
     }
   }
@@ -207,7 +247,7 @@ export class TpRawOfficialTeamsIndexService {
 
   private position(
     entry: unknown,
-    source: { rulesSet: string; isStar: boolean },
+    source: EntrySource,
   ): TpRawOfficialPosition | null {
     const id = this.property(entry, 'id');
     const name = this.property(entry, 'position');
@@ -229,6 +269,7 @@ export class TpRawOfficialTeamsIndexService {
     return {
       name,
       isStar: source.isStar,
+      isOfficial: source.isOfficial,
       rulesSet: source.rulesSet,
       tpPositionId: typeof id === 'number' ? id : null,
       characteristics: { move, strength, agility, passing, armour },
