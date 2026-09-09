@@ -261,6 +261,36 @@ describe('runCli', () => {
     expect(exit).toHaveBeenCalledWith(1);
   });
 
+  it('reports dispatchSucceeded and runs cleanup when a cyclic result fails to serialise', async () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    const dispatch = vi.fn().mockResolvedValue(cyclic);
+    const onCleanupFailureAfterDispatch = vi.fn().mockResolvedValue(undefined);
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: TestModule,
+      readArgs: vi
+        .fn<(subcommand: Subcommand) => TestArgs>()
+        .mockReturnValue({ value: 'x' }),
+      dispatch,
+      onCleanupFailureAfterDispatch,
+    });
+
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(onCleanupFailureAfterDispatch).toHaveBeenCalledWith(
+      cyclic,
+      'alpha',
+      { value: 'x' },
+    );
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining('"dispatchSucceeded":true'),
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
   it('calls onCleanupFailureAfterDispatch with the result, subcommand and args when app.close() rejects', async () => {
     close.mockRejectedValue(new Error('close blew up'));
     const args: TestArgs = { value: 'x' };
