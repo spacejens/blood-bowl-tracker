@@ -76,7 +76,6 @@ export class TpPositionsImportService {
     options: ImportPositionsOptions,
   ): Promise<{
     result: ImportResult;
-    starPositionIds: Set<number>;
     characteristicsByPositionId: Map<
       number,
       Map<number, TpPositionCharacteristics>
@@ -85,7 +84,6 @@ export class TpPositionsImportService {
     const { raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
-    const starPositionIds = new Set<number>();
     const characteristicsByPositionId = new Map<
       number,
       Map<number, TpPositionCharacteristics>
@@ -100,7 +98,6 @@ export class TpPositionsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        starPositionIds,
         characteristicsByPositionId,
       };
     }
@@ -118,7 +115,6 @@ export class TpPositionsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        starPositionIds,
         characteristicsByPositionId,
       };
     }
@@ -206,9 +202,6 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
-      if (group.isStarPlayer) {
-        starPositionIds.add(upserted.id);
-      }
       this.recordCharacteristics({
         characteristicsByPositionId,
         positionId: upserted.id,
@@ -228,7 +221,6 @@ export class TpPositionsImportService {
 
     return {
       result: this.importResults.result({ imported, errors }),
-      starPositionIds,
       characteristicsByPositionId,
     };
   }

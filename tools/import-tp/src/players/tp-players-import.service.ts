@@ -39,15 +39,6 @@ interface InducedStarPlayerHireGroup {
   starPlayers: TpInducedStarPlayer[];
 }
 
-/** One star-position usage observed while importing players: the star
- * Position's DB id and the raw race/era references (resolved downstream by
- * `TpPositionRaceErasImportService` into `positions_race_eras` rows). */
-export interface StarPositionUsage {
-  positionId: number;
-  teamRaceCode: string;
-  era: string;
-}
-
 /** Options for {@link TpPlayersImportService.importPlayers}, bundled into one
  * object to stay within the repo's 3-parameter limit. */
 export interface ImportPlayersOptions {
@@ -74,13 +65,6 @@ export interface ImportPlayersOptions {
    * omit it, matching the existing `inducedStarPlayerHireGroups?` pattern.
    */
   matchEmbeddedPlayersByRosterId?: Map<number, TpRosterPlayer[]>;
-  /**
-   * DB ids of positions known to be star positions (from
-   * `TpPositionsImportService`). A roster/match-embedded player whose resolved
-   * position id is in this set contributes a `StarPositionUsage`. Optional --
-   * callers/tests that don't exercise star positions can omit it.
-   */
-  starPositionIds?: Set<number>;
   /**
    * Each Position's accumulated characteristics, keyed by DB position id then
    * rules set DB id, from `TpPositionsImportService`. Used only by the
@@ -137,27 +121,18 @@ export class TpPlayersImportService {
     teamErasByRosterId,
     inducedStarPlayerHireGroups,
     matchEmbeddedPlayersByRosterId,
-    starPositionIds,
     characteristicsByPositionId,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByLineUpId: Map<number, number>;
     starPlayerIdsByRosterAndMaster: Map<string, number>;
-    starPositionUsages: StarPositionUsage[];
     careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByLineUpId = new Map<number, number>();
     const starPlayerIdsByRosterAndMaster = new Map<string, number>();
-    const starPositionUsages: StarPositionUsage[] = [];
     const careerSppCountsByPlayerId = new Map<number, SppCareerCounts>();
-    const starIds = starPositionIds ?? new Set<number>();
-    // Reverse lookups for the induced-star path (which knows numeric eraId /
-    // only a rosterId), so every emitted usage carries raw string references.
-    const teamRaceCodeByRosterId = new Map<number, string>(
-      rosters.map(({ roster }) => [roster.id, roster.teamRaceCode]),
-    );
 
     // Star Player Points is a career total that only ever increases. The
     // same player (lineUp) id can legitimately recur across multiple
@@ -247,7 +222,6 @@ export class TpPlayersImportService {
         result: this.importResults.result({ imported, errors }),
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
-        starPositionUsages,
         careerSppCountsByPlayerId,
       };
     }
@@ -267,7 +241,6 @@ export class TpPlayersImportService {
         result: this.importResults.result({ imported, errors }),
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
-        starPositionUsages,
         careerSppCountsByPlayerId,
       };
     }
@@ -470,13 +443,6 @@ export class TpPlayersImportService {
           if (careerCounts !== undefined) {
             careerSppCountsByPlayerId.set(upserted.id, careerCounts);
           }
-          if (fromMercenary || starIds.has(positionId)) {
-            starPositionUsages.push({
-              positionId,
-              teamRaceCode: roster.teamRaceCode,
-              era,
-            });
-          }
         }
       }
     }
@@ -562,14 +528,6 @@ export class TpPlayersImportService {
           if (upserted) {
             imported += 1;
             starPlayerIdsByRosterAndMaster.set(key, upserted.id);
-            const teamRaceCode = teamRaceCodeByRosterId.get(rosterId);
-            if (teamRaceCode !== undefined && starEraName !== undefined) {
-              starPositionUsages.push({
-                positionId: position.id,
-                teamRaceCode,
-                era: starEraName,
-              });
-            }
           }
         }
       }
@@ -579,7 +537,6 @@ export class TpPlayersImportService {
       result: this.importResults.result({ imported, errors }),
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
-      starPositionUsages,
       careerSppCountsByPlayerId,
     };
   }

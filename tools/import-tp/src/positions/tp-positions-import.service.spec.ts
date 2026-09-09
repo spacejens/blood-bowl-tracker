@@ -357,42 +357,6 @@ describe('TpPositionsImportService', () => {
     );
   });
 
-  it('collects the upserted star position ids', async () => {
-    const upsertPosition = vi
-      .fn()
-      .mockResolvedValueOnce(positionRecord(70))
-      .mockResolvedValueOnce(positionRecord(800));
-    const syncRaceEras = vi
-      .fn()
-      .mockResolvedValue({ positionId: 0, raceEraIds: [] });
-    const { service } = await makeService({
-      bootstrap: oneSystemUpsertMock(),
-      upsertPosition,
-      syncRaceEras,
-    });
-
-    const { starPositionIds } = await service.importPositions(
-      [
-        officialTeamsEntry({
-          raceName: 'Dwarf',
-          teamRaceCode: 'Dwarf',
-          rulesSet: 'BB2020',
-          positions: [
-            officialPosition({ name: 'Dwarf Runner', tpPositionId: 101 }),
-            officialPosition({
-              name: 'Roxanna Darknail',
-              isStarPlayer: true,
-              tpPositionId: 5002,
-            }),
-          ],
-        }),
-      ],
-      { raceNamesById: new Map([[50, 'Dwarf']]) },
-    );
-
-    expect(starPositionIds).toEqual(new Set([800]));
-  });
-
   it('records an error and skips a position whose race code cannot be resolved', async () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
@@ -573,27 +537,25 @@ describe('TpPositionsImportService', () => {
       syncRaceEras,
     });
 
-    const { starPositionIds, characteristicsByPositionId } =
-      await service.importPositions(
-        [
-          officialTeamsEntry({
-            raceName: 'Dwarf',
-            teamRaceCode: 'Dwarf',
-            rulesSet: 'BB2020',
-            positions: [
-              officialPosition({
-                name: 'Roxanna Darknail',
-                isStarPlayer: true,
-                tpPositionId: 5002,
-              }),
-            ],
-          }),
-        ],
-        { raceNamesById: new Map([[50, 'Dwarf']]) },
-      );
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2020',
+          positions: [
+            officialPosition({
+              name: 'Roxanna Darknail',
+              isStarPlayer: true,
+              tpPositionId: 5002,
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
 
     expect(resultArgs(importResults).imported).toBe(0);
-    expect(starPositionIds.size).toBe(0);
     expect(characteristicsByPositionId.size).toBe(0);
     expect(syncRaceEras).not.toHaveBeenCalled();
   });
