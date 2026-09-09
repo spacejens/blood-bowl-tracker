@@ -97,6 +97,29 @@ describe('ApiResponseStoringPageViewerService', () => {
     });
   });
 
+  it('writes only the responses the caller wants stored, returning them all', async () => {
+    const apiResponses = new Map<string, unknown>([
+      ['rosters/masters?ruleSet=25', { wanted: false }],
+      ['rosters/masters?ruleSet=20', { wanted: true }],
+    ]);
+    recorder.viewPage.mockResolvedValue(pageResult({ apiResponses }));
+
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/teams',
+      dirName: 'teams/BB2020',
+      storeResponse: (requestUrl) =>
+        requestUrl === 'rosters/masters?ruleSet=20',
+    });
+
+    expect(fileSystemService.writeJsonFile).toHaveBeenCalledTimes(1);
+    expect(fileSystemService.writeJsonFile).toHaveBeenCalledWith(
+      'teams/BB2020',
+      'rosters/masters?ruleSet=20',
+      { wanted: true },
+    );
+    expect(result).toBe(apiResponses);
+  });
+
   it('logs console errors and warnings when there are any', async () => {
     recorder.viewPage.mockResolvedValue(
       pageResult({ consoleErrors: ['boom'], consoleWarnings: ['careful'] }),

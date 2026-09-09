@@ -14,6 +14,8 @@ One page per source file type, plus the notes that apply across all of them:
   category classification, and the `matchEvents[]` log
 - [`rosters_<id>.json`](./file-format-rosters.md) — races, positions, teams
   and players
+- [`teams/<rulesSet>/*.json`](./file-format-official-teams.md) — TP's canonical
+  official team list: races, positions and star players with characteristics
 - [`inscriptions_<slug>_inscriptions.json`](./file-format-inscriptions.md) —
   registered coaches
 - [`awards_<slug>_awards.json`](./file-format-awards.md) — trophy awards
