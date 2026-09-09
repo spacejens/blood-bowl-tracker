@@ -117,7 +117,7 @@ async function run(): Promise<ImportResult> {
       result: positionResult,
       starPositionIds,
       characteristicsByPositionId,
-    } = await app.get(TpPositionsImportService).importPositions(rosters, {
+    } = await app.get(TpPositionsImportService).importPositions(officialTeams, {
       raceNamesById: raceOutcome.raceNamesById,
     });
 
@@ -130,7 +130,9 @@ async function run(): Promise<ImportResult> {
     // ordering is deliberate: TP's values are per-rules-set and authoritative,
     // where BBL's are a converted single snapshot.
     // Star players need no special casing: position_rules_sets is keyed by
-    // positionId alone.
+    // positionId alone, and star race/era availability now comes from the
+    // positions step itself (its syncRaceEras calls above), not from this
+    // characteristics step.
     const positionCharacteristicsOutcome = await app
       .get(TpPositionCharacteristicsImportService)
       .syncPositionCharacteristics(characteristicsByPositionId);

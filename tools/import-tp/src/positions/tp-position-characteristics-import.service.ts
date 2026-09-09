@@ -8,17 +8,19 @@ import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Writes each position's characteristics under every rules set TP's rosters
- * reported it under. Unlike BBL — a single BB2020-form snapshot that has to be
- * written to older rules sets too — TP's data is per rules set at the source,
- * and every rules set TP covers (BB2020, DB2021, BB2025) has a Passing
- * characteristic, so `passing` is passed through as the plain number TP
- * supplies (0 meaning "cannot pass"), with no absent-vs-zero branching. A
- * mismatch against a rules set's declared formats would be rejected by the
- * shared PositionRulesSetsService validation server-side.
+ * Writes each position's characteristics under every rules set TP's official
+ * team list publishes it for. Unlike BBL — a single BB2020-form snapshot that
+ * has to be written to older rules sets too — TP's official list is per rules
+ * set at the source, with exactly one canonical value per
+ * (position, rules set), so nothing here accumulates or reconciles. Every
+ * rules set TP covers (BB2020, DB2021, BB2025) has a Passing characteristic,
+ * so `passing` is passed through as the plain number TP supplies (0 meaning
+ * "cannot pass"), with no absent-vs-zero branching. A mismatch against a
+ * rules set's declared formats would be rejected by the shared
+ * PositionRulesSetsService validation server-side.
  *
- * TP-local rather than shared: the era -> rules-set resolution feeding it is
- * TP's own (see TpPositionsImportService). The shared piece is
+ * TP-local rather than shared: the rules-set resolution feeding it is TP's
+ * own (see TpPositionsImportService). The shared piece is
  * PositionRulesSetsImportService, which this consumes unchanged.
  */
 @Injectable()
