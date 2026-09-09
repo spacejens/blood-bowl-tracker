@@ -1,3 +1,4 @@
+import type { WEATHER_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -6,28 +7,7 @@ import { Injectable } from '@nestjs/common';
  * observed table/code pair to its named condition, and any unmapped
  * table/code decodes to `'unknown'`.
  */
-export type WeatherType =
-  | 'dungeon'
-  | 'sweltering_heat'
-  | 'very_sunny'
-  | 'nice'
-  | 'pouring_rain'
-  | 'blizzard'
-  | 'morning_dew'
-  | 'blossoming_flowers'
-  | 'misty_morning'
-  | 'high_winds'
-  | 'perfect_conditions'
-  | 'melting_astrogranite'
-  | 'blinding_rays'
-  | 'monsoon'
-  | 'leaf_strewn_pitch'
-  | 'autumnal_chill'
-  | 'strong_winds'
-  | 'cold_winds'
-  | 'freezing'
-  | 'heavy_snow'
-  | 'unknown';
+export type WeatherType = (typeof WEATHER_TYPES)[number];
 
 /**
  * Weather codes are only unique within a weather table: TP's

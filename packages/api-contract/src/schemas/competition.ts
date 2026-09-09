@@ -1,3 +1,4 @@
+import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
@@ -7,11 +8,11 @@ const IsoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be an ISO date (YYYY-MM-DD)');
 
 /**
- * Every competition type, in the same order as `game_data.competition_type`
- * (packages/db). Exported as a tuple so consumers can iterate the values as
- * well as use the inferred union type.
+ * Re-exported from `@blood-bowl-tracker/domain-enums` so existing consumers
+ * keep importing it from the contract. See that package for what each value
+ * means.
  */
-export const COMPETITION_TYPES = ['season', 'cup'] as const;
+export { COMPETITION_TYPES };
 
 export type CompetitionType = (typeof COMPETITION_TYPES)[number];
 
