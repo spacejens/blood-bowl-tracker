@@ -36,8 +36,10 @@ export class OfficialTeamsCollectionService {
    * races, positions and characteristics imports, so a bad file is reported
    * once rather than independently by each -- mirroring
    * RosterCollectionService.collect. A per-file failure is recorded and
-   * skipped; a scan failure is recorded and whatever was collected so far is
-   * returned.
+   * skipped; a scan failure -- of the top-level teams directory or of one
+   * rules set's own directory -- is recorded and whatever was collected so
+   * far is returned (a per-rules-set scan failure skips just that rules set
+   * and continues with the next).
    */
   async collect(errors: ImportError[]): Promise<OfficialTeamsEntry[]> {
     const entries: OfficialTeamsEntry[] = [];
@@ -79,7 +81,20 @@ export class OfficialTeamsCollectionService {
     errors: ImportError[];
   }): Promise<void> {
     const { dir, rulesSet, entries, errors } = options;
-    const files = await readdir(dir, { withFileTypes: true });
+    let files;
+    try {
+      files = await readdir(dir, { withFileTypes: true });
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { scan: dir },
+          message:
+            `Could not read the official team list rules set directory "${dir}": ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+      return;
+    }
     for (const file of files) {
       if (!file.isFile() || !file.name.endsWith('.json')) {
         continue;

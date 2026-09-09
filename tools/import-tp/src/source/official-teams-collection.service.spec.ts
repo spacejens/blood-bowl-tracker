@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -124,5 +130,23 @@ describe('OfficialTeamsCollectionService', () => {
     expect(entries).toEqual([]);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('teams');
+  });
+
+  it('records one error and keeps other rules sets when a rules set directory cannot be scanned', async () => {
+    writeRulesSetFile('BB2020', 'teams_Amazon.json');
+    const badDir = join(dir, 'teams', 'BB2025');
+    mkdirSync(badDir, { recursive: true });
+    chmodSync(badDir, 0o000);
+    parser.parse.mockReturnValue([AMAZON]);
+
+    try {
+      const entries = await service.collect(errors);
+
+      expect(entries).toEqual([{ race: AMAZON, rulesSet: 'BB2020' }]);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain('BB2025');
+    } finally {
+      chmodSync(badDir, 0o755);
+    }
   });
 });
