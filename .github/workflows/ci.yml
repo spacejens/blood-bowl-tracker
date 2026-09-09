@@ -135,13 +135,22 @@ jobs:
               echo "discord-bot container is $state" >&2
               break
             fi
-            if [ "$state" = "running" ] && docker compose logs discord-bot 2>&1 | grep -q 'Nest application successfully started'; then
+            # Captured into a variable rather than piped into grep: this
+            # step has no `shell:` override so Actions runs it as `bash -e
+            # {0}` with no `pipefail`, and grep -q exiting on its first
+            # match can make `docker compose logs` see EPIPE while it still
+            # has output left to write — harmless today, but a future
+            # `pipefail` would then read grep's own SIGPIPE death as "no
+            # match" and fail this step against a perfectly healthy
+            # container.
+            logs="$(docker compose logs discord-bot 2>&1 || true)"
+            if [ "$state" = "running" ] && grep -q 'Nest application successfully started' <<<"$logs"; then
               echo "discord-bot started successfully"
               exit 0
             fi
             sleep 2
           done
-          echo "discord-bot did not start successfully in time" >&2
+          echo "discord-bot did not start successfully" >&2
           docker compose logs discord-bot >&2
           exit 1
       # Mirrors fly.toml's production [checks.tcp] health check — a plain TCP
@@ -150,7 +159,7 @@ jobs:
       - name: Check discord-bot accepts TCP connections on port 3000
         run: |
           for i in $(seq 1 15); do
-            if timeout 5 bash -c '</dev/tcp/localhost/3000'; then exit 0; fi
+            if timeout 5 bash -c '</dev/tcp/127.0.0.1/3000'; then exit 0; fi
             sleep 2
           done
           echo "discord-bot did not accept a TCP connection on port 3000 in time" >&2
