@@ -68,6 +68,17 @@ interface UsageInputOptions {
   errorMessage?: string;
 }
 
+interface ReplyWithHandlerOptions {
+  interaction: ButtonInteraction | StringSelectMenuInteraction;
+  handle: () => Promise<string | InteractionReplyOptions>;
+  /** Human-readable description of the component, for the log line. */
+  description: string;
+  kind: 'button' | 'select_menu';
+  /** The matched customId prefix, which is the catalog entry's name. */
+  name: string;
+  parameters: InteractionParameter[];
+}
+
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
@@ -274,30 +285,42 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     if (interaction.isButton()) {
-      const handler = this.matchHandler(
+      const match = this.matchHandler(
         this.buttonHandlers,
         interaction.customId,
       );
-      if (handler) {
-        await this.replyWithHandler(
+      if (match) {
+        await this.replyWithHandler({
           interaction,
-          () => handler(interaction),
-          `button ${interaction.customId}`,
-        );
+          handle: () => match.handler(interaction),
+          description: `button ${interaction.customId}`,
+          kind: 'button',
+          name: match.prefix,
+          parameters: this.componentIdParameters(
+            interaction.customId,
+            match.prefix,
+          ),
+        });
       }
       return;
     }
     if (interaction.isStringSelectMenu()) {
-      const handler = this.matchHandler(
+      const match = this.matchHandler(
         this.selectMenuHandlers,
         interaction.customId,
       );
-      if (handler) {
-        await this.replyWithHandler(
+      if (match) {
+        await this.replyWithHandler({
           interaction,
-          () => handler(interaction),
-          `select menu ${interaction.customId} (${interaction.values.join(', ')})`,
-        );
+          handle: () => match.handler(interaction),
+          description: `select menu ${interaction.customId} (${interaction.values.join(', ')})`,
+          kind: 'select_menu',
+          name: match.prefix,
+          parameters: [
+            ...this.componentIdParameters(interaction.customId, match.prefix),
+            ...interaction.values.map((value) => ({ key: 'value', value })),
+          ],
+        });
       }
       return;
     }
@@ -403,37 +426,65 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     return error instanceof Error ? error.message : String(error);
   }
 
-  /** First registered prefix that `customId` starts with, if any. */
+  /** First registered prefix that `customId` starts with, with its handler. */
   private matchHandler<T>(
     handlers: Map<string, T>,
     customId: string,
-  ): T | undefined {
+  ): { prefix: string; handler: T } | undefined {
     const entry = [...handlers.entries()].find(([prefix]) =>
       customId.startsWith(prefix),
     );
-    return entry?.[1];
+    return entry ? { prefix: entry[0], handler: entry[1] } : undefined;
   }
 
   /**
    * Runs a component handler and replies with its output, logging the handled
-   * component (described by `description`) or falling back to the hurt message
-   * when the handler throws. Shared by the button and select-menu branches.
+   * component or falling back to the hurt message when the handler throws, and
+   * recording the interaction either way. Shared by the button and select-menu
+   * branches.
    */
   private async replyWithHandler(
-    interaction: ButtonInteraction | StringSelectMenuInteraction,
-    handle: () => Promise<string | InteractionReplyOptions>,
-    description: string,
+    options: ReplyWithHandlerOptions,
   ): Promise<void> {
+    const { interaction, kind, name, parameters } = options;
     try {
-      const content = await handle();
+      const content = await options.handle();
       this.logger.log(
-        `Handled ${description} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
+        `Handled ${options.description} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
       await interaction.reply(content);
+      void this.recordUsage({
+        interaction,
+        kind,
+        name,
+        parameters,
+        outcome: 'success',
+      });
     } catch (error) {
-      this.logger.error(`Failed to handle ${description}`, error);
+      this.logger.error(`Failed to handle ${options.description}`, error);
       await interaction.reply('I am badly hurt');
+      void this.recordUsage({
+        interaction,
+        kind,
+        name,
+        parameters,
+        outcome: 'failure',
+        errorMessage: this.errorMessage(error),
+      });
     }
+  }
+
+  /**
+   * The dynamic remainder of a component's customId after the prefix that
+   * matched it — the per-instance payload the handler routes on. A customId
+   * that is exactly the prefix carries no payload and records no parameter.
+   */
+  private componentIdParameters(
+    customId: string,
+    prefix: string,
+  ): InteractionParameter[] {
+    const remainder = customId.slice(prefix.length);
+    return remainder === '' ? [] : [{ key: 'id', value: remainder }];
   }
 
   private describeChannel(interaction: Interaction): string {

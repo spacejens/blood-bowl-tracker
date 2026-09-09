@@ -224,4 +224,108 @@ describe('DiscordClientService usage tracking', () => {
 
     expect(interaction.reply).toHaveBeenCalledWith('the answer');
   });
+
+  function buttonInteraction(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      isAutocomplete: () => false,
+      isButton: () => true,
+      isStringSelectMenu: () => false,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:42',
+      createdAt: OCCURRED_AT,
+      user: { tag: 'spacejens#0001', id: 'u1', username: 'spacejens' },
+      guildId: 'g1',
+      guild: { name: 'The Pitch' },
+      member: { nickname: 'Skitter' },
+      channelId: 'c1',
+      channel: { name: 'general' },
+      reply: vi.fn().mockResolvedValue(undefined),
+      ...overrides,
+    };
+  }
+
+  function selectMenuInteraction(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      ...buttonInteraction(),
+      isButton: () => false,
+      isStringSelectMenu: () => true,
+      customId: 'deepdive:era:menu:0',
+      values: ['7', '9'],
+      ...overrides,
+    };
+  }
+
+  it('records a button under its matched prefix, with the customId remainder', async () => {
+    service.registerButtonHandler(
+      'deepdive:era:',
+      vi.fn().mockResolvedValue('ok'),
+    );
+
+    interactionHandler()(buttonInteraction());
+    await flush();
+
+    expect(recorded().kind).toBe('button');
+    expect(recorded().name).toBe('deepdive:era:');
+    expect(recorded().parameters).toEqual([{ key: 'id', value: '42' }]);
+    expect(recorded().outcome).toBe('success');
+  });
+
+  it('records no id parameter when a button customId is exactly the prefix', async () => {
+    service.registerButtonHandler(
+      'deepdive:era:',
+      vi.fn().mockResolvedValue('ok'),
+    );
+
+    interactionHandler()(buttonInteraction({ customId: 'deepdive:era:' }));
+    await flush();
+
+    expect(recorded().parameters).toEqual([]);
+  });
+
+  it('records a button failure with the thrown error message', async () => {
+    service.registerButtonHandler(
+      'deepdive:era:',
+      vi.fn().mockRejectedValue(new Error('button boom')),
+    );
+
+    interactionHandler()(buttonInteraction());
+    await flush();
+
+    expect(recorded().outcome).toBe('failure');
+    expect(recorded().errorMessage).toBe('button boom');
+  });
+
+  it('records a select menu with its remainder and one row per selected value', async () => {
+    service.registerSelectMenuHandler(
+      'deepdive:era:',
+      vi.fn().mockResolvedValue('ok'),
+    );
+
+    interactionHandler()(selectMenuInteraction());
+    await flush();
+
+    expect(recorded().kind).toBe('select_menu');
+    expect(recorded().name).toBe('deepdive:era:');
+    expect(recorded().parameters).toEqual([
+      { key: 'id', value: 'menu:0' },
+      { key: 'value', value: '7' },
+      { key: 'value', value: '9' },
+    ]);
+  });
+
+  it('does not record a component with no matching prefix', async () => {
+    service.registerButtonHandler(
+      'deepdive:era:',
+      vi.fn().mockResolvedValue('ok'),
+    );
+
+    interactionHandler()(buttonInteraction({ customId: 'other:1' }));
+    await flush();
+
+    expect(usageTracking.recordInteraction).not.toHaveBeenCalled();
+  });
 });
