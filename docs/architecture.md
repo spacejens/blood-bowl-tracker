@@ -245,21 +245,31 @@ Migrations are applied automatically at application startup. `createDb` in `pack
 
 ### History tracking
 
-Every table in `packages/db/src/schema` is built with `historyTrackedTable()`
-(`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
-call. It automatically adds `created_at`, `updated_at`, `history_version`,
-and `history_period` columns, derives a companion `<table>_history` table
-that mirrors the tracked table's _current_ columns (name, type, and
-nullability), and registers the table so `pnpm run db:generate` can finish
-its DDL automatically.
+Every table in the `game_data` schema (`packages/db/src/schema/game-data/`)
+is built with `historyTrackedTable()` (`packages/db/src/schema/history.ts`),
+not a direct `gameData.table(...)` call. It automatically adds `created_at`,
+`updated_at`, `history_version`, and `history_period` columns, derives a
+companion `<table>_history` table that mirrors the tracked table's
+_current_ columns (name, type, and nullability), and registers the table so
+`pnpm run db:generate` can finish its DDL automatically.
 
-Adding a new table therefore only requires calling `historyTrackedTable()`
-instead of `gameData.table()` (or another schema's `.table()`) — running
+Adding a new `game_data` table therefore only requires calling
+`historyTrackedTable()` instead of `gameData.table()` — running
 `pnpm run db:generate` once produces a single migration with the table, its
 history companion, and both its triggers (the temporal-tables `versioning()`
 trigger and a `set_updated_at()` trigger) together. A completeness spec
-(`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a table
-is ever added without going through `historyTrackedTable()`.
+(`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a
+`game_data` table is ever added without going through `historyTrackedTable()`.
+
+This is a `game_data` invariant, not a repo-wide one: the
+`discord_bot_usage` schema (`packages/db/src/schema/discord-bot-usage/`,
+see `packages/discord-bot-usage` below) holds operational bot telemetry
+whose enrichable fields — guild/channel names, usernames, nicknames — are
+deliberately overwritten in place rather than versioned, since they are
+Discord display metadata, not domain data worth a history of past values.
+Its tables are built with a plain `discordBotUsage.table(...)` call and are
+explicitly excluded from `history-completeness.spec.ts`'s "every table is
+tracked" check, which still applies to every `game_data` table.
 
 `db:generate` post-processes the generated `migration.sql` for history
 tables: a brand-new `<table>_history` is created with

@@ -50,11 +50,12 @@ describe('ResetProductionSchemaService', () => {
     writeFileSync(envPath, contents, 'utf8');
   }
 
-  it('drops game_data, public, and drizzle, and recreates an empty public schema', async () => {
+  it('drops game_data, discord_bot_usage, public, and drizzle, and recreates an empty public schema', async () => {
     writeEnvFile('DATABASE_URL=postgres://user:pass@host/db\n');
     processRunner.run.mockResolvedValue({
       exitCode: 0,
-      stdout: 'DROP SCHEMA\nDROP SCHEMA\nCREATE SCHEMA\nDROP SCHEMA\n',
+      stdout:
+        'DROP SCHEMA\nDROP SCHEMA\nDROP SCHEMA\nCREATE SCHEMA\nDROP SCHEMA\n',
       stderr: '',
     });
 
@@ -70,6 +71,8 @@ describe('ResetProductionSchemaService', () => {
         '-c',
         'DROP SCHEMA IF EXISTS game_data CASCADE;',
         '-c',
+        'DROP SCHEMA IF EXISTS discord_bot_usage CASCADE;',
+        '-c',
         'DROP SCHEMA IF EXISTS public CASCADE;',
         '-c',
         'CREATE SCHEMA public;',
@@ -80,7 +83,8 @@ describe('ResetProductionSchemaService', () => {
     );
     expect(result).toEqual({
       exitCode: 0,
-      stdout: 'DROP SCHEMA\nDROP SCHEMA\nCREATE SCHEMA\nDROP SCHEMA\n',
+      stdout:
+        'DROP SCHEMA\nDROP SCHEMA\nDROP SCHEMA\nCREATE SCHEMA\nDROP SCHEMA\n',
       stderr: '',
     });
   });

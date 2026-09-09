@@ -387,10 +387,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       username: interaction.user.username,
       discordGuildId: interaction.guildId ?? undefined,
       guildName: interaction.guild?.name,
-      nickname:
-        member && 'nickname' in member
-          ? (member.nickname ?? undefined)
-          : undefined,
+      nickname: this.memberNickname(member),
       discordChannelId: interaction.channelId,
       channelName:
         interaction.channel && 'name' in interaction.channel
@@ -403,9 +400,33 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * `interaction.member` is a cached `GuildMember` (field `nickname`) when
+   * the guild is already known to the client, or the raw
+   * `APIInteractionGuildMember` (field `nick`) otherwise. Both are checked
+   * so a nickname is still recorded in the raw-payload case.
+   */
+  private memberNickname(member: unknown): string | undefined {
+    if (!member || typeof member !== 'object') {
+      return undefined;
+    }
+    if ('nickname' in member) {
+      return (member as { nickname: string | null }).nickname ?? undefined;
+    }
+    if ('nick' in member) {
+      return (member as { nick: string | null }).nick ?? undefined;
+    }
+    return undefined;
+  }
+
+  /**
    * One parameter row per supplied slash-command option. A non-string option
    * value (a number, a boolean, a resolved snowflake) is stringified, since
    * the column is text.
+   *
+   * Reads `interaction.options.data` one level deep only: no command
+   * registered today uses subcommands or subcommand groups. A command that
+   * did would have its actual options nested under a single
+   * subcommand-named entry here instead of recorded directly.
    */
   private commandParameters(
     interaction: ChatInputCommandInteraction,

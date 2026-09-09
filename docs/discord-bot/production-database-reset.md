@@ -26,6 +26,7 @@ DATABASE_URL="$(grep -E '^DATABASE_URL=' apps/discord-bot/.env.production | cut 
 [ -n "$DATABASE_URL" ] || { echo "DATABASE_URL is empty" >&2; exit 1; }
 psql "$DATABASE_URL" --single-transaction -v ON_ERROR_STOP=1 \
   -c 'DROP SCHEMA IF EXISTS game_data CASCADE;' \
+  -c 'DROP SCHEMA IF EXISTS discord_bot_usage CASCADE;' \
   -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
   -c 'CREATE SCHEMA public;' \
   -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;' \
@@ -88,20 +89,28 @@ leader-election design. Downtime during a reset is an accepted cost of an
 already-destructive, already-empty-afterward operation, not something the
 steps below try to avoid.
 
-All three schemas have to go, not just `public`. Application tables live in
-`game_data` (see `packages/db/src/schema/pg-schema.ts`), not `public` —
+All four schemas have to go, not just `public`. Application tables live in
+`game_data` (see `packages/db/src/schema/game-data/pg-schema.ts`) and
+`discord_bot_usage` (see
+`packages/db/src/schema/discord-bot-usage/pg-schema.ts`), not `public` —
 `public` only holds the shared trigger functions (`versioning()`,
 `set_updated_at()`) that `game_data`'s history-tracking triggers depend on.
 Dropping `public` alone would remove those functions — and, by cascade, the
 triggers on `game_data` tables that call them — without touching `game_data`
-itself, leaving every table and all its data completely intact: not a reset
-at all. Meanwhile drizzle-orm records which migrations have already run in
-`drizzle.__drizzle_migrations`, in a schema of its own. Leaving `drizzle` in
-place after dropping `game_data` would have that journal assert every
-migration already applied against a database that no longer has any of
-their effects, so the restart would rebuild nothing and leave an empty
-database that the bot starts against perfectly happily — a silent failure
-rather than a loud one.
+or `discord_bot_usage` themselves, leaving every table and all its data
+completely intact: not a reset at all. `discord_bot_usage` has no
+history-tracking triggers of its own (its tables are deliberately not
+history-tracked), but it still has to be dropped explicitly: its migration
+creates the schema unconditionally
+(`CREATE SCHEMA "discord_bot_usage";`, no `IF NOT EXISTS`), so leaving it
+behind makes the next migration run fail outright rather than silently
+skip anything. Meanwhile drizzle-orm records which migrations have already
+run in `drizzle.__drizzle_migrations`, in a schema of its own. Leaving
+`drizzle` in place after dropping the application schemas would have that
+journal assert every migration already applied against a database that no
+longer has any of their effects, so the restart would rebuild nothing and
+leave an empty database that the bot starts against perfectly happily — a
+silent failure rather than a loud one.
 
 The restart is what rebuilds the schema: `packages/db`'s `createDb` runs
 drizzle's `migrate()` at startup before the app serves anything, exactly as
