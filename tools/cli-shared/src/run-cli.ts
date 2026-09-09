@@ -24,6 +24,27 @@ export interface RunCliOptions<TSubcommand extends string, TArgs> {
     subcommand: TSubcommand,
     args: TArgs,
   ) => Promise<unknown>;
+  /**
+   * Best-effort cleanup for the one case where `dispatch` resolved but a
+   * later step in the same run — closing the Nest context, serialising the
+   * result — then threw: the subcommand's side effects already landed, yet
+   * the caller only ever sees an error. Called with the dispatch result, the
+   * subcommand, and the parsed args, before that error is printed. Anything
+   * it throws is swallowed, so it can never mask the original error or change
+   * the exit code, and it is not called at all when dispatch never resolved.
+   */
+  readonly onCleanupFailureAfterDispatch?: (
+    result: unknown,
+    subcommand: TSubcommand,
+    args: TArgs,
+  ) => Promise<void>;
+}
+
+/** A dispatch that resolved, kept so a later failure can still clean up. */
+interface DispatchedCall<TSubcommand extends string, TArgs> {
+  readonly result: unknown;
+  readonly subcommand: TSubcommand;
+  readonly args: TArgs;
 }
 
 function readSubcommand<TSubcommand extends string>(
@@ -40,14 +61,33 @@ function readSubcommand<TSubcommand extends string>(
   );
 }
 
+async function runCleanupHook<TSubcommand extends string, TArgs>(
+  options: RunCliOptions<TSubcommand, TArgs>,
+  dispatched: DispatchedCall<TSubcommand, TArgs>,
+): Promise<void> {
+  try {
+    await options.onCleanupFailureAfterDispatch?.(
+      dispatched.result,
+      dispatched.subcommand,
+      dispatched.args,
+    );
+  } catch {
+    // Best effort only: a failing cleanup must not replace the real error.
+  }
+}
+
 /**
  * Drives a subcommand CLI: validates the subcommand, reads its arguments,
  * boots a Nest application context, dispatches, and prints the result as
- * JSON on stdout — or `{"error": message}` on stderr with exit code 1.
+ * JSON on stdout — or `{"error": message}` on stderr with exit code 1. When
+ * dispatch already resolved and the failure came after it, that error also
+ * carries `dispatchSucceeded: true`, so a caller can tell a run that did
+ * nothing from one whose side effects already landed.
  */
 export async function runCli<TSubcommand extends string, TArgs>(
   options: RunCliOptions<TSubcommand, TArgs>,
 ): Promise<void> {
+  let dispatched: DispatchedCall<TSubcommand, TArgs> | undefined;
   try {
     const subcommand = readSubcommand(options.argv, options.subcommands);
     // Must complete before the Nest context is created — see readArgs.
@@ -58,13 +98,21 @@ export async function runCli<TSubcommand extends string, TArgs>(
     let result: unknown;
     try {
       result = await options.dispatch(app, subcommand, args);
+      dispatched = { result, subcommand, args };
     } finally {
       await app.close();
     }
     console.log(JSON.stringify(result, null, 2));
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(JSON.stringify({ error: message }));
+    if (dispatched === undefined) {
+      console.error(JSON.stringify({ error: message }));
+    } else {
+      await runCleanupHook(options, dispatched);
+      console.error(
+        JSON.stringify({ error: message, dispatchSucceeded: true }),
+      );
+    }
     process.exit(1);
   }
 }

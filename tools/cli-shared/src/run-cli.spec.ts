@@ -256,7 +256,82 @@ describe('runCli', () => {
     expect(close).toHaveBeenCalledTimes(1);
     expect(log).not.toHaveBeenCalled();
     expect(errorLog).toHaveBeenCalledWith(
-      JSON.stringify({ error: 'close blew up' }),
+      JSON.stringify({ error: 'close blew up', dispatchSucceeded: true }),
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it('calls onCleanupFailureAfterDispatch with the result, subcommand and args when app.close() rejects', async () => {
+    close.mockRejectedValue(new Error('close blew up'));
+    const args: TestArgs = { value: 'x' };
+    const dispatch = vi.fn().mockResolvedValue({ acquired: true });
+    const onCleanupFailureAfterDispatch = vi.fn().mockResolvedValue(undefined);
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: TestModule,
+      readArgs: vi
+        .fn<(subcommand: Subcommand) => TestArgs>()
+        .mockReturnValue(args),
+      dispatch,
+      onCleanupFailureAfterDispatch,
+    });
+
+    expect(onCleanupFailureAfterDispatch).toHaveBeenCalledWith(
+      { acquired: true },
+      'alpha',
+      args,
+    );
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({ error: 'close blew up', dispatchSucceeded: true }),
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it('reports the original error unchanged when onCleanupFailureAfterDispatch itself rejects', async () => {
+    close.mockRejectedValue(new Error('close blew up'));
+    const onCleanupFailureAfterDispatch = vi
+      .fn()
+      .mockRejectedValue(new Error('cleanup blew up too'));
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: TestModule,
+      readArgs: vi
+        .fn<(subcommand: Subcommand) => TestArgs>()
+        .mockReturnValue({ value: 'x' }),
+      dispatch: vi.fn().mockResolvedValue({ acquired: true }),
+      onCleanupFailureAfterDispatch,
+    });
+
+    expect(onCleanupFailureAfterDispatch).toHaveBeenCalledTimes(1);
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({ error: 'close blew up', dispatchSucceeded: true }),
+    );
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('skips the cleanup hook and the dispatchSucceeded flag when dispatch itself throws', async () => {
+    const onCleanupFailureAfterDispatch = vi.fn().mockResolvedValue(undefined);
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: TestModule,
+      readArgs: vi
+        .fn<(subcommand: Subcommand) => TestArgs>()
+        .mockReturnValue({ value: 'x' }),
+      dispatch: vi.fn().mockRejectedValue(new Error('dispatch blew up')),
+      onCleanupFailureAfterDispatch,
+    });
+
+    expect(onCleanupFailureAfterDispatch).not.toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({ error: 'dispatch blew up' }),
     );
     expect(exit).toHaveBeenCalledWith(1);
   });
