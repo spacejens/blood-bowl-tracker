@@ -37,12 +37,13 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but fourteen facts support
+replies with a per-scope refusal message. All but fifteen facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams.descending`, `race.toplist.teams.ascending`,
 `position.toplist.players`, `coach.toplist.eras.active`,
-`team.toplist.eras.active`, `team.toplist.trophies.won`, `eras.list`,
-`trophies.list`, `competitionGroups.list`, `starPlayers.list`,
+`team.toplist.eras.active`, `coach.toplist.trophies.won`,
+`team.toplist.trophies.won`, `eras.list`, `trophies.list`,
+`competitionGroups.list`, `starPlayers.list`,
 `starPlayers.toplist.hires.total` and
 `starPlayers.toplist.hires.distinctTeams` — which list or count teams,
 rostered players, eras, trophies, trophy awards, competition groups or star
@@ -82,11 +83,11 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
   scoped to the selected era.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
   Supports league, era and match-category filtering, but not competition
-  filtering (like the other `coach.toplist.*` facts).
+  filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.matches.won` — coaches ranked by number of matches won.
   Counts matches whose recorded winner is one of the coach's own teams.
   Supports league, era and match-category filtering, but not competition
-  filtering (like the other `coach.toplist.*` facts).
+  filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.matches.lost` — coaches ranked by number of matches lost:
   matches with a recorded winner that was not one of the coach's own teams.
   Ranked most-losses-first, as its own leaderboard rather than an inverted
@@ -98,7 +99,7 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
 - `coach.toplist.competitions.played` — coaches ranked by number of distinct
   competitions their teams have entered. Supports league, era and
   match-category filtering, but not competition filtering (like the other
-  `coach.toplist.*` facts).
+  match-backed `coach.toplist.*` facts).
 - `coach.toplist.eras.active` — coaches ranked by number of distinct eras their
   teams have existed across. Supports none of the four scope options — scoping
   to a single era would always yield 0 or 1, so era filtering in particular is
@@ -106,12 +107,18 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
 - `coach.toplist.fouls.committed` — coaches ranked by fouls committed. Counts
   foul events credited to the acting team, attributed to that team's coach.
   Supports league, era and match-category filtering, but not competition
-  filtering (like the other `coach.toplist.*` facts).
+  filtering (like the other match-backed `coach.toplist.*` facts).
+- `coach.toplist.trophies.won` — coaches ranked by number of trophies their
+  teams have won. Counts every recorded trophy award tied to any of the
+  coach's teams, including player awards (MVP, most casualties, ...) won by
+  one of their players, summed across all of the coach's teams. Supports
+  league, era and competition filtering, but not match-category filtering: a
+  trophy award is not a match event, so it has no category.
 - `coach.toplist.timeBetweenMatches.longest.descending` — coaches ranked by the
   longest gap between two of their consecutive matches, longest first, shown in
   whole days. Coaches with fewer than two matches in scope are excluded (they
   have no gap). Supports league, era and match-category filtering, but not
-  competition filtering (like the other `coach.toplist.*` facts).
+  competition filtering (like the other match-backed `coach.toplist.*` facts).
 - `coach.toplist.timeBetweenMatches.longest.ascending` — the same longest-gap value,
   ranked smallest first: the coaches whose longest break between matches is the
   shortest, i.e. the most consistently active ones. Same exclusions and
@@ -123,7 +130,7 @@ schema rather than here — see `packages/db/src/schema/match-events.ts`
   Same exclusions and filtering as above, plus the same minimum-5-matches floor
   as `.longest.ascending`.
 
-Each coach listed by the eleven `coach.toplist.*` facts above also gets a
+Each coach listed by the twelve `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 

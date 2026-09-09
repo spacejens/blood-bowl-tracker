@@ -1,8 +1,13 @@
+import type { CHARACTERISTIC_FORMATS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
-/** How one characteristic is displayed under a rules set. */
-export type CharacteristicFormat =
-  'absent' | 'bare' | 'plus' | 'plus_zero_legal';
+/**
+ * How one characteristic is displayed under a rules set. Derived from
+ * `CHARACTERISTIC_FORMATS` in `@blood-bowl-tracker/domain-enums`, which is
+ * also what the db enum and the api-contract schema are built from — see that
+ * package for what each format means.
+ */
+export type CharacteristicFormat = (typeof CHARACTERISTIC_FORMATS)[number];
 
 /** What a report shows where there is no characteristic value to show. */
 export const NO_CHARACTERISTIC = '—';

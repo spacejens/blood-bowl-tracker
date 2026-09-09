@@ -24,6 +24,7 @@ import {
   firstCallArg,
   sqlText,
 } from '../shared/query-assertions.test-helpers';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { CoachesService, CoachUpsertConflictError } from './coaches.service';
 
 const fakeCoach = {
@@ -52,6 +53,7 @@ describe('CoachesService', () => {
   let likePattern: MockProxy<LikePatternService>;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
+  let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -64,6 +66,7 @@ describe('CoachesService', () => {
         { provide: LikePatternService, useValue: likePattern },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
+        { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -75,6 +78,7 @@ describe('CoachesService', () => {
     likePattern = mock<LikePatternService>();
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
+    trophyAwardCounts = mock<TrophyAwardCountsService>();
   });
 
   describe('upsert', () => {
@@ -795,6 +799,38 @@ describe('CoachesService', () => {
       const having = sqlText(firstCallArg(chains[2].having));
       expect(having).toContain('count(');
       expect(having).toContain('>= 4');
+    });
+  });
+
+  describe('countTrophiesByCoach', () => {
+    it('returns the rows TrophyAwardCountsService resolves to', async () => {
+      const rows = [
+        { coachId: 1, name: 'Roze Madder', count: 7 },
+        { coachId: 2, name: 'Grashnak', count: 1 },
+      ];
+      trophyAwardCounts.countTrophiesByCoach.mockResolvedValue(rows);
+      const { db } = await build();
+      await expect(
+        service.countTrophiesByCoach(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      // The query lives on the shared service, covered by its own spec.
+      expect(db.select).not.toHaveBeenCalled();
+    });
+
+    it('forwards the whole scope and limit verbatim, competition included', async () => {
+      // Unlike countFoulsCommittedByCoach, this one keeps the competitionId:
+      // a trophy award belongs to a competition, so coach.toplist.trophies.won
+      // declares supportsCompetition: true.
+      trophyAwardCounts.countTrophiesByCoach.mockResolvedValue([]);
+      await build();
+      await service.countTrophiesByCoach(
+        { leagueId: 9, eraId: 20, competitionId: 30 },
+        21,
+      );
+      expect(trophyAwardCounts.countTrophiesByCoach).toHaveBeenCalledWith(
+        { leagueId: 9, eraId: 20, competitionId: 30 },
+        21,
+      );
     });
   });
 });
