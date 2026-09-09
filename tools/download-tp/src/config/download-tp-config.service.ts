@@ -88,8 +88,10 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
 
   /**
    * Rules sets to download TP's official team list for, from
-   * `download.rulesSets`. Required and non-empty. Each value names the tab on
-   * TP's teams page and the `data/teams/<rulesSet>/` output folder.
+   * `download.rulesSets`. Required to be present, but may be empty — an
+   * empty list means "skip the official-teams download entirely". Each value
+   * names the tab on TP's teams page and the `data/teams/<rulesSet>/` output
+   * folder.
    */
   getRulesSets(): string[] {
     const download = this.downloadGroup();
@@ -97,8 +99,8 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
     if (!rulesSets.success) {
       throw new Error(
         'download.rulesSets is not set in download-tp-config.json5. Set it ' +
-          "to a non-empty array of rules set names, e.g. ['BB2020', " +
-          "'DB2021', 'BB2025'].",
+          "to an array of rules set names, e.g. ['BB2020', 'DB2021', " +
+          "'BB2025'], or [] to skip the official-teams download.",
       );
     }
     return rulesSets.data;

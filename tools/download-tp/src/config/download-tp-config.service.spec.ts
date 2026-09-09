@@ -230,15 +230,18 @@ describe('DownloadTpConfigService', () => {
       expect(() => service.getRulesSets()).toThrow(/download is not set/);
     });
 
-    it('throws naming the key when rulesSets is missing or empty', async () => {
+    it('throws naming the key when rulesSets is missing entirely', async () => {
       const missing = await makeService(
         writeConfig(`{ download: { tournaments: [] } }`),
       );
       expect(() => missing.getRulesSets()).toThrow(/download\.rulesSets/);
+    });
+
+    it('accepts an empty rulesSets list, skipping the official-teams download entirely', async () => {
       const empty = await makeService(
         writeConfig(`{ download: { tournaments: [], rulesSets: [] } }`),
       );
-      expect(() => empty.getRulesSets()).toThrow(/download\.rulesSets/);
+      expect(empty.getRulesSets()).toEqual([]);
     });
   });
 

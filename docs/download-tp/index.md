@@ -39,7 +39,7 @@ cp tools/download-tp/download-tp-config.example.json5 tools/download-tp/download
 | `connection.backendApiUrl` | Base URL of the TP API, including a trailing slash — responses whose URL starts with it are recorded (required) |
 | `browser.headless`         | `true` to run the browser headless, `false` to show it (default `false`)                                        |
 | `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required; may be empty)                      |
-| `download.rulesSets`       | Rules sets to download TP's official team list for (required, non-empty)                                        |
+| `download.rulesSets`       | Rules sets to download TP's official team list for (required; may be empty)                                     |
 
 `download-tp-config.json5` is git-ignored; only the `.example` template is
 committed. It is looked up at `download-tp-config.json5` in the working

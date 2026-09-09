@@ -36,10 +36,12 @@ export const downloadGroupSchema = z.looseObject({});
 export const tournamentsSchema = z.array(z.string().min(1));
 
 /**
- * `download.rulesSets`: a non-empty list of the rules sets to download TP's
- * official team list for. Each value names both the tab on TP's teams page
- * and the `data/teams/<rulesSet>/` output folder, and is matched
- * case-insensitively against an era's configured rules-set name on the
- * import side.
+ * `download.rulesSets`: a list of the rules sets to download TP's official
+ * team list for. Each value names both the tab on TP's teams page and the
+ * `data/teams/<rulesSet>/` output folder, and is matched case-insensitively
+ * against an era's configured rules-set name on the import side. May be
+ * empty — `OfficialTeamsDownloaderService.downloadOfficialTeams()` then does
+ * nothing, which is how a developer skips the official-teams download
+ * entirely (e.g. to download only tournaments).
  */
-export const rulesSetsSchema = z.array(z.string().min(1)).min(1);
+export const rulesSetsSchema = z.array(z.string().min(1));
