@@ -17,6 +17,7 @@ import {
   DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -39,10 +40,13 @@ import { PositionCharacteristicsLineFormatterService } from './position-characte
  * show the single hire it was opened on.
  *
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so
- * a timeout is distinguishable from a genuine "not found" (`undefined`). A
- * star that resolves but has no hires is reported as not found rather than as
- * an empty list: a star nobody has ever hired has no history to show, and the
- * embed would otherwise be an empty box.
+ * a timeout is distinguishable from a genuine "not found" (`undefined`).
+ * "Not found" itself is reserved for a `positionId` that does not resolve to
+ * a star at all. A star that resolves but has never been hired still has
+ * stats worth showing — the full star catalog (not just hired stars) is what
+ * `/star-players list` and its autocomplete surface — so that case renders
+ * the same stat lines with a note that nobody has hired this one yet, instead
+ * of the hire list and its team buttons.
  *
  * Hires are summed per team, never split per era — a deliberate product
  * decision, since a team re-hiring the same star season after season (and TP
@@ -99,27 +103,30 @@ export class StarPlayerDeepdiveService {
     if (hires === null) {
       return DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE;
     }
-    if (hires.length === 0) {
-      return DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE;
-    }
 
     // The game-data query already orders by hire count descending (ties broken
     // by team name), so both the description and the buttons take the rows as
     // they arrive — the two can never disagree about the order.
     const { components, overflowNote } =
-      this.entityComponents.buildEntityComponents(
-        hires.map((hire) => ({
-          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(hire.teamId),
-          label: hire.teamName,
-        })),
-      );
+      hires.length === 0
+        ? { components: [], overflowNote: null }
+        : this.entityComponents.buildEntityComponents(
+            hires.map((hire) => ({
+              customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+              entityId: String(hire.teamId),
+              label: hire.teamName,
+            })),
+          );
 
     const description = [
       ...statLines,
       '',
-      ...hires.map((hire) => this.formatHire(hire)),
-      ...(overflowNote === null ? [] : [overflowNote]),
+      ...(hires.length === 0
+        ? [DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE]
+        : [
+            ...hires.map((hire) => this.formatHire(hire)),
+            ...(overflowNote === null ? [] : [overflowNote]),
+          ]),
     ].join('\n');
 
     return {
