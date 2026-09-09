@@ -2,8 +2,9 @@ import {
   INTERACTION_KINDS,
   INTERACTION_OUTCOMES,
 } from '@blood-bowl-tracker/domain-enums';
-import { serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { serial, text, unique } from 'drizzle-orm/pg-core';
 
+import { historyTrackedTable } from '../history';
 import { discordBotUsage } from './pg-schema';
 
 export const interactionKindEnum = discordBotUsage.enum(
@@ -30,18 +31,24 @@ export type InteractionOutcome =
  * Joining an event to its type is what lets a query group by kind as well as
  * by the specific command or component.
  */
-export const interactionTypes = discordBotUsage.table(
-  'interaction_types',
-  {
+const interactionTypesTable = historyTrackedTable({
+  schema: discordBotUsage,
+  name: 'interaction_types',
+  columns: {
     id: serial('id').primaryKey(),
     kind: interactionKindEnum('kind').notNull(),
     name: text('name').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
   },
-  (t) => [unique('interaction_types_kind_name_unique').on(t.kind, t.name)],
-);
+  extraConfig: (t) => ({
+    uniqueKindName: unique('interaction_types_kind_name_unique').on(
+      t.kind,
+      t.name,
+    ),
+  }),
+});
+
+export const interactionTypes = interactionTypesTable.table;
+export const interactionTypesHistory = interactionTypesTable.historyTable;
 
 export type InteractionType = typeof interactionTypes.$inferSelect;
 export type NewInteractionType = typeof interactionTypes.$inferInsert;

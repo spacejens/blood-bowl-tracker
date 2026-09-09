@@ -1,5 +1,6 @@
-import { integer, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { integer, serial, text, unique } from 'drizzle-orm/pg-core';
 
+import { historyTrackedTable } from '../history';
 import { guilds } from './guilds';
 import { discordBotUsage } from './pg-schema';
 import { discordUsers } from './users';
@@ -10,9 +11,10 @@ import { discordUsers } from './users';
  * server. The unique key is the natural one, `(user_id, guild_id)`, which is
  * also what the writing service upserts on.
  */
-export const guildMembers = discordBotUsage.table(
-  'guild_members',
-  {
+const guildMembersTable = historyTrackedTable({
+  schema: discordBotUsage,
+  name: 'guild_members',
+  columns: {
     id: serial('id').primaryKey(),
     userId: integer('user_id')
       .references(() => discordUsers.id)
@@ -21,12 +23,17 @@ export const guildMembers = discordBotUsage.table(
       .references(() => guilds.id)
       .notNull(),
     nickname: text('nickname'),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
   },
-  (t) => [unique('guild_members_user_guild_unique').on(t.userId, t.guildId)],
-);
+  extraConfig: (t) => ({
+    uniqueGuildMember: unique('guild_members_user_guild_unique').on(
+      t.userId,
+      t.guildId,
+    ),
+  }),
+});
+
+export const guildMembers = guildMembersTable.table;
+export const guildMembersHistory = guildMembersTable.historyTable;
 
 export type GuildMember = typeof guildMembers.$inferSelect;
 export type NewGuildMember = typeof guildMembers.$inferInsert;

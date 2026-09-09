@@ -1,5 +1,6 @@
-import { integer, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { integer, serial, text } from 'drizzle-orm/pg-core';
 
+import { historyTrackedTable } from '../history';
 import { interactionEvents } from './interaction-events';
 import { discordBotUsage } from './pg-schema';
 
@@ -12,20 +13,22 @@ import { discordBotUsage } from './pg-schema';
  * Cascade-deleted with its event: a parameter row has no meaning without the
  * event it describes.
  */
-export const interactionEventParameters = discordBotUsage.table(
-  'interaction_event_parameters',
-  {
+const interactionEventParametersTable = historyTrackedTable({
+  schema: discordBotUsage,
+  name: 'interaction_event_parameters',
+  columns: {
     id: serial('id').primaryKey(),
     eventId: integer('event_id')
       .references(() => interactionEvents.id, { onDelete: 'cascade' })
       .notNull(),
     key: text('key').notNull(),
     value: text('value'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
   },
-);
+});
+
+export const interactionEventParameters = interactionEventParametersTable.table;
+export const interactionEventParametersHistory =
+  interactionEventParametersTable.historyTable;
 
 export type InteractionEventParameter =
   typeof interactionEventParameters.$inferSelect;

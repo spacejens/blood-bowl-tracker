@@ -1,6 +1,7 @@
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
+import { historyRegistry } from '../history';
 import {
   channels,
   discordUsers,
@@ -58,13 +59,30 @@ describe('discord_bot_usage schema', () => {
     expect(byName.get('guild_id')!.notNull).toBe(true);
   });
 
-  it('does not history-track any discord_bot_usage table', () => {
-    // Guild/channel/user names are Discord display metadata, overwritten in
-    // place; there is no value in versioning them.
-    for (const table of [guilds, channels, discordUsers, guildMembers]) {
-      const columnNames = getTableConfig(table).columns.map((c) => c.name);
-      expect(columnNames).not.toContain('history_version');
-      expect(columnNames).not.toContain('history_period');
+  it('history-tracks every discord_bot_usage table, matching game_data', () => {
+    for (const table of [
+      guilds,
+      channels,
+      discordUsers,
+      guildMembers,
+      interactionTypes,
+      interactionEvents,
+      interactionEventParameters,
+    ]) {
+      const config = getTableConfig(table);
+      const columnNames = config.columns.map((c) => c.name);
+      expect(columnNames).toEqual(
+        expect.arrayContaining([
+          'created_at',
+          'updated_at',
+          'history_version',
+          'history_period',
+        ]),
+      );
+      expect(
+        historyRegistry.some((entry) => entry.tableName === config.name),
+        `"${config.name}" was not built via historyTrackedTable()`,
+      ).toBe(true);
     }
   });
 

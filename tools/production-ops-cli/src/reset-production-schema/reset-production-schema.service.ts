@@ -30,12 +30,12 @@ export interface ResetProductionSchemaResult {
  *
  * All four schemas matter, not just `public`: application tables live under
  * `game_data` and `discord_bot_usage`, not `public` — `public` only holds
- * the shared `versioning()`/`set_updated_at()` trigger functions
- * `game_data`'s history-tracking depends on (`discord_bot_usage` has no
- * history-tracking triggers of its own). `discord_bot_usage`'s migration
- * creates the schema unconditionally (no `IF NOT EXISTS`), so leaving it
- * behind makes the next startup's `migrate()` fail outright rather than
- * silently skip anything. `drizzle` holds drizzle-orm's own migration
+ * the shared `versioning()`/`set_updated_at()` trigger functions both
+ * schemas' history-tracking depends on. `discord_bot_usage` still has to be
+ * dropped explicitly even though it shares `public`'s trigger functions:
+ * its migration creates the schema unconditionally (no `IF NOT EXISTS`), so
+ * leaving it behind makes the next startup's `migrate()` fail outright
+ * rather than silently skip anything. `drizzle` holds drizzle-orm's own migration
  * journal; leaving it in place after dropping the application schemas would
  * have the journal assert every migration already ran against a database
  * with none of their effects, so the next startup's `migrate()` would

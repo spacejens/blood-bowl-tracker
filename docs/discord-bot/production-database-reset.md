@@ -94,14 +94,13 @@ All four schemas have to go, not just `public`. Application tables live in
 `discord_bot_usage` (see
 `packages/db/src/schema/discord-bot-usage/pg-schema.ts`), not `public` —
 `public` only holds the shared trigger functions (`versioning()`,
-`set_updated_at()`) that `game_data`'s history-tracking triggers depend on.
-Dropping `public` alone would remove those functions — and, by cascade, the
-triggers on `game_data` tables that call them — without touching `game_data`
-or `discord_bot_usage` themselves, leaving every table and all its data
-completely intact: not a reset at all. `discord_bot_usage` has no
-history-tracking triggers of its own (its tables are deliberately not
-history-tracked), but it still has to be dropped explicitly: its migration
-creates the schema unconditionally
+`set_updated_at()`) that both schemas' history-tracking triggers depend on.
+Dropping `public` alone would remove those functions — and, by cascade, every
+history-tracking trigger in both schemas that calls them — without touching
+`game_data` or `discord_bot_usage` themselves, leaving every table and all
+its data completely intact: not a reset at all. `discord_bot_usage` still
+has to be dropped explicitly even though it shares `public`'s trigger
+functions: its migration creates the schema unconditionally
 (`CREATE SCHEMA "discord_bot_usage";`, no `IF NOT EXISTS`), so leaving it
 behind makes the next migration run fail outright rather than silently
 skip anything. Meanwhile drizzle-orm records which migrations have already

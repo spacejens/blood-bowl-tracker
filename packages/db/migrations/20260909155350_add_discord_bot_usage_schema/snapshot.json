@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "c3ac4078-86dd-4316-b317-1b9409e570c1",
+  "id": "bb900708-3e8e-4564-a17b-cbba2ec2d7f0",
   "prevIds": [
     "203b054e-f5ae-45e6-bf8b-839756367044"
   ],
@@ -223,7 +223,19 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "channels_history",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "guild_members",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "guild_members_history",
       "entityType": "tables",
       "schema": "discord_bot_usage"
     },
@@ -235,7 +247,19 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "guilds_history",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "interaction_event_parameters",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "interaction_event_parameters_history",
       "entityType": "tables",
       "schema": "discord_bot_usage"
     },
@@ -247,13 +271,31 @@
     },
     {
       "isRlsEnabled": false,
+      "name": "interaction_events_history",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "interaction_types",
       "entityType": "tables",
       "schema": "discord_bot_usage"
     },
     {
       "isRlsEnabled": false,
+      "name": "interaction_types_history",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
       "name": "users",
+      "entityType": "tables",
+      "schema": "discord_bot_usage"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "users_history",
       "entityType": "tables",
       "schema": "discord_bot_usage"
     },
@@ -749,10 +791,153 @@
       "default": "now()",
       "generated": null,
       "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
       "name": "updated_at",
       "entityType": "columns",
       "schema": "discord_bot_usage",
       "table": "channels"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "discord_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "guild_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
     },
     {
       "type": "serial",
@@ -814,10 +999,153 @@
       "default": "now()",
       "generated": null,
       "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
       "name": "updated_at",
       "entityType": "columns",
       "schema": "discord_bot_usage",
       "table": "guild_members"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "guild_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "nickname",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
     },
     {
       "type": "serial",
@@ -866,10 +1194,140 @@
       "default": "now()",
       "generated": null,
       "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
       "name": "updated_at",
       "entityType": "columns",
       "schema": "discord_bot_usage",
       "table": "guilds"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "discord_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
     },
     {
       "type": "serial",
@@ -935,6 +1393,149 @@
       "entityType": "columns",
       "schema": "discord_bot_usage",
       "table": "interaction_event_parameters"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "event_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "key",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "value",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
     },
     {
       "type": "serial",
@@ -1041,6 +1642,214 @@
       "table": "interaction_events"
     },
     {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "interaction_type_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "user_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "guild_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "channel_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "occurred_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "\"discord_bot_usage\".\"interaction_outcome\"",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "outcome",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "error_message",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
       "type": "serial",
       "typeSchema": null,
       "notNull": true,
@@ -1093,6 +1902,136 @@
       "table": "interaction_types"
     },
     {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "type": "\"discord_bot_usage\".\"interaction_kind\"",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "kind",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
       "type": "serial",
       "typeSchema": null,
       "notNull": true,
@@ -1139,10 +2078,140 @@
       "default": "now()",
       "generated": null,
       "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
       "name": "updated_at",
       "entityType": "columns",
       "schema": "discord_bot_usage",
       "table": "users"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "discord_id",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "username",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
     },
     {
       "type": "serial",
@@ -9432,6 +10501,23 @@
     {
       "nameExplicit": false,
       "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "channels",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "channels_history_id_channels_id_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "user_id"
       ],
       "schemaTo": "discord_bot_usage",
@@ -9466,6 +10552,40 @@
     {
       "nameExplicit": false,
       "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "guild_members",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "guild_members_history_id_guild_members_id_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "guilds",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "guilds_history_id_guilds_id_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
         "event_id"
       ],
       "schemaTo": "discord_bot_usage",
@@ -9479,6 +10599,23 @@
       "entityType": "fks",
       "schema": "discord_bot_usage",
       "table": "interaction_event_parameters"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "interaction_event_parameters",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "interaction_event_parameters_history_NSYH9CX7YfIe_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
     },
     {
       "nameExplicit": false,
@@ -9547,6 +10684,57 @@
       "entityType": "fks",
       "schema": "discord_bot_usage",
       "table": "interaction_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "interaction_events",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "interaction_events_history_id_interaction_events_id_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "interaction_types",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "interaction_types_history_id_interaction_types_id_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "discord_bot_usage",
+      "tableTo": "users",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "users_history_id_users_id_fkey",
+      "entityType": "fks",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
     },
     {
       "nameExplicit": false,
@@ -11230,6 +12418,83 @@
       "entityType": "fks",
       "schema": "game_data",
       "table": "trophies_external_ids_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "channels_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "channels_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "guild_members_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "guild_members_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "guilds_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "guilds_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "interaction_event_parameters_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "interaction_event_parameters_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "interaction_events_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "interaction_events_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "interaction_types_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "interaction_types_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
+      "name": "users_history_pkey",
+      "entityType": "pks",
+      "schema": "discord_bot_usage",
+      "table": "users_history"
     },
     {
       "columns": [

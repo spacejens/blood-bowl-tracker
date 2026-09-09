@@ -1,5 +1,6 @@
 import { integer, serial, text, timestamp } from 'drizzle-orm/pg-core';
 
+import { historyTrackedTable } from '../history';
 import { channels } from './channels';
 import { guilds } from './guilds';
 import { interactionOutcomeEnum, interactionTypes } from './interaction-types';
@@ -13,25 +14,37 @@ import { discordUsers } from './users';
  * Only interactions that matched a registered handler get a row. An unmatched
  * one (a button from before a redeploy, say) has no catalog entry to record
  * against, and the bot already ignores it.
+ *
+ * `occurred_at` is the Discord interaction's own timestamp, distinct from the
+ * `created_at` this table gets from `historyTrackedTable` (when this row was
+ * inserted) — the two coincide in practice, since recording happens
+ * immediately after the interaction, but they mean different things.
  */
-export const interactionEvents = discordBotUsage.table('interaction_events', {
-  id: serial('id').primaryKey(),
-  interactionTypeId: integer('interaction_type_id')
-    .references(() => interactionTypes.id)
-    .notNull(),
-  userId: integer('user_id')
-    .references(() => discordUsers.id)
-    .notNull(),
-  guildId: integer('guild_id').references(() => guilds.id),
-  channelId: integer('channel_id')
-    .references(() => channels.id)
-    .notNull(),
-  occurredAt: timestamp('occurred_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  outcome: interactionOutcomeEnum('outcome').notNull(),
-  errorMessage: text('error_message'),
+const interactionEventsTable = historyTrackedTable({
+  schema: discordBotUsage,
+  name: 'interaction_events',
+  columns: {
+    id: serial('id').primaryKey(),
+    interactionTypeId: integer('interaction_type_id')
+      .references(() => interactionTypes.id)
+      .notNull(),
+    userId: integer('user_id')
+      .references(() => discordUsers.id)
+      .notNull(),
+    guildId: integer('guild_id').references(() => guilds.id),
+    channelId: integer('channel_id')
+      .references(() => channels.id)
+      .notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    outcome: interactionOutcomeEnum('outcome').notNull(),
+    errorMessage: text('error_message'),
+  },
 });
+
+export const interactionEvents = interactionEventsTable.table;
+export const interactionEventsHistory = interactionEventsTable.historyTable;
 
 export type InteractionEvent = typeof interactionEvents.$inferSelect;
 export type NewInteractionEvent = typeof interactionEvents.$inferInsert;
