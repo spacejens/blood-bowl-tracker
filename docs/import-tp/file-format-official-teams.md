@@ -59,7 +59,23 @@ inducements; BB2020 — 39 / 192 / 67 / 49; DB2021 — 8 / 96 / 0 / 10.
 - `teamRace` — `"BlackOrc_BB2025"`, the race code the rest of the TP import
   keys races by.
 - `teamRosterType` — `0` official, `1` legacy, `3` Secret Bowl (unofficial),
-  `4` experimental. BB2025 has 30 / 1 / 93 / 1 of them.
+  `4` experimental. BB2025 has 30 / 1 / 93 / 1 of them, BB2020 29 / 9 / 0 / 1,
+  DB2021 8 / 0 / 0 / 0.
+
+  **The import takes types `0` and `1`, and drops `3` and `4`** — 31 rosters
+  (163 positions) of BB2025, 38 (188) of BB2020, 8 (96) of DB2021. "Legacy"
+  is not "unofficial": it is an older, superseded generation of an official
+  roster that leagues really played, and the recorded league data fields those
+  rosters' positions (BB2020's `Slann` and `Vampire` legacy rosters are used
+  by real teams, and their position ids appear on real players). Types `3` and
+  `4` are genuinely non-canonical and stay out.
+
+  Because official and legacy rosters of one logical race share a display
+  name (BB2020 `Norse_BB2020` + `Norse`, `Amazon_BB2020` + `Amazon`,
+  `Vampire_BB2020` + `Vampire`, `ChaosDwarf_BB2020` + `ChaosDwarf`; BB2025
+  `HighElf_BB2025` + `HighElf_BB2025_Legacy`), the importer's grouping by
+  display name merges each such pair into one race carrying both codes — the
+  same mechanism it already uses for a race's per-rules-set code variants.
 - `ruleSet` — `25`, the same value on every entry in one response.
 - `tier` — `3`. Always present.
 - `prizeReRoll` — `60000`, the re-roll cost. Always present.
@@ -71,10 +87,15 @@ inducements; BB2020 — 39 / 192 / 67 / 49; DB2021 — 8 / 96 / 0 / 10.
   under BB2020 and DB2021).
 - `lineUpMasters[]` — the roster's positions, see below.
 
-`teamRace` carries a rules-set suffix only under BB2025 (`Dwarf_BB2025`,
-`HighElf_BB2025_Legacy`); BB2020 and DB2021 codes are bare (`Dwarf`,
-`CollegeOfFire`), with `Bretonnian_2020` the one BB2020 exception. This matches
-what [`rosters_<id>.json`](./file-format-rosters.md) already sees.
+`teamRace` carries a rules-set suffix on every official and legacy BB2025
+roster (`Dwarf_BB2025`, `HighElf_BB2025_Legacy`), while BB2025's Secret Bowl
+rosters are mostly bare (`Squig`, `Hobgoblin`, with `SavageOrc_2020` the
+exception). DB2021's eight codes are all bare (`CollegeOfFire`). BB2020 is
+mostly bare (`Dwarf`, `Norse`) with five suffixed codes: the four official
+`Norse_BB2020`, `Amazon_BB2020`, `Vampire_BB2020` and `ChaosDwarf_BB2020` —
+each of which coexists with a bare, legacy roster of the same display name —
+plus the Secret Bowl `Bretonnian_2020`. This matches what
+[`rosters_<id>.json`](./file-format-rosters.md) already sees.
 
 ### `rosterMasters[].lineUpMasters[]` — one position
 
@@ -99,9 +120,11 @@ what [`rosters_<id>.json`](./file-format-rosters.md) already sees.
   113 Ogre, 116 Treeman, …), not the team races the entry belongs to.
 - `positionTypes` — `1`. Bitmask, optional under BB2025 and absent throughout
   BB2020.
-- `availableRaces` — `32`. A one-bit-per-team-race bitmask, BB2020 and DB2021
-  only (absent under BB2025). Identical on every position of one roster, so it
-  is redundant with `rosterMasterId` and carries nothing the import needs.
+- `availableRaces` — `32`. A one-bit-per-team-race bitmask, present on every
+  BB2020 (192/192) and DB2021 (96/96) position and all but absent under BB2025
+  (1 of 568 — the Secret Bowl Werewolf roster's `Werewolf` position, a literal
+  `0`). Identical on every position of one roster, so it is redundant with
+  `rosterMasterId` and carries nothing the import needs.
 - `specialRuleName` — `"Lycanthrope"`. Optional.
 
 ### `starplayerMasters[]` — star players, a separate top-level array

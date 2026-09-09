@@ -77,7 +77,8 @@ const RESPONSE = {
       id: 54,
       name: 'Amazon',
       teamRace: 'Amazon',
-      // Legacy roster: excluded from the parsed races entirely.
+      // Legacy roster: an older but genuinely played roster generation, so it
+      // is parsed alongside the official ones.
       teamRosterType: 1,
       teamSpecialRules: 8,
       selectableTeamSpecialRules: 0,
@@ -96,6 +97,26 @@ const RESPONSE = {
           skills: [],
         },
       ],
+    },
+    {
+      id: 55,
+      name: 'Bretonnian',
+      teamRace: 'Bretonnian_2020',
+      // Secret Bowl / unofficial roster: never parsed.
+      teamRosterType: 3,
+      teamSpecialRules: 16,
+      selectableTeamSpecialRules: 0,
+      lineUpMasters: [],
+    },
+    {
+      id: 56,
+      name: 'Slann',
+      teamRace: 'Slann_BB2025',
+      // Experimental roster: never parsed.
+      teamRosterType: 4,
+      teamSpecialRules: 8,
+      selectableTeamSpecialRules: 0,
+      lineUpMasters: [],
     },
   ],
   starplayerMasters: [
@@ -295,10 +316,17 @@ describe('OfficialTeamsParserService', () => {
     ).toBe(0);
   });
 
-  it('excludes rosters that are not official', () => {
+  it('parses legacy rosters alongside the official ones', () => {
+    expect(service.parse(RESPONSE).map((race) => race.teamRaceCode)).toContain(
+      'Amazon',
+    );
+  });
+
+  it('excludes Secret Bowl and experimental rosters', () => {
     expect(service.parse(RESPONSE).map((race) => race.teamRaceCode)).toEqual([
       'Human',
       'WoodElf',
+      'Amazon',
     ]);
   });
 

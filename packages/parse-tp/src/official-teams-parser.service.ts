@@ -38,13 +38,18 @@ export interface TpOfficialRace {
 }
 
 /**
- * The `teamRosterType` value marking a roster as one of the rules set's
- * OFFICIAL teams. The same response also carries legacy (1), Secret Bowl /
- * unofficial (3) and experimental (4) rosters — TP's own teams page splits
- * them client-side out of this one payload — and only the official ones are
- * imported.
+ * The `teamRosterType` values marking a roster as one of the rules set's real
+ * teams: `0` official and `1` legacy. TP's own teams page splits this one
+ * payload client-side by that field, and legacy does NOT mean unofficial — it
+ * is an older, superseded generation of an official roster that leagues did
+ * and do play under (BB2020's Slann and Vampire are legacy, and real recorded
+ * teams field their positions). Excluding it would drop those races,
+ * positions and every team referencing them.
+ *
+ * Secret Bowl / unofficial (3) and experimental (4) rosters stay excluded:
+ * those are genuinely non-canonical.
  */
-const OFFICIAL_ROSTER_TYPE = 0;
+const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
 
 const CharacteristicsFields = {
   ma: z.number().int(),
@@ -100,7 +105,7 @@ type StarPlayerMaster = z.infer<typeof StarPlayerMasterSchema>;
 export class OfficialTeamsParserService {
   /**
    * Validate and flatten one recorded official-team-list response into its
-   * official races. Extra fields (costs, skills, quantity limits, icons) are
+   * official and legacy races (see `IMPORTED_ROSTER_TYPES`). Extra fields (costs, skills, quantity limits, icons) are
    * allowed and dropped by zod's default non-strict parsing. Throws an Error
    * whose message names the failing field on any shape mismatch, matching the
    * other parsers in this package.
@@ -118,7 +123,7 @@ export class OfficialTeamsParserService {
     }
     const stars = result.data.starplayerMasters;
     return result.data.rosterMasters
-      .filter((roster) => roster.teamRosterType === OFFICIAL_ROSTER_TYPE)
+      .filter((roster) => IMPORTED_ROSTER_TYPES.has(roster.teamRosterType))
       .map((roster) => ({
         name: roster.name,
         teamRaceCode: roster.teamRace,

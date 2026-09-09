@@ -10,12 +10,14 @@ import { RaceReviewConfigService } from '../config/review-race-config.service';
 const TEAMS_DIR = 'teams';
 
 /**
- * The `teamRosterType` marking a roster as one of the rules set's OFFICIAL
- * teams. The same response also carries legacy (1), Secret Bowl / unofficial
- * (3) and experimental (4) rosters, and only the official ones are imported —
- * so only the official ones belong on the raw side of the comparison.
+ * The `teamRosterType` values marking a roster as one of the rules set's real
+ * teams: `0` official and `1` legacy. Legacy is not "unofficial" — it is an
+ * older, superseded generation of an official roster that leagues really
+ * played (BB2020's Slann and Vampire are legacy) — so the importer takes both,
+ * and both belong on the raw side of the comparison. Secret Bowl / unofficial
+ * (3) and experimental (4) rosters are genuinely non-canonical and stay out.
  */
-const OFFICIAL_ROSTER_TYPE = 0;
+const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
 
 /** The five characteristics TP carries on every official-list entry. */
 export interface TpRawPositionCharacteristics {
@@ -108,9 +110,9 @@ export class TpRawOfficialTeamsIndexService {
   }
 
   /**
-   * One `rosterMasters[]` entry. Non-official rosters are dropped here, so a
-   * legacy, Secret Bowl or experimental roster never reaches the report — the
-   * importer drops exactly the same ones.
+   * One `rosterMasters[]` entry. Non-canonical rosters are dropped here, so a
+   * Secret Bowl or experimental roster never reaches the report — the importer
+   * drops exactly the same ones, and keeps exactly the same legacy ones.
    */
   private absorb(
     races: Map<string, TpRawOfficialRace>,
@@ -118,8 +120,10 @@ export class TpRawOfficialTeamsIndexService {
   ): void {
     const { roster, rulesSet } = source;
     const teamRaceCode = this.property(roster, 'teamRace');
+    const rosterType = this.property(roster, 'teamRosterType');
     if (
-      this.property(roster, 'teamRosterType') !== OFFICIAL_ROSTER_TYPE ||
+      typeof rosterType !== 'number' ||
+      !IMPORTED_ROSTER_TYPES.has(rosterType) ||
       typeof teamRaceCode !== 'string' ||
       teamRaceCode === ''
     ) {

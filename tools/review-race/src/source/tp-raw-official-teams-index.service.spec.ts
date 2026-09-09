@@ -277,17 +277,25 @@ describe('TpRawOfficialTeamsIndexService', () => {
     expect(await service.raceFor('Dwarf_BB2025')).toBeNull();
   });
 
-  it('ignores rosters that are not official', async () => {
+  it('keeps legacy rosters alongside the official ones', async () => {
     write('BB2025', {
       rosterMasters: [
         roster({ teamRace: 'HighElf_BB2025_Legacy', teamRosterType: 1 }),
+      ],
+    });
+
+    expect(await service.raceFor('HighElf_BB2025_Legacy')).not.toBeNull();
+  });
+
+  it('ignores Secret Bowl and experimental rosters', async () => {
+    write('BB2025', {
+      rosterMasters: [
         roster({ teamRace: 'Gnome_BB2025_SecretBowl', teamRosterType: 3 }),
         roster({ teamRace: 'Khemri_BB2025_Exp', teamRosterType: 4 }),
         roster(),
       ],
     });
 
-    expect(await service.raceFor('HighElf_BB2025_Legacy')).toBeNull();
     expect(await service.raceFor('Gnome_BB2025_SecretBowl')).toBeNull();
     expect(await service.raceFor('Khemri_BB2025_Exp')).toBeNull();
     expect(await service.raceFor('Dwarf_BB2025')).not.toBeNull();
