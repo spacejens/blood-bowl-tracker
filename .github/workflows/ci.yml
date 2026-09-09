@@ -93,8 +93,81 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Build discord-bot Docker image
-        run: docker build -f apps/discord-bot/Dockerfile .
+      # docker-compose.yml validates every service's env_file when the file
+      # is loaded, and apps/discord-bot/.env is gitignored and absent on a
+      # clean checkout, so the `docker compose` commands below would fail
+      # before starting anything. The discord-bot container really does run
+      # here, and its config validation needs *some* value for every required
+      # variable — but the placeholder Discord token is never exercised for a
+      # real connection: connect() only happens after bootstrap succeeded.
+      - name: Create placeholder discord-bot .env
+        run: cp apps/discord-bot/.env.example apps/discord-bot/.env
+      - name: Start postgres
+        run: docker compose up -d postgres
+      - name: Wait for postgres to be healthy
+        run: |
+          for _ in $(seq 1 30); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' postgres 2>/dev/null || true)"
+            if [ "$status" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "postgres did not become healthy in time" >&2
+          exit 1
+      # Replaces a standalone `docker build`: this still fails the job on any
+      # build error, and additionally starts a container from the image, so a
+      # failure that only surfaces at startup — e.g. a workspace package
+      # missing from the Dockerfile runtime stage's COPY list — fails CI too
+      # instead of waiting for a manual local deploy to find it.
+      - name: Build and start discord-bot
+        run: docker compose up -d --build discord-bot
+      # Waits for Nest's own default bootstrap log line, printed once
+      # NestFactory.create() and app.listen() have both succeeded. Not the
+      # Discord startup-message line: that needs a live gateway connection and
+      # a real token, and a bad token is retried forever rather than crashing,
+      # so waiting on it would hang instead of failing fast. The container does
+      # keep retrying Discord in the background with the placeholder token;
+      # that is expected and deliberately does not fail this check.
+      - name: Wait for discord-bot to start successfully
+        run: |
+          for _ in $(seq 1 30); do
+            state="$(docker inspect --format '{{.State.Status}}' discord-bot 2>/dev/null || true)"
+            if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
+              echo "discord-bot container is $state" >&2
+              break
+            fi
+            # Captured into a variable rather than piped into grep: this
+            # step has no `shell:` override so Actions runs it as `bash -e
+            # {0}` with no `pipefail`, and grep -q exiting on its first
+            # match can make `docker compose logs` see EPIPE while it still
+            # has output left to write — harmless today, but a future
+            # `pipefail` would then read grep's own SIGPIPE death as "no
+            # match" and fail this step against a perfectly healthy
+            # container.
+            logs="$(docker compose logs discord-bot 2>&1 || true)"
+            if [ "$state" = "running" ] && grep -q 'Nest application successfully started' <<<"$logs"; then
+              echo "discord-bot started successfully"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "discord-bot did not start successfully" >&2
+          docker compose logs discord-bot >&2
+          exit 1
+      # Mirrors fly.toml's production [checks.tcp] health check — a plain TCP
+      # connect, since this app exposes no HTTP health endpoint. Port 3000 is
+      # the host mapping in docker-compose.yml.
+      - name: Check discord-bot accepts TCP connections on port 3000
+        run: |
+          for _ in $(seq 1 15); do
+            if timeout 5 bash -c '</dev/tcp/127.0.0.1/3000'; then exit 0; fi
+            sleep 2
+          done
+          echo "discord-bot did not accept a TCP connection on port 3000 in time" >&2
+          docker compose logs discord-bot >&2
+          exit 1
+      - name: Stop stack
+        if: always()
+        run: docker compose down
 
   schemaspy-build:
     runs-on: ubuntu-latest
