@@ -183,12 +183,17 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
   coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
   later team-import sub-issue will use to resolve each team's coach; unused here.
-- **TpRacesImportService** — upserts each race from the roster files, grouped
-  by display name (`rosterMaster.name`) so rule-set-variant codes merge onto
+- **TpRacesImportService** — upserts each race from TP's official team list
+  (read via `OfficialTeamsCollectionService`, not from played rosters),
+  grouped by the list's own display name so rule-set-variant codes merge onto
   one row. Each upsert carries every distinct code as a TP external id (all in
   one call for merge semantics), the display name as a Name external id, and
-  every era any contributing roster was seen under. Returns `raceIdsByCode`
-  keyed by code for the positions/teams imports to resolve their races.
+  every configured era declaring any rules set the race appears on — resolved
+  from era config (`league.eras[].identity.rulesSets`), not from which
+  rosters happened to use the race in which era. Returns `raceNamesById` (DB
+  race id -> display name), consumed by the positions import to build a Name
+  external id; downstream consumers otherwise resolve a race server-side by
+  its `teamRaceCode`.
 - **TpTeamsImportService** — upserts each team (keyed by roster id + name),
   resolving race via `raceIdsByCode` and coach via `coachIdsByTpId`;
   skips any team whose race or coach cannot be resolved. Teams are grouped by
@@ -210,7 +215,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   list states directly which race may field which star under which rules set,
   so their availability is no longer derived from observed hires. Each group
   also carries the characteristics the official list reports per `(position,
-  rules set)` (see [file-format-rosters.md](./file-format-rosters.md)),
+  rules set)` (see
+  [file-format-official-teams.md](./file-format-official-teams.md)),
   resolving each era's rules set via `TpEraRulesSetResolverService`; no
   accumulation or conflict resolution is needed here, since — unlike played
   roster data — the official list carries exactly one canonical value per

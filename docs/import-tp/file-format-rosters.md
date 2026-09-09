@@ -1,6 +1,12 @@
-# `rosters_<id>.json` (races, positions, teams and players parsed)
+# `rosters_<id>.json` (teams and players parsed; races/positions come from the official team list)
 
-See [file-format.md](./file-format.md) for the other pages.
+See [file-format.md](./file-format.md) for the other pages. Races, positions
+and star players are no longer sourced from this file — see
+[file-format-official-teams.md](./file-format-official-teams.md) and
+[index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
+entries for where those now come from. Roster files remain the source for
+teams, players, and (via the match/competition directory structure) team
+participation.
 
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
 teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
@@ -8,70 +14,63 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 - `id` — TP's roster id, used as a TP external id for teams.
 - `teamName` — the team's registered name, used as a Name external id for teams.
 - `teamRaceCode` — extracted from the `teamRace` field (which carries a
-  rule-set-looking suffix like `"Dwarf"` or `"Snotling_BB2025"`). This code
-  is looked up in the `raceIdsByCode` map from `TpRacesImportService`
-  to resolve which race row each team belongs to.
+  rule-set-looking suffix like `"Dwarf"` or `"Snotling_BB2025"`). Team import
+  resolves each team's race server-side, by this code, against whatever
+  `TpRacesImportService` (fed from the official team list, not this file)
+  upserted earlier in the same run.
 - `raceName` — extracted from `rosterMaster.name`, the display name for the
   race (e.g. `"Dwarf"`, `"Skaven"`, `"Snotling"`). Stable across every
-  rule-set-variant code of the same logical race.
+  rule-set-variant code of the same logical race. Not currently consumed by
+  the import (race display names now come from the official team list
+  instead).
 - `coachTpId` — extracted from `player.applicationUserId`, TP's stable coach
   account id. Looked up in `coachIdsByTpId` from `TpCoachesImportService` to
   resolve the team's coach.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
-  strength: st, agility: ag, passing: pa, armour: av } }`. `ma`/`st`/`ag`/
-  `pa`/`av` are all required integers on every `lineUpMasters[]` entry; a
-  literal `0` for `pa` means "cannot pass" (carried through unchanged), not
-  "no Passing characteristic" — every rules set TP covers has Passing.
-  Positions are grouped by `(unified race, position name)` across all roster
-  files, so one identically-named position across rule-set-variant codes of
-  one logical race merges onto a single row, collecting every distinct
-  `tpPositionId` as TP external ids (all in one upsert call). Positions carry
-  a Name external id scoped by race and position name (position names are not
-  race-unique), skipped only when the race name fails to resolve.
+  strength: st, agility: ag, passing: pa, armour: av } }`. Still parsed, but
+  no longer consumed by the import: `TpPositionsImportService` sources
+  positions and their characteristics from TP's official team list instead
+  (see [file-format-official-teams.md](./file-format-official-teams.md)),
+  which publishes exactly one canonical value per `(position, rules set)`
+  rather than one played roster's snapshot of it.
 - `starPositions` — extracted from `rosterMaster.starPlayersMasters[]` (named
   star players permanently embedded in a roster's line-up, as distinct from
   the star players hired for a single match via `inducements_roll` — see
-  below), each entry becomes `{ tpPositionId: id, name: position,
-  characteristics: { move, strength, agility, passing, armour } }`, same
-  shape (and same `ma`/`st`/`ag`/`pa`/`av` source fields) as `positions`.
+  below), same shape as `positions`. Likewise parsed but no longer consumed
+  for star position/characteristics import, for the same reason.
 - `players` — extracted from `lineUps[]`, each entry becomes `{ id, name,
 number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
   the per-instance line-up id that `matchEvents[].lineUpId` (see
   [`match_<id>.json`](./file-format-match.md))
-  references; `lineUpMasterId` links back to the position template in
-  `rosterMaster.lineUpMasters[]` or `starPlayersMasters[]` (the `positions`/
-  `starPositions` fields above). `fallbackPositionName` and `isBigGuy` are
-  carried straight from the entry's own `position`/`isBigGuy` fields
-  (present on every `lineUps[]` entry, standalone or match-embedded) — see
-  "Mercenary Big Guys" below for why.
+  references; `lineUpMasterId` links to a position TP position id, resolved
+  server-side against whatever `TpPositionsImportService` upserted from the
+  official team list (the `positions`/`starPositions` fields above are not
+  what this resolves against, despite carrying the same `tpPositionId`
+  values). `fallbackPositionName` and `isBigGuy` are carried straight from the
+  entry's own `position`/`isBigGuy` fields (present on every `lineUps[]`
+  entry, standalone or match-embedded) — see "Mercenary Big Guys" below for
+  why.
 
-**Races** (via `TpRacesImportService`) group by `raceName` (not code), so all
-rule-set-variant codes of one logical race merge onto one row, each code kept
-as a TP external id. Each upsert carries the display name as a Name external
-id and every era any contributing roster was seen under.
-
-**Positions** (via `TpPositionsImportService`) carry only TP external ids (one
-per `tpPositionId` variant). After each upsert, the observed race/era
-availability is recorded via `syncRaceEras`. Regular positions import with
-`isStarPlayer: false`. `starPositions` (from `starPlayersMasters`) import
-separately: grouped by name only (not race — the same named star player is
-the same entity regardless of team), upserted with `isStarPlayer: true` and a
-bare-name TP external id, matching the hired-star-player convention below so
-both paths dedupe onto the same `Position` row. Their ids merge into the same
-`positionIdsByExternalId` map the regular positions use — see "Embedded
-roster star players" below for how that shared map lets these players
-resolve.
+**Races and positions** are not imported from this file at all — see
+[file-format-official-teams.md](./file-format-official-teams.md) and
+[index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
+entries. `TpTeamsImportService` and `TpPlayersImportService` below still
+resolve a race or position id from a roster file's `teamRaceCode` /
+`lineUpMasterId`, but they resolve server-side, by external id, against
+whatever those two services upserted from the official team list earlier in
+the same run.
 
 **Teams** (via `TpTeamsImportService`) are keyed by roster `id` and `teamName`
-(one TP and one Name external id). Their race resolves via `raceIdsByCode`
-and their coach via `coachIdsByTpId`; a team whose race or coach cannot be
-resolved is recorded as an error and skipped.
+(one TP and one Name external id). Their race resolves server-side, by
+`teamRaceCode`, and their coach server-side, by `coachTpId`; a team whose race
+or coach cannot be resolved is recorded as an error and skipped.
 
 **Players** (via `TpPlayersImportService`) import every roster's `players`
 entry: each resolves a team era (roster id + era, via
-`teamErasByRosterId`) and a position (`lineUpMasterId`, via
-`positionIdsByExternalId`). If that lookup fails but the player is flagged
+`teamErasByRosterId`) and a position server-side, by `lineUpMasterId`,
+against whatever `TpPositionsImportService` upserted from the official team
+list. If that lookup fails but the player is flagged
 `isBigGuy: true` (a mercenary Big Guy hire like "Giant", with no catalog
 entry in either `rosterMaster` array at all — see "Still not handled" below
 for why), it falls back to a reused `isStarPlayer: true` Position keyed by
@@ -110,12 +109,14 @@ use `lineUpId`), so this map is currently unconsumed downstream — kept for a
 future event type that would need it.
 
 **Embedded roster star players** (permanently on a roster's line-up, as
-opposed to the ones hired for a single match via `inducements_roll`):
-`positionIdsByExternalId` covers both `lineUpMasters` and
-`starPlayersMasters` ids, so a `lineUps[]` entry whose `lineUpMasterId`
-points into either catalog resolves correctly; no change is needed to
-`TpPlayersImportService` or match-event resolution, since both already
-resolve generically off that map.
+opposed to the ones hired for a single match via `inducements_roll`): the
+official team list's `lineUpMasters`/`starplayerMasters` share one id space
+(see [file-format-official-teams.md](./file-format-official-teams.md)), and
+`TpPositionsImportService` registers a TP external id per `tpPositionId` for
+both regular and star positions alike, so a `lineUps[]` entry here whose
+`lineUpMasterId` points at either kind still resolves correctly against that
+one server-side lookup — no special-casing needed in `TpPlayersImportService`
+or match-event resolution.
 
 **Mercenary Big Guys** (e.g. "Giant"): a small class of `lineUps[]` entries
 whose `lineUpMasterId` isn't present in EITHER `lineUpMasters` or

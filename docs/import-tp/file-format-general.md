@@ -49,22 +49,21 @@ rule-set codes are — and are not — used. See
   the code is used only as a cross-check that every tournament under one
   era's directory agrees (`TpErasImportService`'s consistency check), never
   as the source of a rule-set's display name.
-- Roster bodies (both `rosters_<id>.json` and the `roster` object nested in
+- Both roster bodies (`rosters_<id>.json` and the `roster` object nested in
   `match`/`inscriptions` files — see [`match_<id>.json`](./file-format-match.md)
   and [`inscriptions_<slug>_inscriptions.json`](./file-format-inscriptions.md))
-  include a `teamRace` field that
-  embeds a rule-set-looking suffix, e.g. `"Snotling_BB2025"`,
-  `"Khemri_BB2025"`. Parsed as `teamRaceCode` (see [`rosters_<id>.json`](./file-format-rosters.md)) and
-  used to resolve each team's/position's race via `raceIdsByCode`
-  during races/teams/positions import, but note the embedded suffix does NOT
-  necessarily match this project's own rule-set names (compare to the opaque
-  `ruleSet` numeric code above, which is the field actually used for
-  cross-checking).
-  The suffix _is_ used for one narrow purpose: when two rosters in one era
-  report different characteristics for the same position, the one whose
-  suffix matches that era's single configured rules set name is taken as the
-  current template and wins, unless both (or neither) roster's suffix
-  matches, in which case the disagreement stays unresolvable (see
-  `TpPositionsImportService` in [index.md](./index.md)) — TP publishes a
-  mid-rules-set roster update as a new suffixed code alongside the legacy
-  bare one.
+  and TP's official team list (`teams/<rulesSet>/*.json`, see
+  [file-format-official-teams.md](./file-format-official-teams.md)) carry a
+  `teamRace` field that embeds a rule-set-looking suffix, e.g.
+  `"Snotling_BB2025"`, `"Khemri_BB2025"`. Parsed as `teamRaceCode`, this is
+  what team import resolves each team's race by, and what position import
+  resolves each position's race by — both server-side, by external id,
+  against whatever the official-team-list-driven races import upserted
+  earlier in the same run. The embedded suffix does NOT necessarily match this
+  project's own rule-set names (compare to the opaque `ruleSet` numeric code
+  above, which is the field actually used for cross-checking).
+  Positions no longer need this suffix for any characteristics tie-break: the
+  official team list carries exactly one canonical set of characteristics per
+  `(position, rules set)`, so no disagreement between differently-sourced
+  values ever arises for `TpPositionsImportService` (see [index.md](./index.md))
+  to reconcile.

@@ -68,12 +68,15 @@ pnpm --filter @blood-bowl-tracker/download-tp run build
 pnpm --filter @blood-bowl-tracker/download-tp run start
 ```
 
-A missing or incomplete `connection.frontendUrl`, `download.tournaments` or
-`download.rulesSets` fails fast with a message naming the key to set, before
-any browser is launched. A missing or incomplete `connection.backendApiUrl` is
-only checked once the browser page is open, so it fails after a browser has
-already been launched (matching the tool's pre-existing `.env`-era behavior —
-this is not new to the JSON5 config).
+The official team list download runs first (see "What it does" above), and it
+reads `connection.frontendUrl`, `connection.backendApiUrl` and
+`download.rulesSets` up front, before opening a page for the first configured
+rules set — so a missing or incomplete value for any of those three fails
+fast, with a message naming the key to set, before any browser is launched.
+`download.tournaments` is only read afterward, to decide whether to also run
+`downloadAllLeagues()` — so a missing or incomplete value there is only
+caught once the official-teams download has already run and launched a
+browser (once per configured rules set).
 
 ## Development
 
