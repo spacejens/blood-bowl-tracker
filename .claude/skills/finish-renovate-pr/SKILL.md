@@ -221,7 +221,23 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```
    `{"isWorktree": false}` means work is happening in place — skip the rest of this step. Otherwise triage each entry in `uncommittedFiles` and `strayCommits` exactly as `develop-feature` describes: anything already present on this branch is safe to clean up on the main checkout (resolve its path with `node tools/dev-workflow-cli/dist/main.js resolve-main-root`), and anything whose provenance is unclear is **never** auto-discarded — surface it and ask the developer via `AskUserQuestion`.
 
-2. **Capture the push watermark**, immediately *before* pushing — the review loop below needs it:
+2. **Acquire the review lock, then capture the push watermark.** Step 3's push onto Renovate's branch is what triggers a fresh CodeRabbit review, and CodeRabbit's review rate limit is shared across every PR and every session on this machine — so parallel sessions must not push at the same time. Take the machine-wide review lock here and hold it through the end of step 5's review loop, so exactly one session drives a review loop at a time and the rest wait their turn in the order they started waiting. This mirrors `develop-feature`'s Phase 6 step 3, which acquires the lock immediately before its own review-triggering action; see `docs/development-workflow.md`'s "Serializing review activity across parallel sessions". Step 1 above deliberately ran unlocked — the stray-work check triggers no review and can wait indefinitely on a developer's answer.
+
+   The holder id is `headRefName`, recorded in Phase 1 step 1 — substituted literally into every lock command in this phase, since none of them share a shell session. It matches `handle-pr-reviews`' own `$HEAD_REF` convention and `develop-feature`'s branch-name holder id; the worktree is checked out on Renovate's branch, so all three are the same value.
+
+   ```bash
+   node tools/dev-workflow-cli/dist/main.js acquire-review-lock <headRefName>
+   ```
+   The command enqueues this session and polls internally until it reaches the front of the queue and the lock is free — or until the current holder's heartbeat goes stale, which reclaims a lock left behind by a killed session. It has no timeout by default. Run it via `Bash` with `run_in_background: true`, for the same reason step 5a's wait is backgrounded: it produces exactly one result at exit and can easily outlive a foreground `Bash` call's cap. Wait for the harness's own completion notification, then read the printed `{"acquired": true, "waitedMs": <n>}` and report a one-line status from `waitedMs` — either that the lock was free, or how long this session waited behind others. Same handling as `develop-feature`'s Phase 6 step 3, condensed here rather than restated in full.
+
+   If `dist/main.js` is missing, build it first — Phase 1 step 4's `pnpm build` already builds it, so this is only needed if that build failed:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build
+   ```
+
+   **If the command fails outright** — a non-zero exit, or output that will not parse — print a one-line warning that the review lock could not be taken and **continue anyway, unlocked**: skip every heartbeat, release, and re-acquire call for the rest of Phase 4. A lock that cannot be coordinated costs some extra rate-limit contention, which is the thing this reduces rather than guarantees, and it must never block real work.
+
+   Then capture the push watermark, immediately *before* pushing — the review loop below needs it:
    ```bash
    date +%s
    ```
@@ -231,7 +247,7 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```bash
    git push origin <headRefName>
    ```
-   If this command fails (a non-zero exit — a rejected non-fast-forward push, a permissions error, a network failure), **stop immediately**: report the failure verbatim and do not proceed to step 4's question-posting, step 5's review loop, or step 6's `deploy-local` offer. None of those make sense against a PR that still doesn't have this run's fix — the commits exist locally in the worktree, so nothing is lost, but reporting success or continuing as if the push landed would be actively misleading.
+   If this command fails (a non-zero exit — a rejected non-fast-forward push, a permissions error, a network failure), release the review lock taken in step 2 (`node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>`; a non-zero exit here is a one-line warning, never a stop) before reporting, then **stop immediately**: report the failure verbatim and do not proceed to step 4's question-posting, step 5's review loop, or step 6's `deploy-local` offer. None of those make sense against a PR that still doesn't have this run's fix — the commits exist locally in the worktree, so nothing is lost, but reporting success or continuing as if the push landed would be actively misleading. Releasing here matters because this is the one exit path between the step 2 acquire and step 5's loop — every other queued session must not wait behind a dead holder for a failed push that will never reach the loop.
 
    Once the push succeeds: this updates the existing PR in place. No new PR is created and no PR body is edited — the PR keeps its number, its `renovate:<updateType>` label, its assignee, and its full review history.
 
@@ -247,7 +263,11 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    ```
    Report from its printed `posted`/`failed` arrays how many went inline, how many went top-level, and how many failed (naming each failure's file, line, and error). Any failure here is a one-line warning and never a stop — the push already landed regardless.
 
-5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, skip the loop with a one-line warning and go to step 6), then repeat for at most **10 iterations**. Record how the loop ends — step 8's final report names this outcome rather than assuming a bot pass always completed:
+5. **Automated review loop.** Run `develop-feature`'s Phase 6 step 5 loop unchanged — it already works against any open PR by number, whoever opened it. In short: capture the developer's login once (`gh api user --jq .login`; if it fails, release the review lock taken in step 2 with `node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>`, then skip the loop with a one-line warning and go to step 6 — matching `develop-feature`'s handling of this same failure, since there is no reason to keep another queued session waiting behind a loop that is not going to run), then repeat for at most **10 iterations**.
+
+   **The loop heartbeats the review lock**, exactly as `develop-feature`'s Phase 6 step 5 describes — `node tools/dev-workflow-cli/dist/main.js heartbeat-review-lock <headRefName>` at the top of each iteration before step (a)'s wait, immediately after that wait returns, and immediately before and after each step (c) `handle-pr-reviews` dispatch — including its `{"ok": false, "reason": "not the current holder"}` handling (stop before anything else that would trigger a review, re-run step 2's `acquire-review-lock <headRefName>` backgrounded the same way, then continue from the checkpoint that failed) and its one documented exception (when the just-completed step (c) dispatch stopped on an ambiguous item it already released the lock itself, so the following `{"ok": false}` is expected and needs no re-acquire — go straight to step (d)'s exit check). Read the mechanics there rather than restating them, consistent with how this step already treats sub-steps (a)–(d).
+
+   Record how the loop ends — step 8's final report names this outcome rather than assuming a bot pass always completed:
    - **Clean** — a `handle-pr-reviews` run reported "No unhandled review comments or failing CI checks found." A completed independent bot pass.
    - **Handled without code changes** — a `handle-pr-reviews` run completed a full triage pass (per its own Phase 7 summary) but pushed no fix commits, because every outstanding item was a question it answered or a suggestion it rejected — this is the third exit condition step (d) below and `develop-feature`'s own exit check both name alongside the clean verdict and the ambiguous-item stop. Also a completed independent bot pass: everything the bot raised was addressed, just none of it needed a code change.
    - **Skipped** — the `gh api user` call above failed, so the loop never ran at all. No bot pass happened.
@@ -273,11 +293,19 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
 
    b. Handle `{"found": false, ...}` results exactly as `develop-feature`'s Phase 6 steps (b), (b2), and (b3) describe — timeout, CodeRabbit rate-limit, and comment-update-failure respectively, including their retry commands, their watermark-advancement rules, and which of them Pause versus continue automatically. None of that behavior changes here; do not restate or re-derive it, read it there.
 
+      **Their review-lock handling now applies here too**, since this skill holds a lock from step 2 onward — previously there was none for it to apply to. Each of those steps' Pause branches releases the lock immediately before presenting its `AskUserQuestion` (`node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>`, retried once if it does not confirm `{"released": true}`, then warn-and-ask-anyway), so an unanswered overnight Pause does not keep every other session on this machine queued behind it — and re-acquires it (step 2's `acquire-review-lock <headRefName>`, backgrounded the same way, rejoining the back of the queue) when the developer chooses to continue: **Keep waiting** in (b), **Wait for it, then trigger a review** in (b2), **Retry (re-trigger a review)** in (b3). A **Skip the review loop** choice leaves the lock released, and the after-the-loop release below then prints `{"released": false}`, which is a normal no-op. (b2)'s **short wait** branch never Pauses and so holds the lock straight through, exactly as described there. Substitute `<headRefName>` wherever those steps say `<holder-id>`.
+
    c. **REQUIRED SUB-SKILL:** Use `handle-pr-reviews`, targeting this PR by number and always passing `--skip-deploy-local` (`/handle-pr-reviews <PR> --skip-deploy-local`) — the flag keeps its `deploy-local` hand-off from stalling this unattended loop; step 6 below makes that offer once instead.
 
    d. Apply `develop-feature`'s exit check unchanged: leave the loop early on "No unhandled review comments or failing CI checks found", on a stop for an ambiguous item, or on a Phase 7 summary reporting that no fix commits were pushed. A "still in progress" report is **not** an exit condition — start the next iteration.
 
-   After the loop, print a brief status line naming how it ended, then continue.
+   **After the loop** — however it ended (clean, handled without code changes, an ambiguous item, no fix commits, the iteration cap, or timed out and skipped) — release the review lock before continuing, so the next queued session can start immediately rather than waiting out the staleness threshold:
+   ```bash
+   node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>
+   ```
+   It prints `{"released": true}` normally, or `{"released": false}` if a **Skip the review loop** choice in (b)/(b2)/(b3) left it released, or if a nested `handle-pr-reviews` dispatch already released it for its own ambiguous-item stop — all of these are fine, and none is an error. A non-zero exit is a one-line warning, never a stop.
+
+   Then print a brief status line naming how the loop ended, and continue. Step 6's `deploy-local` offer and step 7's mergeability re-check both run unlocked, exactly as in `develop-feature`: neither triggers a review, and `deploy-local` can wait indefinitely on a developer.
 
 6. **Offer a local look.** **REQUIRED SUB-SKILL:** Use the `deploy-local` skill, exactly as `develop-feature`'s Phase 6 step 6 does — this is the only `deploy-local` offer this skill produces, since step 5c suppresses `handle-pr-reviews`' own. It is worth making even for a dependency bump: an updated runtime library can break at startup in ways no unit test covers. Do not ask the developer separately before invoking it — `deploy-local` asks which of its actions to run.
 
