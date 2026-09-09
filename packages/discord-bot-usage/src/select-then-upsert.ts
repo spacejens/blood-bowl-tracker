@@ -4,8 +4,58 @@ import type {
   PgTable,
   SQL,
 } from '@blood-bowl-tracker/db';
+import { getTableName } from '@blood-bowl-tracker/db';
 
 import type { DbOrTx } from './db-or-tx';
+
+/** Postgres' SQLSTATE for a unique-constraint violation. */
+const UNIQUE_VIOLATION = '23505';
+
+/**
+ * How many `.cause` links to walk while unwrapping a caught error before
+ * giving up. drizzle-orm's pg-core session wraps exactly one level in
+ * practice (see below), so 3 is generous headroom rather than a value tuned
+ * to a specific stack.
+ */
+const MAX_CAUSE_UNWRAP_DEPTH = 3;
+
+/**
+ * True only for a unique-constraint violation on `tableName` itself — never
+ * on its primary key, which would mean a desynced sequence (an
+ * infrastructure bug, not the concurrent-insert race this guards against).
+ *
+ * The caught value never carries the fields to test directly. drizzle-orm
+ * wraps every query failure in a `DrizzleQueryError` that sets `cause` but
+ * copies neither `code` nor `table_name`, so the `postgres` driver's
+ * `PostgresError` is only reachable by walking `.cause` — bounded here
+ * defensively. Same shape as `packages/game-data`'s
+ * `isExternalIdUniqueViolation`.
+ */
+function isUniqueViolationOn(error: unknown, tableName: string): boolean {
+  let candidate: unknown = error;
+  for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
+    const typed = candidate as
+      | {
+          code?: unknown;
+          table_name?: unknown;
+          constraint_name?: unknown;
+          cause?: unknown;
+        }
+      | undefined;
+    if (
+      typed?.code === UNIQUE_VIOLATION &&
+      typed.table_name === tableName &&
+      typed.constraint_name !== `${tableName}_pkey`
+    ) {
+      return true;
+    }
+    if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {
+      return false;
+    }
+    candidate = typed.cause;
+  }
+  return false;
+}
 
 export interface SelectThenUpsertOptions<T extends PgTable> {
   tx: DbOrTx;
@@ -73,11 +123,16 @@ export async function selectThenUpsert<T extends PgTable>(
       return inserted.id as number;
     });
   } catch (error) {
-    // A concurrent caller inserted the same row between our select and
-    // insert, and the unique constraint rejected ours. Re-read the winner's
-    // row rather than dropping the whole call — plausible in practice (two
-    // users interacting in the same new guild or channel at once). If no
-    // row appears, this was some other failure: rethrow the original error.
+    // Recover only from the specific race this guards against: a concurrent
+    // caller inserted the same row between our select and insert, and the
+    // unique constraint on this table rejected ours. Any other failure (a
+    // different constraint, a connection drop, ...) rethrows immediately —
+    // re-selecting and returning whatever row happens to match `where`
+    // would silently hide a real, unrelated failure behind an apparently
+    // successful call.
+    if (!isUniqueViolationOn(error, getTableName(table))) {
+      throw error;
+    }
     const [raced] = await tx
       .select({ id: idColumn })
       .from(asBaseTable(table))
