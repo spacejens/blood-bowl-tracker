@@ -106,7 +106,7 @@ jobs:
         run: docker compose up -d postgres
       - name: Wait for postgres to be healthy
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             status="$(docker inspect --format '{{.State.Health.Status}}' postgres 2>/dev/null || true)"
             if [ "$status" = "healthy" ]; then exit 0; fi
             sleep 2
@@ -129,7 +129,7 @@ jobs:
       # that is expected and deliberately does not fail this check.
       - name: Wait for discord-bot to start successfully
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             state="$(docker inspect --format '{{.State.Status}}' discord-bot 2>/dev/null || true)"
             if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
               echo "discord-bot container is $state" >&2
@@ -158,7 +158,7 @@ jobs:
       # the host mapping in docker-compose.yml.
       - name: Check discord-bot accepts TCP connections on port 3000
         run: |
-          for i in $(seq 1 15); do
+          for _ in $(seq 1 15); do
             if timeout 5 bash -c '</dev/tcp/127.0.0.1/3000'; then exit 0; fi
             sleep 2
           done
