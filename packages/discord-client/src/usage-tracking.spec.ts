@@ -233,6 +233,36 @@ describe('DiscordClientService usage tracking', () => {
     expect(recorded().nickname).toBeUndefined();
   });
 
+  it('leaves the nickname unset when a cached member has no nickname set', async () => {
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockResolvedValue('ok'),
+      },
+    ]);
+
+    interactionHandler()(commandInteraction({ member: { nickname: null } }));
+    await flush();
+
+    expect(recorded().nickname).toBeUndefined();
+  });
+
+  it('leaves the nickname unset when a raw API member has no nickname set', async () => {
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockResolvedValue('ok'),
+      },
+    ]);
+
+    interactionHandler()(commandInteraction({ member: { nick: null } }));
+    await flush();
+
+    expect(recorded().nickname).toBeUndefined();
+  });
+
   it('does not record an interaction with no registered handler', async () => {
     interactionHandler()(commandInteraction({ commandName: 'unknown' }));
     await flush();

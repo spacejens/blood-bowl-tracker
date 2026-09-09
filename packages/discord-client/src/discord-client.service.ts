@@ -405,15 +405,17 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * `APIInteractionGuildMember` (field `nick`) otherwise. Both are checked
    * so a nickname is still recorded in the raw-payload case.
    */
-  private memberNickname(member: unknown): string | undefined {
-    if (!member || typeof member !== 'object') {
+  private memberNickname(
+    member: ChatInputCommandInteraction['member'],
+  ): string | undefined {
+    if (!member) {
       return undefined;
     }
     if ('nickname' in member) {
-      return (member as { nickname: string | null }).nickname ?? undefined;
+      return member.nickname ?? undefined;
     }
     if ('nick' in member) {
-      return (member as { nick: string | null }).nick ?? undefined;
+      return member.nick ?? undefined;
     }
     return undefined;
   }
