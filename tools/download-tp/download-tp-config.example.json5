@@ -27,8 +27,9 @@
     headless: false,
   },
 
-  // What to download. Both keys are read independently: a config can download
-  // only tournaments, only the official team list, or both.
+  // What to download. rulesSets is required and non-empty, so the official
+  // team list always downloads; set tournaments to [] to download only that
+  // list, or to a non-empty array to download tournaments alongside it.
   download: {
     // Tournament names to download, as they appear in the frontend path. Set
     // to [] to skip the per-tournament scrape entirely and download only the
