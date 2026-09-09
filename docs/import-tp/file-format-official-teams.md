@@ -133,14 +133,32 @@ The `selectable*` halves matter: a rule a race merely _may choose_ still makes
 the star hireable by it (BB2025 Norse has `teamSpecialRules: 0` and
 `selectableTeamSpecialRules: 1024`, and does get the Favoured-of-Khorne stars).
 
-Both mask spaces use the same bit assignments as Blood Bowl's published team
-special rules — bit 0 Badlands Brawl, 1 Elven Kingdoms League, 2 Halfling
-Thimble Cup, 3 Lustrian Superleague, 4 Old World Classic, 5 Sylvanian
-Spotlight, 6 Underworld Challenge, 7 Worlds Edge Superleague, 8 Bribery and
-Corruption, 10 Favoured of Khorne, 11 Favoured of Nurgle — which is how the
-decode was confirmed: every star in both files resolves to a non-empty race
-list matching its published availability (e.g. Griff Oberwald → the Old World
-Classic teams, Deeproot Strongbranch → Halfling/Wood Elf/Gnome).
+The two mask spaces are **not** the same bit assignments — they diverge from
+bit 8 onward. Bits 0–7 in both spaces match Blood Bowl's published team
+special rules: 0 Badlands Brawl, 1 Elven Kingdoms League, 2 Halfling Thimble
+Cup, 3 Lustrian Superleague, 4 Old World Classic, 5 Sylvanian Spotlight, 6
+Underworld Challenge, 7 Worlds Edge Superleague. From bit 8 the spaces are
+distinct:
+
+- `leagues` bit 8 is a separate, broader Thimble Cup grouping from bit 2 —
+  bit 2 is Halfling + Gnome alone, while bit 8 additionally covers Wood Elf
+  (and its BB2025 variant rosters Eonir, Isha, Kurnous) plus several other
+  Old-World-adjacent races (Dryad, Treemen, Lumbria, Giant, Ninja Halfling,
+  ForestHalfling, CultOfTaalAndRhya). `leagues` bit 9 is the chaos league
+  (Chaos Chosen, Chaos Renegade, Chaos Dwarf, Nurgle, Khorne, Norse, and
+  other chaos-aligned rosters). `leagues` has no bit 10 or bit 11 in use.
+- `teamSpecialRules` bit 8 is Bribery and Corruption (the Goblin/Dwarf/
+  Underworld-adjacent rosters — Black Orc, Dwarf, Goblin, Snotling,
+  Underworld Denizens, Squig, Troll, Hobgoblin and its variants, the
+  Skryre/Nuln/Gnoblar Dwarf-engineer rosters), bit 10 Favoured of Khorne, and
+  bit 11 Favoured of Nurgle.
+
+This was confirmed by decoding both bitmask fields directly from the BB2025
+`rosters_masters` and cross-checking every star's resulting race list against
+its published availability (e.g. Griff Oberwald → the Old World Classic
+teams via `leagues` bit 4, Deeproot Strongbranch → Halfling/Wood Elf/Gnome
+via `leagues` bit 8, Max Spleenripper/Scyla Anfingrimm → Khorne via
+`teamSpecialRules` bit 10).
 
 Two fields that look like availability and are **not**:
 
