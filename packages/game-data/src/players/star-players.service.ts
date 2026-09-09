@@ -8,7 +8,6 @@ import {
   DB,
   desc,
   eq,
-  exists,
   ilike,
   players,
   positions,
@@ -147,11 +146,10 @@ export class StarPlayersService {
    * team). Searching `positions` directly gives exactly one choice per star
    * identity with no grouping needed.
    *
-   * Only positions with at least one hire (a `players` row referencing this
-   * `positionId`) are returned: this feature's whole purpose is showing which
-   * teams have hired a star, so a star position that has never been hired has
-   * nothing to show, and offering it in autocomplete would just lead straight
-   * to `StarPlayerDeepdiveService`'s not-found message.
+   * Every star position is offered, hired or not: the imported catalog is
+   * TP's own official per-rules-set star list, so a star with no hires yet is
+   * a real, published star rather than a stray row, and hiding it would hide
+   * most of the catalog.
    */
   searchByNamePrefix(
     prefix: string,
@@ -164,12 +162,6 @@ export class StarPlayersService {
         and(
           eq(positions.isStarPlayer, true),
           ilike(positions.name, `${this.likePattern.escape(prefix)}%`),
-          exists(
-            this.db
-              .select({ id: players.id })
-              .from(players)
-              .where(eq(players.positionId, positions.id)),
-          ),
         ),
       )
       .orderBy(asc(positions.name))
@@ -194,11 +186,9 @@ export class StarPlayersService {
   }
 
   /**
-   * Every known star player that has been hired at least once, name-ascending.
-   * Mirrors `searchByNamePrefix`'s EXISTS filter for the same reason: a star
-   * position that has never been hired has nothing to show, and its deepdive
-   * button would dead-end on `StarPlayerDeepdiveService`'s not-found message.
-   * Not itself scoped by league/era/competition, unlike
+   * Every known star player, name-ascending — the whole imported catalog,
+   * hired or not, for the same reason `searchByNamePrefix` no longer filters
+   * on hires. Not itself scoped by league/era/competition, unlike
    * `ErasService.listErasWithLeague`/`TrophiesService.listAllWithLeague` — see
    * this class's own doc comment for why a league/era-scoped query over stars
    * would not be meaningful.
@@ -207,17 +197,7 @@ export class StarPlayersService {
     return this.db
       .select({ positionId: positions.id, name: positions.name })
       .from(positions)
-      .where(
-        and(
-          eq(positions.isStarPlayer, true),
-          exists(
-            this.db
-              .select({ id: players.id })
-              .from(players)
-              .where(eq(players.positionId, positions.id)),
-          ),
-        ),
-      )
+      .where(eq(positions.isStarPlayer, true))
       .orderBy(asc(positions.name));
   }
 
@@ -226,10 +206,9 @@ export class StarPlayersService {
    * the order is stable across calls. One row per star position, counting every
    * hire by every team in every era.
    *
-   * Needs no `EXISTS` filter (unlike `listAll`/`searchByNamePrefix`): the inner
-   * join to `players` already requires at least one hire, so a never-hired star
-   * cannot appear. Unscoped for the same reason `listAll` is — see this class's
-   * doc comment.
+   * The inner join to `players` already requires at least one hire, so a
+   * never-hired star correctly does not appear in a hire toplist. Unscoped
+   * for the same reason `listAll` is — see this class's doc comment.
    */
   countTotalHires(limit: number): Promise<StarPlayerHireCount[]> {
     return this.db
@@ -253,8 +232,9 @@ export class StarPlayersService {
    * that star, not the number of hires (see
    * `StarPlayerDistinctTeamsHiredCount`).
    *
-   * Needs no `EXISTS` filter, unscoped, for the same reasons as
-   * `countTotalHires` — see this class's doc comment.
+   * The inner join to `players` already requires at least one hire, so a
+   * never-hired star correctly does not appear in a hire toplist. Unscoped
+   * for the same reason `countTotalHires` is — see this class's doc comment.
    */
   countDistinctTeamsHired(
     limit: number,

@@ -172,20 +172,17 @@ describe('StarPlayersService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(25);
     });
 
-    it('requires an EXISTS match against players on position id, so a never-hired star is excluded', async () => {
-      const { chains } = await build([]);
-
-      await service.searchByNamePrefix('Gri', 25);
-
-      expect(sqlText(firstCallArg(chains[0].where))).toContain('exists');
-      // The EXISTS subquery is itself a separate db.select(...) call, issued
-      // while building the outer where() argument, so it shows up as its own
-      // captured query chain.
-      const subquery = chains[1];
-      expect(extractJoinColumns(firstCallArg(subquery.where))).toEqual([
-        'players.position_id',
-        'positions.id',
+    it('does not filter on hires, so a never-hired star is included', async () => {
+      const { chains } = await build([
+        { positionId: 20, name: 'Griff Oberwald' },
       ]);
+
+      const result = await service.searchByNamePrefix('Gri', 25);
+
+      expect(result).toEqual([{ positionId: 20, name: 'Griff Oberwald' }]);
+      expect(sqlText(firstCallArg(chains[0].where))).not.toContain('exists');
+      // No EXISTS subquery means no second captured chain.
+      expect(chains).toHaveLength(1);
     });
   });
 
@@ -256,20 +253,16 @@ describe('StarPlayersService', () => {
       expect(orderBy).not.toContain(' desc');
     });
 
-    it('requires an EXISTS match against players on position id, so a never-hired star is excluded', async () => {
-      const { chains } = await build([]);
-
-      await service.listAll();
-
-      expect(sqlText(firstCallArg(chains[0].where))).toContain('exists');
-      // The EXISTS subquery is itself a separate db.select(...) call, issued
-      // while building the outer where() argument, so it shows up as its own
-      // captured query chain.
-      const subquery = chains[1];
-      expect(extractJoinColumns(firstCallArg(subquery.where))).toEqual([
-        'players.position_id',
-        'positions.id',
+    it('does not filter on hires, so a never-hired star is included', async () => {
+      const { chains } = await build([
+        { positionId: 20, name: 'Griff Oberwald' },
       ]);
+
+      const result = await service.listAll();
+
+      expect(result).toEqual([{ positionId: 20, name: 'Griff Oberwald' }]);
+      expect(sqlText(firstCallArg(chains[0].where))).not.toContain('exists');
+      expect(chains).toHaveLength(1);
     });
   });
 
@@ -288,6 +281,14 @@ describe('StarPlayersService', () => {
       await build([]);
 
       expect(await service.countTotalHires(21)).toEqual([]);
+    });
+
+    it('still requires a hire, so a never-hired star reports nothing here', async () => {
+      const { chains } = await build([]);
+
+      expect(await service.countTotalHires(5)).toEqual([]);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toBeDefined();
+      expect(chains[0].innerJoin).toHaveBeenCalled();
     });
 
     it('filters on is_star_player, so regular positions are excluded', async () => {
