@@ -28,12 +28,38 @@
 // the cached data at all (Grut Gitgobbla, Lewdgrip Whiparm, Rasta Tailspike),
 // it's left out rather than paired with an unverified guess; ask the
 // developer if a TP spelling for these becomes known.
+//
+// A second class of entry pins a star TP itself spells differently on each
+// rules-set generation of its official team list (straight vs. curly
+// apostrophes, a quoted rank, a dropped epithet or article). Those have no
+// BBL side at all -- BBL only ever registered the stars actually hired in
+// the league -- so the entry pins both TP spellings' tourplay.net AND Name
+// ids, which is what keeps the BB2020 and BB2025 official lists on one row.
+// Each was confirmed by reading both spellings out of the two downloaded
+// official-team-list files, with the surrounding roster confirming it is the
+// same named character; the per-generation cost and characteristic changes
+// that come with it are BB2025 rebalancing, recorded per rules set.
 {
   externalSystems: [
     { name: 'tourplay.net', category: 'imported_data_source' },
     { name: 'Name', category: 'bookkeeping' },
   ],
   positions: [
+    {
+      // TP spells this star differently per rules-set generation: "Boa
+      // Kon'ssstriktr" (straight apostrophe) on the BB2020 official list,
+      // "Boa Kon’ssstriktr" (curly) on the BB2025 one. BBL never
+      // registered him, so both TP spellings are pinned here to keep the two
+      // official lists on one row.
+      name: "Boa Kon'ssstriktr",
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: "Boa Kon'ssstriktr" },
+        { system: 'Name', id: "Boa Kon'ssstriktr" },
+        { system: 'tourplay.net', id: 'Boa Kon’ssstriktr' },
+        { system: 'Name', id: 'Boa Kon’ssstriktr' },
+      ],
+    },
     {
       // BBL: 'Bryce "The Slice" Cambuel' (straight quotes, capital "The").
       // TP: "Bryce 'the Slice' Cambuel" (straight quotes, lowercase "the").
@@ -43,6 +69,19 @@
         { system: 'Name', id: 'Bryce "The Slice" Cambuel' },
         { system: 'tourplay.net', id: "Bryce 'the Slice' Cambuel" },
         { system: 'Name', id: "Bryce 'the Slice' Cambuel" },
+      ],
+    },
+    {
+      // TP's BB2020 official list quotes the rank -- "'Captain' Karina von
+      // Riesz" -- while its BB2025 one drops the quotes. BBL never
+      // registered her.
+      name: 'Captain Karina von Riesz',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: "'Captain' Karina von Riesz" },
+        { system: 'Name', id: "'Captain' Karina von Riesz" },
+        { system: 'tourplay.net', id: 'Captain Karina von Riesz' },
+        { system: 'Name', id: 'Captain Karina von Riesz' },
       ],
     },
     {
@@ -77,6 +116,56 @@
       ],
     },
     {
+      // TP's BB2020 official list uses straight quotes around the nickname
+      // -- "Gretchen Wächter 'The Blood Bowl Widow'" -- and its BB2025 one
+      // curly quotes. BBL never registered her.
+      name: "Gretchen Wächter 'The Blood Bowl Widow'",
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: "Gretchen Wächter 'The Blood Bowl Widow'" },
+        { system: 'Name', id: "Gretchen Wächter 'The Blood Bowl Widow'" },
+        { system: 'tourplay.net', id: 'Gretchen Wächter ‘The Blood Bowl Widow’' },
+        { system: 'Name', id: 'Gretchen Wächter ‘The Blood Bowl Widow’' },
+      ],
+    },
+    {
+      // TP's BB2020 official list spells him out in full -- "Grombrindal, the
+      // White Dwarf" -- while its BB2025 one uses the bare "Grombrindal". BBL
+      // never registered him.
+      name: 'Grombrindal, the White Dwarf',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: 'Grombrindal, the White Dwarf' },
+        { system: 'Name', id: 'Grombrindal, the White Dwarf' },
+        { system: 'tourplay.net', id: 'Grombrindal' },
+        { system: 'Name', id: 'Grombrindal' },
+      ],
+    },
+    {
+      // TP spells this star with a straight apostrophe on its BB2020 official
+      // list and a curly one on its BB2025 list. BBL never registered him.
+      name: "H'thark the Unstoppable",
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: "H'thark the Unstoppable" },
+        { system: 'Name', id: "H'thark the Unstoppable" },
+        { system: 'tourplay.net', id: 'H’thark the Unstoppable' },
+        { system: 'Name', id: 'H’thark the Unstoppable' },
+      ],
+    },
+    {
+      // TP quotes the nickname with straight quotes on its BB2020 official
+      // list and curly ones on its BB2025 list. BBL never registered him.
+      name: "Ivan 'The Animal' Deathshroud",
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: "Ivan 'The Animal' Deathshroud" },
+        { system: 'Name', id: "Ivan 'The Animal' Deathshroud" },
+        { system: 'tourplay.net', id: 'Ivan ‘The Animal’ Deathshroud' },
+        { system: 'Name', id: 'Ivan ‘The Animal’ Deathshroud' },
+      ],
+    },
+    {
       // BBL's page title appends the duo partner: "Lucien Swift (& Valen
       // Swift)".
       name: 'Lucien Swift',
@@ -85,6 +174,18 @@
         { system: 'Name', id: 'Lucien Swift (& Valen Swift)' },
         { system: 'tourplay.net', id: 'Lucien Swift' },
         { system: 'Name', id: 'Lucien Swift' },
+      ],
+    },
+    {
+      // TP's BB2020 official list calls him "Mighty Zug" and its BB2025 one
+      // "The Mighty Zug". BBL never registered him.
+      name: 'The Mighty Zug',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: 'Mighty Zug' },
+        { system: 'Name', id: 'Mighty Zug' },
+        { system: 'tourplay.net', id: 'The Mighty Zug' },
+        { system: 'Name', id: 'The Mighty Zug' },
       ],
     },
     {

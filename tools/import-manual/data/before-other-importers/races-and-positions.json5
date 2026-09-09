@@ -53,6 +53,16 @@
       ],
     },
     {
+      // BBL names this race 'Bretonnians' (race 26); TP's official BB2025
+      // team list names it 'Bretonnian' -- the same plural/singular
+      // difference the pairings above resolve.
+      name: 'Bretonnian',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '26' },
+        { system: 'tourplay.net', id: 'Bretonnian_BB2025' },
+      ],
+    },
+    {
       name: 'Chaos Dwarf',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: '3' },
@@ -208,6 +218,57 @@
   ],
   positions: [
     {
+      // Amazon: TP 'Eagle Warrior Linewoman' (id 545, older rosters) / TP
+      // 'Eagle Warrior' (id 1064, BB2025 roster) -- one roster slot renamed
+      // between rules-set generations (same slot: 16 of them, 50k, MA6 ST3
+      // AG3 AV8). BBL's Amazon roster uses its own unrelated flavour names
+      // and is deliberately left unpaired here, same as the existing Amazon
+      // note in this file's header.
+      name: 'Eagle Warrior',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1064' },
+        { system: 'tourplay.net', id: '545' },
+        { system: 'Name', id: 'Amazon: Eagle Warrior Linewoman' },
+      ],
+    },
+    {
+      // Amazon: TP 'Jaguar Warrior Blocker' (id 548, older rosters) / TP
+      // 'Jaguar Warrior' (id 1067, BB2025 roster) -- one roster slot renamed
+      // between rules-set generations (same slot: 2 of them, 110k, ST4).
+      name: 'Jaguar Warrior',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1067' },
+        { system: 'tourplay.net', id: '548' },
+        { system: 'Name', id: 'Amazon: Jaguar Warrior Blocker' },
+      ],
+    },
+    {
+      // Amazon: TP 'Piranha Warrior Blitzer' (id 547, older rosters) / TP
+      // 'Piranha Warrior' (id 1066, BB2025 roster) -- one roster slot renamed
+      // between rules-set generations (same slot: 2 of them, 90k, MA7).
+      name: 'Piranha Warrior',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1066' },
+        { system: 'tourplay.net', id: '547' },
+        { system: 'Name', id: 'Amazon: Piranha Warrior Blitzer' },
+      ],
+    },
+    {
+      // Amazon: TP 'Python Warrior Thrower' (id 546, older rosters) / TP
+      // 'Python Warrior' (id 1065, BB2025 roster) -- one roster slot renamed
+      // between rules-set generations (same slot: 2 of them, 80k, PA3).
+      name: 'Python Warrior',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1065' },
+        { system: 'tourplay.net', id: '546' },
+        { system: 'Name', id: 'Amazon: Python Warrior Thrower' },
+      ],
+    },
+    {
       // Black Orc: BBL 'Goblin Bruiser' / TP 'Goblin Bruiser Lineman'
       name: 'Goblin Bruiser Lineman',
       isStarPlayer: false,
@@ -215,6 +276,62 @@
         { system: 'tloeg.bbleague.se', id: '310-44' },
         { system: 'tourplay.net', id: '257' },
         { system: 'Name', id: 'Black Orc: Goblin Bruiser Lineman' },
+      ],
+    },
+    {
+      // Chaos Chosen: BBL 'Beastman Runner Lineman' (typId 7, race 2) / TP
+      // 'Beastman Runner Lineman' (id 260, older rosters) / TP 'Beastman
+      // Lineman' (id 932, BB2025 roster) -- one roster slot renamed between
+      // rules-set generations (same slot: 16 of them, the roster's first
+      // line). Registering every source's id here keeps BB2025 line-ups on
+      // this one row instead of creating a second, disconnected one.
+      name: 'Beastman Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '7-2' },
+        { system: 'tourplay.net', id: '932' },
+        { system: 'tourplay.net', id: '260' },
+        { system: 'Name', id: 'Chaos Chosen: Beastman Runner Lineman' },
+      ],
+    },
+    {
+      // Chaos Chosen: BBL 'Chosen Blockers' (typId 12, race 2) / TP 'Chosen
+      // Blocker' (id 261, older rosters) / TP 'Chaos Chosen' (id 933, BB2025
+      // roster) -- one roster slot renamed between rules-set generations
+      // (same slot: 4 of them, 100k, MA5 ST4 AG3 PA5 AV10). The BB2025 name
+      // repeating the race name is TP's own wording; positions are scoped
+      // per race, so it is unambiguous.
+      name: 'Chaos Chosen',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '12-2' },
+        { system: 'tourplay.net', id: '933' },
+        { system: 'tourplay.net', id: '261' },
+        { system: 'Name', id: 'Chaos Chosen: Chosen Blocker' },
+      ],
+    },
+    {
+      // Chaos Chosen: TP 'Chaos Ogre' (id 263, older rosters) / TP 'Ogre'
+      // (id 935, BB2025 roster) -- one roster slot renamed between rules-set
+      // generations (same slot: 1 of them, 140k, identical characteristics).
+      name: 'Ogre',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '935' },
+        { system: 'tourplay.net', id: '263' },
+        { system: 'Name', id: 'Chaos Chosen: Chaos Ogre' },
+      ],
+    },
+    {
+      // Chaos Chosen: TP 'Chaos Troll' (id 262, older rosters) / TP 'Troll'
+      // (id 934, BB2025 roster) -- one roster slot renamed between rules-set
+      // generations (same slot: 1 of them, 115k, identical characteristics).
+      name: 'Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '934' },
+        { system: 'tourplay.net', id: '262' },
+        { system: 'Name', id: 'Chaos Chosen: Chaos Troll' },
       ],
     },
     {
@@ -255,6 +372,99 @@
         { system: 'tloeg.bbleague.se', id: '42-3' },
         { system: 'tourplay.net', id: '676' },
         { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Lineman' },
+      ],
+    },
+    {
+      // Chaos Dwarf: TP 'Chaos Dwarf Flamesmith' (id 679, older rosters) / TP
+      // 'Flamesmith' (id 1081, BB2025 roster) -- one roster slot renamed
+      // between rules-set generations (same slot: 2 of them, 80k, identical
+      // characteristics).
+      name: 'Flamesmith',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1081' },
+        { system: 'tourplay.net', id: '679' },
+        { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Flamesmith' },
+      ],
+    },
+    {
+      // Chaos Dwarf: TP 'Hobgoblin Sneaky Stabba' (id 677, older rosters) /
+      // TP 'Sneaky Stabba' (id 1079, BB2025 roster) -- one roster slot
+      // renamed between rules-set generations (same slot: 2 of them,
+      // identical characteristics; BB2025 re-priced it 70k -> 60k).
+      name: 'Sneaky Stabba',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1079' },
+        { system: 'tourplay.net', id: '677' },
+        { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Sneaky Stabba' },
+      ],
+    },
+    {
+      // Chaos Renegade: BBL 'Renegade Human Lineman' (typId 145, race 23) /
+      // TP 'Renegade Human Lineman' (id 265, older rosters) / TP 'Renegade
+      // Human' (id 937, BB2025 roster) -- one roster slot renamed between
+      // rules-set generations (same slot: 50k, identical characteristics).
+      name: 'Renegade Human',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '145-23' },
+        { system: 'tourplay.net', id: '937' },
+        { system: 'tourplay.net', id: '265' },
+        { system: 'Name', id: 'Chaos Renegade: Renegade Human Lineman' },
+      ],
+    },
+    {
+      // Chaos Renegade: BBL 'Renegade Minotaur' (typId 315, race 23) / TP
+      // 'Renegade Minotaur' (id 273, older rosters) / TP 'Minotaur' (id 945,
+      // BB2025 roster) -- BB2025 dropped the "Renegade" prefix from the
+      // roster's big guys; same slot (1 of them, 150k, MA5 ST5 AG4 AV9).
+      name: 'Minotaur',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '315-23' },
+        { system: 'tourplay.net', id: '945' },
+        { system: 'tourplay.net', id: '273' },
+        { system: 'Name', id: 'Chaos Renegade: Renegade Minotaur' },
+      ],
+    },
+    {
+      // Chaos Renegade: BBL 'Renegade Ogre' (typId 150, race 23) / TP
+      // 'Renegade Ogre' (id 272, older rosters) / TP 'Ogre' (id 944, BB2025
+      // roster) -- same slot (1 of them, 140k, identical characteristics).
+      name: 'Ogre',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '150-23' },
+        { system: 'tourplay.net', id: '944' },
+        { system: 'tourplay.net', id: '272' },
+        { system: 'Name', id: 'Chaos Renegade: Renegade Ogre' },
+      ],
+    },
+    {
+      // Chaos Renegade: BBL 'Renegade Rat Ogre' (typId 316, race 23) / TP
+      // 'Renegade Rat Ogre' (id 274, older rosters) / TP 'Rat Ogre' (id 946,
+      // BB2025 roster) -- same slot (1 of them, 150k, MA6 ST5 AG4 AV9).
+      name: 'Rat Ogre',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '316-23' },
+        { system: 'tourplay.net', id: '946' },
+        { system: 'tourplay.net', id: '274' },
+        { system: 'Name', id: 'Chaos Renegade: Renegade Rat Ogre' },
+      ],
+    },
+    {
+      // Chaos Renegade: BBL 'Renegade Troll' (typId 149, race 23) / TP
+      // 'Renegade Troll' (id 271, older rosters) / TP 'Troll' (id 943, BB2025
+      // roster) -- same slot (1 of them, 115k, identical characteristics).
+      name: 'Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '149-23' },
+        { system: 'tourplay.net', id: '943' },
+        { system: 'tourplay.net', id: '271' },
+        { system: 'Name', id: 'Chaos Renegade: Renegade Troll' },
       ],
     },
     {
@@ -448,6 +658,20 @@
       ],
     },
     {
+      // Dark Elf: BBL 'Assassin' (typId 113, race 4) / TP 'Assassin' (id 278,
+      // older rosters) / TP 'Dark Elf Assassin' (id 949, BB2025 roster) --
+      // one roster slot renamed between rules-set generations (same slot: 2
+      // of them, MA7 ST3 AG2 AV8; BB2025 re-priced it 85k -> 90k).
+      name: 'Dark Elf Assassin',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '113-4' },
+        { system: 'tourplay.net', id: '949' },
+        { system: 'tourplay.net', id: '278' },
+        { system: 'Name', id: 'Dark Elf: Assassin' },
+      ],
+    },
+    {
       // Dwarf: BBL 'Dwarf Blocker Linemen' (typId 57, race 5) / TP 'Dwarf
       // Blocker Lineman' (id 280, older rosters) / TP 'Dwarf Lineman' (id
       // 952, BB2025 roster) -- one roster slot renamed between rules-set
@@ -614,6 +838,36 @@
         { system: 'tloeg.bbleague.se', id: '318-10' },
         { system: 'tourplay.net', id: '305' },
         { system: 'Name', id: 'Human: Halfling Hopeful' },
+      ],
+    },
+    {
+      // Imperial Nobility: BBL 'Imperial Retainer Lineman' (typId 319, race
+      // 45) / TP 'Imperial Retainer Lineman' (id 307, older rosters) / TP
+      // 'Imperial Retainer' (id 979, BB2025 roster) -- one roster slot
+      // renamed between rules-set generations (same slot: the roster's
+      // 45k line).
+      name: 'Imperial Retainer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '319-45' },
+        { system: 'tourplay.net', id: '979' },
+        { system: 'tourplay.net', id: '307' },
+        { system: 'Name', id: 'Imperial Nobility: Imperial Retainer Lineman' },
+      ],
+    },
+    {
+      // Khorne: BBL 'Bloodborn Marauder Lineman' (typId 330, race 46) / TP
+      // 'Bloodborn Marauder Lineman' (id 442, older rosters) / TP 'Bloodborn
+      // Marauder' (id 1054, BB2025 roster) -- one roster slot renamed between
+      // rules-set generations (same slot: 16 of them, 50k, identical
+      // characteristics).
+      name: 'Bloodborn Marauder',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '330-46' },
+        { system: 'tourplay.net', id: '1054' },
+        { system: 'tourplay.net', id: '442' },
+        { system: 'Name', id: 'Khorne: Bloodborn Marauder Lineman' },
       ],
     },
     {
@@ -826,6 +1080,20 @@
       ],
     },
     {
+      // Old World Alliance: TP 'Dwarf Troll Slayer' (id 335, older rosters) /
+      // TP 'Troll Slayer' (id 1008, BB2025 roster) -- one roster slot renamed
+      // between rules-set generations (same slot: 1 of them, 95k, MA5 ST3 AG4
+      // AV9). BBL's Old World Alliance roster prefixes every position with
+      // "Old World " and is left unpaired here, as it already was.
+      name: 'Troll Slayer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tourplay.net', id: '1008' },
+        { system: 'tourplay.net', id: '335' },
+        { system: 'Name', id: 'Old World Alliance: Dwarf Troll Slayer' },
+      ],
+    },
+    {
       // Orc: BBL 'Goblin Linemen' / TP 'Goblin Lineman'
       name: 'Goblin Lineman',
       isStarPlayer: false,
@@ -833,6 +1101,63 @@
         { system: 'tloeg.bbleague.se', id: '33-16' },
         { system: 'tourplay.net', id: '1012' },
         { system: 'Name', id: 'Orc: Goblin Lineman' },
+      ],
+    },
+    {
+      // Orc: BBL 'Untrained Troll' (typId 92, race 16) / TP 'Untrained Troll'
+      // (id 344, older rosters) / TP 'Troll' (id 1016, BB2025 roster) -- one
+      // roster slot renamed between rules-set generations (same slot: 1 of
+      // them, 115k, identical characteristics).
+      name: 'Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '92-16' },
+        { system: 'tourplay.net', id: '1016' },
+        { system: 'tourplay.net', id: '344' },
+        { system: 'Name', id: 'Orc: Untrained Troll' },
+      ],
+    },
+    {
+      // Shambling Undead: BBL 'Ghoul Runners' (typId 32, race 18) / TP 'Ghoul
+      // Runner' (id 347 on the older rosters, id 1019 on the BB2025 roster)
+      // -- a plural/singular spelling difference between the two sources, and
+      // TP issues a fresh position id per rules-set generation, so both are
+      // registered here.
+      name: 'Ghoul Runner',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '32-18' },
+        { system: 'tourplay.net', id: '1019' },
+        { system: 'tourplay.net', id: '347' },
+        { system: 'Name', id: 'Shambling Undead: Ghoul Runners' },
+      ],
+    },
+    {
+      // Shambling Undead: BBL 'Zombie' (typId 104, race 18) / TP 'Zombie
+      // Lineman' (id 346 on the older rosters, id 1018 on the BB2025 roster)
+      // -- BBL drops the "Lineman" suffix, the same rename this file already
+      // records for College of Death and Necromantic Horror.
+      name: 'Zombie Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '104-18' },
+        { system: 'tourplay.net', id: '1018' },
+        { system: 'tourplay.net', id: '346' },
+        { system: 'Name', id: 'Shambling Undead: Zombie' },
+      ],
+    },
+    {
+      // Skaven: BBL 'Skaven Clanrat Lineman' (typId 85, race 17) / TP 'Skaven
+      // Clanrat Lineman' (id 350, older rosters) / TP 'Skaven Clanrat' (id
+      // 1022, BB2025 roster) -- one roster slot renamed between rules-set
+      // generations (same slot: 16 of them, 50k, identical characteristics).
+      name: 'Skaven Clanrat',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '85-17' },
+        { system: 'tourplay.net', id: '1022' },
+        { system: 'tourplay.net', id: '350' },
+        { system: 'Name', id: 'Skaven: Skaven Clanrat Lineman' },
       ],
     },
     {
@@ -1000,6 +1325,47 @@
         { system: 'tourplay.net', id: '1039' },
         { system: 'tourplay.net', id: '367' },
         { system: 'Name', id: 'Underworld Denizens: Underworld Troll' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Underworld Goblin Lineman' (typId 151, race
+      // 24) / TP 'Underworld Goblin Lineman' (id 361, older rosters) / TP
+      // 'Goblin Lineman' (id 1033, BB2025 roster) -- BB2025 dropped the
+      // "Underworld " prefix; same slot (40k, identical characteristics).
+      name: 'Goblin Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '151-24' },
+        { system: 'tourplay.net', id: '1033' },
+        { system: 'tourplay.net', id: '361' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Goblin Lineman' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Mutant Rat Ogre' (typId 303, race 24) / TP
+      // 'Mutant Rat Ogre' (id 368, older rosters) / TP 'Rat Ogre' (id 1040,
+      // BB2025 roster) -- same slot (1 of them, 150k, MA6 ST5 AG4 AV9).
+      name: 'Rat Ogre',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '303-24' },
+        { system: 'tourplay.net', id: '1040' },
+        { system: 'tourplay.net', id: '368' },
+        { system: 'Name', id: 'Underworld Denizens: Mutant Rat Ogre' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Underworld Snotling' (typId 326, race 24) /
+      // TP 'Underworld Snotling' (id 362, older rosters) / TP 'Snotling
+      // Lineman' (id 1034, BB2025 roster) -- same slot (6 of them, 15k,
+      // MA5 ST1 AG3 AV6).
+      name: 'Snotling Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '326-24' },
+        { system: 'tourplay.net', id: '1034' },
+        { system: 'tourplay.net', id: '362' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Snotling' },
       ],
     },
     {
