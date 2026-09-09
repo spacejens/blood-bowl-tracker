@@ -1,3 +1,12 @@
+import {
+  ACTION_TYPES,
+  CONSEQUENCE_AVOIDED_BY_VALUES,
+  CONSEQUENCE_TYPES,
+  EVENT_TYPES,
+  SECRET_OBJECTIVES,
+  UNIDENTIFIED_PARTICIPANT_KINDS,
+  WEATHER_TYPES,
+} from '@blood-bowl-tracker/domain-enums';
 import { sql } from 'drizzle-orm';
 import { check, integer, serial } from 'drizzle-orm/pg-core';
 
@@ -6,139 +15,60 @@ import { matches, matchTeams } from './matches';
 import { gameData } from './pg-schema';
 import { players } from './players';
 
-export const actionTypeEnum = gameData.enum('action_type', [
-  'touchdown',
-  'completion',
-  'interception',
-  'deflection',
-  'foul',
-  'mvp_award',
-  'casualty',
-  'badly_hurt',
-  'serious_injury',
-  'death',
-  'inducements',
-  'winnings',
-  'fan_factor',
-  'journeymen_signings',
-  'prayers_to_nuffle',
-  'secret_objective',
-  'successful_landing',
-  'throw_team_mate',
-  'catch',
-]);
-
-export const consequenceTypeEnum = gameData.enum('consequence_type', [
-  'casualty',
-  'badly_hurt',
-  'serious_injury',
-  'miss_next_game',
-  'niggling_injury',
-  'stat_reduction_ma',
-  'stat_reduction_st',
-  'stat_reduction_ag',
-  'stat_reduction_av',
-  'stat_reduction_pa',
-  'death',
-  'sent_off',
-  'expensive_mistake',
-  'concession',
-  'dedicated_fans',
-  // A casualty the source reports as prevented. The prevented severity lives
-  // in `consequence_avoided_severity`, so this value is deliberately absent
-  // from every *_SUFFERED_TYPES list in packages/game-data.
-  'casualty_avoided',
-]);
+/**
+ * See `ACTION_TYPES` in `@blood-bowl-tracker/domain-enums` for what each value
+ * means.
+ */
+export const actionTypeEnum = gameData.enum('action_type', ACTION_TYPES);
 
 /**
- * What a source says an un-indexed participant was, when it names the
- * participant as plain text instead of linking a player row. A journeyman or
- * mercenary IS a real player the source merely does not index; only
- * `fans_or_random_event` is genuinely not a player — hence "unidentified"
- * rather than "non-player". The `*_or_*` values preserve the source's own
- * ambiguity instead of inventing a resolution.
+ * See `CONSEQUENCE_TYPES` in `@blood-bowl-tracker/domain-enums` for what each
+ * value means.
+ */
+export const consequenceTypeEnum = gameData.enum(
+  'consequence_type',
+  CONSEQUENCE_TYPES,
+);
+
+/**
+ * See `UNIDENTIFIED_PARTICIPANT_KINDS` in `@blood-bowl-tracker/domain-enums`
+ * for what each value means.
  */
 export const unidentifiedParticipantKindEnum = gameData.enum(
   'unidentified_participant_kind',
-  [
-    'journeyman',
-    'mercenary',
-    'mercenary_or_star',
-    'fans_or_random_event',
-    'mercenary_or_fans_or_random_event',
-  ],
+  UNIDENTIFIED_PARTICIPANT_KINDS,
 );
 
-/** How a casualty the source reports was prevented from taking effect. */
+/**
+ * See `CONSEQUENCE_AVOIDED_BY_VALUES` in `@blood-bowl-tracker/domain-enums`
+ * for what each value means.
+ */
 export const consequenceAvoidedByEnum = gameData.enum(
   'consequence_avoided_by',
-  ['apothecary', 'regeneration'],
+  CONSEQUENCE_AVOIDED_BY_VALUES,
 );
 
 /**
- * Top-level classification for match events that have no actor and no
- * consequence recipient (e.g. a weather roll) — parallel to `actionType`/
- * `consequenceType` and mutually exclusive with both (see
- * `actionOrConsequence` check below).
+ * See `EVENT_TYPES` in `@blood-bowl-tracker/domain-enums` for what each value
+ * means. Mutually exclusive with `actionType`/`consequenceType` — see the
+ * `actionOrConsequence` check below.
  */
-export const eventTypeEnum = gameData.enum('event_type', ['weather']);
+export const eventTypeEnum = gameData.enum('event_type', EVENT_TYPES);
 
 /**
- * The named weather condition a `weather`-classified event decodes to, from
- * an importer's raw source-specific weather code (decoded before import
- * reaches this schema). `'unknown'` is a permanent catch-all for codes not
- * yet mapped. Only set on `weather` events, the same way
- * `actionType`/`consequenceType` are only set on their own kinds.
+ * See `WEATHER_TYPES` in `@blood-bowl-tracker/domain-enums` for what each
+ * value means.
  */
-export const weatherTypeEnum = gameData.enum('weather_type', [
-  'dungeon',
-  'sweltering_heat',
-  'very_sunny',
-  'nice',
-  'pouring_rain',
-  'blizzard',
-  'morning_dew',
-  'blossoming_flowers',
-  'misty_morning',
-  'high_winds',
-  'perfect_conditions',
-  'melting_astrogranite',
-  'blinding_rays',
-  'monsoon',
-  'leaf_strewn_pitch',
-  'autumnal_chill',
-  'strong_winds',
-  'cold_winds',
-  'freezing',
-  'heavy_snow',
-  'unknown',
-]);
+export const weatherTypeEnum = gameData.enum('weather_type', WEATHER_TYPES);
 
 /**
- * The named secret-objective card a `secret_objective`-classified event
- * decodes to, from TP's raw opaque integer code (decoded before import
- * reaches this schema). `'unknown'` is a permanent catch-all for codes not
- * yet mapped. Only set on `secret_objective` events.
+ * See `SECRET_OBJECTIVES` in `@blood-bowl-tracker/domain-enums` for what each
+ * value means.
  */
-export const secretObjectiveEnum = gameData.enum('secret_objective', [
-  'red_card',
-  'didnt_need_them_anyway',
-  'going_alone',
-  'fouling_frenzy',
-  'going_surfing',
-  'ganging_up',
-  'whoops',
-  'not_so_fast',
-  'timely_tackle',
-  'precision_passing',
-  'hit_em_hard',
-  'just_a_little_further',
-  'go_long',
-  'nuffle_favors_the_bold',
-  'all_according_to_plan',
-  'headtaker',
-  'unknown',
-]);
+export const secretObjectiveEnum = gameData.enum(
+  'secret_objective',
+  SECRET_OBJECTIVES,
+);
 
 const matchEventsTable = historyTrackedTable({
   schema: gameData,
