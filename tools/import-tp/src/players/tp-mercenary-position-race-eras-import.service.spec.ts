@@ -1,0 +1,327 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import {
+  ExternalSystemBootstrapService,
+  ImportResultService,
+  PositionsImportService,
+  ReferenceLookupService,
+} from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
+
+import type { EraDataConfig } from '../eras/era-data-config.service';
+import { EraDataConfigService } from '../eras/era-data-config.service';
+import {
+  asProviderMethod,
+  mockEraDataConfigService,
+  mockImportResultService,
+  mockReferenceLookupService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
+import type { MercenaryPositionUsage } from './tp-players-import.service';
+
+/** The numeric id the mocked bootstrap assigns to the TP external system. */
+const TP_SYSTEM_ID = 1;
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
+interface MakeServiceOptions {
+  syncRaceEras: ReturnType<typeof vi.fn>;
+  bootstrap?: ReturnType<typeof vi.fn>;
+  /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
+  eraIdsByName?: Map<string, number>;
+  /** Team race code -> DB race id, as if already resolved via ReferenceLookupService. */
+  raceIdsByCode?: Map<string, number>;
+  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
+  getEras?: () => EraDataConfig[];
+}
+
+async function makeService({
+  syncRaceEras,
+  bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [TP_SYSTEM_ID] }),
+  eraIdsByName = new Map([
+    ['Third Era', 500],
+    ['Fourth era', 600],
+  ]),
+  raceIdsByCode = new Map([
+    ['Dwarf', 50],
+    ['Norse', 60],
+  ]),
+  getEras,
+}: MakeServiceOptions): Promise<{
+  service: TpMercenaryPositionRaceErasImportService;
+  importResults: MockProxy<ImportResultService>;
+  lookup: MockProxy<ReferenceLookupService>;
+}> {
+  const positionsImport = mock<PositionsImportService>();
+  positionsImport.syncRaceEras.mockImplementation(
+    asProviderMethod(syncRaceEras),
+  );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockReturnValue('TP');
+  const importResults = mockImportResultService();
+  // The shared helper's mockImportResultService() only provides the exempt
+  // `error` identity mock; `result` is stubbed with a canned value here.
+  // ImportResultService.result's own success derivation is covered by
+  // packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
+  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
+  if (getEras) {
+    eraDataConfig.getEras.mockImplementation(getEras);
+  }
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
+    raceIdsByCode,
+  });
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpMercenaryPositionRaceErasImportService,
+      { provide: PositionsImportService, useValue: positionsImport },
+      { provide: ImportResultService, useValue: importResults },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: ReferenceLookupService, useValue: lookup },
+    ],
+  }).compile();
+  return {
+    service: moduleRef.get(TpMercenaryPositionRaceErasImportService),
+    importResults,
+    lookup,
+  };
+}
+
+describe('TpMercenaryPositionRaceErasImportService', () => {
+  it('syncs one mercenary position with every distinct (race, era) pair it was hired into', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
+    const { service, importResults } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Fourth era' },
+    ];
+
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
+
+    expect(syncRaceEras).toHaveBeenCalledTimes(1);
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      {
+        positionId: 800,
+        raceEras: [
+          { raceId: 50, eraId: 500 },
+          { raceId: 60, eraId: 600 },
+        ],
+      },
+      expect.any(Array),
+    );
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('dedupes repeated usages of the same (race, era) pair for a position', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
+    const { service } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+    ];
+
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
+
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 800, raceEras: [{ raceId: 50, eraId: 500 }] },
+      expect.any(Array),
+    );
+  });
+
+  it('makes no syncRaceEras call when there are no mercenary position usages', async () => {
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService({ syncRaceEras });
+
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [],
+    });
+
+    expect(syncRaceEras).not.toHaveBeenCalled();
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('groups usages per position into separate syncRaceEras calls', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 0, raceEraIds: [1] });
+    const { service, importResults } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      { positionId: 810, teamRaceCode: 'Norse', era: 'Fourth era' },
+    ];
+
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
+
+    expect(syncRaceEras).toHaveBeenCalledTimes(2);
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 800, raceEras: [{ raceId: 50, eraId: 500 }] },
+      expect.any(Array),
+    );
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 810, raceEras: [{ raceId: 60, eraId: 600 }] },
+      expect.any(Array),
+    );
+    expect(resultArgs(importResults).imported).toBe(2);
+  });
+
+  it('records an ImportError and skips a usage whose race code cannot be resolved, still processing the rest', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
+    const { service, importResults } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'UnknownRace', era: 'Third Era' },
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+    ];
+
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
+
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('UnknownRace');
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 800, raceEras: [{ raceId: 50, eraId: 500 }] },
+      expect.any(Array),
+    );
+  });
+
+  it('records an ImportError and skips a usage whose era cannot be resolved', async () => {
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Unknown Era' },
+    ];
+
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
+
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('Unknown Era');
+    // The only usage errored out, so no position had any resolvable pair.
+    expect(syncRaceEras).not.toHaveBeenCalled();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
+    const { service } = await makeService({ syncRaceEras });
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+    ];
+
+    const { result } = await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages,
+    });
+
+    expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('resolves every configured era in one batched call', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
+    const { service, lookup } = await makeService({ syncRaceEras });
+
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [
+        { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      ],
+    });
+
+    expect(lookup.lookupMap).toHaveBeenCalledWith(
+      'era',
+      expect.arrayContaining([
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Third Era' },
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
+      ]),
+    );
+  });
+
+  it('imports nothing and records one error when external system bootstrap fails', async () => {
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService({
+      syncRaceEras,
+      bootstrap: vi.fn().mockResolvedValue({
+        ok: false,
+        error: { item: { externalSystems: ['TP'] }, message: 'boom' },
+      }),
+    });
+
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [
+        { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      ],
+    });
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].item).toEqual({ externalSystems: ['TP'] });
+    expect(syncRaceEras).not.toHaveBeenCalled();
+  });
+
+  it('records one error and imports nothing when the era config cannot be read', async () => {
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService({
+      syncRaceEras,
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+    });
+
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [
+        { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+      ],
+    });
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('TP_ERAS');
+    expect(syncRaceEras).not.toHaveBeenCalled();
+  });
+});

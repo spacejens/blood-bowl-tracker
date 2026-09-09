@@ -39,6 +39,19 @@ interface InducedStarPlayerHireGroup {
   starPlayers: TpInducedStarPlayer[];
 }
 
+/** One mercenary Big Guy hire's position usage: the mercenary Position's DB
+ * id and the raw race/era references it was hired into (resolved downstream
+ * by `TpMercenaryPositionRaceErasImportService` into `positions_race_eras`
+ * rows). Unlike regular and star positions -- which TP's official team list
+ * now describes directly -- a mercenary hire appears on no official-list
+ * catalog at all, so its race/era availability still has to be derived from
+ * observed hires. */
+export interface MercenaryPositionUsage {
+  positionId: number;
+  teamRaceCode: string;
+  era: string;
+}
+
 /** Options for {@link TpPlayersImportService.importPlayers}, bundled into one
  * object to stay within the repo's 3-parameter limit. */
 export interface ImportPlayersOptions {
@@ -127,12 +140,14 @@ export class TpPlayersImportService {
     playerIdsByLineUpId: Map<number, number>;
     starPlayerIdsByRosterAndMaster: Map<string, number>;
     careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
+    mercenaryPositionUsages: MercenaryPositionUsage[];
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByLineUpId = new Map<number, number>();
     const starPlayerIdsByRosterAndMaster = new Map<string, number>();
     const careerSppCountsByPlayerId = new Map<number, SppCareerCounts>();
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [];
 
     // Star Player Points is a career total that only ever increases. The
     // same player (lineUp) id can legitimately recur across multiple
@@ -223,6 +238,7 @@ export class TpPlayersImportService {
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
         careerSppCountsByPlayerId,
+        mercenaryPositionUsages,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -242,6 +258,7 @@ export class TpPlayersImportService {
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
         careerSppCountsByPlayerId,
+        mercenaryPositionUsages,
       };
     }
     const eraNames = [...new Set(eras.map((era) => era.name))];
@@ -443,6 +460,17 @@ export class TpPlayersImportService {
           if (careerCounts !== undefined) {
             careerSppCountsByPlayerId.set(upserted.id, careerCounts);
           }
+          // A mercenary Big Guy's position appears on no TP official-list
+          // catalog at all, so -- unlike regular and star positions -- its
+          // race/era availability still has to be derived from actual usage.
+          // See MercenaryPositionUsage's doc comment.
+          if (fromMercenary) {
+            mercenaryPositionUsages.push({
+              positionId,
+              teamRaceCode: roster.teamRaceCode,
+              era,
+            });
+          }
         }
       }
     }
@@ -538,6 +566,7 @@ export class TpPlayersImportService {
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
       careerSppCountsByPlayerId,
+      mercenaryPositionUsages,
     };
   }
 

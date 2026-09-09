@@ -17,6 +17,7 @@ import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
 import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
+import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
@@ -249,6 +250,7 @@ async function run(): Promise<ImportResult> {
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
       careerSppCountsByPlayerId,
+      mercenaryPositionUsages,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
@@ -256,6 +258,20 @@ async function run(): Promise<ImportResult> {
       matchEmbeddedPlayersByRosterId,
       characteristicsByPositionId,
     });
+
+    // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
+    // official-list catalog at all, so -- unlike regular and star positions,
+    // which the official team list now describes directly -- its
+    // positions_race_eras rows still have to be derived from actual usage:
+    // the mercenaryPositionUsages the players step just emitted. Runs after
+    // players because that usage (which team/race+era each mercenary was
+    // hired into) is only known once players are imported. Idempotent
+    // (syncRaceEras is upsert-only).
+    const mercenaryPositionRaceErasOutcome = await app
+      .get(TpMercenaryPositionRaceErasImportService)
+      .syncMercenaryPositionRaceEras({
+        mercenaryPositionUsages,
+      });
 
     // Team participation (match_teams + competition_teams) runs before match
     // events: match events resolve team-era ids the same way (roster id +
@@ -356,6 +372,7 @@ async function run(): Promise<ImportResult> {
       positionResult,
       positionCharacteristicsOutcome.result,
       playerResult,
+      mercenaryPositionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       trophyAwardsOutcome.result,
       matchEventsOutcome.result,

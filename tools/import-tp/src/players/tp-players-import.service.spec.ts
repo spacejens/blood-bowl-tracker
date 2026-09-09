@@ -671,6 +671,124 @@ describe('TpPlayersImportService', () => {
     expect(upsertPosition).toHaveBeenCalledTimes(1);
   });
 
+  it('emits a mercenaryPositionUsage for a mercenary Big Guy resolved via the fallback position name', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+              totalStarPlayerPoints: 41,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { mercenaryPositionUsages } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(mercenaryPositionUsages).toEqual([
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Third Era' },
+    ]);
+  });
+
+  it('emits one mercenaryPositionUsage per hire, sharing the same position id, when several mercenaries share a fallback name', async () => {
+    const upsertPlayerResult = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 960 })
+      .mockResolvedValueOnce({ id: 961 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+              totalStarPlayerPoints: 41,
+            },
+            {
+              id: 1970614,
+              name: 'Giant',
+              number: 27,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+              totalStarPlayerPoints: 19,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { mercenaryPositionUsages } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(mercenaryPositionUsages).toEqual([
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Third Era' },
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Third Era' },
+    ]);
+  });
+
+  it('emits no mercenaryPositionUsage for a regular (non-mercenary) roster player', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service } = await makeService({ upsertPlayerResult });
+
+    const { mercenaryPositionUsages } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(mercenaryPositionUsages).toEqual([]);
+  });
+
   it('skips a mercenary Big Guy without creating a player when the fallback position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
