@@ -10,16 +10,16 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 
-/** One logical race, accumulated across every roster file that names it. */
+/** One logical race, accumulated across every official list that names it. */
 interface RaceGroup {
   raceName: string;
   codes: Set<string>;
-  eraIds: Set<number>;
+  rulesSets: Set<string>;
 }
 
 @Injectable()
@@ -29,31 +29,32 @@ export class TpRacesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
-    private readonly rosterCollection: RosterCollectionService,
     private readonly importResults: ImportResultService,
     private readonly eraDataConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
-   * Import every race that appears on a TP roster file. Rosters are grouped by
-   * `rosterMaster.name` (the display name), NOT by `teamRace` code, because one
-   * logical race can carry several rule-set-variant codes. Each group upserts
-   * once, carrying every distinct code as a TP external id (all in one call, so
-   * the merge semantics collapse them onto a single row), the display name as a
-   * Name external id, and every era any contributing roster was seen under
-   * -- each era resolved server-side, by external id, against whatever
+   * Import every race on TP's official team list. Entries are grouped by the
+   * official list's display name, NOT by `teamRace` code, because one logical
+   * race carries a different code per rules-set variant. Each group upserts
+   * once, carrying every distinct code as a TP external id (all in one call,
+   * so the merge semantics collapse them onto a single row) and the display
+   * name as a Name external id.
+   *
+   * A race's eras are the union of every configured era declaring any rules
+   * set this race appears on -- a direct fact about the official list, not an
+   * inference from which rosters happened to use the race in which era. Each
+   * era id is resolved server-side, by external id, against whatever
    * TpErasImportService upserted moments earlier in the same run (one batched
-   * lookup for the whole run, not one per roster). `rosters` is the
-   * already-collected roster list (via `RosterCollectionService`, run once
-   * for all three imports); this service only groups and upserts.
+   * lookup for the whole run).
+   *
    * Returns `raceNamesById` (DB race id -> display name), used by the
-   * downstream positions import to build a Name external id; each race's own
-   * DB id is not otherwise returned — downstream consumers (teams,
-   * positions, star position race-eras) resolve a race server-side, by its
-   * `teamRaceCode` as the external id, via ReferenceLookupService. Idempotent.
+   * downstream positions import to build a Name external id; downstream
+   * consumers otherwise resolve a race server-side by its `teamRaceCode`.
+   * Idempotent.
    */
-  async importRaces(rosters: RosterEntry[]): Promise<{
+  async importRaces(officialTeams: OfficialTeamsEntry[]): Promise<{
     result: ImportResult;
     raceNamesById: Map<number, string>;
   }> {
@@ -75,11 +76,9 @@ export class TpRacesImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    let eraNames: string[];
+    let eras: EraDataConfig[];
     try {
-      eraNames = [
-        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
-      ];
+      eras = this.eraDataConfig.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
@@ -94,38 +93,38 @@ export class TpRacesImportService {
     }
     const eraIds = await this.lookup.lookupMap(
       'era',
-      eraNames.map((name) => ({
+      [...new Set(eras.map((era) => era.name))].map((name) => ({
         externalSystemId: tpSystemId,
         externalId: name,
       })),
     );
 
     const groups = new Map<string, RaceGroup>();
-    for (const { roster, era } of rosters) {
-      let group = groups.get(roster.raceName);
+    for (const { race, rulesSet } of officialTeams) {
+      let group = groups.get(race.name);
       if (!group) {
-        group = {
-          raceName: roster.raceName,
-          codes: new Set(),
-          eraIds: new Set(),
-        };
-        groups.set(roster.raceName, group);
+        group = { raceName: race.name, codes: new Set(), rulesSets: new Set() };
+        groups.set(race.name, group);
       }
-      group.codes.add(roster.teamRaceCode);
-      const eraId = eraIds.get(
-        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
-      );
-      if (eraId === undefined) {
-        errors.push(this.rosterCollection.unknownEraError(era, roster));
-      } else {
-        group.eraIds.add(eraId);
-      }
+      group.codes.add(race.teamRaceCode);
+      group.rulesSets.add(rulesSet);
     }
 
     for (const group of groups.values()) {
       const data: UpsertRace = {
         name: group.raceName,
-        eras: [...group.eraIds],
+        eras: this.eraIdsFor({
+          group,
+          eras,
+          resolveEraId: (eraName) =>
+            eraIds.get(
+              this.lookup.keyOf({
+                externalSystemId: tpSystemId,
+                externalId: eraName,
+              }),
+            ),
+          errors,
+        }),
         externalIds: [
           ...[...group.codes].map((code) => ({
             externalSystemId: tpSystemId,
@@ -148,5 +147,55 @@ export class TpRacesImportService {
       result: this.importResults.result({ imported, errors }),
       raceNamesById,
     };
+  }
+
+  /**
+   * Every era declaring any of this race's rules sets, as DB era ids. A rules
+   * set matching no configured era, or an era whose DB id cannot be resolved,
+   * is recorded as a non-fatal error and contributes nothing -- the race is
+   * still imported, just without that era.
+   */
+  private eraIdsFor(options: {
+    group: RaceGroup;
+    eras: EraDataConfig[];
+    resolveEraId: (eraName: string) => number | undefined;
+    errors: ImportError[];
+  }): number[] {
+    const { group, eras, resolveEraId, errors } = options;
+    const ids = new Set<number>();
+    for (const rulesSet of group.rulesSets) {
+      const matching = eras.filter((era) =>
+        era.rulesSets.some(
+          (name) => name.toLowerCase() === rulesSet.toLowerCase(),
+        ),
+      );
+      if (matching.length === 0) {
+        errors.push(
+          this.importResults.error({
+            item: { race: group.raceName, rulesSet },
+            message:
+              `Rules set "${rulesSet}" (race "${group.raceName}") matches no ` +
+              'configured era; the race is imported without it.',
+          }),
+        );
+        continue;
+      }
+      for (const era of matching) {
+        const eraId = resolveEraId(era.name);
+        if (eraId === undefined) {
+          errors.push(
+            this.importResults.error({
+              item: { race: group.raceName, era: era.name },
+              message:
+                `Could not resolve era "${era.name}" (race ` +
+                `"${group.raceName}"); skipping it for this race.`,
+            }),
+          );
+          continue;
+        }
+        ids.add(eraId);
+      }
+    }
+    return [...ids];
   }
 }

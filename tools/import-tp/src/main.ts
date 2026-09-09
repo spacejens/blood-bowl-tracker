@@ -24,6 +24,7 @@ import { TpPositionRaceErasImportService } from './positions/tp-position-race-er
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
+import { OfficialTeamsCollectionService } from './source/official-teams-collection.service';
 import { RosterCollectionService } from './source/roster-collection.service';
 import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
@@ -91,9 +92,22 @@ async function run(): Promise<ImportResult> {
       errors: rosterErrors,
     });
 
+    // TP's official team list (races, positions, star players with their
+    // characteristics) is scanned and parsed once here, then shared by the
+    // races/positions imports below -- the canonical per-rules-set source,
+    // independent of which rosters happened to be played.
+    const officialTeamsErrors: ImportError[] = [];
+    const officialTeams = await app
+      .get(OfficialTeamsCollectionService)
+      .collect(officialTeamsErrors);
+    const officialTeamsCollectionResult = app.get(ImportResultService).result({
+      imported: 0,
+      errors: officialTeamsErrors,
+    });
+
     const raceOutcome = await app
       .get(TpRacesImportService)
-      .importRaces(rosters);
+      .importRaces(officialTeams);
 
     const teamOutcome = await app
       .get(TpTeamsImportService)
@@ -352,6 +366,7 @@ async function run(): Promise<ImportResult> {
       matchResult,
       coachOutcome.result,
       rosterCollectionResult,
+      officialTeamsCollectionResult,
       raceOutcome.result,
       teamOutcome.result,
       positionResult,
