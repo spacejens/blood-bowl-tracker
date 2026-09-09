@@ -235,7 +235,13 @@ The main departure from `develop-feature`'s Phase 6. **There is no `main`-sync m
    pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build
    ```
 
-   **If the command fails outright** — a non-zero exit, or output that will not parse — print a one-line warning that the review lock could not be taken and **continue anyway, unlocked**: skip every heartbeat, release, and re-acquire call for the rest of Phase 4. A lock that cannot be coordinated costs some extra rate-limit contention, which is the thing this reduces rather than guarantees, and it must never block real work.
+   **If the command fails outright** — a non-zero exit, or output that will not parse — first check whether the printed error JSON contains `"dispatchSucceeded": true`. If it does, the lock *was* actually taken on disk before whatever failed afterwards. The CLI already attempts its own release for that case; make one more attempt here as an independent safety net:
+   ```bash
+   node tools/dev-workflow-cli/dist/main.js release-review-lock <headRefName>
+   ```
+   Ignore its outcome entirely — `{"released": false}` simply means the CLI's own cleanup got there first, which is the normal case, and a non-zero exit here needs no second warning. If the field is absent — missing, or output that will not parse at all — nothing was ever acquired, so skip this extra release.
+
+   Then, either way, print a one-line warning that the review lock could not be taken and **continue anyway, unlocked**: skip every heartbeat, release, and re-acquire call for the rest of Phase 4. A lock that cannot be coordinated costs some extra rate-limit contention, which is the thing this reduces rather than guarantees, and it must never block real work.
 
    Then capture the push watermark, immediately *before* pushing — the review loop below needs it:
    ```bash

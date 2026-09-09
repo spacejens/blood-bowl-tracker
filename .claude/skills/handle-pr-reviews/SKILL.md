@@ -268,6 +268,14 @@ This deliberately sits *after* the "Sync with `main`" step above and *before* th
 
 The command enqueues this session and polls internally every 30 seconds until the lock is free, staying silent until it prints `{"acquired": true, "waitedMs": <n>}`. It has no default timeout — waiting quietly is the point. Run it via `Bash` with `run_in_background: true` and read its result from the harness's own completion notification: it can wait far longer than a foreground `Bash` call allows. Report a one-line status from `waitedMs`. If it fails outright — non-zero exit, or output that will not parse — print a one-line warning and continue with the push anyway, and skip the release below too; the lock must never block real work.
 
+**If that failure's error JSON contains `"dispatchSucceeded": true`**, the lock *was* actually taken on disk before whatever failed afterwards. The CLI already attempts its own release for that case; make one more attempt here, before the push, as an independent safety net:
+
+```bash
+node tools/dev-workflow-cli/dist/main.js release-review-lock $HEAD_REF
+```
+
+Ignore its outcome entirely — `{"released": false}` simply means the CLI's own cleanup got there first, which is the normal case, and a non-zero exit here needs no second warning. If the field is absent — missing, or output that will not parse at all — nothing was ever acquired, so skip this extra release. Either way the warn-and-continue-unlocked handling above is unchanged.
+
 Then push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:
 ```bash
 git push
