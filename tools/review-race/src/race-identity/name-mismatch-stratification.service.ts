@@ -10,7 +10,7 @@ import type {
 } from '../shared/race-stratifier';
 import type { ReviewRace, ReviewStratum } from '../shared/review.types';
 import { BblRawRaceIndexService } from '../source/bbl-raw-race-index.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 
 const NAME_MISMATCH = 'name-mismatch';
 
@@ -38,7 +38,7 @@ export class NameMismatchStratificationService implements RaceStratifier {
     @Inject(DB) private readonly db: Db,
     private readonly externalIds: RaceExternalIdsService,
     private readonly bbl: BblRawRaceIndexService,
-    private readonly tp: TpRawRosterIndexService,
+    private readonly tp: TpRawOfficialTeamsIndexService,
     private readonly names: RaceNameComparisonService,
   ) {}
 
@@ -80,7 +80,7 @@ export class NameMismatchStratificationService implements RaceStratifier {
     });
     const tpName = await this.firstName(
       ids.tp,
-      async (code) => (await this.tp.raceFor(code))?.rosterName ?? null,
+      async (code) => (await this.tp.raceFor(code))?.raceName ?? null,
     );
     if (bblName === null || tpName === null) {
       return false;

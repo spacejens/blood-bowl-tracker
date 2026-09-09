@@ -8,7 +8,7 @@ import { RaceNameComparisonService } from '../shared/race-name-comparison.servic
 import type { SampledRace } from '../shared/review.types';
 import { BblRawRaceIndexService } from '../source/bbl-raw-race-index.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 
 /**
  * The race-identity raw panel: what each source, on its own, says this race
@@ -26,7 +26,7 @@ export class RaceIdentityRawRendererService {
   constructor(
     private readonly externalIds: RaceExternalIdsService,
     private readonly bbl: BblRawRaceIndexService,
-    private readonly tp: TpRawRosterIndexService,
+    private readonly tp: TpRawOfficialTeamsIndexService,
     private readonly manual: ManualRawDataService,
     private readonly names: RaceNameComparisonService,
     private readonly matcher: ManualEntryMatcherService,
@@ -107,7 +107,7 @@ export class RaceIdentityRawRendererService {
 
   private tpSection(
     tpCodes: string[],
-    races: Awaited<ReturnType<TpRawRosterIndexService['raceFor']>>[],
+    races: Awaited<ReturnType<TpRawOfficialTeamsIndexService['raceFor']>>[],
   ): string | null {
     if (tpCodes.length === 0) {
       return null;
@@ -115,18 +115,18 @@ export class RaceIdentityRawRendererService {
     const rows: TableCell[][] = tpCodes.map((code, index) => {
       const race = races[index];
       return race === null || race === undefined
-        ? [code, 'no roster file carries this code', '0', '0']
+        ? [code, 'not on any official team list', '—', '0']
         : [
             code,
-            race.rosterName ?? '—',
-            String(race.rosterCount),
+            race.raceName ?? '—',
+            race.rulesSets.length === 0 ? '—' : race.rulesSets.join(', '),
             String(race.positions.length),
           ];
     });
     return (
       this.html.subheading('TP') +
       this.html.table(
-        ['teamRace code', 'rosterMaster.name', 'Rosters', 'Positions'],
+        ['teamRace code', 'Official list name', 'Rules sets', 'Positions'],
         rows,
       )
     );
@@ -158,13 +158,13 @@ export class RaceIdentityRawRendererService {
    */
   private agreementSection(
     bblRaces: Awaited<ReturnType<BblRawRaceIndexService['raceFor']>>[],
-    tpRaces: Awaited<ReturnType<TpRawRosterIndexService['raceFor']>>[],
+    tpRaces: Awaited<ReturnType<TpRawOfficialTeamsIndexService['raceFor']>>[],
   ): string | null {
     const bblName = bblRaces
       .map((race) => race?.listName ?? race?.teamPageName ?? null)
       .find((name) => name !== null);
     const tpName = tpRaces
-      .map((race) => race?.rosterName ?? null)
+      .map((race) => race?.raceName ?? null)
       .find((name) => name !== null);
     if (
       bblName === undefined ||

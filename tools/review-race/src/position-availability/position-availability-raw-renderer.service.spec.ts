@@ -9,7 +9,7 @@ import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 import { PositionAvailabilityRawRendererService } from './position-availability-raw-renderer.service';
 
 const race: SampledRace = {
@@ -22,14 +22,14 @@ describe('PositionAvailabilityRawRendererService', () => {
   let service: PositionAvailabilityRawRendererService;
   let raceIds: ReturnType<typeof mock<RaceExternalIdsService>>;
   let bbl: ReturnType<typeof mock<BblRawPositionPageService>>;
-  let tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
+  let tp: ReturnType<typeof mock<TpRawOfficialTeamsIndexService>>;
   let manual: ReturnType<typeof mock<ManualRawDataService>>;
   let typIds: ReturnType<typeof mock<BblPositionTypIdsService>>;
 
   beforeEach(async () => {
     raceIds = mock<RaceExternalIdsService>();
     bbl = mock<BblRawPositionPageService>();
-    tp = mock<TpRawRosterIndexService>();
+    tp = mock<TpRawOfficialTeamsIndexService>();
     manual = mock<ManualRawDataService>();
     typIds = mock<BblPositionTypIdsService>();
     raceIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
@@ -41,7 +41,7 @@ describe('PositionAvailabilityRawRendererService', () => {
         PositionAvailabilityRawRendererService,
         { provide: RaceExternalIdsService, useValue: raceIds },
         { provide: BblRawPositionPageService, useValue: bbl },
-        { provide: TpRawRosterIndexService, useValue: tp },
+        { provide: TpRawOfficialTeamsIndexService, useValue: tp },
         { provide: ManualRawDataService, useValue: manual },
         { provide: BblPositionTypIdsService, useValue: typIds },
         ManualEntryMatcherService,
@@ -105,7 +105,7 @@ describe('PositionAvailabilityRawRendererService', () => {
     expect(html).not.toContain('<h5>BBL</h5>');
   });
 
-  it('lists the TP roster positions merged and deduplicated by tpPositionId across codes, excluding star players', async () => {
+  it('lists the TP official-list positions deduplicated by (rules set, name) across codes, excluding star players', async () => {
     raceIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf', 'dwarf2'],
@@ -114,13 +114,14 @@ describe('PositionAvailabilityRawRendererService', () => {
     tp.raceFor.mockImplementation((code: string) =>
       Promise.resolve({
         teamRaceCode: code,
-        rosterName: 'Dwarf',
-        rosterCount: 1,
+        raceName: 'Dwarf',
+        rulesSets: ['BB2025'],
         positions: [
           {
             tpPositionId: 100,
             name: 'Blitzer',
             isStar: false,
+            rulesSet: 'BB2025',
             characteristics: {
               move: 5,
               strength: 3,
@@ -133,6 +134,7 @@ describe('PositionAvailabilityRawRendererService', () => {
             tpPositionId: 200,
             name: 'Deathroller',
             isStar: true,
+            rulesSet: 'BB2025',
             characteristics: {
               move: 3,
               strength: 8,
@@ -148,21 +150,51 @@ describe('PositionAvailabilityRawRendererService', () => {
     const html = await service.render(race);
 
     expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('<td>BB2025</td>');
     expect(html.match(/Blitzer/g)?.length).toBe(1);
     expect(html).not.toContain('Deathroller');
+  });
+
+  it('keeps the same TP position name under two rules sets as two rows', async () => {
+    raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf'], name: [] });
+    tp.raceFor.mockResolvedValue({
+      teamRaceCode: 'dwarf',
+      raceName: 'Dwarf',
+      rulesSets: ['BB2020', 'BB2025'],
+      positions: ['BB2020', 'BB2025'].map((rulesSet) => ({
+        tpPositionId: 100,
+        name: 'Blitzer',
+        isStar: false,
+        rulesSet,
+        characteristics: {
+          move: 5,
+          strength: 3,
+          agility: 3,
+          passing: 0,
+          armour: 9,
+        },
+      })),
+    });
+
+    const html = await service.render(race);
+
+    expect(html.match(/Blitzer/g)?.length).toBe(2);
+    expect(html).toContain('<td>BB2020</td>');
+    expect(html).toContain('<td>BB2025</td>');
   });
 
   it('omits the TP sub-section when every TP position is a star player', async () => {
     raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf'], name: [] });
     tp.raceFor.mockResolvedValue({
       teamRaceCode: 'dwarf',
-      rosterName: 'Dwarf',
-      rosterCount: 1,
+      raceName: 'Dwarf',
+      rulesSets: ['BB2025'],
       positions: [
         {
           tpPositionId: 200,
           name: 'Deathroller',
           isStar: true,
+          rulesSet: 'BB2025',
           characteristics: {
             move: 3,
             strength: 8,

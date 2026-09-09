@@ -12,7 +12,7 @@ deliberately does not run is the thing being reviewed.
 `packages/parse-tp`, `packages/import`, `tools/import-bbl`, `tools/import-tp` or
 `tools/import-manual` — not for parsing, not for lookups, and not for "safe" shared
 domain knowledge such as BBL page selectors or TP field names. Code that looks
-duplicated from those tools — the BBL page selectors, the TP roster field names, the
+duplicated from those tools — the BBL page selectors, the TP official-team-list field names, the
 JSON5 shapes — is duplicated on purpose: sharing it would let a bug agree with itself
 instead of showing up as a difference. That rule covers the **domain-specific** half
 only. The domain-agnostic scaffolding (HTML fragment assembly, timestamped report
@@ -94,8 +94,9 @@ tool's own composition.
      on the sampled entity's own source), each contributing its own sub-table when that
      source has data for the race. BBL's sub-table shows its race id, race-list name,
      team-page name, team-page count and team codes — it carries no cost or position
-     data. TP's sub-table shows its `teamRace` code, `rosterMaster.name`, roster count
-     and position **count** (not a position list). Manual curation's sub-table shows the
+     data. TP's sub-table shows its `teamRace` code, the official list's race name, the
+     rules sets whose official list carries the code, and how many positions it lists
+     (a **count**, not a position list). Manual curation's sub-table shows the
      curated name and its registered external ids. A fourth sub-table, BBL/TP name
      agreement, compares BBL's
      and TP's own names for the race — accounting for BBL's `<Race> Team(s)` suffix
@@ -104,13 +105,17 @@ tool's own composition.
      for that race.
    - **position-availability** — left: raw BBL and TP source data showing which positions
      are listed for this race in each source (a BBL position page that does not list the
-     race is rendered as a highlighted row with an explicit label `NOT LISTED`), plus a
+     race is rendered as a highlighted row with an explicit label `NOT LISTED`). TP's
+     rows are per rules set — the same position name under two rules sets is two rows —
+     because TP publishes one official team list per rules set. Plus a
      manual curation sub-table sourced from `position-availability.json5` for the
      rulebook rosters neither BBL nor TP can evidence. Right: the stored availability
      data from `positions_race_eras` for each era this race covers.
    - **position-characteristics** — left: raw BBL and TP source data for this race's
      positions, showing move/strength/agility/passing/armour (MA/ST/AG/PA/AV) per rules
-     set, plus manual curation's own characteristics for rules sets neither source
+     set — TP's rows carry their own rules-set column, so a position's per-rules-set
+     stat lines sit side by side — plus manual curation's own characteristics for rules
+     sets neither source
      evidences the same way the database stores them. A BBL position page that cannot be
      read, or that carries no characteristics table, is rendered as a highlighted row
      naming the problem instead of being silently dropped from the table. Right: the
@@ -161,7 +166,7 @@ pnpm --filter @blood-bowl-tracker/review-race run start
 Exit codes: `0` with `Reviewed <N> race(s); report written to <path>.` on success; `1`
 with `Review failed: <error>` when the database is unreachable or the config is unusable.
 
-A run scans every downloaded `rosters_*.json` and every BBL team page once per process,
+A run scans every downloaded `teams/<rulesSet>/*.json` and every BBL team page once per process,
 which is the slowest part of a run by a wide margin. That cost is the price of not
 reusing the importers' readers, which are code under review.
 

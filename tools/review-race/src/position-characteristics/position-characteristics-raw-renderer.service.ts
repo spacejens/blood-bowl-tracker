@@ -9,7 +9,7 @@ import { RacePositionsQueryService } from '../shared/race-positions-query.servic
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 
 const NONE = '—';
 const NAME_SYSTEM = 'Name';
@@ -33,7 +33,7 @@ export class PositionCharacteristicsRawRendererService {
     private readonly positionIds: PositionExternalIdsService,
     private readonly raceIds: RaceExternalIdsService,
     private readonly bbl: BblRawPositionPageService,
-    private readonly tp: TpRawRosterIndexService,
+    private readonly tp: TpRawOfficialTeamsIndexService,
     private readonly manual: ManualRawDataService,
     private readonly typIds: BblPositionTypIdsService,
     private readonly html: HtmlService,
@@ -113,18 +113,20 @@ export class PositionCharacteristicsRawRendererService {
   private async tpSection(race: SampledRace): Promise<string | null> {
     const ids = await this.raceIds.forRace(race.raceId);
     const rows: TableCell[][] = [];
-    const seen = new Set<number>();
+    const seen = new Set<string>();
     for (const code of ids.tp) {
       const tpRace = await this.tp.raceFor(code);
       for (const position of tpRace?.positions ?? []) {
-        if (seen.has(position.tpPositionId) || position.isStar) {
+        const key = `${position.rulesSet} ${position.name}`;
+        if (seen.has(key) || position.isStar) {
           continue;
         }
-        seen.add(position.tpPositionId);
+        seen.add(key);
         const { move, strength, agility, passing, armour } =
           position.characteristics;
         rows.push([
           position.name,
+          position.rulesSet,
           String(move),
           String(strength),
           String(agility),
@@ -138,7 +140,10 @@ export class PositionCharacteristicsRawRendererService {
     }
     return (
       this.html.subheading('TP') +
-      this.html.table(['Position', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
+      this.html.table(
+        ['Position', 'Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
+        rows,
+      )
     );
   }
 

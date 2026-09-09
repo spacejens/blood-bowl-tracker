@@ -8,13 +8,13 @@ import { mock } from 'vitest-mock-extended';
 import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import { RaceNameComparisonService } from '../shared/race-name-comparison.service';
 import { BblRawRaceIndexService } from '../source/bbl-raw-race-index.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 import { NameMismatchStratificationService } from './name-mismatch-stratification.service';
 
 interface MakeServiceOpts {
   externalIds?: RaceExternalIdsService;
   bblIndex?: BblRawRaceIndexService;
-  tpIndex?: TpRawRosterIndexService;
+  tpIndex?: TpRawOfficialTeamsIndexService;
   comparison?: RaceNameComparisonService;
 }
 
@@ -24,7 +24,7 @@ async function makeService(
 ): Promise<NameMismatchStratificationService> {
   const extIds = opts.externalIds || mock<RaceExternalIdsService>();
   const bbl = opts.bblIndex || mock<BblRawRaceIndexService>();
-  const tp = opts.tpIndex || mock<TpRawRosterIndexService>();
+  const tp = opts.tpIndex || mock<TpRawOfficialTeamsIndexService>();
   const comp =
     opts.comparison || (await createRealRaceNameComparisonService(dbResult));
 
@@ -34,7 +34,7 @@ async function makeService(
       { provide: DB, useValue: dbResult.db },
       { provide: RaceExternalIdsService, useValue: extIds },
       { provide: BblRawRaceIndexService, useValue: bbl },
-      { provide: TpRawRosterIndexService, useValue: tp },
+      { provide: TpRawOfficialTeamsIndexService, useValue: tp },
       { provide: RaceNameComparisonService, useValue: comp },
     ],
   }).compile();
@@ -73,7 +73,7 @@ describe('NameMismatchStratificationService', () => {
     ]);
     const externalIds = mock<RaceExternalIdsService>();
     const bblIndex = mock<BblRawRaceIndexService>();
-    const tpIndex = mock<TpRawRosterIndexService>();
+    const tpIndex = mock<TpRawOfficialTeamsIndexService>();
 
     // Race 1: BBL "Elven Union Team" vs TP "Wood Elf" - mismatch
     externalIds.forRace.mockImplementation((raceId) => {
@@ -102,10 +102,10 @@ describe('NameMismatchStratificationService', () => {
 
     tpIndex.raceFor.mockImplementation((code) => {
       if (code === 'w') {
-        return Promise.resolve({ rosterName: 'Wood Elf' } as never);
+        return Promise.resolve({ raceName: 'Wood Elf' } as never);
       }
       if (code === 'd') {
-        return Promise.resolve({ rosterName: 'Dwarf' } as never);
+        return Promise.resolve({ raceName: 'Dwarf' } as never);
       }
       return Promise.resolve(null);
     });
@@ -130,7 +130,7 @@ describe('NameMismatchStratificationService', () => {
     const dbResult = mockDb([{ raceId: 1, raceName: 'Dwarves' }]);
     const externalIds = mock<RaceExternalIdsService>();
     const bblIndex = mock<BblRawRaceIndexService>();
-    const tpIndex = mock<TpRawRosterIndexService>();
+    const tpIndex = mock<TpRawOfficialTeamsIndexService>();
 
     // Both report "Dwarf" - should agree
     externalIds.forRace.mockResolvedValue({
@@ -145,7 +145,7 @@ describe('NameMismatchStratificationService', () => {
     } as never);
 
     tpIndex.raceFor.mockResolvedValue({
-      rosterName: 'Dwarf',
+      raceName: 'Dwarf',
     } as never);
 
     const service = await makeService(dbResult, {
@@ -167,7 +167,7 @@ describe('NameMismatchStratificationService', () => {
     const dbResult = mockDb([{ raceId: 1, raceName: 'Unknown' }]);
     const externalIds = mock<RaceExternalIdsService>();
     const bblIndex = mock<BblRawRaceIndexService>();
-    const tpIndex = mock<TpRawRosterIndexService>();
+    const tpIndex = mock<TpRawOfficialTeamsIndexService>();
 
     externalIds.forRace.mockResolvedValue({
       bbl: ['999'],
@@ -178,7 +178,7 @@ describe('NameMismatchStratificationService', () => {
     // BBL has no data
     bblIndex.raceFor.mockResolvedValue(null);
     tpIndex.raceFor.mockResolvedValue({
-      rosterName: 'Wood Elf',
+      raceName: 'Wood Elf',
     } as never);
 
     const service = await makeService(dbResult, {
@@ -200,7 +200,7 @@ describe('NameMismatchStratificationService', () => {
     const dbResult = mockDb([{ raceId: 1, raceName: 'Unknown' }]);
     const externalIds = mock<RaceExternalIdsService>();
     const bblIndex = mock<BblRawRaceIndexService>();
-    const tpIndex = mock<TpRawRosterIndexService>();
+    const tpIndex = mock<TpRawOfficialTeamsIndexService>();
 
     externalIds.forRace.mockResolvedValue({
       bbl: ['1'],
@@ -237,7 +237,7 @@ describe('NameMismatchStratificationService', () => {
     ]);
     const externalIds = mock<RaceExternalIdsService>();
     const bblIndex = mock<BblRawRaceIndexService>();
-    const tpIndex = mock<TpRawRosterIndexService>();
+    const tpIndex = mock<TpRawOfficialTeamsIndexService>();
 
     // All races have mismatched names
     externalIds.forRace.mockImplementation((raceId) =>
@@ -256,7 +256,7 @@ describe('NameMismatchStratificationService', () => {
 
     tpIndex.raceFor.mockImplementation((id) =>
       Promise.resolve({
-        rosterName: `TP Race ${id}`,
+        raceName: `TP Race ${id}`,
       } as never),
     );
 
