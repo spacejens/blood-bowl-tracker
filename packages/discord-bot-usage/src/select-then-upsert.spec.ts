@@ -146,6 +146,28 @@ describe('selectThenUpsert', () => {
     expect(id).toBe(99);
   });
 
+  it('recognizes a unique violation wrapped three levels deep in .cause', async () => {
+    // Three nested wrappers: error.cause.cause.cause is the real violation.
+    const wrapped = Object.assign(new Error('outer'), {
+      cause: Object.assign(new Error('middle'), {
+        cause: Object.assign(new Error('inner'), {
+          cause: guildsUniqueViolation(),
+        }),
+      }),
+    });
+    const db = mockDb([], wrapped, [{ id: 99 }]);
+
+    const id = await selectThenUpsert({
+      tx: db.db,
+      table: guilds,
+      idColumn: guilds.id,
+      where: eq(guilds.discordId, 'g1'),
+      values: { discordId: 'g1', name: 'The Pitch' },
+    });
+
+    expect(id).toBe(99);
+  });
+
   it('rethrows immediately when the violated constraint is the primary key', async () => {
     const insertError = Object.assign(new Error('duplicate key value'), {
       code: '23505',

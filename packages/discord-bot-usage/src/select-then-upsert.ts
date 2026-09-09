@@ -13,9 +13,10 @@ const UNIQUE_VIOLATION = '23505';
 
 /**
  * How many `.cause` links to walk while unwrapping a caught error before
- * giving up. drizzle-orm's pg-core session wraps exactly one level in
- * practice (see below), so 3 is generous headroom rather than a value tuned
- * to a specific stack.
+ * giving up — the loop below checks the original error plus this many
+ * nested `.cause` values (`<=`, not `<`). drizzle-orm's pg-core session
+ * wraps exactly one level in practice (see below), so 3 is generous
+ * headroom rather than a value tuned to a specific stack.
  */
 const MAX_CAUSE_UNWRAP_DEPTH = 3;
 
@@ -33,7 +34,7 @@ const MAX_CAUSE_UNWRAP_DEPTH = 3;
  */
 function isUniqueViolationOn(error: unknown, tableName: string): boolean {
   let candidate: unknown = error;
-  for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
+  for (let depth = 0; depth <= MAX_CAUSE_UNWRAP_DEPTH; depth++) {
     const typed = candidate as
       | {
           code?: unknown;
