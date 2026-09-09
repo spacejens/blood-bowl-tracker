@@ -1,3 +1,8 @@
+import type {
+  InteractionParameter,
+  RecordInteractionInput,
+} from '@blood-bowl-tracker/discord-bot-usage';
+import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import {
   Inject,
   Injectable,
@@ -50,6 +55,19 @@ export type SelectMenuHandler = (
   interaction: StringSelectMenuInteraction,
 ) => Promise<string | InteractionReplyOptions>;
 
+interface UsageInputOptions {
+  interaction:
+    | ChatInputCommandInteraction
+    | ButtonInteraction
+    | StringSelectMenuInteraction;
+  kind: RecordInteractionInput['kind'];
+  /** Command name, or the matched component customId prefix. */
+  name: string;
+  parameters: InteractionParameter[];
+  outcome: RecordInteractionInput['outcome'];
+  errorMessage?: string;
+}
+
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
@@ -65,7 +83,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly buttonHandlers = new Map<string, ButtonHandler>();
   private readonly selectMenuHandlers = new Map<string, SelectMenuHandler>();
 
-  constructor(@Inject(DISCORD_BOT_TOKEN) private readonly token: string) {
+  constructor(
+    @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
+    private readonly usageTracking: UsageTrackingService,
+  ) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
   }
 
@@ -293,13 +314,93 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
       await interaction.reply(content);
+      void this.recordUsage({
+        interaction,
+        kind: 'command',
+        name: interaction.commandName,
+        parameters: this.commandParameters(interaction),
+        outcome: 'success',
+      });
     } catch (error) {
       this.logger.error(
         `Failed to handle /${interaction.commandName} command`,
         error,
       );
       await interaction.reply('I am badly hurt');
+      void this.recordUsage({
+        interaction,
+        kind: 'command',
+        name: interaction.commandName,
+        parameters: this.commandParameters(interaction),
+        outcome: 'failure',
+        errorMessage: this.errorMessage(error),
+      });
     }
+  }
+
+  /**
+   * Records one handled interaction, best-effort. Deliberately swallows its
+   * own failure: the user has already been replied to by the time this runs,
+   * and a telemetry write must never turn a working command into a broken one.
+   * Callers fire it with `void` rather than awaiting it.
+   */
+  private async recordUsage(options: UsageInputOptions): Promise<void> {
+    try {
+      await this.usageTracking.recordInteraction(this.buildUsageInput(options));
+    } catch (error) {
+      this.logger.warn('Failed to record usage event', error);
+    }
+  }
+
+  /** Extracts the Discord context every recorded interaction shares. */
+  private buildUsageInput(options: UsageInputOptions): RecordInteractionInput {
+    const { interaction } = options;
+    const member = interaction.member;
+    return {
+      kind: options.kind,
+      name: options.name,
+      occurredAt: interaction.createdAt,
+      discordUserId: interaction.user.id,
+      username: interaction.user.username,
+      discordGuildId: interaction.guildId ?? undefined,
+      guildName: interaction.guild?.name,
+      nickname:
+        member && 'nickname' in member
+          ? (member.nickname ?? undefined)
+          : undefined,
+      discordChannelId: interaction.channelId,
+      channelName:
+        interaction.channel && 'name' in interaction.channel
+          ? (interaction.channel.name ?? undefined)
+          : undefined,
+      outcome: options.outcome,
+      errorMessage: options.errorMessage,
+      parameters: options.parameters,
+    };
+  }
+
+  /**
+   * One parameter row per supplied slash-command option. A non-string option
+   * value (a number, a boolean, a resolved snowflake) is stringified, since
+   * the column is text.
+   */
+  private commandParameters(
+    interaction: ChatInputCommandInteraction,
+  ): InteractionParameter[] {
+    return interaction.options.data.map((option) => ({
+      key: option.name,
+      value:
+        option.value === undefined
+          ? undefined
+          : typeof option.value === 'string'
+            ? option.value
+            : JSON.stringify(option.value),
+    }));
+  }
+
+  /** The message of a caught error, for the `error_message` column. */
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 
   /** First registered prefix that `customId` starts with, if any. */

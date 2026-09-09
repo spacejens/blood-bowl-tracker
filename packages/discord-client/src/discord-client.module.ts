@@ -1,3 +1,4 @@
+import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 
 import {
@@ -20,6 +21,7 @@ export class DiscordClientModule {
   static forRoot(options: DiscordClientModuleOptions): DynamicModule {
     return {
       module: DiscordClientModule,
+      imports: [DiscordBotUsageModule],
       providers: [
         { provide: DISCORD_BOT_TOKEN, useValue: options.token },
         DiscordClientService,
@@ -31,6 +33,7 @@ export class DiscordClientModule {
   static forRootAsync(options: DiscordClientModuleAsyncOptions): DynamicModule {
     return {
       module: DiscordClientModule,
+      imports: [DiscordBotUsageModule],
       providers: [
         {
           provide: DISCORD_BOT_TOKEN,
