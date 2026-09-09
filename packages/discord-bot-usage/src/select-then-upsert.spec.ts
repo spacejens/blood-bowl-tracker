@@ -45,6 +45,39 @@ describe('selectThenUpsert', () => {
     });
   });
 
+  it('re-reads and returns the winner id when a concurrent insert wins the unique-constraint race', async () => {
+    // Query 0: the select (finds nothing). Query 1: the insert, which loses
+    // the race and rejects. Query 2: the re-select, which finds the winner.
+    const db = mockDb([], new Error('unique constraint violation'), [
+      { id: 99 },
+    ]);
+
+    const id = await selectThenUpsert({
+      tx: db.db,
+      table: guilds,
+      idColumn: guilds.id,
+      where: eq(guilds.discordId, 'g1'),
+      values: { discordId: 'g1', name: 'The Pitch' },
+    });
+
+    expect(id).toBe(99);
+  });
+
+  it('rethrows the original error when the insert fails but no row appears on re-select', async () => {
+    const insertError = new Error('connection reset');
+    const db = mockDb([], insertError, []);
+
+    await expect(
+      selectThenUpsert({
+        tx: db.db,
+        table: guilds,
+        idColumn: guilds.id,
+        where: eq(guilds.discordId, 'g1'),
+        values: { discordId: 'g1', name: 'The Pitch' },
+      }),
+    ).rejects.toBe(insertError);
+  });
+
   it('never issues an ON CONFLICT clause on either path', async () => {
     const insertDb = mockDb([], [{ id: 1 }]);
     await selectThenUpsert({

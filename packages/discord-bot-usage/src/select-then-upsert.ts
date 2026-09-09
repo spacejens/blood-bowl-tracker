@@ -60,9 +60,32 @@ export async function selectThenUpsert<T extends PgTable>(
     await tx.update(table).set(values).where(where);
     return existing.id as number;
   }
-  const [inserted] = await tx
-    .insert(table)
-    .values(values)
-    .returning({ id: idColumn });
-  return inserted.id as number;
+  try {
+    // Wrapped in a savepoint (drizzle's nested `.transaction()` against
+    // postgres-js): a failed statement otherwise poisons the whole
+    // enclosing transaction in PostgreSQL, which would also fail the
+    // re-select below.
+    return await tx.transaction(async (savepoint) => {
+      const [inserted] = await savepoint
+        .insert(table)
+        .values(values)
+        .returning({ id: idColumn });
+      return inserted.id as number;
+    });
+  } catch (error) {
+    // A concurrent caller inserted the same row between our select and
+    // insert, and the unique constraint rejected ours. Re-read the winner's
+    // row rather than dropping the whole call — plausible in practice (two
+    // users interacting in the same new guild or channel at once). If no
+    // row appears, this was some other failure: rethrow the original error.
+    const [raced] = await tx
+      .select({ id: idColumn })
+      .from(asBaseTable(table))
+      .where(where)
+      .limit(1);
+    if (raced) {
+      return raced.id as number;
+    }
+    throw error;
+  }
 }
