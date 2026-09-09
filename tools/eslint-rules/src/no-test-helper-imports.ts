@@ -14,9 +14,16 @@ const TEST_HELPER_SOURCE = /(^|[./])test-helpers(\.[jt]s)?$/;
 /**
  * A file is itself a test file — and therefore allowed to import test
  * helpers — if it is a `*.spec.ts`, `*.e2e-spec.ts`, or `*.test-helpers.ts`
- * file.
+ * file, or if it sits directly inside a package's top-level `test/`
+ * directory. That directory is this repo's dedicated home for Vitest
+ * plumbing that isn't itself named with one of those suffixes — e.g. a
+ * `test/setup.ts` or an e2e suite's `test/global-setup.ts` and
+ * `test/e2e-database.ts` — never for production code, matching the
+ * non-recursive `<package>/test/*.ts` globs already used for
+ * `allowDefaultProject` in `eslint.config.ts`.
  */
-const TEST_FILE = /\.(spec|e2e-spec|test-helpers)\.ts$/;
+const TEST_FILE =
+  /(?:\.(spec|e2e-spec|test-helpers)\.ts|(?:^|\/)test\/[^/]+\.ts)$/;
 
 const MESSAGE =
   'Test helpers (*.test-helpers.ts) are test-only and must not be imported by production code. Move the logic into a real module if production needs it.';
