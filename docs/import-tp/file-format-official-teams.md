@@ -93,12 +93,15 @@ what [`rosters_<id>.json`](./file-format-rosters.md) already sees.
 - `iconClass`, `iconVariation` — `"Goblin-Bruiser-Linemen"`, `6`. Presentation
   only.
 - `isBigGuy` — `true`. Optional; absent means false.
-- `race[]` — `[111]`, or `[112, 121, 110]` for a position several races share.
-  BB2025 only: numeric race ids, 100–121 observed.
+- `race[]` — `[111]`, or `[112, 121, 110]` for a position open to several
+  species. BB2025 only: numeric ids in the 100–133 range identifying the
+  player's **species** (100 Dwarf, 101 Elf, 102 Orc, 106 Halfling, 112 Human,
+  113 Ogre, 116 Treeman, …), not the team races the entry belongs to.
 - `positionTypes` — `1`. Bitmask, optional under BB2025 and absent throughout
   BB2020.
-- `availableRaces` — `32`. Bitmask, used by BB2020 and DB2021 in place of
-  `race[]`.
+- `availableRaces` — `32`. A one-bit-per-team-race bitmask, BB2020 and DB2021
+  only (absent under BB2025). Identical on every position of one roster, so it
+  is redundant with `rosterMasterId` and carries nothing the import needs.
 - `specialRuleName` — `"Lycanthrope"`. Optional.
 
 ### `starplayerMasters[]` — star players, a separate top-level array
@@ -110,12 +113,42 @@ single roster. Star ids share the same space as position ids (no overlap
 observed between the two arrays, nor between rules sets), so a star's `id` is
 usable as a TP position external id exactly like a regular position's.
 
-Availability is expressed differently per rules set: BB2025 stars carry
-`race[]` (numeric race ids) and often `availableTeamSpecialRules`; BB2020 stars
-carry `availableRaces`/`availableTeamSpecialRules` bitmasks and no `race[]`.
-`specialRuleName` (the star's special rule, e.g. `"Catch of the Day"`) is
+`specialRuleName` (the star's own special rule, e.g. `"Catch of the Day"`) is
 always present. `linkedWith` (another star's `id`, for stars hired as a pair)
 is optional — 6 of 66 BB2025 stars have it.
+
+#### Which races may hire a star
+
+Two parallel bitmasks, AND-ed against the matching pair on each roster. A race
+may hire the star when **either** overlaps:
+
+- `star.availableLeagues & (roster.leagues | roster.selectableLeagues)` —
+  BB2025's mechanism (60 of its 66 stars).
+- `star.availableTeamSpecialRules &
+  (roster.teamSpecialRules | roster.selectableTeamSpecialRules)` — BB2020's
+  mechanism (all 67 stars), and still BB2025's for the 7 chaos/Chaos-Dwarf
+  stars whose availability stayed a team special rule.
+
+The `selectable*` halves matter: a rule a race merely _may choose_ still makes
+the star hireable by it (BB2025 Norse has `teamSpecialRules: 0` and
+`selectableTeamSpecialRules: 1024`, and does get the Favoured-of-Khorne stars).
+
+Both mask spaces use the same bit assignments as Blood Bowl's published team
+special rules — bit 0 Badlands Brawl, 1 Elven Kingdoms League, 2 Halfling
+Thimble Cup, 3 Lustrian Superleague, 4 Old World Classic, 5 Sylvanian
+Spotlight, 6 Underworld Challenge, 7 Worlds Edge Superleague, 8 Bribery and
+Corruption, 10 Favoured of Khorne, 11 Favoured of Nurgle — which is how the
+decode was confirmed: every star in both files resolves to a non-empty race
+list matching its published availability (e.g. Griff Oberwald → the Old World
+Classic teams, Deeproot Strongbranch → Halfling/Wood Elf/Gnome).
+
+Two fields that look like availability and are **not**:
+
+- `star.race[]` (BB2025) is the star's own **species**, the same id space
+  `lineUpMasters[].race` uses — Morg 'n' Thorg is `[113]` (Ogre), Deeproot
+  Strongbranch `[116]` (Treeman). It says nothing about hireability.
+- `star.availableRaces` (BB2020) is a literal `0` on all 67 stars, so it
+  carries no information at all.
 
 ### `skills[]` — one skill on a position or star
 

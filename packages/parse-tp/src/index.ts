@@ -14,6 +14,11 @@ export type {
 export { MatchEventParserService } from './match-event-parser.service';
 export type { TpMatch } from './match-parser.service';
 export { MatchParserService } from './match-parser.service';
+export type {
+  TpOfficialPosition,
+  TpOfficialRace,
+} from './official-teams-parser.service';
+export { OfficialTeamsParserService } from './official-teams-parser.service';
 export { ParseTpModule } from './parse-tp.module';
 export type {
   TpCareerSppCounts,
