@@ -47,6 +47,13 @@ describe('no-test-helper-imports', () => {
         code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
         filename: 'coaches.service.spec.ts',
       },
+      // A file directly inside a package's top-level `test/` directory —
+      // e.g. an e2e suite's global setup — is test-only, even though its own
+      // name carries none of the *.spec/*.e2e-spec/*.test-helpers suffixes.
+      {
+        code: "import { startTestPostgresContainer } from '@blood-bowl-tracker/db/test-helpers';",
+        filename: 'packages/game-data/test/global-setup.ts',
+      },
     ],
     invalid: [
       // A production file importing a test helper is exactly what the rule
@@ -84,6 +91,23 @@ describe('no-test-helper-imports', () => {
       {
         code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
         filename: 'coaches.service.ts',
+        errors: [{ message: MESSAGE }],
+      },
+      // A file that merely has "test" somewhere in its path, but is not
+      // directly inside a `test/` directory segment, is still production
+      // code and still caught.
+      {
+        code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
+        filename: 'src/testing-utils.ts',
+        errors: [{ message: MESSAGE }],
+      },
+      // A `test/` directory nested below a package's `src/`, rather than
+      // sitting directly at the package's top level, is still production
+      // code and still caught — the exemption is for
+      // `packages|apps|tools/<name>/test/*.ts` only.
+      {
+        code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
+        filename: 'apps/discord-bot/src/test/helpers.ts',
         errors: [{ message: MESSAGE }],
       },
     ],

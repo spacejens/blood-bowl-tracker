@@ -14,7 +14,9 @@
       "default": "./dist/test-helpers/db-mock.test-helpers.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && cp src/scripts/package.json dist/scripts/package.json && cp src/test-helpers/package.json dist/test-helpers/package.json",
     "lint": "eslint \"src/**/*.ts\"",
@@ -39,9 +41,11 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^12.0.0",
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "rc",
+    "testcontainers": "^12.1.0",
     "typescript": "^6.0.3",
     "vite": "^8.2.1",
     "vitest": "^4.1.10",

@@ -81,6 +81,13 @@ pnpm run test         # unit tests
 pnpm run test:e2e     # e2e tests
 ```
 
+> **Note:** `packages/game-data`'s `pnpm run test` runs its unit tests and then a
+> real-Postgres integration suite (`pnpm run test:e2e`), so a running Docker
+> daemon is required — `testcontainers` starts a throwaway `postgres:18-alpine`
+> on a random port for the run. It is deliberately not the docker-compose
+> `postgres` service, whose fixed container name only one worktree can hold at a
+> time.
+
 ### Running with Docker Compose
 
 > **Note:** The Docker Compose setup is intended for local development and testing of the production build. The same image runs in production on Fly.io against a Neon database — see [docs/discord-bot/production-hosting.md](docs/discord-bot/production-hosting.md) — so the Compose file is just a convenient way to run it locally. Once production is running continuously, point your local `.env` at a separate Discord bot identity instead of production's — see [docs/discord-bot/local-development.md](docs/discord-bot/local-development.md).
