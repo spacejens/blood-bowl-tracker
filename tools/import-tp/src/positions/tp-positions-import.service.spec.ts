@@ -392,6 +392,47 @@ describe('TpPositionsImportService', () => {
     ).toBe(true);
   });
 
+  it('records an error when a rules set matches no configured era, instead of silently importing with no availability', async () => {
+    const upsertPosition = vi.fn(() => positionRecord(70));
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'DB2021',
+          positions: [
+            officialPosition({
+              name: 'Dwarf Blocker Lineman',
+              tpPositionId: 280,
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(upsertPosition).toHaveBeenCalledTimes(1);
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 70, raceEras: [] },
+      expect.anything(),
+    );
+    const { errors } = resultArgs(importResults);
+    expect(
+      errors.some(
+        (e) =>
+          e.message.includes('DB2021') &&
+          e.message.includes('matches no configured era'),
+      ),
+    ).toBe(true);
+  });
+
   it('records an error and still upserts when the race name is missing from raceNamesById', async () => {
     const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
     const syncRaceEras = vi

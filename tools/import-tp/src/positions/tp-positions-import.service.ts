@@ -182,6 +182,17 @@ export class TpPositionsImportService {
           (name) => name.toLowerCase() === rulesSet.toLowerCase(),
         ),
       );
+      if (matchingEras.length === 0) {
+        errors.push(
+          this.importResults.error({
+            item: { rulesSet, teamRaceCode: race.teamRaceCode },
+            message:
+              `Rules set "${rulesSet}" (race "${race.teamRaceCode}") ` +
+              'matches no configured era; its positions have no race/era ' +
+              'availability.',
+          }),
+        );
+      }
       for (const position of race.positions) {
         const group = this.groupFor({ groups, raceId, position });
         if (position.tpPositionId !== undefined) {
