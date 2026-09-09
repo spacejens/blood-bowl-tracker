@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 import { GitRootsService, runCli } from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { CheckCoderabbitActivityService } from './check-coderabbit-activity/check-coderabbit-activity.service';
@@ -18,6 +19,7 @@ import {
   POST_REVIEW_QUESTIONS_USAGE,
   PostReviewQuestionsArgsService,
 } from './post-review-questions/post-review-questions-args.service';
+import { AcquireReviewLockCleanupService } from './review-lock/acquire-review-lock-cleanup.service';
 import { ReviewLockService } from './review-lock/review-lock.service';
 import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
@@ -114,10 +116,38 @@ function dispatch(
   }
 }
 
+/**
+ * Hands back a lock acquisition whose CLI run then failed on its way out. The
+ * new holder is already on disk by the time `acquire` resolves, so a later
+ * failure — closing the Nest context, serialising the result — would leave
+ * the lock held by a session that was told it failed and has moved on
+ * unlocked, blocking every queued session until the lock goes stale. A fresh
+ * application context is bootstrapped rather than reusing the one whose close
+ * just failed, whose state is by definition unknown; the actual decision and
+ * release live in `AcquireReviewLockCleanupService`, which is unit tested on
+ * its own.
+ */
+async function onCleanupFailureAfterDispatch(
+  result: unknown,
+  subcommand: Subcommand,
+): Promise<void> {
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: false,
+  });
+  try {
+    await app
+      .get(AcquireReviewLockCleanupService)
+      .releaseIfAcquired(subcommand, result, process.argv);
+  } finally {
+    await app.close();
+  }
+}
+
 void runCli({
   argv: process.argv,
   subcommands: SUBCOMMANDS,
   module: AppModule,
   readArgs,
   dispatch,
+  onCleanupFailureAfterDispatch,
 });

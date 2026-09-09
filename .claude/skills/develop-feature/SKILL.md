@@ -312,7 +312,13 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    Run it via `Bash` with `run_in_background: true`, for the same reason step 5a's wait is backgrounded: it produces exactly one result at exit and can easily outlive a foreground `Bash` call's cap. Wait for the harness's own completion notification, then read the printed JSON. Report a one-line status from `waitedMs` — either that the lock was free, or how long this session waited behind others.
 
-   **If the command fails outright** — a non-zero exit, or output that will not parse — print a one-line warning that the review lock could not be taken and **continue anyway**. A lock that cannot be coordinated costs some extra rate-limit contention, which is the very thing this reduces rather than guarantees, and it must never block an unattended run. Treat the rest of this phase as unlocked in that case: skip the heartbeat, release, and re-acquire calls below.
+   **If the command fails outright** — a non-zero exit, or output that will not parse — first check whether the printed error JSON contains `"dispatchSucceeded": true`. If it does, the lock *was* actually taken on disk before whatever failed afterwards, so it has to be handed back rather than left held. The CLI already attempts that release itself; make one more attempt here as an independent safety net:
+   ```bash
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js release-review-lock <holder-id>
+   ```
+   Ignore its outcome entirely — `{"released": false}` simply means the CLI's own cleanup got there first, which is the normal case, and a non-zero exit here needs no second warning. If the field is absent — missing, or output that will not parse at all — nothing was ever acquired, so skip this extra release.
+
+   Then, either way, print a one-line warning that the review lock could not be taken and **continue anyway**. A lock that cannot be coordinated costs some extra rate-limit contention, which is the very thing this reduces rather than guarantees, and it must never block an unattended run. Treat the rest of this phase as unlocked in that case: skip the heartbeat, release, and re-acquire calls below.
 
    Then create the PR using the appropriate command for the active mode:
 
