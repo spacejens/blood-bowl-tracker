@@ -1,3 +1,4 @@
+export * from './discord-bot-usage';
 export * from './competitions';
 export * from './external-systems';
 export * from './match-events';
