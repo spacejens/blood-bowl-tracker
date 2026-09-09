@@ -74,6 +74,23 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) => deps.coachToplist.resolveFoulsCommitted(scope),
           },
         },
+        trophies: {
+          won: {
+            // Counts every trophy_awards row tied to any of the coach's teams -
+            // team-level awards and player-level awards their players won alike -
+            // matching team.toplist.trophies.won's own counting, summed across
+            // the coach's teams.
+            supportsLeague: true,
+            supportsEra: true,
+            // The only competition-scopable coach toplist: a trophy award
+            // belongs to a competition.
+            supportsCompetition: true,
+            // Deliberately no match-category support: a trophy award is not a
+            // match event, so there is no category dimension to scope by.
+            supportsMatchCategory: false,
+            resolve: (scope) => deps.coachToplist.resolveTrophiesWon(scope),
+          },
+        },
         timeBetweenMatches: {
           longest: {
             descending: {

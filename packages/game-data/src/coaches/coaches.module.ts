@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { MatchOutcomeCountsModule } from '../shared/match-outcome-counts.module';
+import { TrophyAwardCountsModule } from '../shared/trophy-award-counts.module';
 import { CoachesService } from './coaches.service';
 
 @Module({
@@ -10,6 +11,7 @@ import { CoachesService } from './coaches.service';
     LikePatternModule,
     MatchEventCountsModule,
     MatchOutcomeCountsModule,
+    TrophyAwardCountsModule,
   ],
   providers: [CoachesService],
   exports: [CoachesService],

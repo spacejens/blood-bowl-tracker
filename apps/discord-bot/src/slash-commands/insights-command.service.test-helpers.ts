@@ -179,6 +179,9 @@ function makeFactTreeMocks(): FactTreeMocks {
   coachToplist.resolveFoulsCommitted.mockResolvedValue(
     sampleEmbedReply('Coaches by fouls committed', '1. Roze Madder — 8'),
   );
+  coachToplist.resolveTrophiesWon.mockResolvedValue(
+    sampleEmbedReply('Coaches by trophies won', '1. Roze Madder — 3'),
+  );
   coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
     sampleEmbedReply(
       'Coaches by longest time between matches (descending)',

@@ -1,3 +1,4 @@
+import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import { date, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { competitionGroups } from './competition-groups';
@@ -5,10 +6,14 @@ import { eras } from './eras';
 import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 
-export const competitionTypeEnum = gameData.enum('competition_type', [
-  'season',
-  'cup',
-]);
+/**
+ * See `COMPETITION_TYPES` in `@blood-bowl-tracker/domain-enums` for what each
+ * value means.
+ */
+export const competitionTypeEnum = gameData.enum(
+  'competition_type',
+  COMPETITION_TYPES,
+);
 
 const competitionsTable = historyTrackedTable({
   schema: gameData,

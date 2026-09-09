@@ -1,3 +1,4 @@
+import type { SECRET_OBJECTIVES } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -6,24 +7,7 @@ import { Injectable } from '@nestjs/common';
  * each confirmed code to its named objective, and any unmapped code decodes
  * to `'unknown'`.
  */
-export type SecretObjective =
-  | 'red_card'
-  | 'didnt_need_them_anyway'
-  | 'going_alone'
-  | 'fouling_frenzy'
-  | 'going_surfing'
-  | 'ganging_up'
-  | 'whoops'
-  | 'not_so_fast'
-  | 'timely_tackle'
-  | 'precision_passing'
-  | 'hit_em_hard'
-  | 'just_a_little_further'
-  | 'go_long'
-  | 'nuffle_favors_the_bold'
-  | 'all_according_to_plan'
-  | 'headtaker'
-  | 'unknown';
+export type SecretObjective = (typeof SECRET_OBJECTIVES)[number];
 
 /**
  * Exported for `secret-objective.service.spec.ts`, so its decode tests are

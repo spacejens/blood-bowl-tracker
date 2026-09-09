@@ -1,24 +1,16 @@
+import { EXTERNAL_SYSTEM_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
 import { serial, varchar } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 
 /**
- * How an external system relates to our data:
- *  - `bookkeeping` — artificial, added by us for internal purposes (the
- *    synthetic "Name" fallback system). Never counted, in any view.
- *  - `imported_data_source` — a genuine external system we import structured
- *    data from (e.g. a league-tracking site an importer scrapes). The only
- *    category counted in statistics.
- *  - `referenced_not_imported` — a genuine external system we reference (an
- *    identifier is stored against an entity) but don't import structured data
- *    from (e.g. a coach's NAF number). Not counted in statistics — the
- *    identifier describes the entity it's stored against, not something tied
- *    to any particular era/competition/league.
+ * See `EXTERNAL_SYSTEM_CATEGORIES` in `@blood-bowl-tracker/domain-enums` for
+ * what each category means.
  */
 export const externalSystemCategoryEnum = gameData.enum(
   'external_system_category',
-  ['bookkeeping', 'imported_data_source', 'referenced_not_imported'],
+  EXTERNAL_SYSTEM_CATEGORIES,
 );
 
 export type ExternalSystemCategory =

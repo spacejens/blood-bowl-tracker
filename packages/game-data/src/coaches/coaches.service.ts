@@ -33,6 +33,7 @@ import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { FOUL_TYPES } from '../shared/match-event-types';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -45,6 +46,7 @@ export class CoachesService {
     private readonly likePattern: LikePatternService,
     private readonly matchEventCounts: MatchEventCountsService,
     private readonly matchOutcomeCounts: MatchOutcomeCountsService,
+    private readonly trophyAwardCounts: TrophyAwardCountsService,
   ) {}
 
   async upsert(data: UpsertCoach): Promise<{ coach: Coach; created: boolean }> {
@@ -491,8 +493,9 @@ export class CoachesService {
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     // Deliberately does not forward scope.competitionId: coach toplists are
-    // league/era/match-category-scoped only, matching every other
-    // coach.toplist.* fact.
+    // league/era/match-category-scoped only, matching the other
+    // match-event-backed coach.toplist.* facts (the trophy toplist below is
+    // the exception, since a trophy award belongs to a competition).
     return this.matchEventCounts.countMatchEventsByCoach({
       selector: { role: 'acting', types: FOUL_TYPES },
       scope: {
@@ -502,6 +505,20 @@ export class CoachesService {
       },
       limit,
     });
+  }
+
+  /**
+   * Coaches ranked by the total number of trophies their teams have won,
+   * across every team they have coached. Unlike countFoulsCommittedByCoach,
+   * the competitionId is forwarded: a trophy award belongs to a competition,
+   * so this fact is competition-scopable. The scope's match category is
+   * ignored by the shared service — a trophy award is not a match event.
+   */
+  countTrophiesByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.trophyAwardCounts.countTrophiesByCoach(scope, limit);
   }
 
   countAll(): Promise<number> {

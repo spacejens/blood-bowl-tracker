@@ -1,3 +1,4 @@
+import { TROPHY_RECIPIENT_KINDS } from '@blood-bowl-tracker/domain-enums';
 import { sql } from 'drizzle-orm';
 import { check, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
@@ -7,14 +8,13 @@ import { leagues } from './leagues';
 import { gameData } from './pg-schema';
 
 /**
- * Who a trophy is awarded to. A `team` trophy names a team era; a `player`
- * trophy names an individual player (whose team era is still recorded on the
- * award row — see `trophy-awards.ts`).
+ * See `TROPHY_RECIPIENT_KINDS` in `@blood-bowl-tracker/domain-enums` for what
+ * each value means.
  */
-export const trophyRecipientKindEnum = gameData.enum('trophy_recipient_kind', [
-  'team',
-  'player',
-]);
+export const trophyRecipientKindEnum = gameData.enum(
+  'trophy_recipient_kind',
+  TROPHY_RECIPIENT_KINDS,
+);
 
 /**
  * The curated catalog of known trophies. Deliberately has NO shared "Name"
