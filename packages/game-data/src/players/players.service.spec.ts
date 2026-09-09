@@ -237,8 +237,9 @@ describe('PlayersService', () => {
     });
 
     it('leaves the characteristic columns untouched when the caller omits them', async () => {
-      // No format lookup at all: query 0 is the external-id lookup, exactly
-      // as before this feature existed.
+      // With no characteristics in the payload there is no rules-set format
+      // lookup: query 0 is the external-id lookup, query 1 the upsert, query
+      // 2 the external ids.
       const { chains } = await build([], [fakePlayer]);
 
       await service.upsert({ ...base, externalIds });

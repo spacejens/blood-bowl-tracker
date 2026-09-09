@@ -158,7 +158,8 @@ export class ReferenceResolverService {
    * Omitted refs resolve to `{ ok: true, id: undefined }` with no error — the
    * upsert simply leaves that field alone. A ref that is present but
    * unresolvable records one ImportError and reports `{ ok: false }`, so
-   * the caller skips the entry exactly as before.
+   * the caller skips the entry, exactly as it does for an unresolvable
+   * required ref (see `resolveRef` above).
    */
   async resolveOptionalRef(
     options: ResolveOptionalRefOptions,
