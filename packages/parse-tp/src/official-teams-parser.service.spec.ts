@@ -322,6 +322,15 @@ describe('OfficialTeamsParserService', () => {
     );
   });
 
+  it('tags each race as official or legacy from its roster type', () => {
+    const races = service.parse(RESPONSE);
+    const amazon = races.find((race) => race.teamRaceCode === 'Amazon');
+    const human = races.find((race) => race.teamRaceCode === 'Human');
+
+    expect(amazon?.isOfficial).toBe(false);
+    expect(human?.isOfficial).toBe(true);
+  });
+
   it('excludes Secret Bowl and experimental rosters', () => {
     expect(service.parse(RESPONSE).map((race) => race.teamRaceCode)).toEqual([
       'Human',

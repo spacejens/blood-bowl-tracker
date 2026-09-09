@@ -21,6 +21,7 @@ import { SourceConfigService } from './source-config.service';
 const AMAZON = {
   name: 'Amazon',
   teamRaceCode: 'Amazon_BB2020',
+  isOfficial: true,
   positions: [
     {
       name: 'Eagle Warrior Linewoman',

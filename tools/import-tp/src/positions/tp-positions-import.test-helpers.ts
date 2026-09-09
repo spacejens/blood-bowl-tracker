@@ -217,14 +217,22 @@ export interface OfficialTeamsEntryOpts {
   teamRaceCode: string;
   rulesSet: string;
   positions: TpOfficialPosition[];
+  /** Defaults to `true` (an official roster), matching the common case. */
+  isOfficial?: boolean;
 }
 
 export function officialTeamsEntry(
   opts: OfficialTeamsEntryOpts,
 ): OfficialTeamsEntry {
-  const { raceName, teamRaceCode, rulesSet, positions } = opts;
+  const {
+    raceName,
+    teamRaceCode,
+    rulesSet,
+    positions,
+    isOfficial = true,
+  } = opts;
   return {
-    race: { name: raceName, teamRaceCode, positions },
+    race: { name: raceName, teamRaceCode, isOfficial, positions },
     rulesSet,
   };
 }

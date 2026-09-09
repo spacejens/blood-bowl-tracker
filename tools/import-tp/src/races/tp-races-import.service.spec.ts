@@ -133,7 +133,7 @@ async function makeService({
 }
 
 function officialRace(name: string, teamRaceCode: string): TpOfficialRace {
-  return { name, teamRaceCode, positions: [] };
+  return { name, teamRaceCode, isOfficial: true, positions: [] };
 }
 
 function officialTeamsEntry(

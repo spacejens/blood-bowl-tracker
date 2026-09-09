@@ -29,8 +29,20 @@ interface PositionGroup {
   isStarPlayer: boolean;
   tpPositionIds: Set<number>;
   eraIds: Set<number>;
-  /** Rules set DB id -> the official list's canonical characteristics. */
-  characteristics: Map<number, TpPositionCharacteristics>;
+  /**
+   * Rules set DB id -> the characteristics on record for that slot, tagged
+   * with whether they came from an official roster. Official and legacy
+   * rosters can both carry the same (race, position, rules set) with
+   * different stats -- `recordCharacteristicsForRulesSet` is what makes
+   * official win regardless of processing order.
+   */
+  characteristics: Map<number, CharacteristicsSource>;
+}
+
+/** One rules set's characteristics, tagged with the roster kind they came from. */
+interface CharacteristicsSource {
+  characteristics: TpPositionCharacteristics;
+  isOfficial: boolean;
 }
 
 interface ImportPositionsOptions {
@@ -68,8 +80,15 @@ export class TpPositionsImportService {
    * may field which star under which rules set, so their availability is a
    * direct fact here rather than something derived from observed hires.
    *
-   * Characteristics need no accumulation or conflict resolution: the official
-   * list carries exactly one canonical value per (position, rules set).
+   * Characteristics DO need conflict resolution: an official roster carries
+   * the canonical value for a (position, rules set), but a legacy roster
+   * (imported alongside it for race/position existence and player
+   * resolvability -- see `IMPORTED_ROSTER_TYPES` in
+   * `OfficialTeamsParserService`) can carry a different value for the SAME
+   * slot. `recordCharacteristicsForRulesSet` makes the official value win
+   * regardless of which roster is processed first; a legacy-only slot (no
+   * official counterpart) still gets its legacy value, since that is
+   * strictly better than dropping the position entirely.
    */
   async importPositions(
     officialTeams: OfficialTeamsEntry[],
@@ -180,7 +199,12 @@ export class TpPositionsImportService {
           }
           const rulesSetId = rulesSetIdByEraName.get(era.name);
           if (rulesSetId !== undefined) {
-            group.characteristics.set(rulesSetId, position.characteristics);
+            this.recordCharacteristicsForRulesSet({
+              group,
+              rulesSetId,
+              characteristics: position.characteristics,
+              isOfficial: race.isOfficial,
+            });
           }
         }
       }
@@ -223,6 +247,27 @@ export class TpPositionsImportService {
       result: this.importResults.result({ imported, errors }),
       characteristicsByPositionId,
     };
+  }
+
+  /**
+   * Record one rules set's characteristics onto a group, letting an official
+   * value win over a legacy one regardless of processing order. A legacy
+   * value is dropped when the slot already holds an official one; otherwise
+   * (the slot is empty, or the new value is itself official) the new value
+   * is recorded, so official can still overwrite legacy that arrived first.
+   */
+  private recordCharacteristicsForRulesSet(options: {
+    group: PositionGroup;
+    rulesSetId: number;
+    characteristics: TpPositionCharacteristics;
+    isOfficial: boolean;
+  }): void {
+    const { group, rulesSetId, characteristics, isOfficial } = options;
+    const existing = group.characteristics.get(rulesSetId);
+    if (existing?.isOfficial === true && !isOfficial) {
+      return;
+    }
+    group.characteristics.set(rulesSetId, { characteristics, isOfficial });
   }
 
   /** The group for one (raceId, position name), created on first use. */
@@ -303,9 +348,10 @@ export class TpPositionsImportService {
    * DB position id its upsert resolved to. Two groups can share one row -- a
    * star available to several races produces one `PositionGroup` per race
    * (the group key includes `raceId`), each upserting to the SAME row -- so
-   * each contributes its own rules sets with no conflict handling, because
-   * the official list carries exactly one canonical value per (position,
-   * rules set).
+   * each contributes its own rules sets; which of an official or legacy
+   * source wins for a given slot was already decided by
+   * `recordCharacteristicsForRulesSet` while the group was built, so this
+   * step only unwraps the tagged value.
    */
   private recordCharacteristics(options: {
     characteristicsByPositionId: Map<
@@ -324,8 +370,8 @@ export class TpPositionsImportService {
       existing = new Map();
       characteristicsByPositionId.set(positionId, existing);
     }
-    for (const [rulesSetId, characteristics] of group.characteristics) {
-      existing.set(rulesSetId, characteristics);
+    for (const [rulesSetId, source] of group.characteristics) {
+      existing.set(rulesSetId, source.characteristics);
     }
   }
 }

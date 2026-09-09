@@ -34,6 +34,15 @@ export interface TpOfficialPosition {
 export interface TpOfficialRace {
   name: string;
   teamRaceCode: string;
+  /**
+   * Whether this race came from an official (`teamRosterType === 0`) roster
+   * rather than a legacy (`1`) one -- see `IMPORTED_ROSTER_TYPES`. Threaded
+   * through the same way `isStarPlayer` already is, so a downstream consumer
+   * that needs to prefer official data over legacy (e.g.
+   * `TpPositionsImportService`'s characteristics conflict resolution) does
+   * not have to re-derive it from `teamRosterType` itself.
+   */
+  isOfficial: boolean;
   positions: TpOfficialPosition[];
 }
 
@@ -127,6 +136,7 @@ export class OfficialTeamsParserService {
       .map((roster) => ({
         name: roster.name,
         teamRaceCode: roster.teamRace,
+        isOfficial: roster.teamRosterType === 0,
         positions: [
           ...roster.lineUpMasters.map((entry) => this.position(entry, false)),
           ...stars

@@ -1,4 +1,5 @@
 import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
+import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -645,5 +646,151 @@ describe('TpPositionsImportService', () => {
         { externalSystemId: TP_SYSTEM_ID, externalId: 'Human' },
       ]),
     );
+  });
+
+  it('keeps the official characteristics when a legacy roster disagrees, official-first', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [900] });
+    const { service } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+      raceIdsByCode: new Map([['Norse', 50]]),
+    });
+    const official: TpPositionCharacteristics = {
+      move: 5,
+      strength: 5,
+      agility: 4,
+      passing: 0,
+      armour: 9,
+    };
+    const legacy: TpPositionCharacteristics = {
+      move: 5,
+      strength: 5,
+      agility: 5,
+      passing: 0,
+      armour: 9,
+    };
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Norse',
+          teamRaceCode: 'Norse',
+          rulesSet: 'BB2020',
+          isOfficial: true,
+          positions: [
+            officialPosition({ name: 'Yhetee', characteristics: official }),
+          ],
+        }),
+        officialTeamsEntry({
+          raceName: 'Norse',
+          teamRaceCode: 'Norse',
+          rulesSet: 'BB2020',
+          isOfficial: false,
+          positions: [
+            officialPosition({ name: 'Yhetee', characteristics: legacy }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Norse']]) },
+    );
+
+    expect(characteristicsByPositionId.get(70)?.get(900)).toEqual(official);
+  });
+
+  it('keeps the official characteristics when a legacy roster disagrees, legacy-first', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [900] });
+    const { service } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+      raceIdsByCode: new Map([['Norse', 50]]),
+    });
+    const official: TpPositionCharacteristics = {
+      move: 5,
+      strength: 5,
+      agility: 4,
+      passing: 0,
+      armour: 9,
+    };
+    const legacy: TpPositionCharacteristics = {
+      move: 5,
+      strength: 5,
+      agility: 5,
+      passing: 0,
+      armour: 9,
+    };
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Norse',
+          teamRaceCode: 'Norse',
+          rulesSet: 'BB2020',
+          isOfficial: false,
+          positions: [
+            officialPosition({ name: 'Yhetee', characteristics: legacy }),
+          ],
+        }),
+        officialTeamsEntry({
+          raceName: 'Norse',
+          teamRaceCode: 'Norse',
+          rulesSet: 'BB2020',
+          isOfficial: true,
+          positions: [
+            officialPosition({ name: 'Yhetee', characteristics: official }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Norse']]) },
+    );
+
+    expect(characteristicsByPositionId.get(70)?.get(900)).toEqual(official);
+  });
+
+  it('uses the legacy characteristics when no official roster carries the position', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [900] });
+    const { service } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+      raceIdsByCode: new Map([['Vampire', 50]]),
+    });
+    const legacy: TpPositionCharacteristics = {
+      move: 6,
+      strength: 3,
+      agility: 3,
+      passing: 5,
+      armour: 8,
+    };
+
+    const { characteristicsByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Vampire',
+          teamRaceCode: 'Vampire',
+          rulesSet: 'BB2020',
+          isOfficial: false,
+          positions: [
+            officialPosition({
+              name: 'Thrall Lineman',
+              characteristics: legacy,
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Vampire']]) },
+    );
+
+    expect(characteristicsByPositionId.get(70)?.get(900)).toEqual(legacy);
   });
 });
