@@ -3,13 +3,15 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { getMigratedTestDb } from '@blood-bowl-tracker/db/test-helpers';
 
 /**
- * The triple-slash reference above is required because `test/*.ts` is parsed
- * under ESLint's synthetic "default project" (`eslint.config.ts`'s
- * `allowDefaultProject`, since `tsconfig.json`'s `"include": ["src"]`
- * deliberately excludes `test/` — see `CLAUDE.md`'s "Context the implementer
- * needs" for this task). That default project carries no `@types/node`, so
- * `process` would otherwise type as `error` and trip
- * `@typescript-eslint/no-unsafe-*` below.
+ * The triple-slash reference above is required because ESLint still parses
+ * `test/*.ts` files under its synthetic "default project"
+ * (`eslint.config.ts`'s `allowDefaultProject`) rather than
+ * `tsconfig.test.json` — ESLint's typed linting is driven by its own project
+ * config, not by whichever `tsconfig` a separate `tsc` invocation happens to
+ * use for typechecking, and `tsconfig.test.json` exists only to widen `tsc
+ * --noEmit`'s `include`, not to change what ESLint parses against. That
+ * default project carries no `@types/node`, so `process` would otherwise
+ * type as `error` and trip `@typescript-eslint/no-unsafe-*` below.
  */
 
 /**

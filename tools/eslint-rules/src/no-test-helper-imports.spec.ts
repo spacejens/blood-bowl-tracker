@@ -101,6 +101,15 @@ describe('no-test-helper-imports', () => {
         filename: 'src/testing-utils.ts',
         errors: [{ message: MESSAGE }],
       },
+      // A `test/` directory nested below a package's `src/`, rather than
+      // sitting directly at the package's top level, is still production
+      // code and still caught — the exemption is for
+      // `packages|apps|tools/<name>/test/*.ts` only.
+      {
+        code: "import { mockDb } from '@blood-bowl-tracker/db/test-helpers';",
+        filename: 'apps/discord-bot/src/test/helpers.ts',
+        errors: [{ message: MESSAGE }],
+      },
     ],
   });
 });

@@ -63,6 +63,18 @@ function eraUpsertOptions(
   };
 }
 
+/**
+ * This suite covers retry-loop *exhaustion* against a real Postgres 23505
+ * (the duplicate-pair test below), and single-attempt update-reconciliation
+ * (an external id that already exists before the call is ever made, so no
+ * violation is raised). It does NOT cover the retry-*then-succeed* path — an
+ * attempt that raises a real 23505, retries, and lands on the update branch
+ * with `created: false` on a later attempt. Exercising that would require a
+ * second connection committing a colliding row between one attempt's resolve
+ * step and its insert, i.e. real cross-connection concurrency, which was
+ * deliberately rejected here as flaky. That path stays covered only by the
+ * existing mocked-db unit tests in `upsert-by-external-ids.spec.ts`.
+ */
 describe('upsertByExternalIds (real Postgres)', () => {
   let db: Db;
   let fixtures: ExternalIdFixtures;
@@ -143,6 +155,15 @@ describe('upsertByExternalIds (real Postgres)', () => {
     // isExternalIdUniqueViolation has to unwrap out of DrizzleQueryError; if
     // it failed to recognise it, the raw driver error would surface here
     // instead of the after-N-attempts message.
+    //
+    // This test depends on insertMissingExternalIds
+    // (packages/game-data/src/shared/sync-external-ids.ts) deduping only
+    // against rows already committed in the database, never against
+    // duplicates within the same input array — the duplicate pair below is
+    // what forces Postgres itself to raise the 23505 that drives every
+    // retry. If that function's dedup behavior ever changes to also collapse
+    // duplicates within its own input, this test's collision would stop
+    // happening and it would need revisiting.
     const pair = {
       externalSystemId: fixtures.externalSystemId,
       externalId: 'era-dup',

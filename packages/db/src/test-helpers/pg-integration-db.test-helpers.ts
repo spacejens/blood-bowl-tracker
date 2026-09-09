@@ -54,13 +54,22 @@ export interface TestPostgresContainer {
  */
 export async function startTestPostgresContainer(): Promise<TestPostgresContainer> {
   const { PostgreSqlContainer } = await import('@testcontainers/postgresql');
-  const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
-  return {
-    url: container.getConnectionUri(),
-    stop: async () => {
-      await container.stop();
-    },
-  };
+  try {
+    const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
+    return {
+      url: container.getConnectionUri(),
+      stop: async () => {
+        await container.stop();
+      },
+    };
+  } catch (error) {
+    throw new Error(
+      'Failed to start the ephemeral test Postgres container. Is Docker ' +
+        'running? See README.md for the Docker requirement for ' +
+        "packages/game-data's tests.",
+      { cause: error },
+    );
+  }
 }
 
 /**
@@ -101,7 +110,9 @@ export async function resetGameDataTables(db: Db): Promise<void> {
     ),
   )) as unknown as { tablename: string }[];
 
-  const tables = [...rows].map((row) => `"game_data"."${row.tablename}"`);
+  const tables = [...rows].map(
+    (row) => `"game_data"."${row.tablename.replaceAll('"', '""')}"`,
+  );
   if (tables.length === 0) {
     return;
   }

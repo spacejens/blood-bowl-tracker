@@ -21,8 +21,14 @@ let container: TestPostgresContainer | undefined;
 
 export async function setup(): Promise<void> {
   container = await startTestPostgresContainer();
-  const db = await getMigratedTestDb(container.url);
-  await closeTestDb(db);
+  try {
+    const db = await getMigratedTestDb(container.url);
+    await closeTestDb(db);
+  } catch (error) {
+    await container.stop();
+    container = undefined;
+    throw error;
+  }
   process.env[TEST_DATABASE_URL_ENV] = container.url;
 }
 

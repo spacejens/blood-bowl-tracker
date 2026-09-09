@@ -15,15 +15,21 @@ const TEST_HELPER_SOURCE = /(^|[./])test-helpers(\.[jt]s)?$/;
  * A file is itself a test file — and therefore allowed to import test
  * helpers — if it is a `*.spec.ts`, `*.e2e-spec.ts`, or `*.test-helpers.ts`
  * file, or if it sits directly inside a package's top-level `test/`
- * directory. That directory is this repo's dedicated home for Vitest
- * plumbing that isn't itself named with one of those suffixes — e.g. a
+ * directory, i.e. `packages/<name>/test/*.ts`, `apps/<name>/test/*.ts`, or
+ * `tools/<name>/test/*.ts`. That directory is this repo's dedicated home for
+ * Vitest plumbing that isn't itself named with one of those suffixes — e.g. a
  * `test/setup.ts` or an e2e suite's `test/global-setup.ts` and
  * `test/e2e-database.ts` — never for production code, matching the
  * non-recursive `<package>/test/*.ts` globs already used for
- * `allowDefaultProject` in `eslint.config.ts`.
+ * `allowDefaultProject` in `eslint.config.ts`. The path is anchored to a
+ * top-level `test/` directory directly under one of the three workspace
+ * roots, not any `test/` path segment at arbitrary depth — otherwise a
+ * production file nested under its own `test/` subdirectory (e.g.
+ * `apps/discord-bot/src/test/helpers.ts`) would be wrongly treated as
+ * test-only.
  */
 const TEST_FILE =
-  /(?:\.(spec|e2e-spec|test-helpers)\.ts|(?:^|\/)test\/[^/]+\.ts)$/;
+  /(?:\.(spec|e2e-spec|test-helpers)\.ts|(?:^|\/)(?:packages|apps|tools)\/[^/]+\/test\/[^/]+\.ts)$/;
 
 const MESSAGE =
   'Test helpers (*.test-helpers.ts) are test-only and must not be imported by production code. Move the logic into a real module if production needs it.';
