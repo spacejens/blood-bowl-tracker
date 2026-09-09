@@ -28,6 +28,7 @@ import {
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsStatisticsService', () => {
@@ -35,6 +36,7 @@ describe('TeamsStatisticsService', () => {
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
   let players: MockProxy<PlayersService>;
+  let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -47,6 +49,7 @@ describe('TeamsStatisticsService', () => {
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
         { provide: PlayersService, useValue: players },
+        { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -58,6 +61,7 @@ describe('TeamsStatisticsService', () => {
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
     players = mock<PlayersService>();
+    trophyAwardCounts = mock<TrophyAwardCountsService>();
   });
 
   describe('getTopPlayersByTotalSpp', () => {
@@ -198,61 +202,35 @@ describe('TeamsStatisticsService', () => {
       expect(chains[0].where).not.toHaveBeenCalled();
     });
 
-    it('countTrophiesByTeam returns the rows the query resolves to', async () => {
+    it('countTrophiesByTeam returns the rows TrophyAwardCountsService resolves to', async () => {
       const rows = [
         { teamId: 1, name: '40 grinders', count: 5 },
         { teamId: 2, name: 'Reikland Reavers', count: 2 },
       ];
-      const { db, chains } = await build(rows);
+      trophyAwardCounts.countTrophiesByTeam.mockResolvedValue(rows);
+      const { db } = await build();
       await expect(
         service.countTrophiesByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      expect(db.select).toHaveBeenCalledTimes(1);
-      // Counts every trophy_awards row tied to the team via its team era —
-      // the same aggregation TrophyAwardsService.countByTeam does for one
-      // team, so player-kind awards are included.
-      expect(
-        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
-      ).toEqual(['team_eras.id', 'trophy_awards.team_era_id']);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
+      // The query itself now lives on the shared service, covered by its own
+      // spec; this service must not issue one of its own.
+      expect(db.select).not.toHaveBeenCalled();
     });
 
-    it('countTrophiesByTeam filters by league when a leagueId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTrophiesByTeam({ leagueId: 9 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
-        9,
-      ]);
-    });
-
-    it('countTrophiesByTeam filters by era when an eraId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTrophiesByTeam({ eraId: 20 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
-    });
-
-    it('countTrophiesByTeam filters by competition when a competitionId is given', async () => {
-      const { chains } = await build([]);
-      await service.countTrophiesByTeam({ competitionId: 30 }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(30);
-    });
-
-    it('countTrophiesByTeam ignores a match category, which trophy awards have no dimension for', async () => {
-      const { chains } = await build([]);
-      await service.countTrophiesByTeam({ category: 'cup_final' }, 21);
-      expect(chains[0].where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
-    });
-
-    it('countTrophiesByTeam returns an empty list when no team has won anything', async () => {
-      const { chains } = await build([]);
-      await expect(
-        service.countTrophiesByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual([]);
-      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    it('countTrophiesByTeam forwards the whole scope and limit verbatim', async () => {
+      // Trophy awards carry league, era and competition scope (but no match
+      // category); the shared service is what drops the category, so the whole
+      // scope object is handed over unchanged.
+      trophyAwardCounts.countTrophiesByTeam.mockResolvedValue([]);
+      await build();
+      await service.countTrophiesByTeam(
+        { leagueId: 9, eraId: 20, competitionId: 30, category: 'cup_final' },
+        21,
+      );
+      expect(trophyAwardCounts.countTrophiesByTeam).toHaveBeenCalledWith(
+        { leagueId: 9, eraId: 20, competitionId: 30, category: 'cup_final' },
+        21,
+      );
     });
 
     it.each([

@@ -15,6 +15,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
 } from '../shared/match-event-types';
 import { MatchOutcomeCountsService } from '../shared/match-outcome-counts.service';
+import { TrophyAwardCountsService } from '../shared/trophy-award-counts.service';
 import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', () => {
@@ -22,6 +23,7 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let matchOutcomeCounts: MockProxy<MatchOutcomeCountsService>;
   let players: MockProxy<PlayersService>;
+  let trophyAwardCounts: MockProxy<TrophyAwardCountsService>;
 
   async function build(): Promise<void> {
     const moduleRef = await Test.createTestingModule({
@@ -30,6 +32,7 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: MatchOutcomeCountsService, useValue: matchOutcomeCounts },
         { provide: PlayersService, useValue: players },
+        { provide: TrophyAwardCountsService, useValue: trophyAwardCounts },
         { provide: DB, useValue: mock<Db>() },
       ],
     }).compile();
@@ -40,6 +43,7 @@ describe('TeamsStatisticsService (suffered consequences & expensive mistakes)', 
     matchEventCounts = mock<MatchEventCountsService>();
     matchOutcomeCounts = mock<MatchOutcomeCountsService>();
     players = mock<PlayersService>();
+    trophyAwardCounts = mock<TrophyAwardCountsService>();
   });
 
   describe('toplist queries', () => {
