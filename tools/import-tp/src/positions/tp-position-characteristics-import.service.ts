@@ -11,8 +11,10 @@ import { Injectable } from '@nestjs/common';
  * Writes each position's characteristics under every rules set TP's official
  * team list publishes it for. Unlike BBL — a single BB2020-form snapshot that
  * has to be written to older rules sets too — TP's official list is per rules
- * set at the source, with exactly one canonical value per
- * (position, rules set), so nothing here accumulates or reconciles. Every
+ * set at the source, and the map this receives already holds one
+ * already-reconciled value per (position, rules set) — TpPositionsImportService
+ * resolves any official-vs-legacy disagreement before this service ever sees
+ * the data — so nothing here accumulates or reconciles. Every
  * rules set TP covers (BB2020, DB2021, BB2025) has a Passing characteristic,
  * so `passing` is passed through as the plain number TP supplies (0 meaning
  * "cannot pass"), with no absent-vs-zero branching. A mismatch against a

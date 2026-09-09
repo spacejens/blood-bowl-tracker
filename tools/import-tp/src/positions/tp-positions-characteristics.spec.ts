@@ -42,7 +42,7 @@ function upsertAndSyncMocks(positionId: number) {
 }
 
 describe('TpPositionsImportService characteristics', () => {
-  it('writes one characteristics entry per (position, rules set) with no reconciliation', async () => {
+  it('writes one characteristics entry per (position, rules set) when only one source provides it', async () => {
     const { service } = await makeService(upsertAndSyncMocks(70));
 
     const { characteristicsByPositionId } = await service.importPositions(
