@@ -19,7 +19,7 @@ import {
   POST_REVIEW_QUESTIONS_USAGE,
   PostReviewQuestionsArgsService,
 } from './post-review-questions/post-review-questions-args.service';
-import { AcquireReviewLockOutcomeService } from './review-lock/acquire-review-lock-outcome.service';
+import { AcquireReviewLockCleanupService } from './review-lock/acquire-review-lock-cleanup.service';
 import { ReviewLockService } from './review-lock/review-lock.service';
 import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
@@ -123,7 +123,9 @@ function dispatch(
  * the lock held by a session that was told it failed and has moved on
  * unlocked, blocking every queued session until the lock goes stale. A fresh
  * application context is bootstrapped rather than reusing the one whose close
- * just failed, whose state is by definition unknown.
+ * just failed, whose state is by definition unknown; the actual decision and
+ * release live in `AcquireReviewLockCleanupService`, which is unit tested on
+ * its own.
  */
 async function onCleanupFailureAfterDispatch(
   result: unknown,
@@ -133,15 +135,9 @@ async function onCleanupFailureAfterDispatch(
     logger: false,
   });
   try {
-    if (
-      !app
-        .get(AcquireReviewLockOutcomeService)
-        .wasSuccessfulAcquire(subcommand, result)
-    ) {
-      return;
-    }
-    const { holderId } = app.get(ReviewLockArgsService).parse(process.argv);
-    await app.get(ReviewLockService).release(holderId);
+    await app
+      .get(AcquireReviewLockCleanupService)
+      .releaseIfAcquired(subcommand, result, process.argv);
   } finally {
     await app.close();
   }

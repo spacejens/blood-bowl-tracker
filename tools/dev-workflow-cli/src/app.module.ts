@@ -9,6 +9,7 @@ import { CheckMainStrayService } from './check-main-stray/check-main-stray.servi
 import { DiffHunkMembershipService } from './post-review-questions/diff-hunk-membership.service';
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import { PostReviewQuestionsArgsService } from './post-review-questions/post-review-questions-args.service';
+import { AcquireReviewLockCleanupService } from './review-lock/acquire-review-lock-cleanup.service';
 import { AcquireReviewLockOutcomeService } from './review-lock/acquire-review-lock-outcome.service';
 import { ReviewLockService } from './review-lock/review-lock.service';
 import { ReviewLockArgsService } from './review-lock/review-lock-args.service';
@@ -31,6 +32,7 @@ import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-
     ReviewLockService,
     ReviewLockArgsService,
     AcquireReviewLockOutcomeService,
+    AcquireReviewLockCleanupService,
     PostReviewQuestionsService,
     PostReviewQuestionsArgsService,
     WaitForPrReviewService,
