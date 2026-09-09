@@ -178,7 +178,7 @@ export const DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE =
 export const DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE =
   'The bookkeeper is still adding up every contract this one has signed.';
 export const DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE =
-  "No team has ever paid this one's appearance fee — yet.";
+  "No record of any team paying this one's appearance fee — yet.";
 export const DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE =
   "The agent is still reading this star's numbers out of every rulebook he owns.";
 export const DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE =
