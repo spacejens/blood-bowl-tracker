@@ -133,21 +133,31 @@ describe('OfficialTeamsCollectionService', () => {
     expect(errors[0].message).toContain('teams');
   });
 
-  it('records one error and keeps other rules sets when a rules set directory cannot be scanned', async () => {
-    writeRulesSetFile('BB2020', 'teams_Amazon.json');
-    const badDir = join(dir, 'teams', 'BB2025');
-    mkdirSync(badDir, { recursive: true });
-    chmodSync(badDir, 0o000);
-    parser.parse.mockReturnValue([AMAZON]);
+  // chmodSync(dir, 0o000) is not reliably enforced when the test process runs
+  // as root (root can read a directory regardless of its mode) or on
+  // Windows (which does not model this permission bit the same way), so this
+  // test only exercises real behavior on a non-root POSIX runner.
+  const canRelyOnDirectoryPermissions =
+    process.platform !== 'win32' && process.getuid?.() !== 0;
 
-    try {
-      const entries = await service.collect(errors);
+  it.skipIf(!canRelyOnDirectoryPermissions)(
+    'records one error and keeps other rules sets when a rules set directory cannot be scanned',
+    async () => {
+      writeRulesSetFile('BB2020', 'teams_Amazon.json');
+      const badDir = join(dir, 'teams', 'BB2025');
+      mkdirSync(badDir, { recursive: true });
+      chmodSync(badDir, 0o000);
+      parser.parse.mockReturnValue([AMAZON]);
 
-      expect(entries).toEqual([{ race: AMAZON, rulesSet: 'BB2020' }]);
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('BB2025');
-    } finally {
-      chmodSync(badDir, 0o755);
-    }
-  });
+      try {
+        const entries = await service.collect(errors);
+
+        expect(entries).toEqual([{ race: AMAZON, rulesSet: 'BB2020' }]);
+        expect(errors).toHaveLength(1);
+        expect(errors[0].message).toContain('BB2025');
+      } finally {
+        chmodSync(badDir, 0o755);
+      }
+    },
+  );
 });
