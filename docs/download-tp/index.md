@@ -19,6 +19,12 @@ configured tournament, which is gitignored. That layout matches
 `tools/import-tp/data/<era>/<competition>/` one level down, so importing a
 downloaded tournament is a plain folder copy into the right era directory.
 
+It also downloads TP's canonical official team list — races, positions and
+star players with their characteristics — once per configured rules set, into
+`tools/download-tp/data/teams/<rulesSet>/`, a sibling of the per-tournament
+folders. That list is independent of any played league, so it is the source
+`tools/import-tp` uses for races, positions and star players.
+
 ## Configuration
 
 Copy the template and edit it:
@@ -32,7 +38,8 @@ cp tools/download-tp/download-tp-config.example.json5 tools/download-tp/download
 | `connection.frontendUrl`   | Base URL of the TP frontend, including a trailing slash (required)                                              |
 | `connection.backendApiUrl` | Base URL of the TP API, including a trailing slash — responses whose URL starts with it are recorded (required) |
 | `browser.headless`         | `true` to run the browser headless, `false` to show it (default `false`)                                        |
-| `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required, non-empty)                         |
+| `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required; may be empty)                      |
+| `download.rulesSets`       | Rules sets to download TP's official team list for (required, non-empty)                                        |
 
 `download-tp-config.json5` is git-ignored; only the `.example` template is
 committed. It is looked up at `download-tp-config.json5` in the working
@@ -61,12 +68,12 @@ pnpm --filter @blood-bowl-tracker/download-tp run build
 pnpm --filter @blood-bowl-tracker/download-tp run start
 ```
 
-A missing or incomplete `connection.frontendUrl` or `download.tournaments`
-fails fast with a message naming the key to set, before any browser is
-launched. A missing or incomplete `connection.backendApiUrl` is only checked
-once the browser page is open, so it fails after a browser has already been
-launched (matching the tool's pre-existing `.env`-era behavior — this is not
-new to the JSON5 config).
+A missing or incomplete `connection.frontendUrl`, `download.tournaments` or
+`download.rulesSets` fails fast with a message naming the key to set, before
+any browser is launched. A missing or incomplete `connection.backendApiUrl` is
+only checked once the browser page is open, so it fails after a browser has
+already been launched (matching the tool's pre-existing `.env`-era behavior —
+this is not new to the JSON5 config).
 
 ## Development
 

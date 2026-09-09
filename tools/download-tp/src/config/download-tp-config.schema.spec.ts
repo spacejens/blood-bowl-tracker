@@ -5,6 +5,7 @@ import {
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
+  rulesSetsSchema,
   tournamentsSchema,
 } from './download-tp-config.schema';
 
@@ -78,10 +79,35 @@ describe('downloadGroupSchema and tournamentsSchema', () => {
     ]);
   });
 
-  it('rejects an empty list, a non-array, and a blank name', () => {
-    expect(tournamentsSchema.safeParse([]).success).toBe(false);
+  it('rejects a non-array, a blank name, and non-strings', () => {
     expect(tournamentsSchema.safeParse('a').success).toBe(false);
     expect(tournamentsSchema.safeParse(['']).success).toBe(false);
     expect(tournamentsSchema.safeParse([1]).success).toBe(false);
+  });
+});
+
+describe('tournamentsSchema', () => {
+  it('accepts an empty array, so "official data only" is a valid config', () => {
+    expect(tournamentsSchema.parse([])).toEqual([]);
+  });
+
+  it('still rejects a non-array and an array with a blank name', () => {
+    expect(tournamentsSchema.safeParse('season-30').success).toBe(false);
+    expect(tournamentsSchema.safeParse(['']).success).toBe(false);
+  });
+});
+
+describe('rulesSetsSchema', () => {
+  it('reads a non-empty list of rules set names', () => {
+    expect(rulesSetsSchema.parse(['BB2020', 'BB2025'])).toEqual([
+      'BB2020',
+      'BB2025',
+    ]);
+  });
+
+  it('rejects an empty array, a blank name and a non-array', () => {
+    expect(rulesSetsSchema.safeParse([]).success).toBe(false);
+    expect(rulesSetsSchema.safeParse(['']).success).toBe(false);
+    expect(rulesSetsSchema.safeParse('BB2020').success).toBe(false);
   });
 });

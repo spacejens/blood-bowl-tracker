@@ -8,6 +8,7 @@ import {
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
+  rulesSetsSchema,
   tournamentsSchema,
 } from './download-tp-config.schema';
 
@@ -68,25 +69,52 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
 
   /**
    * Tournament names to download, as they appear in the frontend path, from
-   * `download.tournaments`. Required and non-empty.
+   * `download.tournaments`. Required to be present, but may be empty — an
+   * empty list means "skip the per-tournament scrape entirely" and is how a
+   * developer downloads only the official team list.
    */
   getTournaments(): string[] {
+    const download = this.downloadGroup();
+    const tournaments = tournamentsSchema.safeParse(download.tournaments);
+    if (!tournaments.success) {
+      throw new Error(
+        'download.tournaments is not set in download-tp-config.json5. Set ' +
+          'it to an array of tournament names, e.g. ' +
+          "['tloegbbl-sasong-30'], or [] to skip the per-tournament scrape.",
+      );
+    }
+    return tournaments.data;
+  }
+
+  /**
+   * Rules sets to download TP's official team list for, from
+   * `download.rulesSets`. Required and non-empty. Each value names the tab on
+   * TP's teams page and the `data/teams/<rulesSet>/` output folder.
+   */
+  getRulesSets(): string[] {
+    const download = this.downloadGroup();
+    const rulesSets = rulesSetsSchema.safeParse(download.rulesSets);
+    if (!rulesSets.success) {
+      throw new Error(
+        'download.rulesSets is not set in download-tp-config.json5. Set it ' +
+          "to a non-empty array of rules set names, e.g. ['BB2020', " +
+          "'DB2021', 'BB2025'].",
+      );
+    }
+    return rulesSets.data;
+  }
+
+  /** The `download` group, or a friendly error naming it when unset. */
+  private downloadGroup(): Record<string, unknown> {
     const download = downloadGroupSchema.safeParse(this.get('download'));
     if (!download.success) {
       throw new Error(
         'download is not set in download-tp-config.json5. Set it to an ' +
-          "object, e.g. { tournaments: ['tloegbbl-sasong-30'] }.",
+          "object, e.g. { tournaments: ['tloegbbl-sasong-30'], rulesSets: " +
+          "['BB2020'] }.",
       );
     }
-    const tournaments = tournamentsSchema.safeParse(download.data.tournaments);
-    if (!tournaments.success) {
-      throw new Error(
-        'download.tournaments is not set in download-tp-config.json5. Set ' +
-          'it to a non-empty array of tournament names, e.g. ' +
-          "['tloegbbl-sasong-30'].",
-      );
-    }
-    return tournaments.data;
+    return download.data;
   }
 
   /** Shared read of a required non-empty string URL under `connection`. */

@@ -197,15 +197,6 @@ describe('DownloadTpConfigService', () => {
     );
   });
 
-  it('throws when tournaments is empty', async () => {
-    const service = await makeService(
-      writeConfig(`{ download: { tournaments: [] } }`),
-    );
-    expect(() => service.getTournaments()).toThrow(
-      'download.tournaments is not set in download-tp-config.json5',
-    );
-  });
-
   it('throws when tournaments contains a non-string entry', async () => {
     const service = await makeService(
       writeConfig(`{ download: { tournaments: ['season-30', 30] } }`),
@@ -222,5 +213,48 @@ describe('DownloadTpConfigService', () => {
     expect(() => service.getTournaments()).toThrow(
       'download.tournaments is not set in download-tp-config.json5',
     );
+  });
+
+  describe('getRulesSets', () => {
+    it('reads the configured rules sets', async () => {
+      const service = await makeService(
+        writeConfig(
+          `{ download: { tournaments: [], rulesSets: ['BB2020', 'DB2021'] } }`,
+        ),
+      );
+      expect(service.getRulesSets()).toEqual(['BB2020', 'DB2021']);
+    });
+
+    it('throws naming the key when the download group is missing', async () => {
+      const service = await makeService(writeConfig(`{}`));
+      expect(() => service.getRulesSets()).toThrow(/download is not set/);
+    });
+
+    it('throws naming the key when rulesSets is missing or empty', async () => {
+      const missing = await makeService(
+        writeConfig(`{ download: { tournaments: [] } }`),
+      );
+      expect(() => missing.getRulesSets()).toThrow(/download\.rulesSets/);
+      const empty = await makeService(
+        writeConfig(`{ download: { tournaments: [], rulesSets: [] } }`),
+      );
+      expect(() => empty.getRulesSets()).toThrow(/download\.rulesSets/);
+    });
+  });
+
+  describe('getTournaments with the relaxed schema', () => {
+    it('accepts an empty tournaments list', async () => {
+      const service = await makeService(
+        writeConfig(`{ download: { tournaments: [], rulesSets: ['BB2020'] } }`),
+      );
+      expect(service.getTournaments()).toEqual([]);
+    });
+
+    it('still throws when tournaments is absent entirely', async () => {
+      const service = await makeService(
+        writeConfig(`{ download: { rulesSets: ['BB2020'] } }`),
+      );
+      expect(() => service.getTournaments()).toThrow(/download\.tournaments/);
+    });
   });
 });
