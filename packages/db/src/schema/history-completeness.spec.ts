@@ -12,10 +12,22 @@ function isPgTable(value: unknown): value is PgTable {
 describe('history tracking completeness', () => {
   const exportedTables = (Object.values(schema) as unknown[]).filter(isPgTable);
 
-  it('every exported table is either tracked-with-history or is a *_history companion', () => {
-    expect(exportedTables.length).toBeGreaterThan(0);
+  /**
+   * History tracking is a `game_data` invariant, not a repo-wide one. The
+   * `discord_bot_usage` schema holds operational bot telemetry whose enrichable
+   * fields (guild/channel names, usernames, nicknames) are deliberately
+   * overwritten in place rather than versioned, so its tables are excluded from
+   * the "everything is tracked" check below. They are still covered by the
+   * reserved-suffix check, which applies to every exported table.
+   */
+  const gameDataTables = exportedTables.filter(
+    (table) => getTableConfig(table).schema === 'game_data',
+  );
 
-    for (const table of exportedTables) {
+  it('every exported table is either tracked-with-history or is a *_history companion', () => {
+    expect(gameDataTables.length).toBeGreaterThan(0);
+
+    for (const table of gameDataTables) {
       const config = getTableConfig(table);
       const isHistoryCompanion = config.name.endsWith('_history');
       const isRegisteredTracked = historyRegistry.some(
@@ -34,7 +46,7 @@ describe('history tracking completeness', () => {
 
   it('every tracked table has created_at, updated_at, history_version and history_period', () => {
     for (const entry of historyRegistry) {
-      const table = exportedTables.find(
+      const table = gameDataTables.find(
         (t) => getTableConfig(t).name === entry.tableName,
       );
       expect(
