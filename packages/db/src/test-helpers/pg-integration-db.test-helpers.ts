@@ -54,14 +54,9 @@ export interface TestPostgresContainer {
  */
 export async function startTestPostgresContainer(): Promise<TestPostgresContainer> {
   const { PostgreSqlContainer } = await import('@testcontainers/postgresql');
+  let container;
   try {
-    const container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
-    return {
-      url: container.getConnectionUri(),
-      stop: async () => {
-        await container.stop();
-      },
-    };
+    container = await new PostgreSqlContainer(POSTGRES_IMAGE).start();
   } catch (error) {
     throw new Error(
       'Failed to start the ephemeral test Postgres container. Is Docker ' +
@@ -70,6 +65,12 @@ export async function startTestPostgresContainer(): Promise<TestPostgresContaine
       { cause: error },
     );
   }
+  return {
+    url: container.getConnectionUri(),
+    stop: async () => {
+      await container.stop();
+    },
+  };
 }
 
 /**

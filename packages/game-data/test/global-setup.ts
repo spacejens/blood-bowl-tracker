@@ -25,7 +25,9 @@ export async function setup(): Promise<void> {
     const db = await getMigratedTestDb(container.url);
     await closeTestDb(db);
   } catch (error) {
-    await container.stop();
+    // Best-effort cleanup: a failure here must never replace the migration
+    // error above, which is the one a developer actually needs to see.
+    await container.stop().catch(() => undefined);
     container = undefined;
     throw error;
   }
