@@ -217,10 +217,16 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   also carries the characteristics the official list reports per `(position,
   rules set)` (see
   [file-format-official-teams.md](./file-format-official-teams.md)),
-  resolving each era's rules set via `TpEraRulesSetResolverService`; no
-  accumulation or conflict resolution is needed here, since — unlike played
-  roster data — the official list carries exactly one canonical value per
-  pair. Returns `characteristicsByPositionId` (positionId -> rulesSetId ->
+  resolving each era's rules set via `TpEraRulesSetResolverService`. That does
+  need conflict resolution: an official roster (`teamRosterType === 0`) and a
+  legacy one (`1`) of the same race can both carry the same `(position, rules
+  set)` with different stats — three BB2020 positions really do (Norse Yhetee,
+  Vampire Thrall Lineman, Vampire Blitzer) — so
+  `recordCharacteristicsForRulesSet` tags each recorded value with the roster
+  kind it came from and lets the official value win regardless of which roster
+  is processed first. A slot only a legacy roster carries keeps its legacy
+  value, which is strictly better than dropping the position. Returns
+  `characteristicsByPositionId` (positionId -> rulesSetId ->
   characteristics), consumed by `TpPositionCharacteristicsImportService`
   below.
 - **TpPositionCharacteristicsImportService** — writes each position's
@@ -278,6 +284,15 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   under which rules set, so `TpPositionsImportService`'s `syncRaceEras` calls
   (above) cover star positions the same way they cover regular ones — this
   step needs no equivalent bookkeeping of its own.
+- **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
+  for mercenary Big Guy positions, which no official-list catalog carries, so
+  their race/era availability is the one kind still derived from observed
+  usage: the `mercenaryPositionUsages` the players step emits (one per
+  imported mercenary hire). Resolves each usage's `(teamRaceCode, era)` to
+  `(raceId, eraId)`, dedupes the pairs per position, and writes them with one
+  upsert-only `syncRaceEras` call per position. Runs right after players,
+  since the usages only exist once players are imported; an unresolvable race
+  code or era name is recorded as an error and skipped.
 - **TpTeamParticipationImportService** — populates `match_teams` and
   `competition_teams` for the already-imported matches and competitions. Runs
   after teams import (it needs each team's resolved team-era ids) and consumes

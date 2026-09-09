@@ -62,8 +62,10 @@ rule-set codes are — and are not — used. See
   earlier in the same run. The embedded suffix does NOT necessarily match this
   project's own rule-set names (compare to the opaque `ruleSet` numeric code
   above, which is the field actually used for cross-checking).
-  Positions no longer need this suffix for any characteristics tie-break: the
-  official team list carries exactly one canonical set of characteristics per
-  `(position, rules set)`, so no disagreement between differently-sourced
-  values ever arises for `TpPositionsImportService` (see [index.md](./index.md))
-  to reconcile.
+  Positions no longer need this suffix for any characteristics tie-break, but
+  they do still need a tie-break: the official team list carries one set of
+  characteristics per `(position, rules set)` per roster, and a race's official
+  (`teamRosterType === 0`) and legacy (`1`) rosters can disagree about the same
+  pair. `TpPositionsImportService` (see [index.md](./index.md)) resolves that by
+  the roster kind — the official roster's value wins, whichever roster it
+  happens to process first — not by the code's rule-set suffix.

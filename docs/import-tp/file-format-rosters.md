@@ -32,8 +32,10 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   no longer consumed by the import: `TpPositionsImportService` sources
   positions and their characteristics from TP's official team list instead
   (see [file-format-official-teams.md](./file-format-official-teams.md)),
-  which publishes exactly one canonical value per `(position, rules set)`
-  rather than one played roster's snapshot of it.
+  which publishes each rules set's own catalog value per position rather than
+  one played roster's snapshot of it — and, where a race's official and legacy
+  catalog rosters disagree about a `(position, rules set)`, the official one's
+  value wins (see [index.md](./index.md)).
 - `starPositions` — extracted from `rosterMaster.starPlayersMasters[]` (named
   star players permanently embedded in a roster's line-up, as distinct from
   the star players hired for a single match via `inducements_roll` — see
