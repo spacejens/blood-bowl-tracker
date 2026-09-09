@@ -213,7 +213,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   unique). After each upsert, `syncRaceEras` records which of the group's eras
   the position was seen under — for star positions too, since the official
   list states directly which race may field which star under which rules set,
-  so their availability is no longer derived from observed hires. Each group
+  so their availability comes straight from that, not from observed hires.
+  Each group
   also carries the characteristics the official list reports per `(position,
   rules set)` (see
   [file-format-official-teams.md](./file-format-official-teams.md)),

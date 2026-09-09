@@ -1,12 +1,11 @@
 # `rosters_<id>.json` (teams and players parsed; races/positions come from the official team list)
 
 See [file-format.md](./file-format.md) for the other pages. Races, positions
-and star players are no longer sourced from this file — see
+and star players come from TP's official team list, not from this file — see
 [file-format-official-teams.md](./file-format-official-teams.md) and
 [index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
-entries for where those now come from. Roster files remain the source for
-teams, players, and (via the match/competition directory structure) team
-participation.
+entries. Roster files remain the source for teams, players, and (via the
+match/competition directory structure) team participation.
 
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
 teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
@@ -28,8 +27,8 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   resolve the team's coach.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
-  strength: st, agility: ag, passing: pa, armour: av } }`. Still parsed, but
-  no longer consumed by the import: `TpPositionsImportService` sources
+  strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but
+  `TpPositionsImportService` does not consume this field: it sources
   positions and their characteristics from TP's official team list instead
   (see [file-format-official-teams.md](./file-format-official-teams.md)),
   which publishes each rules set's own catalog value per position rather than
@@ -39,7 +38,7 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 - `starPositions` — extracted from `rosterMaster.starPlayersMasters[]` (named
   star players permanently embedded in a roster's line-up, as distinct from
   the star players hired for a single match via `inducements_roll` — see
-  below), same shape as `positions`. Likewise parsed but no longer consumed
+  below), same shape as `positions`. Likewise parsed here but not consumed
   for star position/characteristics import, for the same reason.
 - `players` — extracted from `lineUps[]`, each entry becomes `{ id, name,
 number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
