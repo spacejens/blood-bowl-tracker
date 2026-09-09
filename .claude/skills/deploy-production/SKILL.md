@@ -279,7 +279,7 @@ Run this section only if "Drop and recreate the production database" was selecte
 3. Capture a baseline row count for every table, **before** anything is dropped. There are no backups (see Non-goals), so these counts are the only way to sanity-check afterwards that the re-import reproduced comparable data. Run this through the same `run-production-query` subcommand step 3 of the read-only-queries section below uses (build it first with `pnpm --filter @blood-bowl-tracker/production-ops-cli run build` if `dist/main.js` is missing) — this is a fixed, hardcoded query, but routing it through the same tool keeps `DATABASE_URL` out of view here too, exactly as it does for a developer-described query:
    ```bash
    node tools/production-ops-cli/dist/main.js run-production-query <<'QUERYEOF'
-   SELECT relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname = 'game_data' AND relname NOT LIKE '%\_history' ORDER BY relname;
+   SELECT schemaname, relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname IN ('game_data', 'discord_bot_usage') AND relname NOT LIKE '%\_history' ORDER BY schemaname, relname;
    QUERYEOF
    ```
    (This one query has no risk of containing a shell-heredoc-delimiter collision — it's fixed text this skill itself wrote, not developer-supplied — so the plain heredoc form is fine here even though the read-only-queries section below uses the `Write`-tool-to-scratch-file form for arbitrary developer queries instead.)
