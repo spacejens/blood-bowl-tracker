@@ -1,7 +1,7 @@
 import type { AnyPgColumn, PgSchema } from 'drizzle-orm/pg-core';
 import { integer, serial, unique, varchar } from 'drizzle-orm/pg-core';
 
-import { externalSystems } from './external-systems';
+import { externalSystems } from './game-data/external-systems';
 import { historyTrackedTable } from './history';
 
 export interface ExternalIdsTableOwner<TKey extends string> {

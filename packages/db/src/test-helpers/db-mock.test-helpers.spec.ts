@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
-import { teamEras } from '../schema/team-eras.js';
+import { teamEras } from '../schema/game-data/team-eras.js';
 import { mockDb } from './db-mock.test-helpers.js';
 
 type Chainable = Record<string, (...args: unknown[]) => Chainable> &
