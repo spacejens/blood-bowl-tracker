@@ -28,11 +28,11 @@
     "@nestjs/testing": "^12.0.0",
     "@swc/core": "^1.15.47",
     "@types/node": "^24.13.3",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^5.0.0",
     "typescript": "^6.0.3",
     "unplugin-swc": "^1.5.10",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10",
+    "vitest": "^5.0.0",
     "vitest-mock-extended": "^5.1.1"
   }
 }
