@@ -9,6 +9,7 @@ import { EraRulesSetModule } from '../eras/era-rules-set.module';
 import { SourceModule } from '../source/source.module';
 import { MercenaryConfigService } from './mercenary-config.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
+import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 import { TpPlayersImportService } from './tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.service';
@@ -22,7 +23,12 @@ import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.servi
     ConfigErrorMessageService,
     MercenaryConfigService,
     TpMercenaryCharacteristicsService,
+    TpMercenaryPositionRaceErasImportService,
   ],
-  exports: [TpPlayersImportService, TpSppAdjustmentsImportService],
+  exports: [
+    TpPlayersImportService,
+    TpSppAdjustmentsImportService,
+    TpMercenaryPositionRaceErasImportService,
+  ],
 })
 export class PlayersModule {}

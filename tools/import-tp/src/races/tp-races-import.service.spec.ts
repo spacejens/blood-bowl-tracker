@@ -7,6 +7,7 @@ import {
   RacesImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
+import type { TpOfficialRace } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -15,14 +16,12 @@ import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
 import {
   asProviderMethod,
-  mockEraDataConfigService,
   mockImportResultService,
   mockNameExternalIdService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 import { TpRacesImportService } from './tp-races-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
@@ -34,7 +33,7 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
   /** Era name -> DB id, as if already resolved via ReferenceLookupService. */
   eraIdsByName?: Map<string, number>;
-  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
+  /** Overrides EraDataConfigService.getEras(), e.g. to model custom eras or a throw. */
   getEras?: () => EraDataConfig[];
 }
 
@@ -64,8 +63,8 @@ async function makeService({
   upsertRace,
   getTpSystemName = () => 'TP',
   eraIdsByName = new Map([
-    ['Fourth era', 100],
-    ['Fifth era', 200],
+    ['Third era', 100],
+    ['Fourth era', 200],
   ]),
   getEras,
 }: MakeServiceOptions): Promise<{
@@ -82,21 +81,30 @@ async function makeService({
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
-  const rosterCollection = mock<RosterCollectionService>();
-  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
-    item: { era, roster: roster.id },
-    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
-  }));
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
-  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
-  if (getEras) {
-    eraDataConfig.getEras.mockImplementation(getEras);
-  }
+  const eraDataConfig = mock<EraDataConfigService>();
+  eraDataConfig.getEras.mockImplementation(
+    getEras ??
+      (() => [
+        {
+          name: 'Third era',
+          dataSubdir: 'third',
+          rulesSets: ['BB2020'],
+          startDate: '2020-01-01',
+        },
+        {
+          name: 'Fourth era',
+          dataSubdir: 'fourth',
+          rulesSets: ['BB2025'],
+          startDate: '2025-01-01',
+        },
+      ]),
+  );
   const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID);
 
   const moduleRef = await Test.createTestingModule({
@@ -112,7 +120,6 @@ async function makeService({
         useValue: externalSystemName,
       },
       { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: RosterCollectionService, useValue: rosterCollection },
       { provide: ImportResultService, useValue: importResults },
       { provide: EraDataConfigService, useValue: eraDataConfig },
       { provide: ReferenceLookupService, useValue: lookup },
@@ -125,40 +132,16 @@ async function makeService({
   };
 }
 
-const CHARACTERISTICS = {
-  move: 6,
-  strength: 3,
-  agility: 3,
-  passing: 4,
-  armour: 9,
-};
-
-interface RosterOpts {
-  id: number;
-  teamRace: string;
-  raceName: string;
-  positions?: { tpPositionId: number; name: string }[];
-  coachTpId?: string;
+function officialRace(name: string, teamRaceCode: string): TpOfficialRace {
+  return { name, teamRaceCode, isOfficial: true, positions: [] };
 }
 
-function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
-  return {
-    era,
-    competition: 'comp',
-    roster: {
-      id: opts.id,
-      teamName: `Team ${opts.id}`,
-      teamRaceCode: opts.teamRace,
-      raceName: opts.raceName,
-      coachTpId: opts.coachTpId ?? 'coach-1',
-      positions: (opts.positions ?? []).map((p) => ({
-        ...p,
-        characteristics: CHARACTERISTICS,
-      })),
-      starPositions: [],
-      players: [],
-    },
-  };
+function officialTeamsEntry(
+  raceName: string,
+  teamRaceCode: string,
+  rulesSet: string,
+): OfficialTeamsEntry {
+  return { race: officialRace(raceName, teamRaceCode), rulesSet };
 }
 
 function raceRecord(id: number) {
@@ -170,44 +153,148 @@ function twoSystemUpsertMock(): ReturnType<typeof vi.fn> {
 }
 
 describe('TpRacesImportService', () => {
-  it('upserts a single-code race with its TP id, Name id and era', async () => {
+  it('groups official-list entries by display name and upserts one race per group', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const bootstrap = twoSystemUpsertMock();
-    const { service, importResults } = await makeService({
-      bootstrap,
+    const { service } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
 
     await service.importRaces([
-      rosterEntry('Fourth era', {
-        id: 1,
-        teamRace: 'Dwarf_BB2025',
-        raceName: 'Dwarf',
-      }),
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
+      officialTeamsEntry('Amazon', 'Amazon_BB2025', 'BB2025'),
     ]);
 
-    expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', category: 'imported_data_source' },
-      { name: 'Name', category: 'bookkeeping' },
-    ]);
-    const { imported, errors } = resultArgs(importResults);
-    expect(imported).toBe(1);
-    expect(errors).toEqual([]);
     expect(upsertRace).toHaveBeenCalledTimes(1);
     expect(upsertRace).toHaveBeenCalledWith(
-      {
-        name: 'Dwarf',
-        eras: [100],
-        externalIds: [
-          { externalSystemId: 1, externalId: 'Dwarf_BB2025' },
-          { externalSystemId: 2, externalId: 'Dwarf' },
-        ],
-      },
-      expect.any(Array),
+      expect.objectContaining({ name: 'Amazon' }),
+      expect.anything(),
     );
   });
 
-  it('returns raceNamesById mapping each upserted race DB id to its display name', async () => {
+  it('carries every distinct teamRaceCode as a TP external id, plus a Name external id', async () => {
+    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
+    const { service } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertRace,
+    });
+
+    await service.importRaces([
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
+      officialTeamsEntry('Amazon', 'Amazon_BB2025', 'BB2025'),
+    ]);
+
+    const data = upsertRace.mock.calls[0][0] as UpsertRace;
+    expect(data.externalIds).toEqual(
+      expect.arrayContaining([
+        { externalSystemId: 1, externalId: 'Amazon_BB2020' },
+        { externalSystemId: 1, externalId: 'Amazon_BB2025' },
+        { externalSystemId: 2, externalId: 'Amazon' },
+      ]),
+    );
+    expect(data.externalIds).toHaveLength(3);
+  });
+
+  it('sets eras to the union of every era declaring any of the race rules sets', async () => {
+    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
+    const { service } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertRace,
+      eraIdsByName: new Map([
+        ['Third era', 100],
+        ['Fourth era', 200],
+        ['Second Dungeon Bowl era', 300],
+      ]),
+      getEras: () => [
+        {
+          name: 'Third era',
+          dataSubdir: 'third',
+          rulesSets: ['BB2020'],
+          startDate: '2020-01-01',
+        },
+        {
+          name: 'Fourth era',
+          dataSubdir: 'fourth',
+          rulesSets: ['BB2025'],
+          startDate: '2025-01-01',
+        },
+        {
+          name: 'Second Dungeon Bowl era',
+          dataSubdir: 'db2',
+          rulesSets: ['DB2021'],
+          startDate: '2021-01-01',
+        },
+      ],
+    });
+
+    await service.importRaces([
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
+      officialTeamsEntry('Amazon', 'Amazon_BB2025', 'BB2025'),
+    ]);
+
+    const data = upsertRace.mock.calls[0][0] as UpsertRace;
+    expect(data.eras).toEqual(expect.arrayContaining([100, 200]));
+    expect(data.eras).toHaveLength(2);
+  });
+
+  it('matches a rules set folder name against the configured rules set case-insensitively', async () => {
+    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
+    const { service } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertRace,
+      eraIdsByName: new Map([['Third era', 100]]),
+      getEras: () => [
+        {
+          name: 'Third era',
+          dataSubdir: 'third',
+          rulesSets: ['BB2020'],
+          startDate: '2020-01-01',
+        },
+      ],
+    });
+
+    await service.importRaces([
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'bb2020'),
+    ]);
+
+    const data = upsertRace.mock.calls[0][0] as UpsertRace;
+    expect(data.eras).toEqual([100]);
+  });
+
+  it('records an error and imports the race with no eras when its rules set matches no configured era', async () => {
+    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
+    const { service, importResults } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertRace,
+    });
+
+    await service.importRaces([
+      officialTeamsEntry('Amazon', 'Amazon_BB2019', 'BB2019'),
+    ]);
+
+    const { errors } = resultArgs(importResults);
+    expect(errors.some((e) => e.message.includes('BB2019'))).toBe(true);
+    expect((upsertRace.mock.calls[0][0] as UpsertRace).eras).toEqual([]);
+  });
+
+  it('records an error and skips the eras when an era name cannot be resolved to a DB id', async () => {
+    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
+    const { service, importResults } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertRace,
+      eraIdsByName: new Map(),
+    });
+
+    await service.importRaces([
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
+    ]);
+
+    const { errors } = resultArgs(importResults);
+    expect(errors.some((e) => e.message.includes('Third era'))).toBe(true);
+    expect((upsertRace.mock.calls[0][0] as UpsertRace).eras).toEqual([]);
+  });
+
+  it('returns raceNamesById mapping each upserted race id to its display name', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(42));
     const { service } = await makeService({
       bootstrap: twoSystemUpsertMock(),
@@ -215,84 +302,13 @@ describe('TpRacesImportService', () => {
     });
 
     const { raceNamesById } = await service.importRaces([
-      rosterEntry('Fourth era', {
-        id: 1,
-        teamRace: 'Necromantic_BB2025',
-        raceName: 'Necromantic Horror',
-      }),
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
     ]);
 
-    expect(raceNamesById.get(42)).toBe('Necromantic Horror');
+    expect(raceNamesById.get(42)).toBe('Amazon');
   });
 
-  it('merges multiple codes for one race name into a single upsert call', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const { service } = await makeService({
-      bootstrap: twoSystemUpsertMock(),
-      upsertRace,
-    });
-
-    await service.importRaces([
-      rosterEntry('Fourth era', {
-        id: 1,
-        teamRace: 'Dwarf',
-        raceName: 'Dwarf',
-      }),
-      rosterEntry('Fifth era', {
-        id: 2,
-        teamRace: 'Dwarf_BB2025',
-        raceName: 'Dwarf',
-      }),
-    ]);
-
-    expect(upsertRace).toHaveBeenCalledTimes(1);
-    const data = upsertRace.mock.calls[0][0] as UpsertRace;
-    expect(data.name).toBe('Dwarf');
-    expect(data.externalIds).toEqual([
-      { externalSystemId: 1, externalId: 'Dwarf' },
-      { externalSystemId: 1, externalId: 'Dwarf_BB2025' },
-      { externalSystemId: 2, externalId: 'Dwarf' },
-    ]);
-    expect(data.eras).toEqual([100, 200]);
-  });
-
-  it('accumulates eras when one code appears under multiple eras', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const { service } = await makeService({
-      bootstrap: twoSystemUpsertMock(),
-      upsertRace,
-    });
-
-    await service.importRaces([
-      rosterEntry('Fourth era', { id: 1, teamRace: 'Orc', raceName: 'Orc' }),
-      rosterEntry('Fifth era', { id: 2, teamRace: 'Orc', raceName: 'Orc' }),
-    ]);
-
-    const data = upsertRace.mock.calls[0][0] as UpsertRace;
-    expect(data.externalIds).toEqual([
-      { externalSystemId: 1, externalId: 'Orc' },
-      { externalSystemId: 2, externalId: 'Orc' },
-    ]);
-    expect(data.eras).toEqual([100, 200]);
-  });
-
-  it('records an error for a roster under an unknown era but still upserts the race', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const { service, importResults } = await makeService({
-      bootstrap: twoSystemUpsertMock(),
-      upsertRace,
-    });
-
-    await service.importRaces([
-      rosterEntry('Ghost era', { id: 1, teamRace: 'Orc', raceName: 'Orc' }),
-    ]);
-
-    const { errors } = resultArgs(importResults);
-    expect(errors.some((e) => e.message.includes('Ghost era'))).toBe(true);
-    expect((upsertRace.mock.calls[0][0] as UpsertRace).eras).toEqual([]);
-  });
-
-  it('imports nothing and records one error when external system bootstrap fails', async () => {
+  it('returns a failed result and no upserts when the external system bootstrap fails', async () => {
     const upsertRace = vi.fn();
     const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({
@@ -306,7 +322,7 @@ describe('TpRacesImportService', () => {
     });
 
     await service.importRaces([
-      rosterEntry('Fourth era', { id: 1, teamRace: 'Orc', raceName: 'Orc' }),
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
     ]);
 
     const { errors } = resultArgs(importResults);
@@ -315,49 +331,7 @@ describe('TpRacesImportService', () => {
     expect(upsertRace).not.toHaveBeenCalled();
   });
 
-  it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const { service } = await makeService({
-      bootstrap: twoSystemUpsertMock(),
-      upsertRace,
-    });
-
-    const { result } = await service.importRaces([
-      rosterEntry('Fourth era', {
-        id: 1,
-        teamRace: 'Dwarf_BB2025',
-        raceName: 'Dwarf',
-      }),
-    ]);
-
-    expect(result).toBe(CANNED_RESULT);
-  });
-
-  it('resolves every configured era in one batched call', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const { service, lookup } = await makeService({
-      bootstrap: twoSystemUpsertMock(),
-      upsertRace,
-    });
-
-    await service.importRaces([
-      rosterEntry('Fourth era', {
-        id: 1,
-        teamRace: 'Dwarf',
-        raceName: 'Dwarf',
-      }),
-    ]);
-
-    expect(lookup.lookupMap).toHaveBeenCalledWith(
-      'era',
-      expect.arrayContaining([
-        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
-        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fifth era' },
-      ]),
-    );
-  });
-
-  it('records one error and imports nothing when the era config cannot be read', async () => {
+  it('returns a failed result when the era config throws', async () => {
     const upsertRace = vi.fn();
     const { service, importResults } = await makeService({
       bootstrap: twoSystemUpsertMock(),
@@ -368,11 +342,7 @@ describe('TpRacesImportService', () => {
     });
 
     await service.importRaces([
-      rosterEntry('Fourth era', {
-        id: 1,
-        teamRace: 'Dwarf',
-        raceName: 'Dwarf',
-      }),
+      officialTeamsEntry('Amazon', 'Amazon_BB2020', 'BB2020'),
     ]);
 
     const { imported, errors } = resultArgs(importResults);

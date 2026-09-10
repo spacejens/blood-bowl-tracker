@@ -31,9 +31,9 @@
     externalSystemName: 'tloeg.bbleague.se',
   },
   tp: {
-    // The folder that directly contains one subdirectory per era; each era
-    // directory holds one subdirectory per competition, holding the
-    // `rosters_<id>.json` files.
+    // The TP data root: it holds a `teams/` folder with one subdirectory per
+    // rules set, each holding that rules set's official-team-list response,
+    // alongside one subdirectory per era of downloaded competition data.
     dataDir: '../import-tp/data',
     // Name of the external system TP records are registered under. Must
     // match import-tp-config.json5's own externalSystemName -- defaults to

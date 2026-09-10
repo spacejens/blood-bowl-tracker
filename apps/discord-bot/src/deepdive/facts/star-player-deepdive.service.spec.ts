@@ -28,6 +28,7 @@ import {
   DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -215,11 +216,33 @@ describe('StarPlayerDeepdiveService', () => {
     );
   });
 
-  it('returns the not-found message when a star has no recorded hires', async () => {
+  it('renders stat lines with a no-hires note, and no team buttons, for a star nobody has hired', async () => {
     const { service } = await makeService({
       stars: makeStars({ star: griff, hires: [] }),
     });
-    expect(await service.resolve(20)).toBe(
+
+    const result = await service.resolve(20);
+
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: `${stubEntityEmoji(STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX)} Griff Oberwald`,
+          description: [
+            STUB_STAT_LINE,
+            '',
+            DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
+          ].join('\n'),
+        },
+      ],
+    });
+    expect(result).not.toHaveProperty('components');
+  });
+
+  it('still returns the not-found message when the star id itself does not resolve, distinct from a resolved-but-never-hired star', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: undefined }),
+    });
+    expect(await service.resolve(404)).toBe(
       DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
     );
   });

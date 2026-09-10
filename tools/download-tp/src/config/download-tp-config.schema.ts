@@ -28,5 +28,20 @@ export const browserGroupSchema = z.looseObject({
 /** The `download` group's presence — its contents are checked separately. */
 export const downloadGroupSchema = z.looseObject({});
 
-/** `download.tournaments`: a non-empty list of non-empty names. */
-export const tournamentsSchema = z.array(z.string().min(1)).min(1);
+/**
+ * `download.tournaments`: a list of non-empty names. May be empty — a config
+ * that only downloads the official team list (see `rulesSetsSchema`) is a
+ * supported setup, so main.ts skips the per-tournament scrape entirely.
+ */
+export const tournamentsSchema = z.array(z.string().min(1));
+
+/**
+ * `download.rulesSets`: a list of the rules sets to download TP's official
+ * team list for. Each value names both the tab on TP's teams page and the
+ * `data/teams/<rulesSet>/` output folder, and is matched case-insensitively
+ * against an era's configured rules-set name on the import side. May be
+ * empty — `OfficialTeamsDownloaderService.downloadOfficialTeams()` then does
+ * nothing, which is how a developer skips the official-teams download
+ * entirely (e.g. to download only tournaments).
+ */
+export const rulesSetsSchema = z.array(z.string().min(1));

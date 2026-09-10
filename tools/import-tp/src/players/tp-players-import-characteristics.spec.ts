@@ -93,7 +93,6 @@ describe('TpPlayersImportService characteristics', () => {
         armour: 11,
       }),
       teamErasByRosterId: teamEras,
-      starPositionIds: new Set([200]),
     });
 
     expect(upsertPlayerResult).toHaveBeenCalledWith(

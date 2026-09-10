@@ -5,7 +5,7 @@ import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 import { BblRawPositionPageService } from './bbl-raw-position-page.service';
 import { BblRawRaceIndexService } from './bbl-raw-race-index.service';
 import { ManualRawDataService } from './manual-raw-data.service';
-import { TpRawRosterIndexService } from './tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from './tp-raw-official-teams-index.service';
 
 /**
  * Reads each source's raw files. Loaders locate, decode and shape — every
@@ -19,7 +19,7 @@ const SOURCES = [
   BblRawPositionPageService,
   BblRawRaceIndexService,
   ManualRawDataService,
-  TpRawRosterIndexService,
+  TpRawOfficialTeamsIndexService,
 ];
 
 @Module({

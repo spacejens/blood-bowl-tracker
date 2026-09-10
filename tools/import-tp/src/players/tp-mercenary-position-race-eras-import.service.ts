@@ -8,15 +8,34 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraDataConfigService } from '../eras/era-data-config.service';
-import type { StarPositionUsage } from '../players/tp-players-import.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import type { MercenaryPositionUsage } from './tp-players-import.service';
 
-export interface SyncStarPositionRaceErasOptions {
-  starPositionUsages: StarPositionUsage[];
+export interface SyncMercenaryPositionRaceErasOptions {
+  mercenaryPositionUsages: MercenaryPositionUsage[];
 }
 
+/**
+ * Post-players step: populate `positions_race_eras` for TP mercenary Big Guy
+ * positions (e.g. "Giant Mercenary"). Unlike regular and star positions --
+ * which TP's official team list now describes directly -- a mercenary hire
+ * appears on no official-list catalog at all (`lineUpMasters` nor
+ * `starPlayersMasters`), per `MercenaryConfigService`'s own doc comment. So
+ * mercenary race/era availability must still be derived from actual usage:
+ * `TpPlayersImportService` emits one `MercenaryPositionUsage` per imported
+ * mercenary Big Guy hire. This step resolves each usage's raw
+ * `(teamRaceCode, era)` references to numeric `(raceId, eraId)`, dedupes the
+ * pairs per mercenary position, and persists them with one
+ * `PositionsImportService.syncRaceEras` call per position -- the same
+ * upsert-only write path the regular-position sync and the BBL importer use,
+ * so repeated imports are safe.
+ *
+ * A usage whose race code or era name cannot be resolved is recorded as a
+ * non-fatal `ImportError` and skipped; the remaining usages are still
+ * processed.
+ */
 @Injectable()
-export class TpPositionRaceErasImportService {
+export class TpMercenaryPositionRaceErasImportService {
   constructor(
     private readonly positionsImport: PositionsImportService,
     private readonly importResults: ImportResultService,
@@ -26,26 +45,9 @@ export class TpPositionRaceErasImportService {
     private readonly lookup: ReferenceLookupService,
   ) {}
 
-  /**
-   * Post-players step: populate `positions_race_eras` for TP *star* positions.
-   * TP provides no availability data for star positions, so it must be
-   * derived from actual usage instead. `TpPlayersImportService` emits one
-   * `StarPositionUsage` per imported star-position player (across the
-   * embedded-roster, match-embedded, mercenary Big Guy and inducements-hired
-   * paths). This step resolves each usage's raw `(teamRaceCode, era)`
-   * references to numeric `(raceId, eraId)`, dedupes the pairs per star
-   * position, and persists them with one `PositionsImportService.syncRaceEras`
-   * call per position -- the same upsert-only write path the regular-position
-   * sync and the BBL importer use, so repeated imports are safe.
-   *
-   * A usage whose race code or era name cannot be resolved is recorded as a
-   * non-fatal `ImportError` and skipped; the remaining usages are still
-   * processed. Regular (non-star) positions never reach this step -- they are
-   * handled by `TpPositionsImportService`.
-   */
-  async syncStarPositionRaceEras({
-    starPositionUsages,
-  }: SyncStarPositionRaceErasOptions): Promise<{ result: ImportResult }> {
+  async syncMercenaryPositionRaceEras({
+    mercenaryPositionUsages,
+  }: SyncMercenaryPositionRaceErasOptions): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
 
@@ -83,7 +85,7 @@ export class TpPositionRaceErasImportService {
       ),
       this.lookup.lookupMap(
         'race',
-        [...new Set(starPositionUsages.map((u) => u.teamRaceCode))].map(
+        [...new Set(mercenaryPositionUsages.map((u) => u.teamRaceCode))].map(
           (code) => ({ externalSystemId: tpSystemId, externalId: code }),
         ),
       ),
@@ -95,7 +97,7 @@ export class TpPositionRaceErasImportService {
       Map<string, { raceId: number; eraId: number }>
     >();
 
-    for (const usage of starPositionUsages) {
+    for (const usage of mercenaryPositionUsages) {
       const raceId = raceIds.get(
         this.lookup.keyOf({
           externalSystemId: tpSystemId,
@@ -117,7 +119,7 @@ export class TpPositionRaceErasImportService {
               era: usage.era,
             },
             message:
-              `Skipping star position ${usage.positionId} usage: could not ` +
+              `Skipping mercenary position ${usage.positionId} usage: could not ` +
               `resolve ${
                 raceId === undefined
                   ? `race code "${usage.teamRaceCode}"`

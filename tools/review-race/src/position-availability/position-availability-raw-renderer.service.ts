@@ -8,13 +8,13 @@ import { RaceExternalIdsService } from '../shared/race-external-ids.service';
 import type { SampledRace } from '../shared/review.types';
 import { BblRawPositionPageService } from '../source/bbl-raw-position-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 
 /**
  * The position-availability raw panel: which positions each source, on its
  * own, says this race can field. BBL answers per position page ("Can play
- * for:"), TP answers per roster (`lineUpMasters`/`starPlayersMasters`), and
- * the curated `position-availability.json5` answers for the rulebook rosters
+ * for:"), TP answers per rules set from its official team list, and the
+ * curated `position-availability.json5` answers for the rulebook rosters
  * neither source can evidence.
  *
  * A BBL position page that does not list the race the database says it
@@ -31,7 +31,7 @@ export class PositionAvailabilityRawRendererService {
     private readonly typIds: BblPositionTypIdsService,
     private readonly raceIds: RaceExternalIdsService,
     private readonly bbl: BblRawPositionPageService,
-    private readonly tp: TpRawRosterIndexService,
+    private readonly tp: TpRawOfficialTeamsIndexService,
     private readonly manual: ManualRawDataService,
     private readonly matcher: ManualEntryMatcherService,
     private readonly html: HtmlService,
@@ -92,15 +92,16 @@ export class PositionAvailabilityRawRendererService {
   private async tpSection(race: SampledRace): Promise<string | null> {
     const ids = await this.raceIds.forRace(race.raceId);
     const rows: TableCell[][] = [];
-    const seen = new Set<number>();
+    const seen = new Set<string>();
     for (const code of ids.tp) {
       const tpRace = await this.tp.raceFor(code);
       for (const position of tpRace?.positions ?? []) {
-        if (seen.has(position.tpPositionId) || position.isStar) {
+        const key = `${position.rulesSet} ${position.name}`;
+        if (seen.has(key) || position.isStar) {
           continue;
         }
-        seen.add(position.tpPositionId);
-        rows.push([code, String(position.tpPositionId), position.name]);
+        seen.add(key);
+        rows.push([code, position.rulesSet, position.name]);
       }
     }
     if (rows.length === 0) {
@@ -108,7 +109,7 @@ export class PositionAvailabilityRawRendererService {
     }
     return (
       this.html.subheading('TP') +
-      this.html.table(['teamRace code', 'TP position id', 'Position'], rows)
+      this.html.table(['teamRace code', 'Rules set', 'Position'], rows)
     );
   }
 

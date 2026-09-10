@@ -183,55 +183,50 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
   coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
   later team-import sub-issue will use to resolve each team's coach; unused here.
-- **TpRacesImportService** — upserts each race from the roster files, grouped
-  by display name (`rosterMaster.name`) so rule-set-variant codes merge onto
+- **TpRacesImportService** — upserts each race from TP's official team list
+  (read via `OfficialTeamsCollectionService`, not from played rosters),
+  grouped by the list's own display name so rule-set-variant codes merge onto
   one row. Each upsert carries every distinct code as a TP external id (all in
   one call for merge semantics), the display name as a Name external id, and
-  every era any contributing roster was seen under. Returns `raceIdsByCode`
-  keyed by code for the positions/teams imports to resolve their races.
+  every configured era declaring any rules set the race appears on — resolved
+  from era config (`league.eras[].identity.rulesSets`), not from which
+  rosters happened to use the race in which era. Returns `raceNamesById` (DB
+  race id -> display name), consumed by the positions import to build a Name
+  external id; downstream consumers otherwise resolve a race server-side by
+  its `teamRaceCode`.
 - **TpTeamsImportService** — upserts each team (keyed by roster id + name),
   resolving race via `raceIdsByCode` and coach via `coachIdsByTpId`;
   skips any team whose race or coach cannot be resolved. Teams are grouped by
   id so one seen under multiple eras unions its eras.
-- **TpPositionsImportService** — upserts each regular position grouped by
-  `(race, name)`, keyed by its `tpPositionId` variants (all in one upsert call
-  for merge semantics). Carries TP external ids only (one per `tpPositionId`);
-  after each upsert, records race/era availability via `syncRaceEras`. Star
-  players permanently embedded in a roster's line-up (`rosterMaster.
-starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
-  grouped by name only — not race, since the same named star player is the
-  same entity regardless of team — then upserted with `isStarPlayer: true` and
-  a bare-name TP external id (matching the convention the hired-star-player
-  path below already uses, so both paths dedupe onto the same `Position` row).
-  Their ids merge into the same `positionIdsByExternalId` map the regular
-  positions use; a star catalog id that collides with an already-mapped id is
-  skipped with a non-fatal error instead of overwriting it.
-  Alongside grouping, each group also accumulates the MA/ST/AG/PA/AV
-  characteristics its rosters report (see
-  [file-format-rosters.md](./file-format-rosters.md)), keyed by rules-set DB
-  id: resolving a roster's rules set for this purpose requires its era's
-  config to declare exactly one rules set (`EraDataConfigService`) — an era
-  declaring zero or more than one causes characteristics to be skipped for
-  every roster in it, with one recorded error, rather than decoding TP's raw
-  numeric `ruleSet` field. Two rosters disagreeing about the same (position,
-  rules set) is resolved by TP's own naming convention where it can be: when
-  TP updates a race's roster mid-rules-set it publishes the new template under
-  a team-race code suffixed with the rules set name (`Vampire_BB2020`
-  superseding `Vampire` within BB2020), so an observation whose
-  `teamRaceCode` ends in `_<the era's single declared rules set name>` wins
-  over one that does not, silently and regardless of which roster file was
-  read first. That is TP correctly describing an update, not bad data, so no
-  error is recorded — deliberately, since this importer's only reporting
-  channel would flip `ImportResult.success` to false. When both or neither
-  observation qualifies the disagreement is genuinely ambiguous: that rules
-  set is dropped for that position with one recorded error, and no later
-  observation resurrects it. Groups are accumulated per _resolved_ position
-  id, not per group: TP renames a roster slot across rules-set generations
-  (`Halfling Hopeful Lineman` -> `Halfling Hopeful`) while both literal names
-  are registered as external ids of one `Position`, so two `(race, name)`
-  groups can upsert onto the same row — their per-rules-set characteristics
-  are merged under the same conflict rules described above, rather than one
-  group replacing the other's. Returns
+- **TpPositionsImportService** — upserts each position from TP's official
+  team list (read via `OfficialTeamsCollectionService`, not from played
+  rosters), grouped by `(raceId, name)` — one unified path for regular and
+  star positions alike, distinguished only by `isStarPlayer`. Because
+  `TpRacesImportService` already merges a race's rules-set-variant codes onto
+  one row, the same position seen under different variant codes collapses
+  into the same group. Each group's TP external ids are its official-list
+  `tpPositionId`s (one upsert call for merge semantics); a star's Name
+  external id is its bare name (matching the convention the hired-star-player
+  path below already uses, so both paths dedupe onto the same `Position`
+  row), while a regular position's Name external id is race-scoped
+  (`${raceName}: ${positionName}`, since position names aren't globally
+  unique). After each upsert, `syncRaceEras` records which of the group's eras
+  the position was seen under — for star positions too, since the official
+  list states directly which race may field which star under which rules set,
+  so their availability comes straight from that, not from observed hires.
+  Each group
+  also carries the characteristics the official list reports per `(position,
+  rules set)` (see
+  [file-format-official-teams.md](./file-format-official-teams.md)),
+  resolving each era's rules set via `TpEraRulesSetResolverService`. That does
+  need conflict resolution: an official roster (`teamRosterType === 0`) and a
+  legacy one (`1`) of the same race can both carry the same `(position, rules
+  set)` with different stats — three BB2020 positions really do (Norse Yhetee,
+  Vampire Thrall Lineman, Vampire Blitzer) — so
+  `recordCharacteristicsForRulesSet` tags each recorded value with the roster
+  kind it came from and lets the official value win regardless of which roster
+  is processed first. A slot only a legacy roster carries keeps its legacy
+  value, which is strictly better than dropping the position. Returns
   `characteristicsByPositionId` (positionId -> rulesSetId ->
   characteristics), consumed by `TpPositionCharacteristicsImportService`
   below.
@@ -284,25 +279,21 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   Position and a Player scoped to the hiring roster's team-era; returns
   `starPlayerIdsByRosterAndMaster`, keyed
   `` `${rosterId}:${lineUpMasterId}` `` (currently unconsumed downstream — no
-  match-event type references a player by `lineUpMasterId` yet). Also returns
-  `starPositionUsages`: one `{ positionId, teamRaceCode, era }` entry per
-  imported star-position player, across all four star sources above (embedded
-  roster, match-embedded, mercenary Big Guy, inducements-hired) — consumed by
-  `TpPositionRaceErasImportService`, below, to populate `positions_race_eras`
-  for star positions.
-- **TpPositionRaceErasImportService** — populates `positions_race_eras` rows
-  for star positions, which get none from `TpPositionsImportService`'s
-  `syncRaceEras` calls (star positions are grouped by name only, not race, so
-  there's no `raceId` to sync against at that point). TP states no explicit
-  availability for star positions, so this step derives it from actual usage:
-  it resolves each `StarPositionUsage`'s raw `teamRaceCode`/`era` to numeric
-  `(raceId, eraId)` via the maps the races/eras imports already produced,
-  dedupes the pairs per position, and calls `syncRaceEras` once per star
-  position. A usage whose race or era can't be resolved is recorded as a
-  non-fatal error and skipped; the rest still process. Runs after players
-  import, since star usage (which team/race/era fielded or hired a given
-  star) is only known once players are imported. Idempotent, like the regular
-  position sync — `syncRaceEras` is upsert-only.
+  match-event type references a player by `lineUpMasterId` yet). Star
+  position race/era availability is not derived from any of this: TP's
+  official team list already states directly which race may field which star
+  under which rules set, so `TpPositionsImportService`'s `syncRaceEras` calls
+  (above) cover star positions the same way they cover regular ones — this
+  step needs no equivalent bookkeeping of its own.
+- **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
+  for mercenary Big Guy positions, which no official-list catalog carries, so
+  their race/era availability is the one kind still derived from observed
+  usage: the `mercenaryPositionUsages` the players step emits (one per
+  imported mercenary hire). Resolves each usage's `(teamRaceCode, era)` to
+  `(raceId, eraId)`, dedupes the pairs per position, and writes them with one
+  upsert-only `syncRaceEras` call per position. Runs right after players,
+  since the usages only exist once players are imported; an unresolvable race
+  code or era name is recorded as an error and skipped.
 - **TpTeamParticipationImportService** — populates `match_teams` and
   `competition_teams` for the already-imported matches and competitions. Runs
   after teams import (it needs each team's resolved team-era ids) and consumes
@@ -376,22 +367,20 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras, then competitions, then matches (fed the competitions step's
 `matchesByCompetitionId`), then coaches, then races, then teams, then
-positions, then players (including hired star players), then star position
-race/era availability, then team participation, then trophy awards, then
-match events, and finally match outcomes — aggregating each step's
-`ImportResult` into one overall result, mirroring
-`tools/import-bbl/src/main.ts`.
+positions, then players (including hired star players), then team
+participation, then trophy awards, then match events, and finally match
+outcomes — aggregating each step's `ImportResult` into one overall result,
+mirroring `tools/import-bbl/src/main.ts`.
 Races, teams, and positions run after coaches; they have no FK dependency on the
 earlier import steps (only on each other, in that order). Players run after
-positions and teams (each player resolves a team era and a position). Star
-position race/era availability runs immediately after players, since it needs
-the `starPositionUsages` that step emits. Team participation runs after that
-because it needs the teams step's resolved team-era ids and the competitions
-step's maps. Trophy awards run after team participation, resolving each
-award's competition, curated group, and winning team's team era. Match events
-run after that because they depend on `match_teams`, which team participation
-is what populates. Match outcomes run last of all because they count scores
-from the touchdown events match events just imported.
+positions and teams (each player resolves a team era and a position). Team
+participation runs after that because it needs the teams step's resolved
+team-era ids and the competitions step's maps. Trophy awards run after team
+participation, resolving each award's competition, curated group, and
+winning team's team era. Match events run after that because they depend on
+`match_teams`, which team participation is what populates. Match outcomes
+run last of all because they count scores from the touchdown events match
+events just imported.
 
 ### Reference resolution
 

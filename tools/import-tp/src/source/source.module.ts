@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 
 import { EraDataConfigModule } from '../eras/era-data-config.module';
 import { ExternalSystemNameConfigService } from './external-system-name-config.service';
+import { OfficialTeamsCollectionService } from './official-teams-collection.service';
 import { RosterCollectionService } from './roster-collection.service';
 import { SourceConfigService } from './source-config.service';
 import { TpSourceReader } from './tp-source-reader';
@@ -15,12 +16,14 @@ import { TpSourceReader } from './tp-source-reader';
     ExternalSystemNameConfigService,
     TpSourceReader,
     RosterCollectionService,
+    OfficialTeamsCollectionService,
   ],
   exports: [
     SourceConfigService,
     ExternalSystemNameConfigService,
     TpSourceReader,
     RosterCollectionService,
+    OfficialTeamsCollectionService,
   ],
 })
 export class SourceModule {}

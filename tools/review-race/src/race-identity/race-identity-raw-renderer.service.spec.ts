@@ -9,7 +9,7 @@ import { RaceNameComparisonService } from '../shared/race-name-comparison.servic
 import type { SampledRace } from '../shared/review.types';
 import { BblRawRaceIndexService } from '../source/bbl-raw-race-index.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawRosterIndexService } from '../source/tp-raw-roster-index.service';
+import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-index.service';
 import { RaceIdentityRawRendererService } from './race-identity-raw-renderer.service';
 
 const race: SampledRace = {
@@ -22,13 +22,13 @@ describe('RaceIdentityRawRendererService', () => {
   let service: RaceIdentityRawRendererService;
   let externalIds: ReturnType<typeof mock<RaceExternalIdsService>>;
   let bbl: ReturnType<typeof mock<BblRawRaceIndexService>>;
-  let tp: ReturnType<typeof mock<TpRawRosterIndexService>>;
+  let tp: ReturnType<typeof mock<TpRawOfficialTeamsIndexService>>;
   let manual: ReturnType<typeof mock<ManualRawDataService>>;
 
   beforeEach(async () => {
     externalIds = mock<RaceExternalIdsService>();
     bbl = mock<BblRawRaceIndexService>();
-    tp = mock<TpRawRosterIndexService>();
+    tp = mock<TpRawOfficialTeamsIndexService>();
     manual = mock<ManualRawDataService>();
     externalIds.forRace.mockResolvedValue({ bbl: [], tp: [], name: [] });
     externalIds.allForRace.mockResolvedValue([]);
@@ -38,7 +38,7 @@ describe('RaceIdentityRawRendererService', () => {
         RaceIdentityRawRendererService,
         { provide: RaceExternalIdsService, useValue: externalIds },
         { provide: BblRawRaceIndexService, useValue: bbl },
-        { provide: TpRawRosterIndexService, useValue: tp },
+        { provide: TpRawOfficialTeamsIndexService, useValue: tp },
         { provide: ManualRawDataService, useValue: manual },
         RaceNameComparisonService,
         ManualEntryMatcherService,
@@ -129,7 +129,7 @@ describe('RaceIdentityRawRendererService', () => {
     expect(html).not.toContain('more)');
   });
 
-  it('renders one TP row per TP code, with rosterMaster.name and the roster count', async () => {
+  it('renders one TP row per TP code, with the official list name, rules sets and position count', async () => {
     externalIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf', 'dwarf2'],
@@ -138,9 +138,24 @@ describe('RaceIdentityRawRendererService', () => {
     tp.raceFor.mockImplementation((code: string) =>
       Promise.resolve({
         teamRaceCode: code,
-        rosterName: `Dwarf (${code})`,
-        rosterCount: 3,
-        positions: [],
+        raceName: `Dwarf (${code})`,
+        rulesSets: ['BB2020', 'BB2025'],
+        positions: [
+          {
+            name: 'Dwarf Blocker',
+            isStar: false,
+            isOfficial: true,
+            rulesSet: 'BB2025',
+            tpPositionId: 929,
+            characteristics: {
+              move: 4,
+              strength: 3,
+              agility: 4,
+              passing: 5,
+              armour: 10,
+            },
+          },
+        ],
       }),
     );
 
@@ -149,10 +164,11 @@ describe('RaceIdentityRawRendererService', () => {
     expect(html).toContain('<h5>TP</h5>');
     expect(html).toContain('Dwarf (dwarf)');
     expect(html).toContain('Dwarf (dwarf2)');
-    expect(html.match(/<td>3<\/td>/g)?.length).toBe(2);
+    expect(html.match(/<td>BB2020, BB2025<\/td>/g)?.length).toBe(2);
+    expect(html.match(/<td>1<\/td>/g)?.length).toBe(2);
   });
 
-  it('renders a TP row with an explanatory note when no roster file carries that code', async () => {
+  it('renders a TP row with an explanatory note when no official list carries that code', async () => {
     externalIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['ghost'],
@@ -164,10 +180,10 @@ describe('RaceIdentityRawRendererService', () => {
 
     expect(html).toContain('<h5>TP</h5>');
     expect(html).toContain('ghost');
-    expect(html).toContain('no roster file carries this code');
+    expect(html).toContain('not on any official team list');
   });
 
-  it('falls back to an em-dash for a TP row when rosterMaster.name is absent', async () => {
+  it('falls back to an em-dash for a TP row with no name and no rules sets', async () => {
     externalIds.forRace.mockResolvedValue({
       bbl: [],
       tp: ['dwarf'],
@@ -175,15 +191,15 @@ describe('RaceIdentityRawRendererService', () => {
     });
     tp.raceFor.mockResolvedValue({
       teamRaceCode: 'dwarf',
-      rosterName: null,
-      rosterCount: 3,
+      raceName: null,
+      rulesSets: [],
       positions: [],
     });
 
     const html = await service.render(race);
 
     expect(html).toContain('<h5>TP</h5>');
-    expect(html).toContain('<td>—</td>');
+    expect(html.match(/<td>—<\/td>/g)?.length).toBe(2);
   });
 
   it('skips a null BBL/TP entry when finding the first name for the agreement row', async () => {
@@ -211,8 +227,8 @@ describe('RaceIdentityRawRendererService', () => {
           ? null
           : {
               teamRaceCode: code,
-              rosterName: 'Dwarf',
-              rosterCount: 1,
+              raceName: 'Dwarf',
+              rulesSets: ['BB2025'],
               positions: [],
             },
       ),
@@ -268,8 +284,8 @@ describe('RaceIdentityRawRendererService', () => {
     });
     tp.raceFor.mockResolvedValue({
       teamRaceCode: 'dwarf',
-      rosterName: 'Dwarf',
-      rosterCount: 1,
+      raceName: 'Dwarf',
+      rulesSets: ['BB2025'],
       positions: [],
     });
 
@@ -296,8 +312,8 @@ describe('RaceIdentityRawRendererService', () => {
     });
     tp.raceFor.mockResolvedValue({
       teamRaceCode: 'woodelf',
-      rosterName: 'Wood Elf',
-      rosterCount: 1,
+      raceName: 'Wood Elf',
+      rulesSets: ['BB2025'],
       positions: [],
     });
 

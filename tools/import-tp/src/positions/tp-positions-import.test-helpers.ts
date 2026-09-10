@@ -1,7 +1,7 @@
 /**
  * Shared harness for the TpPositionsImportService specs. Extracted so the
- * position-grouping spec and the characteristics-accumulation spec can build
- * the same subject without either file approaching the 1000-line spec cap.
+ * position-grouping spec and the characteristics-writing spec can build the
+ * same subject without either file approaching the 1000-line spec cap.
  */
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -11,7 +11,10 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
+import type {
+  TpOfficialPosition,
+  TpPositionCharacteristics,
+} from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -21,14 +24,12 @@ import { EraDataConfigService } from '../eras/era-data-config.service';
 import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import {
   asProviderMethod,
-  mockEraDataConfigService,
   mockImportResultService,
   mockNameExternalIdService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 import { TpPositionsImportService } from './tp-positions-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
@@ -76,6 +77,26 @@ export interface MakeServiceOptions {
   rulesSetIdByEraName?: Map<string, number>;
 }
 
+/**
+ * Default two-era config: `Fourth era` declares BB2020, `Fifth era` declares
+ * BB2025 -- one rules set each, matching how `officialTeamsEntry`'s
+ * `rulesSet` values are expected to be resolved against.
+ */
+const DEFAULT_ERAS: EraDataConfig[] = [
+  {
+    name: 'Fourth era',
+    dataSubdir: 'fourth-era',
+    rulesSets: ['BB2020'],
+    startDate: '2020-01-01',
+  },
+  {
+    name: 'Fifth era',
+    dataSubdir: 'fifth-era',
+    rulesSets: ['BB2025'],
+    startDate: '2025-01-01',
+  },
+];
+
 export async function makeService({
   bootstrap,
   upsertPosition,
@@ -87,18 +108,9 @@ export async function makeService({
   ]),
   raceIdsByCode = new Map([
     ['Dwarf', 50],
-    // Both suffixed variants resolve to the SAME race id as the bare code:
-    // TpRacesImportService groups a race's code variants into one race, which
-    // is precisely why two variants' positions can collide in one
-    // PositionGroup. `_BB2020` matches the rules set name the mocked
-    // EraDataConfigService declares for every era, so a `Dwarf_BB2020` roster
-    // is the authoritative one; `_BB2025` does not match, so it is not.
-    ['Dwarf_BB2020', 50],
-    ['Dwarf_BB2025', 50],
     ['Human', 60],
-    ['HU-1', 7],
   ]),
-  getEras,
+  getEras = () => DEFAULT_ERAS,
   rulesSetIdByEraName = new Map([
     ['Fourth era', 900],
     ['Fifth era', 901],
@@ -121,21 +133,14 @@ export async function makeService({
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
-  const rosterCollection = mock<RosterCollectionService>();
-  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
-    item: { era, roster: roster.id },
-    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
-  }));
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
-  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
-  if (getEras) {
-    eraDataConfig.getEras.mockImplementation(getEras);
-  }
+  const eraDataConfig = mock<EraDataConfigService>();
+  eraDataConfig.getEras.mockImplementation(getEras);
   const eraRulesSetResolver = mock<TpEraRulesSetResolverService>();
   eraRulesSetResolver.resolveRulesSetIdByEraName.mockResolvedValue(
     rulesSetIdByEraName,
@@ -157,7 +162,6 @@ export async function makeService({
         useValue: externalSystemName,
       },
       { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: RosterCollectionService, useValue: rosterCollection },
       { provide: ImportResultService, useValue: importResults },
       { provide: EraDataConfigService, useValue: eraDataConfig },
       { provide: ReferenceLookupService, useValue: lookup },
@@ -184,46 +188,52 @@ export const DEFAULT_CHARACTERISTICS: TpPositionCharacteristics = {
   armour: 9,
 };
 
-export interface RosterOpts {
-  teamRace: string;
-  raceName: string;
-  positions: {
-    tpPositionId: number;
-    name: string;
-    characteristics?: TpPositionCharacteristics;
-  }[];
-  starPositions?: {
-    tpPositionId: number;
-    name: string;
-    characteristics?: TpPositionCharacteristics;
-  }[];
-  id?: number;
+export interface OfficialPositionOpts {
+  name: string;
+  isStarPlayer?: boolean;
+  tpPositionId?: number;
+  characteristics?: TpPositionCharacteristics;
 }
 
-export function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
-  const { teamRace, raceName, positions, starPositions = [], id = 1 } = opts;
-  const withCharacteristics = (p: {
-    tpPositionId: number;
-    name: string;
-    characteristics?: TpPositionCharacteristics;
-  }) => ({
-    tpPositionId: p.tpPositionId,
-    name: p.name,
-    characteristics: p.characteristics ?? DEFAULT_CHARACTERISTICS,
-  });
+export function officialPosition(
+  opts: OfficialPositionOpts,
+): TpOfficialPosition {
+  const {
+    name,
+    isStarPlayer = false,
+    tpPositionId,
+    characteristics = DEFAULT_CHARACTERISTICS,
+  } = opts;
   return {
-    era,
-    competition: 'comp',
-    roster: {
-      id,
-      teamName: `Team ${id}`,
-      teamRaceCode: teamRace,
-      raceName,
-      coachTpId: 'coach-1',
-      positions: positions.map(withCharacteristics),
-      starPositions: starPositions.map(withCharacteristics),
-      players: [],
-    },
+    name,
+    isStarPlayer,
+    ...(tpPositionId === undefined ? {} : { tpPositionId }),
+    characteristics,
+  };
+}
+
+export interface OfficialTeamsEntryOpts {
+  raceName: string;
+  teamRaceCode: string;
+  rulesSet: string;
+  positions: TpOfficialPosition[];
+  /** Defaults to `true` (an official roster), matching the common case. */
+  isOfficial?: boolean;
+}
+
+export function officialTeamsEntry(
+  opts: OfficialTeamsEntryOpts,
+): OfficialTeamsEntry {
+  const {
+    raceName,
+    teamRaceCode,
+    rulesSet,
+    positions,
+    isOfficial = true,
+  } = opts;
+  return {
+    race: { name: raceName, teamRaceCode, isOfficial, positions },
+    rulesSet,
   };
 }
 

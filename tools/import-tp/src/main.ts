@@ -17,13 +17,14 @@ import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
 import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
+import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
-import { TpPositionRaceErasImportService } from './positions/tp-position-race-eras-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
+import { OfficialTeamsCollectionService } from './source/official-teams-collection.service';
 import { RosterCollectionService } from './source/roster-collection.service';
 import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
@@ -91,21 +92,32 @@ async function run(): Promise<ImportResult> {
       errors: rosterErrors,
     });
 
+    // TP's official team list (races, positions, star players with their
+    // characteristics) is scanned and parsed once here, then shared by the
+    // races/positions imports below -- the canonical per-rules-set source,
+    // independent of which rosters happened to be played.
+    const officialTeamsErrors: ImportError[] = [];
+    const officialTeams = await app
+      .get(OfficialTeamsCollectionService)
+      .collect(officialTeamsErrors);
+    const officialTeamsCollectionResult = app.get(ImportResultService).result({
+      imported: 0,
+      errors: officialTeamsErrors,
+    });
+
     const raceOutcome = await app
       .get(TpRacesImportService)
-      .importRaces(rosters);
+      .importRaces(officialTeams);
 
     const teamOutcome = await app
       .get(TpTeamsImportService)
       .importTeams(rosters);
 
-    const {
-      result: positionResult,
-      starPositionIds,
-      characteristicsByPositionId,
-    } = await app.get(TpPositionsImportService).importPositions(rosters, {
-      raceNamesById: raceOutcome.raceNamesById,
-    });
+    const { result: positionResult, characteristicsByPositionId } = await app
+      .get(TpPositionsImportService)
+      .importPositions(officialTeams, {
+        raceNamesById: raceOutcome.raceNamesById,
+      });
 
     // Characteristics run immediately after the positions step that produced
     // them: the map is keyed by the position ids that step just upserted, and
@@ -116,7 +128,9 @@ async function run(): Promise<ImportResult> {
     // ordering is deliberate: TP's values are per-rules-set and authoritative,
     // where BBL's are a converted single snapshot.
     // Star players need no special casing: position_rules_sets is keyed by
-    // positionId alone.
+    // positionId alone, and star race/era availability now comes from the
+    // positions step itself (its syncRaceEras calls above), not from this
+    // characteristics step.
     const positionCharacteristicsOutcome = await app
       .get(TpPositionCharacteristicsImportService)
       .syncPositionCharacteristics(characteristicsByPositionId);
@@ -235,28 +249,28 @@ async function run(): Promise<ImportResult> {
       result: playerResult,
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
-      starPositionUsages,
       careerSppCountsByPlayerId,
+      mercenaryPositionUsages,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
       inducedStarPlayerHireGroups,
       matchEmbeddedPlayersByRosterId,
-      starPositionIds,
       characteristicsByPositionId,
     });
 
-    // Star positions get zero positions_race_eras rows from the regular
-    // position sync (they're grouped by name, not race), so this post-players
-    // step derives their (race, era) availability from actual usage -- the
-    // starPositionUsages the players step just emitted. Regular positions are
-    // already handled by TpPositionsImportService. Runs after players because
-    // star usage (which team/race+era fielded each star) is only known once
-    // players are imported. Idempotent (syncRaceEras is upsert-only).
-    const positionRaceErasOutcome = await app
-      .get(TpPositionRaceErasImportService)
-      .syncStarPositionRaceEras({
-        starPositionUsages,
+    // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
+    // official-list catalog at all, so -- unlike regular and star positions,
+    // which the official team list now describes directly -- its
+    // positions_race_eras rows still have to be derived from actual usage:
+    // the mercenaryPositionUsages the players step just emitted. Runs after
+    // players because that usage (which team/race+era each mercenary was
+    // hired into) is only known once players are imported. Idempotent
+    // (syncRaceEras is upsert-only).
+    const mercenaryPositionRaceErasOutcome = await app
+      .get(TpMercenaryPositionRaceErasImportService)
+      .syncMercenaryPositionRaceEras({
+        mercenaryPositionUsages,
       });
 
     // Team participation (match_teams + competition_teams) runs before match
@@ -352,12 +366,13 @@ async function run(): Promise<ImportResult> {
       matchResult,
       coachOutcome.result,
       rosterCollectionResult,
+      officialTeamsCollectionResult,
       raceOutcome.result,
       teamOutcome.result,
       positionResult,
       positionCharacteristicsOutcome.result,
       playerResult,
-      positionRaceErasOutcome.result,
+      mercenaryPositionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       trophyAwardsOutcome.result,
       matchEventsOutcome.result,

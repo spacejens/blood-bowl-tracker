@@ -671,6 +671,124 @@ describe('TpPlayersImportService', () => {
     expect(upsertPosition).toHaveBeenCalledTimes(1);
   });
 
+  it('emits a mercenaryPositionUsage for a mercenary Big Guy resolved via the fallback position name', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+              totalStarPlayerPoints: 41,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { mercenaryPositionUsages } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(mercenaryPositionUsages).toEqual([
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Third Era' },
+    ]);
+  });
+
+  it('emits one mercenaryPositionUsage per hire, sharing the same position id, when several mercenaries share a fallback name', async () => {
+    const upsertPlayerResult = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 960 })
+      .mockResolvedValueOnce({ id: 961 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+              totalStarPlayerPoints: 41,
+            },
+            {
+              id: 1970614,
+              name: 'Giant',
+              number: 27,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+              totalStarPlayerPoints: 19,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { mercenaryPositionUsages } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(mercenaryPositionUsages).toEqual([
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Third Era' },
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Third Era' },
+    ]);
+  });
+
+  it('emits no mercenaryPositionUsage for a regular (non-mercenary) roster player', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service } = await makeService({ upsertPlayerResult });
+
+    const { mercenaryPositionUsages } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(mercenaryPositionUsages).toEqual([]);
+  });
+
   it('skips a mercenary Big Guy without creating a player when the fallback position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
@@ -741,141 +859,6 @@ describe('TpPlayersImportService', () => {
     ).toBe(true);
     expect(upsertPosition).not.toHaveBeenCalled();
     expect(upsertPlayerResult).not.toHaveBeenCalled();
-  });
-
-  it('emits no starPositionUsages for a regular (non-star) roster player', async () => {
-    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const { service } = await makeService({ upsertPlayerResult });
-
-    const { starPositionUsages } = await service.importPlayers({
-      rosters,
-      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      // no starPositionIds -> position 200 is not a star position
-    });
-
-    expect(starPositionUsages).toEqual([]);
-  });
-
-  it('emits a starPositionUsage for an embedded roster player whose position is a star position', async () => {
-    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const { service } = await makeService({
-      upsertPlayerResult,
-      positionIdsByExternalId: new Map([['5002', 800]]),
-    });
-    const embeddedStarRosters: RosterEntry[] = [
-      {
-        era: 'Third Era',
-        competition: 'comp',
-        roster: {
-          id: 123,
-          teamName: 'Team 123',
-          teamRaceCode: 'Dwarf',
-          raceName: 'Dwarf',
-          coachTpId: 'coach-1',
-          positions: [],
-          starPositions: [],
-          players: [
-            {
-              id: 42,
-              name: "Morg 'n' Thorg",
-              number: 1,
-              lineUpMasterId: 5002,
-              rosterId: 123,
-              fallbackPositionName: 'x',
-              isBigGuy: false,
-              totalStarPlayerPoints: 30,
-            },
-          ],
-        },
-      },
-    ];
-
-    const { starPositionUsages } = await service.importPlayers({
-      rosters: embeddedStarRosters,
-      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      starPositionIds: new Set([800]),
-    });
-
-    expect(starPositionUsages).toEqual([
-      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
-    ]);
-  });
-
-  it('emits a starPositionUsage for a mercenary Big Guy resolved via the fallback position name', async () => {
-    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 902 });
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 820 });
-    const { service } = await makeService({
-      upsertPlayerResult,
-      upsertPosition,
-    });
-    const mercRosters: RosterEntry[] = [
-      {
-        era: 'Third Era',
-        competition: 'comp',
-        roster: {
-          id: 123,
-          teamName: 'Team 123',
-          teamRaceCode: 'Dwarf',
-          raceName: 'Dwarf',
-          coachTpId: 'coach-1',
-          positions: [],
-          starPositions: [],
-          players: [
-            {
-              id: 55,
-              name: 'Giant',
-              number: 1,
-              lineUpMasterId: 9999,
-              rosterId: 123,
-              fallbackPositionName: 'Giant',
-              isBigGuy: true,
-              totalStarPlayerPoints: 8,
-            },
-          ],
-        },
-      },
-    ];
-
-    const { starPositionUsages } = await service.importPlayers({
-      rosters: mercRosters,
-      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-    });
-
-    expect(starPositionUsages).toEqual([
-      { positionId: 820, teamRaceCode: 'Dwarf', era: 'Third Era' },
-    ]);
-  });
-
-  it('emits a starPositionUsage for an inducements-hired star player', async () => {
-    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 810 });
-    const { service } = await makeService({
-      upsertPlayerResult,
-      upsertPosition,
-    });
-
-    const { starPositionUsages } = await service.importPlayers({
-      rosters, // roster 123 -> teamRaceCode 'Dwarf', era 'Third Era'
-      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
-      inducedStarPlayerHireGroups: [
-        {
-          rosterId: 123,
-          eraId: 500,
-          starPlayers: [
-            { name: 'Griff Oberwald', lineUpMasterId: 7001, number: 1 },
-          ],
-        },
-      ],
-    });
-
-    // The regular roster player (position 200) is NOT a star, so only the
-    // induced star player contributes a usage.
-    expect(starPositionUsages).toContainEqual({
-      positionId: 810,
-      teamRaceCode: 'Dwarf',
-      era: 'Third Era',
-    });
-    expect(starPositionUsages).toHaveLength(1);
   });
 
   it('uses the MAXIMUM totalStarPlayerPoints seen for a player id across sources, regardless of which source carries the higher value', async () => {

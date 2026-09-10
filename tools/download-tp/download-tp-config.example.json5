@@ -27,9 +27,20 @@
     headless: false,
   },
 
-  // What to download.
+  // What to download. Both keys are required to be present, but either may
+  // be set to [] to skip that half entirely — download only tournaments,
+  // only the official team list, both, or (both set to []) neither.
   download: {
-    // Tournament names to download, as they appear in the frontend path.
+    // Tournament names to download, as they appear in the frontend path. Set
+    // to [] to skip the per-tournament scrape entirely.
     tournaments: ['<NAME_FROM_FRONTEND_PATH>'],
+
+    // Rules sets to download TP's official per-rules-set team list for. Each
+    // value names a tab on https://tourplay.net/en/blood-bowl/teams and the
+    // data/teams/<rulesSet>/ output folder. Set to [] to skip the
+    // official-teams download entirely. Use the same spelling as
+    // import-tp-config.json5's league.eras[].identity.rulesSets so the
+    // import side lines them up (matched case-insensitively).
+    rulesSets: ['BB2020', 'DB2021', 'BB2025'],
   },
 }

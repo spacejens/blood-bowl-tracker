@@ -17,9 +17,9 @@ import {
   mockImportResultService,
   mockReferenceLookupService,
 } from '../import-package.test-helpers';
-import type { StarPositionUsage } from '../players/tp-players-import.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { TpPositionRaceErasImportService } from './tp-position-race-eras-import.service';
+import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
+import type { MercenaryPositionUsage } from './tp-players-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
 const TP_SYSTEM_ID = 1;
@@ -65,11 +65,11 @@ async function makeService({
   ]),
   raceIdsByCode = new Map([
     ['Dwarf', 50],
-    ['Human', 60],
+    ['Norse', 60],
   ]),
   getEras,
 }: MakeServiceOptions): Promise<{
-  service: TpPositionRaceErasImportService;
+  service: TpMercenaryPositionRaceErasImportService;
   importResults: MockProxy<ImportResultService>;
   lookup: MockProxy<ReferenceLookupService>;
 }> {
@@ -99,7 +99,7 @@ async function makeService({
 
   const moduleRef = await Test.createTestingModule({
     providers: [
-      TpPositionRaceErasImportService,
+      TpMercenaryPositionRaceErasImportService,
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: ImportResultService, useValue: importResults },
       {
@@ -115,26 +115,24 @@ async function makeService({
     ],
   }).compile();
   return {
-    service: moduleRef.get(TpPositionRaceErasImportService),
+    service: moduleRef.get(TpMercenaryPositionRaceErasImportService),
     importResults,
     lookup,
   };
 }
 
-describe('TpPositionRaceErasImportService', () => {
-  it('syncs one star position with every distinct (race, era) pair it was fielded on', async () => {
+describe('TpMercenaryPositionRaceErasImportService', () => {
+  it('syncs one mercenary position with every distinct (race, era) pair it was hired into', async () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
     const { service, importResults } = await makeService({ syncRaceEras });
-    const starPositionUsages: StarPositionUsage[] = [
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
-      { positionId: 800, teamRaceCode: 'Human', era: 'Fourth era' },
+      { positionId: 800, teamRaceCode: 'Norse', era: 'Fourth era' },
     ];
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages,
-    });
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
 
     expect(syncRaceEras).toHaveBeenCalledTimes(1);
     expect(syncRaceEras).toHaveBeenCalledWith(
@@ -157,14 +155,12 @@ describe('TpPositionRaceErasImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
     const { service } = await makeService({ syncRaceEras });
-    const starPositionUsages: StarPositionUsage[] = [
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
     ];
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages,
-    });
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
 
     expect(syncRaceEras).toHaveBeenCalledWith(
       { positionId: 800, raceEras: [{ raceId: 50, eraId: 500 }] },
@@ -172,12 +168,12 @@ describe('TpPositionRaceErasImportService', () => {
     );
   });
 
-  it('makes no syncRaceEras call when there are no star position usages', async () => {
+  it('makes no syncRaceEras call when there are no mercenary position usages', async () => {
     const syncRaceEras = vi.fn();
     const { service, importResults } = await makeService({ syncRaceEras });
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages: [],
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [],
     });
 
     expect(syncRaceEras).not.toHaveBeenCalled();
@@ -191,14 +187,12 @@ describe('TpPositionRaceErasImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 0, raceEraIds: [1] });
     const { service, importResults } = await makeService({ syncRaceEras });
-    const starPositionUsages: StarPositionUsage[] = [
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
-      { positionId: 810, teamRaceCode: 'Human', era: 'Fourth era' },
+      { positionId: 810, teamRaceCode: 'Norse', era: 'Fourth era' },
     ];
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages,
-    });
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
 
     expect(syncRaceEras).toHaveBeenCalledTimes(2);
     expect(syncRaceEras).toHaveBeenCalledWith(
@@ -217,14 +211,12 @@ describe('TpPositionRaceErasImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
     const { service, importResults } = await makeService({ syncRaceEras });
-    const starPositionUsages: StarPositionUsage[] = [
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'UnknownRace', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
     ];
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages,
-    });
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
@@ -238,13 +230,11 @@ describe('TpPositionRaceErasImportService', () => {
   it('records an ImportError and skips a usage whose era cannot be resolved', async () => {
     const syncRaceEras = vi.fn();
     const { service, importResults } = await makeService({ syncRaceEras });
-    const starPositionUsages: StarPositionUsage[] = [
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Unknown Era' },
     ];
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages,
-    });
+    await service.syncMercenaryPositionRaceEras({ mercenaryPositionUsages });
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
@@ -258,12 +248,12 @@ describe('TpPositionRaceErasImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
     const { service } = await makeService({ syncRaceEras });
-    const starPositionUsages: StarPositionUsage[] = [
+    const mercenaryPositionUsages: MercenaryPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
     ];
 
-    const { result } = await service.syncStarPositionRaceEras({
-      starPositionUsages,
+    const { result } = await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages,
     });
 
     expect(result).toBe(CANNED_RESULT);
@@ -275,8 +265,8 @@ describe('TpPositionRaceErasImportService', () => {
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
     const { service, lookup } = await makeService({ syncRaceEras });
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages: [
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [
         { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       ],
     });
@@ -300,8 +290,8 @@ describe('TpPositionRaceErasImportService', () => {
       }),
     });
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages: [
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [
         { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       ],
     });
@@ -322,8 +312,8 @@ describe('TpPositionRaceErasImportService', () => {
       },
     });
 
-    await service.syncStarPositionRaceEras({
-      starPositionUsages: [
+    await service.syncMercenaryPositionRaceEras({
+      mercenaryPositionUsages: [
         { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       ],
     });

@@ -15,54 +15,34 @@ import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
 import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 
-/** One position, keyed by (raceId, name), accumulated across roster files. */
+/**
+ * One position, keyed by (raceId, name), accumulated across the rules sets
+ * whose official list carries it. Regular and star positions share this
+ * shape: the official list publishes both with characteristics, so
+ * `isStarPlayer` is the only difference and one path handles both.
+ */
 interface PositionGroup {
   raceId: number;
   name: string;
+  isStarPlayer: boolean;
   tpPositionIds: Set<number>;
   eraIds: Set<number>;
-  /** Rules set DB id -> the characteristics every roster agreed on. */
-  characteristics: Map<number, TpPositionCharacteristics>;
   /**
-   * Rules sets whose stored characteristics came from an authoritative
-   * roster (one whose TP team-race code carries the era's rules-set-name
-   * suffix). Bookkeeping local to conflict resolution — never returned to
-   * callers, which only ever see `characteristics`.
+   * Rules set DB id -> the characteristics on record for that slot, tagged
+   * with whether they came from an official roster. Official and legacy
+   * rosters can both carry the same (race, position, rules set) with
+   * different stats -- `recordCharacteristicsForRulesSet` is what makes
+   * official win regardless of processing order.
    */
-  authoritativeRulesSetIds: Set<number>;
-  /** Rules sets whose observations disagreed unresolvably; permanently dropped. */
-  conflictingRulesSetIds: Set<number>;
+  characteristics: Map<number, CharacteristicsSource>;
 }
 
-/** One star position, keyed by name only (star players are not race-scoped),
- * accumulated across roster files. */
-interface StarPositionGroup {
-  name: string;
-  tpPositionIds: Set<number>;
-  characteristics: Map<number, TpPositionCharacteristics>;
-  authoritativeRulesSetIds: Set<number>;
-  conflictingRulesSetIds: Set<number>;
-}
-
-/**
- * Characteristics accumulated for one *resolved* DB position id, merged across
- * every group whose upsert landed on that row. Two groups can share one row:
- * TP renames a roster slot across rules-set generations (`Halfling Hopeful
- * Lineman` -> `Halfling Hopeful`) while `tools/import-manual` registers both
- * literal names as external ids of a single Position, so grouping by
- * `${raceId} ${name}` yields two groups whose upserts resolve identically.
- * Shaped to match what `accumulateCharacteristics` expects as its `group`, so
- * the same conflict rules apply within a group and across groups.
- */
-interface PositionCharacteristicsAccumulator {
-  /** The first contributing group's position name, used in error messages. */
-  name: string;
-  characteristics: Map<number, TpPositionCharacteristics>;
-  authoritativeRulesSetIds: Set<number>;
-  conflictingRulesSetIds: Set<number>;
+/** One rules set's characteristics, tagged with the roster kind they came from. */
+interface CharacteristicsSource {
+  characteristics: TpPositionCharacteristics;
+  isOfficial: boolean;
 }
 
 interface ImportPositionsOptions {
@@ -76,7 +56,6 @@ export class TpPositionsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
-    private readonly rosterCollection: RosterCollectionService,
     private readonly importResults: ImportResultService,
     private readonly eraDataConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
@@ -84,36 +63,38 @@ export class TpPositionsImportService {
   ) {}
 
   /**
+   * Import every position on TP's official team list, regular and star alike.
    * Positions are grouped by `(unified raceId, position name)` so that
-   * identically-named positions across one logical race's rule-set variants
-   * collapse to a single row collecting every `tpPositionId`. A regular
-   * position's `Name` external id is scoped as `` `${raceName}: ${positionName}` ``
-   * because position names are not globally unique.
+   * identically-named positions across one logical race's rules-set variants
+   * collapse to a single row collecting every TP position id.
    *
-   * Star positions are grouped by name alone and take a bare-name `Name`
-   * external id, which is what dedupes them onto the same row as the
-   * inducement-hire path and the BBL importer's stars.
+   * A regular position's `Name` external id is scoped as
+   * `` `${raceName}: ${positionName}` `` because position names are not
+   * globally unique; a star's is its bare name, which is what dedupes it onto
+   * the same row as the inducement-hire path and the BBL importer's stars. A
+   * star external id colliding with a regular position's is caught
+   * server-side by `PositionsService`'s `detectSemanticConflict` hook, so no
+   * client-side guard is needed here.
    *
-   * A star external id colliding with a regular position's is caught
-   * server-side: `PositionsService` passes `upsertByExternalIds` a
-   * `detectSemanticConflict` hook that throws on an `isStarPlayer` mismatch
-   * instead of overwriting the row, so no client-side guard is needed here.
+   * Star positions get `syncRaceEras` too: the official list says which race
+   * may field which star under which rules set, so their availability is a
+   * direct fact here rather than something derived from observed hires.
    *
-   * Alongside grouping, each group also accumulates the characteristics its
-   * rosters report, keyed by rules-set DB id (resolved from each roster's era
-   * via `EraDataConfigService.getEras()`). Two rosters disagreeing about the
-   * same (position, rules set) is resolved in favour of whichever roster's
-   * TP team-race code carries the era's rules-set-name suffix (TP's own way
-   * of superseding a race's roster mid-rules-set); when both or neither
-   * qualify, the disagreement is unresolvable bad TP source data and the
-   * rules set is dropped for that position with one recorded error.
+   * Characteristics DO need conflict resolution: an official roster carries
+   * the canonical value for a (position, rules set), but a legacy roster
+   * (imported alongside it for race/position existence and player
+   * resolvability -- see `IMPORTED_ROSTER_TYPES` in
+   * `OfficialTeamsParserService`) can carry a different value for the SAME
+   * slot. `recordCharacteristicsForRulesSet` makes the official value win
+   * regardless of which roster is processed first; a legacy-only slot (no
+   * official counterpart) still gets its legacy value, since that is
+   * strictly better than dropping the position entirely.
    */
   async importPositions(
-    rosters: RosterEntry[],
+    officialTeams: OfficialTeamsEntry[],
     options: ImportPositionsOptions,
   ): Promise<{
     result: ImportResult;
-    starPositionIds: Set<number>;
     characteristicsByPositionId: Map<
       number,
       Map<number, TpPositionCharacteristics>
@@ -122,12 +103,10 @@ export class TpPositionsImportService {
     const { raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
-    const starPositionIds = new Set<number>();
     const characteristicsByPositionId = new Map<
       number,
       Map<number, TpPositionCharacteristics>
     >();
-    const accumulators = new Map<number, PositionCharacteristicsAccumulator>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -138,7 +117,6 @@ export class TpPositionsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
-        starPositionIds,
         characteristicsByPositionId,
       };
     }
@@ -156,128 +134,113 @@ export class TpPositionsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
-        starPositionIds,
         characteristicsByPositionId,
       };
     }
-    const eraNames = [...new Set(eras.map((era) => era.name))];
+
     const eraIds = await this.lookup.lookupMap(
       'era',
-      eraNames.map((name) => ({
+      [...new Set(eras.map((era) => era.name))].map((name) => ({
         externalSystemId: tpSystemId,
         externalId: name,
       })),
     );
-
     const rulesSetIdByEraName =
       await this.eraRulesSetResolver.resolveRulesSetIdByEraName({
         eras,
         tpSystemId,
         errors,
       });
-
-    const rulesSetNameByEraName = this.buildRulesSetNameByEraName(eras);
-
     const raceIds = await this.lookup.lookupMap(
       'race',
-      [...new Set(rosters.map(({ roster }) => roster.teamRaceCode))].map(
+      [...new Set(officialTeams.map(({ race }) => race.teamRaceCode))].map(
         (code) => ({ externalSystemId: tpSystemId, externalId: code }),
       ),
     );
 
     const groups = new Map<string, PositionGroup>();
-    for (const { roster, era } of rosters) {
+    for (const { race, rulesSet } of officialTeams) {
       const raceId = raceIds.get(
         this.lookup.keyOf({
           externalSystemId: tpSystemId,
-          externalId: roster.teamRaceCode,
+          externalId: race.teamRaceCode,
         }),
       );
       if (raceId === undefined) {
         errors.push(
           this.importResults.error({
-            item: { roster: roster.id, teamRaceCode: roster.teamRaceCode },
-            message: `Skipping positions for roster ${roster.id}: could not resolve race for code "${roster.teamRaceCode}"`,
+            item: { rulesSet, teamRaceCode: race.teamRaceCode },
+            message:
+              `Skipping positions for "${race.teamRaceCode}" (${rulesSet}): ` +
+              'could not resolve its race.',
           }),
         );
         continue;
       }
-      const eraId = eraIds.get(
-        this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
+      const matchingEras = eras.filter((era) =>
+        era.rulesSets.some(
+          (name) => name.toLowerCase() === rulesSet.toLowerCase(),
+        ),
       );
-      if (eraId === undefined) {
-        errors.push(this.rosterCollection.unknownEraError(era, roster));
+      if (matchingEras.length === 0) {
+        errors.push(
+          this.importResults.error({
+            item: { rulesSet, teamRaceCode: race.teamRaceCode },
+            message:
+              `Rules set "${rulesSet}" (race "${race.teamRaceCode}") ` +
+              'matches no configured era; its positions have no race/era ' +
+              'availability.',
+          }),
+        );
       }
-      const rulesSetId = rulesSetIdByEraName.get(era);
-      const authoritative = this.isAuthoritativeRoster(
-        roster.teamRaceCode,
-        rulesSetNameByEraName.get(era),
-      );
-      for (const position of roster.positions) {
-        const key = `${raceId} ${position.name}`;
-        let group = groups.get(key);
-        if (!group) {
-          group = {
-            raceId,
-            name: position.name,
-            tpPositionIds: new Set(),
-            eraIds: new Set(),
-            characteristics: new Map(),
-            authoritativeRulesSetIds: new Set(),
-            conflictingRulesSetIds: new Set(),
-          };
-          groups.set(key, group);
+      for (const position of race.positions) {
+        const group = this.groupFor({ groups, raceId, position });
+        if (position.tpPositionId !== undefined) {
+          group.tpPositionIds.add(position.tpPositionId);
         }
-        group.tpPositionIds.add(position.tpPositionId);
-        if (eraId !== undefined) {
-          group.eraIds.add(eraId);
-        }
-        if (rulesSetId !== undefined) {
-          this.accumulateCharacteristics({
-            group,
-            rulesSetId,
-            characteristics: position.characteristics,
-            authoritative,
-            errors,
-          });
+        for (const era of matchingEras) {
+          const eraId = eraIds.get(
+            this.lookup.keyOf({
+              externalSystemId: tpSystemId,
+              externalId: era.name,
+            }),
+          );
+          if (eraId !== undefined) {
+            group.eraIds.add(eraId);
+          }
+          const rulesSetId = rulesSetIdByEraName.get(era.name);
+          if (rulesSetId !== undefined) {
+            this.recordCharacteristicsForRulesSet({
+              group,
+              rulesSetId,
+              characteristics: position.characteristics,
+              isOfficial: race.isOfficial,
+            });
+          }
         }
       }
     }
 
     for (const group of groups.values()) {
-      const externalIds = [...group.tpPositionIds].map((tpPositionId) => ({
-        externalSystemId: tpSystemId,
-        externalId: String(tpPositionId),
-      }));
-      const raceName = raceNamesById.get(group.raceId);
-      if (raceName === undefined) {
-        errors.push(
-          this.importResults.error({
-            item: { raceId: group.raceId, position: group.name },
-            message: `Could not resolve a race name for race id ${group.raceId} (position "${group.name}"): missing from raceNamesById; skipping its Name external id`,
-          }),
-        );
-      } else {
-        externalIds.push({
-          externalSystemId: nameSystemId,
-          externalId: this.nameExternalId.forPosition(raceName, group.name),
-        });
-      }
       const data: UpsertPosition = {
         name: group.name,
-        isStarPlayer: false,
-        externalIds,
+        isStarPlayer: group.isStarPlayer,
+        externalIds: this.externalIdsFor({
+          group,
+          systemIds: { tpSystemId, nameSystemId },
+          raceNamesById,
+          errors,
+        }),
       };
       const upserted = await this.positionsImport.upsert(data, errors);
       if (!upserted) {
         continue;
       }
       imported += 1;
-      this.mergeGroupCharacteristics({
-        accumulators,
+      this.recordCharacteristics({
+        characteristicsByPositionId,
         positionId: upserted.id,
         group,
-        errors,
       });
       await this.positionsImport.syncRaceEras(
         {
@@ -291,327 +254,135 @@ export class TpPositionsImportService {
       );
     }
 
-    // Star positions: grouped by name only (not race — the same named star
-    // player is the same entity regardless of team/race), upserted with a
-    // TP-system bare-name external id (preserving TP's own catalog-independent
-    // star id), one TP-system external id per distinct numeric tpPositionId
-    // seen for that star, and a Name-system bare-name id so they dedupe onto
-    // the SAME Position row the inducement-hire path and the BBL importer
-    // create. The numeric ids are what makes a roster-embedded star
-    // resolvable: TpPlayersImportService looks a position up by
-    // String(lineUpMasterId), which is exactly this number, so without them
-    // every roster-embedded star is skipped. A numeric id colliding
-    // with a regular position's TP id is caught server-side by
-    // PositionsService's detectSemanticConflict hook (isStarPlayer mismatch →
-    // PositionUpsertConflictError, reported as a CONFLICT), never silently
-    // overwritten. No syncRaceEras (not race-scoped).
-    const starGroups = new Map<string, StarPositionGroup>();
-    for (const { roster, era } of rosters) {
-      const rulesSetId = rulesSetIdByEraName.get(era);
-      const authoritative = this.isAuthoritativeRoster(
-        roster.teamRaceCode,
-        rulesSetNameByEraName.get(era),
-      );
-      for (const starPosition of roster.starPositions) {
-        let group = starGroups.get(starPosition.name);
-        if (!group) {
-          group = {
-            name: starPosition.name,
-            tpPositionIds: new Set(),
-            characteristics: new Map(),
-            authoritativeRulesSetIds: new Set(),
-            conflictingRulesSetIds: new Set(),
-          };
-          starGroups.set(starPosition.name, group);
-        }
-        group.tpPositionIds.add(starPosition.tpPositionId);
-        if (rulesSetId !== undefined) {
-          this.accumulateCharacteristics({
-            group,
-            rulesSetId,
-            characteristics: starPosition.characteristics,
-            authoritative,
-            errors,
-          });
-        }
-      }
-    }
-
-    for (const group of starGroups.values()) {
-      const data: UpsertPosition = {
-        name: group.name,
-        isStarPlayer: true,
-        externalIds: [
-          { externalSystemId: tpSystemId, externalId: group.name },
-          ...[...group.tpPositionIds].map((tpPositionId) => ({
-            externalSystemId: tpSystemId,
-            externalId: String(tpPositionId),
-          })),
-          {
-            externalSystemId: nameSystemId,
-            externalId: this.nameExternalId.forStarPosition(group.name),
-          },
-        ],
-      };
-      const upserted = await this.positionsImport.upsert(data, errors);
-      if (!upserted) {
-        continue;
-      }
-      imported += 1;
-      starPositionIds.add(upserted.id);
-      this.mergeGroupCharacteristics({
-        accumulators,
-        positionId: upserted.id,
-        group,
-        errors,
-      });
-    }
-
-    for (const [positionId, accumulator] of accumulators) {
-      if (accumulator.characteristics.size > 0) {
-        characteristicsByPositionId.set(
-          positionId,
-          accumulator.characteristics,
-        );
-      }
-    }
-
     return {
       result: this.importResults.result({ imported, errors }),
-      starPositionIds,
       characteristicsByPositionId,
     };
   }
 
   /**
-   * Era name -> the single rules set name that era declares in
-   * import-tp-config.json5. Eras declaring zero or several rules sets are
-   * omitted, mirroring the gate TpEraRulesSetResolverService already applies:
-   * such an era never resolves a rules-set *id* either, so its rosters never
-   * reach accumulateCharacteristics in the first place.
+   * Record one rules set's characteristics onto a group, letting an official
+   * value win over a legacy one regardless of processing order. A legacy
+   * value is dropped when the slot already holds an official one; otherwise
+   * (the slot is empty, or the new value is itself official) the new value
+   * is recorded, so official can still overwrite legacy that arrived first.
    */
-  private buildRulesSetNameByEraName(
-    eras: EraDataConfig[],
-  ): Map<string, string> {
-    const byEraName = new Map<string, string>();
-    for (const era of eras) {
-      if (era.rulesSets.length === 1) {
-        byEraName.set(era.name, era.rulesSets[0]);
-      }
-    }
-    return byEraName;
-  }
-
-  /**
-   * Whether a roster's own TP team-race code marks it as the current template
-   * for its era's rules set. When TP updates a race's roster mid-rules-set it
-   * keeps the legacy roster under the bare race code and publishes the new one
-   * under a code suffixed with the rules set name (e.g. `Vampire_BB2020`
-   * superseding `Vampire` within BB2020), so the suffixed roster is the
-   * authoritative, post-update template. A heuristic on TP's naming
-   * convention, applied only to break a disagreement — never to change what a
-   * single, unopposed observation records. `false` when the era declares no
-   * single rules set name.
-   */
-  private isAuthoritativeRoster(
-    teamRaceCode: string,
-    rulesSetName: string | undefined,
-  ): boolean {
-    return (
-      rulesSetName !== undefined && teamRaceCode.endsWith(`_${rulesSetName}`)
-    );
-  }
-
-  /**
-   * Fold one group's per-rules-set characteristics into the accumulator for
-   * the DB position id its upsert resolved to, creating that accumulator on
-   * first use. Merging rather than replacing is what lets two groups sharing
-   * one resolved position id each keep their own rules sets, using the same
-   * `accumulateCharacteristics` conflict rules a single group already applies
-   * — authoritative-roster-wins, agreement is a no-op, and a rules set once
-   * dropped as ambiguous is never resurrected — including whether the value
-   * being contributed came from an authoritative roster. A group's own
-   * `conflictingRulesSetIds` are propagated into the accumulator first, so a
-   * rules set one group already dropped as internally ambiguous cannot be
-   * filled in by another group's otherwise-clean observation for the same
-   * rules set: the ambiguity is a property of the position under that rules
-   * set, not of one particular literal roster-slot name. With one group per
-   * position id — the common case — this is equivalent to storing the
-   * group's map directly.
-   */
-  private mergeGroupCharacteristics(options: {
-    accumulators: Map<number, PositionCharacteristicsAccumulator>;
-    positionId: number;
-    group: {
-      name: string;
-      characteristics: Map<number, TpPositionCharacteristics>;
-      authoritativeRulesSetIds: Set<number>;
-      conflictingRulesSetIds: Set<number>;
-    };
-    errors: ImportError[];
-  }): void {
-    const { accumulators, positionId, group, errors } = options;
-    let accumulator = accumulators.get(positionId);
-    if (accumulator === undefined) {
-      accumulator = {
-        name: group.name,
-        characteristics: new Map(),
-        authoritativeRulesSetIds: new Set(),
-        conflictingRulesSetIds: new Set(),
-      };
-      accumulators.set(positionId, accumulator);
-    }
-    for (const rulesSetId of group.conflictingRulesSetIds) {
-      accumulator.conflictingRulesSetIds.add(rulesSetId);
-      accumulator.characteristics.delete(rulesSetId);
-      accumulator.authoritativeRulesSetIds.delete(rulesSetId);
-    }
-    for (const [rulesSetId, characteristics] of group.characteristics) {
-      this.accumulateCharacteristics({
-        group: accumulator,
-        rulesSetId,
-        characteristics,
-        authoritative: group.authoritativeRulesSetIds.has(rulesSetId),
-        errors,
-        positionId,
-      });
-    }
-  }
-
-  /**
-   * Record one roster's observation of a position's characteristics under one
-   * rules set. Two rosters disagreeing is resolved by TP's own suffix convention when it
-   * can be: an authoritative observation (see `isAuthoritativeRoster`) beats a
-   * non-authoritative one, silently — that is TP correctly describing a
-   * mid-rules-set roster update, not bad data, and this importer's only
-   * reporting channel (`errors`) would flip `ImportResult.success` to false if
-   * used for it. A disagreement where both or neither observation is
-   * authoritative is genuinely ambiguous and keeps the original behaviour:
-   * the rules set is dropped for this position (once, with one error) and is
-   * never resurrected by a later observation, while every other rules set for
-   * the same position is unaffected.
-   *
-   * `positionId` is supplied only when accumulating across groups sharing a
-   * resolved DB position id (via `mergeGroupCharacteristics`): the group's own
-   * `name` alone would otherwise identify a cross-group conflict by whichever
-   * literal roster-slot name first created the accumulator, hiding the other
-   * contributing name from the error.
-   */
-  private accumulateCharacteristics(options: {
-    group: {
-      name: string;
-      characteristics: Map<number, TpPositionCharacteristics>;
-      authoritativeRulesSetIds: Set<number>;
-      conflictingRulesSetIds: Set<number>;
-    };
+  private recordCharacteristicsForRulesSet(options: {
+    group: PositionGroup;
     rulesSetId: number;
     characteristics: TpPositionCharacteristics;
-    authoritative: boolean;
-    errors: ImportError[];
-    positionId?: number;
+    isOfficial: boolean;
   }): void {
-    const {
-      group,
-      rulesSetId,
-      characteristics,
-      authoritative,
-      errors,
-      positionId,
-    } = options;
-    if (group.conflictingRulesSetIds.has(rulesSetId)) {
-      return;
-    }
+    const { group, rulesSetId, characteristics, isOfficial } = options;
     const existing = group.characteristics.get(rulesSetId);
-    if (existing === undefined) {
-      this.storeCharacteristics({
-        group,
-        rulesSetId,
-        characteristics,
-        authoritative,
-      });
+    if (existing?.isOfficial === true && !isOfficial) {
       return;
     }
-    if (
-      existing.move === characteristics.move &&
-      existing.strength === characteristics.strength &&
-      existing.agility === characteristics.agility &&
-      existing.passing === characteristics.passing &&
-      existing.armour === characteristics.armour
-    ) {
-      // Agreement, so nothing to store -- but an authoritative roster
-      // confirming the stored values still promotes them, so a later
-      // non-authoritative disagreement loses instead of being treated as
-      // ambiguous.
-      if (authoritative) {
-        group.authoritativeRulesSetIds.add(rulesSetId);
-      }
-      return;
+    group.characteristics.set(rulesSetId, { characteristics, isOfficial });
+  }
+
+  /** The group for one (raceId, position name), created on first use. */
+  private groupFor(options: {
+    groups: Map<string, PositionGroup>;
+    raceId: number;
+    position: { name: string; isStarPlayer: boolean };
+  }): PositionGroup {
+    const { groups, raceId, position } = options;
+    const key = `${raceId} ${position.name}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        raceId,
+        name: position.name,
+        isStarPlayer: position.isStarPlayer,
+        tpPositionIds: new Set(),
+        eraIds: new Set(),
+        characteristics: new Map(),
+      };
+      groups.set(key, group);
     }
-    const existingIsAuthoritative =
-      group.authoritativeRulesSetIds.has(rulesSetId);
-    if (authoritative && !existingIsAuthoritative) {
-      this.storeCharacteristics({
-        group,
-        rulesSetId,
-        characteristics,
-        authoritative,
-      });
-      return;
-    }
-    if (!authoritative && existingIsAuthoritative) {
-      return;
-    }
-    group.conflictingRulesSetIds.add(rulesSetId);
-    group.characteristics.delete(rulesSetId);
-    group.authoritativeRulesSetIds.delete(rulesSetId);
-    errors.push(
-      this.importResults.error({
-        item: {
-          position: group.name,
-          ...(positionId === undefined ? {} : { positionId }),
-          rulesSetId,
-          existing,
-          characteristics,
+    return group;
+  }
+
+  /**
+   * A group's external ids: one TP id per official-list position id (what
+   * keeps a roster-embedded player resolvable, since TpPlayersImportService
+   * looks a position up by `String(lineUpMasterId)`), plus a Name id --
+   * bare for a star, race-scoped for a regular position. A race whose name is
+   * missing from `raceNamesById` records one error and contributes no Name id
+   * rather than skipping the position.
+   */
+  private externalIdsFor(options: {
+    group: PositionGroup;
+    systemIds: { tpSystemId: number; nameSystemId: number };
+    raceNamesById: Map<number, string>;
+    errors: ImportError[];
+  }): { externalSystemId: number; externalId: string }[] {
+    const { group, systemIds, raceNamesById, errors } = options;
+    const { tpSystemId, nameSystemId } = systemIds;
+    const externalIds = [...group.tpPositionIds].map((tpPositionId) => ({
+      externalSystemId: tpSystemId,
+      externalId: String(tpPositionId),
+    }));
+    if (group.isStarPlayer) {
+      externalIds.push(
+        { externalSystemId: tpSystemId, externalId: group.name },
+        {
+          externalSystemId: nameSystemId,
+          externalId: this.nameExternalId.forStarPosition(group.name),
         },
-        message:
-          `Conflicting characteristics for position "${group.name}"` +
-          (positionId === undefined ? '' : ` (position id ${positionId})`) +
-          ` under rules set id ${rulesSetId}: ` +
-          `${this.formatCharacteristics(existing)} vs ` +
-          `${this.formatCharacteristics(characteristics)}; skipping this ` +
-          'rules set for this position.',
-      }),
-    );
-  }
-
-  /** Store one observation as a group's characteristics for a rules set, and
-   * record whether it came from an authoritative roster. */
-  private storeCharacteristics(options: {
-    group: {
-      characteristics: Map<number, TpPositionCharacteristics>;
-      authoritativeRulesSetIds: Set<number>;
-    };
-    rulesSetId: number;
-    characteristics: TpPositionCharacteristics;
-    authoritative: boolean;
-  }): void {
-    const { group, rulesSetId, characteristics, authoritative } = options;
-    group.characteristics.set(rulesSetId, characteristics);
-    if (authoritative) {
-      group.authoritativeRulesSetIds.add(rulesSetId);
-    } else {
-      group.authoritativeRulesSetIds.delete(rulesSetId);
+      );
+      return externalIds;
     }
+    const raceName = raceNamesById.get(group.raceId);
+    if (raceName === undefined) {
+      errors.push(
+        this.importResults.error({
+          item: { raceId: group.raceId, position: group.name },
+          message:
+            `Could not resolve a race name for race id ${group.raceId} ` +
+            `(position "${group.name}"): missing from raceNamesById; ` +
+            'skipping its Name external id',
+        }),
+      );
+      return externalIds;
+    }
+    externalIds.push({
+      externalSystemId: nameSystemId,
+      externalId: this.nameExternalId.forPosition(raceName, group.name),
+    });
+    return externalIds;
   }
 
-  /** One characteristics set as a compact "MA 6 ST 3 AG 3 PA 4 AV 9" line. */
-  private formatCharacteristics(
-    characteristics: TpPositionCharacteristics,
-  ): string {
-    return (
-      `MA ${characteristics.move} ST ${characteristics.strength} ` +
-      `AG ${characteristics.agility} PA ${characteristics.passing} ` +
-      `AV ${characteristics.armour}`
-    );
+  /**
+   * Merge one group's per-rules-set characteristics into the map keyed by the
+   * DB position id its upsert resolved to. Two groups can share one row -- a
+   * star available to several races produces one `PositionGroup` per race
+   * (the group key includes `raceId`), each upserting to the SAME row -- so
+   * each contributes its own rules sets; which of an official or legacy
+   * source wins for a given slot was already decided by
+   * `recordCharacteristicsForRulesSet` while the group was built, so this
+   * step only unwraps the tagged value.
+   */
+  private recordCharacteristics(options: {
+    characteristicsByPositionId: Map<
+      number,
+      Map<number, TpPositionCharacteristics>
+    >;
+    positionId: number;
+    group: PositionGroup;
+  }): void {
+    const { characteristicsByPositionId, positionId, group } = options;
+    if (group.characteristics.size === 0) {
+      return;
+    }
+    let existing = characteristicsByPositionId.get(positionId);
+    if (existing === undefined) {
+      existing = new Map();
+      characteristicsByPositionId.set(positionId, existing);
+    }
+    for (const [rulesSetId, source] of group.characteristics) {
+      existing.set(rulesSetId, source.characteristics);
+    }
   }
 }

@@ -12,6 +12,14 @@ export type ApiResponseStoringPageViewerOptions = {
   dirName: string;
   clickableElements?: ApiResponseRecordingPageViewerClickableElement[];
   followUpRequests?: ApiResponseFollowUpRequestResolver;
+  /**
+   * Decides, per recorded response URL path, whether that response is written
+   * to a file. Every response is stored when this is left out. A page that
+   * loads more than the caller asked for — the teams page always loads its
+   * default tab — uses this to keep the output folder to the wanted response;
+   * the return value still carries every recorded response.
+   */
+  storeResponse?: (requestUrl: string) => boolean;
 };
 
 @Injectable()
@@ -24,7 +32,13 @@ export class ApiResponseStoringPageViewerService {
   async viewPage(
     options: ApiResponseStoringPageViewerOptions,
   ): Promise<Map<string, unknown>> {
-    const { pageUrl, dirName, clickableElements, followUpRequests } = options;
+    const {
+      pageUrl,
+      dirName,
+      clickableElements,
+      followUpRequests,
+      storeResponse,
+    } = options;
     const pageResult =
       await this.apiResponseRecordingPageViewerService.viewPage({
         pageUrl,
@@ -49,6 +63,9 @@ export class ApiResponseStoringPageViewerService {
     }
     // Store the responses in files
     pageResult.apiResponses.forEach((response, requestUrl) => {
+      if (storeResponse && !storeResponse(requestUrl)) {
+        return;
+      }
       this.fileSystemService.writeJsonFile(dirName, requestUrl, response);
     });
     // Return the responses
