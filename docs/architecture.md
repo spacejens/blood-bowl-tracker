@@ -51,9 +51,17 @@ packages/
                         treat a missing file as an empty config, parse JSON5
                         with an error naming the path, and validate against a
                         caller-supplied top-level schema
+  discord-bot-usage/  — NestJS module recording Discord bot usage into the
+                        discord_bot_usage schema: one row per triggered slash
+                        command, button click or select-menu selection, with
+                        the guild, channel, user and parameters behind it.
+                        Depends on packages/db; consumed by
+                        packages/discord-client
   discord-client/     — NestJS module wrapping discord.js for connecting to
                         Discord, registering slash commands, and posting
-                        messages; consumed by apps/discord-bot
+                        messages; records every handled interaction through
+                        packages/discord-bot-usage; consumed by
+                        apps/discord-bot
   import/             — NestJS module with import orchestration logic:
                         generic upsert bookkeeping (ImportRunnerService,
                         BatchBufferService, ExternalIdResolverService) plus
@@ -157,6 +165,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`tools/download-tp`** (downloader) — scrapes TP into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot. It has no BBL counterpart: BBL _interpretation_ (page-type parsing, HTML extraction) stays inside each tool that does it, deliberately, so the review tools can check the importer's reading of a page against their own. Only the mechanical file access is shared, via `packages/read-bbl-mirror`
 - **`packages/read-bbl-mirror`** (shared mirror access) — the mechanics of getting text out of a BBL wget mirror directory: resolving a filename safely against a caller-supplied data directory, reporting a missing file as `null` and a missing directory as an empty listing, decoding bytes as ISO-8859-1, and listing plain files. Consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player` and `tools/review-race`, so a change here reaches all four at once. It carries no BBL-page-type awareness and no HTML parsing on purpose: which files matter, what their names mean and what their contents say stay with each consumer, which is what keeps the review tools' independence from importer logic intact. Like `packages/config-loader`, it deliberately depends on no other workspace package
+- **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do, not what it knows: every matched slash command, button click and select-menu selection lands in the `discord_bot_usage` schema. `packages/discord-client` calls it after each interaction has already been replied to, fire-and-forget, so a recording failure can never affect a user-facing reply. It is the only consumer today. Nothing reads the captured data yet — reporting on it is deliberately separate work
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other; it reads the mirror's files through `packages/read-bbl-mirror`, while every BBL page-type and HTML interpretation stays in the tool
 - **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity
 - **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data
@@ -236,7 +245,10 @@ Migrations are applied automatically at application startup. `createDb` in `pack
 
 ### History tracking
 
-Every table in `packages/db/src/schema` is built with `historyTrackedTable()`
+Every table in `packages/db/src/schema` — both the `game_data` schema
+(`packages/db/src/schema/game-data/`) and the `discord_bot_usage` schema
+(`packages/db/src/schema/discord-bot-usage/`, see `packages/discord-bot-usage`
+below) — is built with `historyTrackedTable()`
 (`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
 call. It automatically adds `created_at`, `updated_at`, `history_version`,
 and `history_period` columns, derives a companion `<table>_history` table
@@ -245,12 +257,22 @@ nullability), and registers the table so `pnpm run db:generate` can finish
 its DDL automatically.
 
 Adding a new table therefore only requires calling `historyTrackedTable()`
-instead of `gameData.table()` (or another schema's `.table()`) — running
-`pnpm run db:generate` once produces a single migration with the table, its
-history companion, and both its triggers (the temporal-tables `versioning()`
-trigger and a `set_updated_at()` trigger) together. A completeness spec
+instead of `<schema>.table()` — running `pnpm run db:generate` once produces
+a single migration with the table, its history companion, and both its
+triggers (the temporal-tables `versioning()` trigger and a
+`set_updated_at()` trigger) together. A completeness spec
 (`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a table
 is ever added without going through `historyTrackedTable()`.
+
+Writing to a history-tracked table must go through a plain `insert` or
+`update`, never `INSERT ... ON CONFLICT DO UPDATE`: Postgres fires a
+`BEFORE INSERT` row trigger for the attempted row before it even checks for
+a conflict, so `versioning()` — which unconditionally records an `INSERT`
+into the history table — leaves an orphaned history row behind on every
+conflicting upsert, not just a no-op one. `packages/game-data`'s
+`upsertByExternalIds` and `packages/discord-bot-usage`'s
+`selectThenUpsert` both select the row first and branch to a plain `insert`
+or `update` for exactly this reason.
 
 `db:generate` post-processes the generated `migration.sql` for history
 tables: a brand-new `<table>_history` is created with

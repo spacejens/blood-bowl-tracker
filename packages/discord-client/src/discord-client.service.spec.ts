@@ -1,6 +1,8 @@
+import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 interface MockChannel {
   isSendable: ReturnType<typeof vi.fn>;
@@ -112,6 +114,10 @@ describe('DiscordClientService', () => {
       providers: [
         DiscordClientService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
+        {
+          provide: UsageTrackingService,
+          useValue: mock<UsageTrackingService>(),
+        },
       ],
     }).compile();
     service = moduleRef.get(DiscordClientService);
@@ -285,7 +291,10 @@ describe('DiscordClientService', () => {
   it('provides DiscordClientService via forRootAsync', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [DiscordClientModule.forRootAsync({ useFactory: () => 'tkn' })],
-    }).compile();
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .compile();
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
     );
@@ -294,7 +303,10 @@ describe('DiscordClientService', () => {
   it('provides DiscordClientService via forRoot', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [DiscordClientModule.forRoot({ token: 'tkn' })],
-    }).compile();
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .compile();
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
     );

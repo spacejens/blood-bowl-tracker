@@ -28,15 +28,20 @@ export interface ResetProductionSchemaResult {
  * a value the controlling session can see, and `execFile` (not a shell)
  * removes any quoting risk from constructing the command.
  *
- * All three schemas matter, not just `public`: application tables live under
- * `game_data`, not `public` — `public` only holds the shared
- * `versioning()`/`set_updated_at()` trigger functions the schema's
- * history-tracking depends on. `drizzle` holds drizzle-orm's own migration
- * journal; leaving it in place after dropping `game_data` would have the
- * journal assert every migration already ran against a database with none of
- * their effects, so the next startup's `migrate()` would rebuild nothing.
+ * All four schemas matter, not just `public`: application tables live under
+ * `game_data` and `discord_bot_usage`, not `public` — `public` only holds
+ * the shared `versioning()`/`set_updated_at()` trigger functions both
+ * schemas' history-tracking depends on. `discord_bot_usage` still has to be
+ * dropped explicitly even though it shares `public`'s trigger functions:
+ * its migration creates the schema unconditionally (no `IF NOT EXISTS`), so
+ * leaving it behind makes the next startup's `migrate()` fail outright
+ * rather than silently skip anything. `drizzle` holds drizzle-orm's own migration
+ * journal; leaving it in place after dropping the application schemas would
+ * have the journal assert every migration already ran against a database
+ * with none of their effects, so the next startup's `migrate()` would
+ * rebuild nothing.
  *
- * `--single-transaction` wraps all four `-c` statements in one
+ * `--single-transaction` wraps all five `-c` statements in one
  * `BEGIN`/`COMMIT`, so a later statement failing (with `ON_ERROR_STOP=1`
  * set) rolls back the earlier ones too, instead of leaving some schemas
  * dropped and others not.
@@ -59,6 +64,8 @@ export class ResetProductionSchemaService {
         'ON_ERROR_STOP=1',
         '-c',
         'DROP SCHEMA IF EXISTS game_data CASCADE;',
+        '-c',
+        'DROP SCHEMA IF EXISTS discord_bot_usage CASCADE;',
         '-c',
         'DROP SCHEMA IF EXISTS public CASCADE;',
         '-c',

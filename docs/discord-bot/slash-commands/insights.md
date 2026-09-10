@@ -62,7 +62,7 @@ they reached), rather than every competition entered.
 ## Available facts
 
 The exact event and consequence kinds these facts count live in the database
-schema rather than here — see `packages/db/src/schema/match-events.ts`
+schema rather than here — see `packages/db/src/schema/game-data/match-events.ts`
 (`actionTypeEnum` and `consequenceTypeEnum`) for the authoritative list.
 
 - `stats` — a combined embed of entity counts (title "Statistics"): leagues,

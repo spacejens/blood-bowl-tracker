@@ -1,0 +1,32 @@
+import { integer, serial, unique } from 'drizzle-orm/pg-core';
+
+import { historyTrackedTable } from '../history';
+import { eras } from './eras';
+import { gameData } from './pg-schema';
+import { races } from './races';
+
+const raceErasTable = historyTrackedTable({
+  schema: gameData,
+  name: 'race_eras',
+  columns: {
+    id: serial('id').primaryKey(),
+    raceId: integer('race_id')
+      .references(() => races.id)
+      .notNull(),
+    eraId: integer('era_id')
+      .references(() => eras.id)
+      .notNull(),
+  },
+  extraConfig: (t) => ({
+    uniqueRaceEra: unique('race_eras_race_id_era_id_unique').on(
+      t.raceId,
+      t.eraId,
+    ),
+  }),
+});
+
+export const raceEras = raceErasTable.table;
+export const raceErasHistory = raceErasTable.historyTable;
+
+export type RaceEra = typeof raceEras.$inferSelect;
+export type NewRaceEra = typeof raceEras.$inferInsert;
