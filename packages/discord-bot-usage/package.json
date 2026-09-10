@@ -1,0 +1,36 @@
+{
+  "name": "@blood-bowl-tracker/discord-bot-usage",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint \"{src,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --check \"{src,test}/**/*.ts\"",
+    "format:fix": "prettier --write \"{src,test}/**/*.ts\"",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
+  },
+  "dependencies": {
+    "@blood-bowl-tracker/db": "workspace:*",
+    "@nestjs/common": "^12.0.0",
+    "@nestjs/core": "^12.0.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^12.0.0",
+    "@types/node": "^24.13.3",
+    "@vitest/coverage-v8": "^4.1.10",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10",
+    "vitest-mock-extended": "^5.1.1"
+  }
+}

@@ -61,8 +61,8 @@ services:
       - blood_bowl
       - -p
       - blood_bowl
-      - -s
-      - game_data
+      - -schemas
+      - game_data,discord_bot_usage
     volumes:
       - ./docs/schemaspy-output:/output
       - ./tools/db-diagram/pgsql-count.properties:/config/pgsql-count.properties:ro

@@ -10,6 +10,7 @@ COPY packages/api-client/package.json packages/api-client/
 COPY packages/api-contract/package.json packages/api-contract/
 COPY packages/api-server/package.json packages/api-server/
 COPY packages/db/package.json packages/db/
+COPY packages/discord-bot-usage/package.json packages/discord-bot-usage/
 COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/domain-enums/package.json packages/domain-enums/
 COPY packages/game-data/package.json packages/game-data/
@@ -34,6 +35,7 @@ COPY packages/api-client/package.json packages/api-client/
 COPY packages/api-contract/package.json packages/api-contract/
 COPY packages/api-server/package.json packages/api-server/
 COPY packages/db/package.json packages/db/
+COPY packages/discord-bot-usage/package.json packages/discord-bot-usage/
 COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/domain-enums/package.json packages/domain-enums/
 COPY packages/game-data/package.json packages/game-data/
@@ -48,6 +50,7 @@ COPY --from=builder /build/packages/api-contract/dist ./packages/api-contract/di
 COPY --from=builder /build/packages/api-server/dist ./packages/api-server/dist
 COPY --from=builder /build/packages/db/dist ./packages/db/dist
 COPY --from=builder /build/packages/db/migrations ./packages/db/migrations
+COPY --from=builder /build/packages/discord-bot-usage/dist ./packages/discord-bot-usage/dist
 COPY --from=builder /build/packages/discord-client/dist ./packages/discord-client/dist
 COPY --from=builder /build/packages/domain-enums/dist ./packages/domain-enums/dist
 COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
