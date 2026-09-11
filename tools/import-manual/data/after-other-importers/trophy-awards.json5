@@ -59,10 +59,13 @@
 //                source system imported them. BBL players are keyed by their
 //                numeric `pid`.
 //
-// The trophy's own scope is still enforced server-side: awarding a trophy
-// curated for one competition group in a competition belonging to another is
-// rejected, so a mistyped competition id fails loudly rather than recording a
-// wrong award.
+// The trophy's own scope is still enforced server-side, but only across
+// groups: awarding a trophy curated for one competition group (or league) in
+// a competition belonging to a DIFFERENT group is rejected. It does NOT catch
+// a wrong competition inside the SAME group -- e.g. curating competition id
+// 10 when 11 was meant, both "Major Season" -- which is the more likely
+// typo. Double-check the competition id against
+// after-other-importers/competitions.json5 before curating an entry.
 //
 // WORKED EXAMPLE -- the shape to copy, not live data. Delete the comment
 // markers, replace the ids, and drop it into the array below:

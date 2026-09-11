@@ -151,3 +151,8 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   throwing `PositionUpsertConflictError`. Curating after ensures BBL has
   already established the position's identity, so these references resolve
   onto the existing row, not a duplicate.
+- `trophy-awards.json5` — hand-curated winners of the two `manual`-kind
+  trophies (Season MVP, Gudarnas Förkämpe), for which no importer records a
+  winner. It sits in the **after** phase because each entry references a
+  competition and a player by external id, both created by the BBL/TP
+  importers.

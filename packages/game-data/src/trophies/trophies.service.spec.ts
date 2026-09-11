@@ -16,6 +16,7 @@ import {
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { TrophiesService, TrophyUpsertConflictError } from './trophies.service';
 
@@ -220,6 +221,15 @@ describe('TrophiesService', () => {
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(
         'Season MVP',
       );
+      // Confirms the match is a real `eq()`, not merely a value check: a
+      // value-only assertion cannot distinguish `eq()` from `ilike()`, so an
+      // accidental case-insensitive swap (searchByNamePrefix two methods up
+      // already uses ilike) would silently break the "exact and
+      // case-sensitive" guarantee this method's doc comment promises.
+      const sql = sqlText(firstCallArg(chains[0].where));
+      expect(sql).toContain('=');
+      expect(sql.toLowerCase()).not.toContain('ilike');
+      expect(sql.toLowerCase()).not.toContain('lower');
     });
 
     it('reports not found rather than throwing for an unknown name', async () => {

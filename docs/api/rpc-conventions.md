@@ -139,14 +139,22 @@ to build: because every `upsert` persists immediately, any record created
 earlier — in this run, an earlier phase, or a different tool entirely — is
 already resolvable.
 
-Matches, match events, trophies, trophy awards, SPP award values and
-external systems deliberately have no resolve procedure: nothing references
-them by external id across files, phases or tools.
+Matches, match events, trophy awards, SPP award values and external systems
+deliberately have no resolve procedure: nothing references them by external
+id across files, phases or tools.
 
-Players are the one entity that started out on that list and left it:
+Players are one entity that started out on that list and left it:
 `tools/import-manual`'s curated `after-other-importers/trophy-awards.json5`
 names the winner of a `manual`-kind trophy by the player's external id,
 which the BBL/TP importers created in an earlier phase.
+
+Trophies carry a variant of this: `trophies.resolveByName` answers the same
+`{ found, id }` shape, but keyed by the trophy's curated `name` rather than
+an `(external system, identifier)` pair — trophies carry no shared external
+id (see [import-manual](../import-manual/index.md#trophies)), so a name is
+the only identity a curated reference has to quote. The same
+`trophy-awards.json5` file above is what uses it, to name the trophy an
+entry awards.
 
 ## Other procedures
 

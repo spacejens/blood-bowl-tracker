@@ -90,7 +90,7 @@ export const UpsertTrophySchema = z.object({
  * quoting a name from the curated catalog, not searching.
  */
 export const ResolveTrophyByNameSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().trim().min(1),
 });
 
 export type TrophyRecipientKind = z.infer<typeof TrophyRecipientKindSchema>;

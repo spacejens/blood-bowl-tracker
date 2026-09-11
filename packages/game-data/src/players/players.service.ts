@@ -186,14 +186,6 @@ export class PlayersService {
   }
 
   /**
-   * Any supplied characteristics are validated against `data.rulesSetId`'s
-   * declared formats before anything is written; a mismatch throws
-   * `CharacteristicFormatMismatchError` and nothing is stored.
-   * `rulesSetId` is used only for that check — it is never persisted, so
-   * which rules set a player's characteristics were validated against is not
-   * itself recorded anywhere.
-   */
-  /**
    * Which player already declares this external-id pair, if any. The
    * single-pair convenience over `resolveBatch`, exactly as every other
    * resolvable entity service spells it.
@@ -221,6 +213,14 @@ export class PlayersService {
     });
   }
 
+  /**
+   * Any supplied characteristics are validated against `data.rulesSetId`'s
+   * declared formats before anything is written; a mismatch throws
+   * `CharacteristicFormatMismatchError` and nothing is stored.
+   * `rulesSetId` is used only for that check — it is never persisted, so
+   * which rules set a player's characteristics were validated against is not
+   * itself recorded anywhere.
+   */
   async upsert(
     data: UpsertPlayer,
   ): Promise<{ player: Player; created: boolean }> {
