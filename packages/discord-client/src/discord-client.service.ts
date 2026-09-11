@@ -35,6 +35,16 @@ export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
 const READY_TIMEOUT_MS = 30_000;
 
+/**
+ * `execute` should read only `interaction.options` and return its reply
+ * rather than calling `interaction.reply()` itself — replying, logging and
+ * usage recording all happen in the dispatcher, after `execute` returns.
+ * `apps/discord-bot`'s `/debuginteractions` retrigger button relies on this:
+ * it calls a registered `execute` directly with a minimal fabricated
+ * interaction exposing only `options`, bypassing the dispatcher entirely. A
+ * command that reads `.user`, `.member`, `.guild` or `.channel` would throw
+ * when retriggered.
+ */
 export interface SlashCommandDefinition {
   name: string;
   description: string;
@@ -47,10 +57,20 @@ export interface SlashCommandDefinition {
   ) => Promise<ApplicationCommandOptionChoiceData[]>;
 }
 
+/**
+ * Should read only `interaction.customId`, for the same reason described on
+ * `SlashCommandDefinition`: the `/debuginteractions` retrigger button calls a
+ * registered handler directly with a fabricated interaction exposing only
+ * `customId`.
+ */
 export type ButtonHandler = (
   interaction: ButtonInteraction,
 ) => Promise<string | InteractionReplyOptions>;
 
+/**
+ * Should read only `interaction.customId` and `interaction.values`, for the
+ * same reason described on `SlashCommandDefinition`.
+ */
 export type SelectMenuHandler = (
   interaction: StringSelectMenuInteraction,
 ) => Promise<string | InteractionReplyOptions>;
