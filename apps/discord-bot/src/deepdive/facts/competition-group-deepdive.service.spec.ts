@@ -77,7 +77,7 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   dateRangeFormatter = mock<DateRangeFormatterService>(),
-  eraSectionGrouper = singleEraSectionGrouper('BB2020'),
+  eraSectionGrouper = singleEraSectionGrouper('BB2020 (2020-01-01 – present)'),
 }: MakeServiceOptions): Promise<{
   service: CompetitionGroupDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
@@ -238,7 +238,6 @@ describe('CompetitionGroupDeepdiveService', () => {
       dateRangeFormatter,
       eraSectionGrouper: cannedEraSectionGrouper([
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – 2023-12-31)',
           rows: COMPETITIONS,
         },
@@ -311,12 +310,10 @@ describe('CompetitionGroupDeepdiveService', () => {
       dateRangeFormatter,
       eraSectionGrouper: cannedEraSectionGrouper([
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – 2023-12-31)',
           rows: [COMPETITIONS[0]],
         },
         {
-          eraName: 'BB2020 v2',
           eraHeading: 'BB2020 v2 (2024-01-01 – present)',
           rows: [COMPETITIONS[1]],
         },

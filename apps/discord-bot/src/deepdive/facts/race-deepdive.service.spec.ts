@@ -479,12 +479,10 @@ describe('RaceDeepdiveService', () => {
       // rendering: one heading per era, then one row per item under it.
       eraSectionGrouper: cannedEraSectionGrouper([
         {
-          eraName: 'BB2016',
           eraHeading: 'BB2016 (2016-01-01 – 2019-12-31)',
           rows: positions.slice(0, 2),
         },
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – present)',
           rows: positions.slice(2),
         },

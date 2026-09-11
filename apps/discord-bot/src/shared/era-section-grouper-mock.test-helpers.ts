@@ -14,12 +14,11 @@ import { EraSectionGrouperService } from './era-section-grouper.service';
  * whose subject is something other than the grouping itself.
  */
 export function singleEraSectionGrouper(
-  eraName = 'BB2020',
-  eraHeading = `${eraName} (2020-01-01 – present)`,
+  eraHeading = 'BB2020 (2020-01-01 – present)',
 ): MockProxy<EraSectionGrouperService> {
   const grouper = mock<EraSectionGrouperService>();
   grouper.group.mockImplementation((rows: EraGroupable[]) => [
-    { eraName, eraHeading, rows },
+    { eraHeading, rows },
   ]);
   return grouper;
 }

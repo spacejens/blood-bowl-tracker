@@ -69,7 +69,9 @@ async function makeService({
   entityComponents = nullEntityComponents(),
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
-  eraSectionGrouper = singleEraSectionGrouper('Season 24 Era'),
+  eraSectionGrouper = singleEraSectionGrouper(
+    'Season 24 Era (2020-01-01 – present)',
+  ),
   playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
   service: TrophyDeepdiveService;
@@ -714,12 +716,10 @@ describe('TrophyDeepdiveService', () => {
       trophyAwards: makeAwards([newer, older]),
       eraSectionGrouper: cannedEraSectionGrouper([
         {
-          eraName: 'Season 24 Era',
           eraHeading: 'Season 24 Era (2024-01-01 – present)',
           rows: [newer],
         },
         {
-          eraName: 'Season 23 Era',
           eraHeading: 'Season 23 Era (2023-01-01 – 2023-12-31)',
           rows: [older],
         },
@@ -764,7 +764,6 @@ describe('TrophyDeepdiveService', () => {
       trophyAwards: makeAwards([teamRecipient()], 1),
       eraSectionGrouper: cannedEraSectionGrouper([
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – present)',
           rows: [teamRecipient()],
         },

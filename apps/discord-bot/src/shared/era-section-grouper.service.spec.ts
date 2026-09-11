@@ -52,7 +52,6 @@ describe('EraSectionGrouperService', () => {
     it("heads a closed era's section with its name and full date range", () => {
       expect(service.group([bb2016a, bb2016b])).toEqual([
         {
-          eraName: 'BB2016',
           eraHeading: 'BB2016 (2016-01-01 – 2019-12-31)',
           rows: [bb2016a, bb2016b],
         },
@@ -62,7 +61,6 @@ describe('EraSectionGrouperService', () => {
     it("marks an ongoing era's section as still running", () => {
       expect(service.group([bb2020a])).toEqual([
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – present)',
           rows: [bb2020a],
         },
@@ -72,12 +70,10 @@ describe('EraSectionGrouperService', () => {
     it('opens a new section at each era change, preserving input order', () => {
       expect(service.group([bb2020a, bb2020b, bb2016a])).toEqual([
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – present)',
           rows: [bb2020a, bb2020b],
         },
         {
-          eraName: 'BB2016',
           eraHeading: 'BB2016 (2016-01-01 – 2019-12-31)',
           rows: [bb2016a],
         },
@@ -90,17 +86,14 @@ describe('EraSectionGrouperService', () => {
       // era-ordered list, so this input cannot occur there.
       expect(service.group([bb2016a, bb2020a, bb2016b])).toEqual([
         {
-          eraName: 'BB2016',
           eraHeading: 'BB2016 (2016-01-01 – 2019-12-31)',
           rows: [bb2016a],
         },
         {
-          eraName: 'BB2020',
           eraHeading: 'BB2020 (2020-01-01 – present)',
           rows: [bb2020a],
         },
         {
-          eraName: 'BB2016',
           eraHeading: 'BB2016 (2016-01-01 – 2019-12-31)',
           rows: [bb2016b],
         },

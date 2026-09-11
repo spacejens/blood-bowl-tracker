@@ -16,7 +16,6 @@ export type EraGroupable = {
 
 /** One era's heading and the rows that fall under it, in input order. */
 export type EraSection<T extends EraGroupable> = {
-  eraName: string;
   /**
    * The era named and dated — `BB2020 (2020-01-01 – present)`. Built here
    * rather than at each call site so all four consumers head their sections
@@ -51,7 +50,6 @@ export class EraSectionGrouperService {
       const current = sections[sections.length - 1];
       if (current === undefined || current.rows[0].eraId !== row.eraId) {
         sections.push({
-          eraName: row.eraName,
           eraHeading: this.buildHeading(row),
           rows: [row],
         });

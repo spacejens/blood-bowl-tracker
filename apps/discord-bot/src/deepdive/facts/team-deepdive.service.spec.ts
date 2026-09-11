@@ -696,7 +696,9 @@ describe('TeamDeepdiveService', () => {
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup]),
-      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+      eraSectionGrouper: singleEraSectionGrouper(
+        'Season 4 (2020-01-01 – present)',
+      ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -724,7 +726,9 @@ describe('TeamDeepdiveService', () => {
       leaderboard: passthroughLeaderboard(),
       playerContext: passthroughPlayerContext(' (Blitzer)'),
       trophyAwards: makeTrophyAwards([mvp]),
-      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+      eraSectionGrouper: singleEraSectionGrouper(
+        'Season 4 (2020-01-01 – present)',
+      ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -767,7 +771,9 @@ describe('TeamDeepdiveService', () => {
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, mvp]),
-      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+      eraSectionGrouper: singleEraSectionGrouper(
+        'Season 4 (2020-01-01 – present)',
+      ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -798,12 +804,10 @@ describe('TeamDeepdiveService', () => {
       trophyAwards: makeTrophyAwards([spikeCup, older]),
       eraSectionGrouper: cannedEraSectionGrouper([
         {
-          eraName: 'Season 4',
           eraHeading: 'Season 4 (2024-01-01 – present)',
           rows: [spikeCup],
         },
         {
-          eraName: 'Season 2',
           eraHeading: 'Season 2 (2022-01-01 – 2023-12-31)',
           rows: [older],
         },
