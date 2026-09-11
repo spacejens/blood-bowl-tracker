@@ -485,6 +485,7 @@ export class TrophyAwardsService {
   ): Promise<{ trophyAward: TrophyAward; created: boolean }> {
     const trophy = await this.assertRecipientFitsTrophy(data);
     await this.assertScopeMatchesTrophy(data, trophy);
+    const teamEraId = await this.resolveTeamEraId(data);
 
     try {
       const [inserted] = await this.db
@@ -492,14 +493,14 @@ export class TrophyAwardsService {
         .values({
           trophyId: data.trophyId,
           competitionId: data.competitionId,
-          teamEraId: data.teamEraId,
+          teamEraId,
           playerId: data.playerId,
         })
         .returning();
       if (inserted === undefined) {
         throw new Error(
           `trophy_awards insert for trophy ${data.trophyId}, competition ` +
-            `${data.competitionId}, team era ${data.teamEraId}, player ` +
+            `${data.competitionId}, team era ${teamEraId}, player ` +
             `${data.playerId ?? 'none'} reported success but returned no row.`,
         );
       }
@@ -518,7 +519,7 @@ export class TrophyAwardsService {
         and(
           eq(trophyAwards.trophyId, data.trophyId),
           eq(trophyAwards.competitionId, data.competitionId),
-          eq(trophyAwards.teamEraId, data.teamEraId),
+          eq(trophyAwards.teamEraId, teamEraId),
           data.playerId === null
             ? isNull(trophyAwards.playerId)
             : eq(trophyAwards.playerId, data.playerId),
@@ -528,13 +529,60 @@ export class TrophyAwardsService {
     if (existingAward === undefined) {
       throw new Error(
         `trophy_awards insert conflicted for trophy ${data.trophyId}, ` +
-          `competition ${data.competitionId}, team era ${data.teamEraId}, ` +
+          `competition ${data.competitionId}, team era ${teamEraId}, ` +
           `player ${data.playerId ?? 'none'}, but no matching row could be ` +
           'read back.',
       );
     }
 
     return { trophyAward: existingAward, created: false };
+  }
+
+  /**
+   * The team era the award row will carry. A caller that states one wins:
+   * an explicit value is more authoritative than anything derived, and for a
+   * team award it is the only possible source — there is no player to derive
+   * from.
+   *
+   * A player award may leave it out, and this reads the winning player's own
+   * `teamEraId` instead. That is a strict 1:1 derivation, not a guess: a
+   * player never changes teams, so the award's team era *is* the player's own
+   * (see `packages/db/src/schema/trophy-awards.ts`). Deriving it here is what
+   * lets a caller that only knows the player — `tools/import-manual`'s
+   * curated trophy awards, which resolve a player by external id — record an
+   * award without a second round trip just to learn one team era.
+   *
+   * An unknown player is a `TrophyAwardRecipientMismatchError` for the same
+   * reason an unknown *trophy* is one in `assertRecipientFitsTrophy`: the
+   * award names a recipient that does not exist, which is authored-data
+   * feedback the API reports as BAD_REQUEST.
+   */
+  private async resolveTeamEraId(data: UpsertTrophyAward): Promise<number> {
+    if (data.teamEraId !== undefined) {
+      return data.teamEraId;
+    }
+    if (data.playerId === null) {
+      // Unreachable over the API: `UpsertTrophyAwardSchema`'s refinement
+      // rejects a team award with no team era before the request gets here.
+      // This is the backstop for a direct in-process caller, and a plain
+      // Error because reaching it is a bug in that caller.
+      throw new Error(
+        `Cannot award trophy ${data.trophyId} in competition ` +
+          `${data.competitionId}: a team award must state its team era, and ` +
+          'there is no player to derive one from.',
+      );
+    }
+    const [player] = await this.db
+      .select({ teamEraId: players.teamEraId })
+      .from(players)
+      .where(eq(players.id, data.playerId));
+    if (player === undefined) {
+      throw new TrophyAwardRecipientMismatchError(
+        `Cannot award trophy ${data.trophyId} to player ${data.playerId}: ` +
+          'the player does not exist.',
+      );
+    }
+    return player.teamEraId;
   }
 
   /**
