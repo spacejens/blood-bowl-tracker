@@ -16,9 +16,9 @@ bot.
 Both arguments are optional, and they combine — a user plus an outcome
 narrows to that user's successes or failures alone.
 
-- `user` - Discord's own user picker. Narrows to interactions by that
+- `user` — Discord's own user picker. Narrows to interactions by that
   Discord user, matched on the recorded `discord_id`.
-- `outcome` - a choice of `Success` or `Failure`, matching the recorded
+- `outcome` — a choice of `Success` or `Failure`, matching the recorded
   outcome.
 
 There is no guild-scoping argument. Recorded interactions are not always
