@@ -7,10 +7,12 @@ import type {
 import {
   and,
   asc,
+  channels,
   DB,
   desc,
   discordUsers,
   eq,
+  guilds,
   inArray,
   interactionEventParameters,
   interactionEvents,
@@ -36,6 +38,9 @@ export interface InteractionEventRow {
   name: string;
   outcome: InteractionOutcome;
   errorMessage: string | null;
+  username: string;
+  guildName: string | null;
+  channelName: string | null;
   parameters: InteractionEventParameterRow[];
 }
 
@@ -51,10 +56,13 @@ export interface InteractionEventRow {
  * side, which also treats the event and its parameters as two steps. Zero
  * matching events short-circuits before the second query.
  *
- * `discord_bot_usage.users` is joined unconditionally, even when no user
- * filter is set: `interaction_events.user_id` is NOT NULL with a foreign key
- * to that table, so the inner join can neither drop nor duplicate a row, and
- * only the `where` clause has to vary with the options.
+ * `discord_bot_usage.users` and `channels` are joined unconditionally, even
+ * when no user filter is set: `interaction_events.user_id` and `channel_id`
+ * are both NOT NULL with a foreign key to their respective tables, so an
+ * inner join to either can neither drop nor duplicate a row, and only the
+ * `where` clause has to vary with the options. `guilds` is left-joined
+ * instead: `interaction_events.guild_id` is nullable (a DM belongs to no
+ * guild), so an inner join there would silently drop DM rows.
  *
  * Ordered by `occurred_at` desc with `id` desc as a tiebreaker: two events
  * can share the same millisecond-precision `occurred_at`, and without a
@@ -75,6 +83,9 @@ export class InteractionEventsQueryService {
         name: interactionTypes.name,
         outcome: interactionEvents.outcome,
         errorMessage: interactionEvents.errorMessage,
+        username: discordUsers.username,
+        guildName: guilds.name,
+        channelName: channels.name,
       })
       .from(interactionEvents)
       .innerJoin(
@@ -82,6 +93,8 @@ export class InteractionEventsQueryService {
         eq(interactionTypes.id, interactionEvents.interactionTypeId),
       )
       .innerJoin(discordUsers, eq(discordUsers.id, interactionEvents.userId))
+      .innerJoin(channels, eq(channels.id, interactionEvents.channelId))
+      .leftJoin(guilds, eq(guilds.id, interactionEvents.guildId))
       .where(this.filters(options))
       .orderBy(desc(interactionEvents.occurredAt), desc(interactionEvents.id))
       .limit(options.limit);
@@ -111,6 +124,9 @@ export class InteractionEventsQueryService {
       name: event.name,
       outcome: event.outcome,
       errorMessage: event.errorMessage,
+      username: event.username,
+      guildName: event.guildName,
+      channelName: event.channelName,
       parameters: parameters
         .filter((parameter) => parameter.eventId === event.id)
         .map((parameter) => ({ key: parameter.key, value: parameter.value })),

@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { channels, DB, guilds } from '@blood-bowl-tracker/db';
 import type {
   MockDbResult,
   QueryChain,
@@ -29,6 +29,9 @@ function eventRow(
     name: 'insights',
     outcome: 'success',
     errorMessage: null,
+    username: 'coach42',
+    guildName: 'Test League',
+    channelName: 'general',
     ...overrides,
   };
 }
@@ -245,7 +248,56 @@ describe('InteractionEventsQueryService', () => {
       name: 'coach:',
       outcome: 'failure',
       errorMessage: 'boom',
+      username: 'coach42',
+      guildName: 'Test League',
+      channelName: 'general',
       parameters: [],
     });
+  });
+
+  it('carries the triggering username, guild name and channel name through', async () => {
+    db = mockDb(
+      [
+        eventRow({
+          username: 'zog',
+          guildName: 'Orcland',
+          channelName: 'blood-bowl',
+        }),
+      ],
+      [],
+    );
+    const service = await makeService(db);
+
+    const rows = await service.listRecent({ limit: 20 });
+
+    expect(rows[0].username).toBe('zog');
+    expect(rows[0].guildName).toBe('Orcland');
+    expect(rows[0].channelName).toBe('blood-bowl');
+  });
+
+  it('carries a null guild name and channel name through for a DM', async () => {
+    db = mockDb([eventRow({ guildName: null, channelName: null })], []);
+    const service = await makeService(db);
+
+    const rows = await service.listRecent({ limit: 20 });
+
+    expect(rows[0].guildName).toBeNull();
+    expect(rows[0].channelName).toBeNull();
+  });
+
+  it('inner-joins channels and left-joins guilds for their names', async () => {
+    const service = await makeService(db);
+
+    await service.listRecent({ limit: 20 });
+
+    const chain = db.chains[0];
+    const innerJoinTables = chain.innerJoin.mock.calls.map(
+      (call: unknown[]) => call[0],
+    );
+    const leftJoinTables = chain.leftJoin.mock.calls.map(
+      (call: unknown[]) => call[0],
+    );
+    expect(innerJoinTables).toContain(channels);
+    expect(leftJoinTables).toContain(guilds);
   });
 });

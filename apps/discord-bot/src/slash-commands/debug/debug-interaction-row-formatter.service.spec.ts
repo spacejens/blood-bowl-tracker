@@ -6,6 +6,7 @@ import { DebugInteractionRowFormatterService } from './debug-interaction-row-for
 
 const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
 const TIMESTAMP = `<t:${Math.floor(OCCURRED_AT.getTime() / 1000)}:f>`;
+const WHO_WHERE = 'coach42 in Test League #general';
 
 function row(
   overrides: Partial<InteractionEventRow> = {},
@@ -16,6 +17,9 @@ function row(
     name: 'insights',
     outcome: 'success',
     errorMessage: null,
+    username: 'coach42',
+    guildName: 'Test League',
+    channelName: 'general',
     parameters: [],
     ...overrides,
   };
@@ -32,25 +36,27 @@ describe('DebugInteractionRowFormatterService', () => {
   });
 
   it('renders the timestamp as Discord timestamp markdown', () => {
-    expect(service.describe([row()])).toBe('<t:1788955200:f> — /insights — ✅');
+    expect(service.describe([row()])).toBe(
+      `<t:1788955200:f> — ${WHO_WHERE} — /insights — ✅`,
+    );
   });
 
   it('renders a command as a slash-prefixed name', () => {
     expect(
       service.describe([row({ kind: 'command', name: 'onthisdate' })]),
-    ).toBe(`${TIMESTAMP} — /onthisdate — ✅`);
+    ).toBe(`${TIMESTAMP} — ${WHO_WHERE} — /onthisdate — ✅`);
   });
 
   it('renders a button as its kind and name', () => {
     expect(service.describe([row({ kind: 'button', name: 'coach:42' })])).toBe(
-      `${TIMESTAMP} — button coach:42 — ✅`,
+      `${TIMESTAMP} — ${WHO_WHERE} — button coach:42 — ✅`,
     );
   });
 
   it('renders a select menu as its kind and name', () => {
     expect(
       service.describe([row({ kind: 'select_menu', name: 'coach:' })]),
-    ).toBe(`${TIMESTAMP} — select_menu coach: — ✅`);
+    ).toBe(`${TIMESTAMP} — ${WHO_WHERE} — select_menu coach: — ✅`);
   });
 
   it('renders parameters as comma-separated pairs in parentheses', () => {
@@ -64,7 +70,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — /insights (race: Orc, era: Classic) — ✅`,
+      `${TIMESTAMP} — ${WHO_WHERE} — /insights (race: Orc, era: Classic) — ✅`,
     );
   });
 
@@ -77,7 +83,9 @@ describe('DebugInteractionRowFormatterService', () => {
       row({ parameters: [{ key: 'era', value: null }] }),
     ]);
 
-    expect(rendered).toBe(`${TIMESTAMP} — /insights (era: <empty>) — ✅`);
+    expect(rendered).toBe(
+      `${TIMESTAMP} — ${WHO_WHERE} — /insights (era: <empty>) — ✅`,
+    );
   });
 
   it('repeats a repeated parameter key rather than grouping it', () => {
@@ -93,7 +101,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — select_menu coach: (value: first, value: second) — ✅`,
+      `${TIMESTAMP} — ${WHO_WHERE} — select_menu coach: (value: first, value: second) — ✅`,
     );
   });
 
@@ -102,7 +110,9 @@ describe('DebugInteractionRowFormatterService', () => {
       row({ outcome: 'failure', errorMessage: 'PLAYER_NOT_FOUND' }),
     ]);
 
-    expect(rendered).toBe(`${TIMESTAMP} — /insights — ❌ PLAYER_NOT_FOUND`);
+    expect(rendered).toBe(
+      `${TIMESTAMP} — ${WHO_WHERE} — /insights — ❌ PLAYER_NOT_FOUND`,
+    );
   });
 
   it('renders a failure without a message as the cross alone', () => {
@@ -110,7 +120,7 @@ describe('DebugInteractionRowFormatterService', () => {
       row({ outcome: 'failure', errorMessage: null }),
     ]);
 
-    expect(rendered).toBe(`${TIMESTAMP} — /insights — ❌`);
+    expect(rendered).toBe(`${TIMESTAMP} — ${WHO_WHERE} — /insights — ❌`);
   });
 
   it('puts one row per line, in the order given', () => {
@@ -120,12 +130,50 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered.split('\n')).toEqual([
-      `${TIMESTAMP} — /insights — ✅`,
-      `${TIMESTAMP} — /onthisdate — ✅`,
+      `${TIMESTAMP} — ${WHO_WHERE} — /insights — ✅`,
+      `${TIMESTAMP} — ${WHO_WHERE} — /onthisdate — ✅`,
     ]);
   });
 
   it('renders an empty list as an empty string', () => {
     expect(service.describe([])).toBe('');
+  });
+
+  it('renders a guild interaction with a channel name as "guild #channel"', () => {
+    const rendered = service.describe([
+      row({ guildName: 'Test League', channelName: 'general' }),
+    ]);
+
+    expect(rendered).toBe(
+      `${TIMESTAMP} — coach42 in Test League #general — /insights — ✅`,
+    );
+  });
+
+  it('renders a guild interaction with no channel name as just the guild', () => {
+    const rendered = service.describe([
+      row({ guildName: 'Test League', channelName: null }),
+    ]);
+
+    expect(rendered).toBe(
+      `${TIMESTAMP} — coach42 in Test League — /insights — ✅`,
+    );
+  });
+
+  it('renders a DM with no channel name as "a DM" (the common case)', () => {
+    const rendered = service.describe([
+      row({ guildName: null, channelName: null }),
+    ]);
+
+    expect(rendered).toBe(`${TIMESTAMP} — coach42 in a DM — /insights — ✅`);
+  });
+
+  it('renders a DM that does have a channel name as "a DM #channel" (the rare case)', () => {
+    const rendered = service.describe([
+      row({ guildName: null, channelName: 'some-dm-channel-name' }),
+    ]);
+
+    expect(rendered).toBe(
+      `${TIMESTAMP} — coach42 in a DM #some-dm-channel-name — /insights — ✅`,
+    );
   });
 });

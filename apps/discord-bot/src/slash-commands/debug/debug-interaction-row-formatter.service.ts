@@ -9,8 +9,8 @@ const EMPTY_PARAMETER_VALUE = '<empty>';
  * description: one line per interaction, newest first (the order the query
  * returns them in), as
  *
- *   <t:UNIX:f> — /insights (race: Orc, era: Classic) — ✅
- *   <t:UNIX:f> — button coach:42 — ❌ PLAYER_NOT_FOUND
+ *   <t:UNIX:f> — coach42 in Test League #general — /insights (race: Orc, era: Classic) — ✅
+ *   <t:UNIX:f> — zog in a DM — button coach:42 — ❌ PLAYER_NOT_FOUND
  *
  * The timestamp is Discord's own `<t:...:f>` markdown, so each viewer sees it
  * in their own locale and timezone and nothing has to be formatted
@@ -30,7 +30,13 @@ export class DebugInteractionRowFormatterService {
     const triggered = [this.trigger(row), this.parameters(row)]
       .filter((segment) => segment !== '')
       .join(' ');
-    return `${this.timestamp(row.occurredAt)} — ${triggered} — ${this.outcome(row)}`;
+    return `${this.timestamp(row.occurredAt)} — ${row.username} in ${this.location(row)} — ${triggered} — ${this.outcome(row)}`;
+  }
+
+  /** `guildName #channelName`, or `a DM #channelName` when there is no guild. */
+  private location(row: InteractionEventRow): string {
+    const place = row.guildName ?? 'a DM';
+    return row.channelName === null ? place : `${place} #${row.channelName}`;
   }
 
   private timestamp(occurredAt: Date): string {

@@ -32,6 +32,11 @@ matching interactions, newest first. Each row carries, in order:
 
 - The time it happened, as Discord's native timestamp markdown, so every
   viewer sees it in their own locale and timezone.
+- Who triggered it and where: the Discord username, followed by the guild
+  name and channel name (`coach42 in Test League #general`), or `a DM` in
+  place of the guild name when the interaction happened outside any guild
+  (`coach42 in a DM`). The channel name is omitted when the channel has none,
+  which is common for DMs.
 - What was triggered: the slash command as `/name`, or a component as
   `button name` or `select_menu name`, where the name is the recorded
   customId prefix.
