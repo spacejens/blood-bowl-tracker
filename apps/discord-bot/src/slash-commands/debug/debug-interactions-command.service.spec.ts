@@ -180,7 +180,7 @@ describe('DebugInteractionsCommandService', () => {
         {
           title: 'Recent interactions',
           description:
-            '<t:1788955200:f> — coach42 in Test League #general — /insights — ✅\n<t:1788955200:f> — coach42 in Test League #general — button coach:42 — ❌ boom',
+            '1. <t:1788955200:f> — coach42 in Test League #general — /insights — ✅\n2. <t:1788955200:f> — coach42 in Test League #general — button coach:42 — ❌ boom',
         },
       ],
       flags: MessageFlags.Ephemeral,

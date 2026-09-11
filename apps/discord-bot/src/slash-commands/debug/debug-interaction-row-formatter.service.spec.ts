@@ -38,26 +38,26 @@ describe('DebugInteractionRowFormatterService', () => {
 
   it('renders the timestamp as Discord timestamp markdown', () => {
     expect(service.describe([row()])).toBe(
-      `<t:1788955200:f> — ${WHO_WHERE} — /insights — ✅`,
+      `1. <t:1788955200:f> — ${WHO_WHERE} — /insights — ✅`,
     );
   });
 
   it('renders a command as a slash-prefixed name', () => {
     expect(
       service.describe([row({ kind: 'command', name: 'onthisdate' })]),
-    ).toBe(`${TIMESTAMP} — ${WHO_WHERE} — /onthisdate — ✅`);
+    ).toBe(`1. ${TIMESTAMP} — ${WHO_WHERE} — /onthisdate — ✅`);
   });
 
   it('renders a button as its kind and name', () => {
     expect(service.describe([row({ kind: 'button', name: 'coach:42' })])).toBe(
-      `${TIMESTAMP} — ${WHO_WHERE} — button coach:42 — ✅`,
+      `1. ${TIMESTAMP} — ${WHO_WHERE} — button coach:42 — ✅`,
     );
   });
 
   it('renders a select menu as its kind and name', () => {
     expect(
       service.describe([row({ kind: 'select_menu', name: 'coach:' })]),
-    ).toBe(`${TIMESTAMP} — ${WHO_WHERE} — select_menu coach: — ✅`);
+    ).toBe(`1. ${TIMESTAMP} — ${WHO_WHERE} — select_menu coach: — ✅`);
   });
 
   it('renders parameters as comma-separated pairs in parentheses', () => {
@@ -71,7 +71,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — ${WHO_WHERE} — /insights (race: Orc, era: Classic) — ✅`,
+      `1. ${TIMESTAMP} — ${WHO_WHERE} — /insights (race: Orc, era: Classic) — ✅`,
     );
   });
 
@@ -85,7 +85,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — ${WHO_WHERE} — /insights (era: <empty>) — ✅`,
+      `1. ${TIMESTAMP} — ${WHO_WHERE} — /insights (era: <empty>) — ✅`,
     );
   });
 
@@ -102,7 +102,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — ${WHO_WHERE} — select_menu coach: (value: first, value: second) — ✅`,
+      `1. ${TIMESTAMP} — ${WHO_WHERE} — select_menu coach: (value: first, value: second) — ✅`,
     );
   });
 
@@ -112,7 +112,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — ${WHO_WHERE} — /insights — ❌ PLAYER_NOT_FOUND`,
+      `1. ${TIMESTAMP} — ${WHO_WHERE} — /insights — ❌ PLAYER_NOT_FOUND`,
     );
   });
 
@@ -121,7 +121,18 @@ describe('DebugInteractionRowFormatterService', () => {
       row({ outcome: 'failure', errorMessage: null }),
     ]);
 
-    expect(rendered).toBe(`${TIMESTAMP} — ${WHO_WHERE} — /insights — ❌`);
+    expect(rendered).toBe(`1. ${TIMESTAMP} — ${WHO_WHERE} — /insights — ❌`);
+  });
+
+  it('numbers the rows from one, in listing order', () => {
+    const description = service.describe([
+      row({ name: 'insights' }),
+      row({ name: 'deepdive' }),
+    ]);
+
+    const lines = description.split('\n');
+    expect(lines[0].startsWith('1. ')).toBe(true);
+    expect(lines[1].startsWith('2. ')).toBe(true);
   });
 
   it('puts one row per line, in the order given', () => {
@@ -131,8 +142,8 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered.split('\n')).toEqual([
-      `${TIMESTAMP} — ${WHO_WHERE} — /insights — ✅`,
-      `${TIMESTAMP} — ${WHO_WHERE} — /onthisdate — ✅`,
+      `1. ${TIMESTAMP} — ${WHO_WHERE} — /insights — ✅`,
+      `2. ${TIMESTAMP} — ${WHO_WHERE} — /onthisdate — ✅`,
     ]);
   });
 
@@ -146,7 +157,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — coach42 in Test League #general — /insights — ✅`,
+      `1. ${TIMESTAMP} — coach42 in Test League #general — /insights — ✅`,
     );
   });
 
@@ -156,7 +167,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — coach42 in Test League — /insights — ✅`,
+      `1. ${TIMESTAMP} — coach42 in Test League — /insights — ✅`,
     );
   });
 
@@ -165,7 +176,7 @@ describe('DebugInteractionRowFormatterService', () => {
       row({ guildName: null, channelName: null }),
     ]);
 
-    expect(rendered).toBe(`${TIMESTAMP} — coach42 in a DM — /insights — ✅`);
+    expect(rendered).toBe(`1. ${TIMESTAMP} — coach42 in a DM — /insights — ✅`);
   });
 
   it('renders a DM that does have a channel name as "a DM #channel" (the rare case)', () => {
@@ -174,7 +185,7 @@ describe('DebugInteractionRowFormatterService', () => {
     ]);
 
     expect(rendered).toBe(
-      `${TIMESTAMP} — coach42 in a DM #some-dm-channel-name — /insights — ✅`,
+      `1. ${TIMESTAMP} — coach42 in a DM #some-dm-channel-name — /insights — ✅`,
     );
   });
 });
