@@ -245,7 +245,7 @@ describe('CompetitionDeepdiveService', () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
     dateRangeFormatter.formatNamed.mockReturnValue(
-      'BB2020 (2024-01-15 – 2024-06-30)',
+      'BB2020 (2020-01-01 – 2023-12-31)',
     );
     const { service } = await makeService({
       competitions: makeCompetitions({
@@ -266,7 +266,7 @@ describe('CompetitionDeepdiveService', () => {
           title: `${stubEntityEmoji(COMPETITION_BUTTON_CUSTOM_ID_PREFIX)} Major Season 24`,
           description: [
             'Type: season',
-            'Era: BB2020 (2024-01-15 – 2024-06-30)',
+            'Era: BB2020 (2020-01-01 – 2023-12-31)',
             'Group: The Major',
             'Duration: 2024-01-15 – 2024-06-30',
             '',
@@ -280,6 +280,11 @@ describe('CompetitionDeepdiveService', () => {
       ],
       components: cannedComponents,
     });
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'BB2020',
+      '2020-01-01',
+      '2023-12-31',
+    );
     const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
     expect(entries).toEqual([
       {
@@ -313,7 +318,7 @@ describe('CompetitionDeepdiveService', () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
     dateRangeFormatter.formatNamed.mockReturnValue(
-      'BB2020 (2024-01-15 – 2024-06-30)',
+      'BB2020 (2020-01-01 – 2023-12-31)',
     );
     const { service } = await makeService({
       competitions: makeCompetitions({
@@ -331,7 +336,7 @@ describe('CompetitionDeepdiveService', () => {
     const lines = result.embeds[0].description.split('\n');
     expect(lines.slice(0, 6)).toEqual([
       'Type: season',
-      'Era: BB2020 (2024-01-15 – 2024-06-30)',
+      'Era: BB2020 (2020-01-01 – 2023-12-31)',
       'Group: The Major',
       'Duration: 2024-01-15 – 2024-06-30',
       '',
@@ -340,6 +345,11 @@ describe('CompetitionDeepdiveService', () => {
     expect(dateRangeFormatter.format).toHaveBeenCalledWith(
       '2024-01-15',
       '2024-06-30',
+    );
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'BB2020',
+      '2020-01-01',
+      '2023-12-31',
     );
   });
 
