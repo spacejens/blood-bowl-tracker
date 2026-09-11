@@ -26,6 +26,23 @@ describe('resolve procedures', () => {
     });
   });
 
+  // Trophies resolve by curated name, not by external id -- see the
+  // contract's own note on why they are the exception.
+  it('answers trophies.resolveByName from TrophiesService', async () => {
+    const { router, mocks } = await createRouterHarness();
+    mocks.trophiesService.resolveByName.mockResolvedValue({
+      found: true,
+      id: 31,
+    });
+
+    await expect(
+      call(router.trophies.resolveByName, { name: 'Season MVP' }),
+    ).resolves.toEqual({ found: true, id: 31 });
+    expect(mocks.trophiesService.resolveByName).toHaveBeenCalledWith(
+      'Season MVP',
+    );
+  });
+
   it('answers races.resolveBatch index-aligned with the request', async () => {
     const { router, mocks } = await createRouterHarness();
     const input = [externalId, { externalSystemId: 1, externalId: 'id:48' }];

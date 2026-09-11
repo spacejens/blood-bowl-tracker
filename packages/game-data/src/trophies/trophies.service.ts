@@ -1,4 +1,7 @@
-import type { UpsertTrophy } from '@blood-bowl-tracker/api-contract';
+import type {
+  ResolveResult,
+  UpsertTrophy,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db, Trophy } from '@blood-bowl-tracker/db';
 import {
   competitionGroups,
@@ -98,6 +101,33 @@ export class TrophiesService {
         .orderBy(trophies.name)
         .limit(limit)
     );
+  }
+
+  /**
+   * Which trophy carries this exact curated name. Answers in the same
+   * `{ found, id }` shape as every entity's external-id `resolve`, and for
+   * the same reason: an unmatched name is an authoring typo in a curated
+   * file, which the caller reports and skips, not a server fault.
+   *
+   * Exact and case-sensitive, unlike `searchByNamePrefix` above — the caller
+   * is quoting a name out of the curated catalog, not searching for one.
+   *
+   * Two rows sharing a name answers `{ found: false }` rather than picking
+   * one arbitrarily: trophy names are not unique by construction (the same
+   * name can be curated once per competition tier), so an ambiguous name is
+   * exactly as unusable to the caller as an unknown one, and silently
+   * awarding the wrong tier's trophy would be worse than reporting it.
+   * `limit(2)` is all it takes to tell the two cases apart.
+   */
+  async resolveByName(name: string): Promise<ResolveResult> {
+    const rows = await this.db
+      .select({ id: trophies.id })
+      .from(trophies)
+      .where(eq(trophies.name, name))
+      .limit(2);
+    return rows.length === 1
+      ? { found: true, id: rows[0].id }
+      : { found: false };
   }
 
   /** One trophy's deepdive header, or `undefined` when no such trophy exists. */

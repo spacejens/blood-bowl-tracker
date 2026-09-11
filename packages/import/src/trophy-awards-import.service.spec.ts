@@ -56,6 +56,18 @@ describe('TrophyAwardsImportService', () => {
     );
   });
 
+  it('says the team era is derived when the award omits one', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsert({ trophyId: 1, competitionId: 2, playerId: 4 }, []);
+
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to import trophy award (trophy 1, competition 2, team era ' +
+        'derived from the player, player 4): boom',
+    );
+  });
+
   it('says "no player" for a team award', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 

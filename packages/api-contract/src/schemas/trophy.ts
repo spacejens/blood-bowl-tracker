@@ -83,6 +83,17 @@ export const UpsertTrophySchema = z.object({
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 
+/**
+ * Which trophy carries this exact curated name. The one entity looked up by
+ * name rather than by external id — see the `trophies.resolveByName` note in
+ * `contract.ts` for why. The match is exact and case-sensitive: the caller is
+ * quoting a name from the curated catalog, not searching.
+ */
+export const ResolveTrophyByNameSchema = z.object({
+  name: z.string().min(1),
+});
+
 export type TrophyRecipientKind = z.infer<typeof TrophyRecipientKindSchema>;
+export type ResolveTrophyByName = z.infer<typeof ResolveTrophyByNameSchema>;
 export type Trophy = z.infer<typeof TrophySchema>;
 export type UpsertTrophy = z.infer<typeof UpsertTrophySchema>;

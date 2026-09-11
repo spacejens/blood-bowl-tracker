@@ -55,6 +55,23 @@ describe('curated data files', () => {
     expect(() => readPhase('after-other-importers')).not.toThrow();
   });
 
+  it('keeps a trophy-awards file for the manual trophies, ready to fill in', () => {
+    // Empty on purpose: the historical winners are not known yet, and the
+    // file exists so they can be recorded one entry at a time.
+    expect(
+      readFile('after-other-importers', 'trophy-awards.json5'),
+    ).toMatchObject({ trophyAwards: [] });
+    // Whatever gets added must name one of the two trophies nothing can
+    // compute -- any other trophy's winner comes from the source or a rule.
+    const manualTrophies = readPhase('before-other-importers')
+      .trophies.filter((trophy) => trophy.awardRuleKind === 'manual')
+      .map((trophy) => trophy.name);
+    expect(manualTrophies.sort()).toEqual(['Gudarnas Förkämpe', 'Season MVP']);
+    for (const award of readPhase('after-other-importers').trophyAwards) {
+      expect(manualTrophies).toContain(award.trophy);
+    }
+  });
+
   it('curates both real leagues with BBL-compatible external ids', () => {
     const leagues = readPhase('before-other-importers').leagues;
     expect(leagues.map((league) => league.name).sort()).toEqual([

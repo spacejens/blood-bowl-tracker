@@ -213,6 +213,36 @@ const CompetitionGroupEntrySchema = z.object({
   league: ExternalRefSchema,
 });
 
+/**
+ * One hand-curated trophy award: who won which trophy in which competition.
+ * This exists only for trophies classified `manual` in
+ * `before-other-importers/trophies.json5` — no statistic determines their
+ * winner, so nothing can compute them and no source records them.
+ *
+ * `trophy` is the trophy's exact curated `name`, not an external-id
+ * cross-reference: trophies carry no shared "Name"-system id (the same name
+ * across competition tiers is genuinely a different trophy), and this file is
+ * hand-authored alongside `trophies.json5` itself, so the curated name is the
+ * identity a curator already has in front of them. A name no trophy carries
+ * -- or one two trophies share -- is an authoring error that skips the entry.
+ *
+ * `competition` and `player` are ordinary external-id cross-references,
+ * resolved against the database like every other reference in this tool.
+ * Both name entities the BBL/TP importers create, which is why this file
+ * lives in `after-other-importers/`.
+ *
+ * There is no `teamEra` reference and deliberately so: a player never changes
+ * teams, so the award's team era is the winning player's own, and the API
+ * derives it from the resolved player (see `UpsertTrophyAwardSchema`). Nor is
+ * there a team-award variant -- both `manual` trophies are player trophies,
+ * and a team award would have no player to derive a team era from.
+ */
+const TrophyAwardEntrySchema = z.object({
+  trophy: z.string().min(1),
+  competition: ExternalRefSchema,
+  player: ExternalRefSchema,
+});
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -228,6 +258,7 @@ export const ManualDataFileSchema = z
     sppAwardValues: z.array(SppAwardValueEntrySchema).default([]),
     trophies: z.array(TrophyEntrySchema).default([]),
     competitionGroups: z.array(CompetitionGroupEntrySchema).default([]),
+    trophyAwards: z.array(TrophyAwardEntrySchema).default([]),
   })
   .strict();
 

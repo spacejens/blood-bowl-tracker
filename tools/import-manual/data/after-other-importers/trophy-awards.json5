@@ -1,0 +1,82 @@
+// Hand-curated trophy awards: who won which trophy in which competition.
+//
+// This file exists for exactly one purpose: the trophies whose award rule is
+// classified `manual` in before-other-importers/trophies.json5. Every other
+// trophy in the catalog is either recorded by the source data itself
+// (`direct_source`) or computed from imported match events
+// (`max_count`/`max_spp_sum`/`career_threshold`), so no human ever has to
+// name its winner. A `manual` trophy has neither: no underlying statistic
+// determines it, and no importer records it, so its winners can only be
+// entered by hand -- here.
+//
+// There are currently exactly two of them:
+//
+//   Season MVP          Voted on by all coaches after the season; no
+//                       underlying statistic determines it.
+//   Gudarnas Förkämpe   The Chaos Cup winner nominates three of their players
+//                       and rolls a D3 to choose one; no underlying statistic
+//                       determines it.
+//
+// Both are player trophies, which is why an entry names a player and no team:
+// a player never changes teams, so the award's team era is the winning
+// player's own and the API derives it from the resolved player. Nothing has
+// to state it here.
+//
+// The `trophyAwards` array below is deliberately EMPTY. The historical
+// winners are not known yet; this file is the place to record them as they
+// are established, one entry at a time. An empty array imports nothing and
+// fails nothing.
+//
+// WHY THIS FILE LIVES IN after-other-importers
+//
+// An entry references a competition and a player by external id, and both
+// are created by the BBL and TP importers, not by this tool. Curating them
+// before those importers ran would resolve nothing (every entry would be
+// skipped with an "could not resolve reference" error), so this phase --
+// which runs after them -- is the only one where these references exist.
+// Same reasoning as position-availability.json5 in this directory.
+//
+// ENTRY SHAPE
+//
+//   trophy       The trophy's exact curated `name` from
+//                before-other-importers/trophies.json5, as a plain string --
+//                NOT an external-id reference. Trophies carry no shared
+//                "Name"-system id (the same name under a different
+//                competition tier is a genuinely different trophy), and this
+//                file is authored alongside trophies.json5 anyway, so the
+//                curated name is the identity already in front of the
+//                curator. Matched exactly and case-sensitively; a name no
+//                trophy carries -- or one two trophies share -- skips the
+//                entry with an import error.
+//
+//   competition  An external-id reference to the competition the trophy was
+//                awarded for, in whichever source system imported it. BBL
+//                competitions are keyed by the numeric id in their site link
+//                (see after-other-importers/competitions.json5 for the full
+//                list of which number is which season).
+//
+//   player       An external-id reference to the winning player, in whichever
+//                source system imported them. BBL players are keyed by their
+//                numeric `pid`.
+//
+// The trophy's own scope is still enforced server-side: awarding a trophy
+// curated for one competition group in a competition belonging to another is
+// rejected, so a mistyped competition id fails loudly rather than recording a
+// wrong award.
+//
+// WORKED EXAMPLE -- the shape to copy, not live data. Delete the comment
+// markers, replace the ids, and drop it into the array below:
+//
+//   {
+//     trophy: 'Season MVP',
+//     competition: { system: 'tloeg.bbleague.se', id: '10' },
+//     player: { system: 'tloeg.bbleague.se', id: '388' },
+//   },
+//
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+  ],
+  trophyAwards: [],
+}

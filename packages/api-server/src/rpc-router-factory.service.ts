@@ -441,6 +441,11 @@ export class RpcRouterFactoryService {
           conflictError: TrophyUpsertConflictError,
           unwrap: (r) => ({ entity: r.trophy, created: r.created }),
         }),
+        // By name rather than external id, so it uses no resolve builder --
+        // see the contract's own note on why trophies are the exception.
+        resolveByName: implement(contract.trophies.resolveByName).handler(
+          ({ input }) => this.trophiesService.resolveByName(input.name),
+        ),
       },
       trophyAwards: buildTrophyAwardsRoutes({
         upsertHandler: this.upsertHandler,

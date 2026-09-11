@@ -19,7 +19,34 @@ describe('ManualDataFileSchema', () => {
       sppAwardValues: [],
       trophies: [],
       competitionGroups: [],
+      trophyAwards: [],
     });
+  });
+
+  it('accepts a trophy-award entry naming its trophy by curated name', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophyAwards: [
+        {
+          trophy: 'Season MVP',
+          competition: { system: 'tloeg.bbleague.se', id: '10' },
+          player: { system: 'tloeg.bbleague.se', id: '388' },
+        },
+      ],
+    });
+    expect(parsed.trophyAwards[0].trophy).toBe('Season MVP');
+  });
+
+  it('rejects a trophy-award entry missing its player', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        trophyAwards: [
+          {
+            trophy: 'Season MVP',
+            competition: { system: 'tloeg.bbleague.se', id: '10' },
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('accepts a position/rules-set characteristics entry', () => {

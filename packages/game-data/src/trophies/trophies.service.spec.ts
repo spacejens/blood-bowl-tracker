@@ -209,6 +209,36 @@ describe('TrophiesService', () => {
     expect(chains).toHaveLength(5);
   });
 
+  describe('resolveByName', () => {
+    it('answers the id of the one trophy carrying the name', async () => {
+      const { chains } = await build([{ id: 31 }]);
+
+      await expect(service.resolveByName('Season MVP')).resolves.toEqual({
+        found: true,
+        id: 31,
+      });
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(
+        'Season MVP',
+      );
+    });
+
+    it('reports not found rather than throwing for an unknown name', async () => {
+      await build([]);
+
+      await expect(service.resolveByName('Nonesuch')).resolves.toEqual({
+        found: false,
+      });
+    });
+
+    it('reports not found for an ambiguous name rather than picking one', async () => {
+      await build([{ id: 31 }, { id: 32 }]);
+
+      await expect(service.resolveByName('Top Scorer')).resolves.toEqual({
+        found: false,
+      });
+    });
+  });
+
   describe('searchByNamePrefix', () => {
     it('returns trophies with their competition group name, ordered by name and limited', async () => {
       const rows = [
