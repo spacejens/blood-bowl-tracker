@@ -1,3 +1,4 @@
+import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import {
   TrophiesModule,
   TrophyAwardsModule,
@@ -18,6 +19,8 @@ import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdiv
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
+import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
+import { DebugInteractionsCommandService } from './debug-interactions-command.service';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
 import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
@@ -34,10 +37,22 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
   // PlayerRowButtonService and PlayerKillerInfoFormatterService also arrive
   // transitively through InsightsModule, which provides and exports both for
   // its own on-this-date insight, so neither is redeclared here.
-  imports: [InsightsModule, TrophiesModule, TrophyAwardsModule],
+  // DiscordBotUsageModule supplies InteractionEventsQueryService for
+  // /debuginteractions. Importing it a second time (packages/discord-client
+  // already imports it for the write side) is safe: Nest instantiates a
+  // module once and shares it, and its only dependency - the DB token - is
+  // provided globally by DbModule.
+  imports: [
+    InsightsModule,
+    TrophiesModule,
+    TrophyAwardsModule,
+    DiscordBotUsageModule,
+  ],
   providers: [
     InsightsCommandService,
     OnThisDateCommandService,
+    DebugInteractionsCommandService,
+    DebugInteractionRowFormatterService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
