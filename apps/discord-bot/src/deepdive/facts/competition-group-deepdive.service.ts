@@ -55,9 +55,10 @@ type GroupCompetition = {
  * trophy entries in the drill-down pool because listing the instances is this
  * deepdive's primary job, and `buildEntityComponents` has no internal
  * prioritisation — first entries win the components budget. Instances are
- * grouped into per-era sections, each headed `<era> competitions:`, oldest era
- * first, so a long-running group reads as one block per era instead of one flat
- * list repeating the era on every row.
+ * grouped into per-era sections, each headed with its era named and dated
+ * (`<era> (<start> – <end>) competitions:`), oldest era first, so a
+ * long-running group reads as one block per era instead of one flat list
+ * repeating the era on every row.
  */
 @Injectable()
 export class CompetitionGroupDeepdiveService {
@@ -119,7 +120,7 @@ export class CompetitionGroupDeepdiveService {
             .group(comps)
             .flatMap((section, index) => [
               ...(index === 0 ? [] : ['']),
-              `${section.eraName} competitions:`,
+              `${section.eraHeading} competitions:`,
               ...section.rows.map(
                 (comp) =>
                   `${comp.name}: ${this.dateRangeFormatter.format(comp.startDate, comp.endDate)}`,

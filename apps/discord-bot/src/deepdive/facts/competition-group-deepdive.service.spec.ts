@@ -268,7 +268,7 @@ describe('CompetitionGroupDeepdiveService', () => {
             'Chaos Cup Winner',
             'Most Casualties',
             '',
-            'BB2020 competitions:',
+            'BB2020 (2020-01-01 – 2023-12-31) competitions:',
             'Chaos Cup 23: 2023-10-01..2023-10-02',
             'Chaos Cup 24: 2024-10-01..now',
           ].join('\n'),
@@ -331,10 +331,10 @@ describe('CompetitionGroupDeepdiveService', () => {
         .split('\n')
         .slice(-5),
     ).toEqual([
-      'BB2020 competitions:',
+      'BB2020 (2020-01-01 – 2023-12-31) competitions:',
       'Chaos Cup 23: dates',
       '',
-      'BB2020 v2 competitions:',
+      'BB2020 v2 (2024-01-01 – present) competitions:',
       'Chaos Cup 24: dates',
     ]);
   });

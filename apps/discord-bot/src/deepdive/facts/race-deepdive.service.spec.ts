@@ -494,7 +494,7 @@ describe('RaceDeepdiveService', () => {
     const result = await service.resolve(1);
 
     expect(JSON.stringify(result)).toContain(
-      'BB2016 positions:\\nBlitzer\\nLineman\\n\\nBB2020 positions:\\nLineman',
+      'BB2016 (2016-01-01 – 2019-12-31) positions:\\nBlitzer\\nLineman\\n\\nBB2020 (2020-01-01 – present) positions:\\nLineman',
     );
     expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith(
       expect.arrayContaining([
