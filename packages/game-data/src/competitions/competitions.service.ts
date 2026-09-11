@@ -282,6 +282,9 @@ export class CompetitionsService {
       name: string;
       eraId: number;
       eraName: string;
+      /** The era's own span (`null` end = ongoing), for the section heading. */
+      eraStartDate: string;
+      eraEndDate: string | null;
       startDate: string;
       endDate: string | null;
     }[]
@@ -292,6 +295,8 @@ export class CompetitionsService {
         name: competitions.name,
         eraId: competitions.eraId,
         eraName: eras.name,
+        eraStartDate: eras.startDate,
+        eraEndDate: eras.endDate,
         startDate: competitions.startDate,
         endDate: competitions.endDate,
       })
