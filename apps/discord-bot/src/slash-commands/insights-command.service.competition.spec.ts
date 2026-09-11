@@ -62,7 +62,8 @@ describe('InsightsCommandService — competition scoping', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by touchdowns scored — Major Season 24',
+          title:
+            'Teams by touchdowns scored — Major Season 24 (2020-01-01 – 2023-12-31)',
           description: '1. 40 grinders — 15',
         },
       ],
@@ -119,5 +120,28 @@ describe('InsightsCommandService — competition scoping', () => {
     expect(result).not.toBe(
       INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
     );
+  });
+
+  it('dates the competition in the title suffix', async () => {
+    const { service, dateRangeFormatter } = await makeService();
+    dateRangeFormatter.format.mockReturnValue('2023-10-01 – 2023-10-02');
+
+    const result = service.applyScopeSuffix(
+      { embeds: [{ title: 'Most casualties' }] },
+      {
+        competition: {
+          id: 11,
+          name: 'Chaos Cup 23',
+          startDate: '2023-10-01',
+          endDate: '2023-10-02',
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      embeds: [
+        { title: 'Most casualties — Chaos Cup 23 (2023-10-01 – 2023-10-02)' },
+      ],
+    });
   });
 });

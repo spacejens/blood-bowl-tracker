@@ -32,6 +32,7 @@ import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import type { DateButtonScopeToken } from '../shared/date-button-id.service';
+import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
@@ -65,6 +66,7 @@ export class InsightsCommandService implements OnModuleInit {
     private readonly registry: SlashCommandRegistryService,
     private readonly factTreeUtils: FactTreeUtilsService,
     private readonly categoryLabel: MatchCategoryLabelService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   onModuleInit(): void {
@@ -386,22 +388,47 @@ export class InsightsCommandService implements OnModuleInit {
   }
 
   /**
-   * Suffixes a reply's embed title with the name of whichever scope was
-   * resolved (league, era, competition or match category), or `'All time'`
-   * when none was.
+   * Suffixes a reply's embed title with whichever scope was resolved, or
+   * `'All time'` when none was. An era and a competition are dated as well as
+   * named, so a reader can tell at a glance whether the scope they are looking
+   * at is finished or still running. A league carries no date columns of its
+   * own and a match category is a fixed enum value, so both stay bare names.
    */
   applyScopeSuffix(
     reply: string | InteractionReplyOptions,
     resolved: ResolvedScope,
   ): string | InteractionReplyOptions {
-    return this.applyTitleSuffix(
-      reply,
-      resolved.league?.name ??
-        resolved.era?.name ??
-        resolved.competition?.name ??
-        resolved.matchCategory?.label ??
-        'All time',
+    return this.applyTitleSuffix(reply, this.buildScopeLabel(resolved));
+  }
+
+  /**
+   * The scope label, in the same league → era → competition → match category
+   * precedence `ResolvedScope` is resolved with (only one is ever set, but the
+   * order is kept explicit).
+   */
+  private buildScopeLabel(resolved: ResolvedScope): string {
+    if (resolved.league !== undefined) {
+      return resolved.league.name;
+    }
+    if (resolved.era !== undefined) {
+      return this.buildDatedLabel(resolved.era);
+    }
+    if (resolved.competition !== undefined) {
+      return this.buildDatedLabel(resolved.competition);
+    }
+    return resolved.matchCategory?.label ?? 'All time';
+  }
+
+  private buildDatedLabel(scope: {
+    name: string;
+    startDate: string;
+    endDate: string | null;
+  }): string {
+    const range = this.dateRangeFormatter.format(
+      scope.startDate,
+      scope.endDate,
     );
+    return `${scope.name} (${range})`;
   }
 
   private applyTitleSuffix(

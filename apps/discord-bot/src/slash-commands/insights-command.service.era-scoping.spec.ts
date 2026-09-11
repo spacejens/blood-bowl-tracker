@@ -32,7 +32,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Coaches by matches played — BB2020',
+          title: 'Coaches by matches played — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. Roze Madder — 9',
         },
       ],
@@ -61,37 +61,42 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     {
       factPath: 'team.toplist.competitions.played',
       selectMock: (deps) => deps.teamToplist.resolveCompetitionsPlayed,
-      expectedTitle: 'Teams by competitions played — BB2020',
+      expectedTitle:
+        'Teams by competitions played — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. 40 grinders — 4',
     },
     {
       factPath: 'coach.toplist.competitions.played',
       selectMock: (deps) => deps.coachToplist.resolveCompetitionsPlayed,
-      expectedTitle: 'Coaches by competitions played — BB2020',
+      expectedTitle:
+        'Coaches by competitions played — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Roze Madder — 5',
     },
     {
       factPath: 'player.toplist.mvps',
       selectMock: (deps) => deps.playerToplist.resolveMvps,
-      expectedTitle: 'Players by MVP awards — BB2020',
+      expectedTitle: 'Players by MVP awards — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Griff Oberwald — 7',
     },
     {
       factPath: 'race.toplist.teams.descending',
       selectMock: (deps) => deps.raceToplist.resolveTeamsDescending,
-      expectedTitle: 'Races by teams (descending) — BB2020',
+      expectedTitle:
+        'Races by teams (descending) — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Orc — 12',
     },
     {
       factPath: 'race.toplist.teams.ascending',
       selectMock: (deps) => deps.raceToplist.resolveTeamsAscending,
-      expectedTitle: 'Races by teams (ascending) — BB2020',
+      expectedTitle:
+        'Races by teams (ascending) — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Halfling — 0',
     },
     {
       factPath: 'race.toplist.matches.played',
       selectMock: (deps) => deps.raceToplist.resolveMatchesPlayed,
-      expectedTitle: 'Races by matches played — BB2020',
+      expectedTitle:
+        'Races by matches played — BB2020 (2020-01-01 – 2023-12-31)',
       expectedDescription: '1. Orc — 40',
     },
   ])(
@@ -174,7 +179,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Players by touchdowns scored — BB2020',
+          title:
+            'Players by touchdowns scored — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. Griff Oberwald — 9',
         },
       ],
@@ -201,7 +207,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by interceptions — BB2020',
+          title: 'Teams by interceptions — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. 40 grinders — 5',
         },
       ],
@@ -230,7 +236,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Players by casualties inflicted — BB2020',
+          title:
+            'Players by casualties inflicted — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. Morg n Thorg — 11',
         },
       ],
@@ -259,7 +266,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by serious injuries inflicted — BB2020',
+          title:
+            'Teams by serious injuries inflicted — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. 40 grinders — 7',
         },
       ],
@@ -288,7 +296,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Players by casualties suffered — BB2020',
+          title:
+            'Players by casualties suffered — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. Griff Oberwald — 12',
         },
       ],
@@ -317,11 +326,48 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by lasting injuries suffered — BB2020',
+          title:
+            'Teams by lasting injuries suffered — BB2020 (2020-01-01 – 2023-12-31)',
           description: '1. 40 grinders — 4',
         },
       ],
       components: [],
+    });
+  });
+
+  it('dates the era in the title suffix', async () => {
+    const { service, dateRangeFormatter } = await makeService();
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – present');
+
+    const result = service.applyScopeSuffix(
+      { embeds: [{ title: 'Most casualties' }] },
+      {
+        era: {
+          id: 20,
+          name: 'BB2020',
+          startDate: '2020-01-01',
+          endDate: null,
+        },
+      },
+    );
+
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith('2020-01-01', null);
+    expect(result).toEqual({
+      embeds: [{ title: 'Most casualties — BB2020 (2020-01-01 – present)' }],
+    });
+  });
+
+  it('leaves a league suffix undated, since a league has no date columns', async () => {
+    const { service, dateRangeFormatter } = await makeService();
+
+    const result = service.applyScopeSuffix(
+      { embeds: [{ title: 'Most casualties' }] },
+      { league: { id: 1, name: 'The Major' } },
+    );
+
+    expect(dateRangeFormatter.format).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      embeds: [{ title: 'Most casualties — The Major' }],
     });
   });
 });
