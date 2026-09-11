@@ -34,4 +34,24 @@ describe('DateRangeFormatterService', () => {
       );
     });
   });
+
+  describe('formatNamed', () => {
+    it('names a closed range as "<name> (<start> – <end>)"', () => {
+      expect(service.formatNamed('BB2016', '2016-01-01', '2019-12-31')).toBe(
+        'BB2016 (2016-01-01 – 2019-12-31)',
+      );
+    });
+
+    it('names an ongoing range (null end date) as "<name> (<start> – present)"', () => {
+      expect(service.formatNamed('BB2020', '2020-01-01', null)).toBe(
+        'BB2020 (2020-01-01 – present)',
+      );
+    });
+
+    it('names a single-day range as "<name> (<date>)", with no dash', () => {
+      expect(
+        service.formatNamed('Chaos Cup 24', '2024-03-16', '2024-03-16'),
+      ).toBe('Chaos Cup 24 (2024-03-16)');
+    });
+  });
 });

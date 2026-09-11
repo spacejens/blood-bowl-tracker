@@ -337,7 +337,9 @@ describe('InsightsCommandService — era scoping and rejection', () => {
 
   it('dates the era in the title suffix', async () => {
     const { service, dateRangeFormatter } = await makeService();
-    dateRangeFormatter.format.mockReturnValue('2020-01-01 – present');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'BB2020 (2020-01-01 – present)',
+    );
 
     const result = service.applyScopeSuffix(
       { embeds: [{ title: 'Most casualties' }] },
@@ -351,7 +353,11 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       },
     );
 
-    expect(dateRangeFormatter.format).toHaveBeenCalledWith('2020-01-01', null);
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'BB2020',
+      '2020-01-01',
+      null,
+    );
     expect(result).toEqual({
       embeds: [{ title: 'Most casualties — BB2020 (2020-01-01 – present)' }],
     });
@@ -365,7 +371,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       { league: { id: 1, name: 'The Major' } },
     );
 
-    expect(dateRangeFormatter.format).not.toHaveBeenCalled();
+    expect(dateRangeFormatter.formatNamed).not.toHaveBeenCalled();
     expect(result).toEqual({
       embeds: [{ title: 'Most casualties — The Major' }],
     });

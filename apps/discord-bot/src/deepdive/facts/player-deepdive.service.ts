@@ -243,7 +243,7 @@ export class PlayerDeepdiveService {
 
     const header = [
       `Team: ${player.teamName}`,
-      `Era: ${player.eraName} (${this.dateRangeFormatter.format(player.eraStartDate, player.eraEndDate)})`,
+      `Era: ${this.dateRangeFormatter.formatNamed(player.eraName, player.eraStartDate, player.eraEndDate)}`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),

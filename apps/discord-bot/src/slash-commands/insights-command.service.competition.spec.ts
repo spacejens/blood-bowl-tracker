@@ -124,7 +124,9 @@ describe('InsightsCommandService — competition scoping', () => {
 
   it('dates the competition in the title suffix', async () => {
     const { service, dateRangeFormatter } = await makeService();
-    dateRangeFormatter.format.mockReturnValue('2023-10-01 – 2023-10-02');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'Chaos Cup 23 (2023-10-01 – 2023-10-02)',
+    );
 
     const result = service.applyScopeSuffix(
       { embeds: [{ title: 'Most casualties' }] },

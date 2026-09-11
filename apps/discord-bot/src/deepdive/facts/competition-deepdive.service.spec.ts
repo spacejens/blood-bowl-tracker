@@ -53,6 +53,22 @@ import { PlayerRowButtonService } from '../player-row-button.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
+/**
+ * A `DateRangeFormatterService` mock. Defaults to a canned range — not a copy
+ * of the real service's formatting: it proves the Era/Duration lines come
+ * from the formatter without re-deriving what that service does (which is
+ * covered by its own spec). Tests about the specific range still override it
+ * per-test.
+ */
+function makeDateRangeFormatter(): MockProxy<DateRangeFormatterService> {
+  const dateRangeFormatter = mock<DateRangeFormatterService>();
+  dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
+  dateRangeFormatter.formatNamed.mockImplementation(
+    (name) => `${name} (2020-01-01 – 2023-12-31)`,
+  );
+  return dateRangeFormatter;
+}
+
 interface MakeServiceOptions {
   competitions: CompetitionsService;
   trophyAwards?: MockProxy<TrophyAwardsService>;
@@ -71,7 +87,7 @@ async function makeService({
   entityComponents = nullEntityComponents(),
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
-  dateRangeFormatter = mock<DateRangeFormatterService>(),
+  dateRangeFormatter = makeDateRangeFormatter(),
   playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
   service: CompetitionDeepdiveService;
@@ -243,6 +259,9 @@ describe('CompetitionDeepdiveService', () => {
     });
     const dateRangeFormatter = mock<DateRangeFormatterService>();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'BB2020 (2024-01-15 – 2024-06-30)',
+    );
     const { service } = await makeService({
       competitions: makeCompetitions({
         competition: competitionHeader(),
@@ -308,6 +327,9 @@ describe('CompetitionDeepdiveService', () => {
   it('renders the Duration line for a multi-day competition, between the era line and the teams block', async () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'BB2020 (2024-01-15 – 2024-06-30)',
+    );
     const { service } = await makeService({
       competitions: makeCompetitions({
         competition: competitionHeader({
@@ -386,9 +408,10 @@ describe('CompetitionDeepdiveService', () => {
 
   it('marks an ongoing era as still running on the era reference line', async () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
-    dateRangeFormatter.format
-      .mockReturnValueOnce('2020-01-01 – present')
-      .mockReturnValueOnce('2023-10-01 – 2023-10-02');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'BB2020 (2020-01-01 – present)',
+    );
+    dateRangeFormatter.format.mockReturnValue('2023-10-01 – 2023-10-02');
     const { service } = await makeService({
       competitions: makeCompetitions({
         competition: competitionHeader({
@@ -404,8 +427,8 @@ describe('CompetitionDeepdiveService', () => {
 
     const result = await service.resolve(1);
 
-    expect(dateRangeFormatter.format).toHaveBeenNthCalledWith(
-      1,
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'BB2020',
       '2020-01-01',
       null,
     );
@@ -671,9 +694,9 @@ describe('CompetitionDeepdiveService', () => {
     };
     expect(result.embeds[0].description.split('\n')).toEqual([
       'Type: season',
-      'Era: BB2020 (undefined)',
+      'Era: BB2020 (2020-01-01 – 2023-12-31)',
       'Group: The Major',
-      'Duration: undefined',
+      'Duration: 2020-01-01 – 2023-12-31',
       '',
       'Participating teams:',
       'Gouged Eye (Orc, Skarsnik)',

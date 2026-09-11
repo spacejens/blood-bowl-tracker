@@ -50,7 +50,11 @@ export class EraSectionGrouperService {
       const current = sections[sections.length - 1];
       if (current === undefined || current.rows[0].eraId !== row.eraId) {
         sections.push({
-          eraHeading: this.buildHeading(row),
+          eraHeading: this.dateRangeFormatter.formatNamed(
+            row.eraName,
+            row.eraStartDate,
+            row.eraEndDate,
+          ),
           rows: [row],
         });
       } else {
@@ -58,13 +62,5 @@ export class EraSectionGrouperService {
       }
     }
     return sections;
-  }
-
-  private buildHeading(row: EraGroupable): string {
-    const range = this.dateRangeFormatter.format(
-      row.eraStartDate,
-      row.eraEndDate,
-    );
-    return `${row.eraName} (${range})`;
   }
 }

@@ -466,6 +466,9 @@ export async function makeService(): Promise<MakeServiceResult> {
   // an era/competition suffix comes from the formatter without re-deriving
   // what that service does (which is covered by its own spec).
   dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
+  dateRangeFormatter.formatNamed.mockImplementation(
+    (name) => `${name} (2020-01-01 – 2023-12-31)`,
+  );
   const factTreeDeps = makeFactTreeMocks();
   const factTree = buildFactTree(factTreeDeps);
 

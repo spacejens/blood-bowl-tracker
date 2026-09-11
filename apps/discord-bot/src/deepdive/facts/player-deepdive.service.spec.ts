@@ -267,7 +267,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('renders the honors section between the header and the category counts', async () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
-    dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'Season 5 (2020-01-01 – 2023-12-31)',
+    );
     const { service, trophyAwards } = await makeService({
       players: makePlayers({
         player: griff,
@@ -281,7 +283,8 @@ describe('PlayerDeepdiveService', () => {
     };
     expect(trophyAwards.countByPlayer).toHaveBeenCalledWith(1);
     expect(trophyAwards.listByPlayer).toHaveBeenCalledWith(1, 30);
-    expect(dateRangeFormatter.format).toHaveBeenCalledWith(
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'Season 5',
       '2020-01-01',
       '2023-12-31',
     );
@@ -319,7 +322,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -498,7 +501,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         'Status: Killed by Varag Ghoul-Chewer (Blitzer, Gouged Eye, Orc, Grimly)',
@@ -656,7 +659,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -673,7 +676,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -695,7 +698,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -712,7 +715,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -744,7 +747,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5 (undefined)',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -1030,7 +1033,9 @@ describe('PlayerDeepdiveService', () => {
 
   it('marks an ongoing era as still running on the era header line', async () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
-    dateRangeFormatter.format.mockReturnValue('2020-01-01 – present');
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'Season 5 (2020-01-01 – present)',
+    );
     const { service } = await makeService({
       players: makePlayers({
         player: { ...griff, eraStartDate: '2020-01-01', eraEndDate: null },
@@ -1040,7 +1045,11 @@ describe('PlayerDeepdiveService', () => {
 
     const result = await service.resolve(1);
 
-    expect(dateRangeFormatter.format).toHaveBeenCalledWith('2020-01-01', null);
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'Season 5',
+      '2020-01-01',
+      null,
+    );
     expect(
       (result as { embeds: { description: string }[] }).embeds[0].description,
     ).toContain('Era: Season 5 (2020-01-01 – present)');

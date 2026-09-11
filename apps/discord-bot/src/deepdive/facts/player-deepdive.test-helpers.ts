@@ -120,6 +120,22 @@ export function makePlayerDeath(
   return playerDeath;
 }
 
+/**
+ * A `DateRangeFormatterService` mock. Defaults to a canned range matching
+ * `griff`'s `eraStartDate`/`eraEndDate` — not a copy of the real service's
+ * formatting: it proves the era header's date suffix comes from the
+ * formatter without re-deriving what that service does (which is covered by
+ * its own spec). Tests about the specific range still override it per-test.
+ */
+export function makeDateRangeFormatter(): MockProxy<DateRangeFormatterService> {
+  const dateRangeFormatter = mock<DateRangeFormatterService>();
+  dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
+  dateRangeFormatter.formatNamed.mockImplementation(
+    (name) => `${name} (2020-01-01 – 2023-12-31)`,
+  );
+  return dateRangeFormatter;
+}
+
 export interface MakeServiceOptions {
   players: PlayersService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
@@ -168,7 +184,7 @@ export async function makeService({
   stars = makeStars(),
   playerRowButton = makePlayerRowButton(),
   positionRulesSets = makePositionRulesSets(),
-  dateRangeFormatter = mock<DateRangeFormatterService>(),
+  dateRangeFormatter = makeDateRangeFormatter(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;

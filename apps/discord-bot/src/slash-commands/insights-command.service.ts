@@ -424,11 +424,11 @@ export class InsightsCommandService implements OnModuleInit {
     startDate: string;
     endDate: string | null;
   }): string {
-    const range = this.dateRangeFormatter.format(
+    return this.dateRangeFormatter.formatNamed(
+      scope.name,
       scope.startDate,
       scope.endDate,
     );
-    return `${scope.name} (${range})`;
   }
 
   private applyTitleSuffix(
