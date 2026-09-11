@@ -371,17 +371,13 @@ export class TrophiesService {
   }
 
   /**
-   * Replace the trophy's curated rule event types, on the transaction handle
+   * Replace every curated part of the trophy's award rule — its event types
+   * and its eligible positions — on the transaction handle
    * `upsertByExternalIds` hands its `afterUpsert` hook, so a failed sync rolls
    * back the trophy row's own just-written changes too rather than leaving
-   * half of an old rule beside half of a new one. Delete-then-insert rather
-   * than a diff: the rows are a small curated set with no identity of their
-   * own beyond the pair they name.
-   *
-   * An omitted array leaves that table's rows untouched — the same overlay
-   * semantics the scalar columns have — while an empty array clears them,
-   * which is how a trophy reclassified away from a computed kind drops its
-   * stale rule.
+   * half of an old rule beside half of a new one. The two junction tables are
+   * synced together for that reason: a rule is only consistent when all of its
+   * parts describe the same rule.
    */
   private async syncRuleCuration(
     tx: DbOrTx,
@@ -395,7 +391,7 @@ export class TrophiesService {
   /**
    * Replace the trophy's curated eligible positions, on the same transaction
    * handle and with the same omitted-leaves-alone / empty-clears semantics as
-   * the event-type sync above. The rows store the position's `Name`-system
+   * the event-type sync below. The rows store the position's `Name`-system
    * external id rather than a position id, because this is curated in
    * tools/import-manual's `before-other-importers` phase, where no `positions`
    * row exists yet — see the table's own comment.
@@ -422,6 +418,16 @@ export class TrophiesService {
     }
   }
 
+  /**
+   * Replace the trophy's curated included and excluded rule event types.
+   * Delete-then-insert rather than a diff: the rows are a small curated set
+   * with no identity of their own beyond the pair they name.
+   *
+   * An omitted array leaves that table's rows untouched — the same overlay
+   * semantics the scalar columns have — while an empty array clears them,
+   * which is how a trophy reclassified away from a computed kind drops its
+   * stale rule.
+   */
   private async syncRuleEventTypes(
     tx: DbOrTx,
     trophyId: number,
