@@ -8,6 +8,8 @@ import {
   leagues,
   or,
   trophies,
+  trophyAwardRuleExcludedMatchEventTypes,
+  trophyAwardRuleMatchEventTypes,
   trophyExternalIds,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
@@ -201,6 +203,12 @@ export class TrophiesService {
         description: data.description,
         competitionGroupId: data.competitionGroupId,
         leagueId: data.leagueId,
+        awardRuleKind: data.awardRuleKind,
+        awardProcedure: data.awardProcedure,
+        awardRuleRole: data.awardRuleRole,
+        awardRuleTieCutoff: data.awardRuleTieCutoff,
+        awardRuleThreshold: data.awardRuleThreshold,
+        awardRuleMeasure: data.awardRuleMeasure,
       },
       externalIdTable: trophyExternalIds,
       ownerIdColumn: trophyExternalIds.trophyId,
@@ -212,6 +220,60 @@ export class TrophiesService {
       buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
     });
 
+    await this.syncRuleEventTypes(trophy.id, data);
+
     return { trophy, created };
+  }
+
+  /**
+   * Replace the trophy's curated rule event types, in one transaction per
+   * trophy, so a failed sync cannot leave half of an old rule beside half of a
+   * new one. Delete-then-insert rather than a diff: the rows are a small
+   * curated set with no identity of their own beyond the pair they name.
+   *
+   * An omitted array leaves that table's rows untouched — the same overlay
+   * semantics the scalar columns have — while an empty array clears them,
+   * which is how a trophy reclassified away from a computed kind drops its
+   * stale rule.
+   */
+  private async syncRuleEventTypes(
+    trophyId: number,
+    data: UpsertTrophy,
+  ): Promise<void> {
+    const included = data.awardRuleMatchEventTypes;
+    const excluded = data.awardRuleExcludedMatchEventTypes;
+    if (included === undefined && excluded === undefined) {
+      return;
+    }
+    await this.db.transaction(async (tx) => {
+      if (included !== undefined) {
+        await tx
+          .delete(trophyAwardRuleMatchEventTypes)
+          .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId));
+        if (included.length > 0) {
+          await tx.insert(trophyAwardRuleMatchEventTypes).values(
+            included.map((entry) => ({
+              trophyId,
+              actionType: entry.actionType ?? null,
+              consequenceType: entry.consequenceType ?? null,
+            })),
+          );
+        }
+      }
+      if (excluded !== undefined) {
+        await tx
+          .delete(trophyAwardRuleExcludedMatchEventTypes)
+          .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId));
+        if (excluded.length > 0) {
+          await tx.insert(trophyAwardRuleExcludedMatchEventTypes).values(
+            excluded.map((entry) => ({
+              trophyId,
+              actionType: entry.actionType ?? null,
+              consequenceType: entry.consequenceType ?? null,
+            })),
+          );
+        }
+      }
+    });
   }
 }

@@ -11,6 +11,12 @@ describe('trophy schemas', () => {
       description: 'The team that wins after four matches.',
       competitionGroupId: 2,
       leagueId: null,
+      awardRuleKind: 'direct_source',
+      awardProcedure: 'Recorded from the season standings.',
+      awardRuleRole: null,
+      awardRuleTieCutoff: null,
+      awardRuleThreshold: null,
+      awardRuleMeasure: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.recipientKind).toBe('team');
@@ -25,6 +31,12 @@ describe('trophy schemas', () => {
       description: null,
       competitionGroupId: 2,
       leagueId: null,
+      awardRuleKind: 'direct_source',
+      awardProcedure: 'Recorded from the season standings.',
+      awardRuleRole: null,
+      awardRuleTieCutoff: null,
+      awardRuleThreshold: null,
+      awardRuleMeasure: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.description).toBeNull();
@@ -96,6 +108,12 @@ describe('trophy schemas', () => {
       description: null,
       competitionGroupId: null,
       leagueId: 7,
+      awardRuleKind: 'max_count',
+      awardProcedure: null,
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 1,
+      awardRuleThreshold: null,
+      awardRuleMeasure: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.competitionGroupId).toBeNull();
@@ -128,6 +146,49 @@ describe('trophy schemas', () => {
         name: 'Legendary Player',
         leagueId: 1.5,
         externalIds: [{ externalSystemId: 1, externalId: 'Legendary Player' }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a fully curated computed award rule', () => {
+    const parsed = UpsertTrophySchema.parse({
+      name: 'Top Fouler',
+      recipientKind: 'player',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [
+        { actionType: 'foul' },
+        { consequenceType: 'casualty' },
+      ],
+      externalIds: [
+        { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
+      ],
+    });
+    expect(parsed.awardRuleKind).toBe('max_count');
+    expect(parsed.awardRuleMatchEventTypes).toEqual([
+      { actionType: 'foul' },
+      { consequenceType: 'casualty' },
+    ]);
+  });
+
+  it('accepts a source-recorded rule with a procedure and no rule columns', () => {
+    const parsed = UpsertTrophySchema.parse({
+      name: 'Major Gold',
+      recipientKind: 'team',
+      awardRuleKind: 'direct_source',
+      awardProcedure: 'Recorded from the season standings.',
+      externalIds: [{ externalSystemId: 1, externalId: 'Major 1st' }],
+    });
+    expect(parsed.awardProcedure).toBe('Recorded from the season standings.');
+  });
+
+  it('rejects an unknown award rule kind', () => {
+    expect(() =>
+      UpsertTrophySchema.parse({
+        name: 'X',
+        awardRuleKind: 'guesswork',
+        externalIds: [{ externalSystemId: 1, externalId: 'X' }],
       }),
     ).toThrow();
   });

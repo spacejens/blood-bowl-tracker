@@ -52,6 +52,8 @@ describe('TrophiesService', () => {
     name: 'Chaos Cup',
     recipientKind: 'team' as const,
     description: 'The team that wins after four matches.',
+    awardRuleKind: 'direct_source' as const,
+    awardProcedure: 'Recorded from the season standings.',
     externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
   };
 
@@ -111,6 +113,49 @@ describe('TrophiesService', () => {
       competitionGroupId: null,
       leagueId: 7,
     });
+  });
+
+  it('replaces the curated rule event types when they are supplied', async () => {
+    const { db } = await build([], [fakeTrophy]);
+
+    await service.upsert({
+      name: 'Top Fouler',
+      recipientKind: 'player',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [
+        { actionType: 'foul' },
+        { consequenceType: 'casualty' },
+      ],
+      awardRuleExcludedMatchEventTypes: [],
+      externalIds: [
+        { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
+      ],
+    });
+
+    // upsertByExternalIds already wraps the whole upsert in one transaction,
+    // so a supplied rule array opens a second, dedicated one for the junction
+    // sync (rule rows are replaced inside it, so a failed sync cannot leave a
+    // trophy holding half of its old rule and half of its new one).
+    expect(db.transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves the curated rule event types alone when they are omitted', async () => {
+    const { db } = await build([], [fakeTrophy]);
+
+    await service.upsert({
+      name: 'Top Fouler',
+      recipientKind: 'player',
+      awardRuleKind: 'max_count',
+      externalIds: [
+        { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
+      ],
+    });
+
+    // Only the main upsert's own transaction runs; no dedicated junction-sync
+    // transaction opens when both rule arrays are omitted.
+    expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 
   describe('searchByNamePrefix', () => {

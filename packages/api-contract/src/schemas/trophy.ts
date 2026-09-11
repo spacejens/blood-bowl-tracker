@@ -1,4 +1,11 @@
-import { TROPHY_RECIPIENT_KINDS } from '@blood-bowl-tracker/domain-enums';
+import {
+  ACTION_TYPES,
+  CONSEQUENCE_TYPES,
+  TROPHY_AWARD_RULE_KINDS,
+  TROPHY_AWARD_RULE_MEASURES,
+  TROPHY_AWARD_RULE_ROLES,
+  TROPHY_RECIPIENT_KINDS,
+} from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
@@ -9,6 +16,21 @@ import { ExternalIdSchema } from './external-id';
  */
 export const TrophyRecipientKindSchema = z.enum(TROPHY_RECIPIENT_KINDS);
 
+export const TrophyAwardRuleKindSchema = z.enum(TROPHY_AWARD_RULE_KINDS);
+export const TrophyAwardRuleRoleSchema = z.enum(TROPHY_AWARD_RULE_ROLES);
+export const TrophyAwardRuleMeasureSchema = z.enum(TROPHY_AWARD_RULE_MEASURES);
+
+/**
+ * One match-event type a computed trophy's rule counts. Exactly one of the two
+ * fields is set; the database's own check constraint enforces that, the same
+ * way it does for a trophy's group-or-league scope, rather than this schema
+ * duplicating the rule.
+ */
+export const TrophyAwardRuleEventTypeSchema = z.object({
+  actionType: z.enum(ACTION_TYPES).nullish(),
+  consequenceType: z.enum(CONSEQUENCE_TYPES).nullish(),
+});
+
 export const TrophySchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -16,6 +38,12 @@ export const TrophySchema = z.object({
   description: z.string().nullable(),
   competitionGroupId: z.number().nullable(),
   leagueId: z.number().nullable(),
+  awardRuleKind: TrophyAwardRuleKindSchema,
+  awardProcedure: z.string().nullable(),
+  awardRuleRole: TrophyAwardRuleRoleSchema.nullable(),
+  awardRuleTieCutoff: z.number().nullable(),
+  awardRuleThreshold: z.number().nullable(),
+  awardRuleMeasure: TrophyAwardRuleMeasureSchema.nullable(),
   createdAt: z.coerce.date(),
 });
 
@@ -33,6 +61,19 @@ export const UpsertTrophySchema = z.object({
   // enforced by the database's own check constraint, not here.
   competitionGroupId: z.number().int().nullable().optional(),
   leagueId: z.number().int().nullable().optional(),
+  awardRuleKind: TrophyAwardRuleKindSchema.optional(),
+  awardProcedure: z.string().nullable().optional(),
+  awardRuleRole: TrophyAwardRuleRoleSchema.nullable().optional(),
+  awardRuleTieCutoff: z.number().int().nullable().optional(),
+  awardRuleThreshold: z.number().int().nullable().optional(),
+  awardRuleMeasure: TrophyAwardRuleMeasureSchema.nullable().optional(),
+  // Supplying either array REPLACES that trophy's curated rows wholesale (an
+  // empty array clears them); omitting it leaves them alone, matching how the
+  // scalar fields above overlay rather than reset.
+  awardRuleMatchEventTypes: z.array(TrophyAwardRuleEventTypeSchema).optional(),
+  awardRuleExcludedMatchEventTypes: z
+    .array(TrophyAwardRuleEventTypeSchema)
+    .optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 
