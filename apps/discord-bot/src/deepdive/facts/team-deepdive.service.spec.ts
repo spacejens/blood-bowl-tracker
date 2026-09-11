@@ -697,7 +697,7 @@ describe('TeamDeepdiveService', () => {
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup]),
       eraSectionGrouper: singleEraSectionGrouper(
-        'Season 4 (2020-01-01 – present)',
+        'Season 4 (2024-01-01 – present)',
       ),
     });
     const result = (await service.resolve(1)) as {
@@ -709,7 +709,7 @@ describe('TeamDeepdiveService', () => {
       'Eras: None recorded',
       'Career: 2021-09-01 – 2023-06-10',
       '',
-      'Season 4 (2020-01-01 – present) trophies:',
+      'Season 4 (2024-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       '',
       'Top players by SPP:',
@@ -727,7 +727,7 @@ describe('TeamDeepdiveService', () => {
       playerContext: passthroughPlayerContext(' (Blitzer)'),
       trophyAwards: makeTrophyAwards([mvp]),
       eraSectionGrouper: singleEraSectionGrouper(
-        'Season 4 (2020-01-01 – present)',
+        'Season 4 (2024-01-01 – present)',
       ),
     });
     const result = (await service.resolve(1)) as {
@@ -772,16 +772,16 @@ describe('TeamDeepdiveService', () => {
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, mvp]),
       eraSectionGrouper: singleEraSectionGrouper(
-        'Season 4 (2020-01-01 – present)',
+        'Season 4 (2024-01-01 – present)',
       ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Season 4 (2020-01-01 – present) trophies:');
+    const start = lines.indexOf('Season 4 (2024-01-01 – present) trophies:');
     expect(lines.slice(start, start + 3)).toEqual([
-      'Season 4 (2020-01-01 – present) trophies:',
+      'Season 4 (2024-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       'Season 4 Minor (MVP): Grombrindal',
     ]);

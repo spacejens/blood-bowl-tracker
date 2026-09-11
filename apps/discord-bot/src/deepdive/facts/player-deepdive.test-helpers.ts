@@ -22,6 +22,7 @@ import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.test-helpers';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
@@ -120,22 +121,6 @@ export function makePlayerDeath(
   return playerDeath;
 }
 
-/**
- * A `DateRangeFormatterService` mock. Defaults to a canned range matching
- * `griff`'s `eraStartDate`/`eraEndDate` — not a copy of the real service's
- * formatting: it proves the era header's date suffix comes from the
- * formatter without re-deriving what that service does (which is covered by
- * its own spec). Tests about the specific range still override it per-test.
- */
-export function makeDateRangeFormatter(): MockProxy<DateRangeFormatterService> {
-  const dateRangeFormatter = mock<DateRangeFormatterService>();
-  dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
-  dateRangeFormatter.formatNamed.mockImplementation(
-    (name) => `${name} (2020-01-01 – 2023-12-31)`,
-  );
-  return dateRangeFormatter;
-}
-
 export interface MakeServiceOptions {
   players: PlayersService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
@@ -184,7 +169,9 @@ export async function makeService({
   stars = makeStars(),
   playerRowButton = makePlayerRowButton(),
   positionRulesSets = makePositionRulesSets(),
-  dateRangeFormatter = makeDateRangeFormatter(),
+  dateRangeFormatter = makeDateRangeFormatter(
+    'Season 5 (2020-01-01 – 2023-12-31)',
+  ),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;

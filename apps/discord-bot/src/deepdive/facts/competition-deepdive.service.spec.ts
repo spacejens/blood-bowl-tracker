@@ -40,6 +40,7 @@ import { passthroughPlayerContext } from '../../insights/player-context-mock.tes
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.test-helpers';
 import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
@@ -52,22 +53,6 @@ import {
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 import { makePlayerRowButton } from './team-deepdive.test-helpers';
-
-/**
- * A `DateRangeFormatterService` mock. Defaults to a canned range — not a copy
- * of the real service's formatting: it proves the Era/Duration lines come
- * from the formatter without re-deriving what that service does (which is
- * covered by its own spec). Tests about the specific range still override it
- * per-test.
- */
-function makeDateRangeFormatter(): MockProxy<DateRangeFormatterService> {
-  const dateRangeFormatter = mock<DateRangeFormatterService>();
-  dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
-  dateRangeFormatter.formatNamed.mockImplementation(
-    (name) => `${name} (2020-01-01 – 2023-12-31)`,
-  );
-  return dateRangeFormatter;
-}
 
 interface MakeServiceOptions {
   competitions: CompetitionsService;

@@ -37,6 +37,7 @@ import { StatsSummaryFactsService } from '../insights/facts/stats-summary.servic
 import { TeamToplistService } from '../insights/facts/team-toplist.service';
 import { TrophiesListService } from '../insights/facts/trophies-list.service';
 import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
+import { makeDateRangeFormatter } from '../shared/date-range-formatter-mock.test-helpers';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -461,14 +462,7 @@ export async function makeService(): Promise<MakeServiceResult> {
   // each choice's name comes from the label service without re-deriving what
   // that service does (which is covered by its own spec).
   categoryLabel.label.mockImplementation((category) => `Label for ${category}`);
-  const dateRangeFormatter = mock<DateRangeFormatterService>();
-  // A canned range, not a copy of the real service's formatting: it proves
-  // an era/competition suffix comes from the formatter without re-deriving
-  // what that service does (which is covered by its own spec).
-  dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
-  dateRangeFormatter.formatNamed.mockImplementation(
-    (name) => `${name} (2020-01-01 – 2023-12-31)`,
-  );
+  const dateRangeFormatter = makeDateRangeFormatter();
   const factTreeDeps = makeFactTreeMocks();
   const factTree = buildFactTree(factTreeDeps);
 

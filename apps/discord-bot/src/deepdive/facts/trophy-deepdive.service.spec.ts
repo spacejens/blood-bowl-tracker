@@ -70,7 +70,7 @@ async function makeService({
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
   eraSectionGrouper = singleEraSectionGrouper(
-    'Season 24 Era (2020-01-01 – present)',
+    'Season 24 Era (2024-01-01 – present)',
   ),
   playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
@@ -276,7 +276,7 @@ describe('TrophyDeepdiveService', () => {
       'Awarded for: Major',
       'Description: The team that wins after four matches.',
       '',
-      'Season 24 Era (2020-01-01 – present) recipients:',
+      'Season 24 Era (2024-01-01 – present) recipients:',
       'Major Season 24: Reikland Reavers',
     ]);
   });

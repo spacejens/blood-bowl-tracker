@@ -40,7 +40,8 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('scopes an in-scope category to the resolved competition and names it in the title', async () => {
-    const { service, factTreeDeps, competitions } = await makeService();
+    const { service, factTreeDeps, competitions, dateRangeFormatter } =
+      await makeService();
     competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
@@ -49,6 +50,9 @@ describe('InsightsCommandService — competition scoping', () => {
       startDate: '2023-10-01',
       endDate: '2023-10-02',
     });
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'Major Season 24 (2023-10-01 – 2023-10-02)',
+    );
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', { competition: '30' }),
     );
@@ -63,7 +67,7 @@ describe('InsightsCommandService — competition scoping', () => {
       embeds: [
         {
           title:
-            'Teams by touchdowns scored — Major Season 24 (2020-01-01 – 2023-12-31)',
+            'Teams by touchdowns scored — Major Season 24 (2023-10-01 – 2023-10-02)',
           description: '1. 40 grinders — 15',
         },
       ],
@@ -140,9 +144,44 @@ describe('InsightsCommandService — competition scoping', () => {
       },
     );
 
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'Chaos Cup 23',
+      '2023-10-01',
+      '2023-10-02',
+    );
     expect(result).toEqual({
       embeds: [
         { title: 'Most casualties — Chaos Cup 23 (2023-10-01 – 2023-10-02)' },
+      ],
+    });
+  });
+
+  it('dates an ongoing competition in the title suffix as present', async () => {
+    const { service, dateRangeFormatter } = await makeService();
+    dateRangeFormatter.formatNamed.mockReturnValue(
+      'Chaos Cup 23 (2023-10-01 – present)',
+    );
+
+    const result = service.applyScopeSuffix(
+      { embeds: [{ title: 'Most casualties' }] },
+      {
+        competition: {
+          id: 11,
+          name: 'Chaos Cup 23',
+          startDate: '2023-10-01',
+          endDate: null,
+        },
+      },
+    );
+
+    expect(dateRangeFormatter.formatNamed).toHaveBeenCalledWith(
+      'Chaos Cup 23',
+      '2023-10-01',
+      null,
+    );
+    expect(result).toEqual({
+      embeds: [
+        { title: 'Most casualties — Chaos Cup 23 (2023-10-01 – present)' },
       ],
     });
   });
