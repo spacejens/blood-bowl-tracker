@@ -36,6 +36,7 @@ import {
   DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
@@ -60,6 +61,8 @@ type Player = {
   positionId: number;
   eraName: string;
   eraId: number;
+  eraStartDate: string;
+  eraEndDate: string | null;
   sppTotal: number | null;
   sppAdjustment: number | null;
   move: number;
@@ -123,6 +126,7 @@ export class PlayerDeepdiveService {
     private readonly eventCountLines: EventCountLinesService,
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly characteristics: CharacteristicDisplayFormattingService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -239,7 +243,7 @@ export class PlayerDeepdiveService {
 
     const header = [
       `Team: ${player.teamName}`,
-      `Era: ${player.eraName}`,
+      `Era: ${player.eraName} (${this.dateRangeFormatter.format(player.eraStartDate, player.eraEndDate)})`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),

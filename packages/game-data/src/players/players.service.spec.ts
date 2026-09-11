@@ -350,6 +350,8 @@ describe('PlayersService', () => {
         positionId: 3,
         eraName: 'Season 5',
         eraId: 7,
+        eraStartDate: '2020-01-01',
+        eraEndDate: null as string | null,
         sppTotal: 24,
         sppAdjustment: 2,
         move: 7,
@@ -380,6 +382,20 @@ describe('PlayersService', () => {
           'passing',
           'armour',
         ]),
+      );
+    });
+
+    it("selects the era's own date range alongside its name", async () => {
+      const { db } = await build([]);
+
+      await service.findById(1);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['eraName', 'eraStartDate', 'eraEndDate']),
       );
     });
 

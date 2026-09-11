@@ -4,6 +4,7 @@ import type {
   PlayerKillerInfo,
 } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import {
   mockDatabaseTimeout,
@@ -24,6 +25,7 @@ import {
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -264,22 +266,29 @@ describe('PlayerDeepdiveService', () => {
   });
 
   it('renders the honors section between the header and the category counts', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2023-12-31');
     const { service, trophyAwards } = await makeService({
       players: makePlayers({
         player: griff,
         counts: { simple: [{ label: 'Touchdowns scored', count: 3 }] },
       }),
       trophyAwards: makeTrophyAwards([mvp, mostViolent]),
+      dateRangeFormatter,
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     expect(trophyAwards.countByPlayer).toHaveBeenCalledWith(1);
     expect(trophyAwards.listByPlayer).toHaveBeenCalledWith(1, 30);
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith(
+      '2020-01-01',
+      '2023-12-31',
+    );
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (2020-01-01 – 2023-12-31)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -310,7 +319,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -489,7 +498,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         'Status: Killed by Varag Ghoul-Chewer (Blitzer, Gouged Eye, Orc, Grimly)',
@@ -647,7 +656,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -664,7 +673,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -686,7 +695,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -703,7 +712,7 @@ describe('PlayerDeepdiveService', () => {
     expect(description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -735,7 +744,7 @@ describe('PlayerDeepdiveService', () => {
     expect(result.embeds[0].description).toBe(
       [
         'Team: Reikland Reavers',
-        'Era: Season 5',
+        'Era: Season 5 (undefined)',
         'Race: Human',
         'Position: Blitzer',
         '',
@@ -1017,5 +1026,23 @@ describe('PlayerDeepdiveService', () => {
     await expect(service.resolve(1)).resolves.toBe(
       DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('marks an ongoing era as still running on the era header line', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – present');
+    const { service } = await makeService({
+      players: makePlayers({
+        player: { ...griff, eraStartDate: '2020-01-01', eraEndDate: null },
+      }),
+      dateRangeFormatter,
+    });
+
+    const result = await service.resolve(1);
+
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith('2020-01-01', null);
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('Era: Season 5 (2020-01-01 – present)');
   });
 });
