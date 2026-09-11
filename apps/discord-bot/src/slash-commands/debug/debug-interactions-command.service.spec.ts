@@ -2,7 +2,7 @@ import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage'
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction, User } from 'discord.js';
-import { MessageFlags } from 'discord.js';
+import { ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
@@ -15,6 +15,7 @@ import {
   DebugInteractionsCommandService,
   MAX_DEBUG_INTERACTIONS,
 } from './debug-interactions-command.service';
+import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
@@ -77,6 +78,7 @@ describe('DebugInteractionsCommandService', () => {
         // Real, per the pure dependency-free formatting service carve-out in
         // CLAUDE.md: mocking it would leave the rendered rows unasserted.
         DebugInteractionRowFormatterService,
+        DebugRetriggerButtonsService,
         { provide: InteractionEventsQueryService, useValue: events },
         { provide: SlashCommandRegistryService, useValue: registry },
         { provide: OptionValueResolverService, useValue: optionValues },
@@ -192,8 +194,50 @@ describe('DebugInteractionsCommandService', () => {
             '1. <t:1788955200:f> — coach42 in Test League #general — /insights — ✅\n2. <t:1788955200:f> — coach42 in Test League #general — button coach:42 — ❌ boom',
         },
       ],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Secondary,
+              label: '1',
+              custom_id: 'debug:retrigger:1',
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Secondary,
+              label: '2',
+              custom_id: 'debug:retrigger:1',
+            },
+          ],
+        },
+      ],
       flags: MessageFlags.Ephemeral,
     });
+  });
+
+  it('attaches one retrigger button per listed row', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({ id: 11 }),
+      eventRow({ id: 12 }),
+    ]);
+
+    const reply = await service.execute(interaction({}));
+
+    const components = (
+      reply as unknown as {
+        components: { components: { custom_id: string; label: string }[] }[];
+      }
+    ).components;
+    expect(components[0].components.map((button) => button.custom_id)).toEqual([
+      'debug:retrigger:11',
+      'debug:retrigger:12',
+    ]);
+    expect(components[0].components.map((button) => button.label)).toEqual([
+      '1',
+      '2',
+    ]);
   });
 
   it('replies with the no-results message and no embed when nothing matches', async () => {

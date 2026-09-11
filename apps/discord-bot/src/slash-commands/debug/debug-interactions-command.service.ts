@@ -13,6 +13,7 @@ import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
+import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
@@ -49,6 +50,7 @@ export class DebugInteractionsCommandService implements OnModuleInit {
     private readonly formatter: DebugInteractionRowFormatterService,
     private readonly registry: SlashCommandRegistryService,
     private readonly optionValues: OptionValueResolverService,
+    private readonly retriggerButtons: DebugRetriggerButtonsService,
   ) {}
 
   onModuleInit(): void {
@@ -103,6 +105,7 @@ export class DebugInteractionsCommandService implements OnModuleInit {
           ),
         },
       ],
+      components: this.retriggerButtons.build(rows.map((row) => row.id)),
       flags: MessageFlags.Ephemeral,
     };
   }
