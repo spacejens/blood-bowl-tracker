@@ -42,7 +42,7 @@
   "devDependencies": {
     "@nestjs/testing": "^12.0.0",
     "@testcontainers/postgresql": "^12.1.0",
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.13.4",
     "@vitest/coverage-v8": "^5.0.0",
     "drizzle-kit": "rc",
     "testcontainers": "^12.1.0",
