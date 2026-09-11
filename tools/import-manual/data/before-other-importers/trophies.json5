@@ -100,8 +100,10 @@
 // deliberately curate no included match-event types at all: every
 // SPP-bearing event counts toward the sum, including ones outside the
 // standardised award table that TP separately reports figures for.
-// Bierhallenführer's own "the Ogre who..." position restriction is
-// deliberately not modelled in the rule -- only its MVP exclusion is.
+// Bierhallenführer's "the Ogre who..." restriction is modelled as
+// `awardRuleEligiblePositions`, alongside its MVP exclusion: without it the
+// rule would hand an Ogre-only trophy to whichever non-Ogre happened to top
+// the competition's SPP table.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
@@ -611,6 +613,16 @@
       awardRuleRole: 'acting',
       awardRuleTieCutoff: 4,
       awardRuleExcludedMatchEventTypes: [{ actionType: 'mvp_award' }],
+      // "The Ogre who..." -- the Ogre roster's two Ogre positions, and not
+      // its third position, the Gnoblar Lineman. Each is the position's
+      // "Name"-system external id, which is stable from the moment the
+      // position is first created; `positions.name` is not, because BBL
+      // calls the position "Ogre Blockers" and TP "Ogre Blocker", so the
+      // stored name depends on which importer wrote last.
+      awardRuleEligiblePositions: [
+        'Ogre: Ogre Blocker',
+        'Ogre: Ogre Runt Punter',
+      ],
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Bierhallenführer' }],
     },
     {

@@ -30,6 +30,18 @@ export interface TrophyRuleEventTypes {
 }
 
 /**
+ * The `positions` rows a trophy rule accepts a candidate from, already
+ * resolved from the curated `Name`-system external ids in
+ * `trophy_award_rule_eligible_positions`.
+ *
+ * `undefined` means the trophy curates no restriction and every position is
+ * eligible. An empty array is NOT the same thing: it means the trophy does
+ * restrict, but none of its curated positions exist, so nothing is eligible.
+ * See `TrophyRulePositionFilterService.build`.
+ */
+export type TrophyRuleEligiblePositions = readonly number[] | undefined;
+
+/**
  * One player a rule selected, with the team era their `trophy_awards` row must
  * name. The team era is the player's own (`players.team_era_id`), not the
  * match's: a player never changes teams, which is exactly why `trophy_awards`

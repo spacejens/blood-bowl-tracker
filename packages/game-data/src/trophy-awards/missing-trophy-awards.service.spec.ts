@@ -22,7 +22,9 @@ interface Mocks {
  * Per-test factory: each test seeds different rows into the mocked database,
  * and those rows must exist before the service is built. Seed order matches
  * the service's fixed query order (competition scope, applicable trophies,
- * already-awarded trophy ids, included types, excluded types).
+ * already-awarded trophy ids, included types, excluded types, curated
+ * eligible positions, and — only when that last one returned rows — the
+ * position external ids they resolve to).
  */
 async function makeService(rowsPerQuery: unknown[][]): Promise<{
   service: MissingTrophyAwardsService;
@@ -89,6 +91,7 @@ describe('MissingTrophyAwardsService', () => {
       competitionId: 3,
       role: 'acting',
       types: { actionTypes: ['touchdown'], consequenceTypes: [] },
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
     expect(mocks.trophyAwards.upsert).toHaveBeenCalledWith({
@@ -120,6 +123,7 @@ describe('MissingTrophyAwardsService', () => {
       role: 'acting',
       types: { actionTypes: [], consequenceTypes: [] },
       excludedTypes: { actionTypes: ['mvp_award'], consequenceTypes: [] },
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
   });
@@ -152,6 +156,7 @@ describe('MissingTrophyAwardsService', () => {
       leagueId: 1,
       role: 'consequence',
       types: { actionTypes: [], consequenceTypes: ['casualty'] },
+      eligiblePositionIds: undefined,
       threshold: 3,
       measure: 'event_count',
     });
@@ -238,6 +243,50 @@ describe('MissingTrophyAwardsService', () => {
     const result = await service.computeMissingAwards(3);
 
     expect(result.createdAwardCount).toBe(1);
+  });
+
+  it('resolves a rule\u2019s curated eligible positions to position ids', async () => {
+    const { service, mocks } = await makeService([
+      COMPETITION_SCOPE,
+      [trophyRow({ id: 11, awardRuleKind: 'max_spp_sum' })],
+      [],
+      [],
+      [],
+      [
+        { trophyId: 11, positionNameExternalId: 'Ogre: Ogre Blocker' },
+        { trophyId: 11, positionNameExternalId: 'Ogre: Ogre Runt Punter' },
+      ],
+      [
+        { positionId: 21, externalId: 'Ogre: Ogre Blocker' },
+        { positionId: 22, externalId: 'Ogre: Ogre Runt Punter' },
+      ],
+    ]);
+
+    await service.computeMissingAwards(3);
+
+    expect(mocks.maxSppSum.compute).toHaveBeenCalledWith(
+      expect.objectContaining({ eligiblePositionIds: [21, 22] }),
+    );
+  });
+
+  it('restricts a rule to nothing when no curated position resolves', async () => {
+    const { service, mocks } = await makeService([
+      COMPETITION_SCOPE,
+      [trophyRow({ id: 11, awardRuleKind: 'max_spp_sum' })],
+      [],
+      [],
+      [],
+      [{ trophyId: 11, positionNameExternalId: 'Ogre: Typo' }],
+      [],
+    ]);
+
+    await service.computeMissingAwards(3);
+
+    // Deliberately NOT `undefined`: a restriction whose positions are all
+    // unknown must award nobody rather than fall back to every player.
+    expect(mocks.maxSppSum.compute).toHaveBeenCalledWith(
+      expect.objectContaining({ eligiblePositionIds: [] }),
+    );
   });
 
   it('does nothing for a competition that does not exist', async () => {

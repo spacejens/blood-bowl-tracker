@@ -20,8 +20,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { selectTiedWinners } from './max-count-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 import type {
   TrophyAwardRuleRole,
+  TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
@@ -37,6 +39,12 @@ export interface MaxSppSumRuleOptions {
   role: TrophyAwardRuleRole;
   types: TrophyRuleEventTypes;
   excludedTypes: TrophyRuleEventTypes;
+  /**
+   * Which positions may win at all — Bierhallenführer is "the Ogre who...",
+   * so a Gnoblar Lineman's higher sum must not take it. `undefined` for the
+   * rules that restrict nothing, which is all but that one.
+   */
+  eligiblePositionIds: TrophyRuleEligiblePositions;
   tieCutoff: number;
 }
 
@@ -45,6 +53,7 @@ export class MaxSppSumTrophyRuleService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly eventTypeFilter: TrophyRuleEventTypeFilterService,
+    private readonly positionFilter: TrophyRulePositionFilterService,
     private readonly matchScopeFilter: MatchScopeFilterService,
   ) {}
 
@@ -61,7 +70,14 @@ export class MaxSppSumTrophyRuleService {
    * from the sum.
    */
   async compute(options: MaxSppSumRuleOptions): Promise<TrophyRuleWinner[]> {
-    const { competitionId, role, types, excludedTypes, tieCutoff } = options;
+    const {
+      competitionId,
+      role,
+      types,
+      excludedTypes,
+      eligiblePositionIds,
+      tieCutoff,
+    } = options;
     const playerColumn =
       role === 'acting'
         ? matchEvents.actingPlayerId
@@ -95,6 +111,7 @@ export class MaxSppSumTrophyRuleService {
             ? undefined
             : not(sql`coalesce(${excluded}, false)`),
           eq(positions.isStarPlayer, false),
+          this.positionFilter.build(eligiblePositionIds),
           this.matchScopeFilter.build({ competitionId }),
         ),
       )

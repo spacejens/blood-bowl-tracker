@@ -5,13 +5,17 @@ import {
   competitions,
   DB,
   eq,
+  externalSystems,
   inArray,
   or,
+  positionExternalIds,
   trophies,
+  trophyAwardRuleEligiblePositions,
   trophyAwardRuleExcludedMatchEventTypes,
   trophyAwardRuleMatchEventTypes,
   trophyAwards,
 } from '@blood-bowl-tracker/db';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { ActionType, ConsequenceType } from '../shared/match-event-types';
@@ -23,6 +27,7 @@ import type {
   TrophyAwardRuleKind,
   TrophyAwardRuleMeasure,
   TrophyAwardRuleRole,
+  TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
@@ -195,6 +200,12 @@ export class MissingTrophyAwardsService {
     const includedByTrophy = groupEventTypes(included);
     const excludedByTrophy = groupEventTypes(excluded);
 
+    // 6. Curated position restrictions, resolved from the `Name`-system
+    //    external ids the rows store to the `positions` rows they name. See
+    //    the `trophy_award_rule_eligible_positions` table comment for why the
+    //    restriction is curated as that id rather than as a foreign key.
+    const eligibleByTrophy = await this.resolveEligiblePositions(pendingIds);
+
     let createdAwardCount = 0;
     const awardedTrophies: number[] = [];
     for (const rule of pending) {
@@ -204,6 +215,9 @@ export class MissingTrophyAwardsService {
         leagueId: scope.leagueId,
         types: includedByTrophy.get(rule.id) ?? EMPTY_TYPES,
         excludedTypes: excludedByTrophy.get(rule.id) ?? EMPTY_TYPES,
+        // `undefined`, not `[]`, for a trophy with no curated restriction:
+        // the two mean opposite things to the rule services.
+        eligiblePositionIds: eligibleByTrophy.get(rule.id),
       });
       let createdForTrophy = 0;
       for (const winner of winners) {
@@ -231,6 +245,71 @@ export class MissingTrophyAwardsService {
   }
 
   /**
+   * Which `positions` rows each pending trophy restricts its candidates to,
+   * keyed by trophy id. A trophy absent from the map curates no restriction
+   * at all and is therefore unrestricted; a trophy present with an EMPTY list
+   * curates one whose ids match no position, which awards nothing rather than
+   * silently widening back to every player (see
+   * `TrophyRulePositionFilterService.build`).
+   *
+   * Two queries, not two per trophy: the curated rows first, then one lookup
+   * translating every distinct `Name`-system external id they mention into
+   * position ids. Restricting to the `Name` system matters — the same string
+   * could exist as some source system's own id for an unrelated position.
+   */
+  private async resolveEligiblePositions(
+    pendingIds: readonly number[],
+  ): Promise<Map<number, number[]>> {
+    const curated = await this.db
+      .select({
+        trophyId: trophyAwardRuleEligiblePositions.trophyId,
+        positionNameExternalId:
+          trophyAwardRuleEligiblePositions.positionNameExternalId,
+      })
+      .from(trophyAwardRuleEligiblePositions)
+      .where(inArray(trophyAwardRuleEligiblePositions.trophyId, pendingIds));
+    if (curated.length === 0) {
+      return new Map();
+    }
+
+    const nameIds = [
+      ...new Set(curated.map((row) => row.positionNameExternalId)),
+    ];
+    const resolved = await this.db
+      .select({
+        positionId: positionExternalIds.positionId,
+        externalId: positionExternalIds.externalId,
+      })
+      .from(positionExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, positionExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(externalSystems.name, NAME_EXTERNAL_SYSTEM_NAME),
+          inArray(positionExternalIds.externalId, nameIds),
+        ),
+      );
+    const positionIdsByNameId = new Map<string, number[]>();
+    for (const row of resolved) {
+      const ids = positionIdsByNameId.get(row.externalId) ?? [];
+      ids.push(row.positionId);
+      positionIdsByNameId.set(row.externalId, ids);
+    }
+
+    const byTrophy = new Map<number, number[]>();
+    for (const row of curated) {
+      const ids = byTrophy.get(row.trophyId) ?? [];
+      // A curated id matching no position contributes nothing, leaving the
+      // trophy's list shorter — possibly empty, which is the safe direction.
+      ids.push(...(positionIdsByNameId.get(row.positionNameExternalId) ?? []));
+      byTrophy.set(row.trophyId, ids);
+    }
+    return byTrophy;
+  }
+
+  /**
    * Dispatch by rule kind. The `never` fallthrough is what makes adding a
    * fourth computed kind a compile error here rather than a silent no-op.
    * A computed trophy with a null role, cutoff, measure or threshold cannot
@@ -243,8 +322,16 @@ export class MissingTrophyAwardsService {
     leagueId: number;
     types: TrophyRuleEventTypes;
     excludedTypes: TrophyRuleEventTypes;
+    eligiblePositionIds: TrophyRuleEligiblePositions;
   }): Promise<TrophyRuleWinner[]> {
-    const { rule, competitionId, leagueId, types, excludedTypes } = options;
+    const {
+      rule,
+      competitionId,
+      leagueId,
+      types,
+      excludedTypes,
+      eligiblePositionIds,
+    } = options;
     const role = rule.awardRuleRole ?? 'acting';
     switch (rule.awardRuleKind) {
       case 'max_count':
@@ -252,6 +339,7 @@ export class MissingTrophyAwardsService {
           competitionId,
           role,
           types,
+          eligiblePositionIds,
           tieCutoff: rule.awardRuleTieCutoff ?? 1,
         });
       case 'max_spp_sum':
@@ -260,6 +348,7 @@ export class MissingTrophyAwardsService {
           role,
           types,
           excludedTypes,
+          eligiblePositionIds,
           tieCutoff: rule.awardRuleTieCutoff ?? 1,
         });
       case 'career_threshold':
@@ -272,6 +361,7 @@ export class MissingTrophyAwardsService {
           leagueId,
           role,
           types,
+          eligiblePositionIds,
           threshold: rule.awardRuleThreshold ?? 0,
           measure: rule.awardRuleMeasure ?? 'event_count',
         });

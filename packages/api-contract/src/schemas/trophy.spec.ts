@@ -176,6 +176,35 @@ describe('trophy schemas', () => {
     ]);
   });
 
+  it('accepts a rule restricted to specific positions by Name external id', () => {
+    const parsed = UpsertTrophySchema.parse({
+      name: 'Bierhallenführer',
+      recipientKind: 'player',
+      awardRuleKind: 'max_spp_sum',
+      awardRuleEligiblePositions: [
+        'Ogre: Ogre Blocker',
+        'Ogre: Ogre Runt Punter',
+      ],
+      externalIds: [{ externalSystemId: 1, externalId: 'Bierhallenführer' }],
+    });
+    expect(parsed.awardRuleEligiblePositions).toEqual([
+      'Ogre: Ogre Blocker',
+      'Ogre: Ogre Runt Punter',
+    ]);
+  });
+
+  it('rejects an empty eligible-position external id', () => {
+    expect(() =>
+      UpsertTrophySchema.parse({
+        name: 'Bierhallenführer',
+        recipientKind: 'player',
+        awardRuleKind: 'max_spp_sum',
+        awardRuleEligiblePositions: [''],
+        externalIds: [{ externalSystemId: 1, externalId: 'Bierhallenführer' }],
+      }),
+    ).toThrow();
+  });
+
   it('accepts a source-recorded rule with a procedure and no rule columns', () => {
     const parsed = UpsertTrophySchema.parse({
       name: 'Major Gold',

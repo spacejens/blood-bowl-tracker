@@ -193,6 +193,17 @@ const TrophyEntrySchema = z.object({
   awardRuleExcludedMatchEventTypes: z
     .array(TrophyAwardRuleEventTypeSchema)
     .default([]),
+  // Which positions may win a computed trophy at all -- Bierhallenführer is
+  // "the Ogre who...", so only the Ogre positions are eligible. Each entry is
+  // a position's "Name"-system external id ("<raceName>: <positionName>", what
+  // NameExternalIdService.forPosition builds), NOT an external-id
+  // cross-reference: this file is read in the before-other-importers phase,
+  // where no `positions` row exists yet for a reference to resolve against.
+  // The ids are matched at award-computation time instead, when the positions
+  // do exist. Default `[]` for the same reason the two arrays above have one:
+  // an entry that says nothing restricts nothing, and sending `[]` clears any
+  // stale rows from a previous classification.
+  awardRuleEligiblePositions: z.array(z.string().min(1)).default([]),
 });
 
 /**

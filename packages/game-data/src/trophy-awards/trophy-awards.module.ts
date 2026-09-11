@@ -7,12 +7,14 @@ import { MissingTrophyAwardsService } from './missing-trophy-awards.service';
 import { CareerThresholdTrophyRuleService } from './threshold-trophy-rule.service';
 import { TrophyAwardsService } from './trophy-awards.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 
 @Module({
   imports: [MatchScopeFilterModule],
   providers: [
     TrophyAwardsService,
     TrophyRuleEventTypeFilterService,
+    TrophyRulePositionFilterService,
     MaxCountTrophyRuleService,
     MaxSppSumTrophyRuleService,
     CareerThresholdTrophyRuleService,

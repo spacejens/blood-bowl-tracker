@@ -92,6 +92,7 @@ describe('TrophiesProcessor', () => {
         awardProcedure: 'Taken from the season standings.',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
         externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
       },
     ];
@@ -115,6 +116,7 @@ describe('TrophiesProcessor', () => {
         awardRuleMeasure: null,
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
         externalIds: cannedExternalIds,
       },
       ctx.errors,
@@ -152,6 +154,7 @@ describe('TrophiesProcessor', () => {
           { consequenceType: 'casualty' },
         ],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
         externalIds: [],
       },
     ];
@@ -171,9 +174,63 @@ describe('TrophiesProcessor', () => {
           { consequenceType: 'casualty' },
         ],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
       }),
       expect.anything(),
     );
+  });
+
+  it('forwards a rule\u2019s eligible positions to the trophy upsert', async () => {
+    trophies.upsert.mockResolvedValue({
+      id: 2,
+      name: 'Bierhallenführer',
+      recipientKind: 'player',
+      description: null,
+      competitionGroupId: 1,
+      leagueId: null,
+      awardRuleKind: 'max_spp_sum',
+      awardProcedure: null,
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleThreshold: null,
+      awardRuleMeasure: null,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.trophies = [
+      {
+        name: 'Bierhallenführer',
+        recipientKind: 'player',
+        awardRuleKind: 'max_spp_sum',
+        awardRuleRole: 'acting',
+        awardRuleTieCutoff: 4,
+        awardRuleMatchEventTypes: [],
+        awardRuleExcludedMatchEventTypes: [{ actionType: 'mvp_award' }],
+        awardRuleEligiblePositions: [
+          'Ogre: Ogre Blocker',
+          'Ogre: Ogre Runt Punter',
+        ],
+        externalIds: [],
+      },
+    ];
+
+    await processor.process(makeContext(data));
+
+    // Passed straight through as curated strings: these are "Name"-system
+    // external ids the award computation matches later, not cross-references
+    // this processor resolves (no `positions` row exists in this phase).
+    expect(trophies.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        awardRuleEligiblePositions: [
+          'Ogre: Ogre Blocker',
+          'Ogre: Ogre Runt Punter',
+        ],
+      }),
+      expect.anything(),
+    );
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
   });
 
   it('does not count when the upsert fails', async () => {
@@ -189,6 +246,7 @@ describe('TrophiesProcessor', () => {
         awardRuleKind: 'manual',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
         externalIds: [{ system: 'Name', id: 'name:broken' }],
       },
     ];
@@ -226,6 +284,7 @@ describe('TrophiesProcessor', () => {
         awardRuleKind: 'direct_source',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
         externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 1st' }],
       },
       {
@@ -234,6 +293,7 @@ describe('TrophiesProcessor', () => {
         awardRuleKind: 'manual',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
         externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
       },
     ];
@@ -291,6 +351,7 @@ describe('TrophiesProcessor', () => {
         awardRuleKind: 'direct_source',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
       },
     ];
     const ctx = makeContext(data);
@@ -338,6 +399,7 @@ describe('TrophiesProcessor', () => {
         awardRuleKind: 'direct_source',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
       },
     ];
 
@@ -363,6 +425,7 @@ describe('TrophiesProcessor', () => {
         awardRuleKind: 'direct_source',
         awardRuleMatchEventTypes: [],
         awardRuleExcludedMatchEventTypes: [],
+        awardRuleEligiblePositions: [],
       },
     ];
 
@@ -409,6 +472,7 @@ describe('TrophiesProcessor', () => {
             awardRuleMeasure: 'spp_sum',
             awardRuleMatchEventTypes: [],
             awardRuleExcludedMatchEventTypes: [],
+            awardRuleEligiblePositions: [],
             externalIds: [
               { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
             ],
@@ -445,6 +509,7 @@ describe('TrophiesProcessor', () => {
             awardRuleMeasure: 'spp_sum',
             awardRuleMatchEventTypes: [],
             awardRuleExcludedMatchEventTypes: [],
+            awardRuleEligiblePositions: [],
             externalIds: [
               { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
             ],
@@ -492,6 +557,7 @@ describe('TrophiesProcessor', () => {
             awardRuleKind: 'direct_source',
             awardRuleMatchEventTypes: [],
             awardRuleExcludedMatchEventTypes: [],
+            awardRuleEligiblePositions: [],
             externalIds: [{ system: 'tloeg.bbleague.se', id: 'Orphan' }],
           },
         ],

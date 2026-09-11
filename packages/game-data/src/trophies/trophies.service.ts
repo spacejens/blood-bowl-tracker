@@ -11,6 +11,7 @@ import {
   leagues,
   or,
   trophies,
+  trophyAwardRuleEligiblePositions,
   trophyAwardRuleExcludedMatchEventTypes,
   trophyAwardRuleMatchEventTypes,
   trophyExternalIds,
@@ -338,7 +339,7 @@ export class TrophiesService {
       ConflictErrorClass: TrophyUpsertConflictError,
       entityLabelPlural: 'trophies',
       buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
-      afterUpsert: (tx, row) => this.syncRuleEventTypes(tx, row.id, data),
+      afterUpsert: (tx, row) => this.syncRuleCuration(tx, row.id, data),
     });
 
     return { trophy, created };
@@ -357,6 +358,45 @@ export class TrophiesService {
    * which is how a trophy reclassified away from a computed kind drops its
    * stale rule.
    */
+  private async syncRuleCuration(
+    tx: DbOrTx,
+    trophyId: number,
+    data: UpsertTrophy,
+  ): Promise<void> {
+    await this.syncRuleEventTypes(tx, trophyId, data);
+    await this.syncRuleEligiblePositions(tx, trophyId, data);
+  }
+
+  /**
+   * Replace the trophy's curated eligible positions, on the same transaction
+   * handle and with the same omitted-leaves-alone / empty-clears semantics as
+   * the event-type sync above. The rows store the position's `Name`-system
+   * external id rather than a position id, because this is curated in
+   * tools/import-manual's `before-other-importers` phase, where no `positions`
+   * row exists yet — see the table's own comment.
+   */
+  private async syncRuleEligiblePositions(
+    tx: DbOrTx,
+    trophyId: number,
+    data: UpsertTrophy,
+  ): Promise<void> {
+    const eligible = data.awardRuleEligiblePositions;
+    if (eligible === undefined) {
+      return;
+    }
+    await tx
+      .delete(trophyAwardRuleEligiblePositions)
+      .where(eq(trophyAwardRuleEligiblePositions.trophyId, trophyId));
+    if (eligible.length > 0) {
+      await tx.insert(trophyAwardRuleEligiblePositions).values(
+        eligible.map((positionNameExternalId) => ({
+          trophyId,
+          positionNameExternalId,
+        })),
+      );
+    }
+  }
+
   private async syncRuleEventTypes(
     tx: DbOrTx,
     trophyId: number,

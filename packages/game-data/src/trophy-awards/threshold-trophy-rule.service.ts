@@ -21,9 +21,11 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 import type {
   TrophyAwardRuleMeasure,
   TrophyAwardRuleRole,
+  TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
@@ -46,6 +48,13 @@ export interface CareerThresholdRuleOptions {
   leagueId: number;
   role: TrophyAwardRuleRole;
   types: TrophyRuleEventTypes;
+  /**
+   * Which positions may win at all. `undefined` for every `career_threshold`
+   * trophy curated today; carried here for the same reason `max_count` does,
+   * so the restriction is one rule dimension rather than one rule kind's
+   * special case.
+   */
+  eligiblePositionIds: TrophyRuleEligiblePositions;
   threshold: number;
   measure: TrophyAwardRuleMeasure;
 }
@@ -55,6 +64,7 @@ export class CareerThresholdTrophyRuleService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly eventTypeFilter: TrophyRuleEventTypeFilterService,
+    private readonly positionFilter: TrophyRulePositionFilterService,
     private readonly matchScopeFilter: MatchScopeFilterService,
   ) {}
 
@@ -99,6 +109,7 @@ export class CareerThresholdTrophyRuleService {
       leagueId,
       role,
       types,
+      eligiblePositionIds,
       threshold,
       measure,
     } = options;
@@ -153,6 +164,7 @@ export class CareerThresholdTrophyRuleService {
           this.eventTypeFilter.buildAll(types),
           measure === 'spp_sum' ? isNotNull(matchEvents.sppValue) : undefined,
           eq(positions.isStarPlayer, false),
+          this.positionFilter.build(eligiblePositionIds),
           this.matchScopeFilter.build({ leagueId }),
           // One award per player per trophy, forever. Expressed as a
           // correlated NOT EXISTS rather than a second query and a JS filter

@@ -11,6 +11,7 @@ import {
 } from '../shared/query-assertions.test-helpers';
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 
 /**
  * Per-test factory rather than a `beforeEach` subject: every test seeds the
@@ -30,6 +31,7 @@ async function makeService(rows: unknown[]): Promise<{
       // CLAUDE.md's carve-out. Mocking them would leave the captured
       // conditions unasserted, which is the point of these tests.
       TrophyRuleEventTypeFilterService,
+      TrophyRulePositionFilterService,
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
@@ -53,6 +55,7 @@ describe('MaxCountTrophyRuleService', () => {
       competitionId: 3,
       role: 'acting',
       types: TOUCHDOWNS,
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
@@ -70,6 +73,7 @@ describe('MaxCountTrophyRuleService', () => {
       competitionId: 3,
       role: 'acting',
       types: TOUCHDOWNS,
+      eligiblePositionIds: undefined,
       tieCutoff: 2,
     });
 
@@ -90,6 +94,7 @@ describe('MaxCountTrophyRuleService', () => {
       competitionId: 3,
       role: 'acting',
       types: TOUCHDOWNS,
+      eligiblePositionIds: undefined,
       tieCutoff: 2,
     });
 
@@ -103,6 +108,7 @@ describe('MaxCountTrophyRuleService', () => {
       competitionId: 3,
       role: 'acting',
       types: TOUCHDOWNS,
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
@@ -118,6 +124,7 @@ describe('MaxCountTrophyRuleService', () => {
       competitionId: 3,
       role: 'acting',
       types: TOUCHDOWNS,
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
@@ -134,6 +141,7 @@ describe('MaxCountTrophyRuleService', () => {
         actionTypes: ['foul'],
         consequenceTypes: ['casualty', 'death'],
       },
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
@@ -153,6 +161,7 @@ describe('MaxCountTrophyRuleService', () => {
       competitionId: 3,
       role: 'acting',
       types: TOUCHDOWNS,
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 

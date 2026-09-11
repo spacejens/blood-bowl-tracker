@@ -7,10 +7,13 @@ import { describe, expect, it } from 'vitest';
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
   extractAllFilterValues,
+  extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { MaxSppSumTrophyRuleService } from './max-spp-sum-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 
 async function makeService(rows: unknown[]): Promise<{
   service: MaxSppSumTrophyRuleService;
@@ -21,6 +24,7 @@ async function makeService(rows: unknown[]): Promise<{
     providers: [
       MaxSppSumTrophyRuleService,
       TrophyRuleEventTypeFilterService,
+      TrophyRulePositionFilterService,
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
@@ -42,6 +46,7 @@ describe('MaxSppSumTrophyRuleService', () => {
       role: 'acting',
       types: NO_TYPES,
       excludedTypes: NO_TYPES,
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
@@ -60,6 +65,7 @@ describe('MaxSppSumTrophyRuleService', () => {
       role: 'acting',
       types: NO_TYPES,
       excludedTypes: NO_TYPES,
+      eligiblePositionIds: undefined,
       tieCutoff: 2,
     });
 
@@ -81,6 +87,7 @@ describe('MaxSppSumTrophyRuleService', () => {
       role: 'acting',
       types: NO_TYPES,
       excludedTypes: NO_TYPES,
+      eligiblePositionIds: undefined,
       tieCutoff: 2,
     });
 
@@ -95,6 +102,7 @@ describe('MaxSppSumTrophyRuleService', () => {
       role: 'acting',
       types: NO_TYPES,
       excludedTypes: NO_TYPES,
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
@@ -109,11 +117,65 @@ describe('MaxSppSumTrophyRuleService', () => {
       role: 'acting',
       types: NO_TYPES,
       excludedTypes: { actionTypes: ['mvp_award'], consequenceTypes: [] },
+      eligiblePositionIds: undefined,
       tieCutoff: 4,
     });
 
     const values = extractAllFilterValues(firstCallArg(db.chains[0].where));
     expect(values).toContain('mvp_award');
     expect(values).toContain(9);
+  });
+
+  it('narrows the candidate pool to a rule’s eligible positions', async () => {
+    const { service, db } = await makeService([]);
+
+    await service.compute({
+      competitionId: 9,
+      role: 'acting',
+      types: NO_TYPES,
+      excludedTypes: NO_TYPES,
+      // Bierhallenführer's two Ogre positions. A Gnoblar Lineman with a
+      // higher sum is not a candidate at all, which is the whole point.
+      eligiblePositionIds: [21, 22],
+      tieCutoff: 4,
+    });
+
+    const where = firstCallArg(db.chains[0].where);
+    expect(extractAllFilterValues(where)).toEqual(
+      expect.arrayContaining([21, 22]),
+    );
+    expect(extractJoinColumns(where)).toContain('positions.id');
+  });
+
+  it('lets an unrestricted rule filter on no position at all', async () => {
+    const { service, db } = await makeService([]);
+
+    await service.compute({
+      competitionId: 9,
+      role: 'acting',
+      types: NO_TYPES,
+      excludedTypes: NO_TYPES,
+      eligiblePositionIds: undefined,
+      tieCutoff: 4,
+    });
+
+    expect(extractJoinColumns(firstCallArg(db.chains[0].where))).not.toContain(
+      'positions.id',
+    );
+  });
+
+  it('awards nobody when a restriction resolved to no position at all', async () => {
+    const { service, db } = await makeService([]);
+
+    await service.compute({
+      competitionId: 9,
+      role: 'acting',
+      types: NO_TYPES,
+      excludedTypes: NO_TYPES,
+      eligiblePositionIds: [],
+      tieCutoff: 4,
+    });
+
+    expect(sqlText(firstCallArg(db.chains[0].where))).toContain('false');
   });
 });

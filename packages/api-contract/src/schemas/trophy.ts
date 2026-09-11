@@ -80,6 +80,14 @@ export const UpsertTrophySchema = z.object({
   awardRuleExcludedMatchEventTypes: z
     .array(TrophyAwardRuleEventTypeSchema)
     .optional(),
+  // The positions a computed rule will accept a winner from, each named by
+  // its `Name`-system external id (`"<raceName>: <positionName>"`). Same
+  // replace-wholesale semantics as the two arrays above; omitting it leaves
+  // the trophy's rows alone and an empty array clears them, which is how a
+  // rule drops a restriction it no longer wants. A stored empty set means
+  // "unrestricted" — see the `trophy_award_rule_eligible_positions` table,
+  // which also explains why these are external ids rather than position ids.
+  awardRuleEligiblePositions: z.array(z.string().min(1)).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

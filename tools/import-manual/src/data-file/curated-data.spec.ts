@@ -853,6 +853,50 @@ describe('curated data files', () => {
     expect(trogenTjanst?.awardRuleMeasure).toBe('event_count');
   });
 
+  it('restricts exactly one trophy to specific positions, the Ogre ones', () => {
+    const trophies = readPhase('before-other-importers').trophies;
+    const restricted = trophies.filter(
+      (trophy) => trophy.awardRuleEligiblePositions.length > 0,
+    );
+
+    // Pinned exactly. Bierhallenführer is "the Ogre who gets the most Star
+    // Player Points", so without this restriction the rule would hand it to
+    // whichever non-Ogre topped the competition's SPP table -- and a
+    // regression that dropped the Runt Punter (the Ogre roster has more than
+    // one Ogre position) would still leave a plausible-looking one-entry
+    // list behind.
+    expect(restricted.map((trophy) => trophy.name)).toEqual([
+      'Bierhallenführer',
+    ]);
+    expect(restricted[0].awardRuleEligiblePositions).toEqual([
+      'Ogre: Ogre Blocker',
+      'Ogre: Ogre Runt Punter',
+    ]);
+    // The Ogre roster's third position. It is an eligible player of the Ogre
+    // team, but it is not an Ogre, so it must not be on the list.
+    expect(restricted[0].awardRuleEligiblePositions).not.toContain(
+      'Ogre: Gnoblar Lineman',
+    );
+  });
+
+  it('names every eligible position by a "<race>: <position>" Name id', () => {
+    const data = readPhase('before-other-importers');
+    const raceNames = new Set(data.races.map((race) => race.name));
+    const ids = data.trophies.flatMap(
+      (trophy) => trophy.awardRuleEligiblePositions,
+    );
+    expect(ids.length).toBeGreaterThan(0);
+
+    for (const id of ids) {
+      // Same id shape NameExternalIdService.forPosition builds, keyed by the
+      // canonical race name -- an id carrying BBL's "<Race> Team" spelling
+      // would match no position at all, silently awarding nobody.
+      expect(id, id).toMatch(/^[^:]+: .+$/);
+      expect(id).not.toContain(' Team: ');
+      expect(raceNames.has(id.split(': ')[0]), id).toBe(true);
+    }
+  });
+
   it('counts fouls only when they caused a casualty', () => {
     const trophies = readPhase('before-other-importers').trophies.filter(
       (trophy) => trophy.name.endsWith('Top Fouler'),

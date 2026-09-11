@@ -36,6 +36,43 @@ describe('ManualDataFileSchema', () => {
     expect(parsed.trophyAwards[0].trophy).toBe('Season MVP');
   });
 
+  it('defaults a trophy\u2019s eligible positions to an empty array', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Top Scorer',
+          recipientKind: 'player',
+          awardRuleKind: 'max_count',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Scorer' }],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].awardRuleEligiblePositions).toEqual([]);
+  });
+
+  it('accepts a trophy restricted to specific positions by Name id', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Bierhallenführer',
+          recipientKind: 'player',
+          awardRuleKind: 'max_spp_sum',
+          awardRuleEligiblePositions: [
+            'Ogre: Ogre Blocker',
+            'Ogre: Ogre Runt Punter',
+          ],
+          externalIds: [
+            { system: 'tloeg.bbleague.se', id: 'Bierhallenführer' },
+          ],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].awardRuleEligiblePositions).toEqual([
+      'Ogre: Ogre Blocker',
+      'Ogre: Ogre Runt Punter',
+    ]);
+  });
+
   it('rejects a trophy-award entry missing its player', () => {
     expect(() =>
       ManualDataFileSchema.parse({

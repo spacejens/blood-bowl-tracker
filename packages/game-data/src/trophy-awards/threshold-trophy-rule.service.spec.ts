@@ -12,6 +12,7 @@ import {
 } from '../shared/query-assertions.test-helpers';
 import { CareerThresholdTrophyRuleService } from './threshold-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 
 /**
  * Three builders are issued per call, in this order: the running-total
@@ -32,6 +33,7 @@ async function makeService(
     providers: [
       CareerThresholdTrophyRuleService,
       TrophyRuleEventTypeFilterService,
+      TrophyRulePositionFilterService,
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
@@ -45,6 +47,7 @@ const SPP_OPTIONS = {
   leagueId: 1,
   role: 'acting',
   types: { actionTypes: [], consequenceTypes: [] },
+  eligiblePositionIds: undefined,
   threshold: 176,
   measure: 'spp_sum',
 } as const;
@@ -55,6 +58,7 @@ const COUNT_OPTIONS = {
   leagueId: 1,
   role: 'consequence',
   types: { actionTypes: [], consequenceTypes: ['casualty', 'death'] },
+  eligiblePositionIds: undefined,
   threshold: 3,
   measure: 'event_count',
 } as const;

@@ -17,8 +17,10 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.service';
 import type {
   TrophyAwardRuleRole,
+  TrophyRuleEligiblePositions,
   TrophyRuleEventTypes,
   TrophyRuleWinner,
 } from './trophy-rule-types';
@@ -33,6 +35,12 @@ export interface MaxCountRuleOptions {
   competitionId: number;
   role: TrophyAwardRuleRole;
   types: TrophyRuleEventTypes;
+  /**
+   * Which positions may win at all. `undefined` for every `max_count` trophy
+   * curated today — none restricts — but the dimension is carried here too
+   * so a future position-restricted counting trophy needs no new mechanism.
+   */
+  eligiblePositionIds: TrophyRuleEligiblePositions;
   tieCutoff: number;
 }
 
@@ -41,6 +49,7 @@ export class MaxCountTrophyRuleService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly eventTypeFilter: TrophyRuleEventTypeFilterService,
+    private readonly positionFilter: TrophyRulePositionFilterService,
     private readonly matchScopeFilter: MatchScopeFilterService,
   ) {}
 
@@ -62,7 +71,8 @@ export class MaxCountTrophyRuleService {
    * players.
    */
   async compute(options: MaxCountRuleOptions): Promise<TrophyRuleWinner[]> {
-    const { competitionId, role, types, tieCutoff } = options;
+    const { competitionId, role, types, eligiblePositionIds, tieCutoff } =
+      options;
     const playerColumn =
       role === 'acting'
         ? matchEvents.actingPlayerId
@@ -89,6 +99,7 @@ export class MaxCountTrophyRuleService {
         and(
           this.eventTypeFilter.buildAll(types),
           eq(positions.isStarPlayer, false),
+          this.positionFilter.build(eligiblePositionIds),
           this.matchScopeFilter.build({ competitionId }),
         ),
       )

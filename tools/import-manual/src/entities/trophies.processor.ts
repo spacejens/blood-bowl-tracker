@@ -65,6 +65,7 @@ export class TrophiesProcessor {
           awardRuleMatchEventTypes: entry.awardRuleMatchEventTypes,
           awardRuleExcludedMatchEventTypes:
             entry.awardRuleExcludedMatchEventTypes,
+          awardRuleEligiblePositions: entry.awardRuleEligiblePositions,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

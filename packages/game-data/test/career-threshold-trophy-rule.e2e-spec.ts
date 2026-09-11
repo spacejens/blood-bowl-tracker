@@ -27,6 +27,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { MatchScopeFilterService } from '../src/shared/match-scope-filter.service';
 import { CareerThresholdTrophyRuleService } from '../src/trophy-awards/threshold-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from '../src/trophy-awards/trophy-rule-event-type-filter.service';
+import { TrophyRulePositionFilterService } from '../src/trophy-awards/trophy-rule-position-filter.service';
 import { connectTestDb } from './e2e-database';
 
 /**
@@ -238,6 +239,7 @@ describe('CareerThresholdTrophyRuleService (real Postgres)', () => {
       leagueId: fixtures.leagueId,
       role: 'acting',
       types: { actionTypes: [], consequenceTypes: [] },
+      eligiblePositionIds: undefined,
       threshold: SPP_THRESHOLD,
       measure: 'spp_sum',
     }) as const;
@@ -249,6 +251,7 @@ describe('CareerThresholdTrophyRuleService (real Postgres)', () => {
       leagueId: fixtures.leagueId,
       role: 'consequence',
       types: { actionTypes: [], consequenceTypes: ['casualty'] },
+      eligiblePositionIds: undefined,
       threshold: CASUALTY_THRESHOLD,
       measure: 'event_count',
     }) as const;
@@ -273,6 +276,7 @@ describe('CareerThresholdTrophyRuleService (real Postgres)', () => {
       providers: [
         CareerThresholdTrophyRuleService,
         TrophyRuleEventTypeFilterService,
+        TrophyRulePositionFilterService,
         MatchScopeFilterService,
         { provide: DB, useValue: db },
       ],

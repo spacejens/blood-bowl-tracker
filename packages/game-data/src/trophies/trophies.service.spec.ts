@@ -158,6 +158,55 @@ describe('TrophiesService', () => {
     expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 
+  it('replaces the curated eligible positions when they are supplied', async () => {
+    const { db, chains } = await build([], [fakeTrophy]);
+
+    await service.upsert({
+      name: 'Bierhallenführer',
+      recipientKind: 'player',
+      awardRuleKind: 'max_spp_sum',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleEligiblePositions: [
+        'Ogre: Ogre Blocker',
+        'Ogre: Ogre Runt Punter',
+      ],
+      externalIds: [{ externalSystemId: 1, externalId: 'Bierhallenführer' }],
+    });
+
+    // Query order: 0 external-id lookup, 1 entity insert, 2 new-external-id
+    // insert, then the eligible-position sync's own two — 3 the delete, 4 the
+    // insert. Both event-type arrays are omitted, so that sync issues nothing.
+    expect(chains).toHaveLength(5);
+    expect(extractFilterValues(firstCallArg(chains[3].where))).toBe(
+      fakeTrophy.id,
+    );
+    expect(firstCallArg(chains[4].values)).toEqual([
+      { trophyId: 1, positionNameExternalId: 'Ogre: Ogre Blocker' },
+      { trophyId: 1, positionNameExternalId: 'Ogre: Ogre Runt Punter' },
+    ]);
+    // Same one transaction as the trophy row: a restriction must never commit
+    // apart from the rule kind it restricts.
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the curated eligible positions when an empty array is supplied', async () => {
+    const { db, chains } = await build([], [fakeTrophy]);
+
+    await service.upsert({
+      name: 'Bierhallenführer',
+      recipientKind: 'player',
+      awardRuleKind: 'max_spp_sum',
+      awardRuleEligiblePositions: [],
+      externalIds: [{ externalSystemId: 1, externalId: 'Bierhallenführer' }],
+    });
+
+    // The delete runs, but no insert follows it — which is how a rule that
+    // stops restricting positions drops its stale rows.
+    expect(chains).toHaveLength(4);
+    expect(db.delete).toHaveBeenCalledTimes(1);
+  });
+
   it('leaves the curated rule event types alone when they are omitted, still inside the one transaction', async () => {
     const { db, chains } = await build([], [fakeTrophy]);
 
@@ -173,7 +222,8 @@ describe('TrophiesService', () => {
     // Only the three queries of the trophy-row upsert itself — external-id
     // lookup, entity insert, new-external-id insert. Omitting both rule arrays
     // means the junction sync issues no delete and no insert of its own, so
-    // the curated rows already in those tables are left untouched.
+    // the curated rows already in those tables are left untouched. The same
+    // goes for the omitted eligible-positions array.
     expect(chains).toHaveLength(3);
     expect(db.delete).not.toHaveBeenCalled();
     // Still exactly one transaction: the arrays being omitted changes what the
