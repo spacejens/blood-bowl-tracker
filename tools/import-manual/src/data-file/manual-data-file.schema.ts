@@ -3,6 +3,10 @@ import {
   COMPETITION_TYPES,
   ExternalSystemCategorySchema,
   SppEarningActionTypeSchema,
+  TrophyAwardRuleEventTypeSchema,
+  TrophyAwardRuleKindSchema,
+  TrophyAwardRuleMeasureSchema,
+  TrophyAwardRuleRoleSchema,
   TrophyRecipientKindSchema,
 } from '@blood-bowl-tracker/api-contract';
 import { z } from 'zod';
@@ -170,6 +174,25 @@ const TrophyEntrySchema = z.object({
   // database's own check constraint is what enforces that exactly one is set.
   league: ExternalRefSchema.optional(),
   externalIds,
+  // How this trophy's winner is determined. Required for every entry: a
+  // trophy with no stated rule is an authoring gap, and the database's own
+  // NOT NULL would reject it anyway.
+  awardRuleKind: TrophyAwardRuleKindSchema,
+  // Required for `direct_source`/`manual`, forbidden for the computed kinds.
+  // Which combination is legal is enforced by the database's
+  // `trophies_award_rule` check, not restated here.
+  awardProcedure: z.string().min(1).optional(),
+  awardRuleRole: TrophyAwardRuleRoleSchema.optional(),
+  awardRuleTieCutoff: z.number().int().positive().optional(),
+  awardRuleThreshold: z.number().int().positive().optional(),
+  awardRuleMeasure: TrophyAwardRuleMeasureSchema.optional(),
+  // Default `[]` rather than optional: an entry that says nothing about its
+  // rule types really does have none, and letting the processor send `[]`
+  // clears any stale rows from a previous classification.
+  awardRuleMatchEventTypes: z.array(TrophyAwardRuleEventTypeSchema).default([]),
+  awardRuleExcludedMatchEventTypes: z
+    .array(TrophyAwardRuleEventTypeSchema)
+    .default([]),
 });
 
 /**

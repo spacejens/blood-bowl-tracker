@@ -166,11 +166,13 @@ describe('ManualDataReader', () => {
     write(
       'a.json5',
       `{ trophies: [{ name: 'Chaos Cup', recipientKind: 'team',
+         awardRuleKind: 'direct_source',
          externalIds: [{ system: 'Name', id: 'name:chaos-cup' }] }] }`,
     );
     write(
       'b.json5',
       `{ trophies: [{ name: 'Season MVP', recipientKind: 'player',
+         awardRuleKind: 'manual',
          externalIds: [{ system: 'Name', id: 'name:season-mvp' }] }] }`,
     );
 

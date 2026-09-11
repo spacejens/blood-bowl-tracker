@@ -770,6 +770,80 @@ describe('curated data files', () => {
     expect(entry?.isStarPlayer).toBe(false);
   });
 
+  it('classifies every curated trophy with an award rule', () => {
+    const trophies = readPhase('before-other-importers').trophies;
+    for (const trophy of trophies) {
+      expect(trophy.awardRuleKind, trophy.name).toBeDefined();
+    }
+  });
+
+  it('gives every source-recorded and manual trophy a stated procedure', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) =>
+        trophy.awardRuleKind === 'direct_source' ||
+        trophy.awardRuleKind === 'manual',
+    );
+    expect(trophies).toHaveLength(21);
+    for (const trophy of trophies) {
+      expect(trophy.awardProcedure, trophy.name).toBeTruthy();
+      expect(trophy.awardRuleRole, trophy.name).toBeUndefined();
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([]);
+    }
+  });
+
+  it('gives every maximum-based trophy a role and the same tie cutoff', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) =>
+        trophy.awardRuleKind === 'max_count' ||
+        trophy.awardRuleKind === 'max_spp_sum',
+    );
+    expect(trophies).toHaveLength(15);
+    for (const trophy of trophies) {
+      expect(trophy.awardRuleRole, trophy.name).toBeDefined();
+      // Real BBL data has ties of up to four, so four is the cutoff everywhere.
+      expect(trophy.awardRuleTieCutoff, trophy.name).toBe(4);
+      expect(trophy.awardProcedure, trophy.name).toBeUndefined();
+    }
+  });
+
+  it('gives every career trophy a threshold and a measure', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) => trophy.awardRuleKind === 'career_threshold',
+    );
+    expect(trophies.map((trophy) => trophy.name)).toEqual([
+      'Legendary Player',
+      'Trogen Tjänst',
+    ]);
+    for (const trophy of trophies) {
+      expect(trophy.awardRuleThreshold, trophy.name).toBeGreaterThan(0);
+      expect(trophy.awardRuleMeasure, trophy.name).toBeDefined();
+      expect(trophy.awardRuleTieCutoff, trophy.name).toBeUndefined();
+    }
+  });
+
+  it('counts fouls only when they caused a casualty', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) => trophy.name.endsWith('Top Fouler'),
+    );
+    expect(trophies).toHaveLength(2);
+    for (const trophy of trophies) {
+      const types = trophy.awardRuleMatchEventTypes;
+      expect(types.some((type) => type.actionType === 'foul')).toBe(true);
+      expect(types.some((type) => type.consequenceType === 'casualty')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('excludes MVP awards from the Bierhallenführer SPP sum', () => {
+    const trophy = readPhase('before-other-importers').trophies.find(
+      (candidate) => candidate.name === 'Bierhallenführer',
+    );
+    expect(trophy?.awardRuleExcludedMatchEventTypes).toEqual([
+      { actionType: 'mvp_award' },
+    ]);
+  });
+
   it('curates the Halfling roster lineman under its post-rename name', () => {
     const positions = readFile(
       'after-other-importers',
