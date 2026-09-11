@@ -66,30 +66,19 @@ real-world entity differently:
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
 
-  Every entry also carries an `awardRuleKind`, which says where the trophy's
-  winner comes from. The five kinds are:
+  Every entry also carries an `awardRuleKind`, saying where the trophy's
+  winner comes from. Pick `direct_source` when the source data already records
+  the winner and the BBL/TP importers create the award; `manual` when nothing
+  determines the winner mechanically (a coaches' vote, a D3 roll) and each
+  winner is curated by hand in `after-other-importers/trophy-awards.json5`
+  (see below). Both describe how the league hands the trophy out in their own
+  words.
 
-  - `direct_source` — the source data records the winner itself, so the
-    BBL/TP importers create the award. The entry states an `awardProcedure`
-    sentence describing how the league actually hands it out.
-  - `manual` — no underlying statistic determines the winner and no importer
-    records one (a coaches' vote, a D3 roll among nominated players), so each
-    winner is curated by hand in
-    `after-other-importers/trophy-awards.json5` (see below). Like
-    `direct_source`, the entry states its own `awardProcedure` sentence,
-    because nothing can generate one from a rule.
-  - `max_count` — awarded to whoever accumulated the most matching match
-    events across the competition, counted over the entry's
-    `awardRuleMatchEventTypes`.
-  - `max_spp_sum` — the same, summing the matching events' Star Player Points
-    rather than counting them.
-  - `career_threshold` — awarded to every player who reached
-    `awardRuleThreshold` of `awardRuleMeasure` over their career, rather than
-    to a single leader.
-
-  The last three are computed from imported match events, so they state a
-  rule (role, tie cutoff, event types, and optionally the positions a winner
-  may hold) instead of an `awardProcedure`.
+  The other three are computed from imported match events instead, and
+  describe themselves: `max_count` for the competition's leader on a count of
+  matching events, `max_spp_sum` for its leader on the Star Player Points
+  those events awarded, and `career_threshold` for every player who passes a
+  lifetime figure, however many that turns out to be.
 
 ### Position renamed across rules-set generations
 
