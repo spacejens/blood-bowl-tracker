@@ -216,7 +216,7 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Chaos Cup' },
       description:
-        'The team that wins after four matches selects three players and rolls a D3 to choose one, who is separately awarded the Gudarnas Förkämpe player trophy.',
+        'Winner of the Chaos Cup, decided after four matches.',
       awardRuleKind: 'direct_source',
       awardProcedure:
         "Taken from the competition's own knockout results, as recorded by the source.",
