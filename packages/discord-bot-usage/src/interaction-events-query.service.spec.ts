@@ -99,6 +99,20 @@ describe('InteractionEventsQueryService', () => {
     expect(sqlText(db.chains[0].orderBy.mock.calls[0][0])).toContain(' desc');
   });
 
+  it('breaks ties on occurredAt with the event id, both descending', async () => {
+    const service = await makeService(db);
+
+    await service.listRecent({ limit: 20 });
+
+    const [primary, secondary] = db.chains[0].orderBy.mock.calls[0] as [
+      unknown,
+      unknown,
+    ];
+    expect(sqlText(primary)).toContain(' desc');
+    expect(sqlText(secondary)).toContain(' desc');
+    expect(primary).not.toBe(secondary);
+  });
+
   it('applies no filter when neither option is given', async () => {
     const service = await makeService(db);
 

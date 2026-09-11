@@ -55,6 +55,10 @@ export interface InteractionEventRow {
  * filter is set: `interaction_events.user_id` is NOT NULL with a foreign key
  * to that table, so the inner join can neither drop nor duplicate a row, and
  * only the `where` clause has to vary with the options.
+ *
+ * Ordered by `occurred_at` desc with `id` desc as a tiebreaker: two events
+ * can share the same millisecond-precision `occurred_at`, and without a
+ * secondary key "the 20 most recent" would not be a stable set across runs.
  */
 @Injectable()
 export class InteractionEventsQueryService {
@@ -79,7 +83,7 @@ export class InteractionEventsQueryService {
       )
       .innerJoin(discordUsers, eq(discordUsers.id, interactionEvents.userId))
       .where(this.filters(options))
-      .orderBy(desc(interactionEvents.occurredAt))
+      .orderBy(desc(interactionEvents.occurredAt), desc(interactionEvents.id))
       .limit(options.limit);
 
     if (events.length === 0) {
