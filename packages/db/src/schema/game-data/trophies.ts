@@ -85,10 +85,18 @@ const trophiesTable = historyTrackedTable({
     // The league this trophy is awarded across, when it is not tied to one
     // competition group. Exactly one of this and `competitionGroupId` is set.
     leagueId: integer('league_id').references(() => leagues.id),
-    // How this trophy's winner is determined. NOT NULL and without a default:
-    // an uncurated trophy must fail loudly rather than silently classify as
-    // `direct_source` and never be computed.
-    awardRuleKind: trophyAwardRuleKindEnum('award_rule_kind').notNull(),
+    // How this trophy's winner is determined. NOT NULL, so a trophy always
+    // carries a classification.
+    //
+    // The `direct_source` default is a temporary deployment aid, not part of
+    // the intended model: it lets an app release that predates this column
+    // keep inserting trophies while a deployment is still rolling out. Drop
+    // the default once every deployment runs app code that always supplies
+    // `awardRuleKind`, so an uncurated trophy fails loudly rather than
+    // silently classifying as `direct_source` and never being computed.
+    awardRuleKind: trophyAwardRuleKindEnum('award_rule_kind')
+      .notNull()
+      .default('direct_source'),
     // A human-authored sentence describing how the trophy is actually handed
     // out, rendered verbatim in the trophy deepdive. Required for
     // `direct_source` and `manual` (whose procedure cannot be generated) and
