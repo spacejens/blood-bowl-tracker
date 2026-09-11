@@ -819,6 +819,21 @@ describe('curated data files', () => {
       expect(trophy.awardRuleMeasure, trophy.name).toBeDefined();
       expect(trophy.awardRuleTieCutoff, trophy.name).toBeUndefined();
     }
+
+    // Pinned exactly: these are the two highest-risk career_threshold values
+    // in the catalog, since a swap between them (or a typo'd number) would
+    // still pass the presence-only checks above.
+    const legendaryPlayer = trophies.find(
+      (trophy) => trophy.name === 'Legendary Player',
+    );
+    expect(legendaryPlayer?.awardRuleThreshold).toBe(176);
+    expect(legendaryPlayer?.awardRuleMeasure).toBe('spp_sum');
+
+    const trogenTjanst = trophies.find(
+      (trophy) => trophy.name === 'Trogen Tjänst',
+    );
+    expect(trogenTjanst?.awardRuleThreshold).toBe(3);
+    expect(trogenTjanst?.awardRuleMeasure).toBe('event_count');
   });
 
   it('counts fouls only when they caused a casualty', () => {
@@ -827,11 +842,79 @@ describe('curated data files', () => {
     );
     expect(trophies).toHaveLength(2);
     for (const trophy of trophies) {
-      const types = trophy.awardRuleMatchEventTypes;
-      expect(types.some((type) => type.actionType === 'foul')).toBe(true);
-      expect(types.some((type) => type.consequenceType === 'casualty')).toBe(
-        true,
+      // Pinned exactly: one `foul` action type plus every consequence type a
+      // casualty roll can produce. A regression dropping most of this
+      // compound list (leaving only, say, `foul`/`casualty`) would still
+      // pass a presence-only `.some()` check, so the full set is asserted
+      // here instead.
+      expect(trophy.awardRuleMatchEventTypes).toEqual(
+        expect.arrayContaining([
+          { actionType: 'foul' },
+          { consequenceType: 'casualty' },
+          { consequenceType: 'badly_hurt' },
+          { consequenceType: 'death' },
+          { consequenceType: 'serious_injury' },
+          { consequenceType: 'niggling_injury' },
+          { consequenceType: 'miss_next_game' },
+          { consequenceType: 'stat_reduction_ma' },
+          { consequenceType: 'stat_reduction_st' },
+          { consequenceType: 'stat_reduction_ag' },
+          { consequenceType: 'stat_reduction_av' },
+          { consequenceType: 'stat_reduction_pa' },
+        ]),
       );
+      expect(trophy.awardRuleMatchEventTypes).toHaveLength(12);
+    }
+  });
+
+  it('gives every other max_count trophy its exact match-event types', () => {
+    const trophies = readPhase('before-other-importers').trophies;
+    const findAll = (...names: string[]) =>
+      names.map((name) => {
+        const trophy = trophies.find((candidate) => candidate.name === name);
+        expect(trophy, name).toBeDefined();
+        return trophy!;
+      });
+
+    for (const trophy of findAll('Top Scorer', 'Minor Top Scorer')) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'touchdown' },
+      ]);
+    }
+
+    for (const trophy of findAll(
+      'Most Violent Player',
+      'Minor Most Violent Player',
+    )) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'casualty' },
+        { actionType: 'badly_hurt' },
+        { actionType: 'serious_injury' },
+        { actionType: 'death' },
+      ]);
+    }
+
+    for (const trophy of findAll(
+      'Deadliest Player',
+      'Minor Deadliest Player',
+    )) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'death' },
+      ]);
+    }
+
+    for (const trophy of findAll('Top Thrower', 'Minor Top Thrower')) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'completion' },
+      ]);
+    }
+
+    // Interceptions only -- deliberately NOT including `deflection`, a
+    // distinct action type this rule must not sweep in.
+    for (const trophy of findAll('Top Intercepter', 'Minor Top Intercepter')) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'interception' },
+      ]);
     }
   });
 
