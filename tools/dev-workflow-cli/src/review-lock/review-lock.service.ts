@@ -12,7 +12,7 @@ import {
 export const NOT_CURRENT_HOLDER = 'not the current holder';
 
 /** Matches `wait-for-pr-review`'s own poll gap; skills document both as 30s. */
-export const REVIEW_LOCK_DEFAULT_INTERVAL_MS = 30_000;
+const REVIEW_LOCK_DEFAULT_INTERVAL_MS = 30_000;
 /**
  * 100 minutes. Comfortably longer than the longest normal gap between two
  * heartbeat checkpoints: `develop-feature`'s Phase 6 loop step (b2)'s
@@ -23,7 +23,7 @@ export const REVIEW_LOCK_DEFAULT_INTERVAL_MS = 30_000;
  * with zero heartbeats in between — yet still short enough that a crashed
  * session's lock is recovered well within an unattended overnight run.
  */
-export const REVIEW_LOCK_STALE_MS = 6_000_000;
+const REVIEW_LOCK_STALE_MS = 6_000_000;
 
 export interface AcquireReviewLockOptions {
   readonly holderId: string;

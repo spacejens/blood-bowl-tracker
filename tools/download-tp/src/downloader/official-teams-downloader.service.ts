@@ -5,7 +5,7 @@ import { ApiResponseStoringPageViewerService } from './api-response-storing-page
 import { FileSystemService } from './file-system.service';
 
 /** API path of TP's official team list, relative to the backend API URL. */
-export const OFFICIAL_TEAMS_API_PATH = 'rosters/masters';
+const OFFICIAL_TEAMS_API_PATH = 'rosters/masters';
 
 /**
  * TP's numeric `ruleSet` query parameter value per rules set, keyed by the
@@ -21,7 +21,7 @@ export const OFFICIAL_TEAMS_API_PATH = 'rosters/masters';
  * "Secret Bowl" one under the same id, in one response; they are told apart by
  * each roster's `teamRosterType`, not by a separate request.
  */
-export const TP_RULES_SET_IDS: Readonly<Record<string, number>> = {
+const TP_RULES_SET_IDS: Readonly<Record<string, number>> = {
   bb2020: 20,
   db2021: 21,
   bb2025: 25,

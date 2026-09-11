@@ -3,7 +3,7 @@ import { DynamicModule, FactoryProvider, Module } from '@nestjs/common';
 import { AdvisoryLockService, LOCK_SQL } from './advisory-lock.service';
 import { createLockClient } from './lock-client';
 
-export const LOCK_DATABASE_URL = Symbol('LOCK_DATABASE_URL');
+const LOCK_DATABASE_URL = Symbol('LOCK_DATABASE_URL');
 
 export interface AdvisoryLockModuleAsyncOptions {
   useFactory: FactoryProvider<string>['useFactory'];

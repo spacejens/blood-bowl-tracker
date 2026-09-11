@@ -180,7 +180,7 @@ export async function makeService({
 }
 
 /** A stand-in characteristics set for grouping tests that don't assert on them. */
-export const DEFAULT_CHARACTERISTICS: TpPositionCharacteristics = {
+const DEFAULT_CHARACTERISTICS: TpPositionCharacteristics = {
   move: 6,
   strength: 3,
   agility: 3,
