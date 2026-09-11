@@ -1,4 +1,7 @@
-import { UsageTrackingService } from '@blood-bowl-tracker/discord-bot-usage';
+import {
+  InteractionEventsQueryService,
+  UsageTrackingService,
+} from '@blood-bowl-tracker/discord-bot-usage';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -294,6 +297,8 @@ describe('DiscordClientService', () => {
     })
       .overrideProvider(UsageTrackingService)
       .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
       .compile();
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
@@ -306,6 +311,8 @@ describe('DiscordClientService', () => {
     })
       .overrideProvider(UsageTrackingService)
       .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
       .compile();
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
