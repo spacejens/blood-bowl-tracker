@@ -97,6 +97,7 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
       competitionGroupId: group.id,
       leagueId: null,
       awardRuleKind: 'manual',
+      awardProcedure: 'Voted on by all coaches after the season.',
     })
     .returning();
   const [teamTrophy] = await db
@@ -107,6 +108,7 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
       competitionGroupId: group.id,
       leagueId: null,
       awardRuleKind: 'manual',
+      awardProcedure: 'Taken from the season standings.',
     })
     .returning();
 

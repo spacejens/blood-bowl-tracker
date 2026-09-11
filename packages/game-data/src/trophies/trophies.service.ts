@@ -201,6 +201,9 @@ export class TrophiesService {
         description: data.description,
         competitionGroupId: data.competitionGroupId,
         leagueId: data.leagueId,
+        // Temporary default until upsertTrophy accepts a curated award rule; the
+        // real curated value from tools/import-manual will replace this call site entirely.
+        awardRuleKind: 'direct_source',
       },
       externalIdTable: trophyExternalIds,
       ownerIdColumn: trophyExternalIds.trophyId,
