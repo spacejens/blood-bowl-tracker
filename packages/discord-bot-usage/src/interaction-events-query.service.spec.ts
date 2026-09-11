@@ -243,6 +243,7 @@ describe('InteractionEventsQueryService', () => {
     const rows = await service.listRecent({ limit: 20 });
 
     expect(rows[0]).toEqual({
+      id: 1,
       occurredAt: OCCURRED_AT,
       kind: 'button',
       name: 'coach:',
@@ -299,5 +300,74 @@ describe('InteractionEventsQueryService', () => {
     );
     expect(innerJoinTables).toContain(channels);
     expect(leftJoinTables).toContain(guilds);
+  });
+
+  it('carries each event id through to the returned rows', async () => {
+    db = mockDb([eventRow({ id: 5 })], []);
+    const service = await makeService(db);
+
+    const rows = await service.listRecent({ limit: 20 });
+
+    expect(rows[0].id).toBe(5);
+  });
+
+  describe('findById', () => {
+    it('returns the single event with its parameters', async () => {
+      const mocked = mockDb(
+        [eventRow({ id: 7, kind: 'button', name: 'coach:' })],
+        [{ eventId: 7, key: 'id', value: '42' }],
+      );
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          InteractionEventsQueryService,
+          { provide: DB, useValue: mocked.db },
+        ],
+      }).compile();
+      const service = moduleRef.get(InteractionEventsQueryService);
+
+      const found = await service.findById(7);
+
+      expect(found).toEqual({
+        id: 7,
+        occurredAt: OCCURRED_AT,
+        kind: 'button',
+        name: 'coach:',
+        outcome: 'success',
+        errorMessage: null,
+        username: 'coach42',
+        guildName: 'Test League',
+        channelName: 'general',
+        parameters: [{ key: 'id', value: '42' }],
+      });
+    });
+
+    it('filters on the event id', async () => {
+      const mocked = mockDb([eventRow({ id: 7 })], []);
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          InteractionEventsQueryService,
+          { provide: DB, useValue: mocked.db },
+        ],
+      }).compile();
+      const service = moduleRef.get(InteractionEventsQueryService);
+
+      await service.findById(7);
+
+      expect(filterValues(whereArg(mocked.chains[0]))).toEqual([7]);
+    });
+
+    it('returns undefined and issues no parameter query when no event matches', async () => {
+      const mocked = mockDb([]);
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          InteractionEventsQueryService,
+          { provide: DB, useValue: mocked.db },
+        ],
+      }).compile();
+      const service = moduleRef.get(InteractionEventsQueryService);
+
+      expect(await service.findById(7)).toBeUndefined();
+      expect(mocked.chains).toHaveLength(1);
+    });
   });
 });

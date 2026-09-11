@@ -12,6 +12,7 @@ function row(
   overrides: Partial<InteractionEventRow> = {},
 ): InteractionEventRow {
   return {
+    id: 1,
     occurredAt: OCCURRED_AT,
     kind: 'command',
     name: 'insights',
