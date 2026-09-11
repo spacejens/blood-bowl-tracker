@@ -22,6 +22,7 @@ describe('TrophyAwardRuleDescriptionService', () => {
     includedConsequenceTypes: [] as string[],
     excludedActionTypes: [] as string[],
     excludedConsequenceTypes: [] as string[],
+    eligiblePositions: [] as string[],
   };
 
   it("returns a source-recorded trophy's own procedure verbatim", () => {
@@ -117,6 +118,67 @@ describe('TrophyAwardRuleDescriptionService', () => {
         excludedActionTypes: ['mvp award'],
       }),
     ).toContain('excluding Star Player Points from mvp award events');
+  });
+
+  it("names an SPP sum rule's several eligible positions (Bierhallenführer)", () => {
+    // The real restriction: only the two Ogre positions are candidates. A
+    // sentence that left this out would describe a rule over every player in
+    // the competition, which is not the rule that runs.
+    expect(
+      service.describe({
+        ...base,
+        awardRuleKind: 'max_spp_sum',
+        awardRuleTieCutoff: 4,
+        eligiblePositions: ['Ogre Blocker', 'Ogre Runt Punter'],
+      }),
+    ).toBe(
+      'Awarded automatically to the player with the most Star Player Points ' +
+        'in the competition, among players in the Ogre Blocker and Ogre Runt ' +
+        'Punter positions, shared by up to 4 tied players and not awarded if ' +
+        'more tie.',
+    );
+  });
+
+  it("names a single eligible position in the singular ('position')", () => {
+    expect(
+      service.describe({
+        ...base,
+        awardRuleKind: 'max_spp_sum',
+        eligiblePositions: ['Ogre Blocker'],
+      }),
+    ).toBe(
+      'Awarded automatically to the player with the most Star Player Points ' +
+        'in the competition, among players in the Ogre Blocker position.',
+    );
+  });
+
+  it("names a count rule's eligible positions too", () => {
+    expect(
+      service.describe({
+        ...base,
+        awardRuleKind: 'max_count',
+        includedActionTypes: ['touchdown'],
+        eligiblePositions: ['Ogre Blocker'],
+      }),
+    ).toBe(
+      'Awarded automatically to the player with the most touchdown events in ' +
+        'the competition, among players in the Ogre Blocker position.',
+    );
+  });
+
+  it("names a career threshold rule's eligible positions too", () => {
+    expect(
+      service.describe({
+        ...base,
+        awardRuleKind: 'career_threshold',
+        awardRuleThreshold: 176,
+        awardRuleMeasure: 'spp_sum',
+        eligiblePositions: ['Ogre Blocker'],
+      }),
+    ).toBe(
+      'Awarded automatically to every player who reaches 176 Star Player ' +
+        'Points over their career, among players in the Ogre Blocker position.',
+    );
   });
 
   it('generates a sentence for a career SPP threshold', () => {

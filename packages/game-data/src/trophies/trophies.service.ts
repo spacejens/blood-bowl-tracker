@@ -160,10 +160,15 @@ export class TrophiesService {
   }
 
   /**
-   * One trophy's curated rule event types, flattened to display strings — the
-   * shape TrophyAwardRuleDescriptionService takes, since it holds no database
-   * access of its own. Underscores become spaces so a generated sentence reads
-   * as prose rather than as column values.
+   * One trophy's whole curated rule — its event types and its eligible
+   * positions — flattened to display strings, the shape
+   * TrophyAwardRuleDescriptionService takes, since it holds no database access
+   * of its own. Underscores become spaces so a generated sentence reads as
+   * prose rather than as column values.
+   *
+   * Everything the generated sentence needs is read here, in one call, so a
+   * later restriction added to the rule cannot be left out of the sentence
+   * that describes it.
    *
    * Action types and consequence types are kept separate rather than merged
    * into one list per included/excluded. A compound rule like Top Fouler
@@ -172,12 +177,21 @@ export class TrophiesService {
    * AND of the two columns, not a flat OR list of unrelated event types. Only
    * keeping the columns apart lets TrophyAwardRuleDescriptionService render
    * that AND correctly.
+   *
+   * Eligible positions are read as the curated `Name`-system external ids the
+   * junction table stores and reduced to their bare position name, rather than
+   * joined through to `positions.name`. Those ids are what the executed rule
+   * matches on, so the sentence names exactly the restriction that runs — and
+   * it still names it when the importers have not created the `positions` rows
+   * yet, which is precisely the case where a join would silently render the
+   * rule as unrestricted.
    */
-  async findAwardRuleEventTypes(trophyId: number): Promise<{
+  async findAwardRuleCuration(trophyId: number): Promise<{
     includedActionTypes: string[];
     includedConsequenceTypes: string[];
     excludedActionTypes: string[];
     excludedConsequenceTypes: string[];
+    eligiblePositions: string[];
   }> {
     const included = await this.db
       .select({
@@ -201,6 +215,14 @@ export class TrophiesService {
         trophyAwardRuleExcludedMatchEventTypes.actionType,
         trophyAwardRuleExcludedMatchEventTypes.consequenceType,
       );
+    const eligible = await this.db
+      .select({
+        positionNameExternalId:
+          trophyAwardRuleEligiblePositions.positionNameExternalId,
+      })
+      .from(trophyAwardRuleEligiblePositions)
+      .where(eq(trophyAwardRuleEligiblePositions.trophyId, trophyId))
+      .orderBy(trophyAwardRuleEligiblePositions.positionNameExternalId);
     return {
       includedActionTypes: included
         .filter((row) => row.actionType !== null)
@@ -214,6 +236,9 @@ export class TrophiesService {
       excludedConsequenceTypes: excluded
         .filter((row) => row.consequenceType !== null)
         .map(toDisplayType),
+      eligiblePositions: eligible.map((row) =>
+        toPositionDisplayName(row.positionNameExternalId),
+      ),
     };
   }
 
@@ -436,6 +461,19 @@ export class TrophiesService {
       }
     }
   }
+}
+
+/**
+ * The bare position name inside a `Name`-system position external id, which
+ * `NameExternalIdService.forPosition` builds as `"<raceName>: <positionName>"`.
+ * An id in any other shape is displayed as-is rather than mangled — it is
+ * still the truest description of what the rule matches on.
+ */
+function toPositionDisplayName(positionNameExternalId: string): string {
+  const separator = positionNameExternalId.indexOf(': ');
+  return separator === -1
+    ? positionNameExternalId
+    : positionNameExternalId.slice(separator + 2);
 }
 
 function toDisplayType(row: {

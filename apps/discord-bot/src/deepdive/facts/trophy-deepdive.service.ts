@@ -92,11 +92,12 @@ export class TrophyDeepdiveService {
     // query must not turn a fine "recorded procedure" answer into a spurious
     // timeout. The three computed kinds still share the header's own timeout
     // message rather than the recipients' or context's.
-    const ruleEventTypes: {
+    const ruleCuration: {
       includedActionTypes: string[];
       includedConsequenceTypes: string[];
       excludedActionTypes: string[];
       excludedConsequenceTypes: string[];
+      eligiblePositions: string[];
     } | null =
       trophy.awardRuleKind === 'direct_source' ||
       trophy.awardRuleKind === 'manual'
@@ -105,12 +106,13 @@ export class TrophyDeepdiveService {
             includedConsequenceTypes: [],
             excludedActionTypes: [],
             excludedConsequenceTypes: [],
+            eligiblePositions: [],
           }
         : await this.databaseTimeout.run(
-            this.trophies.findAwardRuleEventTypes(trophy.id),
+            this.trophies.findAwardRuleCuration(trophy.id),
             null,
           );
-    if (ruleEventTypes === null) {
+    if (ruleCuration === null) {
       return DEEPDIVE_TROPHY_TIMEOUT_MESSAGE;
     }
     const awardRule = this.awardRuleDescription.describe({
@@ -119,10 +121,11 @@ export class TrophyDeepdiveService {
       awardRuleTieCutoff: trophy.awardRuleTieCutoff,
       awardRuleThreshold: trophy.awardRuleThreshold,
       awardRuleMeasure: trophy.awardRuleMeasure,
-      includedActionTypes: ruleEventTypes.includedActionTypes,
-      includedConsequenceTypes: ruleEventTypes.includedConsequenceTypes,
-      excludedActionTypes: ruleEventTypes.excludedActionTypes,
-      excludedConsequenceTypes: ruleEventTypes.excludedConsequenceTypes,
+      includedActionTypes: ruleCuration.includedActionTypes,
+      includedConsequenceTypes: ruleCuration.includedConsequenceTypes,
+      excludedActionTypes: ruleCuration.excludedActionTypes,
+      excludedConsequenceTypes: ruleCuration.excludedConsequenceTypes,
+      eligiblePositions: ruleCuration.eligiblePositions,
     });
 
     // Both recipient queries share one timeout message: they are two halves

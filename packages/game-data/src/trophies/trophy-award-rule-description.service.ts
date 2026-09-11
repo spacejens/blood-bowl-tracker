@@ -16,6 +16,12 @@ import type {
  * renders explicitly for `max_count`, rather than a flat OR list. A rule
  * with only one side populated (the common case, e.g. Top Scorer's
  * `touchdown` action type) reads exactly as it always has.
+ *
+ * Eligible positions arrive the same way, already flattened to position
+ * display names. An empty list means the rule considers every player, the
+ * common case; a non-empty one means only players in those positions are
+ * candidates, and the sentence has to say so or it would describe a wider
+ * rule than the one that actually runs.
  */
 export interface TrophyAwardRuleDescriptionInput {
   awardRuleKind: TrophyAwardRuleKind;
@@ -27,6 +33,7 @@ export interface TrophyAwardRuleDescriptionInput {
   includedConsequenceTypes: readonly string[];
   excludedActionTypes: readonly string[];
   excludedConsequenceTypes: readonly string[];
+  eligiblePositions: readonly string[];
 }
 
 /**
@@ -54,12 +61,16 @@ export class TrophyAwardRuleDescriptionService {
           `${this.eventsPhrase(
             input.includedActionTypes,
             input.includedConsequenceTypes,
-          )} in the competition${this.tieClause(input.awardRuleTieCutoff)}.`
+          )} in the competition${this.positionClause(
+            input.eligiblePositions,
+          )}${this.tieClause(input.awardRuleTieCutoff)}.`
         );
       case 'max_spp_sum':
         return (
           'Awarded automatically to the player with the most Star Player ' +
-          `Points in the competition${this.exclusionClause(
+          `Points in the competition${this.positionClause(
+            input.eligiblePositions,
+          )}${this.exclusionClause(
             input.excludedActionTypes,
             input.excludedConsequenceTypes,
           )}${this.tieClause(input.awardRuleTieCutoff)}.`
@@ -68,13 +79,17 @@ export class TrophyAwardRuleDescriptionService {
         return input.awardRuleMeasure === 'spp_sum'
           ? `Awarded automatically to every player who reaches ${String(
               input.awardRuleThreshold,
-            )} Star Player Points over their career.`
+            )} Star Player Points over their career${this.positionClause(
+              input.eligiblePositions,
+            )}.`
           : `Awarded automatically to every player who records ${String(
               input.awardRuleThreshold,
             )} ${this.list(
               [...input.includedActionTypes, ...input.includedConsequenceTypes],
               'or',
-            )} events over their career.`;
+            )} events over their career${this.positionClause(
+              input.eligiblePositions,
+            )}.`;
       default: {
         const unreachable: never = input.awardRuleKind;
         return String(unreachable);
@@ -121,6 +136,23 @@ export class TrophyAwardRuleDescriptionService {
       ? ''
       : `, shared by up to ${String(tieCutoff)} tied players and not awarded ` +
           'if more tie';
+  }
+
+  /**
+   * The ", among players in the X and Y positions" clause a position-restricted
+   * rule needs. Without it the sentence would promise the whole competition's
+   * players as candidates while the executed rule only ever considers a
+   * handful — exactly the drift this service exists to prevent.
+   *
+   * The position names are printed as curated rather than pluralised: several
+   * real position names do not take a plain "s" (Lineman, Runt Punter's
+   * siblings), so "players in the ... positions" carries the plural instead.
+   */
+  private positionClause(eligiblePositions: readonly string[]): string {
+    return eligiblePositions.length === 0
+      ? ''
+      : `, among players in the ${this.list(eligiblePositions, 'and')} ` +
+          `position${eligiblePositions.length === 1 ? '' : 's'}`;
   }
 
   private exclusionClause(

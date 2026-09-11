@@ -181,11 +181,12 @@ function makeTrophies(
 ): MockProxy<TrophiesService> {
   const trophies = mock<TrophiesService>();
   trophies.findById.mockResolvedValue(header);
-  trophies.findAwardRuleEventTypes.mockResolvedValue({
+  trophies.findAwardRuleCuration.mockResolvedValue({
     includedActionTypes: [],
     includedConsequenceTypes: [],
     excludedActionTypes: [],
     excludedConsequenceTypes: [],
+    eligiblePositions: [],
   });
   return trophies;
 }
@@ -645,11 +646,12 @@ describe('TrophyDeepdiveService', () => {
   it('offers a drill-up button to the competition group after the recipients', async () => {
     const trophies = mock<TrophiesService>();
     trophies.findById.mockResolvedValue(trophyHeader());
-    trophies.findAwardRuleEventTypes.mockResolvedValue({
+    trophies.findAwardRuleCuration.mockResolvedValue({
       includedActionTypes: [],
       includedConsequenceTypes: [],
       excludedActionTypes: [],
       excludedConsequenceTypes: [],
+      eligiblePositions: [],
     });
     const trophyAwards = mock<TrophyAwardsService>();
     trophyAwards.countRecipients.mockResolvedValue(1);
@@ -692,11 +694,12 @@ describe('TrophyDeepdiveService', () => {
       awardRuleThreshold: null,
       awardRuleMeasure: null,
     });
-    trophies.findAwardRuleEventTypes.mockResolvedValue({
+    trophies.findAwardRuleCuration.mockResolvedValue({
       includedActionTypes: [],
       includedConsequenceTypes: [],
       excludedActionTypes: [],
       excludedConsequenceTypes: [],
+      eligiblePositions: [],
     });
     const trophyAwards = mock<TrophyAwardsService>();
     trophyAwards.countRecipients.mockResolvedValue(0);
@@ -813,11 +816,12 @@ describe('TrophyDeepdiveService', () => {
         awardRuleTieCutoff: 4,
       }),
     );
-    trophies.findAwardRuleEventTypes.mockResolvedValue({
+    trophies.findAwardRuleCuration.mockResolvedValue({
       includedActionTypes: ['touchdown'],
       includedConsequenceTypes: [],
       excludedActionTypes: [],
       excludedConsequenceTypes: [],
+      eligiblePositions: [],
     });
     trophyAwards.countRecipients.mockResolvedValue(0);
     const { service } = await makeService({
@@ -848,11 +852,12 @@ describe('TrophyDeepdiveService', () => {
         awardRuleTieCutoff: 4,
       }),
     );
-    trophies.findAwardRuleEventTypes.mockResolvedValue({
+    trophies.findAwardRuleCuration.mockResolvedValue({
       includedActionTypes: ['foul'],
       includedConsequenceTypes: ['casualty', 'badly hurt'],
       excludedActionTypes: [],
       excludedConsequenceTypes: [],
+      eligiblePositions: [],
     });
     trophyAwards.countRecipients.mockResolvedValue(0);
     const { service } = await makeService({
@@ -866,6 +871,39 @@ describe('TrophyDeepdiveService', () => {
       'Awarded automatically to the player with the most foul events that ' +
         'caused a casualty or badly hurt consequence in the competition, ' +
         'shared by up to 4 tied players and not awarded if more tie.',
+    );
+  });
+
+  it("names a position-restricted rule's eligible positions (Bierhallenführer)", async () => {
+    // The restriction is the whole point of this trophy's rule: without it
+    // the embed would promise the competition's top scorer of Star Player
+    // Points, while the rule only ever considers the Ogre positions.
+    const trophies = mock<TrophiesService>();
+    const trophyAwards = mock<TrophyAwardsService>();
+    trophies.findById.mockResolvedValue(
+      trophyHeader({
+        awardRuleKind: 'max_spp_sum',
+        awardProcedure: null,
+        awardRuleTieCutoff: 4,
+      }),
+    );
+    trophies.findAwardRuleCuration.mockResolvedValue({
+      includedActionTypes: [],
+      includedConsequenceTypes: [],
+      excludedActionTypes: [],
+      excludedConsequenceTypes: [],
+      eligiblePositions: ['Ogre Blocker', 'Ogre Runt Punter'],
+    });
+    trophyAwards.countRecipients.mockResolvedValue(0);
+    const { service } = await makeService({ trophies, trophyAwards });
+
+    const reply = await service.resolve(1);
+
+    expect(JSON.stringify(reply)).toContain(
+      'Awarded automatically to the player with the most Star Player Points ' +
+        'in the competition, among players in the Ogre Blocker and Ogre ' +
+        'Runt Punter positions, shared by up to 4 tied players and not ' +
+        'awarded if more tie.',
     );
   });
 

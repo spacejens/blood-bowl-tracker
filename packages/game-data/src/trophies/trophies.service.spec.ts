@@ -584,18 +584,42 @@ describe('TrophiesService', () => {
     });
   });
 
-  describe('findAwardRuleEventTypes', () => {
+  describe('findAwardRuleCuration', () => {
     it("reads a trophy's curated rule event types, flattened for display", async () => {
       await build(
         [{ actionType: 'foul', consequenceType: null }],
         [{ actionType: 'mvp_award', consequenceType: null }],
+        [],
       );
 
-      await expect(service.findAwardRuleEventTypes(1)).resolves.toEqual({
+      await expect(service.findAwardRuleCuration(1)).resolves.toEqual({
         includedActionTypes: ['foul'],
         includedConsequenceTypes: [],
         excludedActionTypes: ['mvp award'],
         excludedConsequenceTypes: [],
+        eligiblePositions: [],
+      });
+    });
+
+    it("reduces the curated position ids to the positions' own names", async () => {
+      // Bierhallenfuehrer's real restriction. The rows store the
+      // `Name`-system id, `"<race>: <position>"`, but a sentence about the
+      // rule has to read as prose, so only the position half is displayed.
+      await build(
+        [],
+        [],
+        [
+          { positionNameExternalId: 'Ogre: Ogre Blocker' },
+          { positionNameExternalId: 'Ogre: Ogre Runt Punter' },
+        ],
+      );
+
+      await expect(service.findAwardRuleCuration(1)).resolves.toEqual({
+        includedActionTypes: [],
+        includedConsequenceTypes: [],
+        excludedActionTypes: [],
+        excludedConsequenceTypes: [],
+        eligiblePositions: ['Ogre Blocker', 'Ogre Runt Punter'],
       });
     });
 
@@ -610,13 +634,15 @@ describe('TrophiesService', () => {
           { actionType: null, consequenceType: 'badly_hurt' },
         ],
         [],
+        [],
       );
 
-      await expect(service.findAwardRuleEventTypes(1)).resolves.toEqual({
+      await expect(service.findAwardRuleCuration(1)).resolves.toEqual({
         includedActionTypes: ['foul'],
         includedConsequenceTypes: ['casualty', 'badly hurt'],
         excludedActionTypes: [],
         excludedConsequenceTypes: [],
+        eligiblePositions: [],
       });
     });
   });
