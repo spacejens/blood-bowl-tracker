@@ -66,6 +66,31 @@ real-world entity differently:
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
 
+  Every entry also carries an `awardRuleKind`, which says where the trophy's
+  winner comes from. The five kinds are:
+
+  - `direct_source` — the source data records the winner itself, so the
+    BBL/TP importers create the award. The entry states an `awardProcedure`
+    sentence describing how the league actually hands it out.
+  - `manual` — no underlying statistic determines the winner and no importer
+    records one (a coaches' vote, a D3 roll among nominated players), so each
+    winner is curated by hand in
+    `after-other-importers/trophy-awards.json5` (see below). Like
+    `direct_source`, the entry states its own `awardProcedure` sentence,
+    because nothing can generate one from a rule.
+  - `max_count` — awarded to whoever accumulated the most matching match
+    events across the competition, counted over the entry's
+    `awardRuleMatchEventTypes`.
+  - `max_spp_sum` — the same, summing the matching events' Star Player Points
+    rather than counting them.
+  - `career_threshold` — awarded to every player who reached
+    `awardRuleThreshold` of `awardRuleMeasure` over their career, rather than
+    to a single leader.
+
+  The last three are computed from imported match events, so they state a
+  rule (role, tie cutoff, event types, and optionally the positions a winner
+  may hold) instead of an `awardProcedure`.
+
 ### Position renamed across rules-set generations
 
 TourPlay assigns a **fresh numeric position id for every rules-set generation**
@@ -151,8 +176,9 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   throwing `PositionUpsertConflictError`. Curating after ensures BBL has
   already established the position's identity, so these references resolve
   onto the existing row, not a duplicate.
-- `trophy-awards.json5` — hand-curated winners of the two `manual`-kind
-  trophies (Season MVP, Gudarnas Förkämpe), for which no importer records a
+- `trophy-awards.json5` — hand-curated winners of the two
+  [`manual`-kind](#known-before-other-importers-dedup-files) trophies
+  (Season MVP, Gudarnas Förkämpe), for which no importer records a
   winner. It sits in the **after** phase because each entry references a
   competition and a player by external id, both created by the BBL/TP
   importers.
