@@ -56,6 +56,12 @@ const playerTrophyRow = [
 ];
 /** The competition-lookup row, in the same group as both trophy rows. */
 const matchingCompetitionRow = [{ competitionGroupId: 1 }];
+/**
+ * The player-existence lookup's row, carrying the team era every player award
+ * here already states. Only a player award issues this query; a team award has
+ * no player to check.
+ */
+const existingPlayerRow = [{ teamEraId: 3 }];
 
 /**
  * The shape production actually throws: a real `DrizzleQueryError` (imported
@@ -87,9 +93,10 @@ describe('TrophyAwardsService', () => {
 
   /**
    * `rowsPerQuery[0]` is always the trophy lookup (its `recipientKind` and
-   * `competitionGroupId`), `rowsPerQuery[1]` the competition lookup (its
-   * `competitionGroupId`), `rowsPerQuery[2]` the insert, and `rowsPerQuery[3]`
-   * the natural-key lookup that only runs when that insert throws a
+   * `competitionGroupId`) and `rowsPerQuery[1]` the competition lookup (its
+   * `competitionGroupId`). A player award then spends one more slot on the
+   * player-existence lookup, which a team award skips. Last come the insert
+   * and the natural-key lookup that only runs when that insert throws a
    * `trophy_awards` unique violation. A slot may be an `Error` instead of a
    * row array, which makes that one query reject - the only way to reach the
    * conflict path now that the insert carries no `ON CONFLICT` clause.
@@ -120,9 +127,12 @@ describe('TrophyAwardsService', () => {
   });
 
   it('inserts a player award when no matching row exists', async () => {
-    const { db } = await build(playerTrophyRow, matchingCompetitionRow, [
-      playerAwardRow,
-    ]);
+    const { db } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      existingPlayerRow,
+      [playerAwardRow],
+    );
 
     const result = await service.upsert(playerAward);
 
@@ -185,6 +195,7 @@ describe('TrophyAwardsService', () => {
     const { chains } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
+      existingPlayerRow,
       uniqueViolation(),
       [playerAwardRow],
     );
@@ -194,7 +205,7 @@ describe('TrophyAwardsService', () => {
     expect(result).toEqual({ trophyAward: playerAwardRow, created: false });
     // The fallback lookup must filter on the player id itself, not IS NULL -
     // otherwise a re-imported player award could return the wrong row.
-    expect(extractAllFilterValues(firstCallArg(chains[3].where))).toEqual([
+    expect(extractAllFilterValues(firstCallArg(chains[4].where))).toEqual([
       1, 2, 3, 4,
     ]);
   });
@@ -284,9 +295,12 @@ describe('TrophyAwardsService', () => {
     // A tie is a different playerId, so the insert does not conflict and a
     // second row is created for the same trophy + competition.
     const tiedRow = { ...playerAwardRow, id: 12, playerId: 5 };
-    const { db } = await build(playerTrophyRow, matchingCompetitionRow, [
-      tiedRow,
-    ]);
+    const { db } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      existingPlayerRow,
+      [tiedRow],
+    );
 
     const result = await service.upsert({ ...playerAward, playerId: 5 });
 
@@ -324,6 +338,7 @@ describe('TrophyAwardsService', () => {
     const { db, chains } = await build(
       [{ recipientKind: 'player', competitionGroupId: 3, leagueId: null }],
       [{ competitionGroupId: 3 }],
+      existingPlayerRow,
       [playerAwardRow],
     );
 
@@ -331,8 +346,8 @@ describe('TrophyAwardsService', () => {
 
     expect(result).toEqual({ trophyAward: playerAwardRow, created: true });
     expect(db.insert).toHaveBeenCalledWith(trophyAwards);
-    // Three queries only: the insert succeeded, so no fallback lookup ran.
-    expect(chains).toHaveLength(3);
+    // Four queries only: the insert succeeded, so no fallback lookup ran.
+    expect(chains).toHaveLength(4);
   });
 
   it('throws when the competition belongs to a different competition group', async () => {
@@ -359,17 +374,18 @@ describe('TrophyAwardsService', () => {
   it("accepts an award when a league-scoped trophy matches the competition group's league", async () => {
     // query 0: the trophy row (league-scoped);
     // query 1: the competition joined to its group, yielding the league;
-    // query 2: the insert.
+    // query 2: the player-existence lookup; query 3: the insert.
     const { chains } = await build(
       [{ recipientKind: 'player', competitionGroupId: null, leagueId: 7 }],
       [{ leagueId: 7 }],
+      existingPlayerRow,
       [fakeAward],
     );
 
     const result = await service.upsert({ ...baseAward, playerId: 11 });
 
     expect(result).toEqual({ trophyAward: fakeAward, created: true });
-    expect(chains[2].values).toHaveBeenCalled();
+    expect(chains[3].values).toHaveBeenCalled();
   });
 
   it('rejects an award when a league-scoped trophy belongs to another league', async () => {

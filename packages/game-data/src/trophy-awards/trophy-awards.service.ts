@@ -555,13 +555,18 @@ export class TrophyAwardsService {
    * An unknown player is a `TrophyAwardRecipientMismatchError` for the same
    * reason an unknown *trophy* is one in `assertRecipientFitsTrophy`: the
    * award names a recipient that does not exist, which is authored-data
-   * feedback the API reports as BAD_REQUEST.
+   * feedback the API reports as BAD_REQUEST. That lookup runs for every player
+   * award, including one that states its own team era: a stated team era says
+   * nothing about whether the player named beside it exists, and letting that
+   * case through would leave the same bad reference to surface as a raw
+   * foreign-key violation on insert rather than as the same clear error every
+   * other unknown recipient gets.
    */
   private async resolveTeamEraId(data: UpsertTrophyAward): Promise<number> {
-    if (data.teamEraId !== undefined) {
-      return data.teamEraId;
-    }
     if (data.playerId === null) {
+      if (data.teamEraId !== undefined) {
+        return data.teamEraId;
+      }
       // Unreachable over the API: `UpsertTrophyAwardSchema`'s refinement
       // rejects a team award with no team era before the request gets here.
       // This is the backstop for a direct in-process caller, and a plain
@@ -582,7 +587,7 @@ export class TrophyAwardsService {
           'the player does not exist.',
       );
     }
-    return player.teamEraId;
+    return data.teamEraId ?? player.teamEraId;
   }
 
   /**

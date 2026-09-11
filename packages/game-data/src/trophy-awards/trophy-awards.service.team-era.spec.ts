@@ -28,8 +28,8 @@ const awardRow = {
 
 /**
  * Query slots, in the order `upsert` issues them: the trophy lookup, the
- * competition lookup, then — only when the caller omitted `teamEraId` — the
- * player's own row, and finally the insert.
+ * competition lookup, then — for every player award, whether or not the
+ * caller stated a `teamEraId` — the player's own row, and finally the insert.
  */
 async function build(...rowsPerQuery: unknown[][]): Promise<{
   service: TrophyAwardsService;
@@ -68,10 +68,11 @@ describe('TrophyAwardsService.upsert team era derivation', () => {
     });
   });
 
-  it('uses an explicitly supplied team era without looking the player up', async () => {
+  it('uses an explicitly supplied team era over the one the player carries', async () => {
     const { service, chains } = await build(
       playerTrophyRow,
       matchingCompetitionRow,
+      [{ teamEraId: 3 }],
       [{ ...awardRow, teamEraId: 9 }],
     );
 
@@ -82,14 +83,56 @@ describe('TrophyAwardsService.upsert team era derivation', () => {
       playerId: 4,
     });
 
-    // Three queries only: trophy, competition, insert — no player lookup.
-    expect(chains).toHaveLength(3);
-    expect(chains[2].values).toHaveBeenCalledWith({
+    // The player is still looked up — that is what proves the player exists —
+    // but a stated team era is more authoritative than a derived one, so 9 is
+    // what the row carries rather than the player's own 3.
+    expect(chains).toHaveLength(4);
+    expect(extractFilterValues(firstCallArg(chains[2].where))).toBe(4);
+    expect(chains[3].values).toHaveBeenCalledWith({
       trophyId: 1,
       competitionId: 2,
       teamEraId: 9,
       playerId: 4,
     });
+  });
+
+  it('rejects a player award whose player does not exist even when it states a team era', async () => {
+    const { service } = await build(
+      playerTrophyRow,
+      matchingCompetitionRow,
+      [],
+    );
+
+    // Without this the bad player reference would reach the insert and come
+    // back as a raw foreign-key violation instead of the same clear
+    // recipient error the derived-team-era path already gives.
+    await expect(
+      service.upsert({
+        trophyId: 1,
+        competitionId: 2,
+        teamEraId: 9,
+        playerId: 404,
+      }),
+    ).rejects.toBeInstanceOf(TrophyAwardRecipientMismatchError);
+  });
+
+  it('looks up no player for a team award that states its team era', async () => {
+    const { service, chains } = await build(
+      [{ recipientKind: 'team', competitionGroupId: 1, leagueId: null }],
+      matchingCompetitionRow,
+      [{ ...awardRow, teamEraId: 9, playerId: null }],
+    );
+
+    await service.upsert({
+      trophyId: 1,
+      competitionId: 2,
+      teamEraId: 9,
+      playerId: null,
+    });
+
+    // Three queries only: trophy, competition, insert. There is no player to
+    // look up, so the existence check has nothing to check.
+    expect(chains).toHaveLength(3);
   });
 
   it('rejects a player award whose player does not exist', async () => {
