@@ -132,10 +132,21 @@ export class TrophiesService {
    * shape TrophyAwardRuleDescriptionService takes, since it holds no database
    * access of its own. Underscores become spaces so a generated sentence reads
    * as prose rather than as column values.
+   *
+   * Action types and consequence types are kept separate rather than merged
+   * into one list per included/excluded. A compound rule like Top Fouler
+   * curates a `foul` action type together with a whole list of consequence
+   * types — meaning "a foul that ALSO caused one of these consequences", an
+   * AND of the two columns, not a flat OR list of unrelated event types. Only
+   * keeping the columns apart lets TrophyAwardRuleDescriptionService render
+   * that AND correctly.
    */
-  async findAwardRuleEventTypes(
-    trophyId: number,
-  ): Promise<{ included: string[]; excluded: string[] }> {
+  async findAwardRuleEventTypes(trophyId: number): Promise<{
+    includedActionTypes: string[];
+    includedConsequenceTypes: string[];
+    excludedActionTypes: string[];
+    excludedConsequenceTypes: string[];
+  }> {
     const included = await this.db
       .select({
         actionType: trophyAwardRuleMatchEventTypes.actionType,
@@ -159,8 +170,18 @@ export class TrophiesService {
         trophyAwardRuleExcludedMatchEventTypes.consequenceType,
       );
     return {
-      included: included.map(toDisplayType),
-      excluded: excluded.map(toDisplayType),
+      includedActionTypes: included
+        .filter((row) => row.actionType !== null)
+        .map(toDisplayType),
+      includedConsequenceTypes: included
+        .filter((row) => row.consequenceType !== null)
+        .map(toDisplayType),
+      excludedActionTypes: excluded
+        .filter((row) => row.actionType !== null)
+        .map(toDisplayType),
+      excludedConsequenceTypes: excluded
+        .filter((row) => row.consequenceType !== null)
+        .map(toDisplayType),
     };
   }
 

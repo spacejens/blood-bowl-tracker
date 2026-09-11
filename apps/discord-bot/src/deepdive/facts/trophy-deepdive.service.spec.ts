@@ -178,8 +178,10 @@ function makeTrophies(
   const trophies = mock<TrophiesService>();
   trophies.findById.mockResolvedValue(header);
   trophies.findAwardRuleEventTypes.mockResolvedValue({
-    included: [],
-    excluded: [],
+    includedActionTypes: [],
+    includedConsequenceTypes: [],
+    excludedActionTypes: [],
+    excludedConsequenceTypes: [],
   });
   return trophies;
 }
@@ -638,8 +640,10 @@ describe('TrophyDeepdiveService', () => {
     const trophies = mock<TrophiesService>();
     trophies.findById.mockResolvedValue(trophyHeader());
     trophies.findAwardRuleEventTypes.mockResolvedValue({
-      included: [],
-      excluded: [],
+      includedActionTypes: [],
+      includedConsequenceTypes: [],
+      excludedActionTypes: [],
+      excludedConsequenceTypes: [],
     });
     const trophyAwards = mock<TrophyAwardsService>();
     trophyAwards.countRecipients.mockResolvedValue(1);
@@ -683,8 +687,10 @@ describe('TrophyDeepdiveService', () => {
       awardRuleMeasure: null,
     });
     trophies.findAwardRuleEventTypes.mockResolvedValue({
-      included: [],
-      excluded: [],
+      includedActionTypes: [],
+      includedConsequenceTypes: [],
+      excludedActionTypes: [],
+      excludedConsequenceTypes: [],
     });
     const trophyAwards = mock<TrophyAwardsService>();
     trophyAwards.countRecipients.mockResolvedValue(0);
@@ -794,8 +800,10 @@ describe('TrophyDeepdiveService', () => {
       }),
     );
     trophies.findAwardRuleEventTypes.mockResolvedValue({
-      included: ['touchdown'],
-      excluded: [],
+      includedActionTypes: ['touchdown'],
+      includedConsequenceTypes: [],
+      excludedActionTypes: [],
+      excludedConsequenceTypes: [],
     });
     trophyAwards.countRecipients.mockResolvedValue(0);
     const { service } = await makeService({
@@ -809,6 +817,41 @@ describe('TrophyDeepdiveService', () => {
       'Awarded automatically to the player with the most touchdown events ' +
         'in the competition, shared by up to 4 tied players and not ' +
         'awarded if more tie.',
+    );
+  });
+
+  it('renders a compound award rule (Top Fouler) as the AND it actually is', async () => {
+    // Uses a real TrophyAwardRuleDescriptionService (see makeService) so this
+    // proves the embed shows the corrected AND wording, not a flat list of
+    // unrelated event types. Matches the "compound count rule" case in
+    // trophy-award-rule-description.service.spec.ts.
+    const trophies = mock<TrophiesService>();
+    const trophyAwards = mock<TrophyAwardsService>();
+    trophies.findById.mockResolvedValue(
+      trophyHeader({
+        awardRuleKind: 'max_count',
+        awardProcedure: null,
+        awardRuleTieCutoff: 4,
+      }),
+    );
+    trophies.findAwardRuleEventTypes.mockResolvedValue({
+      includedActionTypes: ['foul'],
+      includedConsequenceTypes: ['casualty', 'badly hurt'],
+      excludedActionTypes: [],
+      excludedConsequenceTypes: [],
+    });
+    trophyAwards.countRecipients.mockResolvedValue(0);
+    const { service } = await makeService({
+      trophies,
+      trophyAwards,
+    });
+
+    const reply = await service.resolve(1);
+
+    expect(JSON.stringify(reply)).toContain(
+      'Awarded automatically to the player with the most foul events that ' +
+        'caused a casualty or badly hurt consequence in the competition, ' +
+        'shared by up to 4 tied players and not awarded if more tie.',
     );
   });
 });

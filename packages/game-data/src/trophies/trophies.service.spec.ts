@@ -451,8 +451,31 @@ describe('TrophiesService', () => {
       );
 
       await expect(service.findAwardRuleEventTypes(1)).resolves.toEqual({
-        included: ['foul'],
-        excluded: ['mvp award'],
+        includedActionTypes: ['foul'],
+        includedConsequenceTypes: [],
+        excludedActionTypes: ['mvp award'],
+        excludedConsequenceTypes: [],
+      });
+    });
+
+    it('keeps action types and consequence types separate for a compound rule', async () => {
+      // Top Fouler's real curated rule: a `foul` action that ALSO caused one
+      // of these consequences. Flattening both columns into one list would
+      // lose exactly the distinction that makes this an AND, not an OR list.
+      await build(
+        [
+          { actionType: 'foul', consequenceType: null },
+          { actionType: null, consequenceType: 'casualty' },
+          { actionType: null, consequenceType: 'badly_hurt' },
+        ],
+        [],
+      );
+
+      await expect(service.findAwardRuleEventTypes(1)).resolves.toEqual({
+        includedActionTypes: ['foul'],
+        includedConsequenceTypes: ['casualty', 'badly hurt'],
+        excludedActionTypes: [],
+        excludedConsequenceTypes: [],
       });
     });
   });

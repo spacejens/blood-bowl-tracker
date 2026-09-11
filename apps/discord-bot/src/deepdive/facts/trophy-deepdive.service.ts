@@ -89,11 +89,15 @@ export class TrophyDeepdiveService {
     // The award rule's event types are part of the trophy header, so this
     // read shares the header's own timeout message rather than the
     // recipients' or context's.
-    const ruleEventTypes: { included: string[]; excluded: string[] } | null =
-      await this.databaseTimeout.run(
-        this.trophies.findAwardRuleEventTypes(trophy.id),
-        null,
-      );
+    const ruleEventTypes: {
+      includedActionTypes: string[];
+      includedConsequenceTypes: string[];
+      excludedActionTypes: string[];
+      excludedConsequenceTypes: string[];
+    } | null = await this.databaseTimeout.run(
+      this.trophies.findAwardRuleEventTypes(trophy.id),
+      null,
+    );
     if (ruleEventTypes === null) {
       return DEEPDIVE_TROPHY_TIMEOUT_MESSAGE;
     }
@@ -103,8 +107,10 @@ export class TrophyDeepdiveService {
       awardRuleTieCutoff: trophy.awardRuleTieCutoff,
       awardRuleThreshold: trophy.awardRuleThreshold,
       awardRuleMeasure: trophy.awardRuleMeasure,
-      includedEventTypes: ruleEventTypes.included,
-      excludedEventTypes: ruleEventTypes.excluded,
+      includedActionTypes: ruleEventTypes.includedActionTypes,
+      includedConsequenceTypes: ruleEventTypes.includedConsequenceTypes,
+      excludedActionTypes: ruleEventTypes.excludedActionTypes,
+      excludedConsequenceTypes: ruleEventTypes.excludedConsequenceTypes,
     });
 
     // Both recipient queries share one timeout message: they are two halves

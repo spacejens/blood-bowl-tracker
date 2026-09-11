@@ -18,8 +18,10 @@ describe('TrophyAwardRuleDescriptionService', () => {
     awardRuleTieCutoff: null,
     awardRuleThreshold: null,
     awardRuleMeasure: null,
-    includedEventTypes: [] as string[],
-    excludedEventTypes: [] as string[],
+    includedActionTypes: [] as string[],
+    includedConsequenceTypes: [] as string[],
+    excludedActionTypes: [] as string[],
+    excludedConsequenceTypes: [] as string[],
   };
 
   it("returns a source-recorded trophy's own procedure verbatim", () => {
@@ -48,7 +50,7 @@ describe('TrophyAwardRuleDescriptionService', () => {
         ...base,
         awardRuleKind: 'max_count',
         awardRuleTieCutoff: 4,
-        includedEventTypes: ['touchdown'],
+        includedActionTypes: ['touchdown'],
       }),
     ).toBe(
       'Awarded automatically to the player with the most touchdown events in ' +
@@ -57,15 +59,39 @@ describe('TrophyAwardRuleDescriptionService', () => {
     );
   });
 
-  it('lists every counted type of a compound count rule', () => {
+  it('renders a compound count rule as the AND it actually is (Top Fouler)', () => {
+    // Real curated rule from trophies.json5: a `foul` action that ALSO
+    // caused one of the eleven casualty-suffered consequence types. The old
+    // flattened-list rendering read as an unrelated 12-item OR list; this
+    // must read as the AND the rule actually evaluates.
     expect(
       service.describe({
         ...base,
         awardRuleKind: 'max_count',
         awardRuleTieCutoff: 4,
-        includedEventTypes: ['foul', 'casualty', 'badly hurt'],
+        includedActionTypes: ['foul'],
+        includedConsequenceTypes: [
+          'casualty',
+          'badly hurt',
+          'death',
+          'serious injury',
+          'niggling injury',
+          'miss next game',
+          'stat reduction ma',
+          'stat reduction st',
+          'stat reduction ag',
+          'stat reduction av',
+          'stat reduction pa',
+        ],
       }),
-    ).toContain('foul, casualty and badly hurt events');
+    ).toBe(
+      'Awarded automatically to the player with the most foul events that ' +
+        'caused a casualty, badly hurt, death, serious injury, niggling ' +
+        'injury, miss next game, stat reduction ma, stat reduction st, ' +
+        'stat reduction ag, stat reduction av or stat reduction pa ' +
+        'consequence in the competition, shared by up to 4 tied players ' +
+        'and not awarded if more tie.',
+    );
   });
 
   it('generates a sentence for an unrestricted SPP sum', () => {
@@ -88,7 +114,7 @@ describe('TrophyAwardRuleDescriptionService', () => {
         ...base,
         awardRuleKind: 'max_spp_sum',
         awardRuleTieCutoff: 4,
-        excludedEventTypes: ['mvp award'],
+        excludedActionTypes: ['mvp award'],
       }),
     ).toContain('excluding Star Player Points from mvp award events');
   });
@@ -114,7 +140,7 @@ describe('TrophyAwardRuleDescriptionService', () => {
         awardRuleKind: 'career_threshold',
         awardRuleThreshold: 3,
         awardRuleMeasure: 'event_count',
-        includedEventTypes: ['casualty', 'death'],
+        includedConsequenceTypes: ['casualty', 'death'],
       }),
     ).toBe(
       'Awarded automatically to every player who records 3 casualty or death ' +

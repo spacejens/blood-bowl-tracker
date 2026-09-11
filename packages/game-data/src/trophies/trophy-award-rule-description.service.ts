@@ -9,6 +9,13 @@ import type {
  * One trophy's award rule, flattened to what a sentence needs. Event types
  * arrive already flattened to display strings so this service stays free of
  * any database access — its only job is wording.
+ *
+ * Action types and consequence types are kept separate rather than merged.
+ * A rule with both non-empty is a compound rule — "an action of this type
+ * that ALSO caused one of these consequences" — the AND that `describe`
+ * renders explicitly for `max_count`, rather than a flat OR list. A rule
+ * with only one side populated (the common case, e.g. Top Scorer's
+ * `touchdown` action type) reads exactly as it always has.
  */
 export interface TrophyAwardRuleDescriptionInput {
   awardRuleKind: TrophyAwardRuleKind;
@@ -16,8 +23,10 @@ export interface TrophyAwardRuleDescriptionInput {
   awardRuleTieCutoff: number | null;
   awardRuleThreshold: number | null;
   awardRuleMeasure: TrophyAwardRuleMeasure | null;
-  includedEventTypes: readonly string[];
-  excludedEventTypes: readonly string[];
+  includedActionTypes: readonly string[];
+  includedConsequenceTypes: readonly string[];
+  excludedActionTypes: readonly string[];
+  excludedConsequenceTypes: readonly string[];
 }
 
 /**
@@ -42,14 +51,17 @@ export class TrophyAwardRuleDescriptionService {
       case 'max_count':
         return (
           `Awarded automatically to the player with the most ` +
-          `${this.list(input.includedEventTypes, 'and')} events in the ` +
-          `competition${this.tieClause(input.awardRuleTieCutoff)}.`
+          `${this.eventsPhrase(
+            input.includedActionTypes,
+            input.includedConsequenceTypes,
+          )} in the competition${this.tieClause(input.awardRuleTieCutoff)}.`
         );
       case 'max_spp_sum':
         return (
           'Awarded automatically to the player with the most Star Player ' +
           `Points in the competition${this.exclusionClause(
-            input.excludedEventTypes,
+            input.excludedActionTypes,
+            input.excludedConsequenceTypes,
           )}${this.tieClause(input.awardRuleTieCutoff)}.`
         );
       case 'career_threshold':
@@ -59,8 +71,10 @@ export class TrophyAwardRuleDescriptionService {
             )} Star Player Points over their career.`
           : `Awarded automatically to every player who records ${String(
               input.awardRuleThreshold,
-            )} ${this.list(input.includedEventTypes, 'or')} events over ` +
-              'their career.';
+            )} ${this.list(
+              [...input.includedActionTypes, ...input.includedConsequenceTypes],
+              'or',
+            )} events over their career.`;
       default: {
         const unreachable: never = input.awardRuleKind;
         return String(unreachable);
@@ -81,6 +95,27 @@ export class TrophyAwardRuleDescriptionService {
     }`;
   }
 
+  /**
+   * The "most ... events" phrase for `max_count`. A rule with both action
+   * types and consequence types curated is a compound rule — an action of
+   * one of the listed types that ALSO produced one of the listed
+   * consequences — so it reads as the AND it actually evaluates rather than
+   * one flat list of unrelated event types. A rule with only one side
+   * populated (the common case) reads exactly as it always has.
+   */
+  private eventsPhrase(
+    actionTypes: readonly string[],
+    consequenceTypes: readonly string[],
+  ): string {
+    if (actionTypes.length > 0 && consequenceTypes.length > 0) {
+      return (
+        `${this.list(actionTypes, 'and')} events that caused a ` +
+        `${this.list(consequenceTypes, 'or')} consequence`
+      );
+    }
+    return `${this.list([...actionTypes, ...consequenceTypes], 'and')} events`;
+  }
+
   private tieClause(tieCutoff: number | null): string {
     return tieCutoff === null
       ? ''
@@ -88,7 +123,11 @@ export class TrophyAwardRuleDescriptionService {
           'if more tie';
   }
 
-  private exclusionClause(excluded: readonly string[]): string {
+  private exclusionClause(
+    excludedActionTypes: readonly string[],
+    excludedConsequenceTypes: readonly string[],
+  ): string {
+    const excluded = [...excludedActionTypes, ...excludedConsequenceTypes];
     return excluded.length === 0
       ? ''
       : `, excluding Star Player Points from ${this.list(excluded, 'and')} events`;
