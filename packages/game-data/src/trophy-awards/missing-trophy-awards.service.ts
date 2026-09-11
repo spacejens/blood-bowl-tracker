@@ -60,11 +60,24 @@ const EMPTY_TYPES: TrophyRuleEventTypes = {
  * never see is dropped defensively rather than reaching the exhaustive
  * `computeWinners` dispatch, which throws on an unrecognized kind).
  */
-const COMPUTABLE_KINDS: readonly TrophyAwardRuleKind[] = [
+const COMPUTABLE_KINDS = [
   'max_count',
   'max_spp_sum',
   'career_threshold',
-];
+] as const satisfies readonly TrophyAwardRuleKind[];
+
+/** The subset of `TrophyAwardRuleKind` this service actually computes. */
+type ComputableTrophyAwardRuleKind = (typeof COMPUTABLE_KINDS)[number];
+
+/** A `TrophyRuleRow` narrowed to a rule kind this service can compute. */
+type ComputableTrophyRuleRow = TrophyRuleRow & {
+  awardRuleKind: ComputableTrophyAwardRuleKind;
+};
+
+function isComputable(rule: TrophyRuleRow): rule is ComputableTrophyRuleRow {
+  const computableKinds: readonly TrophyAwardRuleKind[] = COMPUTABLE_KINDS;
+  return computableKinds.includes(rule.awardRuleKind);
+}
 
 /**
  * Fills in the trophy awards a source importer did not record, from the
@@ -135,9 +148,7 @@ export class MissingTrophyAwardsService {
           inArray(trophies.awardRuleKind, COMPUTABLE_KINDS),
         ),
       );
-    const rules = allRules.filter((rule) =>
-      COMPUTABLE_KINDS.includes(rule.awardRuleKind),
-    );
+    const rules = allRules.filter(isComputable);
     if (rules.length === 0) {
       return empty;
     }
@@ -227,7 +238,7 @@ export class MissingTrophyAwardsService {
    * nullish fallbacks below are only present to satisfy the type system.
    */
   private computeWinners(options: {
-    rule: TrophyRuleRow;
+    rule: ComputableTrophyRuleRow;
     competitionId: number;
     leagueId: number;
     types: TrophyRuleEventTypes;
@@ -265,7 +276,7 @@ export class MissingTrophyAwardsService {
           measure: rule.awardRuleMeasure ?? 'event_count',
         });
       default: {
-        const unreachable: never = rule.awardRuleKind as never;
+        const unreachable: never = rule.awardRuleKind;
         throw new Error(
           `Trophy ${rule.id} has award rule kind ${String(unreachable)}, ` +
             'which is not computable.',
