@@ -77,6 +77,9 @@ export function extractAllFilterValues(condition: unknown): unknown[] {
       for (const chunk of node.queryChunks) walk(chunk);
     } else if (Array.isArray(node)) {
       for (const chunk of node) walk(chunk);
+    } else if (typeof node === 'number' || typeof node === 'string' || typeof node === 'boolean') {
+      // Direct primitive values (e.g., inlined in sql`...`)
+      values.push(node);
     }
   };
   walk(condition);
