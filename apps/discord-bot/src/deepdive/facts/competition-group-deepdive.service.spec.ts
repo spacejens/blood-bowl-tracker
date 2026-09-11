@@ -54,6 +54,8 @@ type GroupCompetition = {
   name: string;
   eraId: number;
   eraName: string;
+  eraStartDate: string;
+  eraEndDate: string | null;
   startDate: string;
   endDate: string | null;
 };
@@ -142,6 +144,8 @@ const COMPETITIONS: GroupCompetition[] = [
     name: 'Chaos Cup 23',
     eraId: 20,
     eraName: 'BB2020',
+    eraStartDate: '2020-01-01',
+    eraEndDate: '2023-12-31',
     startDate: '2023-10-01',
     endDate: '2023-10-02',
   },
@@ -150,6 +154,8 @@ const COMPETITIONS: GroupCompetition[] = [
     name: 'Chaos Cup 24',
     eraId: 21,
     eraName: 'BB2020 v2',
+    eraStartDate: '2024-01-01',
+    eraEndDate: null,
     startDate: '2024-10-01',
     endDate: null,
   },
@@ -231,7 +237,11 @@ describe('CompetitionGroupDeepdiveService', () => {
       competitions: makeCompetitions(COMPETITIONS),
       dateRangeFormatter,
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'BB2020', rows: COMPETITIONS },
+        {
+          eraName: 'BB2020',
+          eraHeading: 'BB2020 (2020-01-01 – 2023-12-31)',
+          rows: COMPETITIONS,
+        },
       ]),
     });
 
@@ -300,8 +310,16 @@ describe('CompetitionGroupDeepdiveService', () => {
       competitions: makeCompetitions(COMPETITIONS),
       dateRangeFormatter,
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'BB2020', rows: [COMPETITIONS[0]] },
-        { eraName: 'BB2020 v2', rows: [COMPETITIONS[1]] },
+        {
+          eraName: 'BB2020',
+          eraHeading: 'BB2020 (2020-01-01 – 2023-12-31)',
+          rows: [COMPETITIONS[0]],
+        },
+        {
+          eraName: 'BB2020 v2',
+          eraHeading: 'BB2020 v2 (2024-01-01 – present)',
+          rows: [COMPETITIONS[1]],
+        },
       ]),
     });
 

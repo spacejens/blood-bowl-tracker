@@ -39,6 +39,8 @@ type GroupCompetition = {
   name: string;
   eraId: number;
   eraName: string;
+  eraStartDate: string;
+  eraEndDate: string | null;
   startDate: string;
   endDate: string | null;
 };

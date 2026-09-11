@@ -797,8 +797,16 @@ describe('TeamDeepdiveService', () => {
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, older]),
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'Season 4', rows: [spikeCup] },
-        { eraName: 'Season 2', rows: [older] },
+        {
+          eraName: 'Season 4',
+          eraHeading: 'Season 4 (2024-01-01 – present)',
+          rows: [spikeCup],
+        },
+        {
+          eraName: 'Season 2',
+          eraHeading: 'Season 2 (2022-01-01 – 2023-12-31)',
+          rows: [older],
+        },
       ]),
     });
     const result = (await service.resolve(1)) as {

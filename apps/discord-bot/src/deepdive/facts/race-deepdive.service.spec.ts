@@ -444,9 +444,30 @@ describe('RaceDeepdiveService', () => {
 
   it('lists the positions available in each era, one heading per era and one row per position', async () => {
     const positions: RacePosition[] = [
-      { id: 1, name: 'Blitzer', eraId: 3, eraName: 'BB2016' },
-      { id: 2, name: 'Lineman', eraId: 3, eraName: 'BB2016' },
-      { id: 2, name: 'Lineman', eraId: 4, eraName: 'BB2020' },
+      {
+        id: 1,
+        name: 'Blitzer',
+        eraId: 3,
+        eraName: 'BB2016',
+        eraStartDate: '2016-01-01',
+        eraEndDate: '2019-12-31',
+      },
+      {
+        id: 2,
+        name: 'Lineman',
+        eraId: 3,
+        eraName: 'BB2016',
+        eraStartDate: '2016-01-01',
+        eraEndDate: '2019-12-31',
+      },
+      {
+        id: 2,
+        name: 'Lineman',
+        eraId: 4,
+        eraName: 'BB2020',
+        eraStartDate: '2020-01-01',
+        eraEndDate: null,
+      },
     ];
     const { service, entityComponents } = await makeService({
       races: makeRaces({
@@ -457,8 +478,16 @@ describe('RaceDeepdiveService', () => {
       // Mirrors the trophy/competition-group deep dives' own per-era section
       // rendering: one heading per era, then one row per item under it.
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'BB2016', rows: positions.slice(0, 2) },
-        { eraName: 'BB2020', rows: positions.slice(2) },
+        {
+          eraName: 'BB2016',
+          eraHeading: 'BB2016 (2016-01-01 – 2019-12-31)',
+          rows: positions.slice(0, 2),
+        },
+        {
+          eraName: 'BB2020',
+          eraHeading: 'BB2020 (2020-01-01 – present)',
+          rows: positions.slice(2),
+        },
       ]),
     });
 
@@ -523,6 +552,8 @@ describe('RaceDeepdiveService', () => {
         name: `Position ${index}`,
         eraId: 3,
         eraName: 'BB2016',
+        eraStartDate: '2016-01-01',
+        eraEndDate: '2019-12-31',
       }),
     );
     const { service } = await makeService({
