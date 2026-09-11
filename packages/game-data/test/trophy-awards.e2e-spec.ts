@@ -96,6 +96,7 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
       recipientKind: 'player',
       competitionGroupId: group.id,
       leagueId: null,
+      awardRuleKind: 'manual',
     })
     .returning();
   const [teamTrophy] = await db
@@ -105,6 +106,7 @@ async function seedTrophyFixtures(db: Db): Promise<TrophyFixtures> {
       recipientKind: 'team',
       competitionGroupId: group.id,
       leagueId: null,
+      awardRuleKind: 'manual',
     })
     .returning();
 

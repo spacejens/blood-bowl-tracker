@@ -5,7 +5,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
-import { extractAllFilterValues, firstCallArg } from '../shared/query-assertions.test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { CareerThresholdTrophyRuleService } from './threshold-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 
@@ -76,10 +79,14 @@ describe('CareerThresholdTrophyRuleService', () => {
 
     await service.compute(SPP_OPTIONS);
 
-    const whereValues = extractAllFilterValues(firstCallArg(db.chains[0].where));
+    const whereValues = extractAllFilterValues(
+      firstCallArg(db.chains[0].where),
+    );
     expect(whereValues).toContain(1);
 
-    const havingValues = extractAllFilterValues(firstCallArg(db.chains[0].having));
+    const havingValues = extractAllFilterValues(
+      firstCallArg(db.chains[0].having),
+    );
     expect(havingValues).toContain(176);
   });
 
@@ -95,11 +102,15 @@ describe('CareerThresholdTrophyRuleService', () => {
       measure: 'event_count',
     });
 
-    const whereValues = extractAllFilterValues(firstCallArg(db.chains[0].where));
+    const whereValues = extractAllFilterValues(
+      firstCallArg(db.chains[0].where),
+    );
     expect(whereValues).toContain('casualty');
     expect(whereValues).toContain('death');
 
-    const havingValues = extractAllFilterValues(firstCallArg(db.chains[0].having));
+    const havingValues = extractAllFilterValues(
+      firstCallArg(db.chains[0].having),
+    );
     expect(havingValues).toContain(3);
   });
 });

@@ -5,7 +5,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
-import { extractAllFilterValues, firstCallArg } from '../shared/query-assertions.test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { MaxSppSumTrophyRuleService } from './max-spp-sum-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 

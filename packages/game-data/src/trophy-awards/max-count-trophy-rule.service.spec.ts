@@ -5,7 +5,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
-import { extractAllFilterValues, firstCallArg } from '../shared/query-assertions.test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 
@@ -34,7 +37,10 @@ async function makeService(rows: unknown[]): Promise<{
   return { service: moduleRef.get(MaxCountTrophyRuleService), db };
 }
 
-const TOUCHDOWNS = { actionTypes: ['touchdown'] as const, consequenceTypes: [] as const };
+const TOUCHDOWNS = {
+  actionTypes: ['touchdown'] as const,
+  consequenceTypes: [] as const,
+};
 
 describe('MaxCountTrophyRuleService', () => {
   it('returns the single top counter', async () => {

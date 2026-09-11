@@ -77,8 +77,14 @@ export function extractAllFilterValues(condition: unknown): unknown[] {
       for (const chunk of node.queryChunks) walk(chunk);
     } else if (Array.isArray(node)) {
       for (const chunk of node) walk(chunk);
-    } else if (typeof node === 'number' || typeof node === 'string' || typeof node === 'boolean') {
-      // Direct primitive values (e.g., inlined in sql`...`)
+    } else if (typeof node === 'number') {
+      // A bare numeric literal drizzle did not wrap in a `Param` — e.g. a
+      // `.having(sql\`${aggregate} >= ${threshold}\`)` threshold, which lands
+      // in `queryChunks` unwrapped. Deliberately narrower than "any
+      // primitive": a raw `string`/`boolean` chunk is common SQL-text
+      // scaffolding (keywords, operators, an `ilike()` pattern embedded as a
+      // string rather than a `Param`) that this helper must not mistake for
+      // a filter value.
       values.push(node);
     }
   };
