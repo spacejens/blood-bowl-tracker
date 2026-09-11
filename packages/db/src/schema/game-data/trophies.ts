@@ -133,6 +133,7 @@ const trophiesTable = historyTrackedTable({
         AND ${t.awardRuleMeasure} IS NULL
       ) OR (
         ${t.awardRuleKind} IN ('max_count', 'max_spp_sum')
+        AND ${t.recipientKind} = 'player'
         AND ${t.awardProcedure} IS NULL
         AND ${t.awardRuleRole} IS NOT NULL
         AND ${t.awardRuleTieCutoff} IS NOT NULL
@@ -140,6 +141,7 @@ const trophiesTable = historyTrackedTable({
         AND ${t.awardRuleMeasure} IS NULL
       ) OR (
         ${t.awardRuleKind} = 'career_threshold'
+        AND ${t.recipientKind} = 'player'
         AND ${t.awardProcedure} IS NULL
         AND ${t.awardRuleRole} IS NOT NULL
         AND ${t.awardRuleTieCutoff} IS NULL
