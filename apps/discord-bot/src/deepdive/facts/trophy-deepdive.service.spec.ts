@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import {
   TrophiesService,
+  TrophyAwardRuleDescriptionService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -60,6 +61,18 @@ interface MakeServiceOptions {
   playerContext?: MockProxy<PlayerContextService>;
   eraSectionGrouper?: MockProxy<EraSectionGrouperService>;
   playerRowButton?: MockProxy<PlayerRowButtonService>;
+  awardRuleDescription?: MockProxy<TrophyAwardRuleDescriptionService>;
+}
+
+/**
+ * Defaults `describe()` to an empty string, matching the header's own
+ * `awardRule === ''` omission check, so tests that don't care about the
+ * award-rule line keep their existing description assertions unchanged.
+ */
+function defaultAwardRuleDescription(): MockProxy<TrophyAwardRuleDescriptionService> {
+  const awardRuleDescription = mock<TrophyAwardRuleDescriptionService>();
+  awardRuleDescription.describe.mockReturnValue('');
+  return awardRuleDescription;
 }
 
 async function makeService({
@@ -71,6 +84,7 @@ async function makeService({
   playerContext = passthroughPlayerContext(),
   eraSectionGrouper = singleEraSectionGrouper('Season 24 Era'),
   playerRowButton = makePlayerRowButton(),
+  awardRuleDescription = defaultAwardRuleDescription(),
 }: MakeServiceOptions): Promise<{
   service: TrophyDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
@@ -80,6 +94,7 @@ async function makeService({
   playerContext: MockProxy<PlayerContextService>;
   eraSectionGrouper: MockProxy<EraSectionGrouperService>;
   playerRowButton: MockProxy<PlayerRowButtonService>;
+  awardRuleDescription: MockProxy<TrophyAwardRuleDescriptionService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -92,6 +107,10 @@ async function makeService({
       { provide: PlayerContextService, useValue: playerContext },
       { provide: EraSectionGrouperService, useValue: eraSectionGrouper },
       { provide: PlayerRowButtonService, useValue: playerRowButton },
+      {
+        provide: TrophyAwardRuleDescriptionService,
+        useValue: awardRuleDescription,
+      },
     ],
   }).compile();
   return {
@@ -103,6 +122,7 @@ async function makeService({
     playerContext,
     eraSectionGrouper,
     playerRowButton,
+    awardRuleDescription,
   };
 }
 
@@ -115,6 +135,11 @@ function trophyHeader(overrides: Partial<TrophyHeader> = {}): TrophyHeader {
     competitionGroupName: 'Major',
     leagueId: null,
     leagueName: null,
+    awardRuleKind: 'direct_source',
+    awardProcedure: 'Recorded by the source.',
+    awardRuleTieCutoff: null,
+    awardRuleThreshold: null,
+    awardRuleMeasure: null,
     ...overrides,
   };
 }
@@ -170,6 +195,10 @@ function makeTrophies(
 ): MockProxy<TrophiesService> {
   const trophies = mock<TrophiesService>();
   trophies.findById.mockResolvedValue(header);
+  trophies.findAwardRuleEventTypes.mockResolvedValue({
+    included: [],
+    excluded: [],
+  });
   return trophies;
 }
 
@@ -222,8 +251,9 @@ describe('TrophyDeepdiveService', () => {
 
   it('returns the recipients timeout message when the recipient count times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The first run() (the header) passes through; the second (the count)
-    // times out, so the list query is never reached.
+    // The header and the award rule's event types pass through; the third
+    // run() (the count) times out, so the list query is never reached.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     stubDatabaseTimeoutOnce(databaseTimeout);
     const { service, trophyAwards } = await makeService({
@@ -240,8 +270,10 @@ describe('TrophyDeepdiveService', () => {
 
   it('returns the recipients timeout message when the recipient list times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The header and the count pass through; the third run() (the list of
-    // recipients) times out. Both recipient calls share one message.
+    // The header, the award rule's event types and the count pass through;
+    // the fourth run() (the list of recipients) times out. Both recipient
+    // calls share one message.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     stubDatabaseTimeoutOnce(databaseTimeout);
@@ -367,8 +399,9 @@ describe('TrophyDeepdiveService', () => {
 
   it('returns the recipient context timeout message when the team/player context lookup times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The header, count and list pass through; the fourth run() (the
-    // team/player context lookup) times out.
+    // The header, the award rule's event types, count and list pass through;
+    // the fifth run() (the team/player context lookup) times out.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
@@ -422,8 +455,10 @@ describe('TrophyDeepdiveService', () => {
 
   it('does not call the recipient context lookup when the count is zero, even if that call would time out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The header and the count pass through; a third run() is stubbed to time
-    // out so the test would fail if the context lookup were still reached.
+    // The header, the award rule's event types and the count pass through; a
+    // fourth run() is stubbed to time out so the test would fail if the
+    // context lookup were still reached.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     stubDatabaseTimeoutOnce(databaseTimeout);
@@ -619,6 +654,10 @@ describe('TrophyDeepdiveService', () => {
   it('offers a drill-up button to the competition group after the recipients', async () => {
     const trophies = mock<TrophiesService>();
     trophies.findById.mockResolvedValue(trophyHeader());
+    trophies.findAwardRuleEventTypes.mockResolvedValue({
+      included: [],
+      excluded: [],
+    });
     const trophyAwards = mock<TrophyAwardsService>();
     trophyAwards.countRecipients.mockResolvedValue(1);
     trophyAwards.listRecipients.mockResolvedValue([teamRecipient()]);
@@ -654,6 +693,15 @@ describe('TrophyDeepdiveService', () => {
       competitionGroupName: null,
       leagueId: 7,
       leagueName: 'tLoEG',
+      awardRuleKind: 'direct_source',
+      awardProcedure: 'Recorded by the source.',
+      awardRuleTieCutoff: null,
+      awardRuleThreshold: null,
+      awardRuleMeasure: null,
+    });
+    trophies.findAwardRuleEventTypes.mockResolvedValue({
+      included: [],
+      excluded: [],
     });
     const trophyAwards = mock<TrophyAwardsService>();
     trophyAwards.countRecipients.mockResolvedValue(0);
@@ -744,5 +792,40 @@ describe('TrophyDeepdiveService', () => {
       DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE,
     ]);
     expect(eraSectionGrouper.group).not.toHaveBeenCalled();
+  });
+
+  it('renders the award rule sentence in the header', async () => {
+    const trophies = mock<TrophiesService>();
+    const trophyAwards = mock<TrophyAwardsService>();
+    const awardRuleDescription = mock<TrophyAwardRuleDescriptionService>();
+    trophies.findById.mockResolvedValue(
+      trophyHeader({ awardRuleKind: 'max_count', awardProcedure: null }),
+    );
+    trophies.findAwardRuleEventTypes.mockResolvedValue({
+      included: ['touchdown'],
+      excluded: [],
+    });
+    trophyAwards.countRecipients.mockResolvedValue(0);
+    awardRuleDescription.describe.mockReturnValue(
+      'Awarded automatically to the top scorer.',
+    );
+    const { service } = await makeService({
+      trophies,
+      trophyAwards,
+      awardRuleDescription,
+    });
+
+    const reply = await service.resolve(1);
+
+    expect(JSON.stringify(reply)).toContain(
+      'Awarded automatically to the top scorer.',
+    );
+    expect(awardRuleDescription.describe).toHaveBeenCalledWith(
+      expect.objectContaining({
+        awardRuleKind: 'max_count',
+        includedEventTypes: ['touchdown'],
+        excludedEventTypes: [],
+      }),
+    );
   });
 });

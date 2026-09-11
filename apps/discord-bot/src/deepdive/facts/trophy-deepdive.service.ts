@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import {
   TrophiesService,
+  TrophyAwardRuleDescriptionService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -72,6 +73,7 @@ export class TrophyDeepdiveService {
     private readonly playerContext: PlayerContextService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
     private readonly playerRowButton: PlayerRowButtonService,
+    private readonly awardRuleDescription: TrophyAwardRuleDescriptionService,
   ) {}
 
   async resolve(trophyId: number): Promise<string | InteractionReplyOptions> {
@@ -83,6 +85,27 @@ export class TrophyDeepdiveService {
     if (trophy === undefined) {
       return DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE;
     }
+
+    // The award rule's event types are part of the trophy header, so this
+    // read shares the header's own timeout message rather than the
+    // recipients' or context's.
+    const ruleEventTypes: { included: string[]; excluded: string[] } | null =
+      await this.databaseTimeout.run(
+        this.trophies.findAwardRuleEventTypes(trophy.id),
+        null,
+      );
+    if (ruleEventTypes === null) {
+      return DEEPDIVE_TROPHY_TIMEOUT_MESSAGE;
+    }
+    const awardRule = this.awardRuleDescription.describe({
+      awardRuleKind: trophy.awardRuleKind,
+      awardProcedure: trophy.awardProcedure,
+      awardRuleTieCutoff: trophy.awardRuleTieCutoff,
+      awardRuleThreshold: trophy.awardRuleThreshold,
+      awardRuleMeasure: trophy.awardRuleMeasure,
+      includedEventTypes: ruleEventTypes.included,
+      excludedEventTypes: ruleEventTypes.excluded,
+    });
 
     // Both recipient queries share one timeout message: they are two halves
     // of the same "who has won this?" answer, and telling the reader which of
@@ -168,6 +191,7 @@ export class TrophyDeepdiveService {
       ...(trophy.description === null
         ? []
         : [`Description: ${trophy.description}`]),
+      ...(awardRule === '' ? [] : [`How it is awarded: ${awardRule}`]),
       '',
       ...recipientLines,
       ...(overflowNote === null ? [] : [overflowNote]),
