@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { absent } from './shared/absent';
 
 /**
  * See `TROPHY_RECIPIENT_KINDS` in `@blood-bowl-tracker/domain-enums` for what
@@ -22,14 +23,19 @@ export const TrophyAwardRuleMeasureSchema = z.enum(TROPHY_AWARD_RULE_MEASURES);
 
 /**
  * One match-event type a computed trophy's rule counts. Exactly one of the two
- * fields is set; the database's own check constraint enforces that, the same
- * way it does for a trophy's group-or-league scope, rather than this schema
- * duplicating the rule.
+ * fields is set — the database's own check constraint enforces the same rule
+ * for the stored row, but that only rejects an invalid curated entry once it
+ * reaches persistence, so the refinement below enforces it here too, at
+ * validation time.
  */
-export const TrophyAwardRuleEventTypeSchema = z.object({
-  actionType: z.enum(ACTION_TYPES).nullish(),
-  consequenceType: z.enum(CONSEQUENCE_TYPES).nullish(),
-});
+export const TrophyAwardRuleEventTypeSchema = z
+  .object({
+    actionType: z.enum(ACTION_TYPES).nullish(),
+    consequenceType: z.enum(CONSEQUENCE_TYPES).nullish(),
+  })
+  .refine((v) => !absent(v.actionType) !== !absent(v.consequenceType), {
+    message: 'Exactly one of actionType/consequenceType must be set',
+  });
 
 export const TrophySchema = z.object({
   id: z.number(),

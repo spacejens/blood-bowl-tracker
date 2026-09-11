@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { TrophySchema, UpsertTrophySchema } from './trophy';
+import {
+  TrophyAwardRuleEventTypeSchema,
+  TrophySchema,
+  UpsertTrophySchema,
+} from './trophy';
 
 describe('trophy schemas', () => {
   it('accepts a full trophy with a description', () => {
@@ -181,6 +185,34 @@ describe('trophy schemas', () => {
       externalIds: [{ externalSystemId: 1, externalId: 'Major 1st' }],
     });
     expect(parsed.awardProcedure).toBe('Recorded from the season standings.');
+  });
+
+  it('accepts an award rule event type with exactly one field set', () => {
+    expect(
+      TrophyAwardRuleEventTypeSchema.parse({ actionType: 'foul' }),
+    ).toEqual({ actionType: 'foul' });
+    expect(
+      TrophyAwardRuleEventTypeSchema.parse({ consequenceType: 'casualty' }),
+    ).toEqual({ consequenceType: 'casualty' });
+  });
+
+  it('rejects an award rule event type with neither field set', () => {
+    expect(() => TrophyAwardRuleEventTypeSchema.parse({})).toThrow();
+    expect(() =>
+      TrophyAwardRuleEventTypeSchema.parse({
+        actionType: null,
+        consequenceType: null,
+      }),
+    ).toThrow();
+  });
+
+  it('rejects an award rule event type with both fields set', () => {
+    expect(() =>
+      TrophyAwardRuleEventTypeSchema.parse({
+        actionType: 'foul',
+        consequenceType: 'casualty',
+      }),
+    ).toThrow();
   });
 
   it('rejects an unknown award rule kind', () => {
