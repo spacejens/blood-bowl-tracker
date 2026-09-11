@@ -79,6 +79,9 @@ export class PlayersService {
         positionId: number;
         eraName: string;
         eraId: number;
+        /** The era's own span (`null` end = ongoing), for the `Era:` line. */
+        eraStartDate: string;
+        eraEndDate: string | null;
         sppTotal: number | null;
         sppAdjustment: number | null;
         move: number;
@@ -101,6 +104,8 @@ export class PlayersService {
         positionId: positions.id,
         eraName: eras.name,
         eraId: eras.id,
+        eraStartDate: eras.startDate,
+        eraEndDate: eras.endDate,
         sppTotal: players.sppTotal,
         sppAdjustment: players.sppAdjustment,
         // The player's own current characteristics. No new join: they live on

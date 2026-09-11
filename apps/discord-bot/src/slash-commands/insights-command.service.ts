@@ -32,18 +32,27 @@ import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import type { DateButtonScopeToken } from '../shared/date-button-id.service';
+import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 /**
  * The single league/era/competition/match category resolved for the current
- * request, if any.
+ * request, if any. An era and a competition carry their own span too: the
+ * embed-title suffix dates them, so the scope's resolution is what puts the
+ * dates in hand. A league has no date columns of its own, and a match category
+ * is a fixed enum value, so neither carries dates.
  */
 export interface ResolvedScope {
   league?: { id: number; name: string };
-  era?: { id: number; name: string };
-  competition?: { id: number; name: string };
+  era?: { id: number; name: string; startDate: string; endDate: string | null };
+  competition?: {
+    id: number;
+    name: string;
+    startDate: string;
+    endDate: string | null;
+  };
   matchCategory?: { value: MatchCategory; label: string };
 }
 
@@ -57,6 +66,7 @@ export class InsightsCommandService implements OnModuleInit {
     private readonly registry: SlashCommandRegistryService,
     private readonly factTreeUtils: FactTreeUtilsService,
     private readonly categoryLabel: MatchCategoryLabelService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   onModuleInit(): void {
@@ -314,16 +324,17 @@ export class InsightsCommandService implements OnModuleInit {
   }
 
   /**
-   * An era or competition named by a slash-command option: absent when the
-   * option was not given, `notFound` when it was given but names nothing.
+   * A league, era or competition named by a slash-command option: absent when
+   * the option was not given, `notFound` when it was given but names nothing.
+   * Generic over the row the lookup returns, so each caller's own shape —
+   * including an era's or competition's date columns — reaches the resolved
+   * scope unnarrowed.
    */
-  private async resolveScopeOption(
+  private async resolveScopeOption<T extends { id: number; name: string }>(
     option: string | null,
-    findById: (id: number) => Promise<{ id: number; name: string } | undefined>,
+    findById: (id: number) => Promise<T | undefined>,
   ): Promise<
-    | { kind: 'absent' }
-    | { kind: 'found'; value: { id: number; name: string } }
-    | { kind: 'notFound' }
+    { kind: 'absent' } | { kind: 'found'; value: T } | { kind: 'notFound' }
   > {
     if (option === null) {
       return { kind: 'absent' };
@@ -377,21 +388,46 @@ export class InsightsCommandService implements OnModuleInit {
   }
 
   /**
-   * Suffixes a reply's embed title with the name of whichever scope was
-   * resolved (league, era, competition or match category), or `'All time'`
-   * when none was.
+   * Suffixes a reply's embed title with whichever scope was resolved, or
+   * `'All time'` when none was. An era and a competition are dated as well as
+   * named, so a reader can tell at a glance whether the scope they are looking
+   * at is finished or still running. A league carries no date columns of its
+   * own and a match category is a fixed enum value, so both stay bare names.
    */
   applyScopeSuffix(
     reply: string | InteractionReplyOptions,
     resolved: ResolvedScope,
   ): string | InteractionReplyOptions {
-    return this.applyTitleSuffix(
-      reply,
-      resolved.league?.name ??
-        resolved.era?.name ??
-        resolved.competition?.name ??
-        resolved.matchCategory?.label ??
-        'All time',
+    return this.applyTitleSuffix(reply, this.buildScopeLabel(resolved));
+  }
+
+  /**
+   * The scope label, in the same league → era → competition → match category
+   * precedence `ResolvedScope` is resolved with (only one is ever set, but the
+   * order is kept explicit).
+   */
+  private buildScopeLabel(resolved: ResolvedScope): string {
+    if (resolved.league !== undefined) {
+      return resolved.league.name;
+    }
+    if (resolved.era !== undefined) {
+      return this.buildDatedLabel(resolved.era);
+    }
+    if (resolved.competition !== undefined) {
+      return this.buildDatedLabel(resolved.competition);
+    }
+    return resolved.matchCategory?.label ?? 'All time';
+  }
+
+  private buildDatedLabel(scope: {
+    name: string;
+    startDate: string;
+    endDate: string | null;
+  }): string {
+    return this.dateRangeFormatter.formatNamed(
+      scope.name,
+      scope.startDate,
+      scope.endDate,
     );
   }
 

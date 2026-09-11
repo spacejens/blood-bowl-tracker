@@ -69,7 +69,9 @@ async function makeService({
   entityComponents = nullEntityComponents(),
   teamContext = passthroughTeamContext(),
   playerContext = passthroughPlayerContext(),
-  eraSectionGrouper = singleEraSectionGrouper('Season 24 Era'),
+  eraSectionGrouper = singleEraSectionGrouper(
+    'Season 24 Era (2024-01-01 – present)',
+  ),
   playerRowButton = makePlayerRowButton(),
 }: MakeServiceOptions): Promise<{
   service: TrophyDeepdiveService;
@@ -127,6 +129,8 @@ function teamRecipient(
     competitionStartDate: '2024-01-15',
     eraId: 20,
     eraName: 'Season 24 Era',
+    eraStartDate: '2024-01-01',
+    eraEndDate: null,
     teamId: 30,
     teamName: 'Reikland Reavers',
     playerId: null,
@@ -272,7 +276,7 @@ describe('TrophyDeepdiveService', () => {
       'Awarded for: Major',
       'Description: The team that wins after four matches.',
       '',
-      'Season 24 Era recipients:',
+      'Season 24 Era (2024-01-01 – present) recipients:',
       'Major Season 24: Reikland Reavers',
     ]);
   });
@@ -704,13 +708,21 @@ describe('TrophyDeepdiveService', () => {
       teamName: 'Gouged Eye',
       eraId: 19,
       eraName: 'Season 23 Era',
+      eraStartDate: '2023-01-01',
+      eraEndDate: '2023-12-31',
     });
     const { service, eraSectionGrouper } = await makeService({
       trophies: makeTrophies(trophyHeader()),
       trophyAwards: makeAwards([newer, older]),
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'Season 24 Era', rows: [newer] },
-        { eraName: 'Season 23 Era', rows: [older] },
+        {
+          eraHeading: 'Season 24 Era (2024-01-01 – present)',
+          rows: [newer],
+        },
+        {
+          eraHeading: 'Season 23 Era (2023-01-01 – 2023-12-31)',
+          rows: [older],
+        },
       ]),
     });
 
@@ -721,10 +733,10 @@ describe('TrophyDeepdiveService', () => {
       'Awarded for: Major',
       'Description: The team that wins after four matches.',
       '',
-      'Season 24 Era recipients:',
+      'Season 24 Era (2024-01-01 – present) recipients:',
       'Major Season 24: Reikland Reavers',
       '',
-      'Season 23 Era recipients:',
+      'Season 23 Era (2023-01-01 – 2023-12-31) recipients:',
       'Major Season 23: Gouged Eye',
     ]);
   });
@@ -744,5 +756,24 @@ describe('TrophyDeepdiveService', () => {
       DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE,
     ]);
     expect(eraSectionGrouper.group).not.toHaveBeenCalled();
+  });
+
+  it('heads an ongoing era section with the era dated as still running', async () => {
+    const { service } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([teamRecipient()], 1),
+      eraSectionGrouper: cannedEraSectionGrouper([
+        {
+          eraHeading: 'BB2020 (2020-01-01 – present)',
+          rows: [teamRecipient()],
+        },
+      ]),
+    });
+
+    const result = await service.resolve(1);
+
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('BB2020 (2020-01-01 – present) recipients:');
   });
 });

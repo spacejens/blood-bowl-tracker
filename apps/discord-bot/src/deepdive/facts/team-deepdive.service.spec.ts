@@ -696,7 +696,9 @@ describe('TeamDeepdiveService', () => {
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup]),
-      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+      eraSectionGrouper: singleEraSectionGrouper(
+        'Season 4 (2024-01-01 – present)',
+      ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -707,7 +709,7 @@ describe('TeamDeepdiveService', () => {
       'Eras: None recorded',
       'Career: 2021-09-01 – 2023-06-10',
       '',
-      'Season 4 trophies:',
+      'Season 4 (2024-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       '',
       'Top players by SPP:',
@@ -724,7 +726,9 @@ describe('TeamDeepdiveService', () => {
       leaderboard: passthroughLeaderboard(),
       playerContext: passthroughPlayerContext(' (Blitzer)'),
       trophyAwards: makeTrophyAwards([mvp]),
-      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+      eraSectionGrouper: singleEraSectionGrouper(
+        'Season 4 (2024-01-01 – present)',
+      ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
@@ -767,15 +771,17 @@ describe('TeamDeepdiveService', () => {
       }),
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, mvp]),
-      eraSectionGrouper: singleEraSectionGrouper('Season 4'),
+      eraSectionGrouper: singleEraSectionGrouper(
+        'Season 4 (2024-01-01 – present)',
+      ),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Season 4 trophies:');
+    const start = lines.indexOf('Season 4 (2024-01-01 – present) trophies:');
     expect(lines.slice(start, start + 3)).toEqual([
-      'Season 4 trophies:',
+      'Season 4 (2024-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       'Season 4 Minor (MVP): Grombrindal',
     ]);
@@ -797,20 +803,26 @@ describe('TeamDeepdiveService', () => {
       leaderboard: passthroughLeaderboard(),
       trophyAwards: makeTrophyAwards([spikeCup, older]),
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'Season 4', rows: [spikeCup] },
-        { eraName: 'Season 2', rows: [older] },
+        {
+          eraHeading: 'Season 4 (2024-01-01 – present)',
+          rows: [spikeCup],
+        },
+        {
+          eraHeading: 'Season 2 (2022-01-01 – 2023-12-31)',
+          rows: [older],
+        },
       ]),
     });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Season 4 trophies:');
+    const start = lines.indexOf('Season 4 (2024-01-01 – present) trophies:');
     expect(lines.slice(start, start + 5)).toEqual([
-      'Season 4 trophies:',
+      'Season 4 (2024-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       '',
-      'Season 2 trophies:',
+      'Season 2 (2022-01-01 – 2023-12-31) trophies:',
       'Season 2 Major (Spike! Cup)',
     ]);
   });

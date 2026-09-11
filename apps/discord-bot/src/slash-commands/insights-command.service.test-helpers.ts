@@ -36,6 +36,8 @@ import { StarPlayersListService } from '../insights/facts/star-players-list.serv
 import { StatsSummaryFactsService } from '../insights/facts/stats-summary.service';
 import { TeamToplistService } from '../insights/facts/team-toplist.service';
 import { TrophiesListService } from '../insights/facts/trophies-list.service';
+import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
+import { makeDateRangeFormatter } from '../shared/date-range-formatter-mock.test-helpers';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -436,6 +438,7 @@ export interface MakeServiceResult {
   registry: MockProxy<SlashCommandRegistryService>;
   factTreeUtils: MockProxy<FactTreeUtilsService>;
   categoryLabel: MockProxy<MatchCategoryLabelService>;
+  dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   factTreeDeps: FactTreeMocks;
 }
 
@@ -459,6 +462,7 @@ export async function makeService(): Promise<MakeServiceResult> {
   // each choice's name comes from the label service without re-deriving what
   // that service does (which is covered by its own spec).
   categoryLabel.label.mockImplementation((category) => `Label for ${category}`);
+  const dateRangeFormatter = makeDateRangeFormatter();
   const factTreeDeps = makeFactTreeMocks();
   const factTree = buildFactTree(factTreeDeps);
 
@@ -472,6 +476,7 @@ export async function makeService(): Promise<MakeServiceResult> {
       { provide: SlashCommandRegistryService, useValue: registry },
       { provide: FactTreeUtilsService, useValue: factTreeUtils },
       { provide: MatchCategoryLabelService, useValue: categoryLabel },
+      { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
   }).compile();
 
@@ -483,6 +488,7 @@ export async function makeService(): Promise<MakeServiceResult> {
     registry,
     factTreeUtils,
     categoryLabel,
+    dateRangeFormatter,
     factTreeDeps,
   };
 }

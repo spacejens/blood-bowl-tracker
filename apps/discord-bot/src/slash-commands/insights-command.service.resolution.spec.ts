@@ -78,7 +78,12 @@ describe('InsightsCommandService — fact-path resolution', () => {
 
   it('passes a string reply through unchanged (e.g. a timeout fallback message from the resolved fact)', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     const TIMEOUT_STAND_IN = 'The commentators fell asleep mid-sentence.';
     factTreeDeps.coachToplist.resolveMatchesPlayed.mockResolvedValue(
       TIMEOUT_STAND_IN,
@@ -206,7 +211,12 @@ describe('InsightsCommandService — fact-path resolution', () => {
   it('resolveCategory reports a category that does not support an era scope', async () => {
     const { service } = await makeService();
     const result = await service.resolveCategory('eras.list', {
-      era: { id: 20, name: 'BB2020' },
+      era: {
+        id: 20,
+        name: 'BB2020',
+        startDate: '2020-01-01',
+        endDate: null,
+      },
     });
     expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
   });

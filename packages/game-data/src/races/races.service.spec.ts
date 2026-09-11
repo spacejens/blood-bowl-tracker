@@ -510,13 +510,48 @@ describe('RacesService', () => {
   describe('listPositionsByEra', () => {
     it('returns a flat, already-ordered row per position', async () => {
       const rows = [
-        { eraId: 3, eraName: 'BB2016', id: 1, name: 'Blitzer' },
-        { eraId: 3, eraName: 'BB2016', id: 2, name: 'Lineman' },
-        { eraId: 4, eraName: 'BB2020', id: 2, name: 'Lineman' },
+        {
+          eraId: 3,
+          eraName: 'BB2016',
+          eraStartDate: '2016-01-01',
+          eraEndDate: '2019-12-31',
+          id: 1,
+          name: 'Blitzer',
+        },
+        {
+          eraId: 3,
+          eraName: 'BB2016',
+          eraStartDate: '2016-01-01',
+          eraEndDate: '2019-12-31',
+          id: 2,
+          name: 'Lineman',
+        },
+        {
+          eraId: 4,
+          eraName: 'BB2020',
+          eraStartDate: '2020-01-01',
+          eraEndDate: null,
+          id: 2,
+          name: 'Lineman',
+        },
       ];
       await build(rows);
 
       await expect(service.listPositionsByEra(1)).resolves.toEqual(rows);
+    });
+
+    it("selects the era's own date range alongside its name", async () => {
+      const { db } = await build([]);
+
+      await service.listPositionsByEra(1);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['eraName', 'eraStartDate', 'eraEndDate']),
+      );
     });
 
     it('returns an empty array when the race has no positions recorded', async () => {

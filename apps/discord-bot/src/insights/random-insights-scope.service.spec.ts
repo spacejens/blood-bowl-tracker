@@ -41,8 +41,20 @@ describe('RandomInsightsScopeService', () => {
     eras.listErasWithLeague.mockResolvedValue([ONGOING_ERA, FINISHED_ERA]);
     competitions = mock<CompetitionsService>();
     competitions.listAllWithEraId.mockResolvedValue([
-      { id: 10, name: 'Season 5', eraId: 1 },
-      { id: 11, name: 'Season 1', eraId: 2 },
+      {
+        id: 10,
+        name: 'Season 5',
+        eraId: 1,
+        startDate: '2023-10-01',
+        endDate: null,
+      },
+      {
+        id: 11,
+        name: 'Season 1',
+        eraId: 2,
+        startDate: '2023-10-01',
+        endDate: null,
+      },
     ]);
 
     const moduleRef = await Test.createTestingModule({
@@ -89,7 +101,12 @@ describe('RandomInsightsScopeService', () => {
     // dimension pick -> index 0 = 'era'; era pick -> index 0 of the ongoing-only list.
     picks(0, 0);
     expect(await service.pickScope()).toEqual({
-      era: { id: 1, name: 'BB2020' },
+      era: {
+        id: ONGOING_ERA.id,
+        name: ONGOING_ERA.name,
+        startDate: ONGOING_ERA.startDate,
+        endDate: ONGOING_ERA.endDate,
+      },
     });
     expect(eras.listErasWithLeague).toHaveBeenCalledWith({});
     expect(random.rollPercent).toHaveBeenCalledWith(75);
@@ -100,7 +117,12 @@ describe('RandomInsightsScopeService', () => {
     // era pick -> index 1 = the finished era, reachable only from the full list.
     picks(0, 1);
     expect(await service.pickScope()).toEqual({
-      era: { id: 2, name: 'BB2016' },
+      era: {
+        id: FINISHED_ERA.id,
+        name: FINISHED_ERA.name,
+        startDate: FINISHED_ERA.startDate,
+        endDate: FINISHED_ERA.endDate,
+      },
     });
   });
 
@@ -109,7 +131,12 @@ describe('RandomInsightsScopeService', () => {
     rolls(true, true);
     picks(0, 0);
     expect(await service.pickScope()).toEqual({
-      era: { id: 2, name: 'BB2016' },
+      era: {
+        id: FINISHED_ERA.id,
+        name: FINISHED_ERA.name,
+        startDate: FINISHED_ERA.startDate,
+        endDate: FINISHED_ERA.endDate,
+      },
     });
   });
 
@@ -119,7 +146,12 @@ describe('RandomInsightsScopeService', () => {
     // the candidates left after filtering to the ongoing era.
     picks(1, 0);
     expect(await service.pickScope()).toEqual({
-      competition: { id: 10, name: 'Season 5' },
+      competition: {
+        id: 10,
+        name: 'Season 5',
+        startDate: '2023-10-01',
+        endDate: null,
+      },
     });
     expect(competitions.listAllWithEraId).toHaveBeenCalled();
   });
@@ -129,7 +161,12 @@ describe('RandomInsightsScopeService', () => {
     // competition pick -> index 1, which belongs to the finished era.
     picks(1, 1);
     expect(await service.pickScope()).toEqual({
-      competition: { id: 11, name: 'Season 1' },
+      competition: {
+        id: 11,
+        name: 'Season 1',
+        startDate: '2023-10-01',
+        endDate: null,
+      },
     });
   });
 

@@ -19,4 +19,14 @@ export class DateRangeFormatterService {
     }
     return `${startDate} – ${endDate}`;
   }
+
+  /**
+   * Renders a named entity together with its date span, e.g.
+   * `Season 5 (2020-01-01 – 2023-12-31)`. Shared by every renderer that shows
+   * an era or competition name alongside its dates, so the `<name> (<range>)`
+   * shape is decided in exactly one place.
+   */
+  formatNamed(name: string, startDate: string, endDate: string | null): string {
+    return `${name} (${this.format(startDate, endDate)})`;
+  }
 }

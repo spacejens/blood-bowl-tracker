@@ -58,8 +58,8 @@ type RecipientContext = {
  * a reader can identify a recipient they do not know by name — see
  * `TeamContextService`/`PlayerContextService`.
  * Recipients are rendered in per-era sections, each headed
- * `<era> recipients:`, most recent era first — so the era is named once per
- * section instead of on every player row.
+ * `<era heading> recipients:`, most recent era first — so the heading names
+ * and dates the era once per section instead of on every player row.
  */
 @Injectable()
 export class TrophyDeepdiveService {
@@ -144,7 +144,7 @@ export class TrophyDeepdiveService {
             .group(shown)
             .flatMap((section, index) => [
               ...(index === 0 ? [] : ['']),
-              `${section.eraName} recipients:`,
+              `${section.eraHeading} recipients:`,
               ...section.rows.map((recipient) =>
                 this.formatRecipient(recipient, context),
               ),
