@@ -707,7 +707,7 @@ describe('TeamDeepdiveService', () => {
       'Eras: None recorded',
       'Career: 2021-09-01 – 2023-06-10',
       '',
-      'Season 4 trophies:',
+      'Season 4 (2020-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       '',
       'Top players by SPP:',
@@ -773,9 +773,9 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Season 4 trophies:');
+    const start = lines.indexOf('Season 4 (2020-01-01 – present) trophies:');
     expect(lines.slice(start, start + 3)).toEqual([
-      'Season 4 trophies:',
+      'Season 4 (2020-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       'Season 4 Minor (MVP): Grombrindal',
     ]);
@@ -813,12 +813,12 @@ describe('TeamDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    const start = lines.indexOf('Season 4 trophies:');
+    const start = lines.indexOf('Season 4 (2024-01-01 – present) trophies:');
     expect(lines.slice(start, start + 5)).toEqual([
-      'Season 4 trophies:',
+      'Season 4 (2024-01-01 – present) trophies:',
       'Season 4 Major (Spike! Cup)',
       '',
-      'Season 2 trophies:',
+      'Season 2 (2022-01-01 – 2023-12-31) trophies:',
       'Season 2 Major (Spike! Cup)',
     ]);
   });
