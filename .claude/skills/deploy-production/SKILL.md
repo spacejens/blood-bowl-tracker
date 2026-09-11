@@ -378,11 +378,11 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    lsof -nP -iTCP:3001 -sTCP:LISTEN
    ```
    If anything is listening, stop and report what holds the port (typically a leftover `flyctl proxy 3001:3000` from an earlier or concurrent `deploy-production` run — see "Production imports: closing the tunnel"). Do not kill the process yourself.
-6. Build the import tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
+6. Rebuild the import tools that will run — every run, and each one together with its own workspace dependencies. These builds were already unconditional; what the trailing `...` in each filter adds is the tool's dependency chain (for `import-tp`, that is `packages/import`, `packages/api-client`, `packages/api-contract`, `packages/domain-enums`, `packages/config-loader`, and `packages/parse-tp`). Rebuilding only the top-level tool package leaves a stale build of a dependency that changed independently in place, which is just as wrong as a stale build of the tool itself and just as invisible in the importer's own output. Build just the tools that were selected:
    ```bash
-   pnpm --filter @blood-bowl-tracker/import-manual run build   # if either manual import was selected
-   pnpm --filter @blood-bowl-tracker/import-bbl run build      # if the BBL import was selected
-   pnpm --filter @blood-bowl-tracker/import-tp run build       # if the TP import was selected
+   pnpm --filter "@blood-bowl-tracker/import-manual..." run build   # if either manual import was selected
+   pnpm --filter "@blood-bowl-tracker/import-bbl..." run build      # if the BBL import was selected
+   pnpm --filter "@blood-bowl-tracker/import-tp..." run build       # if the TP import was selected
    ```
 7. Open the private tunnel to the production machine. This spawns `flyctl proxy 3001:3000` detached (so it keeps running after this command returns) and persists its pid to a worktree-scoped, gitignored file, so the teardown section can target this run's own tunnel specifically rather than matching any process by command line — the logic lives in `tools/production-ops-cli` (see `production-tunnel.service.ts`), not as an inline shell script here, both because spawning a detached process and persisting its pid across separate tool invocations needs real process control a shell one-liner can't give it, and so it stays unit tested:
    ```bash
