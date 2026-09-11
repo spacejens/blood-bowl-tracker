@@ -162,7 +162,8 @@ effect immediately.
   calendar date across every recorded year.
 - [`/debuginteractions`](slash-commands/debug-interactions.md) — maintainer
   tooling: the most recent recorded bot interactions, optionally filtered to
-  one user and/or one outcome, replied ephemerally.
+  one user and/or one outcome, replied ephemerally, with a numbered button
+  per row for retriggering that interaction.
 
 ### Drill-down buttons and blank entity names
 
