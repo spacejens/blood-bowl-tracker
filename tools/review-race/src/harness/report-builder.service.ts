@@ -1,7 +1,6 @@
 import type {
   ReportEntityNoun,
   ReviewPanel,
-  ReviewReport as HarnessReviewReport,
 } from '@blood-bowl-tracker/review-harness';
 import {
   HtmlService,
@@ -10,8 +9,6 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import type { SampledRace } from '../shared/review.types';
-
-export type ReviewReport = HarnessReviewReport<SampledRace>;
 
 /**
  * The race report's own half of the document: the per-race section. The

@@ -4,7 +4,16 @@
   "workspaces": {
     "apps/*": {},
     "packages/*": {},
-    "tools/*": {}
+    "tools/*": {},
+    // db-generate.ts is a CLI entrypoint invoked only via the db:generate
+    // npm script (node dist/scripts/db-generate.js), not imported by other
+    // source, so Knip's default entry patterns don't pick it up on their
+    // own. Declaring it as an entry (rather than ignoring the file outright)
+    // keeps its own imports — e.g. @nestjs/core — visible to Knip's
+    // dependency-usage analysis.
+    "packages/db": {
+      "entry": ["src/scripts/db-generate.ts"]
+    }
   }
   // Add "ignore" (file globs) or "ignoreDependencies" (package names) here
   // to silence false positives, e.g.:

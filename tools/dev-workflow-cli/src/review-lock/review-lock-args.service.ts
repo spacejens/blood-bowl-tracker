@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { AcquireReviewLockOptions } from './review-lock.service';
 
-export const REVIEW_LOCK_USAGE =
+const REVIEW_LOCK_USAGE =
   'Usage: node dist/main.js ' +
   '<acquire-review-lock|heartbeat-review-lock|release-review-lock> ' +
   '<holder-id> [--timeout-ms=<ms>] [--interval-ms=<ms>]';

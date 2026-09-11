@@ -210,5 +210,4 @@ export const ManualDataFileSchema = z
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
-export type PositionRulesSetEntry = z.infer<typeof PositionRulesSetEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;

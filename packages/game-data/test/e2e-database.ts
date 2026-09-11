@@ -22,7 +22,7 @@ import { getMigratedTestDb } from '@blood-bowl-tracker/db/test-helpers';
 export const TEST_DATABASE_URL_ENV = 'TEST_DATABASE_URL';
 
 /** The e2e container's URL, or a loud failure if the global setup did not run. */
-export function testDatabaseUrl(): string {
+function testDatabaseUrl(): string {
   const url = process.env[TEST_DATABASE_URL_ENV];
   if (url === undefined || url === '') {
     throw new Error(
