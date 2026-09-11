@@ -86,18 +86,30 @@ export class TrophyDeepdiveService {
       return DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE;
     }
 
-    // The award rule's event types are part of the trophy header, so this
-    // read shares the header's own timeout message rather than the
-    // recipients' or context's.
+    // A direct_source/manual trophy's sentence uses only its authored
+    // awardProcedure and never touches the curated event types, so skip this
+    // read entirely for those two kinds — an unrelated timeout on an unused
+    // query must not turn a fine "recorded procedure" answer into a spurious
+    // timeout. The three computed kinds still share the header's own timeout
+    // message rather than the recipients' or context's.
     const ruleEventTypes: {
       includedActionTypes: string[];
       includedConsequenceTypes: string[];
       excludedActionTypes: string[];
       excludedConsequenceTypes: string[];
-    } | null = await this.databaseTimeout.run(
-      this.trophies.findAwardRuleEventTypes(trophy.id),
-      null,
-    );
+    } | null =
+      trophy.awardRuleKind === 'direct_source' ||
+      trophy.awardRuleKind === 'manual'
+        ? {
+            includedActionTypes: [],
+            includedConsequenceTypes: [],
+            excludedActionTypes: [],
+            excludedConsequenceTypes: [],
+          }
+        : await this.databaseTimeout.run(
+            this.trophies.findAwardRuleEventTypes(trophy.id),
+            null,
+          );
     if (ruleEventTypes === null) {
       return DEEPDIVE_TROPHY_TIMEOUT_MESSAGE;
     }

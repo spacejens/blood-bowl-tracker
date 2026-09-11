@@ -239,9 +239,10 @@ describe('TrophyDeepdiveService', () => {
 
   it('returns the recipients timeout message when the recipient count times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The header and the award rule's event types pass through; the third
-    // run() (the count) times out, so the list query is never reached.
-    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    // trophyHeader()'s default awardRuleKind ('direct_source') skips the
+    // award rule's event-type query entirely, so the header is the only
+    // pass-through run() before the second run() (the count) times out —
+    // the list query is never reached.
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     stubDatabaseTimeoutOnce(databaseTimeout);
     const { service, trophyAwards } = await makeService({
@@ -258,10 +259,10 @@ describe('TrophyDeepdiveService', () => {
 
   it('returns the recipients timeout message when the recipient list times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The header, the award rule's event types and the count pass through;
-    // the fourth run() (the list of recipients) times out. Both recipient
-    // calls share one message.
-    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    // trophyHeader()'s default awardRuleKind ('direct_source') skips the
+    // award rule's event-type query entirely, so the header and the count
+    // pass through; the third run() (the list of recipients) times out.
+    // Both recipient calls share one message.
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     stubDatabaseTimeoutOnce(databaseTimeout);
@@ -388,9 +389,10 @@ describe('TrophyDeepdiveService', () => {
 
   it('returns the recipient context timeout message when the team/player context lookup times out', async () => {
     const databaseTimeout = mockDatabaseTimeout();
-    // The header, the award rule's event types, count and list pass through;
-    // the fifth run() (the team/player context lookup) times out.
-    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    // trophyHeader()'s default awardRuleKind ('direct_source') skips the
+    // award rule's event-type query entirely, so the header, count and list
+    // pass through; the fourth run() (the team/player context lookup)
+    // times out.
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
     databaseTimeout.run.mockImplementationOnce(async (work) => work);
