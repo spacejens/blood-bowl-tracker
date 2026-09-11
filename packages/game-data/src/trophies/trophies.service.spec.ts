@@ -249,6 +249,29 @@ describe('TrophiesService', () => {
       expect(chains[0].where).toHaveBeenCalledTimes(1);
     });
 
+    it('carries the award rule columns in the deepdive header', async () => {
+      const header = {
+        id: 1,
+        name: 'Top Scorer',
+        description: 'Most touchdowns during the season.',
+        competitionGroupId: 4,
+        competitionGroupName: 'Major Season',
+        leagueId: null,
+        leagueName: null,
+        awardRuleKind: 'max_count' as const,
+        awardProcedure: null,
+        awardRuleTieCutoff: 4,
+        awardRuleThreshold: null,
+        awardRuleMeasure: null,
+      };
+      await build([header]);
+
+      const result = await service.findById(1);
+
+      expect(result?.awardRuleKind).toBe('max_count');
+      expect(result?.awardRuleTieCutoff).toBe(4);
+    });
+
     it('returns undefined when no trophy has that id', async () => {
       await build([]);
 
@@ -267,6 +290,11 @@ describe('TrophiesService', () => {
         'competitionGroupName',
         'leagueId',
         'leagueName',
+        'awardRuleKind',
+        'awardProcedure',
+        'awardRuleTieCutoff',
+        'awardRuleThreshold',
+        'awardRuleMeasure',
       ]);
     });
 
@@ -412,6 +440,20 @@ describe('TrophiesService', () => {
           leagueName: 'tLoEG',
         },
       ]);
+    });
+  });
+
+  describe('findAwardRuleEventTypes', () => {
+    it("reads a trophy's curated rule event types, flattened for display", async () => {
+      await build(
+        [{ actionType: 'foul', consequenceType: null }],
+        [{ actionType: 'mvp_award', consequenceType: null }],
+      );
+
+      await expect(service.findAwardRuleEventTypes(1)).resolves.toEqual({
+        included: ['foul'],
+        excluded: ['mvp award'],
+      });
     });
   });
 

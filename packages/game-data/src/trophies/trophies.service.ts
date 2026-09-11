@@ -18,6 +18,10 @@ import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
+import type {
+  TrophyAwardRuleKind,
+  TrophyAwardRuleMeasure,
+} from '../trophy-awards/trophy-rule-types';
 
 export class TrophyUpsertConflictError extends UpsertConflictError {}
 
@@ -35,6 +39,17 @@ export type TrophyHeader = {
   competitionGroupName: string | null;
   leagueId: number | null;
   leagueName: string | null;
+  /**
+   * The trophy's award rule, as the deepdive needs it to render one sentence
+   * about how the trophy is handed out. Exactly one of `awardProcedure` (a
+   * human-authored sentence, for the two non-computable kinds) and the
+   * generated sentence applies — see TrophyAwardRuleDescriptionService.
+   */
+  awardRuleKind: TrophyAwardRuleKind;
+  awardProcedure: string | null;
+  awardRuleTieCutoff: number | null;
+  awardRuleThreshold: number | null;
+  awardRuleMeasure: TrophyAwardRuleMeasure | null;
 };
 
 @Injectable()
@@ -95,6 +110,11 @@ export class TrophiesService {
         competitionGroupName: competitionGroups.name,
         leagueId: trophies.leagueId,
         leagueName: leagues.name,
+        awardRuleKind: trophies.awardRuleKind,
+        awardProcedure: trophies.awardProcedure,
+        awardRuleTieCutoff: trophies.awardRuleTieCutoff,
+        awardRuleThreshold: trophies.awardRuleThreshold,
+        awardRuleMeasure: trophies.awardRuleMeasure,
       })
       .from(trophies)
       // Outer for the same reason as in `searchByNamePrefix`.
@@ -105,6 +125,43 @@ export class TrophiesService {
       .leftJoin(leagues, eq(leagues.id, trophies.leagueId))
       .where(eq(trophies.id, trophyId));
     return rows[0];
+  }
+
+  /**
+   * One trophy's curated rule event types, flattened to display strings — the
+   * shape TrophyAwardRuleDescriptionService takes, since it holds no database
+   * access of its own. Underscores become spaces so a generated sentence reads
+   * as prose rather than as column values.
+   */
+  async findAwardRuleEventTypes(
+    trophyId: number,
+  ): Promise<{ included: string[]; excluded: string[] }> {
+    const included = await this.db
+      .select({
+        actionType: trophyAwardRuleMatchEventTypes.actionType,
+        consequenceType: trophyAwardRuleMatchEventTypes.consequenceType,
+      })
+      .from(trophyAwardRuleMatchEventTypes)
+      .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId))
+      .orderBy(
+        trophyAwardRuleMatchEventTypes.actionType,
+        trophyAwardRuleMatchEventTypes.consequenceType,
+      );
+    const excluded = await this.db
+      .select({
+        actionType: trophyAwardRuleExcludedMatchEventTypes.actionType,
+        consequenceType: trophyAwardRuleExcludedMatchEventTypes.consequenceType,
+      })
+      .from(trophyAwardRuleExcludedMatchEventTypes)
+      .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId))
+      .orderBy(
+        trophyAwardRuleExcludedMatchEventTypes.actionType,
+        trophyAwardRuleExcludedMatchEventTypes.consequenceType,
+      );
+    return {
+      included: included.map(toDisplayType),
+      excluded: excluded.map(toDisplayType),
+    };
   }
 
   /**
@@ -276,4 +333,11 @@ export class TrophiesService {
       }
     });
   }
+}
+
+function toDisplayType(row: {
+  actionType: string | null;
+  consequenceType: string | null;
+}): string {
+  return (row.actionType ?? row.consequenceType ?? '').replaceAll('_', ' ');
 }
