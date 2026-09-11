@@ -53,7 +53,9 @@ plain message `No matching interactions found.` with no embed.
 
 ## Ephemeral by design
 
-This is the only command in the bot that replies ephemerally — visible
-only to whoever ran it. The reply can surface another user's interaction
-history and internal error messages, neither of which belongs in a public
-channel. Every other command replies publicly.
+This is the first command in the bot to reply ephemerally — visible only
+to whoever ran it — and other `debug`-prefixed commands under #834 are
+expected to follow the same pattern as they land. The reply can surface
+another user's interaction history and internal error messages, neither
+of which belongs in a public channel. Every non-`debug`-prefixed command
+replies publicly.
