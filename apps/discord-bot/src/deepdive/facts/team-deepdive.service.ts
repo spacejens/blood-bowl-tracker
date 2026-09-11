@@ -64,7 +64,9 @@ const MAX_TEAM_HONORS = 30;
  * embed. Shared by `/deepdive team:<id>` and the team deepdive buttons. Each
  * DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
  * timeout is distinguishable from a genuine "not found" / "no matches"
- * (`undefined`).
+ * (`undefined`). Honors are rendered in per-era sections, each headed
+ * `<era heading> trophies:`, most recent era first — the heading names and
+ * dates the era once per section instead of on every honor row.
  */
 @Injectable()
 export class TeamDeepdiveService {
@@ -255,7 +257,7 @@ export class TeamDeepdiveService {
             .group(honors)
             .flatMap((section, index) => [
               ...(index === 0 ? [] : ['']),
-              `${section.eraName} trophies:`,
+              `${section.eraHeading} trophies:`,
               ...section.rows.map((honor) =>
                 this.formatHonor(honor, honorSuffixes),
               ),

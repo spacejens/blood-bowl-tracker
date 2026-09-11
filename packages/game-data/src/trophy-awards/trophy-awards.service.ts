@@ -74,6 +74,12 @@ export type TrophyRecipient = {
   competitionStartDate: string;
   eraId: number;
   eraName: string;
+  /**
+   * The era's own span, so the deepdive can date the section heading it builds
+   * from these rows without a second lookup. `null` end means ongoing.
+   */
+  eraStartDate: string;
+  eraEndDate: string | null;
   teamId: number;
   teamName: string;
   playerId: number | null;
@@ -143,6 +149,12 @@ export type TeamHonor = {
   competitionStartDate: string;
   eraId: number;
   eraName: string;
+  /**
+   * The era's own span, so the deepdive can date the section heading it builds
+   * from these rows without a second lookup. `null` end means ongoing.
+   */
+  eraStartDate: string;
+  eraEndDate: string | null;
   playerId: number | null;
   playerName: string | null;
   /**
@@ -216,6 +228,8 @@ export class TrophyAwardsService {
           competitionStartDate: competitions.startDate,
           eraId: eras.id,
           eraName: eras.name,
+          eraStartDate: eras.startDate,
+          eraEndDate: eras.endDate,
           teamId: teams.id,
           teamName: teams.name,
           playerId: players.id,
@@ -336,6 +350,8 @@ export class TrophyAwardsService {
           competitionStartDate: competitions.startDate,
           eraId: eras.id,
           eraName: eras.name,
+          eraStartDate: eras.startDate,
+          eraEndDate: eras.endDate,
           playerId: players.id,
           playerName: players.name,
           playerPositionId: positions.id,

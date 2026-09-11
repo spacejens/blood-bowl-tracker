@@ -40,6 +40,8 @@ type CompetitionHeader = {
   type: CompetitionType;
   eraId: number;
   eraName: string;
+  eraStartDate: string;
+  eraEndDate: string | null;
   competitionGroupId: number;
   competitionGroupName: string;
   startDate: string;
@@ -172,7 +174,7 @@ export class CompetitionDeepdiveService {
 
     const descriptionLines = [
       `Type: ${competition.type}`,
-      `Era: ${competition.eraName}`,
+      `Era: ${this.dateRangeFormatter.formatNamed(competition.eraName, competition.eraStartDate, competition.eraEndDate)}`,
       `Group: ${competition.competitionGroupName}`,
       `Duration: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,
       '',

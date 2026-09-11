@@ -401,6 +401,8 @@ describe('TrophyAwardsService', () => {
       competitionStartDate: '2024-01-15',
       eraId: 20,
       eraName: 'BB2020',
+      eraStartDate: '2020-01-01',
+      eraEndDate: null,
       teamId: 30,
       teamName: 'Reikland Reavers',
       playerId: null,
@@ -414,6 +416,8 @@ describe('TrophyAwardsService', () => {
       competitionStartDate: '2023-01-15',
       eraId: 19,
       eraName: 'BB2016',
+      eraStartDate: '2016-01-01',
+      eraEndDate: '2019-12-31',
       teamId: 31,
       teamName: 'Gouged Eye',
       playerId: 40,
@@ -517,6 +521,20 @@ describe('TrophyAwardsService', () => {
 
       expect(recipient.eraId).toBe(20);
       expect(recipient.eraName).toBe('BB2020');
+    });
+
+    it("selects the era's own date range alongside its name", async () => {
+      const { db } = await build([]);
+
+      await service.listRecipients(1, 30);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['eraName', 'eraStartDate', 'eraEndDate']),
+      );
     });
 
     it('returns an empty list when the trophy has never been awarded', async () => {
@@ -717,6 +735,8 @@ describe('TrophyAwardsService', () => {
       competitionStartDate: '2024-01-15',
       eraId: 20,
       eraName: 'Season 4',
+      eraStartDate: '2020-01-01',
+      eraEndDate: null,
       playerId: null,
       playerName: null,
       playerPositionId: null,
@@ -730,6 +750,8 @@ describe('TrophyAwardsService', () => {
       competitionStartDate: '2023-01-15',
       eraId: 19,
       eraName: 'Season 2',
+      eraStartDate: '2016-01-01',
+      eraEndDate: '2019-12-31',
       playerId: 40,
       playerName: 'Grombrindal',
       playerPositionId: 60,
@@ -834,6 +856,20 @@ describe('TrophyAwardsService', () => {
         ['competitions.start_date'],
       );
       expect(sqlText(firstCallArg(chains[0].orderBy, 0, 2))).toContain(' desc');
+    });
+
+    it("selects the era's own date range alongside its name", async () => {
+      const { db } = await build([]);
+
+      await service.listByTeam(30, 30);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['eraName', 'eraStartDate', 'eraEndDate']),
+      );
     });
 
     it('passes the caller-supplied limit through unchanged', async () => {

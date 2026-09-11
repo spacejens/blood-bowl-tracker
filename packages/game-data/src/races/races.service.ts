@@ -55,6 +55,12 @@ export interface RacePosition {
   name: string;
   eraId: number;
   eraName: string;
+  /**
+   * The era's own span, so a consumer can date the section heading it builds
+   * from these rows without a second lookup. `null` end means ongoing.
+   */
+  eraStartDate: string;
+  eraEndDate: string | null;
 }
 
 /** One race and how many teams have ever picked it. */
@@ -122,6 +128,8 @@ export class RacesService {
         name: positions.name,
         eraId: eras.id,
         eraName: eras.name,
+        eraStartDate: eras.startDate,
+        eraEndDate: eras.endDate,
       })
       .from(raceEras)
       .innerJoin(eras, eq(eras.id, raceEras.eraId))

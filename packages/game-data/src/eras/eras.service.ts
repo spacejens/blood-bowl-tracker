@@ -110,11 +110,24 @@ export class ErasService {
     return [...existingIds, ...toInsert];
   }
 
+  /**
+   * One era by id, with its own span — the insights scope suffix dates the
+   * era it resolved, so the dates come along with the lookup rather than
+   * needing a second query.
+   */
   async findById(
     id: number,
-  ): Promise<{ id: number; name: string } | undefined> {
+  ): Promise<
+    | { id: number; name: string; startDate: string; endDate: string | null }
+    | undefined
+  > {
     const rows = await this.db
-      .select({ id: eras.id, name: eras.name })
+      .select({
+        id: eras.id,
+        name: eras.name,
+        startDate: eras.startDate,
+        endDate: eras.endDate,
+      })
       .from(eras)
       .where(eq(eras.id, id));
     return rows[0];

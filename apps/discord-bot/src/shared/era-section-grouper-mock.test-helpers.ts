@@ -14,11 +14,11 @@ import { EraSectionGrouperService } from './era-section-grouper.service';
  * whose subject is something other than the grouping itself.
  */
 export function singleEraSectionGrouper(
-  eraName = 'BB2020',
+  eraHeading = 'BB2020 (2020-01-01 – present)',
 ): MockProxy<EraSectionGrouperService> {
   const grouper = mock<EraSectionGrouperService>();
   grouper.group.mockImplementation((rows: EraGroupable[]) => [
-    { eraName, rows },
+    { eraHeading, rows },
   ]);
   return grouper;
 }
@@ -27,7 +27,8 @@ export function singleEraSectionGrouper(
  * Test-only helper. Do not import from production code.
  *
  * An `EraSectionGrouperService` mock canned to return exactly the sections
- * the test names, for the tests that assert on multi-era rendering.
+ * the test names, for the tests that assert on multi-era rendering. The canned
+ * sections must carry their own `eraHeading` values.
  */
 export function cannedEraSectionGrouper(
   sections: EraSection<EraGroupable>[],

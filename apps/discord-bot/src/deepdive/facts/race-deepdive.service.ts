@@ -132,10 +132,10 @@ export class RaceDeepdiveService {
     // above is unaffected — it stays the race's summary line, while this
     // section answers what the race could actually field in each era. Grouped
     // into per-era sections the same way the trophy and competition-group
-    // deep dives group their own per-era lists — one `<era> positions:`
-    // heading per era, one row per position — rather than one packed line
-    // per era, so a long position name or a long list of positions reads the
-    // same way those other per-era lists already do.
+    // deep dives group their own per-era lists — one heading per era, named
+    // and dated, one row per position — rather than one packed line per era,
+    // so a long position name or a long list of positions reads the same way
+    // those other per-era lists already do.
     const positionLines =
       positions.length === 0
         ? []
@@ -145,7 +145,7 @@ export class RaceDeepdiveService {
               .group(positions)
               .flatMap((section, index) => [
                 ...(index === 0 ? [] : ['']),
-                `${section.eraName} positions:`,
+                `${section.eraHeading} positions:`,
                 ...section.rows.map((position) => position.name),
               ]),
           ];

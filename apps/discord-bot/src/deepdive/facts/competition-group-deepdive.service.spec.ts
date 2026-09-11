@@ -54,6 +54,8 @@ type GroupCompetition = {
   name: string;
   eraId: number;
   eraName: string;
+  eraStartDate: string;
+  eraEndDate: string | null;
   startDate: string;
   endDate: string | null;
 };
@@ -75,7 +77,7 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   dateRangeFormatter = mock<DateRangeFormatterService>(),
-  eraSectionGrouper = singleEraSectionGrouper('BB2020'),
+  eraSectionGrouper = singleEraSectionGrouper('BB2020 (2020-01-01 – present)'),
 }: MakeServiceOptions): Promise<{
   service: CompetitionGroupDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
@@ -142,6 +144,8 @@ const COMPETITIONS: GroupCompetition[] = [
     name: 'Chaos Cup 23',
     eraId: 20,
     eraName: 'BB2020',
+    eraStartDate: '2020-01-01',
+    eraEndDate: '2023-12-31',
     startDate: '2023-10-01',
     endDate: '2023-10-02',
   },
@@ -150,6 +154,8 @@ const COMPETITIONS: GroupCompetition[] = [
     name: 'Chaos Cup 24',
     eraId: 21,
     eraName: 'BB2020 v2',
+    eraStartDate: '2024-01-01',
+    eraEndDate: null,
     startDate: '2024-10-01',
     endDate: null,
   },
@@ -231,7 +237,10 @@ describe('CompetitionGroupDeepdiveService', () => {
       competitions: makeCompetitions(COMPETITIONS),
       dateRangeFormatter,
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'BB2020', rows: COMPETITIONS },
+        {
+          eraHeading: 'BB2020 (2020-01-01 – 2023-12-31)',
+          rows: COMPETITIONS,
+        },
       ]),
     });
 
@@ -258,7 +267,7 @@ describe('CompetitionGroupDeepdiveService', () => {
             'Chaos Cup Winner',
             'Most Casualties',
             '',
-            'BB2020 competitions:',
+            'BB2020 (2020-01-01 – 2023-12-31) competitions:',
             'Chaos Cup 23: 2023-10-01..2023-10-02',
             'Chaos Cup 24: 2024-10-01..now',
           ].join('\n'),
@@ -300,8 +309,14 @@ describe('CompetitionGroupDeepdiveService', () => {
       competitions: makeCompetitions(COMPETITIONS),
       dateRangeFormatter,
       eraSectionGrouper: cannedEraSectionGrouper([
-        { eraName: 'BB2020', rows: [COMPETITIONS[0]] },
-        { eraName: 'BB2020 v2', rows: [COMPETITIONS[1]] },
+        {
+          eraHeading: 'BB2020 (2020-01-01 – 2023-12-31)',
+          rows: [COMPETITIONS[0]],
+        },
+        {
+          eraHeading: 'BB2020 v2 (2024-01-01 – present)',
+          rows: [COMPETITIONS[1]],
+        },
       ]),
     });
 
@@ -313,10 +328,10 @@ describe('CompetitionGroupDeepdiveService', () => {
         .split('\n')
         .slice(-5),
     ).toEqual([
-      'BB2020 competitions:',
+      'BB2020 (2020-01-01 – 2023-12-31) competitions:',
       'Chaos Cup 23: dates',
       '',
-      'BB2020 v2 competitions:',
+      'BB2020 v2 (2024-01-01 – present) competitions:',
       'Chaos Cup 24: dates',
     ]);
   });

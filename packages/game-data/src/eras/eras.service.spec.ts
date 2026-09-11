@@ -193,11 +193,15 @@ describe('ErasService', () => {
   });
 
   describe('findById', () => {
-    it('returns the matching era id and name', async () => {
-      const { chains } = await build([{ id: 7, name: 'BB2020' }]);
+    it('returns the matching era id, name and date range', async () => {
+      const { chains } = await build([
+        { id: 7, name: 'BB2020', startDate: '2020-01-01', endDate: null },
+      ]);
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'BB2020',
+        startDate: '2020-01-01',
+        endDate: null,
       });
       expect(chains[0].where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
@@ -208,6 +212,20 @@ describe('ErasService', () => {
       await expect(service.findById(999)).resolves.toBeUndefined();
       expect(chains[0].where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(999);
+    });
+
+    it("selects the era's own date range", async () => {
+      const { db } = await build([]);
+
+      await service.findById(1);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['startDate', 'endDate']),
+      );
     });
   });
 

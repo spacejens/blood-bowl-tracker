@@ -86,12 +86,14 @@ describe('RandomInsightsSchedulerService', () => {
   });
 
   it('resolves the insight under the scope chosen for this tick', async () => {
-    scope.pickScope.mockResolvedValue({ era: { id: 1, name: 'BB2020' } });
+    scope.pickScope.mockResolvedValue({
+      era: { id: 1, name: 'BB2020', startDate: '2020-01-01', endDate: null },
+    });
 
     await service.postRandomInsight();
 
     expect(insightsCommand.resolveRandomFact).toHaveBeenCalledWith({
-      era: { id: 1, name: 'BB2020' },
+      era: { id: 1, name: 'BB2020', startDate: '2020-01-01', endDate: null },
     });
   });
 

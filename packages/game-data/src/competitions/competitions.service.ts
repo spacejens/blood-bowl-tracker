@@ -164,10 +164,16 @@ export class CompetitionsService {
     return row.count;
   }
 
-  async findById(
-    id: number,
-  ): Promise<
-    | { id: number; name: string; type: CompetitionType; eraId: number }
+  async findById(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        type: CompetitionType;
+        eraId: number;
+        /** Its own span (`null` end = ongoing), for the insights scope suffix. */
+        startDate: string;
+        endDate: string | null;
+      }
     | undefined
   > {
     const rows = await this.db
@@ -176,6 +182,8 @@ export class CompetitionsService {
         name: competitions.name,
         type: competitions.type,
         eraId: competitions.eraId,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions)
       .where(eq(competitions.id, id));
@@ -189,6 +197,9 @@ export class CompetitionsService {
         type: CompetitionType;
         eraId: number;
         eraName: string;
+        /** The era's own span (`null` end = ongoing), for the `Era:` line. */
+        eraStartDate: string;
+        eraEndDate: string | null;
         competitionGroupId: number;
         competitionGroupName: string;
         startDate: string;
@@ -203,6 +214,8 @@ export class CompetitionsService {
         type: competitions.type,
         eraId: competitions.eraId,
         eraName: eras.name,
+        eraStartDate: eras.startDate,
+        eraEndDate: eras.endDate,
         competitionGroupId: competitions.competitionGroupId,
         competitionGroupName: competitionGroups.name,
         startDate: competitions.startDate,
@@ -282,6 +295,9 @@ export class CompetitionsService {
       name: string;
       eraId: number;
       eraName: string;
+      /** The era's own span (`null` end = ongoing), for the section heading. */
+      eraStartDate: string;
+      eraEndDate: string | null;
       startDate: string;
       endDate: string | null;
     }[]
@@ -292,6 +308,8 @@ export class CompetitionsService {
         name: competitions.name,
         eraId: competitions.eraId,
         eraName: eras.name,
+        eraStartDate: eras.startDate,
+        eraEndDate: eras.endDate,
         startDate: competitions.startDate,
         endDate: competitions.endDate,
       })
@@ -312,12 +330,22 @@ export class CompetitionsService {
    * (the random-insights scheduler) picks one at random, so paying for a sort
    * would be wasted work.
    */
-  listAllWithEraId(): Promise<{ id: number; name: string; eraId: number }[]> {
+  listAllWithEraId(): Promise<
+    {
+      id: number;
+      name: string;
+      eraId: number;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
     return this.db
       .select({
         id: competitions.id,
         name: competitions.name,
         eraId: competitions.eraId,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions);
   }

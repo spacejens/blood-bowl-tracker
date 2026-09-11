@@ -21,6 +21,8 @@ import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { mockDatabaseTimeout } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
+import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.test-helpers';
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
@@ -57,6 +59,8 @@ export const griff = {
   positionName: 'Blitzer',
   eraName: 'Season 5',
   eraId: 7,
+  eraStartDate: '2020-01-01',
+  eraEndDate: '2023-12-31' as string | null,
   sppTotal: null as number | null,
   sppAdjustment: null as number | null,
   move: 7,
@@ -126,6 +130,7 @@ export interface MakeServiceOptions {
   stars?: MockProxy<StarPlayersService>;
   playerRowButton?: MockProxy<PlayerRowButtonService>;
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
+  dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
 }
 
 /**
@@ -164,6 +169,9 @@ export async function makeService({
   stars = makeStars(),
   playerRowButton = makePlayerRowButton(),
   positionRulesSets = makePositionRulesSets(),
+  dateRangeFormatter = makeDateRangeFormatter(
+    'Season 5 (2020-01-01 – 2023-12-31)',
+  ),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -172,6 +180,7 @@ export async function makeService({
   stars: MockProxy<StarPlayersService>;
   playerRowButton: MockProxy<PlayerRowButtonService>;
   positionRulesSets: MockProxy<PositionRulesSetsService>;
+  dateRangeFormatter: MockProxy<DateRangeFormatterService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -190,6 +199,7 @@ export async function makeService({
       { provide: StarPlayersService, useValue: stars },
       { provide: PlayerRowButtonService, useValue: playerRowButton },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
+      { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
   }).compile();
   return {
@@ -200,6 +210,7 @@ export async function makeService({
     stars,
     playerRowButton,
     positionRulesSets,
+    dateRangeFormatter,
   };
 }
 
@@ -215,6 +226,8 @@ export function makePlayers(options: {
     positionName: string;
     eraName: string;
     eraId: number;
+    eraStartDate: string;
+    eraEndDate: string | null;
     sppTotal: number | null;
     sppAdjustment: number | null;
     move: number;
