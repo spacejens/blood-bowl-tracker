@@ -272,6 +272,21 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.selectMenuHandlers.set(prefix, handler);
   }
 
+  /**
+   * The button handler a given `customId` would route to, matched by the same
+   * first-registered-prefix-wins rule the live dispatcher uses. Exposed so a
+   * caller can invoke a component's handler without a real Discord event —
+   * which is how `/debuginteractions` retriggers a recorded past button.
+   */
+  findButtonHandler(customId: string): ButtonHandler | undefined {
+    return this.matchHandler(this.buttonHandlers, customId)?.handler;
+  }
+
+  /** The select-menu equivalent of `findButtonHandler`. */
+  findSelectMenuHandler(customId: string): SelectMenuHandler | undefined {
+    return this.matchHandler(this.selectMenuHandlers, customId)?.handler;
+  }
+
   private async handleInteraction(interaction: Interaction): Promise<void> {
     if (interaction.isAutocomplete()) {
       const autocomplete = this.autocompleteHandlers.get(
