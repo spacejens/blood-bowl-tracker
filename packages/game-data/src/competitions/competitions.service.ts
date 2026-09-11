@@ -189,6 +189,9 @@ export class CompetitionsService {
         type: CompetitionType;
         eraId: number;
         eraName: string;
+        /** The era's own span (`null` end = ongoing), for the `Era:` line. */
+        eraStartDate: string;
+        eraEndDate: string | null;
         competitionGroupId: number;
         competitionGroupName: string;
         startDate: string;
@@ -203,6 +206,8 @@ export class CompetitionsService {
         type: competitions.type,
         eraId: competitions.eraId,
         eraName: eras.name,
+        eraStartDate: eras.startDate,
+        eraEndDate: eras.endDate,
         competitionGroupId: competitions.competitionGroupId,
         competitionGroupName: competitionGroups.name,
         startDate: competitions.startDate,

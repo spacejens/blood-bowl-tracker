@@ -110,6 +110,8 @@ type CompetitionHeaderFixture = {
   type: CompetitionType;
   eraId: number;
   eraName: string;
+  eraStartDate: string;
+  eraEndDate: string | null;
   competitionGroupId: number;
   competitionGroupName: string;
   startDate: string;
@@ -135,6 +137,8 @@ function competitionHeader(
     type: 'season',
     eraId: 20,
     eraName: 'BB2020',
+    eraStartDate: '2020-01-01',
+    eraEndDate: '2023-12-31',
     competitionGroupId: 4,
     competitionGroupName: 'The Major',
     startDate: '2024-01-15',
@@ -258,7 +262,7 @@ describe('CompetitionDeepdiveService', () => {
           title: `${stubEntityEmoji(COMPETITION_BUTTON_CUSTOM_ID_PREFIX)} Major Season 24`,
           description: [
             'Type: season',
-            'Era: BB2020',
+            'Era: BB2020 (2024-01-15 – 2024-06-30)',
             'Group: The Major',
             'Duration: 2024-01-15 – 2024-06-30',
             '',
@@ -320,7 +324,7 @@ describe('CompetitionDeepdiveService', () => {
     const lines = result.embeds[0].description.split('\n');
     expect(lines.slice(0, 6)).toEqual([
       'Type: season',
-      'Era: BB2020',
+      'Era: BB2020 (2024-01-15 – 2024-06-30)',
       'Group: The Major',
       'Duration: 2024-01-15 – 2024-06-30',
       '',
@@ -378,6 +382,36 @@ describe('CompetitionDeepdiveService', () => {
       '2024-03-16',
       '2024-03-16',
     );
+  });
+
+  it('marks an ongoing era as still running on the era reference line', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format
+      .mockReturnValueOnce('2020-01-01 – present')
+      .mockReturnValueOnce('2023-10-01 – 2023-10-02');
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader({
+          eraStartDate: '2020-01-01',
+          eraEndDate: null,
+          startDate: '2023-10-01',
+          endDate: '2023-10-02',
+        }),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      dateRangeFormatter,
+    });
+
+    const result = await service.resolve(1);
+
+    expect(dateRangeFormatter.format).toHaveBeenNthCalledWith(
+      1,
+      '2020-01-01',
+      null,
+    );
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('Era: BB2020 (2020-01-01 – present)');
   });
 
   it('calls attachSuffixes with both race and coach context enabled', async () => {
@@ -500,6 +534,8 @@ describe('CompetitionDeepdiveService', () => {
           type: 'cup',
           eraId: 20,
           eraName: 'BB2020',
+          eraStartDate: '2020-01-01',
+          eraEndDate: '2023-12-31',
           competitionGroupId: 4,
           competitionGroupName: 'Chaos Cup',
           startDate: '2024-10-01',
@@ -635,7 +671,7 @@ describe('CompetitionDeepdiveService', () => {
     };
     expect(result.embeds[0].description.split('\n')).toEqual([
       'Type: season',
-      'Era: BB2020',
+      'Era: BB2020 (undefined)',
       'Group: The Major',
       'Duration: undefined',
       '',

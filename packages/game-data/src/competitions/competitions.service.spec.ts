@@ -547,6 +547,8 @@ describe('CompetitionsService', () => {
         type: 'season',
         eraId: 20,
         eraName: 'BB2020',
+        eraStartDate: '2020-01-01',
+        eraEndDate: null,
         competitionGroupId: 4,
         competitionGroupName: 'The Major',
         startDate: '2024-01-15',
@@ -565,6 +567,8 @@ describe('CompetitionsService', () => {
         'type',
         'eraId',
         'eraName',
+        'eraStartDate',
+        'eraEndDate',
         'competitionGroupId',
         'competitionGroupName',
         'startDate',
@@ -574,6 +578,20 @@ describe('CompetitionsService', () => {
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
       ).toEqual(['competition_groups.id', 'competitions.competition_group_id']);
+    });
+
+    it("selects the era's own date range alongside its name", async () => {
+      const { db } = await build([]);
+
+      await service.findByIdWithEra(1);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['eraName', 'eraStartDate', 'eraEndDate']),
+      );
     });
 
     it('returns undefined when no competition matches', async () => {
