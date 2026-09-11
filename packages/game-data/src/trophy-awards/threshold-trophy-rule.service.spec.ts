@@ -3,6 +3,7 @@ import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
@@ -29,11 +30,17 @@ async function makeService(
   crossings: unknown[] = [],
 ): Promise<{ service: CareerThresholdTrophyRuleService; db: MockDbResult }> {
   const db = mockDb([], [], crossings);
+  const positionFilter = mock<TrophyRulePositionFilterService>();
+  positionFilter.build.mockReturnValue(undefined);
   const moduleRef = await Test.createTestingModule({
     providers: [
       CareerThresholdTrophyRuleService,
+      // The event-type filter is pure and dependency-free, so it is real (see
+      // CLAUDE.md's carve-out). The position filter builds part of a live SQL
+      // query, so it is mocked and asserted in its own spec instead; no test
+      // here restricts positions, so it answers "no restriction" throughout.
       TrophyRuleEventTypeFilterService,
-      TrophyRulePositionFilterService,
+      { provide: TrophyRulePositionFilterService, useValue: positionFilter },
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],

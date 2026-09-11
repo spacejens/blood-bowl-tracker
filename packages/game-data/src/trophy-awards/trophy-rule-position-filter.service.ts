@@ -5,11 +5,12 @@ import { Injectable } from '@nestjs/common';
 import type { TrophyRuleEligiblePositions } from './trophy-rule-types';
 
 /**
- * Turns one trophy rule's eligible positions into a drizzle condition. Pure
- * and dependency-free, exactly like `TrophyRuleEventTypeFilterService`: it
- * only assembles a condition and issues no query of its own, so the rule
- * services may take it as a real collaborator in their specs (see CLAUDE.md's
- * pure decision-service carve-out).
+ * Turns one trophy rule's eligible positions into a drizzle condition. It
+ * issues no query of its own, but what it returns is part of a live one: the
+ * rule services splice it straight into a `WHERE` clause. That concrete
+ * `SQL`-building behaviour is exactly what CLAUDE.md's real-collaborator
+ * carve-outs exclude, so the rule services mock this service in their specs
+ * and its own behaviour is asserted here in `trophy-rule-position-filter.service.spec.ts`.
  */
 @Injectable()
 export class TrophyRulePositionFilterService {

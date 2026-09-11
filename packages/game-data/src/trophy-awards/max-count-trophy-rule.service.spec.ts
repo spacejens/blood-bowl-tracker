@@ -3,6 +3,7 @@ import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
@@ -23,15 +24,21 @@ async function makeService(rows: unknown[]): Promise<{
   db: MockDbResult;
 }> {
   const db = mockDb(rows);
+  const positionFilter = mock<TrophyRulePositionFilterService>();
+  positionFilter.build.mockReturnValue(undefined);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MaxCountTrophyRuleService,
-      // Both collaborators are pure, dependency-free condition builders with
-      // no I/O or external state, so they are provided for real — see
-      // CLAUDE.md's carve-out. Mocking them would leave the captured
+      // The event-type filter is a pure, dependency-free condition builder
+      // with no I/O or external state, so it is provided for real — see
+      // CLAUDE.md's carve-out. Mocking it would leave the captured event-type
       // conditions unasserted, which is the point of these tests.
       TrophyRuleEventTypeFilterService,
-      TrophyRulePositionFilterService,
+      // The position filter is mocked instead: it builds part of a live SQL
+      // query, concrete behaviour these tests could drift from, and it is
+      // asserted in its own spec. No test here restricts positions, so the
+      // canned "no restriction" answer is all they need.
+      { provide: TrophyRulePositionFilterService, useValue: positionFilter },
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
