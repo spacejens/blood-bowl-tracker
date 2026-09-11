@@ -3,6 +3,7 @@ import {
   CompetitionGroupsService,
   ExternalSystemsService,
   MatchOutcomesService,
+  MissingTrophyAwardsService,
   PositionRulesSetsService,
   PositionsService,
   SppAdjustmentsService,
@@ -44,15 +45,17 @@ export function buildSppAwardValuesRoutes(
   };
 }
 
-// trophyAwards: only `upsert`, matching the contract — award rows are few
-// enough that batching buys nothing. No conflict class: `trophy_awards` has
-// a database unique constraint on its natural key, so the dedup lookup can
-// never match more than one row. `runWithoutConflict` still maps a
-// recipient-kind mismatch to BAD_REQUEST.
-export function buildTrophyAwardsRoutes(
-  upsertHandler: UpsertHandlerService,
-  trophyAwardsService: TrophyAwardsService,
-) {
+// trophyAwards: `upsert` plus `computeMissing`, matching the contract —
+// award rows are few enough that batching buys nothing. No conflict class on
+// `upsert`: `trophy_awards` has a database unique constraint on its natural
+// key, so the dedup lookup can never match more than one row.
+// `runWithoutConflict` still maps a recipient-kind mismatch to BAD_REQUEST.
+export function buildTrophyAwardsRoutes(options: {
+  upsertHandler: UpsertHandlerService;
+  trophyAwardsService: TrophyAwardsService;
+  missingTrophyAwards: MissingTrophyAwardsService;
+}) {
+  const { upsertHandler, trophyAwardsService, missingTrophyAwards } = options;
   return {
     upsert: implement(contract.trophyAwards.upsert).handler(
       ({ input, errors }) =>
@@ -61,6 +64,13 @@ export function buildTrophyAwardsRoutes(
             await trophyAwardsService.upsert(input);
           return { entity: trophyAward, created };
         }),
+    ),
+    // Competition-scoped compute-in-place, like `matches.resolveOutcomes`:
+    // the whole rule lives in MissingTrophyAwardsService, so the route is one
+    // delegation and nothing else.
+    computeMissing: implement(contract.trophyAwards.computeMissing).handler(
+      ({ input }) =>
+        missingTrophyAwards.computeMissingAwards(input.competitionId),
     ),
   };
 }

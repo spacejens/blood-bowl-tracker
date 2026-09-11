@@ -58,6 +58,10 @@ import {
   UpsertTrophyAwardSchema,
 } from './schemas/trophy-award';
 import {
+  ComputeMissingTrophyAwardsResultSchema,
+  ComputeMissingTrophyAwardsSchema,
+} from './schemas/trophy-award-rule';
+import {
   upsertProcedure,
   upsertProcedureBadRequestOnly,
   upsertProcedureWithoutConflict,
@@ -222,6 +226,13 @@ export const contract = {
       UpsertTrophyAwardSchema,
       TrophyAwardSchema,
     ),
+    // Not an upsert: this computes the awards the source importer could not
+    // record, from statistics already imported for the competition, so there
+    // is no entity+created shape to return and no external-id conflict to
+    // detect. Mirrors `matches.resolveOutcomes`.
+    computeMissing: oc
+      .input(ComputeMissingTrophyAwardsSchema)
+      .output(ComputeMissingTrophyAwardsResultSchema),
   },
   externalSystems: {
     // The only upsert with no CONFLICT error: an external system is matched

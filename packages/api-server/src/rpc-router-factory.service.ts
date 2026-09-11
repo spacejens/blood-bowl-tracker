@@ -16,6 +16,7 @@ import {
   MatchEventUpsertConflictError,
   MatchOutcomesService,
   MatchUpsertConflictError,
+  MissingTrophyAwardsService,
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetsService,
@@ -90,6 +91,7 @@ export class RpcRouterFactoryService {
     private readonly positionRulesSetsService: PositionRulesSetsService,
     private readonly trophiesService: TrophiesService,
     private readonly trophyAwardsService: TrophyAwardsService,
+    private readonly missingTrophyAwards: MissingTrophyAwardsService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -432,10 +434,11 @@ export class RpcRouterFactoryService {
           unwrap: (r) => ({ entity: r.trophy, created: r.created }),
         }),
       },
-      trophyAwards: buildTrophyAwardsRoutes(
-        this.upsertHandler,
-        this.trophyAwardsService,
-      ),
+      trophyAwards: buildTrophyAwardsRoutes({
+        upsertHandler: this.upsertHandler,
+        trophyAwardsService: this.trophyAwardsService,
+        missingTrophyAwards: this.missingTrophyAwards,
+      }),
       externalSystems: buildExternalSystemsRoutes(
         this.upsertHandler,
         this.externalSystemsService,
