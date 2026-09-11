@@ -357,9 +357,9 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    fi
    ```
    (`tools/import-manual/data` is committed to git, so it needs no sync.)
-2. Build `tools/production-ops-cli` if `dist/main.js` is missing — a fresh worktree only ran `pnpm install`, and steps 3, 6, and the teardown section below all invoke it:
+2. Rebuild `tools/production-ops-cli` — unconditionally, every time this section runs, not only when `dist/main.js` is missing. A fresh worktree that only ran `pnpm install` has no build at all, but an *existing* `dist/` is the more dangerous case: it can have been built from an older commit and no longer match current source, and nothing in the tool's own output would say so. Steps 3, 6, and the teardown section below all invoke it, and all of them reach production. The trailing `...` in the filter rebuilds the tool's own workspace dependencies (today `cli-shared`) too, so a stale dependency build cannot survive either:
    ```bash
-   pnpm --filter @blood-bowl-tracker/production-ops-cli run build
+   pnpm --filter "@blood-bowl-tracker/production-ops-cli..." run build
    ```
 3. Check that the production config each selected import needs exists:
    ```bash
