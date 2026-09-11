@@ -8,10 +8,10 @@ import type {
 } from 'discord.js';
 import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
-import { MAX_DESCRIPTION_LENGTH } from '../description-limits';
-import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../error-messages';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
+import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../../error-messages';
+import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
-import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 /**
  * How many interactions one reply lists. A fixed cap rather than an option:

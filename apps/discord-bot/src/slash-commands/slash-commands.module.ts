@@ -1,4 +1,3 @@
-import { DiscordBotUsageModule } from '@blood-bowl-tracker/discord-bot-usage';
 import {
   TrophiesModule,
   TrophyAwardsModule,
@@ -19,14 +18,13 @@ import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdiv
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
-import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
-import { DebugInteractionsCommandService } from './debug-interactions-command.service';
+import { DebugModule } from './debug/debug.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
 import { DeepdiveTargetResolverService } from './deepdive-target-resolver.service';
 import { InsightsCommandService } from './insights-command.service';
 import { OnThisDateCommandService } from './on-this-date-command.service';
-import { SlashCommandRegistryService } from './slash-command-registry.service';
+import { SlashCommandRegistryModule } from './slash-command-registry.module';
 
 @Module({
   // InsightsModule re-exports the game-data modules the other deepdives need;
@@ -37,26 +35,26 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
   // PlayerRowButtonService and PlayerKillerInfoFormatterService also arrive
   // transitively through InsightsModule, which provides and exports both for
   // its own on-this-date insight, so neither is redeclared here.
-  // DiscordBotUsageModule supplies InteractionEventsQueryService for
-  // /debuginteractions. Importing it a second time (packages/discord-client
-  // already imports it for the write side) is safe: Nest instantiates a
-  // module once and shares it, and its only dependency - the DB token - is
-  // provided globally by DbModule.
+  // DebugModule supplies the debug-prefixed commands (currently
+  // /debuginteractions; see #834/#836/#837/#838 for the rest) and their own
+  // dependencies, including DiscordBotUsageModule.
+  // SlashCommandRegistryModule supplies the shared SlashCommandRegistryService
+  // singleton that both this module's command services and DebugModule's
+  // register against - see that module's doc comment for why it is pulled out
+  // rather than provided directly here.
   imports: [
     InsightsModule,
     TrophiesModule,
     TrophyAwardsModule,
-    DiscordBotUsageModule,
+    DebugModule,
+    SlashCommandRegistryModule,
   ],
   providers: [
     InsightsCommandService,
     OnThisDateCommandService,
-    DebugInteractionsCommandService,
-    DebugInteractionRowFormatterService,
     DeepdiveAutocompleteService,
     DeepdiveCommandService,
     DeepdiveTargetResolverService,
-    SlashCommandRegistryService,
     CoachDeepdiveService,
     TeamDeepdiveService,
     RaceDeepdiveService,
@@ -71,6 +69,6 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     TrophyDeepdiveService,
     LeagueDeepdiveService,
   ],
-  exports: [InsightsCommandService, SlashCommandRegistryService],
+  exports: [InsightsCommandService, SlashCommandRegistryModule],
 })
 export class SlashCommandsModule {}

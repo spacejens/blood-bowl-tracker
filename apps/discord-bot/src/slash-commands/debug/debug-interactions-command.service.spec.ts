@@ -7,14 +7,14 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
 
-import { MAX_DESCRIPTION_LENGTH } from '../description-limits';
-import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../error-messages';
+import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
+import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../../error-messages';
+import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
 import {
   DebugInteractionsCommandService,
   MAX_DEBUG_INTERACTIONS,
 } from './debug-interactions-command.service';
-import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
 
