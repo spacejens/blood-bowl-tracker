@@ -269,3 +269,9 @@ export const DEEPDIVE_LEAGUE_NO_COMPETITION_GROUPS_MESSAGE =
   'This league has never scheduled a single fixture.';
 export const DEEPDIVE_LEAGUE_NO_TROPHIES_MESSAGE =
   'This league keeps no silverware of its own.';
+
+// --- Debug interactions command (slash-commands/debug/debug-interactions-command.service.ts) ---
+// Deliberately plain rather than in-universe: this is maintainer tooling
+// behind the `debug` naming prefix, not a reply a coach is meant to enjoy.
+export const DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE =
+  'No matching interactions found.';

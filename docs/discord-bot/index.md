@@ -160,6 +160,9 @@ effect immediately.
   `/deepdive` embeds.
 - [`/onthisdate`](slash-commands/on-this-date.md) — what happened on one
   calendar date across every recorded year.
+- [`/debuginteractions`](slash-commands/debug-interactions.md) — maintainer
+  tooling: the most recent recorded bot interactions, optionally filtered to
+  one user and/or one outcome, replied ephemerally.
 
 ### Drill-down buttons and blank entity names
 
