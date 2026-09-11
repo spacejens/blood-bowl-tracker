@@ -1,7 +1,7 @@
 # `/debuginteractions`
 
 `/debuginteractions` lists the most recent bot interactions the
-`discord_bot_usage` schema has recorded - what was triggered, when, with
+`discord_bot_usage` schema has recorded — what was triggered, when, with
 which parameters, and whether the handler succeeded. It exists for
 answering "it failed for me" without direct database access.
 
@@ -13,7 +13,7 @@ bot.
 
 ## Arguments
 
-Both arguments are optional, and they combine - a user plus an outcome
+Both arguments are optional, and they combine — a user plus an outcome
 narrows to that user's successes or failures alone.
 
 - `user` - Discord's own user picker. Narrows to interactions by that
@@ -22,7 +22,7 @@ narrows to that user's successes or failures alone.
   outcome.
 
 There is no guild-scoping argument. Recorded interactions are not always
-tied to a guild - a direct message belongs to none - and someone
+tied to a guild — a direct message belongs to none — and someone
 diagnosing a report wants the full recent history wherever it happened.
 
 ## The reply
@@ -41,7 +41,7 @@ matching interactions, newest first. Each row carries, in order:
   values) is repeated rather than grouped. An interaction with no
   parameters gets no parentheses at all.
 - The outcome, as a tick for a success or a cross for a failure, followed
-  by the recorded error message when there is one - a failure is not
+  by the recorded error message when there is one — a failure is not
   guaranteed to carry one.
 
 Twenty rows is a fixed cap, not an argument: it keeps the description
@@ -51,7 +51,7 @@ message `No matching interactions found.` with no embed.
 
 ## Ephemeral by design
 
-This is the only command in the bot that replies ephemerally - visible
+This is the only command in the bot that replies ephemerally — visible
 only to whoever ran it. The reply can surface another user's interaction
 history and internal error messages, neither of which belongs in a public
 channel. Every other command replies publicly.
