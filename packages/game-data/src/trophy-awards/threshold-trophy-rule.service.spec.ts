@@ -8,19 +8,26 @@ import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
   extractAllFilterValues,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { CareerThresholdTrophyRuleService } from './threshold-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
 
 /**
- * The service issues two queries: candidates at or over the threshold, then
- * the players already holding this trophy. Seeded in that order.
+ * Three builders are issued per call, in this order: the running-total
+ * subquery, the correlated already-awarded `NOT EXISTS` inside its `WHERE`,
+ * and the outer `DISTINCT ON` that is actually awaited. Only the third
+ * resolves to rows, so the crossing rows are seeded third.
+ *
+ * These tests assert the query's *shape* — scope, window function, ordering —
+ * plus what the service does with the rows it gets back. Whether the window
+ * function picks the right crossing match is a question only real Postgres can
+ * answer, and lives in `test/career-threshold-trophy-rule.e2e-spec.ts`.
  */
 async function makeService(
-  candidates: unknown[],
-  alreadyAwarded: unknown[] = [],
+  crossings: unknown[] = [],
 ): Promise<{ service: CareerThresholdTrophyRuleService; db: MockDbResult }> {
-  const db = mockDb(candidates, alreadyAwarded);
+  const db = mockDb([], [], crossings);
   const moduleRef = await Test.createTestingModule({
     providers: [
       CareerThresholdTrophyRuleService,
@@ -34,6 +41,7 @@ async function makeService(
 
 const SPP_OPTIONS = {
   trophyId: 40,
+  competitionId: 7,
   leagueId: 1,
   role: 'acting',
   types: { actionTypes: [], consequenceTypes: [] },
@@ -41,11 +49,29 @@ const SPP_OPTIONS = {
   measure: 'spp_sum',
 } as const;
 
+const COUNT_OPTIONS = {
+  trophyId: 41,
+  competitionId: 7,
+  leagueId: 1,
+  role: 'consequence',
+  types: { actionTypes: [], consequenceTypes: ['casualty', 'death'] },
+  threshold: 3,
+  measure: 'event_count',
+} as const;
+
+/** The running-total expression the subquery selects. */
+function runningTotalText(db: MockDbResult): string {
+  const fields = firstCallArg(db.db.select, 0, 0) as {
+    runningTotal: unknown;
+  };
+  return sqlText(fields.runningTotal);
+}
+
 describe('CareerThresholdTrophyRuleService', () => {
-  it('returns every qualifying player, not just the top one', async () => {
+  it('returns every player who crossed in this competition, not just the top one', async () => {
     const { service } = await makeService([
-      { playerId: 1, teamEraId: 10 },
-      { playerId: 2, teamEraId: 20 },
+      { playerId: 1, teamEraId: 10, competitionId: 7 },
+      { playerId: 2, teamEraId: 20, competitionId: 7 },
     ]);
 
     expect(await service.compute(SPP_OPTIONS)).toEqual([
@@ -60,22 +86,35 @@ describe('CareerThresholdTrophyRuleService', () => {
     expect(await service.compute(SPP_OPTIONS)).toEqual([]);
   });
 
-  it('drops a player who already won this trophy in an earlier competition', async () => {
-    const { service } = await makeService(
-      [
-        { playerId: 1, teamEraId: 10 },
-        { playerId: 2, teamEraId: 20 },
-      ],
-      [{ playerId: 1 }],
-    );
+  it('drops a player whose crossing match belongs to another competition', async () => {
+    // The whole point of the league-wide scan: it returns every player who has
+    // ever crossed, and only the one who crossed *here* is awarded here. The
+    // other player's own competition awards them on its own call.
+    const { service } = await makeService([
+      { playerId: 1, teamEraId: 10, competitionId: 7 },
+      { playerId: 2, teamEraId: 20, competitionId: 9 },
+    ]);
 
     expect(await service.compute(SPP_OPTIONS)).toEqual([
-      { playerId: 2, teamEraId: 20 },
+      { playerId: 1, teamEraId: 10 },
     ]);
   });
 
+  it('does not narrow the query itself to the competition, which would pick the wrong crossing', async () => {
+    // A competition predicate in the outer WHERE would be applied before
+    // DISTINCT ON chooses a row, yielding the earliest crossing *within* that
+    // competition rather than the player's real one.
+    const { service, db } = await makeService();
+
+    await service.compute(SPP_OPTIONS);
+
+    expect(
+      extractAllFilterValues(firstCallArg(db.chains[2].where)),
+    ).not.toContain(7);
+  });
+
   it('scopes the candidate query to the league, not to one competition', async () => {
-    const { service, db } = await makeService([]);
+    const { service, db } = await makeService();
 
     await service.compute(SPP_OPTIONS);
 
@@ -83,34 +122,78 @@ describe('CareerThresholdTrophyRuleService', () => {
       firstCallArg(db.chains[0].where),
     );
     expect(whereValues).toContain(1);
-
-    const havingValues = extractAllFilterValues(
-      firstCallArg(db.chains[0].having),
-    );
-    expect(havingValues).toContain(176);
+    expect(whereValues).not.toContain(7);
   });
 
-  it('counts events instead of summing SPP for an event_count measure', async () => {
-    const { service, db } = await makeService([]);
+  it('compares the running total against the threshold in the outer query', async () => {
+    const { service, db } = await makeService();
 
-    await service.compute({
-      trophyId: 41,
-      leagueId: 1,
-      role: 'consequence',
-      types: { actionTypes: [], consequenceTypes: ['casualty', 'death'] },
-      threshold: 3,
-      measure: 'event_count',
-    });
+    await service.compute(SPP_OPTIONS);
+
+    expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toContain(
+      176,
+    );
+  });
+
+  it('accumulates with a window function ordered by match date, then event id', async () => {
+    const { service, db } = await makeService();
+
+    await service.compute(SPP_OPTIONS);
+
+    const text = runningTotalText(db);
+    expect(text).toContain('sum(');
+    expect(text).toContain('over (partition by');
+    expect(text).toContain('order by');
+    expect(text).toContain('rows between unbounded preceding and current row');
+  });
+
+  it('picks each player earliest crossing event via distinct on, ordered chronologically', async () => {
+    const { service, db } = await makeService();
+
+    await service.compute(SPP_OPTIONS);
+
+    expect(db.db.selectDistinctOn).toHaveBeenCalledTimes(1);
+    const orderBy = db.chains[2].orderBy;
+    expect(orderBy).toHaveBeenCalledTimes(1);
+    expect(orderBy.mock.calls[0]).toHaveLength(3);
+  });
+
+  it('banks spp_adjustment before the first event for an spp_sum measure', async () => {
+    const { service, db } = await makeService();
+
+    await service.compute(SPP_OPTIONS);
+
+    // `coalesce(players.spp_adjustment, 0) + sum(coalesce(spp_value, 0)) over ...`
+    expect(runningTotalText(db)).toContain('coalesce(');
+    expect(runningTotalText(db)).not.toContain('0 + sum(1)');
+  });
+
+  it('counts events from zero, ignoring spp_adjustment, for an event_count measure', async () => {
+    const { service, db } = await makeService();
+
+    await service.compute(COUNT_OPTIONS);
+
+    expect(runningTotalText(db)).toContain('0 + sum(1)');
+    expect(runningTotalText(db)).not.toContain('coalesce(');
 
     const whereValues = extractAllFilterValues(
       firstCallArg(db.chains[0].where),
     );
     expect(whereValues).toContain('casualty');
     expect(whereValues).toContain('death');
+  });
 
-    const havingValues = extractAllFilterValues(
-      firstCallArg(db.chains[0].having),
+  it('excludes a player who already holds this trophy inside the candidate query', async () => {
+    // Not a second query and a JS filter: an already-decided player must never
+    // enter the window computation at all.
+    const { service, db } = await makeService();
+
+    await service.compute(SPP_OPTIONS);
+
+    expect(sqlText(firstCallArg(db.chains[0].where))).toContain('not ');
+    expect(sqlText(firstCallArg(db.chains[0].where))).toContain('exists ');
+    expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toContain(
+      40,
     );
-    expect(havingValues).toContain(3);
   });
 });

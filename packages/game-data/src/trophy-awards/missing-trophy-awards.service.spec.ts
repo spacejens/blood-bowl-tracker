@@ -144,8 +144,11 @@ describe('MissingTrophyAwardsService', () => {
 
     await service.computeMissingAwards(3);
 
+    // Both scopes: the running total is league-wide, but the award only lands
+    // in the competition the player actually crossed the threshold in.
     expect(mocks.careerThreshold.compute).toHaveBeenCalledWith({
       trophyId: 12,
+      competitionId: 3,
       leagueId: 1,
       role: 'consequence',
       types: { actionTypes: [], consequenceTypes: ['casualty'] },

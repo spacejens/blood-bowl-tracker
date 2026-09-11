@@ -254,6 +254,10 @@ export class MissingTrophyAwardsService {
       case 'career_threshold':
         return this.careerThreshold.compute({
           trophyId: rule.id,
+          // Both scopes: the figure accumulates across the league, but the
+          // award only lands here if this is the competition the player
+          // actually crossed the threshold in.
+          competitionId,
           leagueId,
           role,
           types,
