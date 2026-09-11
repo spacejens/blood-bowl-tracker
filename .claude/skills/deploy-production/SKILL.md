@@ -276,7 +276,7 @@ Run this section only if "Drop and recreate the production database" was selecte
    grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
    ```
    Expected output: `1`. Anything else (0, or more than one) — stop and report. Every later step reads this value into a shell variable and never echoes it.
-3. Capture a baseline row count for every table, **before** anything is dropped. There are no backups (see Non-goals), so these counts are the only way to sanity-check afterwards that the re-import reproduced comparable data. Run this through the same `run-production-query` subcommand step 3 of the read-only-queries section below uses (build it first with `pnpm --filter @blood-bowl-tracker/production-ops-cli run build` if `dist/main.js` is missing) — this is a fixed, hardcoded query, but routing it through the same tool keeps `DATABASE_URL` out of view here too, exactly as it does for a developer-described query:
+3. Capture a baseline row count for every table, **before** anything is dropped. There are no backups (see Non-goals), so these counts are the only way to sanity-check afterwards that the re-import reproduced comparable data. Run this through the same `run-production-query` subcommand step 3 of the read-only-queries section below uses (rebuild it first with `pnpm --filter "@blood-bowl-tracker/production-ops-cli..." run build` — always, not only when `dist/main.js` is missing: an existing `dist/` can be stale relative to current source, and a silently stale build has already produced an apparently-successful production operation that did not do what the source says it does; the `...` suffix rebuilds the tool's own workspace dependencies too) — this is a fixed, hardcoded query, but routing it through the same tool keeps `DATABASE_URL` out of view here too, exactly as it does for a developer-described query:
    ```bash
    node tools/production-ops-cli/dist/main.js run-production-query <<'QUERYEOF'
    SELECT schemaname, relname, n_live_tup FROM pg_stat_user_tables WHERE schemaname IN ('game_data', 'discord_bot_usage') AND relname NOT LIKE '%\_history' ORDER BY schemaname, relname;
@@ -296,7 +296,7 @@ Run this section only if "Drop and recreate the production database" was selecte
 
    Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections **except** the four "against production" import actions — if any of those were also selected in step 0, do not run them automatically. Report that they were skipped because the reset they were expected to follow did not happen, and that the developer can re-invoke the skill to run them deliberately against the existing, unmodified production data if that is actually what they want.
 
-5. Drop and recreate the schemas through `tools/production-ops-cli`'s `reset-production-schema` subcommand (build it first with `pnpm --filter @blood-bowl-tracker/production-ops-cli run build` if `dist/main.js` is missing):
+5. Drop and recreate the schemas through `tools/production-ops-cli`'s `reset-production-schema` subcommand (rebuild it first with `pnpm --filter "@blood-bowl-tracker/production-ops-cli..." run build` — always, not only when `dist/main.js` is missing: this is the destructive step, and a stale `dist/` here once dropped fewer schemas than current source does while still reporting success; the `...` suffix rebuilds the tool's own workspace dependencies too):
    ```bash
    node tools/production-ops-cli/dist/main.js reset-production-schema
    ```
@@ -357,9 +357,9 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    fi
    ```
    (`tools/import-manual/data` is committed to git, so it needs no sync.)
-2. Build `tools/production-ops-cli` if `dist/main.js` is missing — a fresh worktree only ran `pnpm install`, and steps 3, 6, and the teardown section below all invoke it:
+2. Rebuild `tools/production-ops-cli` — unconditionally, every time this section runs, not only when `dist/main.js` is missing. A fresh worktree that only ran `pnpm install` has no build at all, but an *existing* `dist/` is the more dangerous case: it can have been built from an older commit and no longer match current source, and nothing in the tool's own output would say so. Steps 3, 6, and the teardown section below all invoke it, and all of them reach production. The trailing `...` in the filter rebuilds the tool's own workspace dependencies (today `tools/cli-shared`) too, so a stale dependency build cannot survive either:
    ```bash
-   pnpm --filter @blood-bowl-tracker/production-ops-cli run build
+   pnpm --filter "@blood-bowl-tracker/production-ops-cli..." run build
    ```
 3. Check that the production config each selected import needs exists:
    ```bash
@@ -378,11 +378,11 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    lsof -nP -iTCP:3001 -sTCP:LISTEN
    ```
    If anything is listening, stop and report what holds the port (typically a leftover `flyctl proxy 3001:3000` from an earlier or concurrent `deploy-production` run — see "Production imports: closing the tunnel"). Do not kill the process yourself.
-6. Build the import tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
+6. Rebuild the import tools that will run — every run, and each one together with its own workspace dependencies. These builds were already unconditional; what the trailing `...` in each filter adds is the tool's dependency chain (for `import-tp`, that is `packages/import`, `packages/api-client`, `packages/api-contract`, `packages/domain-enums`, `packages/config-loader`, and `packages/parse-tp`). Rebuilding only the top-level tool package leaves a stale build of a dependency that changed independently in place, which is just as wrong as a stale build of the tool itself and just as invisible in the importer's own output. Build just the tools that were selected:
    ```bash
-   pnpm --filter @blood-bowl-tracker/import-manual run build   # if either manual import was selected
-   pnpm --filter @blood-bowl-tracker/import-bbl run build      # if the BBL import was selected
-   pnpm --filter @blood-bowl-tracker/import-tp run build       # if the TP import was selected
+   pnpm --filter "@blood-bowl-tracker/import-manual..." run build   # if either manual import was selected
+   pnpm --filter "@blood-bowl-tracker/import-bbl..." run build      # if the BBL import was selected
+   pnpm --filter "@blood-bowl-tracker/import-tp..." run build       # if the TP import was selected
    ```
 7. Open the private tunnel to the production machine. This spawns `flyctl proxy 3001:3000` detached (so it keeps running after this command returns) and persists its pid to a worktree-scoped, gitignored file, so the teardown section can target this run's own tunnel specifically rather than matching any process by command line — the logic lives in `tools/production-ops-cli` (see `production-tunnel.service.ts`), not as an inline shell script here, both because spawning a detached process and persisting its pid across separate tool invocations needs real process control a shell one-liner can't give it, and so it stays unit tested:
    ```bash
@@ -474,7 +474,7 @@ This action answers a question the developer asks about live production data. Th
    ```
    If the file exists in neither place, stop and tell the developer to create it per `docs/discord-bot/production-configuration.md`.
 2. Ask the developer what they want to know, unless they already said. Use a plain conversational prompt rather than `AskUserQuestion` — the answer is free-form text, not a choice among options. Then write the SQL and show it to them before running it, with a one-line explanation of what each statement returns. Application tables live in the `game_data` schema (see `packages/db/src/schema/game-data/pg-schema.ts`) and the `discord_bot_usage` schema (see `packages/db/src/schema/discord-bot-usage/pg-schema.ts`), so qualify names as `game_data.<table>` or `discord_bot_usage.<table>` as appropriate.
-3. Run the query through `tools/production-ops-cli`'s `run-production-query` subcommand (build it first with `pnpm --filter @blood-bowl-tracker/production-ops-cli run build` if `dist/main.js` is missing), feeding the query text via stdin. Write the query text to a scratch file with the `Write` tool first — not a shell heredoc: a heredoc's closing delimiter is still shell syntax, so a query that happened to contain a line matching the delimiter would end the heredoc early and let the rest of the query be parsed as shell commands. `Write` places the exact literal content on disk with no shell parsing at all, which closes that off completely rather than just making the delimiter harder to collide with. Then pipe the file into the subcommand:
+3. Run the query through `tools/production-ops-cli`'s `run-production-query` subcommand (rebuild it first with `pnpm --filter "@blood-bowl-tracker/production-ops-cli..." run build` — always, not only when `dist/main.js` is missing, since an existing `dist/` can be stale relative to current source; the `...` suffix rebuilds the tool's own workspace dependencies too. This action can be run on its own, so it does its own rebuild rather than assuming another section already did one), feeding the query text via stdin. Write the query text to a scratch file with the `Write` tool first — not a shell heredoc: a heredoc's closing delimiter is still shell syntax, so a query that happened to contain a line matching the delimiter would end the heredoc early and let the rest of the query be parsed as shell commands. `Write` places the exact literal content on disk with no shell parsing at all, which closes that off completely rather than just making the delimiter harder to collide with. Then pipe the file into the subcommand:
    ```bash
    cat <scratch-file> | node tools/production-ops-cli/dist/main.js run-production-query
    ```
