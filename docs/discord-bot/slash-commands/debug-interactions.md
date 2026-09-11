@@ -76,13 +76,22 @@ normal interaction dispatcher. That works because no command or component
 handler in this bot reads anything about _who_ triggered it or _where_ —
 replying, logging and usage recording all live in the dispatcher — so a
 minimal stand-in carrying just the recorded options (or customId and
-selected values) is enough.
+selected values) is enough. Recorded option values are passed through
+faithfully, including a `user` filter recorded for `/debuginteractions`
+itself: the recorded snowflake is handed back through the stand-in's
+`getUser`, so retriggering a filtered listing reproduces the same filter
+rather than silently showing everyone's history.
 
 Two consequences follow from going around the dispatcher:
 
 - The retriggered run records no `discord_bot_usage` row of its own, so
   retriggering never pollutes the very history this command reads. The
-  button click itself is recorded like any other button interaction.
+  button click itself is recorded like any other button interaction — as
+  kind `button`, name `debug:retrigger:` — so it will itself show up in the
+  next `/debuginteractions` listing, with its own retrigger button. Clicking
+  that re-runs the original retriggered interaction one level removed; an
+  event can never reference a click that postdates it, so this can't loop
+  forever, but it's worth recognizing these rows for what they are.
 - The reply lands in the channel where the retrigger was clicked, not in
   the channel the original interaction happened in, and it is public
   rather than ephemeral — the same way that command or component would

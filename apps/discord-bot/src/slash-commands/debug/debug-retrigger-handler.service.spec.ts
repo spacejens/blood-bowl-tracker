@@ -90,6 +90,33 @@ describe('DebugRetriggerHandlerService', () => {
     expect(events.findById).not.toHaveBeenCalled();
   });
 
+  it('replies ephemerally when the button id is empty, without querying the database', async () => {
+    expect(await service.handle(click(''))).toEqual({
+      content: DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(events.findById).not.toHaveBeenCalled();
+  });
+
+  it('replies ephemerally when the button id is negative, without querying the database', async () => {
+    expect(await service.handle(click('-5'))).toEqual({
+      content: DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(events.findById).not.toHaveBeenCalled();
+  });
+
+  it('the registered handler delegates to handle', async () => {
+    service.onModuleInit();
+    events.findById.mockResolvedValue(undefined);
+
+    const [, callback] = discordClient.registerButtonHandler.mock.calls[0];
+    expect(await callback(click('11'))).toEqual({
+      content: DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+  });
+
   it('re-runs a recorded command with its recorded options', async () => {
     events.findById.mockResolvedValue(
       eventRow({
@@ -118,8 +145,13 @@ describe('DebugRetriggerHandlerService', () => {
     expect(synthetic.options.getString('missing')).toBeNull();
   });
 
-  it('offers getUser on the synthetic command interaction', async () => {
-    events.findById.mockResolvedValue(eventRow({ kind: 'command' }));
+  it('offers getUser on the synthetic command interaction, resolving a recorded user parameter', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({
+        kind: 'command',
+        parameters: [{ key: 'user', value: '999888777' }],
+      }),
+    );
     const execute = vi.fn().mockResolvedValue('ok');
     registry.findByName.mockReturnValue({
       name: 'insights',
@@ -130,9 +162,10 @@ describe('DebugRetriggerHandlerService', () => {
     await service.handle(click('11'));
 
     const synthetic = execute.mock.calls[0][0] as {
-      options: { getUser: (name: string) => null };
+      options: { getUser: (name: string) => { id: string } | null };
     };
-    expect(synthetic.options.getUser('user')).toBeNull();
+    expect(synthetic.options.getUser('user')).toEqual({ id: '999888777' });
+    expect(synthetic.options.getUser('missing')).toBeNull();
   });
 
   it('replies ephemerally when the command is no longer registered', async () => {
@@ -209,6 +242,25 @@ describe('DebugRetriggerHandlerService', () => {
     expect(handler.mock.calls[0][0]).toEqual({
       customId: 'coach:menu:0',
       values: ['7', '9'],
+    });
+  });
+
+  it('re-runs a recorded select menu with no recorded values as an empty selection', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({
+        kind: 'select_menu',
+        name: 'coach:',
+        parameters: [{ key: 'id', value: 'menu:0' }],
+      }),
+    );
+    const handler = vi.fn().mockResolvedValue('menu answer');
+    discordClient.findSelectMenuHandler.mockReturnValue(handler);
+
+    await service.handle(click('11'));
+
+    expect(handler.mock.calls[0][0]).toEqual({
+      customId: 'coach:menu:0',
+      values: [],
     });
   });
 

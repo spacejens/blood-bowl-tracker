@@ -105,6 +105,11 @@ export class DebugInteractionsCommandService implements OnModuleInit {
           ),
         },
       ],
+      // If enforceDescriptionLimit truncated the rendered text, a retrigger
+      // button can exist for a row whose numbered line is no longer visible
+      // in the embed. This is deliberately left as-is: it requires very long
+      // parameter values to trigger, and slicing the button list to match
+      // the truncated text would add real complexity for a rare case.
       components: this.retriggerButtons.build(rows.map((row) => row.id)),
       flags: MessageFlags.Ephemeral,
     };

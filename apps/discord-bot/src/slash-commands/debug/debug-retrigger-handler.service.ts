@@ -7,6 +7,7 @@ import type {
   ChatInputCommandInteraction,
   InteractionReplyOptions,
   StringSelectMenuInteraction,
+  User,
 } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
@@ -62,7 +63,7 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
     const eventId = Number(
       interaction.customId.slice(DEBUG_RETRIGGER_CUSTOM_ID_PREFIX.length),
     );
-    if (!Number.isInteger(eventId)) {
+    if (!Number.isInteger(eventId) || eventId <= 0) {
       return this.ephemeral(DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE);
     }
     const event = await this.events.findById(eventId);
@@ -87,16 +88,22 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
         this.ephemeral(DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE),
       );
     }
-    const values = new Map(
+    const optionsByName = new Map(
       event.parameters.map((parameter) => [parameter.key, parameter.value]),
     );
-    // `getUser` is stubbed as well as `getString`: no real command reads it,
-    // but `/debuginteractions` itself does, and it appears in its own
-    // listing - so retriggering that row would otherwise throw.
+    // `getUser` is stubbed as well as `getString`: no real command reads a
+    // `User`-type option today except `/debuginteractions` itself (which
+    // appears in its own listing, so retriggering that row must not throw),
+    // but the recorded value is the option's raw snowflake, so it is
+    // resolved into a minimal `User` stand-in rather than dropped - a
+    // recorded `user` filter must survive retriggering unchanged.
     const synthetic = {
       options: {
-        getString: (name: string) => values.get(name) ?? null,
-        getUser: () => null,
+        getString: (name: string) => optionsByName.get(name) ?? null,
+        getUser: (name: string) => {
+          const id = optionsByName.get(name);
+          return id == null ? null : ({ id } as User);
+        },
       },
     } as unknown as ChatInputCommandInteraction;
     return definition.execute(synthetic);
@@ -125,12 +132,12 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
         this.ephemeral(DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE),
       );
     }
-    const values = event.parameters
+    const selectedValues = event.parameters
       .filter((parameter) => parameter.key === 'value')
       .map((parameter) => parameter.value ?? '');
     return handler({
       customId,
-      values,
+      values: selectedValues,
     } as unknown as StringSelectMenuInteraction);
   }
 
