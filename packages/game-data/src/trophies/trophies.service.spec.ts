@@ -1,6 +1,9 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, trophies } from '@blood-bowl-tracker/db';
-import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
+import type {
+  QueryChain,
+  QueryOutcome,
+} from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -28,7 +31,7 @@ describe('TrophiesService', () => {
   let service: TrophiesService;
   let likePattern: MockProxy<LikePatternService>;
 
-  async function build(...rowsPerQuery: unknown[][]): Promise<{
+  async function build(...rowsPerQuery: QueryOutcome[]): Promise<{
     db: Db;
     chains: QueryChain[];
   }> {
@@ -115,7 +118,7 @@ describe('TrophiesService', () => {
     });
   });
 
-  it('replaces the curated rule event types when they are supplied', async () => {
+  it('replaces the curated rule event types when they are supplied, atomically with the trophy row', async () => {
     const { db } = await build([], [fakeTrophy]);
 
     await service.upsert({
@@ -134,14 +137,14 @@ describe('TrophiesService', () => {
       ],
     });
 
-    // upsertByExternalIds already wraps the whole upsert in one transaction,
-    // so a supplied rule array opens a second, dedicated one for the junction
-    // sync (rule rows are replaced inside it, so a failed sync cannot leave a
-    // trophy holding half of its old rule and half of its new one).
-    expect(db.transaction).toHaveBeenCalledTimes(2);
+    // `upsert` opens exactly one transaction and hands it to both the
+    // trophy-row upsert and the junction-table sync, so the trophy's scalar
+    // rule columns and its event types commit or roll back together rather
+    // than across two independent transactions.
+    expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves the curated rule event types alone when they are omitted', async () => {
+  it('leaves the curated rule event types alone when they are omitted, still inside the one transaction', async () => {
     const { db } = await build([], [fakeTrophy]);
 
     await service.upsert({
@@ -153,9 +156,39 @@ describe('TrophiesService', () => {
       ],
     });
 
-    // Only the main upsert's own transaction runs; no dedicated junction-sync
-    // transaction opens when both rule arrays are omitted.
+    // Still exactly one transaction: omitting both rule arrays just means
+    // syncRuleEventTypes issues no queries on it, not that a transaction was
+    // skipped.
     expect(db.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates the event-type sync failure from inside the same transaction as the trophy row write', async () => {
+    const failure = new Error('junction insert failed');
+    // Query order for a create-path upsert with an included rule array:
+    // 0 external-id lookup (no match), 1 entity insert (`.returning()`),
+    // 2 new-external-id insert, 3 event-type delete, 4 event-type insert —
+    // made to reject here, to exercise the sync-failure path.
+    const { db, chains } = await build([], [fakeTrophy], [], [], failure);
+
+    await expect(
+      service.upsert({
+        name: 'Top Fouler',
+        recipientKind: 'player',
+        awardRuleKind: 'max_count',
+        awardRuleMatchEventTypes: [{ actionType: 'foul' }],
+        externalIds: [
+          { externalSystemId: 1, externalId: 'Top Fouler-Major Season' },
+        ],
+      }),
+    ).rejects.toThrow(failure);
+
+    // The failure happened inside the one transaction the whole call runs
+    // in (mockDb's `transaction` really invokes its callback, so a rejection
+    // from inside it propagates out of `db.transaction` itself, matching
+    // real Postgres rolling the whole transaction back) — there was never a
+    // second, already-committed transaction holding just the trophy row.
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+    expect(chains).toHaveLength(5);
   });
 
   describe('searchByNamePrefix', () => {

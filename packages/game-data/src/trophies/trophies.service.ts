@@ -14,6 +14,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { DbOrTx } from '../shared/db-or-tx';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
@@ -265,49 +266,64 @@ export class TrophiesService {
       );
   }
 
+  /**
+   * The trophy row's scalar rule columns and its junction-table event types
+   * must commit or roll back together — a trophy left holding a new rule
+   * kind beside a stale set of event-type rows from its old rule is an
+   * inconsistent, half-migrated state. Both writes therefore share the one
+   * transaction opened here rather than each opening (and committing) its
+   * own: `upsertByExternalIds` is handed this transaction via `tx` instead
+   * of being left to open its own, and `syncRuleEventTypes` uses it directly
+   * rather than opening a second one.
+   */
   async upsert(
     data: UpsertTrophy,
   ): Promise<{ trophy: Trophy; created: boolean }> {
-    const { row: trophy, created } = await upsertByExternalIds<
-      typeof trophies,
-      typeof trophyExternalIds
-    >({
-      db: this.db,
-      entityTable: trophies,
-      entityIdColumn: trophies.id,
-      values: {
-        name: data.name,
-        recipientKind: data.recipientKind,
-        description: data.description,
-        competitionGroupId: data.competitionGroupId,
-        leagueId: data.leagueId,
-        awardRuleKind: data.awardRuleKind,
-        awardProcedure: data.awardProcedure,
-        awardRuleRole: data.awardRuleRole,
-        awardRuleTieCutoff: data.awardRuleTieCutoff,
-        awardRuleThreshold: data.awardRuleThreshold,
-        awardRuleMeasure: data.awardRuleMeasure,
-      },
-      externalIdTable: trophyExternalIds,
-      ownerIdColumn: trophyExternalIds.trophyId,
-      externalSystemIdColumn: trophyExternalIds.externalSystemId,
-      externalIdColumn: trophyExternalIds.externalId,
-      externalIds: data.externalIds,
-      ConflictErrorClass: TrophyUpsertConflictError,
-      entityLabelPlural: 'trophies',
-      buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
+    return this.db.transaction(async (tx) => {
+      const { row: trophy, created } = await upsertByExternalIds<
+        typeof trophies,
+        typeof trophyExternalIds
+      >({
+        db: this.db,
+        tx,
+        entityTable: trophies,
+        entityIdColumn: trophies.id,
+        values: {
+          name: data.name,
+          recipientKind: data.recipientKind,
+          description: data.description,
+          competitionGroupId: data.competitionGroupId,
+          leagueId: data.leagueId,
+          awardRuleKind: data.awardRuleKind,
+          awardProcedure: data.awardProcedure,
+          awardRuleRole: data.awardRuleRole,
+          awardRuleTieCutoff: data.awardRuleTieCutoff,
+          awardRuleThreshold: data.awardRuleThreshold,
+          awardRuleMeasure: data.awardRuleMeasure,
+        },
+        externalIdTable: trophyExternalIds,
+        ownerIdColumn: trophyExternalIds.trophyId,
+        externalSystemIdColumn: trophyExternalIds.externalSystemId,
+        externalIdColumn: trophyExternalIds.externalId,
+        externalIds: data.externalIds,
+        ConflictErrorClass: TrophyUpsertConflictError,
+        entityLabelPlural: 'trophies',
+        buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
+      });
+
+      await this.syncRuleEventTypes(tx, trophy.id, data);
+
+      return { trophy, created };
     });
-
-    await this.syncRuleEventTypes(trophy.id, data);
-
-    return { trophy, created };
   }
 
   /**
-   * Replace the trophy's curated rule event types, in one transaction per
-   * trophy, so a failed sync cannot leave half of an old rule beside half of a
-   * new one. Delete-then-insert rather than a diff: the rows are a small
-   * curated set with no identity of their own beyond the pair they name.
+   * Replace the trophy's curated rule event types, on the same transaction
+   * handle `upsert` opened around the whole call, so a failed sync rolls
+   * back the trophy row's own just-written changes too rather than leaving
+   * half of an old rule beside half of a new one. Delete-then-insert rather
+   * than a diff: the rows are a small curated set with no identity of their
+   * own beyond the pair they name.
    *
    * An omitted array leaves that table's rows untouched — the same overlay
    * semantics the scalar columns have — while an empty array clears them,
@@ -315,6 +331,7 @@ export class TrophiesService {
    * stale rule.
    */
   private async syncRuleEventTypes(
+    tx: DbOrTx,
     trophyId: number,
     data: UpsertTrophy,
   ): Promise<void> {
@@ -323,36 +340,34 @@ export class TrophiesService {
     if (included === undefined && excluded === undefined) {
       return;
     }
-    await this.db.transaction(async (tx) => {
-      if (included !== undefined) {
-        await tx
-          .delete(trophyAwardRuleMatchEventTypes)
-          .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId));
-        if (included.length > 0) {
-          await tx.insert(trophyAwardRuleMatchEventTypes).values(
-            included.map((entry) => ({
-              trophyId,
-              actionType: entry.actionType ?? null,
-              consequenceType: entry.consequenceType ?? null,
-            })),
-          );
-        }
+    if (included !== undefined) {
+      await tx
+        .delete(trophyAwardRuleMatchEventTypes)
+        .where(eq(trophyAwardRuleMatchEventTypes.trophyId, trophyId));
+      if (included.length > 0) {
+        await tx.insert(trophyAwardRuleMatchEventTypes).values(
+          included.map((entry) => ({
+            trophyId,
+            actionType: entry.actionType ?? null,
+            consequenceType: entry.consequenceType ?? null,
+          })),
+        );
       }
-      if (excluded !== undefined) {
-        await tx
-          .delete(trophyAwardRuleExcludedMatchEventTypes)
-          .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId));
-        if (excluded.length > 0) {
-          await tx.insert(trophyAwardRuleExcludedMatchEventTypes).values(
-            excluded.map((entry) => ({
-              trophyId,
-              actionType: entry.actionType ?? null,
-              consequenceType: entry.consequenceType ?? null,
-            })),
-          );
-        }
+    }
+    if (excluded !== undefined) {
+      await tx
+        .delete(trophyAwardRuleExcludedMatchEventTypes)
+        .where(eq(trophyAwardRuleExcludedMatchEventTypes.trophyId, trophyId));
+      if (excluded.length > 0) {
+        await tx.insert(trophyAwardRuleExcludedMatchEventTypes).values(
+          excluded.map((entry) => ({
+            trophyId,
+            actionType: entry.actionType ?? null,
+            consequenceType: entry.consequenceType ?? null,
+          })),
+        );
       }
-    });
+    }
   }
 }
 

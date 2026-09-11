@@ -25,6 +25,23 @@ export interface UpsertByExternalIdsOptions<
   TExternalIdTable extends PgTable,
 > {
   db: Db;
+  /**
+   * When supplied, the whole resolve -> conflict-guard -> insert-or-update ->
+   * insert-missing-external-ids sequence runs directly on this handle instead
+   * of opening (and owning) a transaction on `db`. Use this when the caller
+   * already holds an outer transaction — e.g. because it needs this upsert's
+   * writes to commit or roll back atomically together with further writes of
+   * its own — and wants those writes to land inside that same transaction
+   * rather than committing separately as soon as this call returns.
+   *
+   * `db` is still required in this mode (some entities may use it for
+   * reads outside the write path), but the unique-external-id-violation
+   * retry loop does not run: a caller supplying its own handle owns that
+   * handle's transaction boundary, and retrying would mean rolling back
+   * writes the caller may have already made on it. This mode is for a
+   * caller that wants exactly one write attempt sharing its transaction.
+   */
+  tx?: DbOrTx;
   /** The entity table to insert into / update (e.g. `eras`). */
   entityTable: TEntityTable;
   /** The entity table's primary-key column, for the update WHERE (e.g. `eras.id`). */
@@ -314,6 +331,11 @@ async function runUpsertAttempt<
  * `values` is partial: keys whose value is `undefined` are stripped before the
  * database sees them, so an update never overwrites a column the payload said
  * nothing about, while an explicit `null` still writes `null`.
+ *
+ * When `opts.tx` is supplied, none of the above transaction-owning or retry
+ * behavior applies: the sequence runs once, directly on `opts.tx`, so it
+ * commits or rolls back together with whatever else the caller's own
+ * transaction does.
  */
 export async function upsertByExternalIds<
   TEntityTable extends PgTable,
@@ -321,6 +343,10 @@ export async function upsertByExternalIds<
 >(
   opts: UpsertByExternalIdsOptions<TEntityTable, TExternalIdTable>,
 ): Promise<{ row: InferSelectModel<TEntityTable>; created: boolean }> {
+  if (opts.tx) {
+    return runUpsertAttempt(opts, opts.tx);
+  }
+
   const externalIdTableName = getTableName(opts.externalIdTable);
 
   let lastViolation: unknown;
