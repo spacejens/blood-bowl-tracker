@@ -873,7 +873,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(vitest@5.0.0)
       eslint:
-        specifier: ^10.8.1
+        specifier: ^10.10.0
         version: 10.10.0(jiti@2.7.0)
       typescript:
         specifier: ^6.0.3
@@ -1105,7 +1105,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(vitest@5.0.0)
       eslint:
-        specifier: ^10.8.1
+        specifier: ^10.10.0
         version: 10.10.0(jiti@2.7.0)
       typescript:
         specifier: ^6.0.3
