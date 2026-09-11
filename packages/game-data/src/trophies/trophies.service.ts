@@ -409,16 +409,18 @@ export class TrophiesService {
    * kind (`direct_source` or `manual`) is the exception: such a trophy's
    * winner is recorded by the source or curated by hand, so nothing about it
    * is computed and it can hold no match-event types and no eligible
-   * positions at all. An omitted array there therefore means "none" rather
-   * than "leave alone" — otherwise a trophy reclassified onto a non-computed
-   * kind would silently keep the event types and position restrictions of the
-   * computed rule it no longer has.
+   * positions at all. Every array there is forced to "none", whether it was
+   * omitted or supplied: an omitted one must not leave the event types and
+   * position restrictions of the computed rule the trophy no longer has, and
+   * a supplied one must not persist curation the kind cannot use in the first
+   * place. Rejecting a supplied array instead would make every caller that
+   * reclassifies a trophy blank the arrays by hand first.
    */
   private effectiveRuleCuration(data: UpsertTrophy): RuleCuration {
     const computes =
       data.awardRuleKind !== 'direct_source' && data.awardRuleKind !== 'manual';
     const cleared = <T>(value: T[] | undefined): T[] | undefined =>
-      value ?? (computes ? undefined : []);
+      computes ? value : [];
     return {
       included: cleared(data.awardRuleMatchEventTypes),
       excluded: cleared(data.awardRuleExcludedMatchEventTypes),

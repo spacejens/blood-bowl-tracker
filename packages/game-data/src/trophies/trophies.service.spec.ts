@@ -279,8 +279,8 @@ describe('TrophiesService', () => {
     expect(db.delete).toHaveBeenCalledTimes(3);
   });
 
-  it('still replaces the curated rule rows a non-computed upsert does supply', async () => {
-    const { chains } = await build(
+  it('discards the curated rule rows a non-computed upsert supplies anyway', async () => {
+    const { db, chains } = await build(
       [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
       [fakeTrophy],
     );
@@ -288,15 +288,15 @@ describe('TrophiesService', () => {
     await service.upsert({
       ...baseData,
       awardRuleMatchEventTypes: [{ actionType: 'touchdown' }],
+      awardRuleEligiblePositions: ['Blitzer'],
     });
 
-    // 0 lookup, 1 update, 2 included-types delete, 3 included-types insert,
-    // 4 excluded-types delete, 5 eligible-positions delete. A supplied array
-    // is applied as given; only the omitted ones are read as "none".
-    expect(chains).toHaveLength(6);
-    expect(firstCallArg(chains[3].values)).toEqual([
-      { trophyId: 1, actionType: 'touchdown', consequenceType: null },
-    ]);
+    // 0 lookup, 1 update, then one delete per rule table and no insert: a
+    // `direct_source` trophy computes nothing, so curation it cannot use is
+    // dropped whether it was omitted or stated outright.
+    expect(chains).toHaveLength(5);
+    expect(db.delete).toHaveBeenCalledTimes(3);
+    expect(db.insert).not.toHaveBeenCalled();
   });
 
   it('leaves every rule table alone when the upsert states no award rule kind', async () => {
