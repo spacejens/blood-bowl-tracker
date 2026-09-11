@@ -387,9 +387,6 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.0(@types/node@24.13.4)(@vitest/coverage-v8@5.0.0)(vite@8.2.2(@types/node@24.13.4)(jiti@2.7.0)(yaml@2.9.0))
-      vitest-mock-extended:
-        specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.0)
 
   packages/db:
     dependencies:
@@ -427,9 +424,6 @@ importers:
       drizzle-kit:
         specifier: rc
         version: 1.0.0-rc.4
-      testcontainers:
-        specifier: ^12.1.0
-        version: 12.1.0
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -691,9 +685,6 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.0(@types/node@24.13.4)(@vitest/coverage-v8@5.0.0)(vite@8.2.2(@types/node@24.13.4)(jiti@2.7.0)(yaml@2.9.0))
-      vitest-mock-extended:
-        specifier: ^5.1.1
-        version: 5.1.1(typescript@6.0.3)(vitest@5.0.0)
 
   packages/review-harness:
     dependencies:

@@ -20,7 +20,7 @@ const TEAMS_DIR = 'teams';
 const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
 
 /** The five characteristics TP carries on every official-list entry. */
-export interface TpRawPositionCharacteristics {
+interface TpRawPositionCharacteristics {
   move: number;
   strength: number;
   agility: number;
