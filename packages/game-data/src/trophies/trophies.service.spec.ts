@@ -119,7 +119,7 @@ describe('TrophiesService', () => {
   });
 
   it('replaces the curated rule event types when they are supplied, atomically with the trophy row', async () => {
-    const { db } = await build([], [fakeTrophy]);
+    const { db, chains } = await build([], [fakeTrophy]);
 
     await service.upsert({
       name: 'Top Fouler',
@@ -137,15 +137,28 @@ describe('TrophiesService', () => {
       ],
     });
 
-    // `upsert` opens exactly one transaction and hands it to both the
-    // trophy-row upsert and the junction-table sync, so the trophy's scalar
-    // rule columns and its event types commit or roll back together rather
-    // than across two independent transactions.
+    // Query order: 0 external-id lookup, 1 entity insert, 2 new-external-id
+    // insert, then the junction sync's own queries — 3 the included-types
+    // delete, 4 the included-types insert, 5 the excluded-types delete (the
+    // supplied excluded array is empty, so no matching insert follows).
+    expect(chains).toHaveLength(6);
+    expect(extractFilterValues(firstCallArg(chains[3].where))).toBe(
+      fakeTrophy.id,
+    );
+    expect(firstCallArg(chains[4].values)).toEqual([
+      { trophyId: 1, actionType: 'foul', consequenceType: null },
+      { trophyId: 1, actionType: null, consequenceType: 'casualty' },
+    ]);
+    expect(extractFilterValues(firstCallArg(chains[5].where))).toBe(
+      fakeTrophy.id,
+    );
+    // All of it inside the single transaction the trophy-row upsert opens, so
+    // the scalar rule columns and the event types commit or roll back together.
     expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the curated rule event types alone when they are omitted, still inside the one transaction', async () => {
-    const { db } = await build([], [fakeTrophy]);
+    const { db, chains } = await build([], [fakeTrophy]);
 
     await service.upsert({
       name: 'Top Fouler',
@@ -156,9 +169,14 @@ describe('TrophiesService', () => {
       ],
     });
 
-    // Still exactly one transaction: omitting both rule arrays just means
-    // syncRuleEventTypes issues no queries on it, not that a transaction was
-    // skipped.
+    // Only the three queries of the trophy-row upsert itself — external-id
+    // lookup, entity insert, new-external-id insert. Omitting both rule arrays
+    // means the junction sync issues no delete and no insert of its own, so
+    // the curated rows already in those tables are left untouched.
+    expect(chains).toHaveLength(3);
+    expect(db.delete).not.toHaveBeenCalled();
+    // Still exactly one transaction: the arrays being omitted changes what the
+    // sync writes, not whether the write path is transactional.
     expect(db.transaction).toHaveBeenCalledTimes(1);
   });
 

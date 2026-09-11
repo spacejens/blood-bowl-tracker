@@ -270,56 +270,53 @@ export class TrophiesService {
    * The trophy row's scalar rule columns and its junction-table event types
    * must commit or roll back together — a trophy left holding a new rule
    * kind beside a stale set of event-type rows from its old rule is an
-   * inconsistent, half-migrated state. Both writes therefore share the one
-   * transaction opened here rather than each opening (and committing) its
-   * own: `upsertByExternalIds` is handed this transaction via `tx` instead
-   * of being left to open its own, and `syncRuleEventTypes` uses it directly
-   * rather than opening a second one.
+   * inconsistent, half-migrated state. The event-type sync therefore runs as
+   * `upsertByExternalIds`' `afterUpsert` hook, inside the transaction that
+   * helper already opens, rather than in a second one of its own. Handing the
+   * sync to the helper this way — instead of opening an outer transaction
+   * here and passing it down — also keeps the helper's lost-external-id-race
+   * retry, which only it can safely own.
    */
   async upsert(
     data: UpsertTrophy,
   ): Promise<{ trophy: Trophy; created: boolean }> {
-    return this.db.transaction(async (tx) => {
-      const { row: trophy, created } = await upsertByExternalIds<
-        typeof trophies,
-        typeof trophyExternalIds
-      >({
-        db: this.db,
-        tx,
-        entityTable: trophies,
-        entityIdColumn: trophies.id,
-        values: {
-          name: data.name,
-          recipientKind: data.recipientKind,
-          description: data.description,
-          competitionGroupId: data.competitionGroupId,
-          leagueId: data.leagueId,
-          awardRuleKind: data.awardRuleKind,
-          awardProcedure: data.awardProcedure,
-          awardRuleRole: data.awardRuleRole,
-          awardRuleTieCutoff: data.awardRuleTieCutoff,
-          awardRuleThreshold: data.awardRuleThreshold,
-          awardRuleMeasure: data.awardRuleMeasure,
-        },
-        externalIdTable: trophyExternalIds,
-        ownerIdColumn: trophyExternalIds.trophyId,
-        externalSystemIdColumn: trophyExternalIds.externalSystemId,
-        externalIdColumn: trophyExternalIds.externalId,
-        externalIds: data.externalIds,
-        ConflictErrorClass: TrophyUpsertConflictError,
-        entityLabelPlural: 'trophies',
-        buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
-      });
-
-      await this.syncRuleEventTypes(tx, trophy.id, data);
-
-      return { trophy, created };
+    const { row: trophy, created } = await upsertByExternalIds<
+      typeof trophies,
+      typeof trophyExternalIds
+    >({
+      db: this.db,
+      entityTable: trophies,
+      entityIdColumn: trophies.id,
+      values: {
+        name: data.name,
+        recipientKind: data.recipientKind,
+        description: data.description,
+        competitionGroupId: data.competitionGroupId,
+        leagueId: data.leagueId,
+        awardRuleKind: data.awardRuleKind,
+        awardProcedure: data.awardProcedure,
+        awardRuleRole: data.awardRuleRole,
+        awardRuleTieCutoff: data.awardRuleTieCutoff,
+        awardRuleThreshold: data.awardRuleThreshold,
+        awardRuleMeasure: data.awardRuleMeasure,
+      },
+      externalIdTable: trophyExternalIds,
+      ownerIdColumn: trophyExternalIds.trophyId,
+      externalSystemIdColumn: trophyExternalIds.externalSystemId,
+      externalIdColumn: trophyExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: TrophyUpsertConflictError,
+      entityLabelPlural: 'trophies',
+      buildExternalIdRow: (trophyId, pair) => ({ trophyId, ...pair }),
+      afterUpsert: (tx, row) => this.syncRuleEventTypes(tx, row.id, data),
     });
+
+    return { trophy, created };
   }
 
   /**
-   * Replace the trophy's curated rule event types, on the same transaction
-   * handle `upsert` opened around the whole call, so a failed sync rolls
+   * Replace the trophy's curated rule event types, on the transaction handle
+   * `upsertByExternalIds` hands its `afterUpsert` hook, so a failed sync rolls
    * back the trophy row's own just-written changes too rather than leaving
    * half of an old rule beside half of a new one. Delete-then-insert rather
    * than a diff: the rows are a small curated set with no identity of their
