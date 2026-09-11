@@ -46,6 +46,8 @@ describe('InsightsCommandService — competition scoping', () => {
       name: 'Major Season 24',
       type: 'season',
       eraId: 5,
+      startDate: '2023-10-01',
+      endDate: '2023-10-02',
     });
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', { competition: '30' }),
@@ -75,6 +77,8 @@ describe('InsightsCommandService — competition scoping', () => {
       name: 'Major Season 24',
       type: 'season',
       eraId: 5,
+      startDate: '2023-10-01',
+      endDate: '2023-10-02',
     });
     const result = await service.execute(
       chatInput('coach.toplist.competitions.played', { competition: '30' }),
@@ -89,6 +93,8 @@ describe('InsightsCommandService — competition scoping', () => {
       name: 'Major Season 24',
       type: 'season',
       eraId: 5,
+      startDate: '2023-10-01',
+      endDate: '2023-10-02',
     });
     const result = await service.execute(
       chatInput('eras.list', { competition: '30' }),
@@ -103,6 +109,8 @@ describe('InsightsCommandService — competition scoping', () => {
       name: 'Major Season 24',
       type: 'season',
       eraId: 5,
+      startDate: '2023-10-01',
+      endDate: '2023-10-02',
     });
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     const result = await service.execute(

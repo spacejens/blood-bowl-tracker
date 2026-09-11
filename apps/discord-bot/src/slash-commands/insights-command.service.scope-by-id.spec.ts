@@ -40,12 +40,24 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
 
   it('resolves an era id to its name', async () => {
     const { service, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 12, name: 'Era Twelve' });
+    eras.findById.mockResolvedValue({
+      id: 12,
+      name: 'Era Twelve',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     await expect(
       service.resolveScopeById({ kind: 'era', id: 12 }),
     ).resolves.toEqual({
       kind: 'ok',
-      resolved: { era: { id: 12, name: 'Era Twelve' } },
+      resolved: {
+        era: {
+          id: 12,
+          name: 'Era Twelve',
+          startDate: '2020-01-01',
+          endDate: null,
+        },
+      },
     });
   });
 
@@ -66,13 +78,22 @@ describe('InsightsCommandService — resolving a scope from an id', () => {
       name: 'Spike Cup',
       type: 'cup',
       eraId: 1,
+      startDate: '2023-10-01',
+      endDate: '2023-10-02',
     });
     await expect(
       service.resolveScopeById({ kind: 'competition', id: 7 }),
     ).resolves.toEqual({
       kind: 'ok',
       resolved: {
-        competition: { id: 7, name: 'Spike Cup', type: 'cup', eraId: 1 },
+        competition: {
+          id: 7,
+          name: 'Spike Cup',
+          type: 'cup',
+          eraId: 1,
+          startDate: '2023-10-01',
+          endDate: '2023-10-02',
+        },
       },
     });
   });

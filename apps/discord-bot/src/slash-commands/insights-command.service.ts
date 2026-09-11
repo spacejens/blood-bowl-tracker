@@ -38,12 +38,20 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 /**
  * The single league/era/competition/match category resolved for the current
- * request, if any.
+ * request, if any. An era and a competition carry their own span too: the
+ * embed-title suffix dates them, so the scope's resolution is what puts the
+ * dates in hand. A league has no date columns of its own, and a match category
+ * is a fixed enum value, so neither carries dates.
  */
 export interface ResolvedScope {
   league?: { id: number; name: string };
-  era?: { id: number; name: string };
-  competition?: { id: number; name: string };
+  era?: { id: number; name: string; startDate: string; endDate: string | null };
+  competition?: {
+    id: number;
+    name: string;
+    startDate: string;
+    endDate: string | null;
+  };
   matchCategory?: { value: MatchCategory; label: string };
 }
 
@@ -314,16 +322,17 @@ export class InsightsCommandService implements OnModuleInit {
   }
 
   /**
-   * An era or competition named by a slash-command option: absent when the
-   * option was not given, `notFound` when it was given but names nothing.
+   * A league, era or competition named by a slash-command option: absent when
+   * the option was not given, `notFound` when it was given but names nothing.
+   * Generic over the row the lookup returns, so each caller's own shape —
+   * including an era's or competition's date columns — reaches the resolved
+   * scope unnarrowed.
    */
-  private async resolveScopeOption(
+  private async resolveScopeOption<T extends { id: number; name: string }>(
     option: string | null,
-    findById: (id: number) => Promise<{ id: number; name: string } | undefined>,
+    findById: (id: number) => Promise<T | undefined>,
   ): Promise<
-    | { kind: 'absent' }
-    | { kind: 'found'; value: { id: number; name: string } }
-    | { kind: 'notFound' }
+    { kind: 'absent' } | { kind: 'found'; value: T } | { kind: 'notFound' }
   > {
     if (option === null) {
       return { kind: 'absent' };

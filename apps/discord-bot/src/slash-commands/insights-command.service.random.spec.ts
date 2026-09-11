@@ -33,7 +33,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // pickRandom uses leaves[Math.floor(Math.random() * leaves.length)], so
     // 0.999999 deterministically selects the last era-supporting leaf in the
     // depth-first walk — "stats", the final top-level key in the tree, which
@@ -49,7 +54,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('excludes team.toplist.eras.active from the random pool when an era is given', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // Pin random to select the last eligible leaf; eras.active is filtered
     // out of the era-scoped pool, so resolveErasActive is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
@@ -59,7 +69,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('includes the race facts in the era-scoped random pool', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // Every era-supporting leaf is in the pool, so at least one race query
     // must be reachable. Sweep [0,1) in fine steps (pickRandom uses
     // leaves[Math.floor(Math.random() * leaves.length)]) so every index is
@@ -70,7 +85,12 @@ describe('InsightsCommandService — random pick', () => {
       vi.spyOn(Math, 'random').mockReturnValue(r);
       await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
-      eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+      eras.findById.mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+        startDate: '2020-01-01',
+        endDate: null,
+      });
     }
     const teamsCalled =
       factTreeDeps.raceToplist.resolveTeamsDescending.mock.calls.length > 0 ||
@@ -82,7 +102,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('excludes coach.toplist.eras.active from the random pool when an era is given', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // Pin random to select the last eligible leaf; eras.active is filtered
     // out of the era-scoped pool, so resolveErasActive is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
@@ -92,7 +117,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('includes the offense facts in the era-scoped random pool', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // Sweep [0,1) in fine steps so every era-supporting leaf index is hit;
     // at least one offense query must be reachable.
     const sampleCount = 80;
@@ -100,7 +130,12 @@ describe('InsightsCommandService — random pick', () => {
       vi.spyOn(Math, 'random').mockReturnValue(i / sampleCount);
       await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
-      eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+      eras.findById.mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+        startDate: '2020-01-01',
+        endDate: null,
+      });
     }
     const anyOffenseCalled =
       factTreeDeps.playerToplist.resolveTouchdownsScored.mock.calls.length >
@@ -117,7 +152,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('includes the violence facts in the era-scoped random pool', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // Sweep [0,1) in fine steps so every era-supporting leaf index is hit;
     // at least one violence/discipline query must be reachable.
     const sampleCount = 80;
@@ -125,7 +165,12 @@ describe('InsightsCommandService — random pick', () => {
       vi.spyOn(Math, 'random').mockReturnValue(i / sampleCount);
       await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
-      eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+      eras.findById.mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+        startDate: '2020-01-01',
+        endDate: null,
+      });
     }
     const anyViolenceCalled =
       factTreeDeps.coachToplist.resolveFoulsCommitted.mock.calls.length > 0 ||
@@ -147,7 +192,12 @@ describe('InsightsCommandService — random pick', () => {
 
   it('includes the injuries-suffered facts in the era-scoped random pool', async () => {
     const { service, factTreeDeps, eras } = await makeService();
-    eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+    eras.findById.mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+      startDate: '2020-01-01',
+      endDate: null,
+    });
     // Sweep [0,1) in fine steps so every era-supporting leaf index is hit;
     // at least one injuries-suffered query must be reachable.
     const sampleCount = 80;
@@ -155,7 +205,12 @@ describe('InsightsCommandService — random pick', () => {
       vi.spyOn(Math, 'random').mockReturnValue(i / sampleCount);
       await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
-      eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
+      eras.findById.mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+        startDate: '2020-01-01',
+        endDate: null,
+      });
     }
     const anySufferedCalled =
       factTreeDeps.playerToplist.resolveCasualtiesSuffered.mock.calls.length >

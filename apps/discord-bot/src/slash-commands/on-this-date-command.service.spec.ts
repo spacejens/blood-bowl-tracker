@@ -158,7 +158,9 @@ describe('OnThisDateCommandService', () => {
   });
 
   it('passes the resolved scope through and suffixes the reply title', async () => {
-    const resolved = { era: { id: 7, name: 'Era Seven' } };
+    const resolved = {
+      era: { id: 7, name: 'Era Seven', startDate: '2020-01-01', endDate: null },
+    };
     insightsCommand.resolveScopeOptions.mockResolvedValue({
       kind: 'ok',
       resolved,
@@ -227,7 +229,14 @@ describe('OnThisDateCommandService', () => {
   });
 
   it('carries a scope from the button into the reply and its title', async () => {
-    const resolved = { era: { id: 12, name: 'Era Twelve' } };
+    const resolved = {
+      era: {
+        id: 12,
+        name: 'Era Twelve',
+        startDate: '2020-01-01',
+        endDate: null,
+      },
+    };
     buttonId.decode.mockReturnValue({
       monthDay: { month: 2, day: 29 },
       scopeToken: { kind: 'era', id: 12 },

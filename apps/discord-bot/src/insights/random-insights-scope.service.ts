@@ -59,7 +59,14 @@ export class RandomInsightsScopeService {
     }
     if (dimension === 'era') {
       const era = this.random.pick(candidateEras);
-      return { era: { id: era.id, name: era.name } };
+      return {
+        era: {
+          id: era.id,
+          name: era.name,
+          startDate: era.startDate,
+          endDate: era.endDate,
+        },
+      };
     }
     return this.pickCompetitionScope(candidateEras.map((era) => era.id));
   }
@@ -67,9 +74,12 @@ export class RandomInsightsScopeService {
   /**
    * The eras a scope may be drawn from: only ongoing ones when the current-era
    * roll hits, otherwise all of them. When the roll hits but nothing is
-   * ongoing, all eras are used rather than skipping filtering entirely.
+   * ongoing, all eras are used rather than skipping filtering entirely. Each
+   * era's own span comes along, since the scope carries it.
    */
-  private async pickCandidateEras(): Promise<{ id: number; name: string }[]> {
+  private async pickCandidateEras(): Promise<
+    { id: number; name: string; startDate: string; endDate: string | null }[]
+  > {
     const all = await this.eras.listErasWithLeague({});
     const preferCurrent = this.random.rollPercent(
       this.config.getRandomInsightsFilterCurrentEraProbability(),
@@ -91,6 +101,13 @@ export class RandomInsightsScopeService {
       return {};
     }
     const competition = this.random.pick(candidates);
-    return { competition: { id: competition.id, name: competition.name } };
+    return {
+      competition: {
+        id: competition.id,
+        name: competition.name,
+        startDate: competition.startDate,
+        endDate: competition.endDate,
+      },
+    };
   }
 }
