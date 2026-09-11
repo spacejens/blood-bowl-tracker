@@ -43,7 +43,8 @@ name as the title, then its race, its coach, its era list, its career span
 (the first and last dates across every match it has played), then — only
 when the team has recorded trophies, with the whole section omitted
 otherwise rather than a placeholder line — a blank line and one
-heading per era, newest era first, each followed by that
+heading per era, newest era first, each heading naming the era and its date
+range, with an ongoing era marked as still running, each followed by that
 era's awards newest-first, one line per award naming the competition and
 trophy, plus the winning player and their position for a trophy won by one
 of its players — the two kinds are interleaved within an era rather than
@@ -78,7 +79,9 @@ race and coach.
 The
 player name as the title, then its team, era, race and position lines
 (every player always has all four — a player
-belongs to exactly one team-era, and therefore to exactly one era).
+belongs to exactly one team-era, and therefore to exactly one era). The era
+line names the era and its date range, with an ongoing era marked as still
+running.
 
 ### Killer status
 
@@ -248,7 +251,8 @@ name as the title, then the eras this race has appeared in, or a note when
 it is in none, then — only when
 the race has (non-star) positions recorded for at least one era, with the
 whole section omitted otherwise — a blank line and one
-heading per era, oldest era first, each followed by that
+heading per era, oldest era first, each heading naming the era and its date
+range, with an ongoing era marked as still running, each followed by that
 era's positions as one line per position, name-ascending — the same
 heading-then-rows shape the trophy and competition-group deepdives use for
 their own per-era lists. A position recurring across several eras appears
@@ -307,7 +311,9 @@ button per listed top player.
 The competition name as the title, then its type — a season or a cup — its
 era, its competition group, and its duration, with an ongoing competition
 marked as still running, a blank line, and
-every participating team, one line each with its race and coach. A
+every participating team, one line each with its race and coach. The era line
+names the era and its date range, with an ongoing era marked as still
+running — distinct from the competition's own `Duration:` line above. A
 competition with no participating teams shows a short "nobody has signed up
 yet" message instead of a list. Every participating team and the era are
 each rendered as a drill-down button (teams take priority over the era entry
@@ -321,7 +327,8 @@ The group name as the title, then its league, then every trophy the group
 awards, one line
 per trophy (or a themed message saying so when it
 awards none), a blank line, and one heading per era,
-oldest era first, each followed by that era's competition instances, oldest
+oldest era first, each heading naming the era and its date range, with an
+ongoing era marked as still running, each followed by that era's competition instances, oldest
 first, one line per competition with its date range (or a themed message
 saying so when the group has no instances at
 all, in which case no era heading is shown) — a blank line separates each
@@ -348,7 +355,8 @@ select menus).
 The
 trophy name as the title, then the competition group it is awarded for and,
 only when the trophy has one, its description, a blank line, then
-one heading per era, newest era first, each followed by
+one heading per era, newest era first, each heading naming the era and its
+date range, with an ongoing era marked as still running, each followed by
 that era's awards, newest-first, one line per award naming the competition
 and the recipient — a team with its race and coach, or a player with their
 position, team, race and coach — the same race/coach and

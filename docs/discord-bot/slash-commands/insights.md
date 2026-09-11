@@ -27,7 +27,10 @@ Besides `category`, the command takes four optional scope options — `league`,
 mutually exclusive: supplying more than one replies with a conflict message.
 With none of them, facts are all-time and the embed title ends in
 `— All time`; with one, the title ends in that league, era, competition or
-match category's name instead.
+match category's name instead. An era or competition is dated as well as
+named — `— BB2020 (2020-01-01 – present)` — so a reader can tell whether the
+scope is finished or still running; a league and a match category have no date
+range of their own and appear as bare names.
 
 `league`, `era` and `competition` autocomplete against the recorded data.
 `match-category` instead offers the six fixed match categories as a static
