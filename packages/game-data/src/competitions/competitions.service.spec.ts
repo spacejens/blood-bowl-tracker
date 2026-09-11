@@ -328,19 +328,42 @@ describe('CompetitionsService', () => {
   describe('findById', () => {
     it('returns the competition row when found', async () => {
       await build([
-        { id: 7, name: 'Major Season 24', type: 'season', eraId: 20 },
+        {
+          id: 7,
+          name: 'Major Season 24',
+          type: 'season',
+          eraId: 20,
+          startDate: '2024-01-15',
+          endDate: '2024-06-30',
+        },
       ]);
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
       });
     });
 
     it('returns undefined when no competition matches', async () => {
       await build([]);
       await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+
+    it('selects the competition dates alongside its id/name/type/eraId', async () => {
+      const { db } = await build([]);
+
+      await service.findById(1);
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['startDate', 'endDate']),
+      );
     });
   });
 
@@ -618,23 +641,61 @@ describe('CompetitionsService', () => {
   });
 
   describe('listAllWithEraId', () => {
-    it('returns every competition with its era id', async () => {
+    it('returns every competition with its era id and date range', async () => {
       await build([
-        { id: 1, name: 'Season 1', eraId: 10 },
-        { id: 2, name: 'Cup 1', eraId: 11 },
+        {
+          id: 1,
+          name: 'Season 1',
+          eraId: 10,
+          startDate: '2024-01-15',
+          endDate: '2024-06-30',
+        },
+        {
+          id: 2,
+          name: 'Cup 1',
+          eraId: 11,
+          startDate: '2024-07-01',
+          endDate: null,
+        },
       ]);
 
       const result = await service.listAllWithEraId();
 
       expect(result).toEqual([
-        { id: 1, name: 'Season 1', eraId: 10 },
-        { id: 2, name: 'Cup 1', eraId: 11 },
+        {
+          id: 1,
+          name: 'Season 1',
+          eraId: 10,
+          startDate: '2024-01-15',
+          endDate: '2024-06-30',
+        },
+        {
+          id: 2,
+          name: 'Cup 1',
+          eraId: 11,
+          startDate: '2024-07-01',
+          endDate: null,
+        },
       ]);
     });
 
     it('returns an empty list when there are no competitions', async () => {
       await build([]);
       expect(await service.listAllWithEraId()).toEqual([]);
+    });
+
+    it('selects the date range alongside id/name/eraId', async () => {
+      const { db } = await build([]);
+
+      await service.listAllWithEraId();
+
+      const selectArg = firstCallArg(db.select, 0, 0) as Record<
+        string,
+        unknown
+      >;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['startDate', 'endDate']),
+      );
     });
   });
 });

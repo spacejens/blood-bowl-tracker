@@ -164,10 +164,16 @@ export class CompetitionsService {
     return row.count;
   }
 
-  async findById(
-    id: number,
-  ): Promise<
-    | { id: number; name: string; type: CompetitionType; eraId: number }
+  async findById(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        type: CompetitionType;
+        eraId: number;
+        /** Its own span (`null` end = ongoing), for the insights scope suffix. */
+        startDate: string;
+        endDate: string | null;
+      }
     | undefined
   > {
     const rows = await this.db
@@ -176,6 +182,8 @@ export class CompetitionsService {
         name: competitions.name,
         type: competitions.type,
         eraId: competitions.eraId,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions)
       .where(eq(competitions.id, id));
@@ -322,12 +330,22 @@ export class CompetitionsService {
    * (the random-insights scheduler) picks one at random, so paying for a sort
    * would be wasted work.
    */
-  listAllWithEraId(): Promise<{ id: number; name: string; eraId: number }[]> {
+  listAllWithEraId(): Promise<
+    {
+      id: number;
+      name: string;
+      eraId: number;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
     return this.db
       .select({
         id: competitions.id,
         name: competitions.name,
         eraId: competitions.eraId,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions);
   }
