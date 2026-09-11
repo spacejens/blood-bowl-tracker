@@ -1,4 +1,5 @@
 import type { InteractionOutcome } from '@blood-bowl-tracker/db';
+import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
+import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
  * How many interactions one reply lists. A fixed cap rather than an option:
@@ -46,6 +48,7 @@ export class DebugInteractionsCommandService implements OnModuleInit {
     private readonly events: InteractionEventsQueryService,
     private readonly formatter: DebugInteractionRowFormatterService,
     private readonly registry: SlashCommandRegistryService,
+    private readonly optionValues: OptionValueResolverService,
   ) {}
 
   onModuleInit(): void {
@@ -90,17 +93,35 @@ export class DebugInteractionsCommandService implements OnModuleInit {
         flags: MessageFlags.Ephemeral,
       };
     }
+    const decorated = await this.decorate(rows);
     return {
       embeds: [
         {
           title: DEBUG_INTERACTIONS_TITLE,
           description: this.enforceDescriptionLimit(
-            this.formatter.describe(rows),
+            this.formatter.describe(decorated),
           ),
         },
       ],
       flags: MessageFlags.Ephemeral,
     };
+  }
+
+  /**
+   * Each row with its recorded parameter values swapped for resolved entity
+   * names where one could be found. Done here rather than in the formatter so
+   * the formatter stays pure and dependency-free — it renders whatever values
+   * it is handed.
+   */
+  private decorate(
+    rows: InteractionEventRow[],
+  ): Promise<InteractionEventRow[]> {
+    return Promise.all(
+      rows.map(async (row) => ({
+        ...row,
+        parameters: await this.optionValues.resolveParameters(row.parameters),
+      })),
+    );
   }
 
   /**

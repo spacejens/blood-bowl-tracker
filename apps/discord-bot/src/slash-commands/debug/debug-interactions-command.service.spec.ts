@@ -15,6 +15,7 @@ import {
   DebugInteractionsCommandService,
   MAX_DEBUG_INTERACTIONS,
 } from './debug-interactions-command.service';
+import { OptionValueResolverService } from './option-value-resolver.service';
 
 const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
 
@@ -57,11 +58,18 @@ describe('DebugInteractionsCommandService', () => {
   let service: DebugInteractionsCommandService;
   let events: DeepMockProxy<InteractionEventsQueryService>;
   let registry: DeepMockProxy<SlashCommandRegistryService>;
+  let optionValues: DeepMockProxy<OptionValueResolverService>;
 
   beforeEach(async () => {
     events = mockDeep<InteractionEventsQueryService>();
     events.listRecent.mockResolvedValue([eventRow()]);
     registry = mockDeep<SlashCommandRegistryService>();
+    optionValues = mockDeep<OptionValueResolverService>();
+    // Default: pass parameters through unchanged, so tests that do not care
+    // about decoration keep asserting on the raw recorded values.
+    optionValues.resolveParameters.mockImplementation((parameters) =>
+      Promise.resolve(parameters),
+    );
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -71,6 +79,7 @@ describe('DebugInteractionsCommandService', () => {
         DebugInteractionRowFormatterService,
         { provide: InteractionEventsQueryService, useValue: events },
         { provide: SlashCommandRegistryService, useValue: registry },
+        { provide: OptionValueResolverService, useValue: optionValues },
       ],
     }).compile();
     service = moduleRef.get(DebugInteractionsCommandService);
@@ -214,6 +223,38 @@ describe('DebugInteractionsCommandService', () => {
       .embeds[0].description;
     expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
     expect(description.endsWith('…')).toBe(true);
+  });
+
+  it('renders resolved parameter names instead of the recorded ids', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({ parameters: [{ key: 'race', value: '17' }] }),
+    ]);
+    optionValues.resolveParameters.mockResolvedValue([
+      { key: 'race', value: 'Orc' },
+    ]);
+
+    const reply = await service.execute(interaction({}));
+
+    expect(
+      (reply as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('(race: Orc)');
+  });
+
+  it('resolves the parameters of every listed row', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({ parameters: [{ key: 'race', value: '17' }] }),
+      eventRow({ parameters: [{ key: 'coach', value: '4' }] }),
+    ]);
+
+    await service.execute(interaction({}));
+
+    expect(optionValues.resolveParameters).toHaveBeenCalledTimes(2);
+    expect(optionValues.resolveParameters).toHaveBeenNthCalledWith(1, [
+      { key: 'race', value: '17' },
+    ]);
+    expect(optionValues.resolveParameters).toHaveBeenNthCalledWith(2, [
+      { key: 'coach', value: '4' },
+    ]);
   });
 
   it('always replies ephemerally', async () => {
