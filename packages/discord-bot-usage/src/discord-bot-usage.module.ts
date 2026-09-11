@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { InteractionEventsQueryService } from './interaction-events-query.service';
 import { UsageEntityUpsertService } from './usage-entity-upsert.service';
 import { UsageTrackingService } from './usage-tracking.service';
 
@@ -9,7 +10,11 @@ import { UsageTrackingService } from './usage-tracking.service';
  * a consumer has to do.
  */
 @Module({
-  providers: [UsageTrackingService, UsageEntityUpsertService],
-  exports: [UsageTrackingService],
+  providers: [
+    UsageTrackingService,
+    UsageEntityUpsertService,
+    InteractionEventsQueryService,
+  ],
+  exports: [UsageTrackingService, InteractionEventsQueryService],
 })
 export class DiscordBotUsageModule {}
