@@ -102,6 +102,12 @@ export const contract = {
     syncReportedSppAdjustments: oc
       .input(SyncReportedSppAdjustmentsSchema)
       .output(SyncSppAdjustmentsResultSchema),
+    // Players became resolvable when tools/import-manual gained a curated
+    // trophy-awards file: a manually curated award names its winning player
+    // by external id, across tools and phases, exactly like every other
+    // cross-reference.
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   positions: {
     upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),

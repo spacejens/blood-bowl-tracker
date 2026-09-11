@@ -16,6 +16,7 @@ const CONTRACT_NAMESPACE_BY_KIND = {
   competitionGroup: 'competitionGroups',
   era: 'eras',
   league: 'leagues',
+  player: 'players',
   position: 'positions',
   race: 'races',
   rulesSet: 'rulesSets',

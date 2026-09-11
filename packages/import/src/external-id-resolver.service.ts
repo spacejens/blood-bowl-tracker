@@ -11,7 +11,7 @@ import type { ResolvableEntityKind } from './resolvable-entity-kind';
 /**
  * The two procedures every resolvable contract namespace has in common.
  * Declaring the shape explicitly (rather than letting the return type be a
- * union of nine whole namespaces) keeps the dispatch below readable and
+ * union of ten whole namespaces) keeps the dispatch below readable and
  * makes the compiler check that each namespace really does expose them.
  */
 interface ResolvableRouter {
@@ -21,7 +21,7 @@ interface ResolvableRouter {
 
 /**
  * Resolves an external-id pair to a database id over the API, for any of the
- * nine resolvable entity kinds.
+ * ten resolvable entity kinds.
  *
  * Shared by every import tool. Because each upsert persists immediately, an
  * entity created earlier — in this run, in the other import-manual phase, or
@@ -47,6 +47,8 @@ export class ExternalIdResolverService {
         return this.client.eras;
       case 'league':
         return this.client.leagues;
+      case 'player':
+        return this.client.players;
       case 'position':
         return this.client.positions;
       case 'race':

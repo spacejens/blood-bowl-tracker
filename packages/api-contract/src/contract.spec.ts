@@ -171,6 +171,7 @@ describe('resolve procedures', () => {
     'competitions',
     'competitionGroups',
     'teams',
+    'players',
   ] as const;
 
   it.each(resolvable)('exposes resolve and resolveBatch on %s', (name) => {
@@ -180,7 +181,6 @@ describe('resolve procedures', () => {
   });
 
   const notResolvable = [
-    'players',
     'matches',
     'matchEvents',
     'trophies',

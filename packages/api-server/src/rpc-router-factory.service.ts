@@ -325,6 +325,14 @@ export class RpcRouterFactoryService {
           unwrap: (r) => ({ entity: r.player, created: r.created }),
         }),
         ...buildPlayerSppAdjustmentRoutes(this.sppAdjustmentsService),
+        ...this.buildResolveRoute({
+          procedure: contract.players.resolve,
+          service: this.playersService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.players.resolveBatch,
+          service: this.playersService,
+        }),
       },
       positions: {
         ...this.buildUpsertRoute({
