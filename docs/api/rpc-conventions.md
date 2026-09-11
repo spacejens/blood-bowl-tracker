@@ -133,9 +133,9 @@ tools record one `ImportError` and skip the entry). Both procedures
 therefore declare no contract errors at all.
 
 This is the read-only half of the lookup every `upsert` already performs
-internally to find an existing record, exposed as its own capability. It
-replaces the in-memory, same-run-only reference maps the import tools used
-to build: because every `upsert` persists immediately, any record created
+internally to find an existing record, exposed as its own capability. It is
+why the import tools need no in-memory, same-run-only reference map of their
+own: because every `upsert` persists immediately, any record created
 earlier — in this run, an earlier phase, or a different tool entirely — is
 already resolvable.
 
@@ -143,7 +143,7 @@ Matches, match events, trophy awards, SPP award values and external systems
 deliberately have no resolve procedure: nothing references them by external
 id across files, phases or tools.
 
-Players are one entity that started out on that list and left it:
+Players resolve for one caller in particular:
 `tools/import-manual`'s curated `after-other-importers/trophy-awards.json5`
 names the winner of a `manual`-kind trophy by the player's external id,
 which the BBL/TP importers created in an earlier phase.
