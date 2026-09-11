@@ -128,6 +128,9 @@ async function seedLeague(db: Db): Promise<LeagueFixtures> {
       competitionGroupId: null,
       leagueId: league.id,
       awardRuleKind: 'career_threshold',
+      // Stated because the column carries a temporary non-null default for
+      // rolling deployments, which a computed kind must not pick up.
+      awardProcedure: null,
       awardRuleRole: 'acting',
       awardRuleThreshold: SPP_THRESHOLD,
       awardRuleMeasure: 'spp_sum',
@@ -141,6 +144,7 @@ async function seedLeague(db: Db): Promise<LeagueFixtures> {
       competitionGroupId: null,
       leagueId: league.id,
       awardRuleKind: 'career_threshold',
+      awardProcedure: null,
       awardRuleRole: 'consequence',
       awardRuleThreshold: CASUALTY_THRESHOLD,
       awardRuleMeasure: 'event_count',

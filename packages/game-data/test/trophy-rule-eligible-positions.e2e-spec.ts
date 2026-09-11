@@ -140,6 +140,9 @@ async function seed(db: Db, options: SeedOptions): Promise<Fixtures> {
       competitionGroupId: group.id,
       leagueId: null,
       awardRuleKind: 'max_spp_sum',
+      // Stated because the column carries a temporary non-null default for
+      // rolling deployments, which a computed kind must not pick up.
+      awardProcedure: null,
       awardRuleRole: 'acting',
       awardRuleTieCutoff: 4,
     })
