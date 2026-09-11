@@ -17,6 +17,7 @@ import { SlashCommandRegistryModule } from '../slash-command-registry.module';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
 import { DebugInteractionsCommandService } from './debug-interactions-command.service';
 import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
+import { DebugRetriggerHandlerService } from './debug-retrigger-handler.service';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
@@ -57,6 +58,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     DebugInteractionsCommandService,
     DebugInteractionRowFormatterService,
     DebugRetriggerButtonsService,
+    DebugRetriggerHandlerService,
     OptionValueResolverService,
   ],
 })
