@@ -8,6 +8,7 @@ import type {
 } from 'discord.js';
 import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
+import { MAX_DESCRIPTION_LENGTH } from '../description-limits';
 import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../error-messages';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
@@ -15,8 +16,9 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
 /**
  * How many interactions one reply lists. A fixed cap rather than an option:
  * 20 rows stay comfortably inside Discord's 4096-character embed description
- * limit even when every row carries parameters, and pagination is
- * deliberately left for a later iteration.
+ * limit in the common case, and pagination is deliberately left for a later
+ * iteration. `error_message` and parameter values are unbounded text, so
+ * `enforceDescriptionLimit` below still truncates as an absolute safety net.
  */
 export const MAX_DEBUG_INTERACTIONS = 20;
 
@@ -92,7 +94,9 @@ export class DebugInteractionsCommandService implements OnModuleInit {
       embeds: [
         {
           title: DEBUG_INTERACTIONS_TITLE,
-          description: this.formatter.describe(rows),
+          description: this.enforceDescriptionLimit(
+            this.formatter.describe(rows),
+          ),
         },
       ],
       flags: MessageFlags.Ephemeral,
@@ -111,5 +115,19 @@ export class DebugInteractionsCommandService implements OnModuleInit {
       (interaction.options.getString('outcome') as InteractionOutcome | null) ??
       undefined
     );
+  }
+
+  /**
+   * Absolute safety net for Discord's embed description limit.
+   * `interaction_events.error_message` and recorded parameter values are
+   * unbounded text, so twenty rows of failures with long error messages can
+   * still overflow the character cap despite the fixed row limit. Mirrors
+   * `StarPlayerDeepdiveService.enforceDescriptionLimit` verbatim in shape.
+   */
+  private enforceDescriptionLimit(description: string): string {
+    if (description.length <= MAX_DESCRIPTION_LENGTH) {
+      return description;
+    }
+    return `${description.slice(0, MAX_DESCRIPTION_LENGTH - 1)}…`;
   }
 }

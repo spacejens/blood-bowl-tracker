@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
 
+import { MAX_DESCRIPTION_LENGTH } from '../description-limits';
 import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../error-messages';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
 import {
@@ -191,6 +192,24 @@ describe('DebugInteractionsCommandService', () => {
       content: DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE,
       flags: MessageFlags.Ephemeral,
     });
+  });
+
+  it('truncates the description to the safety-net limit when it would overflow', async () => {
+    events.listRecent.mockResolvedValue(
+      Array.from({ length: MAX_DEBUG_INTERACTIONS }, () =>
+        eventRow({
+          outcome: 'failure',
+          errorMessage: 'x'.repeat(1000),
+        }),
+      ),
+    );
+
+    const reply = await service.execute(interaction({}));
+
+    const description = (reply as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
+    expect(description.endsWith('…')).toBe(true);
   });
 
   it('always replies ephemerally', async () => {

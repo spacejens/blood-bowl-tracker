@@ -45,9 +45,11 @@ matching interactions, newest first. Each row carries, in order:
   guaranteed to carry one.
 
 Twenty rows is a fixed cap, not an argument: it keeps the description
-comfortably inside Discord's 4096-character embed limit even when every
-row carries parameters. When nothing matches, the reply is the plain
-message `No matching interactions found.` with no embed.
+comfortably inside Discord's 4096-character embed limit in the common case.
+Recorded error messages and parameter values are unbounded text, though, so
+a hard truncation (ending in `…`) is applied as an absolute safety net for
+the rare case of very long ones. When nothing matches, the reply is the
+plain message `No matching interactions found.` with no embed.
 
 ## Ephemeral by design
 
