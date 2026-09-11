@@ -63,6 +63,20 @@ function whereArg(chain: QueryChain): unknown {
   return chain.where.mock.calls[0][0];
 }
 
+/** The underlying column's own `name`, out of a captured `desc(...)`/`asc(...)` expression. */
+function orderedColumnName(expr: unknown): string | undefined {
+  if (!is(expr, SQL)) return undefined;
+  for (const chunk of expr.queryChunks) {
+    if (
+      !is(chunk, StringChunk) &&
+      typeof (chunk as { name?: unknown }).name === 'string'
+    ) {
+      return (chunk as { name: string }).name;
+    }
+  }
+  return undefined;
+}
+
 describe('InteractionEventsQueryService', () => {
   async function makeService(
     db: MockDbResult,
@@ -99,7 +113,7 @@ describe('InteractionEventsQueryService', () => {
     expect(sqlText(db.chains[0].orderBy.mock.calls[0][0])).toContain(' desc');
   });
 
-  it('breaks ties on occurredAt with the event id, both descending', async () => {
+  it('breaks ties on occurredAt with the event id, both descending, in that column order', async () => {
     const service = await makeService(db);
 
     await service.listRecent({ limit: 20 });
@@ -108,9 +122,10 @@ describe('InteractionEventsQueryService', () => {
       unknown,
       unknown,
     ];
+    expect(orderedColumnName(primary)).toBe('occurred_at');
     expect(sqlText(primary)).toContain(' desc');
+    expect(orderedColumnName(secondary)).toBe('id');
     expect(sqlText(secondary)).toContain(' desc');
-    expect(primary).not.toBe(secondary);
   });
 
   it('applies no filter when neither option is given', async () => {
