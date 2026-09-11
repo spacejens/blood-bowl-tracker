@@ -69,7 +69,10 @@ describe('TrophiesService', () => {
     const result = await service.upsert(baseData);
 
     expect(result).toEqual({ trophy: fakeTrophy, created: true });
-    expect(chains).toHaveLength(3);
+    // Three for the trophy row itself, then three clearing deletes: the kind
+    // is `direct_source`, which computes nothing, so the two event-type
+    // tables and the eligible-position table must hold no rows for it.
+    expect(chains).toHaveLength(6);
     expect(db.insert).toHaveBeenCalledWith(trophies);
     expect(db.update).not.toHaveBeenCalled();
   });
@@ -229,6 +232,89 @@ describe('TrophiesService', () => {
     // Still exactly one transaction: the arrays being omitted changes what the
     // sync writes, not whether the write path is transactional.
     expect(db.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears every computed rule part when a trophy is reclassified to a non-computed kind', async () => {
+    const { db, chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Gudarnas Förkämpe' }],
+      [fakeTrophy],
+    );
+
+    await service.upsert({
+      name: 'Gudarnas Förkämpe',
+      recipientKind: 'player',
+      awardRuleKind: 'manual',
+      awardProcedure: 'The Chaos Cup winner rolls a D3 among three players.',
+      externalIds: [{ externalSystemId: 1, externalId: 'Gudarnas Förkämpe' }],
+    });
+
+    // 0 external-id lookup, 1 the entity update, then one delete per rule
+    // table: included types, excluded types, eligible positions. A `manual`
+    // trophy computes nothing, so an omitted array means "none" rather than
+    // "leave alone" — otherwise the rows of the computed rule this trophy
+    // used to be classified under would outlive the reclassification.
+    expect(chains).toHaveLength(5);
+    expect(db.delete).toHaveBeenCalledTimes(3);
+    // Cleared, not re-stated: nothing is inserted back into any of the three.
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears each rule table once when a non-computed kind also states its empty arrays', async () => {
+    const { db, chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
+      [fakeTrophy],
+    );
+
+    await service.upsert({
+      ...baseData,
+      awardRuleMatchEventTypes: [],
+      awardRuleExcludedMatchEventTypes: [],
+      awardRuleEligiblePositions: [],
+    });
+
+    // Explicitly empty and omitted resolve to the same thing here, so stating
+    // them changes nothing about what is written.
+    expect(chains).toHaveLength(5);
+    expect(db.delete).toHaveBeenCalledTimes(3);
+  });
+
+  it('still replaces the curated rule rows a non-computed upsert does supply', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
+      [fakeTrophy],
+    );
+
+    await service.upsert({
+      ...baseData,
+      awardRuleMatchEventTypes: [{ actionType: 'touchdown' }],
+    });
+
+    // 0 lookup, 1 update, 2 included-types delete, 3 included-types insert,
+    // 4 excluded-types delete, 5 eligible-positions delete. A supplied array
+    // is applied as given; only the omitted ones are read as "none".
+    expect(chains).toHaveLength(6);
+    expect(firstCallArg(chains[3].values)).toEqual([
+      { trophyId: 1, actionType: 'touchdown', consequenceType: null },
+    ]);
+  });
+
+  it('leaves every rule table alone when the upsert states no award rule kind', async () => {
+    const { db, chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
+      [fakeTrophy],
+    );
+
+    await service.upsert({
+      name: 'Chaos Cup',
+      externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
+    });
+
+    // An upsert that does not touch the classification cannot know what the
+    // stored kind is, so it falls back to the plain overlay semantics: the
+    // trophy's curated rule rows are neither read nor written.
+    expect(chains).toHaveLength(2);
+    expect(db.delete).not.toHaveBeenCalled();
   });
 
   it('propagates the event-type sync failure from inside the same transaction as the trophy row write', async () => {

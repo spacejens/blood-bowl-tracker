@@ -57,6 +57,17 @@ export type TrophyHeader = {
   awardRuleMeasure: TrophyAwardRuleMeasure | null;
 };
 
+/**
+ * One upsert's curated rule arrays after `effectiveRuleCuration` has resolved
+ * what an omitted array means for that upsert's award rule kind. `undefined`
+ * leaves the corresponding table alone; an array replaces its rows wholesale.
+ */
+type RuleCuration = {
+  included: UpsertTrophy['awardRuleMatchEventTypes'];
+  excluded: UpsertTrophy['awardRuleExcludedMatchEventTypes'];
+  eligible: UpsertTrophy['awardRuleEligiblePositions'];
+};
+
 @Injectable()
 export class TrophiesService {
   constructor(
@@ -384,8 +395,35 @@ export class TrophiesService {
     trophyId: number,
     data: UpsertTrophy,
   ): Promise<void> {
-    await this.syncRuleEventTypes(tx, trophyId, data);
-    await this.syncRuleEligiblePositions(tx, trophyId, data);
+    const curation = this.effectiveRuleCuration(data);
+    await this.syncRuleEventTypes(tx, trophyId, curation);
+    await this.syncRuleEligiblePositions(tx, trophyId, curation);
+  }
+
+  /**
+   * The three curated rule arrays as this upsert should apply them, where
+   * `undefined` still means "leave that table's rows alone".
+   *
+   * Omitting an array normally means exactly that, matching how the scalar
+   * columns overlay rather than reset. An upsert that declares a non-computed
+   * kind (`direct_source` or `manual`) is the exception: such a trophy's
+   * winner is recorded by the source or curated by hand, so nothing about it
+   * is computed and it can hold no match-event types and no eligible
+   * positions at all. An omitted array there therefore means "none" rather
+   * than "leave alone" — otherwise a trophy reclassified onto a non-computed
+   * kind would silently keep the event types and position restrictions of the
+   * computed rule it no longer has.
+   */
+  private effectiveRuleCuration(data: UpsertTrophy): RuleCuration {
+    const computes =
+      data.awardRuleKind !== 'direct_source' && data.awardRuleKind !== 'manual';
+    const cleared = <T>(value: T[] | undefined): T[] | undefined =>
+      value ?? (computes ? undefined : []);
+    return {
+      included: cleared(data.awardRuleMatchEventTypes),
+      excluded: cleared(data.awardRuleExcludedMatchEventTypes),
+      eligible: cleared(data.awardRuleEligiblePositions),
+    };
   }
 
   /**
@@ -399,9 +437,9 @@ export class TrophiesService {
   private async syncRuleEligiblePositions(
     tx: DbOrTx,
     trophyId: number,
-    data: UpsertTrophy,
+    curation: RuleCuration,
   ): Promise<void> {
-    const eligible = data.awardRuleEligiblePositions;
+    const eligible = curation.eligible;
     if (eligible === undefined) {
       return;
     }
@@ -426,15 +464,16 @@ export class TrophiesService {
    * An omitted array leaves that table's rows untouched — the same overlay
    * semantics the scalar columns have — while an empty array clears them,
    * which is how a trophy reclassified away from a computed kind drops its
-   * stale rule.
+   * stale rule. `effectiveRuleCuration` above is what turns an omission into
+   * an empty array when the upsert's own kind computes nothing.
    */
   private async syncRuleEventTypes(
     tx: DbOrTx,
     trophyId: number,
-    data: UpsertTrophy,
+    curation: RuleCuration,
   ): Promise<void> {
-    const included = data.awardRuleMatchEventTypes;
-    const excluded = data.awardRuleExcludedMatchEventTypes;
+    const included = curation.included;
+    const excluded = curation.excluded;
     if (included === undefined && excluded === undefined) {
       return;
     }
