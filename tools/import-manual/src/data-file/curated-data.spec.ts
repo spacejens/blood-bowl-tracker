@@ -55,13 +55,23 @@ describe('curated data files', () => {
     expect(() => readPhase('after-other-importers')).not.toThrow();
   });
 
-  it('keeps a trophy-awards file for the manual trophies, ready to fill in', () => {
-    // Empty on purpose: the historical winners are not known yet, and the
-    // file exists so they can be recorded one entry at a time.
-    expect(
-      readFile('after-other-importers', 'trophy-awards.json5'),
-    ).toMatchObject({ trophyAwards: [] });
-    // Whatever gets added must name one of the two trophies nothing can
+  it('keeps a trophy-awards file for the manual trophies', () => {
+    // The file grows one entry at a time as historical winners are
+    // established, so nothing here pins its length or contents -- only that
+    // it parses and that every entry carries the three references the
+    // importer resolves.
+    const awards = readFile(
+      'after-other-importers',
+      'trophy-awards.json5',
+    ).trophyAwards;
+    for (const award of awards) {
+      expect(award.trophy.length).toBeGreaterThan(0);
+      expect(award.competition.system.length).toBeGreaterThan(0);
+      expect(award.competition.id.length).toBeGreaterThan(0);
+      expect(award.player.system.length).toBeGreaterThan(0);
+      expect(award.player.id.length).toBeGreaterThan(0);
+    }
+    // Every entry must name one of the two trophies nothing can
     // compute -- any other trophy's winner comes from the source or a rule.
     const manualTrophies = readPhase('before-other-importers')
       .trophies.filter((trophy) => trophy.awardRuleKind === 'manual')

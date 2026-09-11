@@ -22,10 +22,9 @@
 // player's own and the API derives it from the resolved player. Nothing has
 // to state it here.
 //
-// The `trophyAwards` array below is deliberately EMPTY. The historical
-// winners are not known yet; this file is the place to record them as they
-// are established, one entry at a time. An empty array imports nothing and
-// fails nothing.
+// The `trophyAwards` array below holds only the winners established so far.
+// Most historical winners are not known yet; this file is the place to record
+// them as they are, one entry at a time.
 //
 // WHY THIS FILE LIVES IN after-other-importers
 //
@@ -81,5 +80,13 @@
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
     { name: 'tourplay.net', category: 'imported_data_source' },
   ],
-  trophyAwards: [],
+  trophyAwards: [
+    // Chaos Cup 8 (TP competition 18616), won by Masthugget Lucky Cocks;
+    // Snarg Half-Thought (TP player 2464143) took the mutation.
+    {
+      trophy: 'Gudarnas Förkämpe',
+      competition: { system: 'tourplay.net', id: '18616' },
+      player: { system: 'tourplay.net', id: '2464143' },
+    },
+  ],
 }
