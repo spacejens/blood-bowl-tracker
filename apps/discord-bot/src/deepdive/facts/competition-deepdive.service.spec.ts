@@ -359,7 +359,7 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('renders the Duration line for an ongoing competition', async () => {
-    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    const dateRangeFormatter = makeDateRangeFormatter();
     dateRangeFormatter.format.mockReturnValue('2024-01-15 – present');
     const { service } = await makeService({
       competitions: makeCompetitions({
@@ -381,7 +381,7 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('renders the Duration line for a single-day competition', async () => {
-    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    const dateRangeFormatter = makeDateRangeFormatter();
     dateRangeFormatter.format.mockReturnValue('2024-03-16');
     const { service } = await makeService({
       competitions: makeCompetitions({
@@ -547,7 +547,7 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('offers a drill-up button to the competition group, last of all', async () => {
-    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    const dateRangeFormatter = makeDateRangeFormatter();
     dateRangeFormatter.format.mockReturnValue('dates');
     const { service, entityComponents } = await makeService({
       competitions: makeCompetitions({
