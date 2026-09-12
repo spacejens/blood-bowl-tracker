@@ -91,12 +91,9 @@
 // awards every player who crosses a lifetime figure. Every `max_count`/
 // `max_spp_sum` trophy uses a tie cutoff of 4 -- real BBL data has ties of up
 // to four players for these awards, so four is the cutoff across the board,
-// not tuned per trophy. Top Fouler/Minor Top Fouler's rule is a compound
-// foul-plus-casualty pair: a foul that caused a casualty is imported as ONE
-// match event carrying both the fouler's `foul` action and the victim's
-// consequence, so the rule lists the `foul` action type together with every
-// consequence type a casualty roll can produce, and a foul that hurt nobody
-// (no consequence) is correctly left uncounted. Most SPP/Minor Most SPP
+// not tuned per trophy. Top Fouler/Minor Top Fouler counts foul actions
+// outright, regardless of what the foul did: every `foul` match event counts,
+// whether or not it caused a casualty. Most SPP/Minor Most SPP
 // deliberately curate no included match-event types at all: every
 // SPP-bearing event counts toward the sum, including ones outside the
 // standardised award table that TP separately reports figures for.
@@ -418,28 +415,11 @@
       name: 'Top Fouler',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
-      description: 'Most foul casualties during the season.',
+      description: 'Most fouls during the season.',
       awardRuleKind: 'max_count',
       awardRuleRole: 'acting',
       awardRuleTieCutoff: 4,
-      // A foul that caused a casualty is imported as ONE event carrying both
-      // the fouler's action and the victim's consequence, so the rule needs
-      // both sides; a foul that hurt nobody carries no consequence and is
-      // correctly not counted.
-      awardRuleMatchEventTypes: [
-        { actionType: 'foul' },
-        { consequenceType: 'casualty' },
-        { consequenceType: 'badly_hurt' },
-        { consequenceType: 'death' },
-        { consequenceType: 'serious_injury' },
-        { consequenceType: 'niggling_injury' },
-        { consequenceType: 'miss_next_game' },
-        { consequenceType: 'stat_reduction_ma' },
-        { consequenceType: 'stat_reduction_st' },
-        { consequenceType: 'stat_reduction_ag' },
-        { consequenceType: 'stat_reduction_av' },
-        { consequenceType: 'stat_reduction_pa' },
-      ],
+      awardRuleMatchEventTypes: [{ actionType: 'foul' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Fouler-Major Season' },
       ],
@@ -538,26 +518,11 @@
       name: 'Minor Top Fouler',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
-      description: 'Most foul casualties during the season.',
+      description: 'Most fouls during the season.',
       awardRuleKind: 'max_count',
       awardRuleRole: 'acting',
       awardRuleTieCutoff: 4,
-      // Same compound foul-plus-casualty rule as the Major Season Top Fouler
-      // above.
-      awardRuleMatchEventTypes: [
-        { actionType: 'foul' },
-        { consequenceType: 'casualty' },
-        { consequenceType: 'badly_hurt' },
-        { consequenceType: 'death' },
-        { consequenceType: 'serious_injury' },
-        { consequenceType: 'niggling_injury' },
-        { consequenceType: 'miss_next_game' },
-        { consequenceType: 'stat_reduction_ma' },
-        { consequenceType: 'stat_reduction_st' },
-        { consequenceType: 'stat_reduction_ag' },
-        { consequenceType: 'stat_reduction_av' },
-        { consequenceType: 'stat_reduction_pa' },
-      ],
+      awardRuleMatchEventTypes: [{ actionType: 'foul' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Fouler-Minor Season' },
       ],

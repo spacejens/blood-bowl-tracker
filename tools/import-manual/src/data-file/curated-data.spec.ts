@@ -907,34 +907,18 @@ describe('curated data files', () => {
     }
   });
 
-  it('counts fouls only when they caused a casualty', () => {
+  it('counts every foul, whatever it did', () => {
     const trophies = readPhase('before-other-importers').trophies.filter(
       (trophy) => trophy.name.endsWith('Top Fouler'),
     );
     expect(trophies).toHaveLength(2);
     for (const trophy of trophies) {
-      // Pinned exactly: one `foul` action type plus every consequence type a
-      // casualty roll can produce. A regression dropping most of this
-      // compound list (leaving only, say, `foul`/`casualty`) would still
-      // pass a presence-only `.some()` check, so the full set is asserted
-      // here instead.
-      expect(trophy.awardRuleMatchEventTypes).toEqual(
-        expect.arrayContaining([
-          { actionType: 'foul' },
-          { consequenceType: 'casualty' },
-          { consequenceType: 'badly_hurt' },
-          { consequenceType: 'death' },
-          { consequenceType: 'serious_injury' },
-          { consequenceType: 'niggling_injury' },
-          { consequenceType: 'miss_next_game' },
-          { consequenceType: 'stat_reduction_ma' },
-          { consequenceType: 'stat_reduction_st' },
-          { consequenceType: 'stat_reduction_ag' },
-          { consequenceType: 'stat_reduction_av' },
-          { consequenceType: 'stat_reduction_pa' },
-        ]),
-      );
-      expect(trophy.awardRuleMatchEventTypes).toHaveLength(12);
+      // Pinned exactly: the `foul` action type and nothing else. Adding a
+      // consequence type here would silently narrow the trophy to fouls that
+      // hurt somebody, which is not what it awards.
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'foul' },
+      ]);
     }
   });
 
