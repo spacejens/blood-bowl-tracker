@@ -8,10 +8,12 @@ import {
   and,
   asc,
   channels,
+  count,
   DB,
   desc,
   discordUsers,
   eq,
+  gte,
   guilds,
   inArray,
   interactionEventParameters,
@@ -19,6 +21,9 @@ import {
   interactionTypes,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
+
+/** Milliseconds in a day, for turning `sinceDays` into a cutoff timestamp. */
+const MS_PER_DAY = 86_400_000;
 
 /** What to narrow the listing to. `limit` is the caller's cap, not this service's. */
 export interface ListRecentInteractionEventsOptions {
@@ -47,6 +52,25 @@ export interface InteractionEventRow {
 
 /** One event before its parameters are attached — what the events query selects. */
 type InteractionEventHeaderRow = Omit<InteractionEventRow, 'parameters'>;
+
+/** One leaderboard entry: a user and how many interactions they triggered. */
+export interface TopUserRow {
+  discordUserId: string;
+  username: string;
+  interactionCount: number;
+}
+
+/**
+ * What to narrow the leaderboard to. `kind` counts only that one interaction
+ * kind, `sinceDays` only interactions in the last N days; omitting both
+ * counts every recorded interaction. `limit` is the caller's cap, not this
+ * service's.
+ */
+export interface TopUsersOptions {
+  kind?: InteractionKind;
+  sinceDays?: number;
+  limit: number;
+}
 
 /**
  * Reads back what `UsageTrackingService` recorded: the most recent
@@ -143,6 +167,42 @@ export class InteractionEventsQueryService {
   }
 
   /**
+   * The users with the most recorded interactions, most active first,
+   * optionally narrowed to one interaction kind and/or a recent window.
+   *
+   * One query, unlike `listRecent`/`findById`: a leaderboard row is an
+   * aggregate with no per-event detail to attach, so there is nothing for a
+   * second pass to fetch.
+   *
+   * `interaction_types` is joined unconditionally even though only the `kind`
+   * filter reads it — `interaction_events.interaction_type_id` is NOT NULL
+   * with a foreign key, so the inner join can neither drop nor duplicate a
+   * row, and only the `where` clause has to vary with the options.
+   *
+   * Ordered by the count descending with the user id ascending as a
+   * tiebreaker: without a secondary key, "the top 20" would not be a stable
+   * set across users tied on the same count.
+   */
+  topUsers(options: TopUsersOptions): Promise<TopUserRow[]> {
+    return this.db
+      .select({
+        discordUserId: discordUsers.discordId,
+        username: discordUsers.username,
+        interactionCount: count(),
+      })
+      .from(interactionEvents)
+      .innerJoin(
+        interactionTypes,
+        eq(interactionTypes.id, interactionEvents.interactionTypeId),
+      )
+      .innerJoin(discordUsers, eq(discordUsers.id, interactionEvents.userId))
+      .where(this.topUserFilters(options))
+      .groupBy(discordUsers.id, discordUsers.discordId, discordUsers.username)
+      .orderBy(desc(count()), asc(discordUsers.id))
+      .limit(options.limit);
+  }
+
+  /**
    * Attaches each event's recorded parameters, in insertion order. Shared by
    * both read paths; zero events short-circuits before the second query.
    */
@@ -189,6 +249,27 @@ export class InteractionEventsQueryService {
       options.outcome === undefined
         ? undefined
         : eq(interactionEvents.outcome, options.outcome),
+    ].filter((condition) => condition !== undefined);
+    return and(...conditions);
+  }
+
+  /**
+   * Same shape as `filters`: `and()` of no conditions is `undefined`, which
+   * drizzle reads as an unfiltered query, so the unfiltered case needs no
+   * special casing. `sinceDays` becomes an absolute cutoff `Date`, matching
+   * how `occurred_at` is typed as a timestamp column.
+   */
+  private topUserFilters(options: TopUsersOptions): SQL | undefined {
+    const conditions = [
+      options.kind === undefined
+        ? undefined
+        : eq(interactionTypes.kind, options.kind),
+      options.sinceDays === undefined
+        ? undefined
+        : gte(
+            interactionEvents.occurredAt,
+            new Date(Date.now() - options.sinceDays * MS_PER_DAY),
+          ),
     ].filter((condition) => condition !== undefined);
     return and(...conditions);
   }

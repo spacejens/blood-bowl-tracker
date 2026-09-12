@@ -11,7 +11,7 @@ import {
   StringChunk,
 } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { InteractionEventsQueryService } from './interaction-events-query.service';
 
@@ -32,6 +32,18 @@ function eventRow(
     username: 'coach42',
     guildName: 'Test League',
     channelName: 'general',
+    ...overrides,
+  };
+}
+
+/** One row shaped the way the top-users aggregate query selects it. */
+function topUserRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    discordUserId: '100',
+    username: 'coach42',
+    interactionCount: 7,
     ...overrides,
   };
 }
@@ -367,6 +379,135 @@ describe('InteractionEventsQueryService', () => {
       const service = moduleRef.get(InteractionEventsQueryService);
 
       expect(await service.findById(7)).toBeUndefined();
+      expect(mocked.chains).toHaveLength(1);
+    });
+  });
+
+  describe('topUsers', () => {
+    /** A fixed "now" so the sinceDays cutoff is an exact, assertable Date. */
+    const NOW = new Date('2026-09-12T00:00:00.000Z');
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns one row per user, most interactions first', async () => {
+      const mocked = mockDb([
+        topUserRow({
+          discordUserId: '100',
+          username: 'alice',
+          interactionCount: 42,
+        }),
+        topUserRow({
+          discordUserId: '200',
+          username: 'bob',
+          interactionCount: 17,
+        }),
+      ]);
+      const service = await makeService(mocked);
+
+      const rows = await service.topUsers({ limit: 20 });
+
+      expect(rows).toEqual([
+        { discordUserId: '100', username: 'alice', interactionCount: 42 },
+        { discordUserId: '200', username: 'bob', interactionCount: 17 },
+      ]);
+    });
+
+    it('caps the leaderboard at the caller-supplied limit', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ limit: 20 });
+
+      expect(mocked.chains[0].limit).toHaveBeenCalledWith(20);
+    });
+
+    it('groups by the user id and the selected user columns', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ limit: 20 });
+
+      const grouped = mocked.chains[0].groupBy.mock.calls[0] as {
+        name: string;
+      }[];
+      expect(grouped.map((column) => column.name)).toEqual([
+        'id',
+        'discord_id',
+        'username',
+      ]);
+    });
+
+    it('orders by the count descending, breaking ties on the user id ascending', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ limit: 20 });
+
+      const [primary, secondary] = mocked.chains[0].orderBy.mock.calls[0] as [
+        unknown,
+        unknown,
+      ];
+      expect(sqlText(primary)).toContain('count(');
+      expect(sqlText(primary)).toContain(' desc');
+      expect(orderedColumnName(secondary)).toBe('id');
+      expect(sqlText(secondary)).toContain(' asc');
+    });
+
+    it('applies no filter when neither option is given', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ limit: 20 });
+
+      expect(whereArg(mocked.chains[0])).toBeUndefined();
+    });
+
+    it('filters on the interaction kind when only that option is given', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ kind: 'button', limit: 20 });
+
+      expect(filterValues(whereArg(mocked.chains[0]))).toEqual(['button']);
+    });
+
+    it('filters on a cutoff sinceDays before now when only that option is given', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ sinceDays: 7, limit: 20 });
+
+      expect(filterValues(whereArg(mocked.chains[0]))).toEqual([
+        new Date('2026-09-05T00:00:00.000Z'),
+      ]);
+    });
+
+    it('combines both filters when both options are given', async () => {
+      const mocked = mockDb([topUserRow()]);
+      const service = await makeService(mocked);
+
+      await service.topUsers({ kind: 'command', sinceDays: 1, limit: 20 });
+
+      expect(filterValues(whereArg(mocked.chains[0]))).toEqual([
+        'command',
+        new Date('2026-09-11T00:00:00.000Z'),
+      ]);
+    });
+
+    it('issues exactly one query and returns nothing when no interaction matches', async () => {
+      const mocked = mockDb([]);
+      const service = await makeService(mocked);
+
+      const rows = await service.topUsers({ limit: 20 });
+
+      expect(rows).toEqual([]);
       expect(mocked.chains).toHaveLength(1);
     });
   });

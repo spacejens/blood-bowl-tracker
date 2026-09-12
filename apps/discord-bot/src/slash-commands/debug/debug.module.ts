@@ -18,12 +18,13 @@ import { DebugInteractionRowFormatterService } from './debug-interaction-row-for
 import { DebugInteractionsCommandService } from './debug-interactions-command.service';
 import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
 import { DebugRetriggerHandlerService } from './debug-retrigger-handler.service';
+import { DebugTopUsersCommandService } from './debug-top-users-command.service';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
- * `/debuginteractions` is the first of several `debug`-prefixed commands
- * planned under #834 (see #836/#837/#838); grouping them here now avoids a
- * bigger reshuffle once the others land.
+ * The `debug`-prefixed commands planned under #834: `/debuginteractions`
+ * (with its retrigger buttons) and `/debugtopusers`, grouped here so they
+ * share one module.
  *
  * `DiscordBotUsageModule` supplies `InteractionEventsQueryService`. Importing
  * it here (packages/discord-client already imports it for the write side) is
@@ -59,6 +60,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     DebugInteractionRowFormatterService,
     DebugRetriggerButtonsService,
     DebugRetriggerHandlerService,
+    DebugTopUsersCommandService,
     OptionValueResolverService,
   ],
 })
