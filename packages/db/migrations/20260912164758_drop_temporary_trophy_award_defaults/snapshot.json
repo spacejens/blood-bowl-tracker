@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "81846e70-aa20-49b6-a99b-cb95cf2c74a4",
+  "id": "995e8942-7100-4dea-ba56-74090c53c197",
   "prevIds": [
-    "a4a278a8-2c40-48dc-be5d-ce882b6c48a5"
+    "569cfd23-4938-48e3-8b42-f54dcac583bc"
   ],
   "ddl": [
     {
@@ -734,6 +734,18 @@
     {
       "isRlsEnabled": false,
       "name": "trophies_history",
+      "entityType": "tables",
+      "schema": "game_data"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "trophy_award_rule_eligible_positions",
+      "entityType": "tables",
+      "schema": "game_data"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "trophy_award_rule_eligible_positions_history",
       "entityType": "tables",
       "schema": "game_data"
     },
@@ -10260,6 +10272,188 @@
       "name": "id",
       "entityType": "columns",
       "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "trophy_id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "position_name_external_id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "1",
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "tstzrange(now(), null)",
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "trophy_id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "position_name_external_id",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "updated_at",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_version",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "tstzrange",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "history_period",
+      "entityType": "columns",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "game_data",
       "table": "trophy_award_rule_excluded_match_event_types"
     },
     {
@@ -12921,6 +13115,40 @@
       ],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
+      "name": "trophy_award_rule_eligible_positions_trophy_id_trophies_id_fkey",
+      "entityType": "fks",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "schemaTo": "game_data",
+      "tableTo": "trophy_award_rule_eligible_positions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "trophy_award_rule_eligible_positions_history_UE9by8iWWo5E_fkey",
+      "entityType": "fks",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "trophy_id"
+      ],
+      "schemaTo": "game_data",
+      "tableTo": "trophies",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
       "name": "trophy_award_rule_excluded_match_event_types_ocNF06vT5NvX_fkey",
       "entityType": "fks",
       "schema": "game_data",
@@ -13570,6 +13798,17 @@
         "history_version"
       ],
       "nameExplicit": false,
+      "name": "trophy_award_rule_eligible_positions_history_pkey",
+      "entityType": "pks",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions_history"
+    },
+    {
+      "columns": [
+        "id",
+        "history_version"
+      ],
+      "nameExplicit": false,
       "name": "trophy_award_rule_excluded_match_event_types_history_pkey",
       "entityType": "pks",
       "schema": "game_data",
@@ -14023,6 +14262,16 @@
         "id"
       ],
       "nameExplicit": false,
+      "name": "trophy_award_rule_eligible_positions_pkey",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
       "name": "trophy_award_rule_excluded_match_event_types_pkey",
       "schema": "game_data",
       "table": "trophy_award_rule_excluded_match_event_types",
@@ -14322,6 +14571,18 @@
       "entityType": "uniques",
       "schema": "game_data",
       "table": "teams_external_ids"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        "trophy_id",
+        "position_name_external_id"
+      ],
+      "nullsNotDistinct": false,
+      "name": "trophy_award_rule_eligible_positions_trophy_position_unique",
+      "entityType": "uniques",
+      "schema": "game_data",
+      "table": "trophy_award_rule_eligible_positions"
     },
     {
       "nameExplicit": true,

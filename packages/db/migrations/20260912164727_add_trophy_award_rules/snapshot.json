@@ -1,9 +1,9 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "b8b294fb-c2df-424a-b844-4d08a3efa491",
+  "id": "569cfd23-4938-48e3-8b42-f54dcac583bc",
   "prevIds": [
-    "81846e70-aa20-49b6-a99b-cb95cf2c74a4"
+    "bb900708-3e8e-4564-a17b-cbba2ec2d7f0"
   ],
   "ddl": [
     {
@@ -9928,7 +9928,7 @@
       "typeSchema": "game_data",
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'direct_source'",
       "generated": null,
       "identity": null,
       "name": "award_rule_kind",
@@ -9941,7 +9941,7 @@
       "typeSchema": null,
       "notNull": false,
       "dimensions": 0,
-      "default": null,
+      "default": "'Recorded by the source importer.'",
       "generated": null,
       "identity": null,
       "name": "award_procedure",
