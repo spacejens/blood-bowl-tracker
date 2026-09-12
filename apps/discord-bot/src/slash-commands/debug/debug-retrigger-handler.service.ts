@@ -117,16 +117,27 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
    * `/debuginteractions` is the only command whose own reply sets
    * `MessageFlags.Ephemeral`, and it appears in its own listing - so
    * retriggering that row must clear the flag rather than posting an
-   * ephemeral reply where the dispatcher expects a public one. A plain
-   * string result carries no flags and needs no change.
+   * ephemeral reply where the dispatcher expects a public one. `flags` is a
+   * `BitFieldResolvable`, so it is normalized through `MessageFlagsBitField`
+   * rather than compared for exact equality - a reply combining Ephemeral
+   * with another flag (e.g. `SuppressEmbeds`) must keep that other flag. A
+   * plain string result carries no flags and needs no change; a result with
+   * no `flags` at all needs none either, since removing from an empty
+   * bitfield is a no-op.
    */
   private stripEphemeralFlag(
     result: string | InteractionReplyOptions,
   ): string | InteractionReplyOptions {
-    if (typeof result === 'string' || result.flags !== MessageFlags.Ephemeral) {
+    if (typeof result === 'string' || result.flags === undefined) {
       return result;
     }
-    return { ...result, flags: undefined };
+    // `flags` is typed as a BitFieldResolvable (number, string, or bitfield
+    // instance), but every reply in this bot only ever sets it to a plain
+    // numeric combination of MessageFlags - the cast reflects that actual
+    // usage rather than handling string/array forms this codebase never
+    // produces.
+    const flags = (result.flags as number) & ~MessageFlags.Ephemeral;
+    return { ...result, flags };
   }
 
   private retriggerButton(

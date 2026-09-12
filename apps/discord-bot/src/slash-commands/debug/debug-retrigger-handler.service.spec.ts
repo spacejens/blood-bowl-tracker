@@ -303,7 +303,26 @@ describe('DebugRetriggerHandlerService', () => {
 
     expect(await service.handle(click('11'))).toEqual({
       content: 'x',
-      flags: undefined,
+      flags: 0,
+    });
+  });
+
+  it('clears only the ephemeral bit from a combined flags value, preserving the rest', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'debuginteractions' }),
+    );
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      execute: vi.fn().mockResolvedValue({
+        content: 'x',
+        flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+      }),
+    });
+
+    expect(await service.handle(click('11'))).toEqual({
+      content: 'x',
+      flags: MessageFlags.SuppressEmbeds,
     });
   });
 
