@@ -132,12 +132,12 @@ export class DebugTopUsersCommandService implements OnModuleInit {
   }
 
   /**
-   * Absolute safety net for Discord's embed description limit. A Discord
-   * username is user-controlled text with no length ceiling tight enough to
-   * guarantee twenty rows always fit, so the assembled description is
-   * truncated outright if it would overflow. Mirrors
+   * Defense in depth for Discord's embed description limit, mirroring
    * `DebugInteractionsCommandService.enforceDescriptionLimit` verbatim in
-   * shape.
+   * shape. Twenty rows of a Discord username (capped at 32 characters) never
+   * come close to the 4096-character limit in practice, unlike that sibling
+   * command's unbounded error messages and parameter values - this is a
+   * cheap safety net rather than a case expected to trigger.
    */
   private enforceDescriptionLimit(description: string): string {
     if (description.length <= MAX_DESCRIPTION_LENGTH) {

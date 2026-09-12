@@ -39,15 +39,16 @@ One embed, titled `Top bot users`, with up to 20 ranked rows:
 2. **bob** — 17 interactions
 ```
 
-Users tied on the same count are ordered by which was recorded first, so
-"the top 20" is a stable set rather than an arbitrary slice of a tie.
+Users tied on the same count are ordered by which user the bot first
+recorded, so "the top 20" is a stable set rather than an arbitrary slice of
+a tie.
 
 Twenty rows is a fixed cap, not an argument — the same reasoning as
 `/debuginteractions`' cap, with pagination deliberately left for a later
-iteration if it is ever wanted. A Discord username has no length ceiling
-tight enough to guarantee twenty rows always fit Discord's
-4096-character embed limit, so a hard truncation ending in `…` is applied
-as an absolute safety net for the rare case of very long ones.
+iteration if it is ever wanted. A hard truncation ending in `…` is applied
+as a cheap safety net against Discord's 4096-character embed limit, though
+twenty rows of a username (capped at 32 characters) never come close to it
+in practice.
 
 When nothing matches — most plausibly a `days` window with no activity in
 it — the reply is the plain message `No bot usage recorded for those
