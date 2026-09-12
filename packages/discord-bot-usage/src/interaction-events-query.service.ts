@@ -73,6 +73,40 @@ export interface TopUsersOptions {
 }
 
 /**
+ * What to narrow the command-invocation listing to. `sinceDays` covers only
+ * invocations in the last N days; omitting it covers every recorded command
+ * invocation.
+ *
+ * There is deliberately no `limit`, unlike `listRecent`/`topUsers`: the caller
+ * aggregates over the full matching set rather than showing a capped page, so
+ * there is no "top N" for a cap to bound.
+ */
+export interface CommandInvocationOptions {
+  sinceDays?: number;
+}
+
+/**
+ * One recorded slash-command invocation: who ran it, which command, and which
+ * option keys they supplied. Only the parameter *keys* are returned - a caller
+ * classifying an invocation as plain or filtered cares which options were
+ * present, never what they were set to.
+ */
+export interface CommandInvocationRow {
+  discordUserId: string;
+  username: string;
+  commandName: string;
+  parameterKeys: string[];
+}
+
+/** One invocation before its parameter keys are attached. */
+interface CommandInvocationHeaderRow extends Omit<
+  CommandInvocationRow,
+  'parameterKeys'
+> {
+  id: number;
+}
+
+/**
  * Reads back what `UsageTrackingService` recorded: the most recent
  * interactions, newest first, optionally narrowed to one Discord user and/or
  * one outcome.
@@ -203,6 +237,76 @@ export class InteractionEventsQueryService {
   }
 
   /**
+   * Every recorded slash-command invocation, each carrying the option keys it
+   * supplied, optionally narrowed to a recent window.
+   *
+   * Two queries like `listRecent`, and for a related reason: joining the
+   * parameters in would multiply each invocation row by its parameter count,
+   * and a caller counting invocations per user needs exactly one row per
+   * invocation.
+   *
+   * `interaction_types.kind = 'command'` is unconditional: a button click or
+   * select-menu selection has no plain-vs-filtered invocation shape, so it is
+   * not an invocation this method reports on.
+   *
+   * `channels` and `guilds` are not joined at all, unlike `listRecent` - no
+   * caller needs where an invocation happened. Ordered by event id ascending
+   * purely for a deterministic result; the caller aggregates, so the order
+   * carries no meaning of its own.
+   *
+   * The select/join block is repeated rather than shared with `listRecent`
+   * for the reason `findById` documents: a private helper returning a
+   * partially-built drizzle builder has no nameable return type, which breaks
+   * declaration emit for this exported class.
+   */
+  async commandInvocations(
+    options: CommandInvocationOptions,
+  ): Promise<CommandInvocationRow[]> {
+    const events: CommandInvocationHeaderRow[] = await this.db
+      .select({
+        id: interactionEvents.id,
+        discordUserId: discordUsers.discordId,
+        username: discordUsers.username,
+        commandName: interactionTypes.name,
+      })
+      .from(interactionEvents)
+      .innerJoin(
+        interactionTypes,
+        eq(interactionTypes.id, interactionEvents.interactionTypeId),
+      )
+      .innerJoin(discordUsers, eq(discordUsers.id, interactionEvents.userId))
+      .where(this.commandInvocationFilters(options))
+      .orderBy(asc(interactionEvents.id));
+
+    if (events.length === 0) {
+      return [];
+    }
+
+    const parameters = await this.db
+      .select({
+        eventId: interactionEventParameters.eventId,
+        key: interactionEventParameters.key,
+      })
+      .from(interactionEventParameters)
+      .where(
+        inArray(
+          interactionEventParameters.eventId,
+          events.map((event) => event.id),
+        ),
+      )
+      .orderBy(asc(interactionEventParameters.id));
+
+    return events.map((event) => ({
+      discordUserId: event.discordUserId,
+      username: event.username,
+      commandName: event.commandName,
+      parameterKeys: parameters
+        .filter((parameter) => parameter.eventId === event.id)
+        .map((parameter) => parameter.key),
+    }));
+  }
+
+  /**
    * Attaches each event's recorded parameters, in insertion order. Shared by
    * both read paths; zero events short-circuits before the second query.
    */
@@ -264,6 +368,27 @@ export class InteractionEventsQueryService {
       options.kind === undefined
         ? undefined
         : eq(interactionTypes.kind, options.kind),
+      options.sinceDays === undefined
+        ? undefined
+        : gte(
+            interactionEvents.occurredAt,
+            new Date(Date.now() - options.sinceDays * MS_PER_DAY),
+          ),
+    ].filter((condition) => condition !== undefined);
+    return and(...conditions);
+  }
+
+  /**
+   * Same shape as `topUserFilters`, except the `kind` condition is always
+   * present rather than optional - so the result is never `undefined` in
+   * practice, and the return type only allows it to keep the signature
+   * uniform with the sibling filter helpers.
+   */
+  private commandInvocationFilters(
+    options: CommandInvocationOptions,
+  ): SQL | undefined {
+    const conditions = [
+      eq(interactionTypes.kind, 'command'),
       options.sinceDays === undefined
         ? undefined
         : gte(
