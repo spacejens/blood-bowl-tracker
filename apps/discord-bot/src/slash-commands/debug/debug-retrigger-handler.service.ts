@@ -38,11 +38,12 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * other button, since this is a normally-registered button handler.)
  *
  * The retriggered reply is returned as-is, except that a retriggered
- * command's `MessageFlags.Ephemeral` flag (set only by `/debuginteractions`
- * itself, which appears in its own listing) is cleared, so the dispatcher
- * posts it non-ephemerally into the channel the retrigger was clicked in -
- * matching how the original command or component would have replied. Only
- * this service's own two error replies are ephemeral.
+ * command's `MessageFlags.Ephemeral` flag (set by `/debuginteractions` and
+ * `/debugtopusers`, both of which appear in `/debuginteractions`' own
+ * listing) is cleared, so the dispatcher posts it non-ephemerally into the
+ * channel the retrigger was clicked in - matching how the original command
+ * or component would have replied. Only this service's own two error
+ * replies are ephemeral.
  */
 @Injectable()
 export class DebugRetriggerHandlerService implements OnModuleInit {
@@ -93,18 +94,26 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
     const optionsByName = new Map(
       event.parameters.map((parameter) => [parameter.key, parameter.value]),
     );
-    // `getUser` is stubbed as well as `getString`: no real command reads a
-    // `User`-type option today except `/debuginteractions` itself (which
-    // appears in its own listing, so retriggering that row must not throw),
-    // but the recorded value is the option's raw snowflake, so it is
-    // resolved into a minimal `User` stand-in rather than dropped - a
-    // recorded `user` filter must survive retriggering unchanged.
+    // `getUser` and `getInteger` are stubbed as well as `getString`: every
+    // recorded value is text (the write side stringifies each option value),
+    // so a snowflake is resolved into a minimal `User` stand-in and a numeric
+    // option parsed back into a number rather than dropped - a recorded
+    // filter must survive retriggering unchanged. A recorded value that is
+    // not an integer reads as "not given" rather than producing NaN.
     const synthetic = {
       options: {
         getString: (name: string) => optionsByName.get(name) ?? null,
         getUser: (name: string) => {
           const id = optionsByName.get(name);
           return id == null ? null : ({ id } as User);
+        },
+        getInteger: (name: string) => {
+          const value = optionsByName.get(name);
+          if (value == null) {
+            return null;
+          }
+          const parsed = Number(value);
+          return Number.isInteger(parsed) ? parsed : null;
         },
       },
     } as unknown as ChatInputCommandInteraction;
@@ -114,10 +123,11 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
   }
 
   /**
-   * `/debuginteractions` is the only command whose own reply sets
-   * `MessageFlags.Ephemeral`, and it appears in its own listing - so
-   * retriggering that row must clear the flag rather than posting an
-   * ephemeral reply where the dispatcher expects a public one. `flags` is
+   * `/debuginteractions` and `/debugtopusers` are the commands whose own
+   * reply sets `MessageFlags.Ephemeral`, and both appear in
+   * `/debuginteractions`' own listing - so retriggering either row must
+   * clear the flag rather than posting an ephemeral reply where the
+   * dispatcher expects a public one. `flags` is
    * cleared via bitwise math rather than compared for exact equality - a
    * reply combining Ephemeral with another flag (e.g. `SuppressEmbeds`) must
    * keep that other flag. A plain string result carries no flags and needs no

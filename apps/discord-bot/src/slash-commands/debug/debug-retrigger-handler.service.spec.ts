@@ -348,4 +348,69 @@ describe('DebugRetriggerHandlerService', () => {
 
     expect(await service.handle(click('11'))).toEqual(reply);
   });
+
+  it('hands a retriggered command its recorded integer option as a number', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({
+        kind: 'command',
+        name: 'debugtopusers',
+        parameters: [{ key: 'days', value: '30' }],
+      }),
+    );
+    let seen: number | null = -1;
+    registry.findByName.mockReturnValue({
+      name: 'debugtopusers',
+      description: 'Debug: List the most active bot users',
+      execute: (interaction) => {
+        seen = interaction.options.getInteger('days');
+        return Promise.resolve('done');
+      },
+    });
+
+    await service.handle(click('11'));
+
+    expect(seen).toBe(30);
+  });
+
+  it('hands a retriggered command null for an integer option it did not record', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'debugtopusers', parameters: [] }),
+    );
+    let seen: number | null = -1;
+    registry.findByName.mockReturnValue({
+      name: 'debugtopusers',
+      description: 'Debug: List the most active bot users',
+      execute: (interaction) => {
+        seen = interaction.options.getInteger('days');
+        return Promise.resolve('done');
+      },
+    });
+
+    await service.handle(click('11'));
+
+    expect(seen).toBeNull();
+  });
+
+  it('hands a retriggered command null for a recorded value that is not an integer', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({
+        kind: 'command',
+        name: 'debugtopusers',
+        parameters: [{ key: 'days', value: 'lots' }],
+      }),
+    );
+    let seen: number | null = -1;
+    registry.findByName.mockReturnValue({
+      name: 'debugtopusers',
+      description: 'Debug: List the most active bot users',
+      execute: (interaction) => {
+        seen = interaction.options.getInteger('days');
+        return Promise.resolve('done');
+      },
+    });
+
+    await service.handle(click('11'));
+
+    expect(seen).toBeNull();
+  });
 });
