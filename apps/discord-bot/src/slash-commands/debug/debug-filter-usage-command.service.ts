@@ -7,7 +7,7 @@ import type {
 import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
-import { DEBUG_FILTER_USAGE_NO_RESULTS_MESSAGE } from '../../error-messages';
+import { DEBUG_NO_USAGE_RECORDED_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import type {
   FilterUsageReport,
@@ -76,7 +76,7 @@ export class DebugFilterUsageCommandService implements OnModuleInit {
     });
     if (report.usesFilters.length === 0 && report.plainOnly.length === 0) {
       return {
-        content: DEBUG_FILTER_USAGE_NO_RESULTS_MESSAGE,
+        content: DEBUG_NO_USAGE_RECORDED_MESSAGE,
         flags: MessageFlags.Ephemeral,
       };
     }

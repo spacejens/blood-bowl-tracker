@@ -127,11 +127,19 @@ export class FilterUsageReportService {
    * a union in which only some members declare the property; a member without
    * it is optional by Discord's own default, which is exactly what `!== true`
    * expresses.
+   *
+   * `debug`-prefixed commands are skipped entirely - not merely reported as
+   * having no optional options, but omitted from the map so `tally` treats
+   * them exactly like an unregistered command. A maintainer running
+   * `/debugfilterusage` or `/debugtopusers` to check the bot would otherwise
+   * plant themselves in the "Plain only" bucket; that self-usage is debug
+   * tooling, not a signal about regular bot usage.
    */
   private optionalOptionsByCommand(): Map<string, Set<string>> {
     return new Map(
       this.registry
         .all()
+        .filter((command) => !command.name.startsWith('debug'))
         .map((command) => [
           command.name,
           new Set(

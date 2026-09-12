@@ -296,13 +296,21 @@ export class InteractionEventsQueryService {
       )
       .orderBy(asc(interactionEventParameters.id));
 
+    const keysByEventId = new Map<number, string[]>();
+    for (const parameter of parameters) {
+      const keys = keysByEventId.get(parameter.eventId);
+      if (keys === undefined) {
+        keysByEventId.set(parameter.eventId, [parameter.key]);
+      } else {
+        keys.push(parameter.key);
+      }
+    }
+
     return events.map((event) => ({
       discordUserId: event.discordUserId,
       username: event.username,
       commandName: event.commandName,
-      parameterKeys: parameters
-        .filter((parameter) => parameter.eventId === event.id)
-        .map((parameter) => parameter.key),
+      parameterKeys: keysByEventId.get(event.id) ?? [],
     }));
   }
 

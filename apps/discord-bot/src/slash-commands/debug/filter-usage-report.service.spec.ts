@@ -288,6 +288,20 @@ describe('FilterUsageReportService', () => {
     expect(report).toEqual({ usesFilters: [], plainOnly: [] });
   });
 
+  it('excludes a debug-prefixed command even when a user supplied its optional option', async () => {
+    registry.all.mockReturnValue([
+      command('debugtopusers', ['days']),
+      command('insights', ['category']),
+    ]);
+    events.commandInvocations.mockResolvedValue([
+      invocation({ commandName: 'debugtopusers', parameterKeys: ['days'] }),
+    ]);
+
+    const report = await service.report({});
+
+    expect(report).toEqual({ usesFilters: [], plainOnly: [] });
+  });
+
   it('reports nothing when no invocation was recorded', async () => {
     events.commandInvocations.mockResolvedValue([]);
 

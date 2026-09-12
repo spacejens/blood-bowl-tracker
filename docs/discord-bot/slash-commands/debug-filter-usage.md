@@ -25,13 +25,19 @@ option with no `required` flag. Nothing is hardcoded: the set is derived
 from the actually-registered commands each time the report runs, so every
 current and future optional argument is covered with no maintenance.
 
-Today that means `/insights` and `/onthisdate`'s shared
-`league`/`era`/`competition`/`match-category` scope arguments and
-`/deepdive`'s target-selector arguments, among others.
+No option anywhere in the bot is currently marked `required` — Discord
+supports the flag, but nothing here uses it. Today that means this
+classification covers literally any argument on any command that has one,
+including `/deepdive`'s subject-selector arguments (`coach`, `team`,
+`player`, and the rest): picking one of those is effectively how you use
+the command, not "narrowing" in the everyday sense, but the classification
+counts it as a filter all the same. This is a known and accepted
+characteristic of the current command surface, not a bug — read the
+"Plain only" list with that in mind for a command whose every option
+happens to be a mandatory-in-practice selector.
 
-A required argument is never a filter. Supplying `/onthisdate`'s `date`,
-for instance, is not narrowing anything — the command cannot be run
-without it.
+A command could in principle mark an option required, and such an option
+would never count as a filter — but, again, none does today.
 
 ## Arguments
 
@@ -99,3 +105,9 @@ intentional exception described there.
   recorded invocations are skipped.
 - An interaction that matched no registered handler was never recorded at
   all, so it cannot appear here.
+- **`debug`-prefixed commands' own invocations.** `/debugfilterusage`,
+  `/debugtopusers`, and `/debuginteractions` are excluded from the report
+  entirely, whether or not an optional option was supplied. Without this,
+  a maintainer running one of these commands to check the bot would plant
+  themselves in the "Plain only" bucket — self-usage of maintainer tooling
+  is not a signal about regular bot usage.

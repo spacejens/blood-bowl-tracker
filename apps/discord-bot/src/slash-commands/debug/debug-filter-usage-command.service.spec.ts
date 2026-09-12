@@ -6,7 +6,7 @@ import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
-import { DEBUG_FILTER_USAGE_NO_RESULTS_MESSAGE } from '../../error-messages';
+import { DEBUG_NO_USAGE_RECORDED_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { DebugFilterUsageCommandService } from './debug-filter-usage-command.service';
 import { FilterUsageReportService } from './filter-usage-report.service';
@@ -146,7 +146,7 @@ describe('DebugFilterUsageCommandService', () => {
     const reply = await service.execute(interaction({ days: 1 }));
 
     expect(reply).toEqual({
-      content: DEBUG_FILTER_USAGE_NO_RESULTS_MESSAGE,
+      content: DEBUG_NO_USAGE_RECORDED_MESSAGE,
       flags: MessageFlags.Ephemeral,
     });
   });
