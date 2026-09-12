@@ -43,15 +43,21 @@ matching interactions, newest first. Each row carries, in order:
   customId prefix.
 - The recorded parameters, as `key: value` pairs in the order they were
   recorded, comma-separated in parentheses. Every autocomplete-backed
-  option (`race`, `era`, `league`, `competition`, `competition-group`,
-  `coach`, `team`, `player`, `star-player`, `position`, `trophy`) records
-  the entity's database id as its value, so those are looked up and shown
-  as the entity's name instead — `race: Orc`, not `race: 17`. The lookup
-  is best-effort: an option with no entity behind it, a value that is not
-  an id, and an entity deleted since the interaction was recorded all fall
-  back to the raw recorded value. A parameter recorded with no value shows
-  as `key: <empty>`; a repeated key (a multi-select's several values) is
-  repeated rather than grouped. An interaction with no parameters gets no
+  slash-command option (`race`, `era`, `league`, `competition`,
+  `competition-group`, `coach`, `team`, `player`, `star-player`,
+  `position`, `trophy`) records the entity's database id as its value, so
+  those are looked up and shown as the entity's name instead — `race: Orc`,
+  not `race: 17`. A button's `id` parameter and a select menu's `value`
+  parameters are entity ids the same way, resolved through the button's
+  own customId prefix instead of an option name — `button
+  deepdive:coach: (id: zog)`, not `(id: 42)` — while a select menu's own
+  `id` parameter (its menu index, e.g. `menu:0`) is never resolved, since
+  it isn't an entity id. The lookup is best-effort throughout: an option or
+  prefix with no entity behind it, a value that is not an id, and an
+  entity deleted since the interaction was recorded all fall back to the
+  raw recorded value. A parameter recorded with no value shows as `key:
+  <empty>`; a repeated key (a multi-select's several values) is repeated
+  rather than grouped. An interaction with no parameters gets no
   parentheses at all.
 - The outcome, as a tick for a success or a cross for a failure, followed
   by the recorded error message when there is one — a failure is not

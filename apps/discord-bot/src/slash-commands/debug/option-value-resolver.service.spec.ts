@@ -16,6 +16,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
 
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+} from '../../deepdive/button-custom-ids';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 describe('OptionValueResolverService', () => {
@@ -131,5 +135,72 @@ describe('OptionValueResolverService', () => {
       await service.resolveParameters([{ key: 'race', value: null }]),
     ).toEqual([{ key: 'race', value: null }]);
     expect(races.findById).not.toHaveBeenCalled();
+  });
+
+  describe('resolveComponentParameters', () => {
+    it("resolves a button's id parameter through its prefix's entity type", async () => {
+      coaches.findById.mockResolvedValue({ id: 42, name: 'zog' });
+
+      expect(
+        await service.resolveComponentParameters(
+          COACH_BUTTON_CUSTOM_ID_PREFIX,
+          'button',
+          [{ key: 'id', value: '42' }],
+        ),
+      ).toEqual([{ key: 'id', value: 'zog' }]);
+      expect(coaches.findById).toHaveBeenCalledWith(42);
+    });
+
+    it("resolves a select menu's value parameters, leaving its id parameter untouched", async () => {
+      races.findById.mockResolvedValueOnce({ id: 7, name: 'Orc' });
+      races.findById.mockResolvedValueOnce({ id: 9, name: 'Human' });
+
+      expect(
+        await service.resolveComponentParameters(
+          RACE_BUTTON_CUSTOM_ID_PREFIX,
+          'select_menu',
+          [
+            { key: 'id', value: 'menu:0' },
+            { key: 'value', value: '7' },
+            { key: 'value', value: '9' },
+          ],
+        ),
+      ).toEqual([
+        { key: 'id', value: 'menu:0' },
+        { key: 'value', value: 'Orc' },
+        { key: 'value', value: 'Human' },
+      ]);
+    });
+
+    it('falls back to the raw value for an unmapped prefix', async () => {
+      expect(
+        await service.resolveComponentParameters('debug:retrigger:', 'button', [
+          { key: 'id', value: '11' },
+        ]),
+      ).toEqual([{ key: 'id', value: '11' }]);
+    });
+
+    it('falls back to the raw value when the entity is gone', async () => {
+      coaches.findById.mockResolvedValue(undefined);
+
+      expect(
+        await service.resolveComponentParameters(
+          COACH_BUTTON_CUSTOM_ID_PREFIX,
+          'button',
+          [{ key: 'id', value: '42' }],
+        ),
+      ).toEqual([{ key: 'id', value: '42' }]);
+    });
+
+    it('passes a null parameter value through untouched', async () => {
+      expect(
+        await service.resolveComponentParameters(
+          COACH_BUTTON_CUSTOM_ID_PREFIX,
+          'button',
+          [{ key: 'id', value: null }],
+        ),
+      ).toEqual([{ key: 'id', value: null }]);
+      expect(coaches.findById).not.toHaveBeenCalled();
+    });
   });
 });

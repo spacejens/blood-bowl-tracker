@@ -71,6 +71,9 @@ describe('DebugInteractionsCommandService', () => {
     optionValues.resolveParameters.mockImplementation((parameters) =>
       Promise.resolve(parameters),
     );
+    optionValues.resolveComponentParameters.mockImplementation(
+      (_prefix, _kind, parameters) => Promise.resolve(parameters),
+    );
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -299,6 +302,52 @@ describe('DebugInteractionsCommandService', () => {
     expect(optionValues.resolveParameters).toHaveBeenNthCalledWith(2, [
       { key: 'coach', value: '4' },
     ]);
+  });
+
+  it('resolves a button row through its customId prefix, not resolveParameters', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({
+        kind: 'button',
+        name: 'deepdive:coach:',
+        parameters: [{ key: 'id', value: '42' }],
+      }),
+    ]);
+    optionValues.resolveComponentParameters.mockResolvedValue([
+      { key: 'id', value: 'zog' },
+    ]);
+
+    const reply = await service.execute(interaction({}));
+
+    expect(optionValues.resolveComponentParameters).toHaveBeenCalledWith(
+      'deepdive:coach:',
+      'button',
+      [{ key: 'id', value: '42' }],
+    );
+    expect(optionValues.resolveParameters).not.toHaveBeenCalled();
+    expect(
+      (reply as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('(id: zog)');
+  });
+
+  it('resolves a select-menu row through its customId prefix', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({
+        kind: 'select_menu',
+        name: 'deepdive:race:',
+        parameters: [{ key: 'value', value: '7' }],
+      }),
+    ]);
+    optionValues.resolveComponentParameters.mockResolvedValue([
+      { key: 'value', value: 'Orc' },
+    ]);
+
+    await service.execute(interaction({}));
+
+    expect(optionValues.resolveComponentParameters).toHaveBeenCalledWith(
+      'deepdive:race:',
+      'select_menu',
+      [{ key: 'value', value: '7' }],
+    );
   });
 
   it('always replies ephemerally', async () => {

@@ -119,7 +119,9 @@ export class DebugInteractionsCommandService implements OnModuleInit {
    * Each row with its recorded parameter values swapped for resolved entity
    * names where one could be found. Done here rather than in the formatter so
    * the formatter stays pure and dependency-free — it renders whatever values
-   * it is handed.
+   * it is handed. A command's parameters are resolved by option name; a
+   * button/select-menu's entity type instead comes from its customId
+   * `name`/prefix, so those two kinds go through a different resolver method.
    */
   private decorate(
     rows: InteractionEventRow[],
@@ -127,7 +129,14 @@ export class DebugInteractionsCommandService implements OnModuleInit {
     return Promise.all(
       rows.map(async (row) => ({
         ...row,
-        parameters: await this.optionValues.resolveParameters(row.parameters),
+        parameters:
+          row.kind === 'command'
+            ? await this.optionValues.resolveParameters(row.parameters)
+            : await this.optionValues.resolveComponentParameters(
+                row.name,
+                row.kind,
+                row.parameters,
+              ),
       })),
     );
   }
