@@ -4,6 +4,8 @@ export type {
   InteractionEventParameterRow,
   InteractionEventRow,
   ListRecentInteractionEventsOptions,
+  TopUserRow,
+  TopUsersOptions,
 } from './interaction-events-query.service';
 export { InteractionEventsQueryService } from './interaction-events-query.service';
 export type {
