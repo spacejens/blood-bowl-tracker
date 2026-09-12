@@ -60,42 +60,36 @@ Twenty rows is a fixed cap, not an argument: it keeps the description
 comfortably inside Discord's 4096-character embed limit in the common case.
 Recorded error messages and parameter values are unbounded text, though, so
 a hard truncation (ending in `…`) is applied as an absolute safety net for
-the rare case of very long ones. When nothing matches, the reply is the
-plain message `No matching interactions found.` with no embed.
+the rare case of very long ones — when that happens, a trailing row's
+retrigger button can still exist even though its own numbered line is no
+longer visible in the truncated text. When nothing matches, the reply is
+the plain message `No matching interactions found.` with no embed.
 
 ## Retriggering a listed interaction
 
-Below the embed sits one button per listed row, labelled with that row's
-number. Clicking button 3 re-runs whatever row 3 describes: the same slash
-command with the same option values, or the same button or select-menu
-interaction with the same selection.
+Below the embed sits one button per fetched row, labelled with that row's
+number. Clicking button 3 reuses whatever row 3's recorded inputs were, to
+re-run the same slash command with the same option values — including a
+`user` filter recorded for `/debuginteractions` itself, so retriggering a
+filtered listing reproduces the same filter rather than silently showing
+everyone's history — or the same button or select-menu interaction with
+the same selection.
 
-The retriggered handler is invoked directly rather than through the bot's
-normal interaction dispatcher. That works because no command or component
-handler in this bot reads anything about _who_ triggered it or _where_ —
-replying, logging and usage recording all live in the dispatcher — so a
-minimal stand-in carrying just the recorded options (or customId and
-selected values) is enough. Recorded option values are passed through
-faithfully, including a `user` filter recorded for `/debuginteractions`
-itself: the recorded snowflake is handed back through the stand-in's
-`getUser`, so retriggering a filtered listing reproduces the same filter
-rather than silently showing everyone's history.
+Two things follow from how retriggering reruns the interaction:
 
-Two consequences follow from going around the dispatcher:
-
-- The retriggered run records no `discord_bot_usage` row of its own, so
-  retriggering never pollutes the very history this command reads. The
-  button click itself is recorded like any other button interaction — as
-  kind `button`, name `debug:retrigger:` — so it will itself show up in the
-  next `/debuginteractions` listing, with its own retrigger button. Clicking
-  that re-runs the original retriggered interaction one level removed; an
-  event can never reference a click that postdates it, so this can't loop
-  forever, but it's worth recognizing these rows for what they are.
-- The reply lands in the channel where the retrigger was clicked, not in
-  the channel the original interaction happened in, and it is public
-  rather than ephemeral — the same way that command or component would
-  normally answer. Retriggering something in a public channel therefore
-  posts its answer there for everyone.
+- It adds no new row to this command's own history, so retriggering never
+  pollutes the very history it reads. The retrigger button click itself is
+  still recorded like any other button interaction, though, so it will
+  itself show up in the next listing with its own retrigger button —
+  clicking that re-runs the original retriggered interaction one level
+  removed. This can't loop forever, but it's worth recognizing these rows
+  for what they are.
+- The reply lands in the channel where the retrigger was clicked, not the
+  channel the original interaction happened in, and is public rather than
+  ephemeral. This is an intentional exception to the "Ephemeral by design"
+  rule below, so a retrigger reproduces the answer as everyone would have
+  seen it — even when the original interaction was `/debuginteractions`
+  itself.
 
 Two things can go wrong, and both answer with a plain ephemeral message
 rather than failing:
