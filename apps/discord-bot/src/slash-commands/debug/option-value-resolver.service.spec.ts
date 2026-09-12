@@ -120,6 +120,12 @@ describe('OptionValueResolverService', () => {
     ]);
   });
 
+  it('falls back to the raw value when the lookup rejects', async () => {
+    races.findById.mockRejectedValue(new Error('db gone'));
+
+    expect(await service.resolve('race', '17')).toBe('17');
+  });
+
   it('passes a null parameter value through untouched', async () => {
     expect(
       await service.resolveParameters([{ key: 'race', value: null }]),

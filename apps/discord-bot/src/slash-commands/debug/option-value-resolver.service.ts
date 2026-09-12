@@ -84,7 +84,11 @@ export class OptionValueResolverService {
     if (!Number.isInteger(id)) {
       return rawValue;
     }
-    return (await lookup(id)) ?? rawValue;
+    try {
+      return (await lookup(id)) ?? rawValue;
+    } catch {
+      return rawValue;
+    }
   }
 
   /**
