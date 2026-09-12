@@ -2,7 +2,7 @@ import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage'
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import { Test } from '@nestjs/testing';
 import type { ChatInputCommandInteraction, User } from 'discord.js';
-import { MessageFlags } from 'discord.js';
+import { ButtonStyle, ComponentType, MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
@@ -15,6 +15,8 @@ import {
   DebugInteractionsCommandService,
   MAX_DEBUG_INTERACTIONS,
 } from './debug-interactions-command.service';
+import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
+import { OptionValueResolverService } from './option-value-resolver.service';
 
 const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
 
@@ -22,6 +24,7 @@ function eventRow(
   overrides: Partial<InteractionEventRow> = {},
 ): InteractionEventRow {
   return {
+    id: 1,
     occurredAt: OCCURRED_AT,
     kind: 'command',
     name: 'insights',
@@ -56,11 +59,21 @@ describe('DebugInteractionsCommandService', () => {
   let service: DebugInteractionsCommandService;
   let events: DeepMockProxy<InteractionEventsQueryService>;
   let registry: DeepMockProxy<SlashCommandRegistryService>;
+  let optionValues: DeepMockProxy<OptionValueResolverService>;
 
   beforeEach(async () => {
     events = mockDeep<InteractionEventsQueryService>();
     events.listRecent.mockResolvedValue([eventRow()]);
     registry = mockDeep<SlashCommandRegistryService>();
+    optionValues = mockDeep<OptionValueResolverService>();
+    // Default: pass parameters through unchanged, so tests that do not care
+    // about decoration keep asserting on the raw recorded values.
+    optionValues.resolveParameters.mockImplementation((parameters) =>
+      Promise.resolve(parameters),
+    );
+    optionValues.resolveComponentParameters.mockImplementation(
+      (_prefix, _kind, parameters) => Promise.resolve(parameters),
+    );
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -68,8 +81,10 @@ describe('DebugInteractionsCommandService', () => {
         // Real, per the pure dependency-free formatting service carve-out in
         // CLAUDE.md: mocking it would leave the rendered rows unasserted.
         DebugInteractionRowFormatterService,
+        DebugRetriggerButtonsService,
         { provide: InteractionEventsQueryService, useValue: events },
         { provide: SlashCommandRegistryService, useValue: registry },
+        { provide: OptionValueResolverService, useValue: optionValues },
       ],
     }).compile();
     service = moduleRef.get(DebugInteractionsCommandService);
@@ -179,11 +194,53 @@ describe('DebugInteractionsCommandService', () => {
         {
           title: 'Recent interactions',
           description:
-            '<t:1788955200:f> — coach42 in Test League #general — /insights — ✅\n<t:1788955200:f> — coach42 in Test League #general — button coach:42 — ❌ boom',
+            '1. <t:1788955200:f> — coach42 in Test League #general — /insights — ✅\n2. <t:1788955200:f> — coach42 in Test League #general — button coach:42 — ❌ boom',
+        },
+      ],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Secondary,
+              label: '1',
+              custom_id: 'debug:retrigger:1',
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Secondary,
+              label: '2',
+              custom_id: 'debug:retrigger:1',
+            },
+          ],
         },
       ],
       flags: MessageFlags.Ephemeral,
     });
+  });
+
+  it('attaches one retrigger button per listed row', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({ id: 11 }),
+      eventRow({ id: 12 }),
+    ]);
+
+    const reply = await service.execute(interaction({}));
+
+    const components = (
+      reply as unknown as {
+        components: { components: { custom_id: string; label: string }[] }[];
+      }
+    ).components;
+    expect(components[0].components.map((button) => button.custom_id)).toEqual([
+      'debug:retrigger:11',
+      'debug:retrigger:12',
+    ]);
+    expect(components[0].components.map((button) => button.label)).toEqual([
+      '1',
+      '2',
+    ]);
   });
 
   it('replies with the no-results message and no embed when nothing matches', async () => {
@@ -213,6 +270,84 @@ describe('DebugInteractionsCommandService', () => {
       .embeds[0].description;
     expect(description).toHaveLength(MAX_DESCRIPTION_LENGTH);
     expect(description.endsWith('…')).toBe(true);
+  });
+
+  it('renders resolved parameter names instead of the recorded ids', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({ parameters: [{ key: 'race', value: '17' }] }),
+    ]);
+    optionValues.resolveParameters.mockResolvedValue([
+      { key: 'race', value: 'Orc' },
+    ]);
+
+    const reply = await service.execute(interaction({}));
+
+    expect(
+      (reply as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('(race: Orc)');
+  });
+
+  it('resolves the parameters of every listed row', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({ parameters: [{ key: 'race', value: '17' }] }),
+      eventRow({ parameters: [{ key: 'coach', value: '4' }] }),
+    ]);
+
+    await service.execute(interaction({}));
+
+    expect(optionValues.resolveParameters).toHaveBeenCalledTimes(2);
+    expect(optionValues.resolveParameters).toHaveBeenNthCalledWith(1, [
+      { key: 'race', value: '17' },
+    ]);
+    expect(optionValues.resolveParameters).toHaveBeenNthCalledWith(2, [
+      { key: 'coach', value: '4' },
+    ]);
+  });
+
+  it('resolves a button row through its customId prefix, not resolveParameters', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({
+        kind: 'button',
+        name: 'deepdive:coach:',
+        parameters: [{ key: 'id', value: '42' }],
+      }),
+    ]);
+    optionValues.resolveComponentParameters.mockResolvedValue([
+      { key: 'id', value: 'zog' },
+    ]);
+
+    const reply = await service.execute(interaction({}));
+
+    expect(optionValues.resolveComponentParameters).toHaveBeenCalledWith(
+      'deepdive:coach:',
+      'button',
+      [{ key: 'id', value: '42' }],
+    );
+    expect(optionValues.resolveParameters).not.toHaveBeenCalled();
+    expect(
+      (reply as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain('(id: zog)');
+  });
+
+  it('resolves a select-menu row through its customId prefix', async () => {
+    events.listRecent.mockResolvedValue([
+      eventRow({
+        kind: 'select_menu',
+        name: 'deepdive:race:',
+        parameters: [{ key: 'value', value: '7' }],
+      }),
+    ]);
+    optionValues.resolveComponentParameters.mockResolvedValue([
+      { key: 'value', value: 'Orc' },
+    ]);
+
+    await service.execute(interaction({}));
+
+    expect(optionValues.resolveComponentParameters).toHaveBeenCalledWith(
+      'deepdive:race:',
+      'select_menu',
+      [{ key: 'value', value: '7' }],
+    );
   });
 
   it('always replies ephemerally', async () => {
