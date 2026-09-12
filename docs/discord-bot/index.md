@@ -164,6 +164,10 @@ effect immediately.
   tooling: the most recent recorded bot interactions, optionally filtered to
   one user and/or one outcome, replied ephemerally, with a numbered button
   per row for retriggering that interaction.
+- [`/debugtopusers`](slash-commands/debug-top-users.md) — maintainer
+  tooling: the Discord users with the most recorded bot interactions, most
+  active first, optionally narrowed to one interaction kind and/or a recent
+  window, replied ephemerally.
 
 ### Drill-down buttons and blank entity names
 

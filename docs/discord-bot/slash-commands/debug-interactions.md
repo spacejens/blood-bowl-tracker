@@ -89,7 +89,7 @@ Two things follow from how retriggering reruns the interaction:
   ephemeral. This is an intentional exception to the "Ephemeral by design"
   rule below, so a retrigger reproduces the answer as everyone would have
   seen it — even when the original interaction was `/debuginteractions`
-  itself.
+  itself, or [`/debugtopusers`](debug-top-users.md).
 
 Two things can go wrong, and both answer with a plain ephemeral message
 rather than failing:
