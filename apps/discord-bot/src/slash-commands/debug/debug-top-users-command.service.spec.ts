@@ -187,7 +187,7 @@ describe('DebugTopUsersCommandService', () => {
     expect(description(reply).split('\n')).toEqual([
       '1. **first** — 3 interactions',
       '2. **second** — 3 interactions',
-      '3. **third** — 1 interactions',
+      '3. **third** — 1 interaction',
     ]);
   });
 

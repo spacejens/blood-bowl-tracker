@@ -110,10 +110,11 @@ export class DebugTopUsersCommandService implements OnModuleInit {
   /** One ranked line per user, in the order the query returned them. */
   private describe(rows: TopUserRow[]): string {
     return rows
-      .map(
-        (row, index) =>
-          `${index + 1}. **${row.username}** — ${row.interactionCount} interactions`,
-      )
+      .map((row, index) => {
+        const noun =
+          row.interactionCount === 1 ? 'interaction' : 'interactions';
+        return `${index + 1}. **${row.username}** — ${row.interactionCount} ${noun}`;
+      })
       .join('\n');
   }
 
