@@ -38,11 +38,12 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * other button, since this is a normally-registered button handler.)
  *
  * The retriggered reply is returned as-is, except that a retriggered
- * command's `MessageFlags.Ephemeral` flag (set only by `/debuginteractions`
- * itself, which appears in its own listing) is cleared, so the dispatcher
- * posts it non-ephemerally into the channel the retrigger was clicked in -
- * matching how the original command or component would have replied. Only
- * this service's own two error replies are ephemeral.
+ * command's `MessageFlags.Ephemeral` flag (set by `/debuginteractions` and
+ * `/debugtopusers`, both of which appear in `/debuginteractions`' own
+ * listing) is cleared, so the dispatcher posts it non-ephemerally into the
+ * channel the retrigger was clicked in - matching how the original command
+ * or component would have replied. Only this service's own two error
+ * replies are ephemeral.
  */
 @Injectable()
 export class DebugRetriggerHandlerService implements OnModuleInit {
@@ -122,10 +123,11 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
   }
 
   /**
-   * `/debuginteractions` is the only command whose own reply sets
-   * `MessageFlags.Ephemeral`, and it appears in its own listing - so
-   * retriggering that row must clear the flag rather than posting an
-   * ephemeral reply where the dispatcher expects a public one. `flags` is
+   * `/debuginteractions` and `/debugtopusers` are the commands whose own
+   * reply sets `MessageFlags.Ephemeral`, and both appear in
+   * `/debuginteractions`' own listing - so retriggering either row must
+   * clear the flag rather than posting an ephemeral reply where the
+   * dispatcher expects a public one. `flags` is
    * cleared via bitwise math rather than compared for exact equality - a
    * reply combining Ephemeral with another flag (e.g. `SuppressEmbeds`) must
    * keep that other flag. A plain string result carries no flags and needs no

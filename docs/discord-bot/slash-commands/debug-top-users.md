@@ -56,7 +56,11 @@ filters.` with no embed.
 The reply is ephemeral, visible only to whoever ran the command: which
 specific users are most active is not public-channel content. See
 [`/debuginteractions`](debug-interactions.md#ephemeral-by-design) for why
-that applies to every `debug`-prefixed command.
+that applies to every `debug`-prefixed command. This command also appears
+in `/debuginteractions`' own listing, so it can be
+[retriggered](debug-interactions.md#retriggering-a-listed-interaction) —
+and a retrigger's reply is public rather than ephemeral, the same
+intentional exception described there.
 
 ## What is not counted
 
