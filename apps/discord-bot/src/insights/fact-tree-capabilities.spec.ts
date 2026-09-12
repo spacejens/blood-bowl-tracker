@@ -126,11 +126,9 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'player.toplist.totalSpp'),
         factTreeUtils.resolvePath(tree, 'stats'),
         factTreeUtils.resolvePath(tree, 'date.onThisDate'),
-        factTreeUtils.resolvePath(tree, 'date.toplist.matches.ascending'),
-        factTreeUtils.resolvePath(tree, 'date.toplist.matches.descending'),
       ]),
     );
-    expect(supported).toHaveLength(35);
+    expect(supported).toHaveLength(33);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -155,6 +153,20 @@ describe('buildFactTree competition capabilities', () => {
       expect(leaf.supportsLeague).toBe(true);
       expect(leaf.supportsEra).toBe(true);
       expect(leaf.supportsCompetition).toBe(false);
+    }
+  });
+
+  it('scopes the date matches toplists to league, era and match category but not competition', () => {
+    const tree = buildFactTree(deps());
+    for (const path of [
+      'date.toplist.matches.ascending',
+      'date.toplist.matches.descending',
+    ]) {
+      const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsLeague, path).toBe(true);
+      expect(leaf.supportsEra, path).toBe(true);
+      expect(leaf.supportsMatchCategory, path).toBe(true);
+      expect(leaf.supportsCompetition, path).toBe(false);
     }
   });
 
