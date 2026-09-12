@@ -37,10 +37,12 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * no purpose. (The retrigger button click itself is still recorded like any
  * other button, since this is a normally-registered button handler.)
  *
- * The retriggered reply is returned unchanged, so the dispatcher posts it
- * non-ephemerally into the channel the retrigger was clicked in - matching how
- * the original command or component would have replied. Only this service's
- * own two error replies are ephemeral.
+ * The retriggered reply is returned as-is, except that a retriggered
+ * command's `MessageFlags.Ephemeral` flag (set only by `/debuginteractions`
+ * itself, which appears in its own listing) is cleared, so the dispatcher
+ * posts it non-ephemerally into the channel the retrigger was clicked in -
+ * matching how the original command or component would have replied. Only
+ * this service's own two error replies are ephemeral.
  */
 @Injectable()
 export class DebugRetriggerHandlerService implements OnModuleInit {
@@ -106,7 +108,25 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
         },
       },
     } as unknown as ChatInputCommandInteraction;
-    return definition.execute(synthetic);
+    return definition
+      .execute(synthetic)
+      .then((result) => this.stripEphemeralFlag(result));
+  }
+
+  /**
+   * `/debuginteractions` is the only command whose own reply sets
+   * `MessageFlags.Ephemeral`, and it appears in its own listing - so
+   * retriggering that row must clear the flag rather than posting an
+   * ephemeral reply where the dispatcher expects a public one. A plain
+   * string result carries no flags and needs no change.
+   */
+  private stripEphemeralFlag(
+    result: string | InteractionReplyOptions,
+  ): string | InteractionReplyOptions {
+    if (typeof result === 'string' || result.flags !== MessageFlags.Ephemeral) {
+      return result;
+    }
+    return { ...result, flags: undefined };
   }
 
   private retriggerButton(

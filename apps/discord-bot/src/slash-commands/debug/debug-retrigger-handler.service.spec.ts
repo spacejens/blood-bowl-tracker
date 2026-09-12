@@ -287,4 +287,46 @@ describe('DebugRetriggerHandlerService', () => {
 
     expect(await service.handle(click('11'))).toBe(reply);
   });
+
+  it('clears the ephemeral flag from a retriggered command reply, preserving the rest', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'debuginteractions' }),
+    );
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      execute: vi.fn().mockResolvedValue({
+        content: 'x',
+        flags: MessageFlags.Ephemeral,
+      }),
+    });
+
+    expect(await service.handle(click('11'))).toEqual({
+      content: 'x',
+      flags: undefined,
+    });
+  });
+
+  it('passes through a plain string command reply unchanged', async () => {
+    events.findById.mockResolvedValue(eventRow({ kind: 'command' }));
+    registry.findByName.mockReturnValue({
+      name: 'insights',
+      description: 'd',
+      execute: vi.fn().mockResolvedValue('plain reply'),
+    });
+
+    expect(await service.handle(click('11'))).toBe('plain reply');
+  });
+
+  it('passes through a command reply with no flags unchanged', async () => {
+    events.findById.mockResolvedValue(eventRow({ kind: 'command' }));
+    const reply = { content: 'no flags here' };
+    registry.findByName.mockReturnValue({
+      name: 'insights',
+      description: 'd',
+      execute: vi.fn().mockResolvedValue(reply),
+    });
+
+    expect(await service.handle(click('11'))).toEqual(reply);
+  });
 });
