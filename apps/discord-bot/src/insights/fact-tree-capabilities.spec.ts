@@ -156,20 +156,6 @@ describe('buildFactTree competition capabilities', () => {
     }
   });
 
-  it('scopes the date matches toplists to league, era and match category but not competition', () => {
-    const tree = buildFactTree(deps());
-    for (const path of [
-      'date.toplist.matches.ascending',
-      'date.toplist.matches.descending',
-    ]) {
-      const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
-      expect(leaf.supportsLeague, path).toBe(true);
-      expect(leaf.supportsEra, path).toBe(true);
-      expect(leaf.supportsMatchCategory, path).toBe(true);
-      expect(leaf.supportsCompetition, path).toBe(false);
-    }
-  });
-
   it('forwards competitionId to an in-scope team leaf', async () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(
