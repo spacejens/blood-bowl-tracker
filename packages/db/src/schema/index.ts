@@ -40,5 +40,6 @@ export * from './game-data/team-eras';
 export * from './game-data/team-external-ids';
 export * from './game-data/teams';
 export * from './game-data/trophies';
+export * from './game-data/trophy-award-rules';
 export * from './game-data/trophy-awards';
 export * from './game-data/trophy-external-ids';

@@ -609,6 +609,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../db
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../domain-enums
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -649,6 +652,9 @@ importers:
       '@blood-bowl-tracker/config-loader':
         specifier: workspace:*
         version: link:../config-loader
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../domain-enums
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)

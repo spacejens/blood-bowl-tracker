@@ -16,6 +16,7 @@ import {
   MatchOutcomesService,
   MatchUpsertConflictError,
   MissingRequiredFieldError,
+  MissingTrophyAwardsService,
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetsService,
@@ -53,6 +54,7 @@ describe('RpcRouterFactoryService', () => {
   let teamsService: MockProxy<TeamsService>;
   let trophiesService: MockProxy<TrophiesService>;
   let trophyAwardsService: MockProxy<TrophyAwardsService>;
+  let missingTrophyAwardsService: MockProxy<MissingTrophyAwardsService>;
   let competitionGroupsService: MockProxy<CompetitionGroupsService>;
   let competitionsService: MockProxy<CompetitionsService>;
   let matchesService: MockProxy<MatchesService>;
@@ -74,6 +76,7 @@ describe('RpcRouterFactoryService', () => {
     teamsService = mock<TeamsService>();
     trophiesService = mock<TrophiesService>();
     trophyAwardsService = mock<TrophyAwardsService>();
+    missingTrophyAwardsService = mock<MissingTrophyAwardsService>();
     competitionGroupsService = mock<CompetitionGroupsService>();
     competitionsService = mock<CompetitionsService>();
     matchesService = mock<MatchesService>();
@@ -97,6 +100,10 @@ describe('RpcRouterFactoryService', () => {
         { provide: TeamsService, useValue: teamsService },
         { provide: TrophiesService, useValue: trophiesService },
         { provide: TrophyAwardsService, useValue: trophyAwardsService },
+        {
+          provide: MissingTrophyAwardsService,
+          useValue: missingTrophyAwardsService,
+        },
         {
           provide: CompetitionGroupsService,
           useValue: competitionGroupsService,
@@ -1042,6 +1049,12 @@ describe('RpcRouterFactoryService', () => {
         description: null,
         competitionGroupId: 5,
         leagueId: null,
+        awardRuleKind: 'manual' as const,
+        awardProcedure: null,
+        awardRuleRole: null,
+        awardRuleTieCutoff: null,
+        awardRuleThreshold: null,
+        awardRuleMeasure: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -1062,6 +1075,12 @@ describe('RpcRouterFactoryService', () => {
         description: null,
         competitionGroupId: 5,
         leagueId: null,
+        awardRuleKind: 'manual',
+        awardProcedure: null,
+        awardRuleRole: null,
+        awardRuleTieCutoff: null,
+        awardRuleThreshold: null,
+        awardRuleMeasure: null,
         createdAt: new Date('2026-01-01'),
         created: true,
       });

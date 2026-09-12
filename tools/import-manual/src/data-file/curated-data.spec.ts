@@ -55,6 +55,33 @@ describe('curated data files', () => {
     expect(() => readPhase('after-other-importers')).not.toThrow();
   });
 
+  it('keeps a trophy-awards file for the manual trophies', () => {
+    // The file grows one entry at a time as historical winners are
+    // established, so nothing here pins its length or contents -- only that
+    // it parses and that every entry carries the three references the
+    // importer resolves.
+    const awards = readFile(
+      'after-other-importers',
+      'trophy-awards.json5',
+    ).trophyAwards;
+    for (const award of awards) {
+      expect(award.trophy.length).toBeGreaterThan(0);
+      expect(award.competition.system.length).toBeGreaterThan(0);
+      expect(award.competition.id.length).toBeGreaterThan(0);
+      expect(award.player.system.length).toBeGreaterThan(0);
+      expect(award.player.id.length).toBeGreaterThan(0);
+    }
+    // Every entry must name one of the two trophies nothing can
+    // compute -- any other trophy's winner comes from the source or a rule.
+    const manualTrophies = readPhase('before-other-importers')
+      .trophies.filter((trophy) => trophy.awardRuleKind === 'manual')
+      .map((trophy) => trophy.name);
+    expect(manualTrophies.sort()).toEqual(['Gudarnas Förkämpe', 'Season MVP']);
+    for (const award of readPhase('after-other-importers').trophyAwards) {
+      expect(manualTrophies).toContain(award.trophy);
+    }
+  });
+
   it('curates both real leagues with BBL-compatible external ids', () => {
     const leagues = readPhase('before-other-importers').leagues;
     expect(leagues.map((league) => league.name).sort()).toEqual([
@@ -768,6 +795,191 @@ describe('curated data files', () => {
       { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' },
     ]);
     expect(entry?.isStarPlayer).toBe(false);
+  });
+
+  it('classifies every curated trophy with an award rule', () => {
+    const trophies = readPhase('before-other-importers').trophies;
+    for (const trophy of trophies) {
+      expect(trophy.awardRuleKind, trophy.name).toBeDefined();
+    }
+  });
+
+  it('gives every source-recorded and manual trophy a stated procedure', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) =>
+        trophy.awardRuleKind === 'direct_source' ||
+        trophy.awardRuleKind === 'manual',
+    );
+    expect(trophies).toHaveLength(21);
+    for (const trophy of trophies) {
+      expect(trophy.awardProcedure, trophy.name).toBeTruthy();
+      expect(trophy.awardRuleRole, trophy.name).toBeUndefined();
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([]);
+    }
+  });
+
+  it('gives every maximum-based trophy a role and the same tie cutoff', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) =>
+        trophy.awardRuleKind === 'max_count' ||
+        trophy.awardRuleKind === 'max_spp_sum',
+    );
+    expect(trophies).toHaveLength(15);
+    for (const trophy of trophies) {
+      expect(trophy.awardRuleRole, trophy.name).toBeDefined();
+      // Real BBL data has ties of up to four, so four is the cutoff everywhere.
+      expect(trophy.awardRuleTieCutoff, trophy.name).toBe(4);
+      expect(trophy.awardProcedure, trophy.name).toBeUndefined();
+    }
+  });
+
+  it('gives every career trophy a threshold and a measure', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) => trophy.awardRuleKind === 'career_threshold',
+    );
+    expect(trophies.map((trophy) => trophy.name)).toEqual([
+      'Legendary Player',
+      'Trogen Tjänst',
+    ]);
+    for (const trophy of trophies) {
+      expect(trophy.awardRuleThreshold, trophy.name).toBeGreaterThan(0);
+      expect(trophy.awardRuleMeasure, trophy.name).toBeDefined();
+      expect(trophy.awardRuleTieCutoff, trophy.name).toBeUndefined();
+    }
+
+    // Pinned exactly: these are the two highest-risk career_threshold values
+    // in the catalog, since a swap between them (or a typo'd number) would
+    // still pass the presence-only checks above.
+    const legendaryPlayer = trophies.find(
+      (trophy) => trophy.name === 'Legendary Player',
+    );
+    expect(legendaryPlayer?.awardRuleThreshold).toBe(176);
+    expect(legendaryPlayer?.awardRuleMeasure).toBe('spp_sum');
+
+    const trogenTjanst = trophies.find(
+      (trophy) => trophy.name === 'Trogen Tjänst',
+    );
+    expect(trogenTjanst?.awardRuleThreshold).toBe(3);
+    expect(trogenTjanst?.awardRuleMeasure).toBe('event_count');
+  });
+
+  it('restricts exactly one trophy to specific positions, the Ogre ones', () => {
+    const trophies = readPhase('before-other-importers').trophies;
+    const restricted = trophies.filter(
+      (trophy) => trophy.awardRuleEligiblePositions.length > 0,
+    );
+
+    // Pinned exactly. Bierhallenführer is "the Ogre who gets the most Star
+    // Player Points", so without this restriction the rule would hand it to
+    // whichever non-Ogre topped the competition's SPP table -- and a
+    // regression that dropped the Runt Punter (the Ogre roster has more than
+    // one Ogre position) would still leave a plausible-looking one-entry
+    // list behind.
+    expect(restricted.map((trophy) => trophy.name)).toEqual([
+      'Bierhallenführer',
+    ]);
+    expect(restricted[0].awardRuleEligiblePositions).toEqual([
+      'Ogre: Ogre Blocker',
+      'Ogre: Ogre Runt Punter',
+    ]);
+    // The Ogre roster's third position. It is an eligible player of the Ogre
+    // team, but it is not an Ogre, so it must not be on the list.
+    expect(restricted[0].awardRuleEligiblePositions).not.toContain(
+      'Ogre: Gnoblar Lineman',
+    );
+  });
+
+  it('names every eligible position by a "<race>: <position>" Name id', () => {
+    const data = readPhase('before-other-importers');
+    const raceNames = new Set(data.races.map((race) => race.name));
+    const ids = data.trophies.flatMap(
+      (trophy) => trophy.awardRuleEligiblePositions,
+    );
+    expect(ids.length).toBeGreaterThan(0);
+
+    for (const id of ids) {
+      // Same id shape NameExternalIdService.forPosition builds, keyed by the
+      // canonical race name -- an id carrying BBL's "<Race> Team" spelling
+      // would match no position at all, silently awarding nobody.
+      expect(id, id).toMatch(/^[^:]+: .+$/);
+      expect(id).not.toContain(' Team: ');
+      expect(raceNames.has(id.split(': ')[0]), id).toBe(true);
+    }
+  });
+
+  it('counts every foul, whatever it did', () => {
+    const trophies = readPhase('before-other-importers').trophies.filter(
+      (trophy) => trophy.name.endsWith('Top Fouler'),
+    );
+    expect(trophies).toHaveLength(2);
+    for (const trophy of trophies) {
+      // Pinned exactly: the `foul` action type and nothing else. Adding a
+      // consequence type here would silently narrow the trophy to fouls that
+      // hurt somebody, which is not what it awards.
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'foul' },
+      ]);
+    }
+  });
+
+  it('gives every other max_count trophy its exact match-event types', () => {
+    const trophies = readPhase('before-other-importers').trophies;
+    const findAll = (...names: string[]) =>
+      names.map((name) => {
+        const trophy = trophies.find((candidate) => candidate.name === name);
+        expect(trophy, name).toBeDefined();
+        return trophy!;
+      });
+
+    for (const trophy of findAll('Top Scorer', 'Minor Top Scorer')) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'touchdown' },
+      ]);
+    }
+
+    for (const trophy of findAll(
+      'Most Violent Player',
+      'Minor Most Violent Player',
+    )) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'casualty' },
+        { actionType: 'badly_hurt' },
+        { actionType: 'serious_injury' },
+        { actionType: 'death' },
+      ]);
+    }
+
+    for (const trophy of findAll(
+      'Deadliest Player',
+      'Minor Deadliest Player',
+    )) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'death' },
+      ]);
+    }
+
+    for (const trophy of findAll('Top Thrower', 'Minor Top Thrower')) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'completion' },
+      ]);
+    }
+
+    // Interceptions only -- deliberately NOT including `deflection`, a
+    // distinct action type this rule must not sweep in.
+    for (const trophy of findAll('Top Intercepter', 'Minor Top Intercepter')) {
+      expect(trophy.awardRuleMatchEventTypes, trophy.name).toEqual([
+        { actionType: 'interception' },
+      ]);
+    }
+  });
+
+  it('excludes MVP awards from the Bierhallenführer SPP sum', () => {
+    const trophy = readPhase('before-other-importers').trophies.find(
+      (candidate) => candidate.name === 'Bierhallenführer',
+    );
+    expect(trophy?.awardRuleExcludedMatchEventTypes).toEqual([
+      { actionType: 'mvp_award' },
+    ]);
   });
 
   it('curates the Halfling roster lineman under its post-rename name', () => {

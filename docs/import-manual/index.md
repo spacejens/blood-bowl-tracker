@@ -62,6 +62,7 @@ teams
 competitions
 sppAwardValues
 trophies
+trophyAwards
 ```
 
 Every external-system name referenced anywhere in the pooled data — in

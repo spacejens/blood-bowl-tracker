@@ -28,6 +28,7 @@ import { OfficialTeamsCollectionService } from './source/official-teams-collecti
 import { RosterCollectionService } from './source/roster-collection.service';
 import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
+import { TpMissingTrophyAwardsImportService } from './trophy-awards/tp-missing-trophy-awards-import.service';
 import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 async function run(): Promise<ImportResult> {
@@ -348,6 +349,15 @@ async function run(): Promise<ImportResult> {
         teamErasByRosterId: teamOutcome.teamErasByRosterId,
       });
 
+    // Runs last of all: TP records no player trophy winners at all, so every
+    // player trophy for a TP-sourced competition is computed here, from the
+    // match events and outcomes the steps above imported.
+    const missingTrophyAwardsOutcome = await app
+      .get(TpMissingTrophyAwardsImportService)
+      .importMissingTrophyAwards([
+        ...competitionOutcome.matchesByCompetitionId.keys(),
+      ]);
+
     // One-off developer review aid: whatever SPP the ongoing-competition
     // estimate could NOT explain, so a real discrepancy can be told apart from
     // the estimate's grouping approximations. Not persisted anywhere.
@@ -378,6 +388,7 @@ async function run(): Promise<ImportResult> {
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,
+      missingTrophyAwardsOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),

@@ -15,6 +15,7 @@ import { MatchDateRangeService } from './match-date-range.service';
 import { MatchEventsImportService } from './match-events-import.service';
 import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
+import { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
 import { NameExternalIdService } from './name-external-id.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
@@ -41,6 +42,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MatchOutcomesImportService,
     MatchesImportService,
     MatchDateRangeService,
+    MissingTrophyAwardsImportService,
     NameExternalIdService,
     PlayersImportService,
     PositionRulesSetsImportService,
@@ -70,6 +72,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MatchOutcomesImportService,
     MatchesImportService,
     MatchDateRangeService,
+    MissingTrophyAwardsImportService,
     NameExternalIdService,
     PlayersImportService,
     PositionRulesSetsImportService,

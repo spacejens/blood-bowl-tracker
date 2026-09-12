@@ -39,6 +39,7 @@ export {
   max,
   min,
   ne,
+  not,
   or,
   sql,
   sum,

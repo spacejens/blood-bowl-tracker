@@ -70,6 +70,42 @@ describe('TrophiesImportService', () => {
     );
   });
 
+  describe('resolveByName', () => {
+    it('answers the trophy id when the name matches exactly one row', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ found: true, id: 31 });
+
+      await expect(service.resolveByName('Season MVP', [])).resolves.toBe(31);
+
+      await runner.recordUpsertResult.mock.calls[0][0].upsert();
+      expect(client.trophies.resolveByName).toHaveBeenCalledWith({
+        name: 'Season MVP',
+      });
+    });
+
+    it('answers undefined for a name no trophy carries', async () => {
+      runner.recordUpsertResult.mockResolvedValue({ found: false });
+
+      await expect(
+        service.resolveByName('Nonesuch', []),
+      ).resolves.toBeUndefined();
+    });
+
+    it('answers undefined when the call itself failed', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      await expect(
+        service.resolveByName('Season MVP', []),
+      ).resolves.toBeUndefined();
+      const options = runner.recordUpsertResult.mock.calls[0][0];
+      expect(options.buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to resolve trophy "Season MVP": boom',
+      );
+      expect(options.buildErrorMessage('plain string')).toBe(
+        'Failed to resolve trophy "Season MVP": plain string',
+      );
+    });
+  });
+
   it('falls back to a placeholder when the payload has neither', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 

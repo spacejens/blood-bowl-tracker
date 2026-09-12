@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import {
   TrophiesService,
+  TrophyAwardRuleDescriptionService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
@@ -72,6 +73,7 @@ export class TrophyDeepdiveService {
     private readonly playerContext: PlayerContextService,
     private readonly eraSectionGrouper: EraSectionGrouperService,
     private readonly playerRowButton: PlayerRowButtonService,
+    private readonly awardRuleDescription: TrophyAwardRuleDescriptionService,
   ) {}
 
   async resolve(trophyId: number): Promise<string | InteractionReplyOptions> {
@@ -83,6 +85,48 @@ export class TrophyDeepdiveService {
     if (trophy === undefined) {
       return DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE;
     }
+
+    // A direct_source/manual trophy's sentence uses only its authored
+    // awardProcedure and never touches the curated event types, so skip this
+    // read entirely for those two kinds — an unrelated timeout on an unused
+    // query must not turn a fine "recorded procedure" answer into a spurious
+    // timeout. The three computed kinds still share the header's own timeout
+    // message rather than the recipients' or context's.
+    const ruleCuration: {
+      includedActionTypes: string[];
+      includedConsequenceTypes: string[];
+      excludedActionTypes: string[];
+      excludedConsequenceTypes: string[];
+      eligiblePositions: string[];
+    } | null =
+      trophy.awardRuleKind === 'direct_source' ||
+      trophy.awardRuleKind === 'manual'
+        ? {
+            includedActionTypes: [],
+            includedConsequenceTypes: [],
+            excludedActionTypes: [],
+            excludedConsequenceTypes: [],
+            eligiblePositions: [],
+          }
+        : await this.databaseTimeout.run(
+            this.trophies.findAwardRuleCuration(trophy.id),
+            null,
+          );
+    if (ruleCuration === null) {
+      return DEEPDIVE_TROPHY_TIMEOUT_MESSAGE;
+    }
+    const awardRule = this.awardRuleDescription.describe({
+      awardRuleKind: trophy.awardRuleKind,
+      awardProcedure: trophy.awardProcedure,
+      awardRuleTieCutoff: trophy.awardRuleTieCutoff,
+      awardRuleThreshold: trophy.awardRuleThreshold,
+      awardRuleMeasure: trophy.awardRuleMeasure,
+      includedActionTypes: ruleCuration.includedActionTypes,
+      includedConsequenceTypes: ruleCuration.includedConsequenceTypes,
+      excludedActionTypes: ruleCuration.excludedActionTypes,
+      excludedConsequenceTypes: ruleCuration.excludedConsequenceTypes,
+      eligiblePositions: ruleCuration.eligiblePositions,
+    });
 
     // Both recipient queries share one timeout message: they are two halves
     // of the same "who has won this?" answer, and telling the reader which of
@@ -168,6 +212,7 @@ export class TrophyDeepdiveService {
       ...(trophy.description === null
         ? []
         : [`Description: ${trophy.description}`]),
+      ...(awardRule === '' ? [] : [`How it is awarded: ${awardRule}`]),
       '',
       ...recipientLines,
       ...(overflowNote === null ? [] : [overflowNote]),

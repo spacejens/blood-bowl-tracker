@@ -118,9 +118,9 @@ mechanism itself is `RpcRouterFactoryService`
 
 ## Reference resolution
 
-Nine entity kinds — coaches, leagues, races, positions, rules sets, eras,
-competitions, competition groups and teams — additionally expose `resolve`
-and `resolveBatch`. These answer "which record does this
+Ten entity kinds — coaches, leagues, races, players, positions, rules sets,
+eras, competitions, competition groups and teams — additionally expose
+`resolve` and `resolveBatch`. These answer "which record does this
 `(external system, identifier)` pair name?" without writing anything:
 `resolve` takes one pair, `resolveBatch` a non-empty array of pairs and
 answers with an index-aligned array.
@@ -133,15 +133,28 @@ tools record one `ImportError` and skip the entry). Both procedures
 therefore declare no contract errors at all.
 
 This is the read-only half of the lookup every `upsert` already performs
-internally to find an existing record, exposed as its own capability. It
-replaces the in-memory, same-run-only reference maps the import tools used
-to build: because every `upsert` persists immediately, any record created
+internally to find an existing record, exposed as its own capability. It is
+why the import tools need no in-memory, same-run-only reference map of their
+own: because every `upsert` persists immediately, any record created
 earlier — in this run, an earlier phase, or a different tool entirely — is
 already resolvable.
 
-Matches, players, match events, trophies, trophy awards, SPP award values
-and external systems deliberately have no resolve procedure: nothing
-references them by external id across files, phases or tools.
+Matches, match events, trophy awards, SPP award values and external systems
+deliberately have no resolve procedure: nothing references them by external
+id across files, phases or tools.
+
+Players resolve for one caller in particular:
+`tools/import-manual`'s curated `after-other-importers/trophy-awards.json5`
+names the winner of a `manual`-kind trophy by the player's external id,
+which the BBL/TP importers created in an earlier phase.
+
+Trophies carry a variant of this: `trophies.resolveByName` answers the same
+`{ found, id }` shape, but keyed by the trophy's curated `name` rather than
+an `(external system, identifier)` pair — trophies carry no shared external
+id (see [import-manual](../import-manual/index.md#trophies)), so a name is
+the only identity a curated reference has to quote. The same
+`trophy-awards.json5` file above is what uses it, to name the trophy an
+entry awards.
 
 ## Other procedures
 

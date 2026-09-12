@@ -16,6 +16,7 @@ import {
   MatchEventUpsertConflictError,
   MatchOutcomesService,
   MatchUpsertConflictError,
+  MissingTrophyAwardsService,
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetsService,
@@ -90,6 +91,7 @@ export class RpcRouterFactoryService {
     private readonly positionRulesSetsService: PositionRulesSetsService,
     private readonly trophiesService: TrophiesService,
     private readonly trophyAwardsService: TrophyAwardsService,
+    private readonly missingTrophyAwards: MissingTrophyAwardsService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -323,6 +325,14 @@ export class RpcRouterFactoryService {
           unwrap: (r) => ({ entity: r.player, created: r.created }),
         }),
         ...buildPlayerSppAdjustmentRoutes(this.sppAdjustmentsService),
+        ...this.buildResolveRoute({
+          procedure: contract.players.resolve,
+          service: this.playersService,
+        }),
+        ...this.buildResolveBatchRoute({
+          procedure: contract.players.resolveBatch,
+          service: this.playersService,
+        }),
       },
       positions: {
         ...this.buildUpsertRoute({
@@ -431,11 +441,17 @@ export class RpcRouterFactoryService {
           conflictError: TrophyUpsertConflictError,
           unwrap: (r) => ({ entity: r.trophy, created: r.created }),
         }),
+        // By name rather than external id, so it uses no resolve builder --
+        // see the contract's own note on why trophies are the exception.
+        resolveByName: implement(contract.trophies.resolveByName).handler(
+          ({ input }) => this.trophiesService.resolveByName(input.name),
+        ),
       },
-      trophyAwards: buildTrophyAwardsRoutes(
-        this.upsertHandler,
-        this.trophyAwardsService,
-      ),
+      trophyAwards: buildTrophyAwardsRoutes({
+        upsertHandler: this.upsertHandler,
+        trophyAwardsService: this.trophyAwardsService,
+        missingTrophyAwards: this.missingTrophyAwards,
+      }),
       externalSystems: buildExternalSystemsRoutes(
         this.upsertHandler,
         this.externalSystemsService,

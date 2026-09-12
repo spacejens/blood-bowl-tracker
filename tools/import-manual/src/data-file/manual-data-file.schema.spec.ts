@@ -19,7 +19,71 @@ describe('ManualDataFileSchema', () => {
       sppAwardValues: [],
       trophies: [],
       competitionGroups: [],
+      trophyAwards: [],
     });
+  });
+
+  it('accepts a trophy-award entry naming its trophy by curated name', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophyAwards: [
+        {
+          trophy: 'Season MVP',
+          competition: { system: 'tloeg.bbleague.se', id: '10' },
+          player: { system: 'tloeg.bbleague.se', id: '388' },
+        },
+      ],
+    });
+    expect(parsed.trophyAwards[0].trophy).toBe('Season MVP');
+  });
+
+  it('defaults a trophy\u2019s eligible positions to an empty array', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Top Scorer',
+          recipientKind: 'player',
+          awardRuleKind: 'max_count',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Scorer' }],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].awardRuleEligiblePositions).toEqual([]);
+  });
+
+  it('accepts a trophy restricted to specific positions by Name id', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Bierhallenführer',
+          recipientKind: 'player',
+          awardRuleKind: 'max_spp_sum',
+          awardRuleEligiblePositions: [
+            'Ogre: Ogre Blocker',
+            'Ogre: Ogre Runt Punter',
+          ],
+          externalIds: [
+            { system: 'tloeg.bbleague.se', id: 'Bierhallenführer' },
+          ],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].awardRuleEligiblePositions).toEqual([
+      'Ogre: Ogre Blocker',
+      'Ogre: Ogre Runt Punter',
+    ]);
+  });
+
+  it('rejects a trophy-award entry missing its player', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        trophyAwards: [
+          {
+            trophy: 'Season MVP',
+            competition: { system: 'tloeg.bbleague.se', id: '10' },
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('accepts a position/rules-set characteristics entry', () => {
@@ -416,6 +480,8 @@ describe('ManualDataFileSchema', () => {
           name: 'Chaos Cup',
           recipientKind: 'team',
           description: 'The team that wins after four matches.',
+          awardRuleKind: 'direct_source',
+          awardProcedure: 'Taken from the season standings.',
           externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
         },
       ],
@@ -448,6 +514,8 @@ describe('ManualDataFileSchema', () => {
         {
           name: 'Season MVP',
           recipientKind: 'player',
+          awardRuleKind: 'manual',
+          awardProcedure: 'Voted on by all coaches.',
           externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
         },
       ],
@@ -511,6 +579,8 @@ describe('ManualDataFileSchema', () => {
           name: 'Major Gold',
           recipientKind: 'team',
           competitionGroup: { system: 'Name', id: 'Major Season' },
+          awardRuleKind: 'direct_source',
+          awardProcedure: 'Taken from the season standings.',
           externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major Gold' }],
         },
       ],
@@ -539,6 +609,10 @@ describe('ManualDataFileSchema', () => {
           name: 'Legendary Player',
           recipientKind: 'player',
           league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+          awardRuleKind: 'career_threshold',
+          awardRuleRole: 'acting',
+          awardRuleThreshold: 176,
+          awardRuleMeasure: 'spp_sum',
           externalIds: [
             { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
           ],
@@ -549,5 +623,45 @@ describe('ManualDataFileSchema', () => {
       system: 'tloeg.bbleague.se',
       id: 'tLoEG',
     });
+  });
+
+  it('parses a trophy entry carrying a computed award rule', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Top Fouler',
+          recipientKind: 'player',
+          awardRuleKind: 'max_count',
+          awardRuleRole: 'acting',
+          awardRuleTieCutoff: 4,
+          awardRuleMatchEventTypes: [
+            { actionType: 'foul' },
+            { consequenceType: 'casualty' },
+          ],
+          externalIds: [
+            { system: 'tloeg.bbleague.se', id: 'Top Fouler-Major Season' },
+          ],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].awardRuleKind).toBe('max_count');
+    expect(parsed.trophies[0].awardRuleMatchEventTypes).toHaveLength(2);
+  });
+
+  it('parses a trophy entry carrying an award procedure', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Major Gold',
+          recipientKind: 'team',
+          awardRuleKind: 'direct_source',
+          awardProcedure: 'Taken from the season standings.',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 1st' }],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].awardProcedure).toBe(
+      'Taken from the season standings.',
+    );
   });
 });

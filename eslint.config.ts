@@ -78,6 +78,14 @@ export default tseslint.config(
             'tools/review-race/test/*.ts',
             'tools/review-race/vitest.config.ts',
           ],
+          // typescript-eslint caps the synthetic default project at 8 files
+          // and then refuses to lint, because a large default project is slow.
+          // packages/game-data/test alone is past that: it holds one e2e spec
+          // per feature area plus the shared setup/database helpers. Raised
+          // rather than worked around, since the alternative — a tsconfig
+          // project covering every `test/` directory — would be considerably
+          // more configuration for the same result.
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
         tsconfigRootDir: import.meta.dirname,
       },

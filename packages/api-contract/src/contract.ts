@@ -2,7 +2,11 @@ import { oc } from '@orpc/contract';
 import { z } from 'zod';
 
 import { batchUpsertProcedure } from './batch-upsert-procedure';
-import { resolveBatchProcedure, resolveProcedure } from './resolve-procedure';
+import {
+  resolveBatchProcedure,
+  resolveProcedure,
+  ResolveResultSchema,
+} from './resolve-procedure';
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
 import {
   CompetitionSchema,
@@ -52,11 +56,19 @@ import {
   SyncSppAwardValuesSchema,
 } from './schemas/spp-award-value';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
-import { TrophySchema, UpsertTrophySchema } from './schemas/trophy';
+import {
+  ResolveTrophyByNameSchema,
+  TrophySchema,
+  UpsertTrophySchema,
+} from './schemas/trophy';
 import {
   TrophyAwardSchema,
   UpsertTrophyAwardSchema,
 } from './schemas/trophy-award';
+import {
+  ComputeMissingTrophyAwardsResultSchema,
+  ComputeMissingTrophyAwardsSchema,
+} from './schemas/trophy-award-rule';
 import {
   upsertProcedure,
   upsertProcedureBadRequestOnly,
@@ -98,6 +110,12 @@ export const contract = {
     syncReportedSppAdjustments: oc
       .input(SyncReportedSppAdjustmentsSchema)
       .output(SyncSppAdjustmentsResultSchema),
+    // Players became resolvable when tools/import-manual gained a curated
+    // trophy-awards file: a manually curated award names its winning player
+    // by external id, across tools and phases, exactly like every other
+    // cross-reference.
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   positions: {
     upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),
@@ -207,6 +225,17 @@ export const contract = {
     // with 29 curated rows, so batching saves nothing. Same reasoning as
     // `sppAwardValues`, which likewise defines a non-standard router.
     upsert: upsertProcedure(UpsertTrophySchema, TrophySchema),
+    // Deliberately by *name*, not the external-id `resolve` every other
+    // resolvable entity exposes: trophies carry no shared "Name"-system id,
+    // because same-named trophies across competition tiers are genuinely
+    // different rows. `tools/import-manual`'s curated trophy awards are
+    // hand-authored alongside `trophies.json5` itself, so the exact curated
+    // name is the identity they already have to spell correctly. Answers with
+    // the same `{found, id}` shape as `resolve`, and for the same reason: a
+    // name no trophy carries is an authoring typo, not a server fault.
+    resolveByName: oc
+      .input(ResolveTrophyByNameSchema)
+      .output(ResolveResultSchema),
   },
   trophyAwards: {
     // Deliberately no `upsertBatch`: the whole BBL mirror yields under 400
@@ -222,6 +251,13 @@ export const contract = {
       UpsertTrophyAwardSchema,
       TrophyAwardSchema,
     ),
+    // Not an upsert: this computes the awards the source importer could not
+    // record, from statistics already imported for the competition, so there
+    // is no entity+created shape to return and no external-id conflict to
+    // detect. Mirrors `matches.resolveOutcomes`.
+    computeMissing: oc
+      .input(ComputeMissingTrophyAwardsSchema)
+      .output(ComputeMissingTrophyAwardsResultSchema),
   },
   externalSystems: {
     // The only upsert with no CONFLICT error: an external system is matched

@@ -8,6 +8,7 @@ import {
   MatchesService,
   MatchEventsService,
   MatchOutcomesService,
+  MissingTrophyAwardsService,
   PlayersService,
   PositionRulesSetsService,
   PositionsService,
@@ -47,6 +48,7 @@ export async function createRouterHarness() {
     teamsService: mock<TeamsService>(),
     trophiesService: mock<TrophiesService>(),
     trophyAwardsService: mock<TrophyAwardsService>(),
+    missingTrophyAwardsService: mock<MissingTrophyAwardsService>(),
     competitionGroupsService: mock<CompetitionGroupsService>(),
     competitionsService: mock<CompetitionsService>(),
     matchesService: mock<MatchesService>(),
@@ -77,6 +79,10 @@ export async function createRouterHarness() {
       { provide: TeamsService, useValue: mocks.teamsService },
       { provide: TrophiesService, useValue: mocks.trophiesService },
       { provide: TrophyAwardsService, useValue: mocks.trophyAwardsService },
+      {
+        provide: MissingTrophyAwardsService,
+        useValue: mocks.missingTrophyAwardsService,
+      },
       {
         provide: CompetitionGroupsService,
         useValue: mocks.competitionGroupsService,
