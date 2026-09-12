@@ -93,18 +93,26 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
     const optionsByName = new Map(
       event.parameters.map((parameter) => [parameter.key, parameter.value]),
     );
-    // `getUser` is stubbed as well as `getString`: no real command reads a
-    // `User`-type option today except `/debuginteractions` itself (which
-    // appears in its own listing, so retriggering that row must not throw),
-    // but the recorded value is the option's raw snowflake, so it is
-    // resolved into a minimal `User` stand-in rather than dropped - a
-    // recorded `user` filter must survive retriggering unchanged.
+    // `getUser` and `getInteger` are stubbed as well as `getString`: every
+    // recorded value is text (the write side stringifies each option value),
+    // so a snowflake is resolved into a minimal `User` stand-in and a numeric
+    // option parsed back into a number rather than dropped - a recorded
+    // filter must survive retriggering unchanged. A recorded value that is
+    // not an integer reads as "not given" rather than producing NaN.
     const synthetic = {
       options: {
         getString: (name: string) => optionsByName.get(name) ?? null,
         getUser: (name: string) => {
           const id = optionsByName.get(name);
           return id == null ? null : ({ id } as User);
+        },
+        getInteger: (name: string) => {
+          const value = optionsByName.get(name);
+          if (value == null) {
+            return null;
+          }
+          const parsed = Number(value);
+          return Number.isInteger(parsed) ? parsed : null;
         },
       },
     } as unknown as ChatInputCommandInteraction;
