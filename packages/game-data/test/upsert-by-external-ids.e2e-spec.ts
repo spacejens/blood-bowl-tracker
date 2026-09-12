@@ -188,6 +188,62 @@ describe('upsertByExternalIds (real Postgres)', () => {
     expect(await db.select().from(eraExternalIds)).toHaveLength(0);
   });
 
+  it('rolls the entity and its external ids back when an afterUpsert hook fails', async () => {
+    // The hook is how a caller with further writes of its own (e.g.
+    // TrophiesService' rule-event-type sync) shares this call's transaction
+    // instead of opening an outer one. Against real Postgres, a hook failure
+    // must therefore abort that transaction: nothing this call wrote is left
+    // committed behind it.
+    await expect(
+      upsertByExternalIds({
+        ...eraUpsertOptions(
+          db,
+          {
+            name: 'Doomed',
+            leagueId: fixtures.leagueId,
+            startDate: '2020-01-01',
+          },
+          [
+            {
+              externalSystemId: fixtures.externalSystemId,
+              externalId: 'era-1',
+            },
+          ],
+        ),
+        afterUpsert: () => Promise.reject(new Error('hook failed')),
+      }),
+    ).rejects.toThrow('hook failed');
+
+    expect(await db.select().from(eras)).toHaveLength(0);
+    expect(await db.select().from(eraExternalIds)).toHaveLength(0);
+  });
+
+  it('commits an afterUpsert hook’s own writes in the same transaction', async () => {
+    let seenInsideHook: unknown[] = [];
+
+    const { row } = await upsertByExternalIds({
+      ...eraUpsertOptions(
+        db,
+        {
+          name: 'Season One',
+          leagueId: fixtures.leagueId,
+          startDate: '2020-01-01',
+        },
+        [{ externalSystemId: fixtures.externalSystemId, externalId: 'era-1' }],
+      ),
+      // The handle the hook receives is the live transaction, so it can
+      // already see this call's uncommitted entity row — the property that
+      // makes a dependent write (a junction-table sync, say) possible at all.
+      afterUpsert: async (tx) => {
+        seenInsideHook = await tx.select().from(eras);
+      },
+    });
+
+    expect(seenInsideHook).toHaveLength(1);
+    expect((seenInsideHook[0] as { id: number }).id).toBe(row.id);
+    expect(await db.select().from(eras)).toHaveLength(1);
+  });
+
   it('rethrows a violation that is not the external-id race, without retrying', async () => {
     const missingSystemId = 999_999;
 

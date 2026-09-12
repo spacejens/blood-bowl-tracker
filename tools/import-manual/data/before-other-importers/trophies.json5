@@ -79,6 +79,28 @@
 // than tied to one. Bierhallenführer and Gudarnas Förkämpe follow their own
 // description text, which is already explicit about the event they are
 // awarded at.
+//
+// Every entry also curates an award rule, classifying how its winner is
+// actually determined so missing awards can be computed from imported match
+// events rather than left to a human to fill in by hand. Team placement
+// trophies and the two trophies no statistic can determine (Season MVP,
+// Gudarnas Förkämpe) carry `direct_source`/`manual` plus a prose
+// `awardProcedure`. The remaining player trophies are computed: `max_count`
+// counts matching match events and takes the acting player with the most;
+// `max_spp_sum` sums `match_events.spp_value` instead; `career_threshold`
+// awards every player who crosses a lifetime figure. Every `max_count`/
+// `max_spp_sum` trophy uses a tie cutoff of 4 -- real BBL data has ties of up
+// to four players for these awards, so four is the cutoff across the board,
+// not tuned per trophy. Top Fouler/Minor Top Fouler counts foul actions
+// outright, regardless of what the foul did: every `foul` match event counts,
+// whether or not it caused a casualty. Most SPP/Minor Most SPP
+// deliberately curate no included match-event types at all: every
+// SPP-bearing event counts toward the sum, including ones outside the
+// standardised award table that TP separately reports figures for.
+// Bierhallenführer's "the Ogre who..." restriction is modelled as
+// `awardRuleEligiblePositions`, alongside its MVP exclusion: without it the
+// rule would hand an Ogre-only trophy to whichever non-Ogre happened to top
+// the competition's SPP table.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
@@ -93,6 +115,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Major season winner.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the season's own final standings, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Major 1st' },
         { system: 'tourplay.net', id: '1-Major Season' },
@@ -103,6 +128,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Major season runner-up.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the season's own final standings, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Major 2nd' },
         { system: 'tourplay.net', id: '2-Major Season' },
@@ -113,6 +141,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Major season third place.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the season's own final standings, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Major 3rd' },
         { system: 'tourplay.net', id: '3-Major Season' },
@@ -123,6 +154,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: "Major season's worst placement.",
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the season's own final standings, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Major Wooden Spoon' },
         { system: 'tourplay.net', id: 'Wooden Spoon-Major Season' },
@@ -134,6 +168,9 @@
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         "Major season's best-placed Stunty team. Not awarded if that team also gets the Wooden Spoon.",
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the season's own final standings, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Major Best Stunty' },
         { system: 'tourplay.net', id: 'Best Stunty-Major Season' },
@@ -149,6 +186,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Minor season winner.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the season's own final standings, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Minor 1st' },
         { system: 'tloeg.bbleague.se', id: 'Korpen' },
@@ -163,6 +203,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Winner of the Cabal Vision Cup knockout cup.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own knockout results, as recorded by the source.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Cabal Vision Cup' }],
     },
     {
@@ -170,7 +213,10 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Chaos Cup' },
       description:
-        'The team that wins after four matches selects three players and rolls a D3 to choose one, who is separately awarded the Gudarnas Förkämpe player trophy.',
+        'Winner of the Chaos Cup, decided after four matches.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own knockout results, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Chaos Cup' },
         { system: 'tourplay.net', id: '1-Chaos Cup' },
@@ -182,6 +228,9 @@
       competitionGroup: { system: 'Name', id: 'Stunty Leeg' },
       description:
         'Stunty Leeg winner, decided in a four-player deathmatch. Stunty Leeg division teams only.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Stunty Leeg Winners' },
       ],
@@ -192,6 +241,9 @@
       competitionGroup: { system: 'Name', id: 'Fright Night' },
       description:
         'Halloween-themed cup. Zara the Slayer and Count Luthor can be hired at half price by good/evil teams respectively.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Fright Night' }],
     },
     {
@@ -199,6 +251,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Snöbollskrieg' },
       description: "Elf-themed cup, played on Naggarond's snow-covered fields.",
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Snöbollskrieg' }],
     },
     {
@@ -206,6 +261,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Moot Mania' },
       description: 'Cup for teams composed only of Stunty and Big Guy players.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Moot Mania' }],
     },
     {
@@ -213,6 +271,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Champion of tLoEG' },
       description: 'Awarded to the winning teams of Champions of tLoEG.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Champion of tLoEG' },
       ],
@@ -223,6 +284,9 @@
       competitionGroup: { system: 'Name', id: 'NAA' },
       description:
         "Naggaroth Athletic Awards -- Malekith's ambition to establish the Naggaroth Amorical Football League.",
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'NAA' }],
     },
     {
@@ -230,6 +294,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Blitzmania!' },
       description: 'Awarded to the winner of a Blitzmania! event.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Blitzmania!' }],
     },
     {
@@ -241,6 +308,9 @@
       competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
       description:
         'TP-side team award for winning an Ogretoberfest cup instance.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tourplay.net', id: '1-Ogretoberfest' }],
     },
     // Dungeon Bowl placements. TP-only: BBL's complete 16-entry
@@ -253,6 +323,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
       description: 'Dungeon Bowl winner.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tourplay.net', id: '1-Dungeon Bowl' }],
     },
     {
@@ -260,6 +333,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
       description: 'Dungeon Bowl runner-up.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tourplay.net', id: '2-Dungeon Bowl' }],
     },
     {
@@ -267,6 +343,9 @@
       recipientKind: 'team',
       competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
       description: 'Dungeon Bowl third place.',
+      awardRuleKind: 'direct_source',
+      awardProcedure:
+        "Taken from the competition's own final results, as recorded by the source.",
       externalIds: [{ system: 'tourplay.net', id: '3-Dungeon Bowl' }],
     },
 
@@ -278,6 +357,9 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Voted by all coaches.',
+      awardRuleKind: 'manual',
+      awardProcedure:
+        'Voted on by all coaches after the season; no underlying statistic determines it.',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Season MVP-Major Season' },
       ],
@@ -287,6 +369,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most touchdowns during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'touchdown' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Scorer-Major Season' },
       ],
@@ -296,6 +382,15 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most casualties during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [
+        { actionType: 'casualty' },
+        { actionType: 'badly_hurt' },
+        { actionType: 'serious_injury' },
+        { actionType: 'death' },
+      ],
       externalIds: [
         {
           system: 'tloeg.bbleague.se',
@@ -308,6 +403,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most kills during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'death' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Deadliest Player-Major Season' },
       ],
@@ -316,7 +415,11 @@
       name: 'Top Fouler',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
-      description: 'Most foul casualties during the season.',
+      description: 'Most fouls during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'foul' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Fouler-Major Season' },
       ],
@@ -326,6 +429,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most completions during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'completion' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Thrower-Major Season' },
       ],
@@ -335,6 +442,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most interceptions during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'interception' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Intercepter-Major Season' },
       ],
@@ -344,6 +455,9 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most Star Player Points during the season.',
+      awardRuleKind: 'max_spp_sum',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Most SPP-Major Season' },
       ],
@@ -358,6 +472,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most touchdowns during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'touchdown' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Scorer-Minor Season' },
       ],
@@ -367,6 +485,15 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most casualties during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [
+        { actionType: 'casualty' },
+        { actionType: 'badly_hurt' },
+        { actionType: 'serious_injury' },
+        { actionType: 'death' },
+      ],
       externalIds: [
         {
           system: 'tloeg.bbleague.se',
@@ -379,6 +506,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most kills during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'death' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Deadliest Player-Minor Season' },
       ],
@@ -387,7 +518,11 @@
       name: 'Minor Top Fouler',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
-      description: 'Most foul casualties during the season.',
+      description: 'Most fouls during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'foul' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Fouler-Minor Season' },
       ],
@@ -397,6 +532,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most completions during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'completion' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Thrower-Minor Season' },
       ],
@@ -406,6 +545,10 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most interceptions during the season.',
+      awardRuleKind: 'max_count',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleMatchEventTypes: [{ actionType: 'interception' }],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Top Intercepter-Minor Season' },
       ],
@@ -415,6 +558,9 @@
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Most Star Player Points during the season.',
+      awardRuleKind: 'max_spp_sum',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Most SPP-Minor Season' },
       ],
@@ -428,6 +574,20 @@
       competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
       description:
         'The Ogre who gets the most Star Player Points during Ogretoberfest, excluding MVPs.',
+      awardRuleKind: 'max_spp_sum',
+      awardRuleRole: 'acting',
+      awardRuleTieCutoff: 4,
+      awardRuleExcludedMatchEventTypes: [{ actionType: 'mvp_award' }],
+      // "The Ogre who..." -- the Ogre roster's two Ogre positions, and not
+      // its third position, the Gnoblar Lineman. Each is the position's
+      // "Name"-system external id, which is stable from the moment the
+      // position is first created; `positions.name` is not, because BBL
+      // calls the position "Ogre Blockers" and TP "Ogre Blocker", so the
+      // stored name depends on which importer wrote last.
+      awardRuleEligiblePositions: [
+        'Ogre: Ogre Blocker',
+        'Ogre: Ogre Runt Punter',
+      ],
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Bierhallenführer' }],
     },
     {
@@ -436,6 +596,9 @@
       competitionGroup: { system: 'Name', id: 'Chaos Cup' },
       description:
         'The player who stands in the gods\' favor, awarded a "free" mutation immediately after the Chaos Cup.',
+      awardRuleKind: 'manual',
+      awardProcedure:
+        'The Chaos Cup winner nominates three of their players and rolls a D3 to choose one; no underlying statistic determines it.',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Gudarnas Förkämpe' },
       ],
@@ -446,6 +609,10 @@
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       description:
         'Player who reached 176 Star Player Points during a season or event.',
+      awardRuleKind: 'career_threshold',
+      awardRuleRole: 'acting',
+      awardRuleThreshold: 176,
+      awardRuleMeasure: 'spp_sum',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Legendary Player' },
       ],
@@ -456,6 +623,28 @@
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       description:
         '"Loyal Service" -- a medal honoring the unsung heroes on the field, awarded after the season to players who fought through three or more injuries.',
+      awardRuleKind: 'career_threshold',
+      awardRuleRole: 'consequence',
+      awardRuleThreshold: 3,
+      awardRuleMeasure: 'event_count',
+      // Only injuries that leave a lasting mark count: `casualty`/
+      // `badly_hurt`/`miss_next_game` have no lasting effect once the player
+      // recovers, so they do not count toward this threshold. All five real
+      // BBL recipients are explained by three or more of the remaining
+      // types, and dozens of players with three or more missed games but
+      // fewer than three of these were never awarded it. One recipient
+      // reached three only by counting a `death` -- proof `death` itself
+      // counts toward the threshold too, not an exception to exclude.
+      awardRuleMatchEventTypes: [
+        { consequenceType: 'serious_injury' },
+        { consequenceType: 'niggling_injury' },
+        { consequenceType: 'death' },
+        { consequenceType: 'stat_reduction_ma' },
+        { consequenceType: 'stat_reduction_st' },
+        { consequenceType: 'stat_reduction_ag' },
+        { consequenceType: 'stat_reduction_av' },
+        { consequenceType: 'stat_reduction_pa' },
+      ],
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Trogen Tjänst' },
       ],

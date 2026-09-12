@@ -63,4 +63,27 @@ describe('RpcRouterFactoryService trophyAwards router', () => {
       message: 'wrong recipient',
     });
   });
+
+  it("computes a competition's missing trophy awards", async () => {
+    harness.mocks.missingTrophyAwardsService.computeMissingAwards.mockResolvedValue(
+      {
+        competitionId: 3,
+        createdAwardCount: 2,
+        awardedTrophyIds: [10, 11],
+      },
+    );
+
+    const result = await call(harness.router.trophyAwards.computeMissing, {
+      competitionId: 3,
+    });
+
+    expect(
+      harness.mocks.missingTrophyAwardsService.computeMissingAwards,
+    ).toHaveBeenCalledWith(3);
+    expect(result).toEqual({
+      competitionId: 3,
+      createdAwardCount: 2,
+      awardedTrophyIds: [10, 11],
+    });
+  });
 });

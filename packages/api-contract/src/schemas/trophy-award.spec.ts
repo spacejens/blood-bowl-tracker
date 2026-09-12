@@ -57,6 +57,26 @@ describe('UpsertTrophyAwardSchema', () => {
     ).toBe(5);
   });
 
+  it('accepts a player award that omits teamEraId', () => {
+    expect(
+      UpsertTrophyAwardSchema.parse({
+        trophyId: 2,
+        competitionId: 3,
+        playerId: 5,
+      }),
+    ).toEqual({ trophyId: 2, competitionId: 3, playerId: 5 });
+  });
+
+  it('rejects a team award that omits teamEraId', () => {
+    expect(() =>
+      UpsertTrophyAwardSchema.parse({
+        trophyId: 2,
+        competitionId: 3,
+        playerId: null,
+      }),
+    ).toThrow();
+  });
+
   it('rejects a payload missing the required link ids', () => {
     expect(() =>
       UpsertTrophyAwardSchema.parse({ trophyId: 2, competitionId: 3 }),

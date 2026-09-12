@@ -66,6 +66,20 @@ real-world entity differently:
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
 
+  Every entry also carries an `awardRuleKind`, saying where the trophy's
+  winner comes from. Pick `direct_source` when the source data already records
+  the winner and the BBL/TP importers create the award; `manual` when nothing
+  determines the winner mechanically (a coaches' vote, a D3 roll) and each
+  winner is curated by hand in `after-other-importers/trophy-awards.json5`
+  (see below). Both describe how the league hands the trophy out in their own
+  words.
+
+  The other three are computed from imported match events instead, and
+  describe themselves: `max_count` for the competition's leader on a count of
+  matching events, `max_spp_sum` for its leader on the Star Player Points
+  those events awarded, and `career_threshold` for every player who passes a
+  lifetime figure, however many that turns out to be.
+
 ### Position renamed across rules-set generations
 
 TourPlay assigns a **fresh numeric position id for every rules-set generation**
@@ -151,3 +165,9 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   throwing `PositionUpsertConflictError`. Curating after ensures BBL has
   already established the position's identity, so these references resolve
   onto the existing row, not a duplicate.
+- `trophy-awards.json5` — hand-curated winners of the two
+  [`manual`-kind](#known-before-other-importers-dedup-files) trophies
+  (Season MVP, Gudarnas Förkämpe), for which no importer records a
+  winner. It sits in the **after** phase because each entry references a
+  competition and a player by external id, both created by the BBL/TP
+  importers.

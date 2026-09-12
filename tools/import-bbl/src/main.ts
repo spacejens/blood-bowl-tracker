@@ -20,6 +20,7 @@ import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
 import { BblTeamParticipationImportService } from './team-participation/bbl-team-participation-import.service';
 import { BblTeamsImportService } from './teams/bbl-teams-import.service';
+import { BblMissingTrophyAwardsImportService } from './trophy-awards/bbl-missing-trophy-awards-import.service';
 import { BblTrophyAwardsImportService } from './trophy-awards/bbl-trophy-awards-import.service';
 
 async function run(): Promise<ImportResult> {
@@ -134,6 +135,17 @@ async function run(): Promise<ImportResult> {
         teamEraIdsByPid: playerOutcome.teamEraIdsByPid,
       });
 
+    // Runs last of all: every trophy BBL did not itself record is computed
+    // here from the match events, players and outcomes the steps above
+    // imported, so the statistics it reads are complete. Neither
+    // competitionsByBblId's UpsertCompetition payloads nor
+    // competitionEntriesByBblId's BblCompetitionEntry carry a resolved
+    // database competition id, so the service resolves each competition's id
+    // itself, the same way BblMatchOutcomesImportService does.
+    const missingTrophyAwardsOutcome = await app
+      .get(BblMissingTrophyAwardsImportService)
+      .importMissingTrophyAwards(competitionOutcome.competitionsByBblId);
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
@@ -152,6 +164,7 @@ async function run(): Promise<ImportResult> {
       sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,
       trophyAwardsOutcome.result,
+      missingTrophyAwardsOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),

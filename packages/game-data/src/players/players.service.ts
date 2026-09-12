@@ -1,4 +1,8 @@
-import type { UpsertPlayer } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertPlayer,
+} from '@blood-bowl-tracker/api-contract';
 import { PLAYER_CHARACTERISTIC_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
@@ -46,6 +50,7 @@ import {
 } from '../shared/match-event-types';
 import type { PlayerContextNames } from '../shared/player-context-names.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import type { TeamTopPlayer } from '../shared/team-top-player';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -178,6 +183,34 @@ export class PlayersService {
     playerIds: number[],
   ): Promise<Map<number, PlayerContextNames>> {
     return this.playerContextNames.getPlayerContextNamesByIds(playerIds);
+  }
+
+  /**
+   * Which player already declares this external-id pair, if any. The
+   * single-pair convenience over `resolveBatch`, exactly as every other
+   * resolvable entity service spells it.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  /**
+   * The batched counterpart: one query answers the whole list, index-aligned
+   * with the request, and an unmatched pair is `{ found: false }` rather than
+   * an error. `tools/import-manual`'s curated trophy awards are the caller
+   * this exists for — a manually curated award names its winning player by
+   * the external id the BBL/TP importers already created.
+   */
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: playerExternalIds,
+      ownerIdColumn: playerExternalIds.playerId,
+      externalSystemIdColumn: playerExternalIds.externalSystemId,
+      externalIdColumn: playerExternalIds.externalId,
+      externalIds,
+    });
   }
 
   /**

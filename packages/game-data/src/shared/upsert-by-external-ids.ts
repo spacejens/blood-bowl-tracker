@@ -78,6 +78,23 @@ export interface UpsertByExternalIdsOptions<
     existingRow: InferSelectModel<TEntityTable>,
     values: Partial<InferInsertModel<TEntityTable>>,
   ) => boolean;
+  /**
+   * Optional extra writes that belong to the same upsert as the entity row —
+   * e.g. replacing the rows of a junction table the entity owns. Called once
+   * the entity row and its missing external ids are written, on the same
+   * transaction handle and before that transaction commits, so the hook's
+   * writes commit or roll back together with the entity's own.
+   *
+   * The hook runs *inside* the retry loop, so a lost external-id race
+   * re-runs it from scratch against the reconciled row, exactly as it re-runs
+   * the rest of the sequence — a caller needing atomicity therefore never has
+   * to open its own outer transaction (which would have meant giving up the
+   * retry, since retrying is only safe for a transaction this helper owns).
+   */
+  afterUpsert?: (
+    tx: DbOrTx,
+    row: InferSelectModel<TEntityTable>,
+  ) => Promise<void>;
 }
 
 /**
@@ -294,6 +311,8 @@ async function runUpsertAttempt<
     buildRow: (pair) => opts.buildExternalIdRow(ownerId, pair),
   });
 
+  await opts.afterUpsert?.(handle, row);
+
   return { row, created };
 }
 
@@ -314,6 +333,11 @@ async function runUpsertAttempt<
  * `values` is partial: keys whose value is `undefined` are stripped before the
  * database sees them, so an update never overwrites a column the payload said
  * nothing about, while an explicit `null` still writes `null`.
+ *
+ * A caller with further writes of its own that must land in the same
+ * transaction supplies `afterUpsert` rather than opening an outer transaction
+ * around this call: the hook runs inside both this transaction and this retry
+ * loop, so it keeps the atomicity guarantee without giving up the retry.
  */
 export async function upsertByExternalIds<
   TEntityTable extends PgTable,

@@ -180,6 +180,38 @@ export class DbGenerateService {
   }
 
   /**
+   * The ADD COLUMN counterpart of rewriteHistorySetNotNull, and it exists for
+   * the same reason: a history table must never gain a NOT NULL constraint.
+   * When a new NOT NULL column is added to a tracked table,
+   * historyTrackedTable() mirrors the `notNull` onto the history table, so
+   * drizzle-kit emits `ALTER TABLE ..._history ADD COLUMN "x" <type> NOT
+   * NULL;` — with no default, because history columns deliberately mirror
+   * only name/type/notNull and never a default. Postgres rejects that
+   * statement outright against a history table that already has rows (and a
+   * tracked table with rows always has history rows, since versioning() writes
+   * one per INSERT), so the migration would abort on any non-empty database
+   * even when the tracked table's own ADD COLUMN carries a default and is
+   * therefore perfectly safe. Dropping just the trailing `NOT NULL` leaves the
+   * column nullable on the history table, which is what history semantics want
+   * anyway: pre-existing history rows are immutable snapshots that predate the
+   * column and can never be backfilled. snapshot.json keeps saying NOT NULL,
+   * exactly as it does for rewriteHistorySetNotNull.
+   */
+  rewriteHistoryAddColumnNotNull(migrationSql: string): string {
+    const separator = '--> statement-breakpoint\n';
+    const statementPattern =
+      /^(ALTER TABLE "[^"]+"\."[^"]+_history" ADD COLUMN\b[\s\S]*) NOT NULL;$/;
+    return migrationSql
+      .split(separator)
+      .map((statement) => {
+        const match = statementPattern.exec(statement.trim());
+        if (match === null) return statement;
+        return statement.replace(`${match[1]} NOT NULL;`, `${match[1]};`);
+      })
+      .join(separator);
+  }
+
+  /**
    * Rewrites the freshly generated SQL for a brand-new history table:
    *  - Replaces drizzle-kit's explicit `CREATE TABLE ..._history ( ... );`
    *    (columns + inline PK) with `CREATE TABLE ..._history (LIKE "s"."t");`.
@@ -256,6 +288,10 @@ export class DbGenerateService {
       // counterpart the same way: pre-existing history rows can never be
       // backfilled. Applies to every migration, unconditionally.
       sql = this.rewriteHistorySetNotNull(sql);
+      // Same invariant, applied to a newly added history column: keep it
+      // nullable so the ADD COLUMN succeeds against a non-empty history table
+      // (drizzle-kit mirrors notNull but never a default onto history columns).
+      sql = this.rewriteHistoryAddColumnNotNull(sql);
 
       for (const qualified of newHistoryTables) {
         const [schemaName, historyTableName] = qualified.split('.');

@@ -13,7 +13,10 @@ export class TrophyAwardsImportService extends createUpsertImportServiceBase({
   resource: (client) => client.trophyAwards,
   buildErrorMessage: (data: UpsertTrophyAward, err) =>
     `Failed to import trophy award (trophy ${data.trophyId}, ` +
-    `competition ${data.competitionId}, team era ${data.teamEraId}, ` +
+    `competition ${data.competitionId}, team era ` +
+    // Omitted for a player award whose team era the server derives from the
+    // player's own row; there is nothing to name here in that case.
+    `${data.teamEraId ?? 'derived from the player'}, ` +
     `${data.playerId === null ? 'no player' : `player ${data.playerId}`}): ` +
     `${err instanceof Error ? err.message : String(err)}`,
 }) {}

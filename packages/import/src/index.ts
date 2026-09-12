@@ -56,6 +56,7 @@ export { MatchDateRangeService } from './match-date-range.service';
 export { MatchEventsImportService } from './match-events-import.service';
 export { MatchOutcomesImportService } from './match-outcomes-import.service';
 export { MatchesImportService } from './matches-import.service';
+export { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
 export { NameExternalIdService } from './name-external-id.service';
 export { PlayersImportService } from './players-import.service';
 export { PositionRulesSetsImportService } from './position-rules-sets-import.service';
@@ -79,9 +80,13 @@ export type {
   UpsertResource,
 } from './upsert-import-service-base';
 export { createUpsertImportServiceBase } from './upsert-import-service-base';
+// Re-exported from @blood-bowl-tracker/domain-enums, where they moved once
+// game-data needed the "Name" system's name too: every import tool already
+// reaches for them through this package's entry point, so they stay visible
+// here rather than rewriting every call site's import.
 export {
   NAF_EXTERNAL_SYSTEM,
   NAF_EXTERNAL_SYSTEM_NAME,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
-} from './well-known-external-systems';
+} from '@blood-bowl-tracker/domain-enums';

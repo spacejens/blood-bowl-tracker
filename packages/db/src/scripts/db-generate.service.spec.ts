@@ -255,6 +255,50 @@ describe('DbGenerateService', () => {
     });
   });
 
+  describe('rewriteHistoryAddColumnNotNull', () => {
+    it('drops the trailing NOT NULL from an ADD COLUMN on a history table', () => {
+      const sql =
+        'ALTER TABLE "game_data"."matches_history" ADD COLUMN "name" varchar(255) NOT NULL;';
+      expect(service.rewriteHistoryAddColumnNotNull(sql)).toBe(
+        'ALTER TABLE "game_data"."matches_history" ADD COLUMN "name" varchar(255);',
+      );
+    });
+
+    it('drops the NOT NULL but keeps an enum type and a default', () => {
+      const sql =
+        'ALTER TABLE "game_data"."trophies_history" ADD COLUMN "award_rule_kind" ' +
+        '"game_data"."trophy_award_rule_kind" DEFAULT \'direct_source\' NOT NULL;';
+      expect(service.rewriteHistoryAddColumnNotNull(sql)).toBe(
+        'ALTER TABLE "game_data"."trophies_history" ADD COLUMN "award_rule_kind" ' +
+          '"game_data"."trophy_award_rule_kind" DEFAULT \'direct_source\';',
+      );
+    });
+
+    it('leaves the tracked table’s own ADD COLUMN NOT NULL untouched', () => {
+      const sql =
+        'ALTER TABLE "game_data"."matches" ADD COLUMN "name" varchar(255) NOT NULL;';
+      expect(service.rewriteHistoryAddColumnNotNull(sql)).toBe(sql);
+    });
+
+    it('rewrites only the history statements of a multi-statement migration', () => {
+      const sql =
+        'ALTER TABLE "game_data"."matches" ADD COLUMN "name" varchar(255) NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."matches_history" ADD COLUMN "name" varchar(255) NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."matches_history" ADD COLUMN "note" varchar(255);';
+      expect(service.rewriteHistoryAddColumnNotNull(sql)).toBe(
+        'ALTER TABLE "game_data"."matches" ADD COLUMN "name" varchar(255) NOT NULL;--> statement-breakpoint\n' +
+          'ALTER TABLE "game_data"."matches_history" ADD COLUMN "name" varchar(255);--> statement-breakpoint\n' +
+          'ALTER TABLE "game_data"."matches_history" ADD COLUMN "note" varchar(255);',
+      );
+    });
+
+    it('returns sql unchanged when no history ADD COLUMN is NOT NULL', () => {
+      const sql =
+        'ALTER TABLE "game_data"."matches_history" ADD COLUMN "note" varchar(255);';
+      expect(service.rewriteHistoryAddColumnNotNull(sql)).toBe(sql);
+    });
+  });
+
   describe('rewriteNewHistoryTableCreate', () => {
     const createBlock =
       'CREATE TABLE "game_data"."coaches_history" (\n' +

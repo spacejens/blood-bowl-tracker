@@ -16,6 +16,7 @@ import { RulesSetsProcessor } from '../entities/rules-sets.processor';
 import { SppAwardValuesProcessor } from '../entities/spp-award-values.processor';
 import { TeamsProcessor } from '../entities/teams.processor';
 import { TrophiesProcessor } from '../entities/trophies.processor';
+import { TrophyAwardsProcessor } from '../entities/trophy-awards.processor';
 import type { ProcessContext } from '../references/process-context';
 
 @Injectable()
@@ -35,6 +36,7 @@ export class ManualImportService {
     private readonly competitions: CompetitionsProcessor,
     private readonly sppAwardValues: SppAwardValuesProcessor,
     private readonly trophies: TrophiesProcessor,
+    private readonly trophyAwards: TrophyAwardsProcessor,
     private readonly importResults: ImportResultService,
   ) {}
 
@@ -42,15 +44,17 @@ export class ManualImportService {
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
    * it references, then process each entity section in dependency order —
    * rulesSets, leagues, eras, races, positions, positionRulesSets, coaches,
-   * teams, competitionGroups, competitions, sppAwardValues, trophies — with
+   * teams, competitionGroups, competitions, sppAwardValues, trophies,
+   * trophyAwards — with
    * positionRulesSets running after both rulesSets and positions (which its
    * entries reference), competitionGroups running after leagues (whose
    * external ids its entries reference) and before competitions and trophies
    * (which resolve the groups it upserts, by their "Name"-system external
    * id), sppAwardValues running after rulesSets and races (which it
-   * references), and trophies running last, after the leagues it may also
-   * reference — sharing one error collector so one bad entry never aborts the
-   * rest. Reference-resolution
+   * references), trophies running after the leagues it may also reference,
+   * and trophyAwards last of all, after the trophies whose curated names its
+   * entries quote — sharing one error collector so one bad entry never aborts
+   * the rest. Reference-resolution
    * and upsert failures are collected; a missing directory, malformed file,
    * or unreachable API throws out of here to be reported as an unexpected
    * failure. A same-kind
@@ -81,6 +85,7 @@ export class ManualImportService {
     imported += await this.competitions.process(ctx);
     imported += await this.sppAwardValues.process(ctx);
     imported += await this.trophies.process(ctx);
+    imported += await this.trophyAwards.process(ctx);
 
     return this.importResults.result({ imported, errors });
   }

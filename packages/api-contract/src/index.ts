@@ -19,3 +19,4 @@ export * from './schemas/spp-award-value';
 export * from './schemas/team';
 export * from './schemas/trophy';
 export * from './schemas/trophy-award';
+export * from './schemas/trophy-award-rule';

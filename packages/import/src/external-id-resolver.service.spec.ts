@@ -74,6 +74,7 @@ describe('ExternalIdResolverService', () => {
       ['competitionGroup', client.competitionGroups],
       ['era', client.eras],
       ['league', client.leagues],
+      ['player', client.players],
       ['position', client.positions],
       ['race', client.races],
       ['rulesSet', client.rulesSets],

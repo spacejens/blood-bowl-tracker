@@ -410,6 +410,98 @@ describe('upsertByExternalIds', () => {
     });
   });
 
+  describe('afterUpsert', () => {
+    const tableName = 'rules_sets_external_ids';
+
+    it('runs the hook on the transaction handle, after the external ids are inserted', async () => {
+      const { db, transaction, insertValues } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 7, name: 'Foo' },
+      });
+      const afterUpsert = vi.fn().mockResolvedValue(undefined);
+
+      const result = await upsertByExternalIds({
+        ...baseOpts(db),
+        afterUpsert,
+      });
+
+      expect(result).toEqual({ row: { id: 7, name: 'Foo' }, created: true });
+      expect(transaction).toHaveBeenCalledTimes(1);
+      // The handle the hook receives is the very one the transaction supplied,
+      // so the hook's own writes commit or roll back with this upsert's.
+      expect(afterUpsert).toHaveBeenCalledTimes(1);
+      expect(afterUpsert).toHaveBeenCalledWith(db, { id: 7, name: 'Foo' });
+      // ...and it runs after the external-id insert, not before it.
+      expect(insertValues.mock.invocationCallOrder[1]).toBeLessThan(
+        afterUpsert.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('propagates a hook failure out of the transaction without retrying it', async () => {
+      const boom = new Error('junction sync failed');
+      const { db, transaction } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 7, name: 'Foo' },
+      });
+
+      await expect(
+        upsertByExternalIds({
+          ...baseOpts(db),
+          afterUpsert: () => Promise.reject(boom),
+        }),
+      ).rejects.toBe(boom);
+      // One transaction, which the rejection aborts — real Postgres rolls the
+      // entity row and its external ids back with it.
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('still retries the external-id race when a hook is supplied, running the hook once per surviving attempt', async () => {
+      const afterUpsert = vi.fn().mockResolvedValue(undefined);
+      const { db, transaction, update } = makeRaceDb({
+        resolveRowsPerAttempt: [
+          [],
+          [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        ],
+        entityRow: { id: 5, name: 'Foo' },
+        insertErrors: [undefined, uniqueViolation(tableName)],
+      });
+
+      const result = await upsertByExternalIds({
+        ...baseOpts(db),
+        afterUpsert,
+      });
+
+      expect(result).toEqual({ row: { id: 5, name: 'Foo' }, created: false });
+      expect(transaction).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledWith(rulesSets);
+      // Attempt 1 lost the race on the external-id insert, which happens
+      // before the hook, so the hook ran exactly once — on the winning
+      // attempt, against the row this upsert reconciled onto.
+      expect(afterUpsert).toHaveBeenCalledTimes(1);
+      expect(afterUpsert).toHaveBeenCalledWith(db, { id: 5, name: 'Foo' });
+    });
+
+    it('re-runs the hook on every attempt when the hook itself loses the race', async () => {
+      // The hook lives inside the retry loop, not outside it: a violation
+      // raised from the hook's own writes is retried exactly like one raised
+      // by this helper's external-id insert.
+      const afterUpsert = vi.fn(() =>
+        Promise.reject(uniqueViolation(tableName)),
+      );
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[], [], []],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [],
+      });
+
+      await expect(
+        upsertByExternalIds({ ...baseOpts(db), afterUpsert }),
+      ).rejects.toThrow(/after 3 attempts/);
+      expect(transaction).toHaveBeenCalledTimes(3);
+      expect(afterUpsert).toHaveBeenCalledTimes(3);
+    });
+  });
+
   describe('concurrent external-id race', () => {
     // rulesSetExternalIds' table name is `rules_sets_external_ids`; the
     // classifier now matches on this table name rather than the (fragile,

@@ -4,11 +4,16 @@ import { Module } from '@nestjs/common';
 
 import { SourceModule } from '../source/source.module';
 import { TpAwardsReaderService } from './tp-awards-reader.service';
+import { TpMissingTrophyAwardsImportService } from './tp-missing-trophy-awards-import.service';
 import { TpTrophyAwardsImportService } from './tp-trophy-awards-import.service';
 
 @Module({
   imports: [ImportModule, SourceModule, ParseTpModule],
-  providers: [TpAwardsReaderService, TpTrophyAwardsImportService],
-  exports: [TpTrophyAwardsImportService],
+  providers: [
+    TpAwardsReaderService,
+    TpTrophyAwardsImportService,
+    TpMissingTrophyAwardsImportService,
+  ],
+  exports: [TpTrophyAwardsImportService, TpMissingTrophyAwardsImportService],
 })
 export class TrophyAwardsModule {}

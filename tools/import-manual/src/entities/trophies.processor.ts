@@ -53,6 +53,19 @@ export class TrophiesProcessor {
           description: entry.description,
           competitionGroupId: group.id,
           leagueId: league.id,
+          awardRuleKind: entry.awardRuleKind,
+          // Explicit nulls, not omissions: a trophy reclassified from one rule
+          // kind to another must clear the columns its new kind forbids, or
+          // the database's `trophies_award_rule` check rejects the write.
+          awardProcedure: entry.awardProcedure ?? null,
+          awardRuleRole: entry.awardRuleRole ?? null,
+          awardRuleTieCutoff: entry.awardRuleTieCutoff ?? null,
+          awardRuleThreshold: entry.awardRuleThreshold ?? null,
+          awardRuleMeasure: entry.awardRuleMeasure ?? null,
+          awardRuleMatchEventTypes: entry.awardRuleMatchEventTypes,
+          awardRuleExcludedMatchEventTypes:
+            entry.awardRuleExcludedMatchEventTypes,
+          awardRuleEligiblePositions: entry.awardRuleEligiblePositions,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

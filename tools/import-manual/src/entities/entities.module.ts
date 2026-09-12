@@ -15,6 +15,7 @@ import { RulesSetsProcessor } from './rules-sets.processor';
 import { SppAwardValuesProcessor } from './spp-award-values.processor';
 import { TeamsProcessor } from './teams.processor';
 import { TrophiesProcessor } from './trophies.processor';
+import { TrophyAwardsProcessor } from './trophy-awards.processor';
 
 const processors = [
   ExternalSystemsProcessor,
@@ -30,6 +31,7 @@ const processors = [
   CompetitionsProcessor,
   SppAwardValuesProcessor,
   TrophiesProcessor,
+  TrophyAwardsProcessor,
 ];
 
 @Module({

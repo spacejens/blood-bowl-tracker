@@ -141,6 +141,12 @@ function upsertedTrophy(id: number): Trophy & { created: boolean } {
     description: null,
     competitionGroupId: 1,
     leagueId: null,
+    awardRuleKind: 'manual',
+    awardProcedure: null,
+    awardRuleRole: null,
+    awardRuleTieCutoff: null,
+    awardRuleThreshold: null,
+    awardRuleMeasure: null,
     createdAt: new Date('2026-01-01'),
     created: true,
   };
