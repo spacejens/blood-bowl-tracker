@@ -1,13 +1,16 @@
-import { DB } from '@blood-bowl-tracker/db';
+import type { SQL } from '@blood-bowl-tracker/db';
+import { DB, inArray, positions, sql } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
   extractAllFilterValues,
+  extractJoinColumns,
   firstCallArg,
   sqlText,
 } from '../shared/query-assertions.test-helpers';
@@ -25,27 +28,40 @@ import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.s
  * plus what the service does with the rows it gets back. Whether the window
  * function picks the right crossing match is a question only real Postgres can
  * answer, and lives in `test/career-threshold-trophy-rule.e2e-spec.ts`.
+ *
+ * `positionCondition` is what the mocked position filter answers with for
+ * this test: the filter builds part of a live SQL query, so it is stubbed
+ * rather than provided for real, and its own behaviour — which curated list
+ * maps to which condition — is asserted in its own spec.
  */
 async function makeService(
   crossings: unknown[] = [],
-): Promise<{ service: CareerThresholdTrophyRuleService; db: MockDbResult }> {
+  positionCondition: SQL | undefined = undefined,
+): Promise<{
+  service: CareerThresholdTrophyRuleService;
+  db: MockDbResult;
+  positionFilter: MockProxy<TrophyRulePositionFilterService>;
+}> {
   const db = mockDb([], [], crossings);
   const positionFilter = mock<TrophyRulePositionFilterService>();
-  positionFilter.build.mockReturnValue(undefined);
+  positionFilter.build.mockReturnValue(positionCondition);
   const moduleRef = await Test.createTestingModule({
     providers: [
       CareerThresholdTrophyRuleService,
       // The event-type filter is pure and dependency-free, so it is real (see
       // CLAUDE.md's carve-out). The position filter builds part of a live SQL
-      // query, so it is mocked and asserted in its own spec instead; no test
-      // here restricts positions, so it answers "no restriction" throughout.
+      // query, so it is mocked and asserted in its own spec instead.
       TrophyRuleEventTypeFilterService,
       { provide: TrophyRulePositionFilterService, useValue: positionFilter },
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
   }).compile();
-  return { service: moduleRef.get(CareerThresholdTrophyRuleService), db };
+  return {
+    service: moduleRef.get(CareerThresholdTrophyRuleService),
+    db,
+    positionFilter,
+  };
 }
 
 const SPP_OPTIONS = {
@@ -206,5 +222,30 @@ describe('CareerThresholdTrophyRuleService', () => {
     expect(extractAllFilterValues(firstCallArg(db.chains[1].where))).toContain(
       40,
     );
+  });
+
+  it('narrows the candidate pool to a rule’s eligible positions', async () => {
+    const { service, db, positionFilter } = await makeService(
+      [],
+      inArray(positions.id, [21, 22]),
+    );
+
+    await service.compute({ ...SPP_OPTIONS, eligiblePositionIds: [21, 22] });
+
+    expect(positionFilter.build).toHaveBeenCalledWith([21, 22]);
+    const where = firstCallArg(db.chains[0].where);
+    expect(extractAllFilterValues(where)).toEqual(
+      expect.arrayContaining([21, 22]),
+    );
+    expect(extractJoinColumns(where)).toContain('positions.id');
+  });
+
+  it('awards nobody when a restriction resolved to no position at all', async () => {
+    const { service, db, positionFilter } = await makeService([], sql`false`);
+
+    await service.compute({ ...SPP_OPTIONS, eligiblePositionIds: [] });
+
+    expect(positionFilter.build).toHaveBeenCalledWith([]);
+    expect(sqlText(firstCallArg(db.chains[0].where))).toContain('false');
   });
 });

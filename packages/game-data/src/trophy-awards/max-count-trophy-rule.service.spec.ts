@@ -1,14 +1,18 @@
-import { DB } from '@blood-bowl-tracker/db';
+import type { SQL } from '@blood-bowl-tracker/db';
+import { DB, inArray, positions, sql } from '@blood-bowl-tracker/db';
 import type { MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { MatchScopeFilterService } from '../shared/match-scope-filter.service';
 import {
   extractAllFilterValues,
+  extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { MaxCountTrophyRuleService } from './max-count-trophy-rule.service';
 import { TrophyRuleEventTypeFilterService } from './trophy-rule-event-type-filter.service';
@@ -18,14 +22,25 @@ import { TrophyRulePositionFilterService } from './trophy-rule-position-filter.s
  * Per-test factory rather than a `beforeEach` subject: every test seeds the
  * mocked database with different candidate rows, and those rows have to exist
  * before the service is built.
+ *
+ * `positionCondition` is what the mocked position filter answers with for
+ * this test: the filter builds part of a live SQL query, so it is stubbed
+ * rather than provided for real, and its own behaviour — which curated list
+ * maps to which condition — is asserted in its own spec. What these tests
+ * check is that the rule hands the curated ids to the filter and splices
+ * whatever comes back into the candidate query.
  */
-async function makeService(rows: unknown[]): Promise<{
+async function makeService(
+  rows: unknown[],
+  positionCondition: SQL | undefined = undefined,
+): Promise<{
   service: MaxCountTrophyRuleService;
   db: MockDbResult;
+  positionFilter: MockProxy<TrophyRulePositionFilterService>;
 }> {
   const db = mockDb(rows);
   const positionFilter = mock<TrophyRulePositionFilterService>();
-  positionFilter.build.mockReturnValue(undefined);
+  positionFilter.build.mockReturnValue(positionCondition);
   const moduleRef = await Test.createTestingModule({
     providers: [
       MaxCountTrophyRuleService,
@@ -36,14 +51,17 @@ async function makeService(rows: unknown[]): Promise<{
       TrophyRuleEventTypeFilterService,
       // The position filter is mocked instead: it builds part of a live SQL
       // query, concrete behaviour these tests could drift from, and it is
-      // asserted in its own spec. No test here restricts positions, so the
-      // canned "no restriction" answer is all they need.
+      // asserted in its own spec.
       { provide: TrophyRulePositionFilterService, useValue: positionFilter },
       MatchScopeFilterService,
       { provide: DB, useValue: db.db },
     ],
   }).compile();
-  return { service: moduleRef.get(MaxCountTrophyRuleService), db };
+  return {
+    service: moduleRef.get(MaxCountTrophyRuleService),
+    db,
+    positionFilter,
+  };
 }
 
 const TOUCHDOWNS = {
@@ -173,5 +191,42 @@ describe('MaxCountTrophyRuleService', () => {
     });
 
     expect(db.chains[0].limit).toHaveBeenCalledWith(5);
+  });
+
+  it('narrows the candidate pool to a rule’s eligible positions', async () => {
+    const { service, db, positionFilter } = await makeService(
+      [],
+      inArray(positions.id, [21, 22]),
+    );
+
+    await service.compute({
+      competitionId: 3,
+      role: 'acting',
+      types: TOUCHDOWNS,
+      eligiblePositionIds: [21, 22],
+      tieCutoff: 4,
+    });
+
+    expect(positionFilter.build).toHaveBeenCalledWith([21, 22]);
+    const where = firstCallArg(db.chains[0].where);
+    expect(extractAllFilterValues(where)).toEqual(
+      expect.arrayContaining([21, 22]),
+    );
+    expect(extractJoinColumns(where)).toContain('positions.id');
+  });
+
+  it('awards nobody when a restriction resolved to no position at all', async () => {
+    const { service, db, positionFilter } = await makeService([], sql`false`);
+
+    await service.compute({
+      competitionId: 3,
+      role: 'acting',
+      types: TOUCHDOWNS,
+      eligiblePositionIds: [],
+      tieCutoff: 4,
+    });
+
+    expect(positionFilter.build).toHaveBeenCalledWith([]);
+    expect(sqlText(firstCallArg(db.chains[0].where))).toContain('false');
   });
 });
