@@ -627,13 +627,15 @@
       awardRuleRole: 'consequence',
       awardRuleThreshold: 3,
       awardRuleMeasure: 'event_count',
+      // Only injuries the player carries onward count: `death` means the
+      // player did not fight through anything, and `casualty`/`badly_hurt`/
+      // `miss_next_game` leave no lasting effect once the player recovers.
+      // Every real BBL recipient is explained by three or more lasting
+      // injuries alone, and dozens of players with three or more missed games
+      // but fewer than three lasting injuries were never awarded it.
       awardRuleMatchEventTypes: [
-        { consequenceType: 'casualty' },
-        { consequenceType: 'badly_hurt' },
-        { consequenceType: 'death' },
         { consequenceType: 'serious_injury' },
         { consequenceType: 'niggling_injury' },
-        { consequenceType: 'miss_next_game' },
         { consequenceType: 'stat_reduction_ma' },
         { consequenceType: 'stat_reduction_st' },
         { consequenceType: 'stat_reduction_ag' },
