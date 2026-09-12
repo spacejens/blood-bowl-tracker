@@ -1,9 +1,8 @@
 # `/debugfilterusage`
 
-`/debugfilterusage` splits the Discord users the `discord_bot_usage`
-schema has recorded into two groups: those who have supplied an optional
-("filter") argument to a slash command at least once, and those who have
-only ever invoked commands plain. It exists as a training and awareness
+`/debugfilterusage` splits the Discord users the bot has recorded into two
+groups: those who have supplied an optional ("filter") argument to a slash
+command at least once, and those who have only ever invoked commands plain. It exists as a training and awareness
 signal, not as moderation — a user who has never narrowed a command may
 simply not know the bot can do it, and can be pointed at the capability.
 
@@ -19,14 +18,12 @@ bot.
 
 ## What counts as a filter
 
-An argument counts as a filter exactly when the bot's live command
-registration does not declare it required — Discord's own default for an
-option with no `required` flag. Nothing is hardcoded: the set is derived
-from the actually-registered commands each time the report runs, so every
-current and future optional argument is covered with no maintenance.
+An argument counts as a filter when it is optional rather than required for
+the command it belongs to. This is worked out from how each command is
+actually defined today, not from a fixed list, so any current or future
+optional argument is covered with no maintenance.
 
-No option anywhere in the bot is currently marked `required` — Discord
-supports the flag, but nothing here uses it. Today that means this
+No argument anywhere in the bot is required today. Today that means this
 classification covers literally any argument on any command that has one,
 including `/deepdive`'s subject-selector arguments (`coach`, `team`,
 `player`, and the rest): picking one of those is effectively how you use
@@ -36,7 +33,7 @@ characteristic of the current command surface, not a bug — read the
 "Plain only" list with that in mind for a command whose every option
 happens to be a mandatory-in-practice selector.
 
-A command could in principle mark an option required, and such an option
+A command could in principle require an argument, and such an argument
 would never count as a filter — but, again, none does today.
 
 ## Arguments
@@ -100,9 +97,9 @@ intentional exception described there.
   used any one optional argument is enough to land in `Uses filters`; the
   report says nothing about which arguments a user has and has not
   discovered.
-- **Invocations of a command that is no longer registered.** The filter
-  set comes from the live registration, so a renamed or removed command's
-  recorded invocations are skipped.
+- **Invocations of a command that is no longer registered.** A renamed or
+  removed command has no current definition to classify its recorded
+  invocations against, so they are skipped.
 - An interaction that matched no registered handler was never recorded at
   all, so it cannot appear here.
 - **`debug`-prefixed commands' own invocations.** `/debugfilterusage`,
