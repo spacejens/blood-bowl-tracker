@@ -117,13 +117,11 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
    * `/debuginteractions` is the only command whose own reply sets
    * `MessageFlags.Ephemeral`, and it appears in its own listing - so
    * retriggering that row must clear the flag rather than posting an
-   * ephemeral reply where the dispatcher expects a public one. `flags` is a
-   * `BitFieldResolvable`, so it is normalized through `MessageFlagsBitField`
-   * rather than compared for exact equality - a reply combining Ephemeral
-   * with another flag (e.g. `SuppressEmbeds`) must keep that other flag. A
-   * plain string result carries no flags and needs no change; a result with
-   * no `flags` at all needs none either, since removing from an empty
-   * bitfield is a no-op.
+   * ephemeral reply where the dispatcher expects a public one. `flags` is
+   * cleared via bitwise math rather than compared for exact equality - a
+   * reply combining Ephemeral with another flag (e.g. `SuppressEmbeds`) must
+   * keep that other flag. A plain string result carries no flags and needs no
+   * change; a result with no `flags` at all needs none either.
    */
   private stripEphemeralFlag(
     result: string | InteractionReplyOptions,
