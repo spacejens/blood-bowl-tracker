@@ -277,6 +277,8 @@ export const DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE =
   'No matching interactions found.';
 export const DEBUG_TOP_USERS_NO_RESULTS_MESSAGE =
   'No bot usage recorded for those filters.';
+export const DEBUG_FILTER_USAGE_NO_RESULTS_MESSAGE =
+  'No bot usage recorded for those filters.';
 export const DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE =
   'That interaction is no longer on record.';
 export const DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE =

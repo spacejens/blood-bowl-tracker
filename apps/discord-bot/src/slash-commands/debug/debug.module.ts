@@ -14,17 +14,19 @@ import {
 import { Module } from '@nestjs/common';
 
 import { SlashCommandRegistryModule } from '../slash-command-registry.module';
+import { DebugFilterUsageCommandService } from './debug-filter-usage-command.service';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
 import { DebugInteractionsCommandService } from './debug-interactions-command.service';
 import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
 import { DebugRetriggerHandlerService } from './debug-retrigger-handler.service';
 import { DebugTopUsersCommandService } from './debug-top-users-command.service';
+import { FilterUsageReportService } from './filter-usage-report.service';
 import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
  * The `debug`-prefixed commands planned under #834: `/debuginteractions`
- * (with its retrigger buttons) and `/debugtopusers`, grouped here so they
- * share one module.
+ * (with its retrigger buttons), `/debugtopusers` and `/debugfilterusage`,
+ * grouped here so they share one module.
  *
  * `DiscordBotUsageModule` supplies `InteractionEventsQueryService`. Importing
  * it here (packages/discord-client already imports it for the write side) is
@@ -61,6 +63,8 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     DebugRetriggerButtonsService,
     DebugRetriggerHandlerService,
     DebugTopUsersCommandService,
+    DebugFilterUsageCommandService,
+    FilterUsageReportService,
     OptionValueResolverService,
   ],
 })
