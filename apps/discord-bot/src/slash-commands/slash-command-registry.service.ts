@@ -21,6 +21,16 @@ export class SlashCommandRegistryService {
     this.commands.push(command);
   }
 
+  /**
+   * The definition registered under `name`, or `undefined` when nothing
+   * registered it. Lets a caller invoke a command's `execute` directly,
+   * without going through Discord — which is how `/debuginteractions`
+   * retriggers a recorded past command.
+   */
+  findByName(name: string): SlashCommandDefinition | undefined {
+    return this.commands.find((command) => command.name === name);
+  }
+
   async flush(): Promise<void> {
     await this.discordClient.registerCommands(this.commands);
   }

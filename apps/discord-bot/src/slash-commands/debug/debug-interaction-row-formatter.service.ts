@@ -9,8 +9,8 @@ const EMPTY_PARAMETER_VALUE = '<empty>';
  * description: one line per interaction, newest first (the order the query
  * returns them in), as
  *
- *   <t:UNIX:f> — coach42 in Test League #general — /insights (race: Orc, era: Classic) — ✅
- *   <t:UNIX:f> — zog in a DM — button coach:42 — ❌ PLAYER_NOT_FOUND
+ *   1. <t:UNIX:f> — coach42 in Test League #general — /insights (race: Orc, era: Classic) — ✅
+ *   2. <t:UNIX:f> — zog in a DM — button coach:42 — ❌ PLAYER_NOT_FOUND
  *
  * The timestamp is Discord's own `<t:...:f>` markdown, so each viewer sees it
  * in their own locale and timezone and nothing has to be formatted
@@ -22,8 +22,15 @@ const EMPTY_PARAMETER_VALUE = '<empty>';
  */
 @Injectable()
 export class DebugInteractionRowFormatterService {
+  /**
+   * One numbered line per interaction. The number is what the retrigger
+   * buttons under the embed are labelled with, so row 3's line and button 3
+   * always refer to the same interaction.
+   */
   describe(rows: InteractionEventRow[]): string {
-    return rows.map((row) => this.line(row)).join('\n');
+    return rows
+      .map((row, index) => `${index + 1}. ${this.line(row)}`)
+      .join('\n');
   }
 
   private line(row: InteractionEventRow): string {

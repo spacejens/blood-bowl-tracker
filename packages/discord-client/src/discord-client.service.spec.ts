@@ -848,4 +848,39 @@ describe('DiscordClientService', () => {
     await flush();
     expect(reply).toHaveBeenCalledWith('I am badly hurt');
   });
+
+  describe('component handler lookup', () => {
+    it('finds a button handler by customId prefix', () => {
+      const handler = vi.fn();
+      service.registerButtonHandler('coach:', handler);
+
+      expect(service.findButtonHandler('coach:42')).toBe(handler);
+    });
+
+    it('returns undefined when no button prefix matches', () => {
+      service.registerButtonHandler('coach:', vi.fn());
+
+      expect(service.findButtonHandler('team:42')).toBeUndefined();
+    });
+
+    it('finds a select menu handler by customId prefix', () => {
+      const handler = vi.fn();
+      service.registerSelectMenuHandler('coach:', handler);
+
+      expect(service.findSelectMenuHandler('coach:menu:0')).toBe(handler);
+    });
+
+    it('returns undefined when no select menu prefix matches', () => {
+      service.registerSelectMenuHandler('coach:', vi.fn());
+
+      expect(service.findSelectMenuHandler('team:menu:0')).toBeUndefined();
+    });
+
+    it('keeps the button and select menu registries separate', () => {
+      const button = vi.fn();
+      service.registerButtonHandler('coach:', button);
+
+      expect(service.findSelectMenuHandler('coach:42')).toBeUndefined();
+    });
+  });
 });

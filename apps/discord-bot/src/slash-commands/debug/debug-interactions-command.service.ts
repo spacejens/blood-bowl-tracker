@@ -1,4 +1,5 @@
 import type { InteractionOutcome } from '@blood-bowl-tracker/db';
+import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -12,6 +13,8 @@ import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import { DebugInteractionRowFormatterService } from './debug-interaction-row-formatter.service';
+import { DebugRetriggerButtonsService } from './debug-retrigger-buttons.service';
+import { OptionValueResolverService } from './option-value-resolver.service';
 
 /**
  * How many interactions one reply lists. A fixed cap rather than an option:
@@ -46,6 +49,8 @@ export class DebugInteractionsCommandService implements OnModuleInit {
     private readonly events: InteractionEventsQueryService,
     private readonly formatter: DebugInteractionRowFormatterService,
     private readonly registry: SlashCommandRegistryService,
+    private readonly optionValues: OptionValueResolverService,
+    private readonly retriggerButtons: DebugRetriggerButtonsService,
   ) {}
 
   onModuleInit(): void {
@@ -90,17 +95,50 @@ export class DebugInteractionsCommandService implements OnModuleInit {
         flags: MessageFlags.Ephemeral,
       };
     }
+    const decorated = await this.decorate(rows);
     return {
       embeds: [
         {
           title: DEBUG_INTERACTIONS_TITLE,
           description: this.enforceDescriptionLimit(
-            this.formatter.describe(rows),
+            this.formatter.describe(decorated),
           ),
         },
       ],
+      // If enforceDescriptionLimit truncated the rendered text, a retrigger
+      // button can exist for a row whose numbered line is no longer visible
+      // in the embed. This is deliberately left as-is: it requires very long
+      // parameter values to trigger, and slicing the button list to match
+      // the truncated text would add real complexity for a rare case.
+      components: this.retriggerButtons.build(rows.map((row) => row.id)),
       flags: MessageFlags.Ephemeral,
     };
+  }
+
+  /**
+   * Each row with its recorded parameter values swapped for resolved entity
+   * names where one could be found. Done here rather than in the formatter so
+   * the formatter stays pure and dependency-free — it renders whatever values
+   * it is handed. A command's parameters are resolved by option name; a
+   * button/select-menu's entity type instead comes from its customId
+   * `name`/prefix, so those two kinds go through a different resolver method.
+   */
+  private decorate(
+    rows: InteractionEventRow[],
+  ): Promise<InteractionEventRow[]> {
+    return Promise.all(
+      rows.map(async (row) => ({
+        ...row,
+        parameters:
+          row.kind === 'command'
+            ? await this.optionValues.resolveParameters(row.parameters)
+            : await this.optionValues.resolveComponentParameters(
+                row.name,
+                row.kind,
+                row.parameters,
+              ),
+      })),
+    );
   }
 
   /**

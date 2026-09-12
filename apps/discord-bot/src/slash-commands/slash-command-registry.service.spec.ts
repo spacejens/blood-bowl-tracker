@@ -44,4 +44,18 @@ describe('SlashCommandRegistryService', () => {
     await registry.flush();
     expect(discordClient.registerCommands).toHaveBeenCalledWith([]);
   });
+
+  it('finds a registered command by its name', () => {
+    const insights = { name: 'insights', description: 'a', execute: vi.fn() };
+    registry.register(insights);
+    registry.register({ name: 'deepdive', description: 'b', execute: vi.fn() });
+
+    expect(registry.findByName('insights')).toBe(insights);
+  });
+
+  it('returns undefined for a name nothing registered', () => {
+    registry.register({ name: 'insights', description: 'a', execute: vi.fn() });
+
+    expect(registry.findByName('gone')).toBeUndefined();
+  });
 });
