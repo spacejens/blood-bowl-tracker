@@ -42,23 +42,16 @@ matching interactions, newest first. Each row carries, in order:
   `button name` or `select_menu name`, where the name is the recorded
   customId prefix.
 - The recorded parameters, as `key: value` pairs in the order they were
-  recorded, comma-separated in parentheses. Every autocomplete-backed
-  slash-command option (`race`, `era`, `league`, `competition`,
-  `competition-group`, `coach`, `team`, `player`, `star-player`,
-  `position`, `trophy`) records the entity's database id as its value, so
-  those are looked up and shown as the entity's name instead — `race: Orc`,
-  not `race: 17`. A button's `id` parameter and a select menu's `value`
-  parameters are entity ids the same way, resolved through the button's
-  own customId prefix instead of an option name — `button
-  deepdive:coach: (id: zog)`, not `(id: 42)` — while a select menu's own
-  `id` parameter (its menu index, e.g. `menu:0`) is never resolved, since
-  it isn't an entity id. The lookup is best-effort throughout: an option or
-  prefix with no entity behind it, a value that is not an id, and an
-  entity deleted since the interaction was recorded all fall back to the
-  raw recorded value. A parameter recorded with no value shows as `key:
-  <empty>`; a repeated key (a multi-select's several values) is repeated
-  rather than grouped. An interaction with no parameters gets no
-  parentheses at all.
+  recorded, comma-separated in parentheses. A parameter that identifies an
+  entity — an autocomplete-backed slash-command option, or a drill-down
+  button or select-menu's target — is looked up and shown as that entity's
+  name instead of its raw recorded id: `race: Orc`, not `race: 17`. The
+  lookup is best-effort: a parameter with no entity behind it, a value that
+  is not an id, and an entity deleted since the interaction was recorded
+  all fall back to the raw recorded value. A parameter recorded with no
+  value shows as `key: <empty>`; a repeated key (a multi-select's several
+  values) is repeated rather than grouped. An interaction with no
+  parameters gets no parentheses at all.
 - The outcome, as a tick for a success or a cross for a failure, followed
   by the recorded error message when there is one — a failure is not
   guaranteed to carry one.
