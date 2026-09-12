@@ -56,7 +56,7 @@ describe('FilterUsageReportService', () => {
     registry.all.mockReturnValue([
       command('insights', ['category', 'league', 'era']),
       command('deepdive', ['coach', 'team']),
-      command('onthisdate', ['date'], ['date']),
+      command('allrequired', ['date'], ['date']),
     ]);
 
     const moduleRef = await Test.createTestingModule({
@@ -140,7 +140,7 @@ describe('FilterUsageReportService', () => {
 
   it('ignores invocations of a command with no optional options', async () => {
     events.commandInvocations.mockResolvedValue([
-      invocation({ commandName: 'onthisdate', parameterKeys: ['date'] }),
+      invocation({ commandName: 'allrequired', parameterKeys: ['date'] }),
       invocation({ commandName: 'insights' }),
     ]);
 
@@ -153,7 +153,7 @@ describe('FilterUsageReportService', () => {
 
   it('omits a user who only ever used commands with no optional options', async () => {
     events.commandInvocations.mockResolvedValue([
-      invocation({ commandName: 'onthisdate', parameterKeys: ['date'] }),
+      invocation({ commandName: 'allrequired', parameterKeys: ['date'] }),
     ]);
 
     const report = await service.report({});

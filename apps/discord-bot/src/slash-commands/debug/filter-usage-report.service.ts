@@ -52,6 +52,17 @@ interface UserTally {
  * - a user who only ever used such commands has no awareness gap to flag and
  * does not appear in the report.
  *
+ * `debug`-prefixed commands (including this one) are excluded entirely, so a
+ * maintainer running the debug commands themselves does not land in the
+ * "Plain only" bucket - see `optionalOptionsByCommand` below for the detail.
+ *
+ * This classification assumes no command uses subcommands or subcommand
+ * groups today. If one did,
+ * `DiscordClientService.commandParameters` (`packages/discord-client/src/discord-client.service.ts`)
+ * would record its options nested under one subcommand-named key, and that
+ * subcommand entry itself has no `required` flag - so it would be
+ * misclassified here as an optional option.
+ *
  * This classification lives in `apps/discord-bot` rather than in
  * `packages/discord-bot-usage`, which reads the raw recorded rows: that
  * package has no knowledge of live command registration, and must not gain
@@ -123,10 +134,10 @@ export class FilterUsageReportService {
    * maps to an empty set, which `tally` treats the same as an unregistered
    * command: nothing to discover, so nothing to report.
    *
-   * `required` is read through a cast because `ApplicationCommandOptionData` is
-   * a union in which only some members declare the property; a member without
-   * it is optional by Discord's own default, which is exactly what `!== true`
-   * expresses.
+   * `required` is read through an `in` guard because `ApplicationCommandOptionData`
+   * is a union in which only some members declare the property; a member
+   * without it is optional by Discord's own default, which is exactly what
+   * `!('required' in option) || option.required !== true` expresses.
    *
    * `debug`-prefixed commands are skipped entirely - not merely reported as
    * having no optional options, but omitted from the map so `tally` treats
@@ -145,8 +156,7 @@ export class FilterUsageReportService {
           new Set(
             (command.options ?? [])
               .filter(
-                (option) =>
-                  (option as { required?: boolean }).required !== true,
+                (option) => !('required' in option) || option.required !== true,
               )
               .map((option) => option.name),
           ),

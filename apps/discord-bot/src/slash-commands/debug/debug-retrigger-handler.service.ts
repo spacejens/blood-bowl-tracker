@@ -41,10 +41,9 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * command's `MessageFlags.Ephemeral` flag (set by `/debuginteractions`,
  * `/debugtopusers` and `/debugfilterusage`, all of which appear in
  * `/debuginteractions`' own listing) is cleared, so the dispatcher posts it
- * non-ephemerally into the
- * channel the retrigger was clicked in - matching how the original command
- * or component would have replied. Only this service's own two error
- * replies are ephemeral.
+ * non-ephemerally into the channel the retrigger was clicked in - matching
+ * how the original command or component would have replied. Only this
+ * service's own two error replies are ephemeral.
  */
 @Injectable()
 export class DebugRetriggerHandlerService implements OnModuleInit {

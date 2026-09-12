@@ -282,36 +282,57 @@ export class InteractionEventsQueryService {
       return [];
     }
 
-    const parameters = await this.db
-      .select({
+    const keysByEventId = await this.groupedEventParameters<{
+      eventId: number;
+      key: string;
+    }>(
+      events.map((event) => event.id),
+      {
         eventId: interactionEventParameters.eventId,
         key: interactionEventParameters.key,
-      })
-      .from(interactionEventParameters)
-      .where(
-        inArray(
-          interactionEventParameters.eventId,
-          events.map((event) => event.id),
-        ),
-      )
-      .orderBy(asc(interactionEventParameters.id));
-
-    const keysByEventId = new Map<number, string[]>();
-    for (const parameter of parameters) {
-      const keys = keysByEventId.get(parameter.eventId);
-      if (keys === undefined) {
-        keysByEventId.set(parameter.eventId, [parameter.key]);
-      } else {
-        keys.push(parameter.key);
-      }
-    }
+      },
+    );
 
     return events.map((event) => ({
       discordUserId: event.discordUserId,
       username: event.username,
       commandName: event.commandName,
-      parameterKeys: keysByEventId.get(event.id) ?? [],
+      parameterKeys: (keysByEventId.get(event.id) ?? []).map(
+        (parameter) => parameter.key,
+      ),
     }));
+  }
+
+  /**
+   * Queries `interactionEventParameters` for the given batch of event ids,
+   * selecting exactly the caller-supplied columns, and groups the resulting
+   * rows by `eventId`. Shared by both read paths - `withParameters`, which
+   * needs each parameter's key and value, and `commandInvocations`, which
+   * needs only the key - so each caller passes its own `.select()` columns
+   * and gets back rows shaped exactly as requested, grouped and ready to map
+   * into its own final row shape. `eventId` is required on every row shape so
+   * the grouping itself has something to key on.
+   */
+  private async groupedEventParameters<Row extends { eventId: number }>(
+    eventIds: number[],
+    columns: Parameters<Db['select']>[0],
+  ): Promise<Map<number, Row[]>> {
+    const rows = (await this.db
+      .select(columns)
+      .from(interactionEventParameters)
+      .where(inArray(interactionEventParameters.eventId, eventIds))
+      .orderBy(asc(interactionEventParameters.id))) as Row[];
+
+    const grouped = new Map<number, Row[]>();
+    for (const row of rows) {
+      const existing = grouped.get(row.eventId);
+      if (existing === undefined) {
+        grouped.set(row.eventId, [row]);
+      } else {
+        existing.push(row);
+      }
+    }
+    return grouped;
   }
 
   /**
@@ -324,26 +345,24 @@ export class InteractionEventsQueryService {
     if (events.length === 0) {
       return [];
     }
-    const parameters = await this.db
-      .select({
+    const parametersByEventId = await this.groupedEventParameters<{
+      eventId: number;
+      key: string;
+      value: string | null;
+    }>(
+      events.map((event) => event.id),
+      {
         eventId: interactionEventParameters.eventId,
         key: interactionEventParameters.key,
         value: interactionEventParameters.value,
-      })
-      .from(interactionEventParameters)
-      .where(
-        inArray(
-          interactionEventParameters.eventId,
-          events.map((event) => event.id),
-        ),
-      )
-      .orderBy(asc(interactionEventParameters.id));
+      },
+    );
 
     return events.map((event) => ({
       ...event,
-      parameters: parameters
-        .filter((parameter) => parameter.eventId === event.id)
-        .map((parameter) => ({ key: parameter.key, value: parameter.value })),
+      parameters: (parametersByEventId.get(event.id) ?? []).map(
+        (parameter) => ({ key: parameter.key, value: parameter.value }),
+      ),
     }));
   }
 

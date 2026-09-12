@@ -70,10 +70,13 @@ describe('DebugFilterUsageCommandService', () => {
     const command = service.buildCommand();
 
     expect(command.options?.map((option) => option.name)).toEqual(['days']);
-    expect((command.options?.[0] as { required?: boolean }).required).not.toBe(
-      true,
-    );
-    expect((command.options?.[0] as { minValue?: number }).minValue).toBe(1);
+    const option = command.options?.[0];
+    expect(
+      option === undefined ||
+        !('required' in option) ||
+        option.required !== true,
+    ).toBe(true);
+    expect((option as { minValue?: number }).minValue).toBe(1);
   });
 
   it('reports all-time when the days option is omitted', async () => {
