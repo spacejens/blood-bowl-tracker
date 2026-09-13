@@ -33,6 +33,13 @@ const fakePlayer = {
   agility: 3,
   passing: 4,
   armour: 9,
+  missNextGame: false,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -342,6 +349,74 @@ describe('PlayersService', () => {
       ).rejects.toThrow(/all-or-nothing/);
       expect(transaction).not.toHaveBeenCalled();
     });
+
+    it('writes every supplied lasting-injury field', async () => {
+      // Query 0: the rules-set format lookup (characteristics are supplied
+      // below so it still fires). Query 1: the external-id lookup, finding
+      // nothing. Query 2: the insert. Query 3: the external ids.
+      const { chains } = await build(
+        [
+          {
+            moveFormat: 'bare',
+            strengthFormat: 'bare',
+            agilityFormat: 'plus',
+            passingFormat: 'plus',
+            armourFormat: 'plus',
+          },
+        ],
+        [],
+        [fakePlayer],
+        [],
+      );
+
+      await service.upsert({
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
+        rulesSetId: 20,
+        missNextGame: true,
+        nigglingInjuryCount: 2,
+        moveReductionCount: 1,
+        strengthReductionCount: 0,
+        agilityReductionCount: 0,
+        passingReductionCount: 0,
+        armourReductionCount: 3,
+        externalIds: [{ externalSystemId: 1, externalId: 'pid-7' }],
+      });
+
+      expect(firstCallArg(chains[2].values)).toMatchObject({
+        missNextGame: true,
+        nigglingInjuryCount: 2,
+        moveReductionCount: 1,
+        strengthReductionCount: 0,
+        agilityReductionCount: 0,
+        passingReductionCount: 0,
+        armourReductionCount: 3,
+      });
+    });
+
+    it('leaves the stored lasting-injury state untouched when the group is omitted', async () => {
+      // Query 0: the external-id lookup (no characteristics supplied, so no
+      // format lookup fires). Query 1: the insert. Query 2: the external ids.
+      const { chains } = await build([], [fakePlayer], []);
+
+      await service.upsert({
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        externalIds: [{ externalSystemId: 1, externalId: 'pid-7' }],
+      });
+
+      const values = firstCallArg(chains[1].values) as Record<string, unknown>;
+      expect(values.missNextGame).toBeUndefined();
+      expect(values.nigglingInjuryCount).toBeUndefined();
+      expect(values.armourReductionCount).toBeUndefined();
+    });
   });
 
   describe('findById', () => {
@@ -509,6 +584,24 @@ describe('PlayersService', () => {
     it('returns undefined when no player matches', async () => {
       await build([]);
       await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+
+    it('selects the seven lasting-injury columns', async () => {
+      const { db } = await build([fakePlayer]);
+
+      await service.findById(1);
+
+      expect(Object.keys(firstCallArg(db.select, 0, 0) as object)).toEqual(
+        expect.arrayContaining([
+          'missNextGame',
+          'nigglingInjuryCount',
+          'moveReductionCount',
+          'strengthReductionCount',
+          'agilityReductionCount',
+          'passingReductionCount',
+          'armourReductionCount',
+        ]),
+      );
     });
   });
 

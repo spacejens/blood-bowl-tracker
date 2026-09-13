@@ -90,6 +90,13 @@ export class PlayersService {
         agility: number;
         passing: number | null;
         armour: number;
+        missNextGame: boolean;
+        nigglingInjuryCount: number;
+        moveReductionCount: number;
+        strengthReductionCount: number;
+        agilityReductionCount: number;
+        passingReductionCount: number;
+        armourReductionCount: number;
       }
     | undefined
   > {
@@ -119,6 +126,15 @@ export class PlayersService {
         agility: players.agility,
         passing: players.passing,
         armour: players.armour,
+        // The player's currently outstanding lasting injuries. No new join:
+        // they live on `players` itself, alongside the characteristics above.
+        missNextGame: players.missNextGame,
+        nigglingInjuryCount: players.nigglingInjuryCount,
+        moveReductionCount: players.moveReductionCount,
+        strengthReductionCount: players.strengthReductionCount,
+        agilityReductionCount: players.agilityReductionCount,
+        passingReductionCount: players.passingReductionCount,
+        armourReductionCount: players.armourReductionCount,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
@@ -235,6 +251,16 @@ export class PlayersService {
       agility: data.agility,
       passing: data.passing,
       armour: data.armour,
+      // Undefined keys are stripped by `upsertByExternalIds`, so a payload
+      // that says nothing about lasting injuries leaves the stored state
+      // alone — the same contract the characteristics above rely on.
+      missNextGame: data.missNextGame,
+      nigglingInjuryCount: data.nigglingInjuryCount,
+      moveReductionCount: data.moveReductionCount,
+      strengthReductionCount: data.strengthReductionCount,
+      agilityReductionCount: data.agilityReductionCount,
+      passingReductionCount: data.passingReductionCount,
+      armourReductionCount: data.armourReductionCount,
     };
 
     const { row: player, created } = await upsertByExternalIds<
