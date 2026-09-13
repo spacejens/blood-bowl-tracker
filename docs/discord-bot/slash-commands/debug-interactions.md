@@ -89,14 +89,24 @@ Two things follow from how retriggering reruns the interaction:
   removed. This can't loop forever, but it's worth recognizing these rows
   for what they are.
 - The reply lands in the channel where the retrigger was clicked, not the
-  channel the original interaction happened in, and is public rather than
-  ephemeral. This is an intentional exception to the "Ephemeral by design"
-  rule below, so a retrigger reproduces the answer as everyone would have
-  seen it — even when the original interaction was `/debuginteractions`
-  itself, or [`/debugtopusers`](debug-top-users.md).
+  channel the original interaction happened in. For a command that is *not*
+  `restricted: true`, this is also an intentional exception to the
+  "Ephemeral by design" rule below: the reply is posted publicly rather than
+  ephemerally, so a retrigger reproduces the answer as everyone would have
+  seen it. `/debuginteractions`, [`/debugtopusers`](debug-top-users.md) and
+  `/debugfilterusage` are all `restricted: true`, though, so retriggering any
+  of them keeps the reply ephemeral, visible only to whoever clicked
+  retrigger — it is never posted publicly.
 
-Two things can go wrong, and both answer with a plain ephemeral message
-rather than failing:
+Retriggering a `restricted: true` command also re-checks the clicking member
+against the configured role (`DEBUG_COMMAND_ROLE_ID`), the same check a
+direct invocation goes through. A click by someone who no longer holds the
+role, or a stale retrigger button held from before the role was configured,
+gets the same private "you don't have permission to use this command." reply
+described above, and the command does not run.
+
+Two more things can go wrong, and both also answer with a plain ephemeral
+message rather than failing:
 
 - The recorded interaction is no longer in the database.
 - The command, button or select menu has been renamed or removed since it

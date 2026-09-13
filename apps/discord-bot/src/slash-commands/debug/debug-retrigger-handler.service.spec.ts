@@ -244,7 +244,10 @@ describe('DebugRetriggerHandlerService', () => {
 
     expect(await service.handle(click('11'))).toBe('coach embed');
     expect(discordClient.findButtonHandler).toHaveBeenCalledWith('coach:42');
-    expect(handler.mock.calls[0][0]).toEqual({ customId: 'coach:42' });
+    expect(handler.mock.calls[0][0]).toEqual({
+      customId: 'coach:42',
+      member: null,
+    });
   });
 
   it('re-runs a recorded button that carried no payload', async () => {
@@ -293,6 +296,7 @@ describe('DebugRetriggerHandlerService', () => {
     expect(handler.mock.calls[0][0]).toEqual({
       customId: 'coach:menu:0',
       values: ['7', '9'],
+      member: null,
     });
   });
 
@@ -312,6 +316,7 @@ describe('DebugRetriggerHandlerService', () => {
     expect(handler.mock.calls[0][0]).toEqual({
       customId: 'coach:menu:0',
       values: [],
+      member: null,
     });
   });
 
@@ -514,6 +519,50 @@ describe('DebugRetriggerHandlerService', () => {
       flags: MessageFlags.Ephemeral,
     });
     expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('strips the ephemeral flag from an unrestricted command retrigger even when a role is configured, without checking the role', async () => {
+    const { service, events, registry, memberRoleAccess } =
+      await makeService('role-1');
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'insights' }),
+    );
+    registry.findByName.mockReturnValue({
+      name: 'insights',
+      description: 'd',
+      execute: vi.fn().mockResolvedValue({
+        content: 'x',
+        flags: MessageFlags.Ephemeral,
+      }),
+    });
+
+    expect(await service.handle(click('11'))).toEqual({
+      content: 'x',
+      flags: 0,
+    });
+    expect(memberRoleAccess.hasRole).not.toHaveBeenCalled();
+  });
+
+  it('forwards the real clicking member into the synthetic button interaction, so a second-order retrigger of a restricted command sees the real member', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({
+        kind: 'button',
+        name: 'coach:',
+        parameters: [{ key: 'id', value: '42' }],
+      }),
+    );
+    const handler = vi.fn().mockResolvedValue('coach embed');
+    discordClient.findButtonHandler.mockReturnValue(handler);
+    const member = { roles: { cache: new Map() } } as unknown as NonNullable<
+      ButtonInteraction['member']
+    >;
+
+    await service.handle(click('11', member));
+
+    expect(handler.mock.calls[0][0]).toEqual({
+      customId: 'coach:42',
+      member,
+    });
   });
 
   it('behaves as before (execute called, ephemeral flag preserved) when retriggering a restricted command with no role configured', async () => {

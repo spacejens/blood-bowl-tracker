@@ -43,7 +43,11 @@ export class DiscordClientModule {
         MemberRoleAccessService,
         DiscordClientService,
       ],
-      exports: [DiscordClientService],
+      exports: [
+        DiscordClientService,
+        MemberRoleAccessService,
+        RESTRICTED_COMMAND_ROLE_ID,
+      ],
     };
   }
 
@@ -67,7 +71,11 @@ export class DiscordClientModule {
         MemberRoleAccessService,
         DiscordClientService,
       ],
-      exports: [DiscordClientService],
+      exports: [
+        DiscordClientService,
+        MemberRoleAccessService,
+        RESTRICTED_COMMAND_ROLE_ID,
+      ],
     };
   }
 }

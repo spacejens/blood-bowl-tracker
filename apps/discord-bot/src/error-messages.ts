@@ -281,5 +281,9 @@ export const DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE =
   'That interaction is no longer on record.';
 export const DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE =
   'Nothing answers to that any more - it has been renamed or removed.';
+// Wording deliberately kept identical to discord-client's own
+// ACCESS_DENIED_MESSAGE (packages/discord-client/src/discord-client.service.ts),
+// so both denial points read the same, even though the two packages don't
+// share a message module.
 export const DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE =
   "You don't have permission to use this command.";

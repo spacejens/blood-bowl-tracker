@@ -60,6 +60,16 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * before a role was configured, or after it was revoked) would let anyone
  * who can click it run the command regardless. This service's own three
  * error/denial replies are ephemeral.
+ *
+ * The synthetic button/select-menu interactions built for `retriggerButton`
+ * and `retriggerSelectMenu` also carry `member`, forwarded from the real
+ * interaction that triggered the retrigger - unused by every other
+ * registered button/select-menu handler, but needed for one nested case:
+ * this handler is itself a normally-registered button handler (on
+ * `DEBUG_RETRIGGER_CUSTOM_ID_PREFIX`), so retriggering a past retrigger of a
+ * restricted command routes back into `handle` via `retriggerButton`. Without
+ * `member` forwarded, that second-order call's own role check would always
+ * see `member` as `undefined` and deny even a role-holding maintainer.
  */
 @Injectable()
 export class DebugRetriggerHandlerService implements OnModuleInit {
@@ -97,9 +107,9 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
       return this.retriggerCommand(event, interaction);
     }
     if (event.kind === 'button') {
-      return this.retriggerButton(event);
+      return this.retriggerButton(event, interaction);
     }
-    return this.retriggerSelectMenu(event);
+    return this.retriggerSelectMenu(event, interaction);
   }
 
   private retriggerCommand(
@@ -183,6 +193,7 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
 
   private retriggerButton(
     event: InteractionEventRow,
+    interaction: ButtonInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const customId = this.componentCustomId(event);
     const handler = this.discordClient.findButtonHandler(customId);
@@ -191,11 +202,15 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
         this.ephemeral(DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE),
       );
     }
-    return handler({ customId } as unknown as ButtonInteraction);
+    return handler({
+      customId,
+      member: interaction.member,
+    } as unknown as ButtonInteraction);
   }
 
   private retriggerSelectMenu(
     event: InteractionEventRow,
+    interaction: ButtonInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const customId = this.componentCustomId(event);
     const handler = this.discordClient.findSelectMenuHandler(customId);
@@ -210,6 +225,7 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
     return handler({
       customId,
       values: selectedValues,
+      member: interaction.member,
     } as unknown as StringSelectMenuInteraction);
   }
 
