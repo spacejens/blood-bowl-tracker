@@ -53,21 +53,8 @@ Top-level keys:
       files. TP's subdirectory names are its own slugs and don't necessarily
       match the era's display name. Every `identity.name` and every
       `dataSubdir` must be unique across the array.
-- `mercenaries` — curated data for mercenary ("Big Guy") hires (e.g. "Giant
-  Mercenary"). Named for the section, not the single kind of data it holds
-  today: characteristics — which TP's own data never carries, see the
-  `TpPlayersImportService` entry below — are all that's curated so far, but
-  the section is meant to hold whatever else a future mercenary needs.
-  Optional; an absent or empty array just means no mercenary hire has been
-  curated yet. An array of entries, each:
-  - `positionName` — the mercenary position's name, matching the inline
-    `fallbackPositionName` TP embeds on the hire.
-  - `rulesSetName` — the rules set this entry's characteristics apply under.
-  - `move`, `strength`, `agility`, `passing`, `armour` — the position's
-    characteristics under that rules set.
-
 See `import-tp-config.example.json5` for a worked example with real era
-names, rule sets, dates, and curated mercenaries.
+names, rule sets, and dates.
 
 Rule-set names and era dates are config-supplied because TP's data carries
 only an opaque numeric rule-set code, not a name or a date range. The tool
@@ -250,17 +237,19 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   that fallback) can't be resolved is recorded as an error and skipped.
   Because TP supplies no characteristics for a mercenary anywhere — the name
   is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire
-  carries no `ma/st/ag/pa/av` — both the mercenary Position's
-  `position_rules_sets` rows and each hire's own characteristics come from
-  `MercenaryConfigService`, which reads the curated
-  `mercenaries` setting in import-tp-config.json5 (mercenary position name →
-  rules-set name → characteristics) and is applied by
-  `TpMercenaryCharacteristicsService`. The position sync runs once per
-  distinct mercenary name per import run; the per-hire fallback runs only when
-  the hire embedded no characteristics of its own, so a future TP payload that
-  does supply them still wins. An uncurated mercenary name, or a hire under a
-  rules set the table does not cover, is recorded as an `ImportError` rather
-  than silently leaving the characteristics unset.
+  carries no `ma/st/ag/pa/av` — each hire's characteristics come from the
+  curated `position_rules_sets` row `tools/import-manual` writes in its
+  before-other-importers phase
+  (`data/before-other-importers/position-characteristics-gap-fill.json5`).
+  `TpMercenaryCharacteristicsService` reads that row over the
+  `positionRulesSets.list` procedure, once per distinct mercenary name per
+  import run, and caches it by rules set id for the run's hires. The tool
+  keeps no copy of the values itself: two copies of the same numbers could
+  drift, and reading the real row removes that risk. The per-hire fallback
+  runs only when the hire embedded no characteristics of its own, so a future
+  TP payload that does supply them still wins. A mercenary position with no
+  curated row at all, or a hire under a rules set no row covers, is recorded
+  as an `ImportError` rather than silently leaving the characteristics unset.
   Players carry only a TP external id (no Name external id — player names
   aren't unique). Returns
   `playerIdsByLineUpId`, consumed by match-event import to resolve a

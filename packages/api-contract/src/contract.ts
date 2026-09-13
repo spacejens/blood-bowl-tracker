@@ -46,6 +46,8 @@ import {
   UpsertPositionSchema,
 } from './schemas/position';
 import {
+  ListPositionRulesSetsSchema,
+  PositionRulesSetCharacteristicsSchema,
   SyncPositionRulesSetsResultSchema,
   SyncPositionRulesSetsSchema,
 } from './schemas/position-rules-set';
@@ -148,6 +150,18 @@ export const contract = {
         },
       })
       .output(SyncPositionRulesSetsResultSchema),
+    // A plainly read-only procedure, the second in this contract after
+    // `competitionGroups.list`. tools/import-tp's mercenary hires carry no
+    // characteristics anywhere in TP's own data, so the importer reads back
+    // the curated `position_rules_sets` rows tools/import-manual wrote in its
+    // before-other-importers phase instead of keeping a second,
+    // hand-duplicated copy of the same values in its own config file. Writes
+    // nothing, so it declares no errors. One position per call: the caller
+    // already holds the position id from its own `positions.upsert` response,
+    // and a position has only a handful of rows.
+    list: oc
+      .input(ListPositionRulesSetsSchema)
+      .output(z.array(PositionRulesSetCharacteristicsSchema)),
   },
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),

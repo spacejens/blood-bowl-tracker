@@ -159,7 +159,7 @@ export async function makeService({
   mercenaryCharacteristics.rulesSetNameByEraName.mockReturnValue(
     rulesSetNameByEraName,
   );
-  mercenaryCharacteristics.syncPositionCharacteristics.mockResolvedValue(
+  mercenaryCharacteristics.loadPositionCharacteristics.mockResolvedValue(
     undefined,
   );
   mercenaryCharacteristics.forRosterPlayer.mockReturnValue(

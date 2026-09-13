@@ -54,7 +54,7 @@ function mercenaryRosters(
 const teamEras = new Map([[123, [{ id: 5000, eraId: 500 }]]]);
 
 describe('TpPlayersImportService mercenary characteristics', () => {
-  it("syncs the mercenary Position's curated characteristics once per distinct name", async () => {
+  it("reads the mercenary Position's curated characteristics once per distinct name", async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
     const { service, mercenaryCharacteristics } = await makeService({
@@ -68,19 +68,18 @@ describe('TpPlayersImportService mercenary characteristics', () => {
     });
 
     expect(
-      mercenaryCharacteristics.syncPositionCharacteristics,
+      mercenaryCharacteristics.loadPositionCharacteristics,
     ).toHaveBeenCalledTimes(1);
     expect(
-      mercenaryCharacteristics.syncPositionCharacteristics,
+      mercenaryCharacteristics.loadPositionCharacteristics,
     ).toHaveBeenCalledWith({
       positionName: 'Giant Mercenary',
       positionId: 800,
-      tpSystemId: 1,
       errors: expect.anything() as ImportError[],
     });
   });
 
-  it('does not sync curated characteristics when the mercenary position upsert fails', async () => {
+  it('does not read curated characteristics when the mercenary position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
     const { service, mercenaryCharacteristics } = await makeService({
@@ -94,7 +93,7 @@ describe('TpPlayersImportService mercenary characteristics', () => {
     });
 
     expect(
-      mercenaryCharacteristics.syncPositionCharacteristics,
+      mercenaryCharacteristics.loadPositionCharacteristics,
     ).not.toHaveBeenCalled();
   });
 
