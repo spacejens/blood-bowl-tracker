@@ -208,6 +208,22 @@ const ANY_PLAYER_CHARACTERISTICS: BblPlayer['characteristics'] = {
   armour: 8,
 };
 
+/**
+ * An arbitrary all-clean lasting-injuries value. This service never reads
+ * `BblPlayer.lastingInjuries` — it only exists because the field is
+ * required — so its exact values are irrelevant; shared here rather than
+ * repeated at every `plPage(...)` fixture in this file.
+ */
+const ANY_LASTING_INJURIES: BblPlayer['lastingInjuries'] = {
+  missNextGame: false,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
+};
+
 const racesByBblId = new Map<string, { id: number; name: string }>([
   ['48', { id: 480, name: 'College of Shadow' }],
   ['7', { id: 70, name: 'Goblin Team' }],
@@ -360,6 +376,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -437,6 +454,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -519,6 +537,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'col', // -> race 480 (College of Shadow, bblId '48') = already listed
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -579,6 +598,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
           plPage({
             pid: '123',
@@ -587,6 +607,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'col',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -656,6 +677,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -763,6 +785,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'unknown-code',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -875,6 +898,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'ghost', // not in teamRaceIdsByCode
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -919,6 +943,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'orphan', // -> db id 999, absent from racesByBblId
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -1009,6 +1034,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -1047,6 +1073,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
           plPage({
             pid: '2',
@@ -1055,6 +1082,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'col',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
