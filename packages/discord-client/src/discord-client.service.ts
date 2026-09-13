@@ -476,12 +476,6 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * `interaction.member` is a cached `GuildMember` (field `nickname`) when
-   * the guild is already known to the client, or the raw
-   * `APIInteractionGuildMember` (field `nick`) otherwise. Both are checked
-   * so a nickname is still recorded in the raw-payload case.
-   */
-  /**
    * Whether this invocation must be refused: the command opted into the
    * restriction, this deployment configured a role, and the invoking member
    * does not hold it. An unrestricted command, or a deployment with no
@@ -513,6 +507,12 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  /**
+   * `interaction.member` is a cached `GuildMember` (field `nickname`) when
+   * the guild is already known to the client, or the raw
+   * `APIInteractionGuildMember` (field `nick`) otherwise. Both are checked
+   * so a nickname is still recorded in the raw-payload case.
+   */
   private memberNickname(
     member: ChatInputCommandInteraction['member'],
   ): string | undefined {

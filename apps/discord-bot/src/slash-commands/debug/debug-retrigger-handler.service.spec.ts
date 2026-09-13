@@ -1,14 +1,19 @@
 import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-usage';
-import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import {
+  DiscordClientService,
+  MemberRoleAccessService,
+  RESTRICTED_COMMAND_ROLE_ID,
+} from '@blood-bowl-tracker/discord-client';
 import { Test } from '@nestjs/testing';
 import type { ButtonInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DeepMockProxy } from 'vitest-mock-extended';
-import { mockDeep } from 'vitest-mock-extended';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
+import { mock, mockDeep } from 'vitest-mock-extended';
 
 import {
+  DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE,
   DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE,
   DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE,
 } from '../../error-messages';
@@ -34,11 +39,52 @@ function eventRow(
   };
 }
 
-/** A click on the retrigger button for `eventId`. */
-function click(eventId: string): ButtonInteraction {
+/** A click on the retrigger button for `eventId`, by a given member (if any). */
+function click(
+  eventId: string,
+  member?: ButtonInteraction['member'],
+): ButtonInteraction {
   return {
     customId: `${DEBUG_RETRIGGER_CUSTOM_ID_PREFIX}${eventId}`,
+    member: member ?? null,
   } as ButtonInteraction;
+}
+
+/**
+ * Builds a freshly-compiled `DebugRetriggerHandlerService` with the given
+ * role-restriction configuration. Used only by tests that must vary this at
+ * construction time (an `@Optional() @Inject(RESTRICTED_COMMAND_ROLE_ID)`
+ * value); tests unconcerned with restriction use the `beforeEach` subject
+ * instead, whose role is left unconfigured (`undefined`) by default.
+ */
+async function makeService(restrictedRoleId: string | undefined): Promise<{
+  service: DebugRetriggerHandlerService;
+  events: DeepMockProxy<InteractionEventsQueryService>;
+  registry: DeepMockProxy<SlashCommandRegistryService>;
+  memberRoleAccess: MockProxy<MemberRoleAccessService>;
+}> {
+  const events = mockDeep<InteractionEventsQueryService>();
+  const registry = mockDeep<SlashCommandRegistryService>();
+  const discordClient = mockDeep<DiscordClientService>();
+  const memberRoleAccess = mock<MemberRoleAccessService>();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      DebugRetriggerHandlerService,
+      { provide: InteractionEventsQueryService, useValue: events },
+      { provide: SlashCommandRegistryService, useValue: registry },
+      { provide: DiscordClientService, useValue: discordClient },
+      { provide: MemberRoleAccessService, useValue: memberRoleAccess },
+      { provide: RESTRICTED_COMMAND_ROLE_ID, useValue: restrictedRoleId },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(DebugRetriggerHandlerService),
+    events,
+    registry,
+    memberRoleAccess,
+  };
 }
 
 describe('DebugRetriggerHandlerService', () => {
@@ -58,6 +104,11 @@ describe('DebugRetriggerHandlerService', () => {
         { provide: InteractionEventsQueryService, useValue: events },
         { provide: SlashCommandRegistryService, useValue: registry },
         { provide: DiscordClientService, useValue: discordClient },
+        {
+          provide: MemberRoleAccessService,
+          useValue: mock<MemberRoleAccessService>(),
+        },
+        { provide: RESTRICTED_COMMAND_ROLE_ID, useValue: undefined },
       ],
     }).compile();
     service = moduleRef.get(DebugRetriggerHandlerService);
@@ -288,12 +339,12 @@ describe('DebugRetriggerHandlerService', () => {
     expect(await service.handle(click('11'))).toBe(reply);
   });
 
-  it('clears the ephemeral flag from a retriggered command reply, preserving the rest', async () => {
+  it('clears the ephemeral flag from an unrestricted retriggered command reply, preserving the rest', async () => {
     events.findById.mockResolvedValue(
-      eventRow({ kind: 'command', name: 'debuginteractions' }),
+      eventRow({ kind: 'command', name: 'insights' }),
     );
     registry.findByName.mockReturnValue({
-      name: 'debuginteractions',
+      name: 'insights',
       description: 'd',
       execute: vi.fn().mockResolvedValue({
         content: 'x',
@@ -307,12 +358,12 @@ describe('DebugRetriggerHandlerService', () => {
     });
   });
 
-  it('clears only the ephemeral bit from a combined flags value, preserving the rest', async () => {
+  it('clears only the ephemeral bit from a combined flags value on an unrestricted command, preserving the rest', async () => {
     events.findById.mockResolvedValue(
-      eventRow({ kind: 'command', name: 'debuginteractions' }),
+      eventRow({ kind: 'command', name: 'insights' }),
     );
     registry.findByName.mockReturnValue({
-      name: 'debuginteractions',
+      name: 'insights',
       description: 'd',
       execute: vi.fn().mockResolvedValue({
         content: 'x',
@@ -412,5 +463,81 @@ describe('DebugRetriggerHandlerService', () => {
     await service.handle(click('11'));
 
     expect(seen).toBeNull();
+  });
+
+  it('keeps the ephemeral flag on a restricted command retriggered by a member holding the configured role, and still calls execute', async () => {
+    const { service, events, registry, memberRoleAccess } =
+      await makeService('role-1');
+    memberRoleAccess.hasRole.mockReturnValue(true);
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'debuginteractions' }),
+    );
+    const execute = vi.fn().mockResolvedValue({
+      content: 'x',
+      flags: MessageFlags.Ephemeral,
+    });
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      restricted: true,
+      execute,
+    });
+    const member = { roles: { cache: new Map() } } as unknown as NonNullable<
+      ButtonInteraction['member']
+    >;
+
+    expect(await service.handle(click('11', member))).toEqual({
+      content: 'x',
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(execute).toHaveBeenCalled();
+    expect(memberRoleAccess.hasRole).toHaveBeenCalledWith(member, 'role-1');
+  });
+
+  it('denies retriggering a restricted command when the clicking member lacks the configured role, without calling execute', async () => {
+    const { service, events, registry, memberRoleAccess } =
+      await makeService('role-1');
+    memberRoleAccess.hasRole.mockReturnValue(false);
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'debuginteractions' }),
+    );
+    const execute = vi.fn().mockResolvedValue('should not run');
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      restricted: true,
+      execute,
+    });
+
+    expect(await service.handle(click('11'))).toEqual({
+      content: DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('behaves as before (execute called, ephemeral flag preserved) when retriggering a restricted command with no role configured', async () => {
+    const { service, events, registry, memberRoleAccess } =
+      await makeService(undefined);
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'debuginteractions' }),
+    );
+    const execute = vi.fn().mockResolvedValue({
+      content: 'x',
+      flags: MessageFlags.Ephemeral,
+    });
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      restricted: true,
+      execute,
+    });
+
+    expect(await service.handle(click('11'))).toEqual({
+      content: 'x',
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(execute).toHaveBeenCalled();
+    expect(memberRoleAccess.hasRole).not.toHaveBeenCalled();
   });
 });

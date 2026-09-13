@@ -281,3 +281,5 @@ export const DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE =
   'That interaction is no longer on record.';
 export const DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE =
   'Nothing answers to that any more - it has been renamed or removed.';
+export const DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE =
+  "You don't have permission to use this command.";
