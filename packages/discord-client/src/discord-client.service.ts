@@ -33,6 +33,15 @@ import {
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
+/**
+ * The Discord role id members must hold to run a command marked
+ * `restricted`, or `undefined` where the deployment configured none, in which
+ * case no restriction is applied. Supplied by the host application, so this
+ * package stays free of any configuration concern, exactly like
+ * `DISCORD_BOT_TOKEN`.
+ */
+export const RESTRICTED_COMMAND_ROLE_ID = Symbol('RESTRICTED_COMMAND_ROLE_ID');
+
 const READY_TIMEOUT_MS = 30_000;
 
 /**

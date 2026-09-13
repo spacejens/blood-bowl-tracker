@@ -11,5 +11,6 @@ export type {
 export {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
+  RESTRICTED_COMMAND_ROLE_ID,
 } from './discord-client.service';
 export { MemberRoleAccessService } from './member-role-access.service';

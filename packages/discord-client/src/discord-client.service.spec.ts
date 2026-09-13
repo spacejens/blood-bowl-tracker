@@ -85,6 +85,7 @@ import {
   DISCORD_BOT_TOKEN,
   DiscordClientModule,
   DiscordClientService,
+  RESTRICTED_COMMAND_ROLE_ID,
 } from './index';
 
 describe('DiscordClientService', () => {
@@ -317,6 +318,40 @@ describe('DiscordClientService', () => {
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
     );
+  });
+
+  it('provides the restricted role id from the async factory', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        DiscordClientModule.forRootAsync({
+          useFactory: () => 'tkn',
+          useRestrictedRoleIdFactory: () => 'role-1',
+        }),
+      ],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
+  });
+
+  it('provides the restricted role id given to forRoot', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        DiscordClientModule.forRoot({
+          token: 'tkn',
+          restrictedRoleId: 'role-1',
+        }),
+      ],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
   it('rejects init when the client never becomes ready', async () => {
