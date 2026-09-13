@@ -2,6 +2,7 @@ import { is } from 'drizzle-orm';
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
+import { players, playersHistory } from './game-data/players';
 import { historyRegistry } from './history';
 import * as schema from './index';
 
@@ -73,5 +74,39 @@ describe('history tracking completeness', () => {
         ).toBe(true);
       }
     }
+  });
+});
+
+describe('players lasting-injury columns', () => {
+  it('carries the six lasting-injury columns, all NOT NULL with safe defaults', () => {
+    const columns = getTableConfig(players).columns;
+    const byName = new Map(columns.map((column) => [column.name, column]));
+
+    for (const name of [
+      'miss_next_game',
+      'niggling_injury_count',
+      'move_reduction_count',
+      'strength_reduction_count',
+      'agility_reduction_count',
+      'passing_reduction_count',
+      'armour_reduction_count',
+    ]) {
+      const column = byName.get(name);
+      expect(column, `players.${name} is missing`).toBeDefined();
+      expect(column?.notNull, `players.${name} must be NOT NULL`).toBe(true);
+      expect(column?.hasDefault, `players.${name} must have a default`).toBe(
+        true,
+      );
+    }
+  });
+
+  it('mirrors all six onto players_history', () => {
+    const historyColumnNames = new Set(
+      getTableConfig(playersHistory).columns.map((column) => column.name),
+    );
+
+    expect(historyColumnNames).toContain('miss_next_game');
+    expect(historyColumnNames).toContain('niggling_injury_count');
+    expect(historyColumnNames).toContain('armour_reduction_count');
   });
 });
