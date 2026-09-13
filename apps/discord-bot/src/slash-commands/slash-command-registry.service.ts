@@ -31,6 +31,20 @@ export class SlashCommandRegistryService {
     return this.commands.find((command) => command.name === name);
   }
 
+  /**
+   * Every registered definition, in registration order - what a caller needs
+   * to reason about the *shape* of the live command surface rather than to
+   * invoke one command (which is `findByName`'s job). `/debugfilterusage`
+   * reads it to learn which of each command's options are declared optional.
+   *
+   * A shallow copy: the internal array is the single source of truth that
+   * `flush()` sends to Discord, and a caller appending to or splicing the
+   * returned list must not be able to change what gets registered.
+   */
+  all(): SlashCommandDefinition[] {
+    return [...this.commands];
+  }
+
   async flush(): Promise<void> {
     await this.discordClient.registerCommands(this.commands);
   }

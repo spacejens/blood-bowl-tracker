@@ -10,7 +10,7 @@ import type {
 import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
-import { DEBUG_TOP_USERS_NO_RESULTS_MESSAGE } from '../../error-messages';
+import { DEBUG_NO_USAGE_RECORDED_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 
 /**
@@ -92,7 +92,7 @@ export class DebugTopUsersCommandService implements OnModuleInit {
     });
     if (rows.length === 0) {
       return {
-        content: DEBUG_TOP_USERS_NO_RESULTS_MESSAGE,
+        content: DEBUG_NO_USAGE_RECORDED_MESSAGE,
         flags: MessageFlags.Ephemeral,
       };
     }

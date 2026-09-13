@@ -20,7 +20,9 @@ describe('error-messages', () => {
     const seen = new Map<string, string>();
     for (const [name, value] of values) {
       const prior = seen.get(value);
-      expect(prior, `${name} duplicates ${prior ?? ''}`).toBeUndefined();
+      if (prior) {
+        expect(prior, `${name} duplicates ${prior ?? ''}`).toBeUndefined();
+      }
       seen.set(value, name);
     }
   });

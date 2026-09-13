@@ -58,4 +58,25 @@ describe('SlashCommandRegistryService', () => {
 
     expect(registry.findByName('gone')).toBeUndefined();
   });
+
+  it('returns every registered command, in registration order', () => {
+    const insights = { name: 'insights', description: 'a', execute: vi.fn() };
+    const deepdive = { name: 'deepdive', description: 'b', execute: vi.fn() };
+    registry.register(insights);
+    registry.register(deepdive);
+
+    expect(registry.all()).toEqual([insights, deepdive]);
+  });
+
+  it('returns an empty list when nothing registered', () => {
+    expect(registry.all()).toEqual([]);
+  });
+
+  it('returns a copy, so a caller cannot mutate the registry', () => {
+    registry.register({ name: 'insights', description: 'a', execute: vi.fn() });
+
+    registry.all().push({ name: 'sneaky', description: 'c', execute: vi.fn() });
+
+    expect(registry.all().map((command) => command.name)).toEqual(['insights']);
+  });
 });

@@ -8,7 +8,7 @@ import type { DeepMockProxy } from 'vitest-mock-extended';
 import { mockDeep } from 'vitest-mock-extended';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
-import { DEBUG_TOP_USERS_NO_RESULTS_MESSAGE } from '../../error-messages';
+import { DEBUG_NO_USAGE_RECORDED_MESSAGE } from '../../error-messages';
 import { SlashCommandRegistryService } from '../slash-command-registry.service';
 import {
   DebugTopUsersCommandService,
@@ -197,7 +197,7 @@ describe('DebugTopUsersCommandService', () => {
     const reply = await service.execute(interaction({ days: 1 }));
 
     expect(reply).toEqual({
-      content: DEBUG_TOP_USERS_NO_RESULTS_MESSAGE,
+      content: DEBUG_NO_USAGE_RECORDED_MESSAGE,
       flags: MessageFlags.Ephemeral,
     });
   });
