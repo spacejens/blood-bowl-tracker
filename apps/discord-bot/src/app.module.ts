@@ -35,6 +35,8 @@ import { StartupNotifierService } from './startup-notifier.service';
     DiscordClientModule.forRootAsync({
       useFactory: (config: DiscordBotConfigService) =>
         config.getDiscordBotToken(),
+      useRestrictedRoleIdFactory: (config: DiscordBotConfigService) =>
+        config.getDebugCommandRoleId(),
       inject: [DiscordBotConfigService],
     }),
     InsightsModule,
