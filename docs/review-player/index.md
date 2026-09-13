@@ -157,7 +157,7 @@ they will plug in as another data-type module without touching the harness servi
      verbatim; TP states `nigglingInjuries` and `canPlayNextGame` directly and
      says nothing at all about a reduced characteristic, so its panel shows
      the player's current stat line beside their position template and leaves
-     the gap for the reviewer to read. Right: the six stored columns, with the
+     the gap for the reviewer to read. Right: the seven stored columns, with the
      row highlighted when any of them is non-default. Every panel is
      deliberately uninterpreted — deciding what the text or the gap means is
      exactly the judgement the importer makes, and a panel that made the same
