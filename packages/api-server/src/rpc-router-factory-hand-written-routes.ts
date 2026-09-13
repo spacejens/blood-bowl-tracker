@@ -138,6 +138,11 @@ export function buildPlayerSppAdjustmentRoutes(
 // through the handler's `runSync`, which owns the one classification this
 // procedure needs: a characteristic format mismatch is authored-data feedback
 // the importer reports per entry, so BAD_REQUEST rather than an internal error.
+//
+// `list` is plainly read-only and declares no errors, like
+// competitionGroups.list. It delegates straight to `listByPosition`, whose
+// rows also carry the rules set's name and its display formats; the
+// contract's output schema carries neither, so those never reach the caller.
 export function buildPositionRulesSetsRoutes(
   upsertHandler: UpsertHandlerService,
   positionRulesSetsService: PositionRulesSetsService,
@@ -148,6 +153,9 @@ export function buildPositionRulesSetsRoutes(
         upsertHandler.runSync(errors, () =>
           positionRulesSetsService.sync(input),
         ),
+    ),
+    list: implement(contract.positionRulesSets.list).handler(({ input }) =>
+      positionRulesSetsService.listByPosition(input.positionId),
     ),
   };
 }
