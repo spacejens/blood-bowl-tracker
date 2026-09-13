@@ -623,6 +623,26 @@ describe('DiscordClientService', () => {
     ]);
   });
 
+  it('does not forward the restricted flag to the global command registration', async () => {
+    await service.registerCommands([
+      {
+        name: 'debugstuff',
+        description: 'Debug: stuff',
+        restricted: true,
+        execute: vi.fn().mockResolvedValue('ok'),
+      },
+    ]);
+
+    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
+      {
+        name: 'debugstuff',
+        description: 'Debug: stuff',
+        contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
+        integrationTypes: [ApplicationIntegrationType.GuildInstall],
+      },
+    ]);
+  });
+
   it('passes the interaction into the command execute handler', async () => {
     service.onModuleInit();
     const execute = vi.fn().mockResolvedValue('the answer');

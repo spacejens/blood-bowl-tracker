@@ -58,6 +58,15 @@ export interface SlashCommandDefinition {
   name: string;
   description: string;
   options?: ApplicationCommandOptionData[];
+  /**
+   * Opt in to the deployment's role restriction: when a restricted role is
+   * configured, only a guild member holding it may run this command, and
+   * anyone else — including anyone invoking it in a DM, where there is no
+   * guild role to check — gets an ephemeral refusal instead. Deliberately an
+   * explicit per-command flag rather than a `debug`-name-prefix rule, so the
+   * naming convention and the access rule stay independent of each other.
+   */
+  restricted?: boolean;
   execute: (
     interaction: ChatInputCommandInteraction,
   ) => Promise<string | InteractionReplyOptions>;
@@ -112,10 +121,7 @@ interface ReplyWithHandlerOptions {
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
   private readonly client: Client;
-  private readonly commandHandlers = new Map<
-    string,
-    SlashCommandDefinition['execute']
-  >();
+  private readonly commandHandlers = new Map<string, SlashCommandDefinition>();
   private readonly autocompleteHandlers = new Map<
     string,
     NonNullable<SlashCommandDefinition['autocomplete']>
@@ -254,7 +260,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    */
   async registerCommands(commands: SlashCommandDefinition[]): Promise<void> {
     for (const command of commands) {
-      this.commandHandlers.set(command.name, command.execute);
+      this.commandHandlers.set(command.name, command);
       if (command.autocomplete) {
         this.autocompleteHandlers.set(command.name, command.autocomplete);
       }
@@ -371,12 +377,12 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     if (!interaction.isChatInputCommand()) {
       return;
     }
-    const handler = this.commandHandlers.get(interaction.commandName);
-    if (!handler) {
+    const definition = this.commandHandlers.get(interaction.commandName);
+    if (!definition) {
       return;
     }
     try {
-      const content = await handler(interaction);
+      const content = await definition.execute(interaction);
       this.logger.log(
         `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
