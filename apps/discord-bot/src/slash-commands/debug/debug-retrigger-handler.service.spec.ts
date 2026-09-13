@@ -61,6 +61,7 @@ async function makeService(restrictedRoleId: string | undefined): Promise<{
   service: DebugRetriggerHandlerService;
   events: DeepMockProxy<InteractionEventsQueryService>;
   registry: DeepMockProxy<SlashCommandRegistryService>;
+  discordClient: DeepMockProxy<DiscordClientService>;
   memberRoleAccess: MockProxy<MemberRoleAccessService>;
 }> {
   const events = mockDeep<InteractionEventsQueryService>();
@@ -83,6 +84,7 @@ async function makeService(restrictedRoleId: string | undefined): Promise<{
     service: moduleRef.get(DebugRetriggerHandlerService),
     events,
     registry,
+    discordClient,
     memberRoleAccess,
   };
 }
@@ -563,6 +565,97 @@ describe('DebugRetriggerHandlerService', () => {
       customId: 'coach:42',
       member,
     });
+  });
+
+  it('re-checks the real member on a second-order retrigger of a restricted command, allowing a role holder', async () => {
+    const { service, events, registry, discordClient, memberRoleAccess } =
+      await makeService('role-1');
+    // Event 11 is a past click of the retrigger button for event 22 (a
+    // restricted command). Event 22 is the original `debuginteractions`
+    // invocation being re-retriggered.
+    events.findById.mockImplementation((id) => {
+      if (id === 11) {
+        return Promise.resolve(
+          eventRow({
+            id: 11,
+            kind: 'button',
+            name: DEBUG_RETRIGGER_CUSTOM_ID_PREFIX,
+            parameters: [{ key: 'id', value: '22' }],
+          }),
+        );
+      }
+      return Promise.resolve(
+        eventRow({ id: 22, kind: 'command', name: 'debuginteractions' }),
+      );
+    });
+    const execute = vi.fn().mockResolvedValue({
+      content: 'x',
+      flags: MessageFlags.Ephemeral,
+    });
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      restricted: true,
+      execute,
+    });
+    // Simulates what the real `DiscordClientService.findButtonHandler` would
+    // return for this service's own registered prefix: routing back into
+    // `handle` on the same service instance, making the outer click
+    // genuinely recursive within this one test.
+    discordClient.findButtonHandler.mockReturnValue((interaction) =>
+      service.handle(interaction),
+    );
+    memberRoleAccess.hasRole.mockReturnValue(true);
+    const member = { roles: { cache: new Map() } } as unknown as NonNullable<
+      ButtonInteraction['member']
+    >;
+
+    expect(await service.handle(click('11', member))).toEqual({
+      content: 'x',
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(execute).toHaveBeenCalled();
+    expect(memberRoleAccess.hasRole).toHaveBeenCalledWith(member, 'role-1');
+  });
+
+  it('re-checks the real member on a second-order retrigger of a restricted command, denying a non-holder', async () => {
+    const { service, events, registry, discordClient, memberRoleAccess } =
+      await makeService('role-1');
+    events.findById.mockImplementation((id) => {
+      if (id === 11) {
+        return Promise.resolve(
+          eventRow({
+            id: 11,
+            kind: 'button',
+            name: DEBUG_RETRIGGER_CUSTOM_ID_PREFIX,
+            parameters: [{ key: 'id', value: '22' }],
+          }),
+        );
+      }
+      return Promise.resolve(
+        eventRow({ id: 22, kind: 'command', name: 'debuginteractions' }),
+      );
+    });
+    const execute = vi.fn().mockResolvedValue('should not run');
+    registry.findByName.mockReturnValue({
+      name: 'debuginteractions',
+      description: 'd',
+      restricted: true,
+      execute,
+    });
+    discordClient.findButtonHandler.mockReturnValue((interaction) =>
+      service.handle(interaction),
+    );
+    memberRoleAccess.hasRole.mockReturnValue(false);
+    const member = { roles: { cache: new Map() } } as unknown as NonNullable<
+      ButtonInteraction['member']
+    >;
+
+    expect(await service.handle(click('11', member))).toEqual({
+      content: DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('behaves as before (execute called, ephemeral flag preserved) when retriggering a restricted command with no role configured', async () => {
