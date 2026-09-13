@@ -238,4 +238,22 @@ describe('DiscordBotConfigService', () => {
       'STANDBY_STARTUP_MESSAGE_ENABLED',
     );
   });
+
+  it('returns the configured debug command role id', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'DEBUG_COMMAND_ROLE_ID' ? '900000000000000000' : undefined,
+    );
+    expect(service.getDebugCommandRoleId()).toBe('900000000000000000');
+    expect(configService.get).toHaveBeenCalledWith('DEBUG_COMMAND_ROLE_ID');
+  });
+
+  it('returns undefined when the debug command role id is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(service.getDebugCommandRoleId()).toBeUndefined();
+  });
+
+  it('treats an empty debug command role id as not configured', () => {
+    vi.mocked(configService.get).mockReturnValue('');
+    expect(service.getDebugCommandRoleId()).toBeUndefined();
+  });
 });

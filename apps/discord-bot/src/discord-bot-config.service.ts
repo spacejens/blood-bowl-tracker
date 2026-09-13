@@ -35,6 +35,17 @@ export class DiscordBotConfigService {
     return value.trim().toLowerCase() !== 'false';
   }
 
+  /**
+   * Discord role id whose members may run slash commands marked as
+   * restricted. Optional: unset or empty means no role check is applied and
+   * those commands behave like any other. Like the getter above it never
+   * throws — there is nothing to fail fast about when the variable is
+   * genuinely optional.
+   */
+  getDebugCommandRoleId(): string | undefined {
+    return this.configService.get<string>('DEBUG_COMMAND_ROLE_ID') || undefined;
+  }
+
   getRandomInsightsCron(): string {
     return this.getRequired('RANDOM_INSIGHTS_CRON');
   }
