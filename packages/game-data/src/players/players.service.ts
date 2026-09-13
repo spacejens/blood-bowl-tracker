@@ -3,7 +3,6 @@ import type {
   ResolveResult,
   UpsertPlayer,
 } from '@blood-bowl-tracker/api-contract';
-import { PLAYER_CHARACTERISTIC_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
   and,
@@ -19,16 +18,12 @@ import {
   players,
   positions,
   races,
-  rulesSets,
   sql,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
-import type { CharacteristicValues } from '../shared/characteristic-format-validation.service';
-import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
@@ -55,6 +50,7 @@ import type { TeamTopPlayer } from '../shared/team-top-player';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 
@@ -69,7 +65,7 @@ export class PlayersService {
     private readonly deepdiveCounts: PlayerDeepdiveCountsService,
     private readonly matchEventCounts: MatchEventCountsService,
     private readonly playerContextNames: PlayerContextNamesService,
-    private readonly characteristicFormats: CharacteristicFormatValidationService,
+    private readonly characteristicsValidation: PlayerCharacteristicsValidationService,
   ) {}
 
   async findById(id: number): Promise<
@@ -224,7 +220,7 @@ export class PlayersService {
   async upsert(
     data: UpsertPlayer,
   ): Promise<{ player: Player; created: boolean }> {
-    await this.validateCharacteristics(data);
+    await this.characteristicsValidation.validate(data);
 
     const columns = {
       name: data.name,
@@ -260,94 +256,6 @@ export class PlayersService {
     });
 
     return { player, created };
-  }
-
-  /**
-   * Reject characteristics that disagree with the rules set they are
-   * declared under, before any write happens. Nothing is stored about which
-   * rules set was used: `rulesSetId` addresses the validation, not the row.
-   *
-   * The contract's UpsertPlayerSchema already guarantees the all-or-nothing
-   * pairing at the RPC boundary, but this service is also called directly,
-   * so it refuses a half-specified payload here rather than writing an
-   * unvalidated partial line.
-   */
-  private async validateCharacteristics(data: UpsertPlayer): Promise<void> {
-    const supplied = PLAYER_CHARACTERISTIC_KEYS.filter(
-      (key) => data[key] !== undefined,
-    );
-    if (
-      supplied.length > 0 &&
-      supplied.length < PLAYER_CHARACTERISTIC_KEYS.length
-    ) {
-      throw new CharacteristicFormatMismatchError(
-        `Characteristics are all-or-nothing: a partial characteristic line was supplied for ${this.playerSubject(data)} — supply every one of ${PLAYER_CHARACTERISTIC_KEYS.join(', ')} or none`,
-      );
-    }
-
-    const values = this.characteristicValues(data);
-    if (values === undefined) {
-      if (data.rulesSetId !== undefined) {
-        throw new CharacteristicFormatMismatchError(
-          `Rules set ${data.rulesSetId} was supplied for ${this.playerSubject(data)} without a complete set of characteristics`,
-        );
-      }
-      return;
-    }
-    if (data.rulesSetId === undefined) {
-      throw new CharacteristicFormatMismatchError(
-        `Characteristics were supplied for ${this.playerSubject(data)} without a rules set to validate them against`,
-      );
-    }
-
-    const [formats] = await this.db
-      .select({
-        moveFormat: rulesSets.moveFormat,
-        strengthFormat: rulesSets.strengthFormat,
-        agilityFormat: rulesSets.agilityFormat,
-        passingFormat: rulesSets.passingFormat,
-        armourFormat: rulesSets.armourFormat,
-      })
-      .from(rulesSets)
-      .where(eq(rulesSets.id, data.rulesSetId));
-
-    this.characteristicFormats.validate({
-      values,
-      formats,
-      rulesSetId: data.rulesSetId,
-      subject: this.playerSubject(data),
-    });
-  }
-
-  /**
-   * The payload's complete characteristic line, or undefined when it carries
-   * no complete one. `passing: null` counts as supplied — it asserts that the
-   * rules set has no Passing characteristic.
-   */
-  private characteristicValues(
-    data: UpsertPlayer,
-  ): CharacteristicValues | undefined {
-    const { move, strength, agility, passing, armour } = data;
-    if (
-      move === undefined ||
-      strength === undefined ||
-      agility === undefined ||
-      passing === undefined ||
-      armour === undefined
-    ) {
-      return undefined;
-    }
-    return { move, strength, agility, passing, armour };
-  }
-
-  /**
-   * Names the player in a validation message. The row may not exist yet, so
-   * the first external id is the only stable identifier available — and it is
-   * the one the importer reporting the failure recognizes.
-   */
-  private playerSubject(data: UpsertPlayer): string {
-    const [first] = data.externalIds;
-    return `player ${first.externalSystemId}:${first.externalId}`;
   }
 
   countMvpAwardsByPlayer(

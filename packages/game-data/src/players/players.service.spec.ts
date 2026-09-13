@@ -18,6 +18,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayersService, PlayerUpsertConflictError } from './players.service';
@@ -52,6 +53,12 @@ describe('PlayersService', () => {
         { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: PlayerContextNamesService, useValue: playerContextNames },
+        PlayerCharacteristicsValidationService,
+        // Injected by PlayerCharacteristicsValidationService, which is
+        // itself passed real here: it is the collaborator whose thrown
+        // errors several upsert tests below assert on, and it is pure
+        // except for one rules-set format read that the same mockDb
+        // already serves.
         CharacteristicFormatValidationService,
         { provide: DB, useValue: dbMock.db },
       ],
