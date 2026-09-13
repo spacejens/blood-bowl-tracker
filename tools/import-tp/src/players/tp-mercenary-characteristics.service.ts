@@ -55,6 +55,22 @@ export class TpMercenaryCharacteristicsService {
     Map<number, MercenaryCharacteristics>
   >();
 
+  /**
+   * Position names whose `loadPositionCharacteristics` call already recorded
+   * a position-level error (a failed read, or no rows at all) -- so
+   * `forRosterPlayer` knows a missing entry here has already been reported
+   * once and must not repeat it per hire.
+   */
+  private readonly failedPositions = new Set<string>();
+
+  /**
+   * `${positionName}|${rulesSetId}` pairs `loadPositionCharacteristics`
+   * already reported as unusable (a null-`passing` row) -- so
+   * `forRosterPlayer` knows a hire under that specific rules set has already
+   * been covered by that error and must not repeat it.
+   */
+  private readonly rejectedRulesSets = new Set<string>();
+
   constructor(
     private readonly positionRulesSetsImport: PositionRulesSetsImportService,
     private readonly importResults: ImportResultService,
@@ -102,9 +118,11 @@ export class TpMercenaryCharacteristicsService {
       errors,
     );
     if (rows === undefined) {
+      this.failedPositions.add(positionName);
       return;
     }
     if (rows.length === 0) {
+      this.failedPositions.add(positionName);
       errors.push(
         this.importResults.error({
           item: { position: positionName },
@@ -121,6 +139,7 @@ export class TpMercenaryCharacteristicsService {
     const byRulesSetId = new Map<number, MercenaryCharacteristics>();
     for (const row of rows) {
       if (row.passing === null) {
+        this.rejectedRulesSets.add(`${positionName}|${row.rulesSetId}`);
         errors.push(
           this.importResults.error({
             item: { position: positionName, rulesSet: row.rulesSetId },
@@ -154,7 +173,12 @@ export class TpMercenaryCharacteristicsService {
    * without characteristics, and the gap is visible in the import result. A
    * `rulesSet` of `undefined` (the era resolved to no single rules set)
    * returns `undefined` silently: the era resolver already recorded that
-   * problem, and duplicating it per hire would only add noise.
+   * problem, and duplicating it per hire would only add noise. The same
+   * applies when `loadPositionCharacteristics` already reported this
+   * position's own load failure (no rows at all, a failed read, or this
+   * specific rules set's row being rejected for a null Passing value) --
+   * repeating that error once per hire would only add noise on top of the
+   * position-level error already recorded.
    */
   forRosterPlayer(options: {
     positionName: string;
@@ -170,6 +194,12 @@ export class TpMercenaryCharacteristicsService {
       .get(positionName)
       ?.get(rulesSet.id);
     if (characteristics === undefined) {
+      if (
+        this.failedPositions.has(positionName) ||
+        this.rejectedRulesSets.has(`${positionName}|${rulesSet.id}`)
+      ) {
+        return undefined;
+      }
       errors.push(
         this.importResults.error({
           item: {

@@ -211,6 +211,72 @@ describe('TpMercenaryCharacteristicsService', () => {
       expect(errors).toHaveLength(1);
     });
 
+    it('does not record a second per-hire error when the read itself failed', async () => {
+      // listPositionRulesSets already recorded its own error; every hire of
+      // this position would otherwise repeat the same "not curated" message.
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue(
+        undefined,
+      );
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
+        errors,
+      });
+      expect(errors).toEqual([]);
+
+      const payload = service.forRosterPlayer({
+        positionName: 'Giant Mercenary',
+        player: { id: 5, name: 'Gronk' },
+        rulesSet: { name: 'BB2020', id: BB2020_ID },
+        errors,
+      });
+
+      expect(payload).toBeUndefined();
+      expect(errors).toEqual([]);
+    });
+
+    it('does not record a second per-hire error when the position has no curated rows at all', async () => {
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([]);
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
+        errors,
+      });
+      expect(errors).toHaveLength(1);
+
+      const payload = service.forRosterPlayer({
+        positionName: 'Giant Mercenary',
+        player: { id: 5, name: 'Gronk' },
+        rulesSet: { name: 'BB2020', id: BB2020_ID },
+        errors,
+      });
+
+      expect(payload).toBeUndefined();
+      expect(errors).toHaveLength(1);
+    });
+
+    it('does not record a second per-hire error for a rules set rejected for null Passing', async () => {
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([
+        { ...GIANT_BB2020_ROW, passing: null },
+      ]);
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
+        errors,
+      });
+      expect(errors).toHaveLength(1);
+
+      const payload = service.forRosterPlayer({
+        positionName: 'Giant Mercenary',
+        player: { id: 5, name: 'Gronk' },
+        rulesSet: { name: 'BB2020', id: BB2020_ID },
+        errors,
+      });
+
+      expect(payload).toBeUndefined();
+      expect(errors).toHaveLength(1);
+    });
+
     it('returns undefined silently when the era resolved to no single rules set', () => {
       const payload = service.forRosterPlayer({
         positionName: 'Giant Mercenary',
