@@ -73,6 +73,16 @@ Configuration is supplied through an environment file in the app directory.
      out. See [Production topology](production-topology.md) and
      [Production monitoring](production-monitoring.md) for how the standby
      works and why silencing its announcement can be useful.
+   - `DEBUG_COMMAND_ROLE_ID` — optional, and unset by default. The id of a
+     Discord server role whose members may run the maintainer slash commands
+     ([`/debuginteractions`](slash-commands/debug-interactions.md),
+     [`/debugtopusers`](slash-commands/debug-top-users.md) and
+     [`/debugfilterusage`](slash-commands/debug-filter-usage.md)). Left unset,
+     those commands are open to everyone who can see them. Set it and anyone
+     without the role gets a private refusal instead — including anyone
+     running one in a direct message with the bot, where there is no server
+     role to check against. Copy a role id with Developer Mode enabled, from
+     Server Settings > Roles > right-click the role > Copy Role ID.
    - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
      as a standard 5-field cron expression (an optional sixth leading field is
      seconds), in the bot process's local time zone (in the Docker deployment

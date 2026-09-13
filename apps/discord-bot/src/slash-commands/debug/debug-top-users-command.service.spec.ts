@@ -80,6 +80,10 @@ describe('DebugTopUsersCommandService', () => {
     expect(command.description).toBe('Debug: List the most active bot users');
   });
 
+  it('marks the command as restricted', () => {
+    expect(service.buildCommand().restricted).toBe(true);
+  });
+
   it('offers optional kind and days options', () => {
     const command = service.buildCommand();
 

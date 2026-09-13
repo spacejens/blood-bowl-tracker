@@ -72,6 +72,7 @@ vi.mock('discord.js', () => ({
   // genuine enum members the service passes to Discord.
   InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
   ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
+  MessageFlags: { Ephemeral: 64 },
 }));
 
 import {
@@ -85,6 +86,8 @@ import {
   DISCORD_BOT_TOKEN,
   DiscordClientModule,
   DiscordClientService,
+  MemberRoleAccessService,
+  RESTRICTED_COMMAND_ROLE_ID,
 } from './index';
 
 describe('DiscordClientService', () => {
@@ -116,6 +119,7 @@ describe('DiscordClientService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         DiscordClientService,
+        MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
         {
           provide: UsageTrackingService,
@@ -317,6 +321,40 @@ describe('DiscordClientService', () => {
     expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
       DiscordClientService,
     );
+  });
+
+  it('provides the restricted role id from the async factory', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        DiscordClientModule.forRootAsync({
+          useFactory: () => 'tkn',
+          useRestrictedRoleIdFactory: () => 'role-1',
+        }),
+      ],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
+  });
+
+  it('provides the restricted role id given to forRoot', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        DiscordClientModule.forRoot({
+          token: 'tkn',
+          restrictedRoleId: 'role-1',
+        }),
+      ],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
   it('rejects init when the client never becomes ready', async () => {
@@ -582,6 +620,26 @@ describe('DiscordClientService', () => {
             autocomplete: true,
           },
         ],
+        contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
+        integrationTypes: [ApplicationIntegrationType.GuildInstall],
+      },
+    ]);
+  });
+
+  it('does not forward the restricted flag to the global command registration', async () => {
+    await service.registerCommands([
+      {
+        name: 'debugstuff',
+        description: 'Debug: stuff',
+        restricted: true,
+        execute: vi.fn().mockResolvedValue('ok'),
+      },
+    ]);
+
+    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
+      {
+        name: 'debugstuff',
+        description: 'Debug: stuff',
         contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
         integrationTypes: [ApplicationIntegrationType.GuildInstall],
       },

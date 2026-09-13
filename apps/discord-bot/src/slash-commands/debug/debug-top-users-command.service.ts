@@ -31,10 +31,13 @@ const DEBUG_TOP_USERS_TITLE = 'Top bot users';
  * features and reliability can be weighed against real usage, and so the
  * most active users are known when planning changes that might affect them.
  *
- * `debug`-prefixed per #834; that prefix is a visibility convention, not
- * access control. The reply is ephemeral, like its `/debuginteractions`
- * sibling: which specific users are most active is not public-channel
- * content.
+ * `debug`-prefixed: the prefix is a visibility convention marking maintainer
+ * tooling, independent of access control. Access control is the separate
+ * `restricted: true` flag below, which limits the command to holders of the
+ * deployment's configured role whenever one is configured.
+ *
+ * The reply is ephemeral, like its `/debuginteractions` sibling: which
+ * specific users are most active is not public-channel content.
  *
  * Global, with no guild-scoping option, for the same reason
  * `/debuginteractions` has none: a maintainer wants overall usage across
@@ -59,6 +62,7 @@ export class DebugTopUsersCommandService implements OnModuleInit {
     return {
       name: 'debugtopusers',
       description: 'Debug: List the most active bot users',
+      restricted: true,
       options: [
         {
           name: 'kind',
