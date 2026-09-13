@@ -274,6 +274,26 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   under which rules set, so `TpPositionsImportService`'s `syncRaceEras` calls
   (above) cover star positions the same way they cover regular ones — this
   step needs no equivalent bookkeeping of its own.
+
+  A roster player's current lasting injuries come from three places.
+  `nigglingInjuries` and `canPlayNextGame` are stated directly in the
+  `lineUps[]` entry. TP says nothing at all about a currently-reduced
+  characteristic, so those are derived by comparing the player's own
+  `ma/st/ag/pa/av` against the `lineUpMaster` template they were recruited
+  from: advancement only ever moves a characteristic toward better, so any
+  current value on the worse side of the template is an active, unhealed
+  reduction, and the gap is how many reductions deep it is. Which side is
+  "worse" depends on the rules set's declared format for that specific
+  characteristic — under a target-number format Agility and Passing are targets
+  the player rolls, so a lower number is better, while Armour is a target the
+  opponent rolls, so a higher number is better — which is why the rules-sets
+  step's own upsert responses are threaded through to the players step. One
+  player can legitimately show an advancement on one characteristic and an
+  injury on another at the same time.
+
+  A star player hired mid-season through an `inducements_roll` event has no
+  `lineUps[]` entry, so TP publishes no live state for them: no lasting-injury
+  values are sent, leaving the row's defaults.
 - **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
   for mercenary Big Guy positions, which no official-list catalog carries, so
   their race/era availability is the one kind still derived from observed
@@ -352,6 +372,27 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   TP has no result-override config, unlike BBL — `overrides` is always empty.
   Every match the server cannot settle is reported as an import error naming
   its TP match id.
+
+### Lasting-injury history backfill
+
+A final step, after the match-events step, for the players this run inserted.
+A current-state-only write records only what is outstanding now, so an injury
+already healed before the first import that captured live state would leave no
+trace anywhere. For each freshly-inserted player the server recomputes what
+their imported match events say they have accumulated — niggling injuries and
+stat reductions, deliberately not miss-next-game, which clears after one game
+and would otherwise flag nearly every player who has ever been hurt — and,
+where that differs from the current row, writes the accumulated values and
+immediately writes the real ones back, producing the two history versions
+`tools/review-player`'s "healed" stratum needs.
+
+It must run after match events for a structural reason: `match_events` rows
+foreign-key into `players.id`, so players are necessarily imported first, and
+the accumulated data does not exist yet at player-insert time. It is scoped to
+inserted players so an existing one does not collect a spurious history
+version pair on every import. Correctness is guaranteed from the next full
+database drop and re-import onward; no attempt is made to retroactively repair
+a database carrying lasting-injury columns from a partial rollout.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras, then competitions, then matches (fed the competitions step's

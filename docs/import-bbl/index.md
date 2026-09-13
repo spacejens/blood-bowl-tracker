@@ -206,6 +206,20 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   configured player-id range contains the pid) and position (via the composite
   `<typID>-<raceBblId>` key). Runs after teams, team eras, and positions (all
   referenced).
+
+  The player page's "Sustained Injuries" field is parsed into the player's
+  current lasting injuries: a comma-separated list of stat-reduction tags, an
+  optional niggling-injury count, and a miss-next-game line. A tag suffixed
+  "(no effect)" is not counted — it means the rules absorbed the reduction, so
+  the stored characteristic never moved — and it is not read as a
+  miss-next-game either, since BBL prints that line itself whenever one applies.
+  The death marker is ignored: death is not modelled as a lasting injury. A page
+  with no such row is read as an uninjured player, not a parse failure.
+
+  A final step after the match-events step backfills lasting-injury history for
+  the players this run inserted. See "Lasting-injury history backfill" in
+  [the TP importer's documentation](../import-tp/index.md), which describes the
+  identical step.
 - **TeamsModule** — data-type extractor for teams. `TeamPageParser` reads a
   team's page id and `<h1>` name from a team page; `BblTeamsImportService`
   streams team pages (independently of the coaches/races walks), deduplicates

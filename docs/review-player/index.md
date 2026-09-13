@@ -27,12 +27,12 @@ per-entity preparation hook is a pass-through here. `harness.module.ts` stays lo
 because it _is_ this tool's own composition.
 
 Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
-totals and characteristics. Skills and injuries are deliberately deferred — each will
-plug in as another data-type module without touching the harness services.
+totals, characteristics and current lasting injuries. Skills are deliberately deferred —
+they will plug in as another data-type module without touching the harness services.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across nine strata:
+1. Samples players per source (BBL and TP) across eleven strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -81,6 +81,20 @@ plug in as another data-type module without touching the harness services.
       either side has a value and the other doesn't, so a Passing-only change can show
       a marker there without selecting the player into either stratum here, since both
       strata require Passing present on both sides to compare it at all.
+   10. **Currently injured** — `playersPerStratum` players carrying any active
+       lasting injury: a miss-next-game, a niggling injury, or any
+       characteristic reduction. Bounded like the other sampling strata,
+       because an injured player is not a finding on its own — the stratum
+       exists so a run always contains players whose lasting-injury columns
+       are non-default, which is where a mis-read source would show up. A run
+       over a healthy league would otherwise show nothing but zeroes.
+   11. **Healed** — `playersPerStratum` players whose current row carries no
+       lasting injury but some earlier version of it did. This is the only
+       stratum that reads a history table: `players` is history-tracked, and a
+       healed injury survives nowhere else. Both importers manufacture the two
+       history versions a freshly-imported player needs when their injury
+       predates the import, so this stratum is what makes that step
+       observable.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
@@ -138,6 +152,16 @@ plug in as another data-type module without touching the harness services.
      must not read the importers' configs. That is an insertion-order heuristic
      matching what the importers themselves mean by "last-listed", accepted here
      to keep the single-player comparison simple.
+   - **lasting-injuries** — left: what the source itself says is outstanding.
+     BBL's player page states it as free text ("Sustained Injuries"), rendered
+     verbatim; TP states `nigglingInjuries` and `canPlayNextGame` directly and
+     says nothing at all about a reduced characteristic, so its panel shows
+     the player's current stat line beside their position template and leaves
+     the gap for the reviewer to read. Right: the six stored columns, with the
+     row highlighted when any of them is non-default. Every panel is
+     deliberately uninterpreted — deciding what the text or the gap means is
+     exactly the judgement the importer makes, and a panel that made the same
+     judgement could only ever agree with it.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
