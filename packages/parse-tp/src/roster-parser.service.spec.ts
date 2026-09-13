@@ -68,6 +68,20 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function lineUp(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 2412443,
+    name: 'The Agitated Deviation',
+    number: 1,
+    lineUpMasterId: 952,
+    rosterId: 123,
+    position: 'Dwarf Lineman',
+    isBigGuy: false,
+    totalStarPlayerPoints: 23,
+    ...overrides,
+  };
+}
+
 describe('RosterParserService', () => {
   let service: RosterParserService;
 
@@ -573,5 +587,85 @@ describe('RosterParserService', () => {
     expect(
       service.parse(rosterBody()).players[0]?.characteristics,
     ).toBeUndefined();
+  });
+
+  it("parses a player's live lasting-injury fields", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [lineUp({ nigglingInjuries: 2, canPlayNextGame: false })],
+      }),
+    );
+
+    expect(roster.players[0]?.lastingInjuries).toEqual({
+      nigglingInjuries: 2,
+      canPlayNextGame: false,
+    });
+  });
+
+  it('parses the per-entry position template', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            ma: 6,
+            st: 3,
+            ag: 3,
+            pa: 5,
+            av: 6,
+            lineUpMaster: {
+              id: 971,
+              position: 'Halfling Catcher',
+              ma: 5,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 7,
+            },
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0]?.positionTemplate).toEqual({
+      move: 5,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 7,
+    });
+  });
+
+  it('leaves both undefined for a match-embedded snapshot that carries neither', () => {
+    // MatchParserService reuses LineUpSchema for the per-match roster
+    // snapshots, which carry no live-state fields and no template at all.
+    const roster = service.parse(rosterBody({ lineUps: [lineUp()] }));
+
+    expect(roster.players[0]?.lastingInjuries).toBeUndefined();
+    expect(roster.players[0]?.positionTemplate).toBeUndefined();
+  });
+
+  it('treats the lasting-injury pair as all-or-nothing', () => {
+    // Matching how careerCounts and characteristics already behave: a half
+    // set cannot be acted on, so it is reported as absent rather than
+    // silently defaulted.
+    const roster = service.parse(
+      rosterBody({ lineUps: [lineUp({ nigglingInjuries: 1 })] }),
+    );
+
+    expect(roster.players[0]?.lastingInjuries).toBeUndefined();
+  });
+
+  it('ignores a template with an incomplete characteristics line', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: { id: 971, position: 'Halfling Catcher', ma: 5 },
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0]?.positionTemplate).toBeUndefined();
   });
 });

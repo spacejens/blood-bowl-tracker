@@ -35,6 +35,23 @@ export interface TpPlayerCharacteristics {
 }
 
 /**
+ * One player's CURRENTLY OUTSTANDING lasting injuries, as TP reports them
+ * live in a `lineUps[]` entry. Not a career tally: `totalInjuries` on the same
+ * entry is that, and is a different fact — these heal, that one does not.
+ *
+ * TP exposes only two of the three kinds directly. `nigglingInjuries` is a
+ * count; `canPlayNextGame: false` is TP's spelling of miss-next-game. It has
+ * no explicit flag for "this characteristic is currently reduced" at all —
+ * that has to be derived by diffing the entry's own `ma/st/ag/pa/av` against
+ * {@link TpRosterPlayer.positionTemplate}, which is the importer's job, not
+ * this parser's.
+ */
+export interface TpPlayerLastingInjuries {
+  nigglingInjuries: number;
+  canPlayNextGame: boolean;
+}
+
+/**
  * One position on a race's roster, from a `rosterMaster.lineUpMasters[]` entry.
  * `tpPositionId` is TP's internal line-up-master id: stable per
  * `(teamRace code, position name)` pair, but NOT stable across the rule-set
@@ -90,6 +107,28 @@ export interface TpRosterPlayer {
    * the same `LineUpSchema` do not, which is why every raw field is optional.
    */
   characteristics?: TpPlayerCharacteristics;
+  /**
+   * The player's live lasting-injury state, or `undefined` when the source
+   * entry carried neither field. Optional for the same reason `careerCounts`
+   * and `characteristics` are: the match-embedded roster snapshots
+   * `MatchParserService` parses through the same `LineUpSchema` have none of
+   * it. All-or-nothing, like those two — a half set cannot be acted on.
+   */
+  lastingInjuries?: TpPlayerLastingInjuries;
+  /**
+   * The characteristics of the position template this player was recruited
+   * from, from the entry's own nested `lineUpMaster`. This is the baseline a
+   * current-vs-template diff needs in order to spot a stat reduction TP does
+   * not otherwise report — advancement only ever moves a stat toward better,
+   * so any current value on the worse side of this is an active, unhealed
+   * reduction.
+   *
+   * The per-entry copy rather than a cross-reference into
+   * `rosterMaster.lineUpMasters[]` by id: it is right there on the player, so
+   * the diff needs no lookup, and a mercenary hire that has no catalog entry
+   * at all still carries one.
+   */
+  positionTemplate?: TpPositionCharacteristics;
 }
 
 /**
@@ -181,6 +220,26 @@ export const LineUpSchema = z.object({
   ag: z.number().int().optional(),
   pa: z.number().int().optional(),
   av: z.number().int().optional(),
+  // The player's live lasting-injury state. Optional for the same reason the
+  // characteristics above are: match-embedded roster snapshots reuse this
+  // schema and carry neither field. Nonnegative because a negative count is
+  // authored nonsense that would otherwise pass parsing only to be rejected
+  // by the server's upsert schema.
+  nigglingInjuries: z.number().int().nonnegative().optional(),
+  canPlayNextGame: z.boolean().optional(),
+  // The nested position template, the baseline a current-vs-template stat
+  // diff compares against. Optional for the same reason, and its own
+  // characteristics are optional within it: TP's catalog entries are not
+  // uniformly complete, and an incomplete template is unusable as a baseline.
+  lineUpMaster: z
+    .object({
+      ma: z.number().int().optional(),
+      st: z.number().int().optional(),
+      ag: z.number().int().optional(),
+      pa: z.number().int().optional(),
+      av: z.number().int().optional(),
+    })
+    .optional(),
 });
 
 const RosterSchema = z.object({
@@ -245,6 +304,8 @@ export class RosterParserService {
         totalStarPlayerPoints: entry.totalStarPlayerPoints,
         careerCounts: this.careerCounts(entry),
         characteristics: this.playerCharacteristics(entry),
+        lastingInjuries: this.lastingInjuries(entry),
+        positionTemplate: this.positionTemplate(entry),
       })),
     };
   }
@@ -293,6 +354,48 @@ export class RosterParserService {
     entry: z.infer<typeof LineUpSchema>,
   ): TpPlayerCharacteristics | undefined {
     const { ma, st, ag, pa, av } = entry;
+    if (
+      ma === undefined ||
+      st === undefined ||
+      ag === undefined ||
+      pa === undefined ||
+      av === undefined
+    ) {
+      return undefined;
+    }
+    return this.characteristics({ ma, st, ag, pa, av });
+  }
+
+  /**
+   * The entry's live lasting-injury state, or `undefined` when it does not
+   * carry both fields. All-or-nothing on purpose, matching `careerCounts` and
+   * `playerCharacteristics`: a half set cannot be acted on, and reporting it
+   * as absent is honest where defaulting the missing half would not be.
+   */
+  private lastingInjuries(
+    entry: z.infer<typeof LineUpSchema>,
+  ): TpPlayerLastingInjuries | undefined {
+    const { nigglingInjuries, canPlayNextGame } = entry;
+    if (nigglingInjuries === undefined || canPlayNextGame === undefined) {
+      return undefined;
+    }
+    return { nigglingInjuries, canPlayNextGame };
+  }
+
+  /**
+   * The entry's nested position template, or `undefined` when it carries none
+   * or carries an incomplete characteristics line. An incomplete template is
+   * unusable as a diff baseline, so it is reported as absent rather than
+   * partially believed.
+   */
+  private positionTemplate(
+    entry: z.infer<typeof LineUpSchema>,
+  ): TpPositionCharacteristics | undefined {
+    const master = entry.lineUpMaster;
+    if (master === undefined) {
+      return undefined;
+    }
+    const { ma, st, ag, pa, av } = master;
     if (
       ma === undefined ||
       st === undefined ||
