@@ -12,3 +12,4 @@ export {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
 } from './discord-client.service';
+export { MemberRoleAccessService } from './member-role-access.service';
