@@ -48,6 +48,19 @@ function topUserRow(
   };
 }
 
+/** One row shaped the way the command-invocations header query selects it. */
+function invocationRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    id: 1,
+    discordUserId: '100',
+    username: 'coach42',
+    commandName: 'insights',
+    ...overrides,
+  };
+}
+
 /** Every literal value drizzle stored in a captured condition tree, in order. */
 function filterValues(condition: unknown): unknown[] {
   const values: unknown[] = [];
@@ -506,6 +519,131 @@ describe('InteractionEventsQueryService', () => {
       const service = await makeService(mocked);
 
       const rows = await service.topUsers({ limit: 20 });
+
+      expect(rows).toEqual([]);
+      expect(mocked.chains).toHaveLength(1);
+    });
+  });
+
+  describe('commandInvocations', () => {
+    /** A fixed "now" so the sinceDays cutoff is an exact, assertable Date. */
+    const NOW = new Date('2026-09-12T00:00:00.000Z');
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns one row per command invocation, with its parameter keys', async () => {
+      const mocked = mockDb(
+        [
+          invocationRow({ id: 1, commandName: 'insights' }),
+          invocationRow({
+            id: 2,
+            discordUserId: '200',
+            username: 'bob',
+            commandName: 'deepdive',
+          }),
+        ],
+        [
+          { eventId: 1, key: 'category' },
+          { eventId: 1, key: 'league' },
+          { eventId: 2, key: 'coach' },
+        ],
+      );
+      const service = await makeService(mocked);
+
+      const rows = await service.commandInvocations({});
+
+      expect(rows).toEqual([
+        {
+          discordUserId: '100',
+          username: 'coach42',
+          commandName: 'insights',
+          parameterKeys: ['category', 'league'],
+        },
+        {
+          discordUserId: '200',
+          username: 'bob',
+          commandName: 'deepdive',
+          parameterKeys: ['coach'],
+        },
+      ]);
+    });
+
+    it('returns an empty parameterKeys array for an invocation with no options', async () => {
+      const mocked = mockDb([invocationRow({ id: 5 })], []);
+      const service = await makeService(mocked);
+
+      const rows = await service.commandInvocations({});
+
+      expect(rows).toEqual([
+        {
+          discordUserId: '100',
+          username: 'coach42',
+          commandName: 'insights',
+          parameterKeys: [],
+        },
+      ]);
+    });
+
+    it('attaches only the parameters belonging to each event', async () => {
+      const mocked = mockDb(
+        [invocationRow({ id: 1 }), invocationRow({ id: 2 })],
+        [
+          { eventId: 2, key: 'era' },
+          { eventId: 1, key: 'league' },
+        ],
+      );
+      const service = await makeService(mocked);
+
+      const rows = await service.commandInvocations({});
+
+      expect(rows.map((row) => row.parameterKeys)).toEqual([
+        ['league'],
+        ['era'],
+      ]);
+    });
+
+    it('filters to command interactions only when no sinceDays is given', async () => {
+      const mocked = mockDb([invocationRow()], []);
+      const service = await makeService(mocked);
+
+      await service.commandInvocations({});
+
+      expect(filterValues(whereArg(mocked.chains[0]))).toEqual(['command']);
+    });
+
+    it('adds a cutoff sinceDays before now when that option is given', async () => {
+      const mocked = mockDb([invocationRow()], []);
+      const service = await makeService(mocked);
+
+      await service.commandInvocations({ sinceDays: 7 });
+
+      expect(filterValues(whereArg(mocked.chains[0]))).toEqual([
+        'command',
+        new Date('2026-09-05T00:00:00.000Z'),
+      ]);
+    });
+
+    it('applies no caller-supplied limit', async () => {
+      const mocked = mockDb([invocationRow()], []);
+      const service = await makeService(mocked);
+
+      await service.commandInvocations({});
+
+      expect(mocked.chains[0].limit).not.toHaveBeenCalled();
+    });
+
+    it('issues exactly one query and returns nothing when no invocation matches', async () => {
+      const mocked = mockDb([]);
+      const service = await makeService(mocked);
+
+      const rows = await service.commandInvocations({});
 
       expect(rows).toEqual([]);
       expect(mocked.chains).toHaveLength(1);
