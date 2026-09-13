@@ -30,8 +30,6 @@
 //   CRP+   -- NTBB2015.pdf ("Narrow-Tier Blood Bowl 2015"), pages 3-8.
 //   BB2016 -- BB-Teams-of-Legend-Revised-1.pdf, plus values transcribed from
 //             the physical rulebooks where no PDF covers them.
-//   BB2020 -- gap-filling only, for pairs the BBL/TP importers left with no
-//             row at all.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
