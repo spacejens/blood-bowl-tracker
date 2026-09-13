@@ -202,13 +202,31 @@ example, a `passing` value against a rules set with no Passing characteristic,
 or a missing `passing` against one that has one. This section is processed
 after the rules sets and positions it references.
 
-`data/after-other-importers/position-characteristics.json5` is the one file
-that declares `positionRulesSets` entries. It sits in the **after** phase
-deliberately: the sync matches by the natural key `(position, rules set)` and
-updates in place, and the BBL importer can write its single BB2020-snapshot
-stat line under an older rules set whenever it finds usage evidence there.
-Curating before the importers would let that snapshot overwrite the curated
-values on the very same key.
+Two files declare `positionRulesSets` entries, in different phases and for
+different reasons.
+
+`data/after-other-importers/position-characteristics.json5` holds the values
+for the three older rules sets no importer can supply correctly (CRP, CRP+,
+BB2016). It sits in the **after** phase deliberately: the sync matches by the
+natural key `(position, rules set)` and updates in place, and the BBL importer
+can write its single BB2020-snapshot stat line under an older rules set
+whenever it finds usage evidence there. Curating before the importers would
+let that snapshot overwrite the curated values on the very same key.
+
+`data/before-other-importers/position-characteristics-gap-fill.json5` holds
+**gap-fill** entries, and sits in the **before** phase for the mirror-image
+reason: each of its `(position, rules set)` pairs is one no source importer can
+ever produce a row for, so there is no snapshot that could overwrite it, and
+curating early means the row already exists when a source importer needs to
+read it. `tools/import-tp`'s mercenary hires do exactly that (via
+`positionRulesSets.list`), which is what lets that tool hold no duplicate copy
+of the values. Whether an entry qualifies is a case-by-case judgment call every
+time, never a rule about the rules set: BBL can write BB2020-keyed rows too,
+given real usage evidence, so "it is a BB2020 entry" is not the test. Because
+nothing else in the before phase declares the positions these entries
+reference, this file also registers each of them — with the external ids the
+source importers will send, so their own upsert lands on the same row, the same
+technique `star-players.json5` uses.
 
 ### SPP award values
 
@@ -397,7 +415,9 @@ See [Running import tools against production](../discord-bot/production-imports.
   additionally calls `syncRaceEras` to set race/era availability. The
   position-characteristics processor runs after both rules sets and
   positions, resolving both refs before syncing the whole batch, the same way
-  the SPP award values processor does. The competitions processor depends on
+  the SPP award values processor does. Both characteristics files are pooled by
+  the reader before any processor runs, so a gap-fill file can declare the
+  position it references alongside the reference itself. The competitions processor depends on
   eras and
   competition groups, so it runs after both, and always sends an empty
   `teamEraIds` list, which the API treats additively and so never detaches an

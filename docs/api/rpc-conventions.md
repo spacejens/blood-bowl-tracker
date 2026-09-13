@@ -178,12 +178,17 @@ router's own comment and result schema in
 shaped this way instead of as an upsert, and its exact result shape.
 
 A procedure may also be plainly read-only, existing because a caller needs data
-that no `upsert` call's input or output can give it. `competitionGroups.list`
-is the current example: `tools/import-tp` already holds a competition's
+that no `upsert` call's input or output can give it. Such a procedure writes
+nothing, and declares no contract errors. There are two.
+`competitionGroups.list`: `tools/import-tp` already holds a competition's
 `competitionGroupId` from its own competition upsert's response, but needs that
 group's curated _name_ to build a trophy's TP external id — and `upsert` cannot
-answer that, because the name is the input it was given. Such a procedure
-writes nothing, and declares no contract errors.
+answer that, because the name is the input it was given.
+`positionRulesSets.list`: `tools/import-tp`'s mercenary hires carry no
+characteristics anywhere in TP's own data, so the importer reads back the
+curated `position_rules_sets` rows `tools/import-manual` wrote in its
+before-other-importers phase, rather than keeping a second, hand-duplicated
+copy of the same values in its own config file.
 
 ## Error responses
 

@@ -79,6 +79,12 @@ real-world entity differently:
   matching events, `max_spp_sum` for its leader on the Star Player Points
   those events awarded, and `career_threshold` for every player who passes a
   lifetime figure, however many that turns out to be.
+- `position-characteristics-gap-fill.json5` — gap-fill `position_rules_sets`
+  rows: `(position, rules set)` pairs no source importer can ever produce,
+  curated early so a source importer can read them back. Also registers the
+  positions those rows reference, since nothing else in this phase does.
+  Currently one entry, Giant Mercenary under BB2020, which `tools/import-tp`
+  reads for its mercenary hires.
 
 ### Position renamed across rules-set generations
 
@@ -115,7 +121,7 @@ generation's id on the one existing curated row** in
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference
-  correctly.
+  correctly. The same holds for `before-other-importers/position-characteristics-gap-fill.json5`, except that its own `positions` entries carry a display `name` that must be kept current like any other.
 - Leave a comment on the entry naming each source, its id, and which generation
   that id belongs to, so the next curator can tell a genuine rename from a
   spelling difference between the two sources.
@@ -147,13 +153,15 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   earlier phase: it can only run once the importers have (re-)created their
   rows under the raw source names.
 - `position-characteristics.json5` — hand-curated Move/Strength/Agility/Armour
-  values for the rules sets no importer can supply correctly (CRP, CRP+,
-  BB2016), plus BB2020 gap-filling. It sits in the **after** phase because
-  the sync matches by the natural key `(position, rules set)` and updates in
-  place, and the BBL importer can write its single BB2020-snapshot stat line
-  under an older rules set on real usage evidence — curating before the
-  importers would let that snapshot overwrite the curated values on the same
-  key (see [Position characteristics](index.md#position-characteristics)).
+  values for the three older rules sets no importer can supply correctly (CRP,
+  CRP+, BB2016). It sits in the **after** phase because the sync matches by the
+  natural key `(position, rules set)` and updates in place, and the BBL
+  importer can write its single BB2020-snapshot stat line under an older rules
+  set on real usage evidence — curating before the importers would let that
+  snapshot overwrite the curated values on the same key. A _gap-fill_ entry —
+  a `(position, rules set)` pair no importer can ever write — goes in
+  `before-other-importers/position-characteristics-gap-fill.json5` instead (see
+  [Position characteristics](index.md#position-characteristics)).
 - `position-availability.json5` — hand-restored `positions_race_eras`
   availability the source data cannot evidence, from the rulebook rosters.
   It sits in the **after** phase for a stricter reason than the file above:
