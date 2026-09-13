@@ -2,24 +2,20 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   PositionRulesSetsImportService,
-  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import {
-  mockImportResultService,
-  mockReferenceLookupService,
-} from '../import-package.test-helpers';
-import { MercenaryConfigService } from './mercenary-config.service';
+import { mockImportResultService } from '../import-package.test-helpers';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 
-const TP_SYSTEM_ID = 1;
+const BB2020_ID = 900;
 
-/** The curated BB2020 line for the Giant Mercenary, as a canned mock value. */
-const GIANT_BB2020 = {
+/** The curated BB2020 row for the Giant Mercenary, as the API returns it. */
+const GIANT_BB2020_ROW = {
+  rulesSetId: BB2020_ID,
   move: 6,
   strength: 7,
   agility: 5,
@@ -29,34 +25,23 @@ const GIANT_BB2020 = {
 
 describe('TpMercenaryCharacteristicsService', () => {
   let service: TpMercenaryCharacteristicsService;
-  let config: MockProxy<MercenaryConfigService>;
   let positionRulesSetsImport: MockProxy<PositionRulesSetsImportService>;
   let importResults: MockProxy<ImportResultService>;
-  let lookup: MockProxy<ReferenceLookupService>;
   let errors: ImportError[];
 
   beforeEach(async () => {
-    config = mock<MercenaryConfigService>();
     positionRulesSetsImport = mock<PositionRulesSetsImportService>();
     importResults = mockImportResultService();
-    lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
-      rulesSetIdsByName: new Map([['BB2020', 900]]),
-    });
     errors = [];
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpMercenaryCharacteristicsService,
         {
-          provide: MercenaryConfigService,
-          useValue: config,
-        },
-        {
           provide: PositionRulesSetsImportService,
           useValue: positionRulesSetsImport,
         },
         { provide: ImportResultService, useValue: importResults },
-        { provide: ReferenceLookupService, useValue: lookup },
       ],
     }).compile();
     service = moduleRef.get(TpMercenaryCharacteristicsService);
@@ -96,81 +81,87 @@ describe('TpMercenaryCharacteristicsService', () => {
     });
   });
 
-  describe('syncPositionCharacteristics', () => {
-    it('syncs one position/rules-set entry per curated rules set', async () => {
-      config.forPosition.mockReturnValue(new Map([['BB2020', GIANT_BB2020]]));
+  describe('loadPositionCharacteristics', () => {
+    it("reads the position's curated rows once per position", async () => {
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([
+        GIANT_BB2020_ROW,
+      ]);
 
-      await service.syncPositionCharacteristics({
+      await service.loadPositionCharacteristics({
         positionName: 'Giant Mercenary',
-        positionId: 800,
-        tpSystemId: TP_SYSTEM_ID,
+        positionId: 77,
         errors,
       });
 
       expect(
-        positionRulesSetsImport.syncPositionRulesSets,
-      ).toHaveBeenCalledWith(
-        {
-          entries: [
-            {
-              positionId: 800,
-              rulesSetId: 900,
-              move: 6,
-              strength: 7,
-              agility: 5,
-              passing: 5,
-              armour: 11,
-            },
-          ],
-        },
+        positionRulesSetsImport.listPositionRulesSets,
+      ).toHaveBeenCalledWith(77, errors);
+      expect(errors).toEqual([]);
+    });
+
+    it('records an error when the position has no curated rows at all', async () => {
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([]);
+
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
         errors,
+      });
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain('Giant Mercenary');
+    });
+
+    it('records no second error when the read itself failed', async () => {
+      // listPositionRulesSets already recorded its own error and resolved
+      // undefined; duplicating it per position would only add noise.
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue(
+        undefined,
       );
-      expect(errors).toHaveLength(0);
-    });
 
-    it('records an error and syncs nothing for an uncurated mercenary name', async () => {
-      config.forPosition.mockReturnValue(undefined);
-
-      await service.syncPositionCharacteristics({
-        positionName: 'Bogus Mercenary',
-        positionId: 800,
-        tpSystemId: TP_SYSTEM_ID,
-        errors,
-      });
-
-      expect(
-        positionRulesSetsImport.syncPositionRulesSets,
-      ).not.toHaveBeenCalled();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('Bogus Mercenary');
-    });
-
-    it('records an error and syncs nothing when the curated rules set cannot be resolved', async () => {
-      config.forPosition.mockReturnValue(new Map([['BB1999', GIANT_BB2020]]));
-
-      await service.syncPositionCharacteristics({
+      await service.loadPositionCharacteristics({
         positionName: 'Giant Mercenary',
-        positionId: 800,
-        tpSystemId: TP_SYSTEM_ID,
+        positionId: 77,
         errors,
       });
 
-      expect(
-        positionRulesSetsImport.syncPositionRulesSets,
-      ).not.toHaveBeenCalled();
+      expect(errors).toEqual([]);
+    });
+
+    it('records an error for a curated row with no Passing value and leaves it uncached', async () => {
+      // A player row cannot express a null Passing, so such a row cannot be
+      // used for a hire; surfacing it here names the real problem instead of
+      // letting each hire report a misleading "not curated".
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([
+        { ...GIANT_BB2020_ROW, passing: null },
+      ]);
+
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
+        errors,
+      });
+
       expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('BB1999');
+      expect(errors[0].message).toContain('Passing');
     });
   });
 
   describe('forRosterPlayer', () => {
-    it("returns the curated characteristics with the era's rules set id", () => {
-      config.forPositionAndRulesSet.mockReturnValue(GIANT_BB2020);
+    it("returns the loaded row for the hire's rules set", async () => {
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([
+        GIANT_BB2020_ROW,
+      ]);
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
+        errors,
+      });
 
       const payload = service.forRosterPlayer({
         positionName: 'Giant Mercenary',
-        player: { id: 1399322, name: 'Giant' },
-        rulesSet: { name: 'BB2020', id: 900 },
+        player: { id: 5, name: 'Gronk' },
+        rulesSet: { name: 'BB2020', id: BB2020_ID },
         errors,
       });
 
@@ -180,42 +171,56 @@ describe('TpMercenaryCharacteristicsService', () => {
         agility: 5,
         passing: 5,
         armour: 11,
-        rulesSetId: 900,
+        rulesSetId: BB2020_ID,
       });
-      expect(config.forPositionAndRulesSet).toHaveBeenCalledWith({
-        positionName: 'Giant Mercenary',
-        rulesSetName: 'BB2020',
-      });
-      expect(errors).toHaveLength(0);
+      expect(errors).toEqual([]);
     });
 
-    it('records an error and returns undefined when the rules set is uncurated for that name', () => {
-      config.forPositionAndRulesSet.mockReturnValue(undefined);
+    it("records an error when the position has no row for this hire's rules set", async () => {
+      positionRulesSetsImport.listPositionRulesSets.mockResolvedValue([
+        GIANT_BB2020_ROW,
+      ]);
+      await service.loadPositionCharacteristics({
+        positionName: 'Giant Mercenary',
+        positionId: 77,
+        errors,
+      });
 
       const payload = service.forRosterPlayer({
         positionName: 'Giant Mercenary',
-        player: { id: 1399322, name: 'Giant' },
-        rulesSet: { name: 'BB2025', id: 902 },
+        player: { id: 5, name: 'Gronk' },
+        rulesSet: { name: 'BB2025', id: 901 },
         errors,
       });
 
       expect(payload).toBeUndefined();
       expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('Giant Mercenary');
       expect(errors[0].message).toContain('BB2025');
+      expect(errors[0].message).toContain('Gronk');
     });
 
-    it('returns undefined without an extra error when the era resolved to no rules set', () => {
+    it('records an error for a position that was never loaded', () => {
       const payload = service.forRosterPlayer({
         positionName: 'Giant Mercenary',
-        player: { id: 1399322, name: 'Giant' },
+        player: { id: 5, name: 'Gronk' },
+        rulesSet: { name: 'BB2020', id: BB2020_ID },
+        errors,
+      });
+
+      expect(payload).toBeUndefined();
+      expect(errors).toHaveLength(1);
+    });
+
+    it('returns undefined silently when the era resolved to no single rules set', () => {
+      const payload = service.forRosterPlayer({
+        positionName: 'Giant Mercenary',
+        player: { id: 5, name: 'Gronk' },
         rulesSet: undefined,
         errors,
       });
 
       expect(payload).toBeUndefined();
-      expect(config.forPositionAndRulesSet).not.toHaveBeenCalled();
-      expect(errors).toHaveLength(0);
+      expect(errors).toEqual([]);
     });
   });
 });
