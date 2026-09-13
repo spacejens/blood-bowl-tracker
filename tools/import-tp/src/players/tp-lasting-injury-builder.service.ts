@@ -12,8 +12,15 @@ import { Injectable } from '@nestjs/common';
 /** The lasting-injury subset of an `UpsertPlayer` payload. */
 export type TpLastingInjuriesPayload = PlayerLastingInjuries;
 
-/** The five reduction counters, excluding the boolean `missNextGame`. */
-type ReductionCounter = Exclude<keyof PlayerLastingInjuries, 'missNextGame'>;
+/**
+ * The five reduction counters, excluding the boolean `missNextGame` and the
+ * directly-reported `nigglingInjuryCount` — a reduction gap must never be
+ * assignable to the field TP itself reports outright.
+ */
+type ReductionCounter = Exclude<
+  keyof PlayerLastingInjuries,
+  'missNextGame' | 'nigglingInjuryCount'
+>;
 
 /** One characteristic, paired with the counter its reduction feeds. */
 interface Comparison {
