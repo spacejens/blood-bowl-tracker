@@ -34,10 +34,14 @@ const DEBUG_INTERACTIONS_TITLE = 'Recent interactions';
  * one outcome - maintainer tooling for answering "it failed for me" without
  * direct database access.
  *
- * `debug`-prefixed per #834; that prefix is a visibility convention, not
- * access control. The reply is ephemeral - the only ephemeral reply in the
- * bot - because it can surface another user's interaction history and
- * internal error messages, neither of which belongs in a public channel.
+ * `debug`-prefixed: the prefix is a visibility convention marking maintainer
+ * tooling, independent of access control. Access control is the separate
+ * `restricted: true` flag below, which limits the command to holders of the
+ * deployment's configured role whenever one is configured.
+ *
+ * The reply is ephemeral - the only ephemeral reply in the bot - because it
+ * can surface another user's interaction history and internal error messages,
+ * neither of which belongs in a public channel.
  *
  * Global, with no guild-scoping option: `interaction_events.guild_id` is
  * nullable (a DM belongs to no guild), and someone diagnosing a report wants
@@ -61,6 +65,7 @@ export class DebugInteractionsCommandService implements OnModuleInit {
     return {
       name: 'debuginteractions',
       description: 'Debug: List recent bot interactions',
+      restricted: true,
       options: [
         {
           name: 'user',

@@ -11,10 +11,14 @@ much_ a user interacts with the bot; this command reports _how_ they
 interact with it.
 
 The `debug` prefix on both the name and the description marks this as
-maintainer tooling rather than a regular bot feature. It is a visibility
-convention only: anyone who can see the command can run it. No permission
-or role check restricts it, and no such mechanism exists elsewhere in the
-bot.
+maintainer tooling rather than a regular bot feature. The prefix itself is a
+visibility convention; access control is separate, and optional. Where the
+deployment sets `DEBUG_COMMAND_ROLE_ID` to a Discord server role id, only
+members holding that role can run this command — anyone else gets a private
+"you don't have permission to use this command" reply, as does anyone who
+runs it in a direct message with the bot, since a direct message carries no
+server role to check. Where that variable is unset, the command is open to
+everyone who can see it.
 
 ## What counts as a filter
 
@@ -81,8 +85,9 @@ specific users do what is not public-channel content. See
 that applies to every `debug`-prefixed command. This command also appears
 in `/debuginteractions`' own listing, so it can be
 [retriggered](debug-interactions.md#retriggering-a-listed-interaction) —
-and a retrigger's reply is public rather than ephemeral, the same
-intentional exception described there.
+and because this command is `restricted: true`, a retrigger's reply stays
+ephemeral (visible only to whoever clicked retrigger) and re-checks the
+clicking member's role, exactly as described there.
 
 ## What is not counted
 

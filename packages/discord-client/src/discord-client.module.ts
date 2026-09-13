@@ -4,15 +4,27 @@ import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 import {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
+  RESTRICTED_COMMAND_ROLE_ID,
 } from './discord-client.service';
+import { MemberRoleAccessService } from './member-role-access.service';
 
 export interface DiscordClientModuleOptions {
   token: string;
+  /** Omitted means restricted commands are not role-gated. */
+  restrictedRoleId?: string;
 }
 
 export interface DiscordClientModuleAsyncOptions {
   useFactory: FactoryProvider<string>['useFactory'];
   inject?: FactoryProvider<string>['inject'];
+  /**
+   * Resolves the role id restricted commands require, sharing `inject` with
+   * `useFactory`. Omitted means restricted commands are not role-gated, so a
+   * consumer that does not care need not supply anything.
+   */
+  useRestrictedRoleIdFactory?: FactoryProvider<
+    string | undefined
+  >['useFactory'];
 }
 
 @Global()
@@ -24,9 +36,18 @@ export class DiscordClientModule {
       imports: [DiscordBotUsageModule],
       providers: [
         { provide: DISCORD_BOT_TOKEN, useValue: options.token },
+        {
+          provide: RESTRICTED_COMMAND_ROLE_ID,
+          useValue: options.restrictedRoleId,
+        },
+        MemberRoleAccessService,
         DiscordClientService,
       ],
-      exports: [DiscordClientService],
+      exports: [
+        DiscordClientService,
+        MemberRoleAccessService,
+        RESTRICTED_COMMAND_ROLE_ID,
+      ],
     };
   }
 
@@ -40,9 +61,21 @@ export class DiscordClientModule {
           useFactory: options.useFactory,
           inject: options.inject ?? [],
         },
+        {
+          provide: RESTRICTED_COMMAND_ROLE_ID,
+          useFactory: options.useRestrictedRoleIdFactory ?? (() => undefined),
+          inject: options.useRestrictedRoleIdFactory
+            ? (options.inject ?? [])
+            : [],
+        },
+        MemberRoleAccessService,
         DiscordClientService,
       ],
-      exports: [DiscordClientService],
+      exports: [
+        DiscordClientService,
+        MemberRoleAccessService,
+        RESTRICTED_COMMAND_ROLE_ID,
+      ],
     };
   }
 }

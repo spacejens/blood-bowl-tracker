@@ -38,9 +38,14 @@ vi.mock('discord.js', () => ({
   GatewayIntentBits: { Guilds: 1 },
   InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
   ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
+  MessageFlags: { Ephemeral: 64 },
 }));
 
-import { DISCORD_BOT_TOKEN, DiscordClientService } from './index';
+import {
+  DISCORD_BOT_TOKEN,
+  DiscordClientService,
+  MemberRoleAccessService,
+} from './index';
 
 const OCCURRED_AT = new Date('2026-09-09T12:00:00.000Z');
 
@@ -92,6 +97,7 @@ describe('DiscordClientService usage tracking', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         DiscordClientService,
+        MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
         { provide: UsageTrackingService, useValue: usageTracking },
       ],

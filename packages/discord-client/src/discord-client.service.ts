@@ -9,6 +9,7 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import type {
   ApplicationCommandOptionChoiceData,
@@ -27,13 +28,31 @@ import {
   Client,
   GatewayIntentBits,
   InteractionContextType,
+  MessageFlags,
   REST,
   Routes,
 } from 'discord.js';
 
+import { MemberRoleAccessService } from './member-role-access.service';
+
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
+/**
+ * The Discord role id members must hold to run a command marked
+ * `restricted`, or `undefined` where the deployment configured none, in which
+ * case no restriction is applied. Supplied by the host application, so this
+ * package stays free of any configuration concern, exactly like
+ * `DISCORD_BOT_TOKEN`.
+ */
+export const RESTRICTED_COMMAND_ROLE_ID = Symbol('RESTRICTED_COMMAND_ROLE_ID');
+
 const READY_TIMEOUT_MS = 30_000;
+
+/** Sent in place of a restricted command's reply when the role is missing. */
+const ACCESS_DENIED_MESSAGE = "You don't have permission to use this command.";
+
+/** Recorded as the `error_message` of a refused restricted-command attempt. */
+const ACCESS_DENIED_ERROR_MESSAGE = 'Missing required role';
 
 /**
  * `execute` should read only `interaction.options` and return its reply
@@ -49,6 +68,15 @@ export interface SlashCommandDefinition {
   name: string;
   description: string;
   options?: ApplicationCommandOptionData[];
+  /**
+   * Opt in to the deployment's role restriction: when a restricted role is
+   * configured, only a guild member holding it may run this command, and
+   * anyone else — including anyone invoking it in a DM, where there is no
+   * guild role to check — gets an ephemeral refusal instead. Deliberately an
+   * explicit per-command flag rather than a `debug`-name-prefix rule, so the
+   * naming convention and the access rule stay independent of each other.
+   */
+  restricted?: boolean;
   execute: (
     interaction: ChatInputCommandInteraction,
   ) => Promise<string | InteractionReplyOptions>;
@@ -103,10 +131,7 @@ interface ReplyWithHandlerOptions {
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
   private readonly client: Client;
-  private readonly commandHandlers = new Map<
-    string,
-    SlashCommandDefinition['execute']
-  >();
+  private readonly commandHandlers = new Map<string, SlashCommandDefinition>();
   private readonly autocompleteHandlers = new Map<
     string,
     NonNullable<SlashCommandDefinition['autocomplete']>
@@ -116,6 +141,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
+    @Optional()
+    @Inject(RESTRICTED_COMMAND_ROLE_ID)
+    private readonly restrictedRoleId: string | undefined,
+    private readonly memberRoleAccess: MemberRoleAccessService,
     private readonly usageTracking: UsageTrackingService,
   ) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -245,7 +274,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    */
   async registerCommands(commands: SlashCommandDefinition[]): Promise<void> {
     for (const command of commands) {
-      this.commandHandlers.set(command.name, command.execute);
+      this.commandHandlers.set(command.name, command);
       if (command.autocomplete) {
         this.autocompleteHandlers.set(command.name, command.autocomplete);
       }
@@ -362,12 +391,24 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     if (!interaction.isChatInputCommand()) {
       return;
     }
-    const handler = this.commandHandlers.get(interaction.commandName);
-    if (!handler) {
+    const definition = this.commandHandlers.get(interaction.commandName);
+    if (!definition) {
+      return;
+    }
+    if (this.isDenied(definition, interaction)) {
+      await interaction.reply(this.accessDeniedReply());
+      void this.recordUsage({
+        interaction,
+        kind: 'command',
+        name: interaction.commandName,
+        parameters: this.commandParameters(interaction),
+        outcome: 'failure',
+        errorMessage: ACCESS_DENIED_ERROR_MESSAGE,
+      });
       return;
     }
     try {
-      const content = await handler(interaction);
+      const content = await definition.execute(interaction);
       this.logger.log(
         `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
@@ -431,6 +472,38 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       outcome: options.outcome,
       errorMessage: options.errorMessage,
       parameters: options.parameters,
+    };
+  }
+
+  /**
+   * Whether this invocation must be refused: the command opted into the
+   * restriction, this deployment configured a role, and the invoking member
+   * does not hold it. An unrestricted command, or a deployment with no
+   * configured role, is never refused and behaves exactly like an open
+   * command.
+   *
+   * A refusal is still recorded through the usual usage path as a failed
+   * command, so it needs no separate telemetry and shows up in the recorded
+   * interaction history like any other outcome.
+   */
+  private isDenied(
+    definition: SlashCommandDefinition,
+    interaction: ChatInputCommandInteraction,
+  ): boolean {
+    if (!definition.restricted || this.restrictedRoleId === undefined) {
+      return false;
+    }
+    return !this.memberRoleAccess.hasRole(
+      interaction.member,
+      this.restrictedRoleId,
+    );
+  }
+
+  /** The ephemeral refusal sent instead of a restricted command's reply. */
+  private accessDeniedReply(): InteractionReplyOptions {
+    return {
+      content: ACCESS_DENIED_MESSAGE,
+      flags: MessageFlags.Ephemeral,
     };
   }
 
