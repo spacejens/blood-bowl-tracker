@@ -662,7 +662,7 @@ describe('buildFactTree', () => {
     );
   });
 
-  it('declares all four scopes for both date toplists', () => {
+  it('declares league, era and match category scopes for the date matches toplists', () => {
     const tree = buildFactTree(deps());
     for (const path of [
       'date.toplist.matches.descending',
@@ -671,7 +671,7 @@ describe('buildFactTree', () => {
       const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
       expect(leaf.supportsLeague).toBe(true);
       expect(leaf.supportsEra).toBe(true);
-      expect(leaf.supportsCompetition).toBe(true);
+      expect(leaf.supportsCompetition).toBe(false);
       expect(leaf.supportsMatchCategory).toBe(true);
     }
   });
