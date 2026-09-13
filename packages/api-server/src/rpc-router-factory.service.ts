@@ -17,6 +17,7 @@ import {
   MatchOutcomesService,
   MatchUpsertConflictError,
   MissingTrophyAwardsService,
+  PlayerLastingInjuryBackfillService,
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetsService,
@@ -79,6 +80,7 @@ export class RpcRouterFactoryService {
     private readonly rulesSetsService: RulesSetsService,
     private readonly sppAwardValuesService: SppAwardValuesService,
     private readonly sppAdjustmentsService: SppAdjustmentsService,
+    private readonly playerLastingInjuryBackfillService: PlayerLastingInjuryBackfillService,
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
     private readonly teamsService: TeamsService,
@@ -324,7 +326,10 @@ export class RpcRouterFactoryService {
           conflictError: PlayerUpsertConflictError,
           unwrap: (r) => ({ entity: r.player, created: r.created }),
         }),
-        ...buildPlayerSppAdjustmentRoutes(this.sppAdjustmentsService),
+        ...buildPlayerSppAdjustmentRoutes(
+          this.sppAdjustmentsService,
+          this.playerLastingInjuryBackfillService,
+        ),
         ...this.buildResolveRoute({
           procedure: contract.players.resolve,
           service: this.playersService,

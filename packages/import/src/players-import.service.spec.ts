@@ -50,6 +50,13 @@ describe('PlayersImportService', () => {
       agility: 3,
       passing: 4,
       armour: 9,
+      missNextGame: false,
+      nigglingInjuryCount: 0,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 0,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -119,6 +126,13 @@ describe('PlayersImportService.upsertPlayerResult', () => {
       agility: 3,
       passing: 4,
       armour: 9,
+      missNextGame: false,
+      nigglingInjuryCount: 0,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 0,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -159,5 +173,19 @@ describe('PlayersImportService.upsertPlayerResult', () => {
         message: 'Failed to import player "Griff Oberwald": boom',
       },
     ]);
+  });
+
+  it('resolves to the id and the created flag', async () => {
+    client.players.upsert.mockResolvedValue({
+      id: 900,
+      created: true,
+    } as never);
+
+    await expect(
+      service.upsertPlayerResult(
+        { externalIds: [{ externalSystemId: 1, externalId: 'pid-7' }] },
+        [],
+      ),
+    ).resolves.toMatchObject({ id: 900, created: true });
   });
 });
