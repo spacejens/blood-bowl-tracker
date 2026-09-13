@@ -70,6 +70,13 @@ type Player = {
   agility: number;
   passing: number | null;
   armour: number;
+  missNextGame: boolean;
+  nigglingInjuryCount: number;
+  moveReductionCount: number;
+  strengthReductionCount: number;
+  agilityReductionCount: number;
+  passingReductionCount: number;
+  armourReductionCount: number;
 };
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
@@ -96,6 +103,18 @@ const MAX_PLAYER_KILLS = 30;
  */
 const INCREASED = '▲'; // the raw value is higher than the baseline
 const DECREASED = '▼'; // the raw value is lower than the baseline
+
+/**
+ * Each characteristic's reduction counter and the label the line writes it
+ * under, in the order the line lists them.
+ */
+const REDUCTION_FIELDS = [
+  ['MA', 'moveReductionCount'],
+  ['ST', 'strengthReductionCount'],
+  ['AG', 'agilityReductionCount'],
+  ['PA', 'passingReductionCount'],
+  ['AV', 'armourReductionCount'],
+] as const;
 
 /**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
@@ -241,21 +260,30 @@ export class PlayerDeepdiveService {
       return DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE;
     }
 
+    // Omitted entirely when no rules set applies to the player's era: there
+    // is then no way to know how to write the values, and a wrongly
+    // formatted stat line would read as fact.
+    const characteristicsLine =
+      characteristicsContext === undefined
+        ? undefined
+        : this.buildCharacteristicsLine(player, characteristicsContext);
+    const lastingInjuriesLine = this.buildLastingInjuriesLine(player);
+    // Both describe the player's current condition rather than their
+    // identity, so they share one blank-line separator from the header lines
+    // above — emitted if either is present, since the characteristics line is
+    // absent whenever no rules set resolves for the era while an injury is a
+    // fact regardless.
+    const conditionLines = [characteristicsLine, lastingInjuriesLine].filter(
+      (line): line is string => line !== undefined,
+    );
+
     const header = [
       `Team: ${player.teamName}`,
       `Era: ${this.dateRangeFormatter.formatNamed(player.eraName, player.eraStartDate, player.eraEndDate)}`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
       ...(killer === null ? [] : [this.buildStatusLine(killer)]),
-      // Set off with a blank line rather than joining the identity lines
-      // directly above: characteristics are a different kind of fact about
-      // the player than the header's own team/era/race/position. Omitted
-      // entirely when no rules set applies to the player's era: there is
-      // then no way to know how to write the values, and a wrongly
-      // formatted stat line would read as fact.
-      ...(characteristicsContext === undefined
-        ? []
-        : ['', this.buildCharacteristicsLine(player, characteristicsContext)]),
+      ...(conditionLines.length === 0 ? [] : ['', ...conditionLines]),
     ];
 
     const categoryLines = this.eventCountLines.build(
@@ -527,6 +555,41 @@ export class PlayerDeepdiveService {
       `AV ${this.formatCharacteristic(player.armour, context.armourFormat, baseline?.armour)}`,
     ];
     return `Characteristics: ${fields.join(' ')}`;
+  }
+
+  /**
+   * `Lasting injuries: Miss next game, 1 niggling injury, ST -1` — what is
+   * currently outstanding for the player, not what they have ever suffered.
+   * Under newer rules sets these heal, so this is live state; the career
+   * tally is a separate fact the event counts below already cover.
+   *
+   * `undefined` — the whole line omitted — for a player with no active
+   * lasting injury. Unlike the characteristics line, which is omitted because
+   * it cannot be written correctly, this is omitted because "no injuries" is
+   * the overwhelmingly common case and a "none" line on every healthy player
+   * would be noise.
+   */
+  private buildLastingInjuriesLine(player: Player): string | undefined {
+    const parts: string[] = [];
+    if (player.missNextGame) {
+      parts.push('Miss next game');
+    }
+    if (player.nigglingInjuryCount > 0) {
+      parts.push(
+        `${player.nigglingInjuryCount} niggling ${
+          player.nigglingInjuryCount === 1 ? 'injury' : 'injuries'
+        }`,
+      );
+    }
+    for (const [label, field] of REDUCTION_FIELDS) {
+      const count = player[field];
+      if (count > 0) {
+        parts.push(`${label} -${count}`);
+      }
+    }
+    return parts.length === 0
+      ? undefined
+      : `Lasting injuries: ${parts.join(', ')}`;
   }
 
   /** One characteristic: its formatted value plus its baseline marker. */
