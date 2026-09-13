@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { EraDataConfigModule } from '../eras/era-data-config.module';
 import { EraRulesSetModule } from '../eras/era-rules-set.module';
 import { SourceModule } from '../source/source.module';
+import { TpLastingInjuryBackfillImportService } from './tp-lasting-injury-backfill-import.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
@@ -20,11 +21,13 @@ import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.servi
     TpMercenaryCharacteristicsService,
     TpMercenaryPositionRaceErasImportService,
     TpLastingInjuryBuilderService,
+    TpLastingInjuryBackfillImportService,
   ],
   exports: [
     TpPlayersImportService,
     TpSppAdjustmentsImportService,
     TpMercenaryPositionRaceErasImportService,
+    TpLastingInjuryBackfillImportService,
   ],
 })
 export class PlayersModule {}

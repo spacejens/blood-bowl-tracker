@@ -17,6 +17,7 @@ import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
 import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
+import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
@@ -252,6 +253,7 @@ async function run(): Promise<ImportResult> {
       starPlayerIdsByRosterAndMaster,
       careerSppCountsByPlayerId,
       mercenaryPositionUsages,
+      insertedPlayerIds,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
@@ -337,6 +339,17 @@ async function run(): Promise<ImportResult> {
         careerCountsByPlayerId: careerSppCountsByPlayerId,
       });
 
+    // Also runs after the match-events step, and for the same structural
+    // reason: it recomputes each freshly-inserted player's accumulated
+    // niggling injuries and stat reductions from the match events just
+    // written, so it can manufacture the players_history versions a player
+    // whose injury was healed before this run would otherwise never get.
+    // Scoped to players this run INSERTED — an existing player already has
+    // whatever history earlier runs built.
+    const lastingInjuryBackfillOutcome = await app
+      .get(TpLastingInjuryBackfillImportService)
+      .importLastingInjuryHistory(insertedPlayerIds);
+
     // Match outcomes run last: scores are counted from the touchdown events
     // imported just above, and TP's own `winner` field per match is used
     // directly as a tie-break -- no bracket reconstruction needed, since TP
@@ -388,6 +401,7 @@ async function run(): Promise<ImportResult> {
       trophyAwardsOutcome.result,
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
+      lastingInjuryBackfillOutcome.result,
       matchOutcomesOutcome.result,
       missingTrophyAwardsOutcome.result,
     ];
