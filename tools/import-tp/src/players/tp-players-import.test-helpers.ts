@@ -24,6 +24,7 @@ import {
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
@@ -106,7 +107,12 @@ export async function makeService({
     ['Third Era', 500],
     ['Fourth Era', 501],
   ]),
-  positionIdsByExternalId = new Map([['952', 200]]),
+  positionIdsByExternalId = new Map([
+    ['952', 200],
+    // '971' backs tp-players-import-lasting-injuries.spec.ts's Halfling
+    // Catcher fixture (lineUpMasterId 971).
+    ['971', 201],
+  ]),
   getEras,
   rulesSetIdByEraName = new Map([
     ['Third Era', 900],
@@ -189,6 +195,7 @@ export async function makeService({
         useValue: eraRulesSetResolver,
       },
       TpPlayerCharacteristicsBuilderService,
+      TpLastingInjuryBuilderService,
       {
         provide: TpMercenaryCharacteristicsService,
         useValue: mercenaryCharacteristics,

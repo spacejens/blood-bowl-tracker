@@ -258,6 +258,7 @@ async function run(): Promise<ImportResult> {
       inducedStarPlayerHireGroups,
       matchEmbeddedPlayersByRosterId,
       characteristicsByPositionId,
+      rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
     });
 
     // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
