@@ -28,6 +28,16 @@
 // overwrite the row below, and TP's players step reads it back over the API
 // (positionRulesSets.list) to give each hire real values.
 //
+// BB2025 has no Giant Mercenary published yet, so it has no entry here
+// either -- that absence is intentional, not a gap to fill.
+//
+// Note: tools/review-race's per-race characteristics panels structurally
+// exclude all star players (Giant Mercenary is one), so this entry does not
+// appear there regardless of which phase curates it -- a pre-existing,
+// unrelated limitation of that tool, not something this file's placement
+// affects. Its own unit tests (curated-data-characteristics.spec.ts) verify
+// the pooling directly instead.
+//
 // Each `positions` entry here registers the external ids the source importers
 // will send for that position, so their own upsert lands on this row rather
 // than creating a second one -- the same technique star-players.json5 uses.

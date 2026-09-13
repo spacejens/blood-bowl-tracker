@@ -415,10 +415,10 @@ See [Running import tools against production](../discord-bot/production-imports.
   additionally calls `syncRaceEras` to set race/era availability. The
   position-characteristics processor runs after both rules sets and
   positions, resolving both refs before syncing the whole batch, the same way
-  the SPP award values processor does. Both characteristics files are pooled by
-  the reader before any processor runs, so a gap-fill file can declare the
-  position it references alongside the reference itself. The competitions processor depends on
-  eras and
+  the SPP award values processor does. Every file in a phase directory is
+  pooled section-by-section by the reader before any processor runs, so the
+  gap-fill file can declare the position it references alongside the
+  reference itself. The competitions processor depends on eras and
   competition groups, so it runs after both, and always sends an empty
   `teamEraIds` list, which the API treats additively and so never detaches an
   imported competition's teams.

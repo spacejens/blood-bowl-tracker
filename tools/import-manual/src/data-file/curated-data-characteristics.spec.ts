@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readFile } from './curated-data.test-helpers';
+import { readFile, readPhase } from './curated-data.test-helpers';
 
 describe('curated data files - characteristics', () => {
   it('curates the gap-fill file with both the position and its BB2020 stat line', () => {
@@ -98,6 +98,32 @@ describe('curated data files - characteristics', () => {
     // position_rules_sets is unique on (position_id, rules_set_id): a
     // duplicate here means the second entry silently overwrites the first.
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('never curates the same (position, rules set) pair in both characteristics files', () => {
+    const afterKeys = new Set(
+      readFile(
+        'after-other-importers',
+        'position-characteristics.json5',
+      ).positionRulesSets.map(
+        (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
+      ),
+    );
+    const gapFillKeys = readFile(
+      'before-other-importers',
+      'position-characteristics-gap-fill.json5',
+    ).positionRulesSets.map(
+      (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
+    );
+
+    // Each file's own natural key is already asserted unique within itself;
+    // this states directly that PositionUpsertConflictError's overwrite risk
+    // (see the gap-fill file's header comment) can never arise between the
+    // two files either -- today this only holds because the allowed-rules-set
+    // list happens not to overlap, but this is the invariant that actually
+    // matters.
+    const overlap = gapFillKeys.filter((key) => afterKeys.has(key));
+    expect(overlap).toEqual([]);
   });
 
   it('curates CRP characteristics for the six teams on the first roster page', () => {
@@ -500,5 +526,39 @@ describe('curated data files - characteristics', () => {
       .sort();
 
     expect(missing).toEqual(exceptions);
+  });
+
+  it("resolves the gap-fill file's positionRulesSets references against its own phase", () => {
+    const gapFill = readFile(
+      'before-other-importers',
+      'position-characteristics-gap-fill.json5',
+    );
+    const phase = readPhase('before-other-importers');
+
+    const rulesSetNameIds = new Set(
+      phase.rulesSets.flatMap((rulesSet) =>
+        rulesSet.externalIds
+          .filter((ref) => ref.system === 'Name')
+          .map((ref) => ref.id),
+      ),
+    );
+    const positionNameIds = new Set(
+      phase.positions.flatMap((position) =>
+        position.externalIds
+          .filter((ref) => ref.system === 'Name')
+          .map((ref) => ref.id),
+      ),
+    );
+
+    expect(gapFill.positionRulesSets.length).toBeGreaterThan(0);
+    for (const entry of gapFill.positionRulesSets) {
+      // Both references use the 'Name' system, so resolving them means
+      // finding a matching id among the phase's pooled rulesSets/positions --
+      // not just this one file's own, since the position may be declared
+      // alongside the reference (as the gap-fill file's own header explains)
+      // but the rules set is declared elsewhere in the same phase.
+      expect(rulesSetNameIds.has(entry.rulesSet.id)).toBe(true);
+      expect(positionNameIds.has(entry.position.id)).toBe(true);
+    }
   });
 });
