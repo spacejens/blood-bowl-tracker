@@ -8,6 +8,7 @@ import { SppModule } from '../spp/spp.module';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeathService } from './player-death.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryBackfillService } from './player-lasting-injury-backfill.service';
 import { PlayersService } from './players.service';
 import { StarPlayersService } from './star-players.service';
 
@@ -24,8 +25,14 @@ import { StarPlayersService } from './star-players.service';
     PlayerCharacteristicsValidationService,
     PlayerDeathService,
     PlayerDeepdiveCountsService,
+    PlayerLastingInjuryBackfillService,
     StarPlayersService,
   ],
-  exports: [PlayersService, PlayerDeathService, StarPlayersService],
+  exports: [
+    PlayersService,
+    PlayerDeathService,
+    PlayerLastingInjuryBackfillService,
+    StarPlayersService,
+  ],
 })
 export class PlayersModule {}
