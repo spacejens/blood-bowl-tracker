@@ -1,5 +1,5 @@
-// Hand-curated position characteristics (position_rules_sets) for the rules
-// sets no importer can supply correctly.
+// Hand-curated position characteristics (position_rules_sets) for the three
+// older rules sets no importer can supply correctly (CRP, CRP+, BB2016).
 //
 // This file lives in after-other-importers, never before, and that is load
 // bearing: PositionRulesSetsService.sync matches by the natural key
@@ -8,11 +8,15 @@
 // it finds real usage evidence there. Curating before the importers would let
 // that snapshot overwrite these values on the very same key; curating after
 // means these values win.
+// A genuine gap-fill entry -- a (position, rules set) pair no importer can
+// ever write -- belongs in
+// data/before-other-importers/position-characteristics-gap-fill.json5 instead;
+// see that file's header for the invariant it has to satisfy.
 //
 // CRP, CRP+ and BB2016 declare passingFormat: 'absent' (see
 // data/before-other-importers/spp-award-values.json5), so their entries omit
 // `passing` entirely -- the processor sends the omission on as an explicit
-// null and the API rejects a value here. BB2020 entries must carry `passing`.
+// null and the API rejects a value here.
 //
 // Every `position` id is the "Name" external id
 // NameExternalIdService.forPosition builds -- "<raceName>: <positionName>" for
@@ -556,12 +560,5 @@
     { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 2, agility: 4, armour: 7 },
     { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 7, strength: 3, agility: 3, armour: 8 },
     { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, move: 6, strength: 5, agility: 1, armour: 9 },
-
-    // --- BB2020 gap-fill: Giant Mercenary ---
-    // Giant Mercenary is a Blood Bowl 2020 mercenary/star player (Death Zone
-    // Season 2 "Mercenaries" chapter). The values below are transcribed from
-    // the developer's physical copy of that supplement, not estimated from
-    // general series knowledge.
-    { position: { system: 'Name', id: 'Giant Mercenary' }, rulesSet: { system: 'Name', id: 'BB2020' }, move: 6, strength: 7, agility: 5, passing: 5, armour: 11 },
   ],
 }

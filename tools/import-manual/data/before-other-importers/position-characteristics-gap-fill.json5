@@ -1,0 +1,63 @@
+// Hand-curated position characteristics (position_rules_sets) for genuine
+// GAP-FILL cases only, plus the positions those entries reference.
+//
+// The invariant every entry in this file must satisfy: the
+// (position, rules set) pair is one NO source importer can ever produce a row
+// for. That is what makes curating it BEFORE the source importers run safe.
+// PositionRulesSetsService.sync matches by the natural key
+// (position_id, rules_set_id) and updates in place, so if an importer could
+// also write that pair, its value would silently overwrite the curated one --
+// which is exactly why data/after-other-importers/position-characteristics.json5
+// exists and why everything curated there stays there.
+//
+// Deciding an entry belongs here is a case-by-case judgment call every time,
+// never a rule about the rules set. BBL's snapshot-assignment logic
+// (BblPositionRaceErasImportService / BblPositionCharacteristicsImportService)
+// can write a row under ANY rules set its era covers, BB2020 included,
+// whenever it finds real scraped usage evidence. So "it is a BB2020 entry" is
+// not a reason to put something here. Before adding an entry, establish that
+// neither BBL nor TP can produce a candidate for that position at all.
+//
+// Giant Mercenary is the one entry that qualifies today. BBL never creates a
+// position candidate for it: a mercenary is not a scraped race-roster
+// position and is not BBL-flagged as a star player. TP creates the position
+// (TpPlayersImportService.resolveMercenaryPositionId, from a hire's inline
+// fallbackPositionName) but supplies no characteristics for it anywhere --
+// the name appears in no roster catalog, and the match-embedded lineUps[]
+// entry for an actual hire carries no ma/st/ag/pa/av either. So nothing can
+// overwrite the row below, and TP's players step reads it back over the API
+// (positionRulesSets.list) to give each hire real values.
+//
+// Each `positions` entry here registers the external ids the source importers
+// will send for that position, so their own upsert lands on this row rather
+// than creating a second one -- the same technique star-players.json5 uses.
+// For a mercenary that means TP's tourplay.net id and TP's "Name" id, both of
+// which are the bare position name (NameExternalIdService.forStarPosition).
+//
+// Every `position` reference below is a "Name" external id. BB2020 entries
+// must carry `passing`: BB2020 declares passingFormat 'plus_zero_legal', and
+// the API rejects an entry that omits a Passing value for it.
+//
+// Sources:
+//   BB2020 -- Death Zone Season 2, "Mercenaries" chapter, transcribed from
+//             the developer's physical copy of that supplement, not estimated
+//             from general series knowledge.
+{
+  externalSystems: [
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  positions: [
+    {
+      name: 'Giant Mercenary',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'tourplay.net', id: 'Giant Mercenary' },
+        { system: 'Name', id: 'Giant Mercenary' },
+      ],
+    },
+  ],
+  positionRulesSets: [
+    { position: { system: 'Name', id: 'Giant Mercenary' }, rulesSet: { system: 'Name', id: 'BB2020' }, move: 6, strength: 7, agility: 5, passing: 5, armour: 11 },
+  ],
+}
