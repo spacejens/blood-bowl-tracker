@@ -119,6 +119,44 @@ describe('curated data files', () => {
     }
   });
 
+  it('classifies all 86 known competition instances into curated groups', () => {
+    const before = readPhase('before-other-importers');
+    const groupNames = new Set(
+      before.competitionGroups.map((group) => group.name),
+    );
+    const eraNames = new Set(before.eras.map((era) => era.name));
+    const competitions = before.competitions;
+
+    expect(competitions).toHaveLength(86);
+    const keys = new Set<string>();
+    for (const competition of competitions) {
+      expect(competition.externalIds).toHaveLength(1);
+      const [ref] = competition.externalIds;
+      const key = `${ref.system}|${ref.id}`;
+      expect(keys, `duplicate external id ${key}`).not.toContain(key);
+      keys.add(key);
+      expect(
+        competition.competitionGroup,
+        `competition ${key} has no competitionGroup`,
+      ).toBeDefined();
+      expect(competition.competitionGroup!.system).toBe('Name');
+      expect(groupNames).toContain(competition.competitionGroup!.id);
+      // The create path needs every NOT NULL column competitions has no
+      // default for: name, type, era_id and start_date.
+      expect(competition.name, `competition ${key} has no name`).toBeDefined();
+      expect(competition.type, `competition ${key} has no type`).toBeDefined();
+      expect(competition.era, `competition ${key} has no era`).toBeDefined();
+      expect(competition.era!.system).toBe('Name');
+      expect(eraNames, `competition ${key} names an uncurated era`).toContain(
+        competition.era!.id,
+      );
+      expect(
+        competition.startDate,
+        `competition ${key} has no start date`,
+      ).toBeDefined();
+    }
+  });
+
   it('classifies every curated trophy into a curated group or league', () => {
     const data = readPhase('before-other-importers');
     const groupNames = new Set(
