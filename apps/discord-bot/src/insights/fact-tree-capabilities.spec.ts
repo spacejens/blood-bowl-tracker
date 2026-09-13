@@ -126,11 +126,9 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'player.toplist.totalSpp'),
         factTreeUtils.resolvePath(tree, 'stats'),
         factTreeUtils.resolvePath(tree, 'date.onThisDate'),
-        factTreeUtils.resolvePath(tree, 'date.toplist.matches.ascending'),
-        factTreeUtils.resolvePath(tree, 'date.toplist.matches.descending'),
       ]),
     );
-    expect(supported).toHaveLength(35);
+    expect(supported).toHaveLength(33);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {

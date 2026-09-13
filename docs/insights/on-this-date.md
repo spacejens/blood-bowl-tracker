@@ -85,5 +85,5 @@ the reader was looking at. Each button preserves the one selected scope, if
 any — the drill-down applies the same filter as the toplist it came from.
 
 Resolving the scope happens when the button is clicked, not when the toplist is
-posted, so a league, era or competition deleted in between replies with the
-same not-found message the equivalent `/insights` option gives.
+posted, so a league or era deleted in between replies with the same not-found
+message the equivalent `/insights` option gives.

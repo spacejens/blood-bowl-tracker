@@ -588,14 +588,14 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
           ascending: {
             supportsLeague: true,
             supportsEra: true,
-            supportsCompetition: true,
+            supportsCompetition: false,
             supportsMatchCategory: true,
             resolve: (scope) => deps.dateToplist.resolveMatchesAscending(scope),
           },
           descending: {
             supportsLeague: true,
             supportsEra: true,
-            supportsCompetition: true,
+            supportsCompetition: false,
             supportsMatchCategory: true,
             resolve: (scope) =>
               deps.dateToplist.resolveMatchesDescending(scope),

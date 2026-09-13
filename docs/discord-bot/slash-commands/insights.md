@@ -400,7 +400,8 @@ competitions`). Each listed group also gets a button that opens that
   ranked by how many matches were played on them, busiest first. Rows read
   `<rank>. <date> — <N>`, e.g. `1. February 29 — 12`. Ties order
   chronologically, so two identical requests always render the same list.
-  Supports league, era, competition and match-category filtering.
+  Supports league, era and match-category filtering, but not competition
+  filtering.
 - `date.toplist.matches.ascending` — the same match-count metric ranked from
   the other end: the quietest dates on which anything was ever played. Dates
   with no recorded match at all are absent rather than ranked zero, since the
