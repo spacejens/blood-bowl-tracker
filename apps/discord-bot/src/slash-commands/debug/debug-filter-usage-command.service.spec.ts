@@ -66,6 +66,10 @@ describe('DebugFilterUsageCommandService', () => {
     );
   });
 
+  it('marks the command as restricted', () => {
+    expect(service.buildCommand().restricted).toBe(true);
+  });
+
   it('offers one optional days option, at least 1', () => {
     const command = service.buildCommand();
 

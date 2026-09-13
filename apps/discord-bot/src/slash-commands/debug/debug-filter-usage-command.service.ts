@@ -27,10 +27,13 @@ const DEBUG_FILTER_USAGE_TITLE = 'Filter usage';
  * It complements `/debugtopusers`, which reports *how much* a user interacts
  * with the bot, by reporting *how* they interact with it.
  *
- * `debug`-prefixed per #834; that prefix is a visibility convention, not
- * access control. The reply is ephemeral, like its `/debuginteractions` and
- * `/debugtopusers` siblings: which specific users do what is not
- * public-channel content.
+ * `debug`-prefixed: the prefix is a visibility convention marking maintainer
+ * tooling, independent of access control. Access control is the separate
+ * `restricted: true` flag below, which limits the command to holders of the
+ * deployment's configured role whenever one is configured.
+ *
+ * The reply is ephemeral, like its `/debuginteractions` and `/debugtopusers`
+ * siblings: which specific users do what is not public-channel content.
  *
  * The plain-only section comes first because it is the actionable one, and
  * carries each user's invocation count so the ranking is visible; the
@@ -55,6 +58,7 @@ export class DebugFilterUsageCommandService implements OnModuleInit {
     return {
       name: 'debugfilterusage',
       description: 'Debug: Report who uses optional filters vs. plain commands',
+      restricted: true,
       options: [
         {
           name: 'days',

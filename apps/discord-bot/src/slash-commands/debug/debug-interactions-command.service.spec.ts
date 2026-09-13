@@ -106,6 +106,10 @@ describe('DebugInteractionsCommandService', () => {
     expect(command.description).toBe('Debug: List recent bot interactions');
   });
 
+  it('marks the command as restricted', () => {
+    expect(service.buildCommand().restricted).toBe(true);
+  });
+
   it('offers optional user and outcome options', () => {
     const command = service.buildCommand();
 
