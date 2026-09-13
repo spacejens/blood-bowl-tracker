@@ -6,6 +6,10 @@ import {
 import { Module } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
+import { CurrentInjuryStratificationService } from '../lasting-injuries/current-injury-stratification.service';
+import { HealedInjuryStratificationService } from '../lasting-injuries/healed-injury-stratification.service';
+import { LastingInjuriesModule } from '../lasting-injuries/lasting-injuries.module';
+import { LastingInjuriesReviewerService } from '../lasting-injuries/lasting-injuries-reviewer.service';
 import { CharacteristicsChangeStratificationService } from '../player-characteristics/characteristics-change-stratification.service';
 import { PlayerCharacteristicsModule } from '../player-characteristics/player-characteristics.module';
 import { PlayerCharacteristicsReviewerService } from '../player-characteristics/player-characteristics-reviewer.service';
@@ -39,6 +43,7 @@ import { ReviewService } from './review.service';
     PlayerInfoModule,
     PlayerCharacteristicsModule,
     SppTotalsModule,
+    LastingInjuriesModule,
   ],
   providers: [
     PlayerLookupService,
@@ -51,12 +56,15 @@ import { ReviewService } from './review.service';
       PlayerInfoReviewerService,
       PlayerSppTotalsReviewerService,
       PlayerCharacteristicsReviewerService,
+      LastingInjuriesReviewerService,
     ]),
     createRegistryProvider(PLAYER_STRATIFIERS, [
       SppDiscrepancyStratificationService,
       SppMagnitudeStratificationService,
       SppNonStandardContributionStratificationService,
       CharacteristicsChangeStratificationService,
+      CurrentInjuryStratificationService,
+      HealedInjuryStratificationService,
       RandomPlayerStratificationService,
       StarPlayerStratificationService,
     ]),
