@@ -35,8 +35,9 @@
 // exclude all star players (Giant Mercenary is one), so this entry does not
 // appear there regardless of which phase curates it -- a pre-existing,
 // unrelated limitation of that tool, not something this file's placement
-// affects. Its own unit tests (curated-data-characteristics.spec.ts) verify
-// the pooling directly instead.
+// affects. tools/review-race's own unit tests (manual-raw-data.service.spec.ts)
+// verify the pooling of this file with position-characteristics.json5
+// directly instead.
 //
 // Each `positions` entry here registers the external ids the source importers
 // will send for that position, so their own upsert lands on this row rather
