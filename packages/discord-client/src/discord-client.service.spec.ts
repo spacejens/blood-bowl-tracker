@@ -72,6 +72,7 @@ vi.mock('discord.js', () => ({
   // genuine enum members the service passes to Discord.
   InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
   ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
+  MessageFlags: { Ephemeral: 64 },
 }));
 
 import {
@@ -85,6 +86,7 @@ import {
   DISCORD_BOT_TOKEN,
   DiscordClientModule,
   DiscordClientService,
+  MemberRoleAccessService,
   RESTRICTED_COMMAND_ROLE_ID,
 } from './index';
 
@@ -117,6 +119,7 @@ describe('DiscordClientService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         DiscordClientService,
+        MemberRoleAccessService,
         { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
         {
           provide: UsageTrackingService,

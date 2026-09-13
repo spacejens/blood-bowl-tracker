@@ -9,6 +9,7 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import type {
   ApplicationCommandOptionChoiceData,
@@ -27,9 +28,12 @@ import {
   Client,
   GatewayIntentBits,
   InteractionContextType,
+  MessageFlags,
   REST,
   Routes,
 } from 'discord.js';
+
+import { MemberRoleAccessService } from './member-role-access.service';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
@@ -43,6 +47,12 @@ export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 export const RESTRICTED_COMMAND_ROLE_ID = Symbol('RESTRICTED_COMMAND_ROLE_ID');
 
 const READY_TIMEOUT_MS = 30_000;
+
+/** Sent in place of a restricted command's reply when the role is missing. */
+const ACCESS_DENIED_MESSAGE = "You don't have permission to use this command.";
+
+/** Recorded as the `error_message` of a refused restricted-command attempt. */
+const ACCESS_DENIED_ERROR_MESSAGE = 'Missing required role';
 
 /**
  * `execute` should read only `interaction.options` and return its reply
@@ -131,6 +141,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
+    @Optional()
+    @Inject(RESTRICTED_COMMAND_ROLE_ID)
+    private readonly restrictedRoleId: string | undefined,
+    private readonly memberRoleAccess: MemberRoleAccessService,
     private readonly usageTracking: UsageTrackingService,
   ) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -381,6 +395,18 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     if (!definition) {
       return;
     }
+    if (this.isDenied(definition, interaction)) {
+      await interaction.reply(this.accessDeniedReply());
+      void this.recordUsage({
+        interaction,
+        kind: 'command',
+        name: interaction.commandName,
+        parameters: this.commandParameters(interaction),
+        outcome: 'failure',
+        errorMessage: ACCESS_DENIED_ERROR_MESSAGE,
+      });
+      return;
+    }
     try {
       const content = await definition.execute(interaction);
       this.logger.log(
@@ -455,6 +481,38 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
    * `APIInteractionGuildMember` (field `nick`) otherwise. Both are checked
    * so a nickname is still recorded in the raw-payload case.
    */
+  /**
+   * Whether this invocation must be refused: the command opted into the
+   * restriction, this deployment configured a role, and the invoking member
+   * does not hold it. An unrestricted command, or a deployment with no
+   * configured role, is never refused and behaves exactly like an open
+   * command.
+   *
+   * A refusal is still recorded through the usual usage path as a failed
+   * command, so it needs no separate telemetry and shows up in the recorded
+   * interaction history like any other outcome.
+   */
+  private isDenied(
+    definition: SlashCommandDefinition,
+    interaction: ChatInputCommandInteraction,
+  ): boolean {
+    if (!definition.restricted || this.restrictedRoleId === undefined) {
+      return false;
+    }
+    return !this.memberRoleAccess.hasRole(
+      interaction.member,
+      this.restrictedRoleId,
+    );
+  }
+
+  /** The ephemeral refusal sent instead of a restricted command's reply. */
+  private accessDeniedReply(): InteractionReplyOptions {
+    return {
+      content: ACCESS_DENIED_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    };
+  }
+
   private memberNickname(
     member: ChatInputCommandInteraction['member'],
   ): string | undefined {
