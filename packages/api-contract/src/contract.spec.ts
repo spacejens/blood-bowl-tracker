@@ -159,6 +159,99 @@ describe('contract', () => {
     expect(contract.sppAwardValues.sync).toBeDefined();
   });
 
+  it('exposes a players.syncLastingInjuryHistory procedure', () => {
+    expect(contract.players.syncLastingInjuryHistory).toBeDefined();
+    // Writes nothing a caller can conflict on and returns no entity, so it
+    // declares no errors — the same shape positions.syncRaceEras has.
+    expect(errorCodesOf(contract.players.syncLastingInjuryHistory)).toEqual([]);
+
+    const inputSchema = contract.players.syncLastingInjuryHistory['~orpc']
+      .inputSchema as z.ZodType;
+    expect(inputSchema.safeParse({ playerIds: [1, 2, 3] }).success).toBe(true);
+    expect(inputSchema.safeParse({ playerIds: [] }).success).toBe(true);
+    expect(inputSchema.safeParse({}).success).toBe(false);
+
+    const outputSchema = contract.players.syncLastingInjuryHistory['~orpc']
+      .outputSchema as z.ZodType;
+    expect(outputSchema.safeParse({ backfilledPlayerIds: [7] }).success).toBe(
+      true,
+    );
+  });
+
+  it('players.upsert accepts the lasting-injury group only in full', () => {
+    const inputSchema = contract.players.upsert['~orpc']
+      .inputSchema as z.ZodType;
+    const externalIds = [{ externalSystemId: 1, externalId: 'pid-7' }];
+    const full = {
+      missNextGame: true,
+      nigglingInjuryCount: 1,
+      moveReductionCount: 0,
+      strengthReductionCount: 1,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 2,
+    };
+
+    // None of the group at all is fine: an importer that says nothing about
+    // lasting injuries leaves the stored state untouched.
+    expect(inputSchema.safeParse({ externalIds }).success).toBe(true);
+    expect(inputSchema.safeParse({ ...full, externalIds }).success).toBe(true);
+    // A partial group cannot be stored meaningfully.
+    expect(
+      inputSchema.safeParse({ missNextGame: true, externalIds }).success,
+    ).toBe(false);
+    // Counts are nonnegative integers; a negative one is authored nonsense.
+    expect(
+      inputSchema.safeParse({
+        ...full,
+        nigglingInjuryCount: -1,
+        externalIds,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('players.upsert returns the lasting-injury state on the entity', () => {
+    const outputSchema = contract.players.upsert['~orpc']
+      .outputSchema as z.ZodType;
+    const parsed = outputSchema.safeParse({
+      id: 1,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
+      move: 7,
+      strength: 3,
+      agility: 3,
+      passing: 4,
+      armour: 9,
+      missNextGame: false,
+      nigglingInjuryCount: 0,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 0,
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+    expect(parsed.success).toBe(true);
+    // Required, not optional: every stored row has concrete values.
+    expect(
+      outputSchema.safeParse({
+        id: 1,
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        move: 7,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
+        createdAt: new Date('2026-01-01'),
+        created: true,
+      }).success,
+    ).toBe(false);
+  });
+
   it('exposes a read-only positionRulesSets.list alongside sync', () => {
     expect(contract.positionRulesSets.sync).toBeDefined();
     expect(contract.positionRulesSets.list).toBeDefined();

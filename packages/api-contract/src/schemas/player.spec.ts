@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  PLAYER_LASTING_INJURY_KEYS,
   PlayerSchema,
   SPP_CAREER_COUNT_KEYS,
+  SyncLastingInjuryHistoryResultSchema,
+  SyncLastingInjuryHistorySchema,
   SyncReportedSppAdjustmentsSchema,
   SyncScrapedSppAdjustmentsSchema,
   SyncSppAdjustmentsResultSchema,
@@ -10,6 +13,16 @@ import {
 } from './player';
 
 describe('player schemas', () => {
+  const noLastingInjuries = {
+    missNextGame: false,
+    nigglingInjuryCount: 0,
+    moveReductionCount: 0,
+    strengthReductionCount: 0,
+    agilityReductionCount: 0,
+    passingReductionCount: 0,
+    armourReductionCount: 0,
+  };
+
   it('PlayerSchema parses a valid player', () => {
     const parsed = PlayerSchema.parse({
       id: 1,
@@ -21,6 +34,7 @@ describe('player schemas', () => {
       agility: 3,
       passing: 4,
       armour: 9,
+      ...noLastingInjuries,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('Griff Oberwald');
@@ -105,6 +119,7 @@ describe('player schemas', () => {
       agility: 3,
       passing: 4,
       armour: 9,
+      ...noLastingInjuries,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.move).toBe(6);
@@ -122,6 +137,7 @@ describe('player schemas', () => {
       agility: 3,
       passing: null,
       armour: 8,
+      ...noLastingInjuries,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.passing).toBeNull();
@@ -138,6 +154,24 @@ describe('player schemas', () => {
         strength: 3,
         agility: 3,
         passing: 4,
+        ...noLastingInjuries,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow();
+  });
+
+  it('PlayerSchema rejects a player missing a lasting-injury field', () => {
+    expect(() =>
+      PlayerSchema.parse({
+        id: 1,
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
         createdAt: '2026-01-01T00:00:00.000Z',
       }),
     ).toThrow();
@@ -308,6 +342,45 @@ describe('SPP_CAREER_COUNT_KEYS', () => {
       'mvp_award',
       'casualty',
     ]);
+  });
+});
+
+describe('PLAYER_LASTING_INJURY_KEYS', () => {
+  it('lists every lasting-injury field exactly once', () => {
+    expect([...PLAYER_LASTING_INJURY_KEYS]).toEqual([
+      'missNextGame',
+      'nigglingInjuryCount',
+      'moveReductionCount',
+      'strengthReductionCount',
+      'agilityReductionCount',
+      'passingReductionCount',
+      'armourReductionCount',
+    ]);
+  });
+});
+
+describe('SyncLastingInjuryHistorySchema', () => {
+  it('accepts a list of player ids, including an empty list', () => {
+    expect(
+      SyncLastingInjuryHistorySchema.parse({ playerIds: [1, 2, 3] }),
+    ).toEqual({ playerIds: [1, 2, 3] });
+    expect(SyncLastingInjuryHistorySchema.parse({ playerIds: [] })).toEqual({
+      playerIds: [],
+    });
+  });
+
+  it('rejects a missing playerIds', () => {
+    expect(() => SyncLastingInjuryHistorySchema.parse({})).toThrow();
+  });
+});
+
+describe('SyncLastingInjuryHistoryResultSchema', () => {
+  it('accepts the backfilled player ids', () => {
+    expect(
+      SyncLastingInjuryHistoryResultSchema.parse({
+        backfilledPlayerIds: [7],
+      }),
+    ).toEqual({ backfilledPlayerIds: [7] });
   });
 });
 
