@@ -117,11 +117,11 @@ describe('curated data files - characteristics', () => {
     );
 
     // Each file's own natural key is already asserted unique within itself;
-    // this states directly that PositionUpsertConflictError's overwrite risk
-    // (see the gap-fill file's header comment) can never arise between the
-    // two files either -- today this only holds because the allowed-rules-set
-    // list happens not to overlap, but this is the invariant that actually
-    // matters.
+    // this states directly that PositionRulesSetsService.sync's silent
+    // update-in-place risk (see the gap-fill file's header comment) can never
+    // arise between the two files either -- today this only holds because the
+    // allowed-rules-set list happens not to overlap, but this is the
+    // invariant that actually matters.
     const overlap = gapFillKeys.filter((key) => afterKeys.has(key));
     expect(overlap).toEqual([]);
   });
