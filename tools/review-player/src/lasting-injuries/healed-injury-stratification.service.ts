@@ -79,9 +79,7 @@ export class HealedInjuryStratificationService implements PlayerStratifier {
     const everInjured = this.db
       .select({ id: playersHistory.id })
       .from(playersHistory)
-      .where(
-        and(eq(playersHistory.id, players.id), this.anyInjury(playersHistory)),
-      );
+      .where(and(eq(playersHistory.id, players.id), this.anyInjuryInHistory()));
     const rows = await this.query
       .base(externalSystemId)
       .where(and(this.noInjury(), exists(everInjured)))
@@ -90,7 +88,7 @@ export class HealedInjuryStratificationService implements PlayerStratifier {
     return rows.map((row) => ({ source, ...row }));
   }
 
-  /** Every one of the six columns at its "no injury" default. */
+  /** Every one of the seven columns at its "no injury" default. */
   private noInjury(): SQL {
     return and(
       eq(players.missNextGame, false),
@@ -104,20 +102,27 @@ export class HealedInjuryStratificationService implements PlayerStratifier {
   }
 
   /**
-   * Any one of the six columns away from its default, on whichever table is
-   * passed — `players_history` here. Taking the table as a parameter keeps the
-   * history table's column set structurally tied to the tracked table's, which
-   * is what `historyTrackedTable` guarantees anyway.
+   * Any one of the seven columns away from its default, on `players_history`.
+   *
+   * `playersHistory`'s mirrored columns are keyed by their SQL/snake_case
+   * names, not the camelCase TypeScript property names `players` uses — see
+   * `historyTrackedTable` in `packages/db/src/schema/history.ts`, which builds
+   * them via `Object.fromEntries(historyMirroredShapes.map((shape) => [shape.name, ...]))`.
+   * The generated column map's type is an index signature, so
+   * `playersHistory.missNextGame` type-checks but is `undefined` at runtime —
+   * it only fails once the query actually runs. Bracket access with the
+   * literal SQL name is required here; it cannot be shared with `noInjury()`'s
+   * camelCase access on `players` via one generic helper.
    */
-  private anyInjury(table: typeof playersHistory): SQL {
+  private anyInjuryInHistory(): SQL {
     return or(
-      eq(table.missNextGame, true),
-      gt(table.nigglingInjuryCount, 0),
-      gt(table.moveReductionCount, 0),
-      gt(table.strengthReductionCount, 0),
-      gt(table.agilityReductionCount, 0),
-      gt(table.passingReductionCount, 0),
-      gt(table.armourReductionCount, 0),
+      eq(playersHistory['miss_next_game'], true),
+      gt(playersHistory['niggling_injury_count'], 0),
+      gt(playersHistory['move_reduction_count'], 0),
+      gt(playersHistory['strength_reduction_count'], 0),
+      gt(playersHistory['agility_reduction_count'], 0),
+      gt(playersHistory['passing_reduction_count'], 0),
+      gt(playersHistory['armour_reduction_count'], 0),
     ) as SQL;
   }
 }

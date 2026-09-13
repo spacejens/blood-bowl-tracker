@@ -12,7 +12,7 @@ import { TpLastingInjuriesRawRendererService } from './tp-lasting-injuries-raw-r
 /**
  * The lasting-injuries data type: raw panels from each source's own view of
  * what is currently outstanding for a player, an imported panel showing the
- * six stored columns, and two strata — players who currently carry an injury,
+ * seven stored columns, and two strata — players who currently carry an injury,
  * and players whose injury has since healed (the latter being this
  * codebase's first reader of a `*_history` table).
  */

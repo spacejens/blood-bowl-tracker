@@ -68,7 +68,17 @@ describe('HealedInjuryStratificationService', () => {
     ]);
   });
 
-  it('requires the current row to carry no lasting injury', async () => {
+  const LASTING_INJURY_COLUMNS = [
+    'miss_next_game',
+    'niggling_injury_count',
+    'move_reduction_count',
+    'strength_reduction_count',
+    'agility_reduction_count',
+    'passing_reduction_count',
+    'armour_reduction_count',
+  ];
+
+  it('requires the current row to carry no lasting injury, on every one of the seven columns', async () => {
     await service.sampleStratum({
       source: 'bbl',
       stratumId: 'healed-injury',
@@ -77,11 +87,12 @@ describe('HealedInjuryStratificationService', () => {
 
     const where = dbResult.chains[0].where.mock.calls[0][0] as SQL;
     const rendered = new PgDialect().sqlToQuery(where).sql;
-    expect(rendered).toContain('miss_next_game');
-    expect(rendered).toContain('armour_reduction_count');
+    for (const column of LASTING_INJURY_COLUMNS) {
+      expect(rendered).toContain(`"players"."${column}"`);
+    }
   });
 
-  it('requires some past history version to have carried one', async () => {
+  it('requires some past history version to have carried one, on every one of the seven columns', async () => {
     await service.sampleStratum({
       source: 'bbl',
       stratumId: 'healed-injury',
@@ -90,8 +101,37 @@ describe('HealedInjuryStratificationService', () => {
 
     const where = dbResult.chains[0].where.mock.calls[0][0] as SQL;
     const rendered = new PgDialect().sqlToQuery(where).sql;
-    expect(rendered).toContain('players_history');
     expect(rendered.toLowerCase()).toContain('exists');
+    // Qualified with the history table's own name, not just present anywhere
+    // in the rendered SQL: the outer "current row" predicate above also
+    // mentions these column names (on `players`, not `players_history`), so a
+    // bare substring check would stay green even if the history-side
+    // predicate referenced the wrong table or no table at all — which is
+    // exactly the shape of the camelCase-on-playersHistory regression this
+    // guards against (the broken columns rendered as bare, table-less
+    // comparisons like `( = $8)`).
+    for (const column of LASTING_INJURY_COLUMNS) {
+      expect(rendered).toContain(`"players_history"."${column}"`);
+    }
+  });
+
+  it('combines the two conditions with AND, not OR', async () => {
+    await service.sampleStratum({
+      source: 'bbl',
+      stratumId: 'healed-injury',
+      limit: 5,
+    });
+
+    const where = dbResult.chains[0].where.mock.calls[0][0] as SQL;
+    const rendered = new PgDialect().sqlToQuery(where).sql;
+    // The top-level condition is `and(noInjury(), exists(everInjured))`. If
+    // this were `or(...)` instead, a currently-injured player (who fails
+    // `noInjury()`) could still be sampled via the `exists` half alone —
+    // exactly the "healed" stratum wrongly including still-injured players
+    // failure mode the design is meant to avoid. Asserting the literal ` and `
+    // token immediately before `exists (` pins the join as AND rather than OR.
+    expect(rendered).toMatch(/\)\s+and\s+\(exists \(/i);
+    expect(rendered.toLowerCase()).not.toContain(') or (exists (');
   });
 
   it('samples randomly, bounded by the requested limit', async () => {

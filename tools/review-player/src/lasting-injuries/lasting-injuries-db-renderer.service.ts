@@ -16,7 +16,7 @@ const HEADERS = [
 ] as const;
 
 /**
- * The six stored lasting-injury columns, shown as stored. No comparison and
+ * The seven stored lasting-injury columns, shown as stored. No comparison and
  * no derivation: the raw panel beside this one carries what each source said,
  * and the reviewer's job is to decide whether the two agree.
  *

@@ -53,7 +53,7 @@ describe('CurrentInjuryStratificationService', () => {
     ]);
   });
 
-  it('filters on every one of the six columns', async () => {
+  it('filters on every one of the seven columns', async () => {
     await service.sampleStratum({
       source: 'bbl',
       stratumId: 'currently-injured',

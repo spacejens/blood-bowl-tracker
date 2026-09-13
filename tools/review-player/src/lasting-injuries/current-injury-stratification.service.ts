@@ -60,7 +60,7 @@ export class CurrentInjuryStratificationService implements PlayerStratifier {
     return rows.map((row) => ({ source, ...row }));
   }
 
-  /** Any one of the six columns away from its "no injury" default. */
+  /** Any one of the seven columns away from its "no injury" default. */
   private anyInjury(): SQL {
     return or(
       eq(players.missNextGame, true),
