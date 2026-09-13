@@ -8,11 +8,13 @@ import { SourceModule } from '../source/source.module';
 import { BblPlayersImportService } from './bbl-players-import.service';
 import { BblSppAdjustmentsImportService } from './bbl-spp-adjustments-import.service';
 import { PlayerPageParser } from './player-page-parser';
+import { SustainedInjuriesParser } from './sustained-injuries.parser';
 
 @Module({
   imports: [ImportModule, SourceModule, EraConfigModule],
   providers: [
     PlayerPageParser,
+    SustainedInjuriesParser,
     BblPlayersImportService,
     BblSppAdjustmentsImportService,
     UpsertFieldNarrowingService,
@@ -20,6 +22,7 @@ import { PlayerPageParser } from './player-page-parser';
   ],
   exports: [
     PlayerPageParser,
+    SustainedInjuriesParser,
     BblPlayersImportService,
     BblSppAdjustmentsImportService,
   ],

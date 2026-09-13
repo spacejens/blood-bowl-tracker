@@ -805,8 +805,8 @@ describe('BblPlayersImportService', () => {
       }),
     );
     mocks.playersImport.upsertPlayerResult
-      .mockResolvedValueOnce({ id: 101 })
-      .mockResolvedValueOnce({ id: 102 });
+      .mockResolvedValueOnce({ id: 101, created: false })
+      .mockResolvedValueOnce({ id: 102, created: false });
 
     const outcome = await service.importPlayers(importOptions);
 

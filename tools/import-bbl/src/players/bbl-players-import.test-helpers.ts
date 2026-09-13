@@ -160,7 +160,10 @@ export async function makeService(
   );
 
   const playersImport = mock<PlayersImportService>();
-  playersImport.upsertPlayerResult.mockResolvedValue({ id: 900 });
+  playersImport.upsertPlayerResult.mockResolvedValue({
+    id: 900,
+    created: false,
+  });
 
   const teamsImport = mock<TeamsImportService>();
   teamsImport.upsert.mockResolvedValue(
