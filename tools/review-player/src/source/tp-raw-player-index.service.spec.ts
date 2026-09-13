@@ -418,4 +418,45 @@ describe('TpRawPlayerIndexService', () => {
 
     expect(player?.move).toBeNull();
   });
+
+  it("carries a player's live lasting-injury fields and position template", async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 6,
+        nigglingInjuries: 2,
+        canPlayNextGame: false,
+        lineUpMaster: { ma: 6, st: 4, ag: 3, pa: 5, av: 7 },
+      },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.nigglingInjuries).toBe(2);
+    expect(aggregate?.canPlayNextGame).toBe(false);
+    expect(aggregate?.templateArmour).toBe(7);
+  });
+
+  it('leaves the lasting-injury fields null for a player with no roster file', async () => {
+    writeMatch(1, {
+      inscriptionLocal: {
+        roster: {
+          lineUps: [{ id: 2477482, name: 'Someone Else', position: 'Lineman' }],
+        },
+      },
+      inscriptionVisitor: { roster: { lineUps: [] } },
+      matchEvents: [],
+    });
+
+    const aggregate = await service.aggregateFor('2477482');
+
+    expect(aggregate?.nigglingInjuries).toBeNull();
+    expect(aggregate?.canPlayNextGame).toBeNull();
+    expect(aggregate?.templateArmour).toBeNull();
+  });
 });
