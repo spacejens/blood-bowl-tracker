@@ -18,6 +18,10 @@ const CHARACTERISTICS_FILE = join(
   'after-other-importers',
   'position-characteristics.json5',
 );
+const GAP_FILL_CHARACTERISTICS_FILE = join(
+  'before-other-importers',
+  'position-characteristics-gap-fill.json5',
+);
 
 /** A `{ system, id }` reference, as the curated files write them. */
 export interface ManualExternalIdRef {
@@ -38,7 +42,7 @@ export interface ManualAvailabilityEntry {
   raceEras: { race: ManualExternalIdRef; era: ManualExternalIdRef }[];
 }
 
-/** One `positionRulesSets[]` entry of position-characteristics.json5. */
+/** One `positionRulesSets[]` entry of either characteristics file. */
 export interface ManualCharacteristicsEntry {
   position: ManualExternalIdRef;
   rulesSet: ManualExternalIdRef;
@@ -51,7 +55,7 @@ export interface ManualCharacteristicsEntry {
 }
 
 /**
- * Reads the three hand-curated JSON5 files the race/position review checks
+ * Reads the four hand-curated JSON5 files the race/position review checks
  * against. Deliberately independent of tools/import-manual: this reads and
  * shapes the files, and runs none of the importer's processor logic — that
  * logic's reading of these files is part of what the report exists to check.
@@ -91,8 +95,28 @@ export class ManualRawDataService {
     });
   }
 
+  /**
+   * Every curated `positionRulesSets` entry, pooled from the two files that
+   * declare them: the after-phase `position-characteristics.json5` and the
+   * before-phase `position-characteristics-gap-fill.json5`. Each file is read
+   * and shaped independently, by its own hardcoded path -- this tool
+   * deliberately runs none of tools/import-manual's own loader logic, since
+   * that logic's reading of these files is part of what the report exists to
+   * check.
+   */
   async characteristics(): Promise<ManualCharacteristicsEntry[]> {
-    const entries = await this.array(CHARACTERISTICS_FILE, 'positionRulesSets');
+    const [curated, gapFill] = await Promise.all([
+      this.characteristicsFrom(CHARACTERISTICS_FILE),
+      this.characteristicsFrom(GAP_FILL_CHARACTERISTICS_FILE),
+    ]);
+    return [...curated, ...gapFill];
+  }
+
+  /** One characteristics file's `positionRulesSets` entries. */
+  private async characteristicsFrom(
+    file: string,
+  ): Promise<ManualCharacteristicsEntry[]> {
+    const entries = await this.array(file, 'positionRulesSets');
     return entries.flatMap((entry) => {
       const position = this.ref(this.property(entry, 'position'));
       const rulesSet = this.ref(this.property(entry, 'rulesSet'));

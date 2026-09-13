@@ -159,6 +159,84 @@ describe('ManualRawDataService', () => {
     expect(characteristics[0].passing).toEqual(2);
   });
 
+  it('characteristics() pools the after-phase file and the before-phase gap-fill file', async () => {
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      `
+{
+  positionRulesSets: [
+    {
+      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 4, strength: 3, agility: 2, armour: 9
+    }
+  ]
+}
+`,
+    );
+    writeFileSync(
+      join(
+        tempDir,
+        'before-other-importers',
+        'position-characteristics-gap-fill.json5',
+      ),
+      `
+{
+  positionRulesSets: [
+    {
+      position: { system: 'Name', id: 'Giant Mercenary' },
+      rulesSet: { system: 'Name', id: 'BB2020' },
+      move: 6, strength: 7, agility: 5, passing: 5, armour: 11
+    }
+  ]
+}
+`,
+    );
+
+    const characteristics = await service.characteristics();
+
+    expect(characteristics).toHaveLength(2);
+    expect(characteristics).toContainEqual({
+      position: { system: 'Name', id: 'Dwarf Team: Dwarf Blocker Linemen' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 4,
+      strength: 3,
+      agility: 2,
+      passing: null,
+      armour: 9,
+    });
+    expect(characteristics).toContainEqual({
+      position: { system: 'Name', id: 'Giant Mercenary' },
+      rulesSet: { system: 'Name', id: 'BB2020' },
+      move: 6,
+      strength: 7,
+      agility: 5,
+      passing: 5,
+      armour: 11,
+    });
+  });
+
+  it('characteristics() returns the after-phase entries when the gap-fill file is missing', async () => {
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-characteristics.json5'),
+      `
+{
+  positionRulesSets: [
+    {
+      position: { system: 'Name', id: 'Some Position' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      move: 4, strength: 3, agility: 2, armour: 9
+    }
+  ]
+}
+`,
+    );
+
+    const characteristics = await service.characteristics();
+
+    expect(characteristics).toHaveLength(1);
+  });
+
   it('availability() skips an entry whose name is not a string', async () => {
     const json5Content = `
 {
