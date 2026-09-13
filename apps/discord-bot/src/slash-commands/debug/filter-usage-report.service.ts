@@ -102,8 +102,10 @@ export class FilterUsageReportService {
 
   /**
    * Folds the invocations into one tally per Discord user, keyed by the stable
-   * Discord id rather than the username (which a user can change). The first
-   * username seen for an id is the one reported.
+   * Discord id rather than the username (which a user can change). Invocations
+   * arrive in ascending event order, so the most recently recorded username
+   * for an id is the one reported - useful for a maintainer who wants to go
+   * message the flagged user.
    */
   private tally(
     invocations: CommandInvocationRow[],
@@ -120,6 +122,7 @@ export class FilterUsageReportService {
         eligibleCount: 0,
         usedFilter: false,
       };
+      tally.username = invocation.username;
       tally.eligibleCount += 1;
       tally.usedFilter ||= invocation.parameterKeys.some((key) =>
         eligible.has(key),

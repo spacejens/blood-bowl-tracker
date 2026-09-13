@@ -201,6 +201,19 @@ describe('FilterUsageReportService', () => {
     });
   });
 
+  it('reports the most recently recorded username, not the first seen', async () => {
+    events.commandInvocations.mockResolvedValue([
+      invocation({ discordUserId: '100', username: 'oldname' }),
+      invocation({ discordUserId: '100', username: 'newname' }),
+    ]);
+
+    const report = await service.report({});
+
+    expect(report.plainOnly).toEqual([
+      { username: 'newname', eligibleCount: 2 },
+    ]);
+  });
+
   it('sorts plainOnly by eligible count descending', async () => {
     events.commandInvocations.mockResolvedValue([
       invocation({ discordUserId: '100', username: 'alice' }),
