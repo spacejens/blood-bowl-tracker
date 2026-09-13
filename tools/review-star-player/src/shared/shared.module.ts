@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { ExternalSystemLookupService } from './external-system-lookup.service';
 import { StarPlayerExternalIdsService } from './star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from './star-player-name-matcher.service';
+import { StarPlayerPositionsQueryService } from './star-player-positions-query.service';
 
 /**
  * Cross-cutting services both the harness and every data-type module use.
@@ -17,6 +18,7 @@ const SHARED = [
   HtmlService,
   StarPlayerExternalIdsService,
   StarPlayerNameMatcherService,
+  StarPlayerPositionsQueryService,
 ];
 
 @Module({
