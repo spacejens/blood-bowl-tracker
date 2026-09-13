@@ -275,7 +275,7 @@ export const DEEPDIVE_LEAGUE_NO_TROPHIES_MESSAGE =
 // behind the `debug` naming prefix, not a reply a coach is meant to enjoy.
 export const DEBUG_INTERACTIONS_NO_RESULTS_MESSAGE =
   'No matching interactions found.';
-export const DEBUG_TOP_USERS_NO_RESULTS_MESSAGE =
+export const DEBUG_NO_USAGE_RECORDED_MESSAGE =
   'No bot usage recorded for those filters.';
 export const DEBUG_RETRIGGER_EVENT_NOT_FOUND_MESSAGE =
   'That interaction is no longer on record.';

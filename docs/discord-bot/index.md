@@ -168,6 +168,10 @@ effect immediately.
   tooling: the Discord users with the most recorded bot interactions, most
   active first, optionally narrowed to one interaction kind and/or a recent
   window, replied ephemerally.
+- [`/debugfilterusage`](slash-commands/debug-filter-usage.md) — maintainer
+  tooling: which Discord users have ever narrowed a command with an optional
+  filter argument versus those who have only ever invoked commands plain,
+  optionally narrowed to a recent window, replied ephemerally.
 
 ### Drill-down buttons and blank entity names
 
