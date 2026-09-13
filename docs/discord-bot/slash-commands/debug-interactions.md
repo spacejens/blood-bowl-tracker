@@ -89,7 +89,7 @@ Two things follow from how retriggering reruns the interaction:
   removed. This can't loop forever, but it's worth recognizing these rows
   for what they are.
 - The reply lands in the channel where the retrigger was clicked, not the
-  channel the original interaction happened in. For a command that is *not*
+  channel the original interaction happened in. For a command that is _not_
   `restricted: true`, this is also an intentional exception to the
   "Ephemeral by design" rule below: the reply is posted publicly rather than
   ephemerally, so a retrigger reproduces the answer as everyone would have
