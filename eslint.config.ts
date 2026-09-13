@@ -77,6 +77,8 @@ export default tseslint.config(
             'tools/review-player/vitest.config.ts',
             'tools/review-race/test/*.ts',
             'tools/review-race/vitest.config.ts',
+            'tools/review-star-player/test/*.ts',
+            'tools/review-star-player/vitest.config.ts',
           ],
           // typescript-eslint caps the synthetic default project at 8 files
           // and then refuses to lint, because a large default project is slow.

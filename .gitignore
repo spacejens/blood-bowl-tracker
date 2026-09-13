@@ -77,6 +77,14 @@ tools/review-race/review-race-config.json5
 # same convention as tools/review-match/output/
 tools/review-race/output/
 
+# tools/review-star-player real config (the committed template is
+# review-star-player-config.example.json5)
+tools/review-star-player/review-star-player-config.json5
+
+# tools/review-star-player generated report — a developer-local artifact,
+# same convention as tools/review-match/output/
+tools/review-star-player/output/
+
 # tools/download-tp downloaded site data (never committed)
 tools/download-tp/data
 

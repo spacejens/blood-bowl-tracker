@@ -8,12 +8,12 @@ New to the project? Start with the [glossary](docs/glossary.md), [spec conventio
 
 This is a pnpm monorepo with three top-level workspace folders:
 
-| Folder | Purpose |
-| -------- | --------- |
-| `apps/` | Runnable applications deployed or distributed to end users |
-| `docs/` | Specifications, glossary, and domain documentation |
+| Folder      | Purpose                                                             |
+| ----------- | ------------------------------------------------------------------- |
+| `apps/`     | Runnable applications deployed or distributed to end users          |
+| `docs/`     | Specifications, glossary, and domain documentation                  |
 | `packages/` | Shared library packages consumed by apps and tools (not standalone) |
-| `tools/` | Developer tooling and scripts not shipped as part of any app |
+| `tools/`    | Developer tooling and scripts not shipped as part of any app        |
 
 ### Applications
 
@@ -32,8 +32,8 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`packages/game-data`** — Server-side business logic and DB access for core game entities (coaches, external systems); used directly by api-server and available to other apps
 - **`packages/import`** — NestJS module with shared import/ingestion result types, upsert-handling bookkeeping, and entity-specific import services (calling api-client) used across import tools
 - **`packages/parse-tp`** — library package for reusable TP JSON-parsing logic, currently consumed by `tools/import-tp`; intended to also be shared with `apps/discord-bot` for a future live TP import
-- **`packages/read-bbl-mirror`** — library package with the mechanical half of reading BBL's wget mirror: safe filename resolution against a caller-supplied data directory, a missing file or directory reported as `null`/empty rather than thrown, ISO-8859-1 byte decoding, and plain file listing; consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player` and `tools/review-race`, each of which keeps its own interpretation of what the files mean
-- **`packages/review-harness`** — NestJS module with the scaffolding behind the review tools, generic across BBL/TP: HTML fragment assembly, timestamped report writing, JSON5 config loading, and the plug-in interfaces and DI wiring a data-type module registers through; it carries no BBL/TP parsing or interpretation logic, shared by `tools/review-match`, `tools/review-player` and `tools/review-race`
+- **`packages/read-bbl-mirror`** — library package with the mechanical half of reading BBL's wget mirror: safe filename resolution against a caller-supplied data directory, a missing file or directory reported as `null`/empty rather than thrown, ISO-8859-1 byte decoding, and plain file listing; consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`, each of which keeps its own interpretation of what the files mean
+- **`packages/review-harness`** — NestJS module with the scaffolding behind the review tools, generic across BBL/TP: HTML fragment assembly, timestamped report writing, JSON5 config loading, and the plug-in interfaces and DI wiring a data-type module registers through; it carries no BBL/TP parsing or interpretation logic, shared by `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`
 
 ### Tools
 
@@ -43,6 +43,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`tools/review-match`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw match data against what was imported into `game_data.match_events`, for spot-checking import correctness by hand (see [docs/review-match/index.md](docs/review-match/index.md))
 - **`tools/review-player`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw player data against what was imported into `game_data`, for spot-checking import correctness by hand (see [docs/review-player/index.md](docs/review-player/index.md))
 - **`tools/review-race`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw race and position data against what was imported into `positions_race_eras` and `position_rules_sets`, for spot-checking import correctness by hand (see [docs/review-race/index.md](docs/review-race/index.md))
+- **`tools/review-star-player`** — NestJS CLI application that renders a side-by-side HTML report of each source's raw star player data (identity, per-rules-set characteristics, hire eligibility) against what was imported into `positions`, `position_rules_sets` and `positions_race_eras`, for spot-checking import correctness by hand (see [docs/review-star-player/index.md](docs/review-star-player/index.md))
 - **`tools/download-tp`** — NestJS CLI application that scrapes TP with puppeteer and records the site's API responses as local JSON files for later import by `tools/import-tp` (see [docs/download-tp/index.md](docs/download-tp/index.md))
 - **`tools/dev-workflow-cli`** — NestJS CLI application providing the developer/PR workflow helpers the Claude Code skills in `.claude/skills/` call instead of hand-rolling the equivalent shell — for worktree isolation and for repeatability more generally (see [docs/dev-workflow-cli/index.md](docs/dev-workflow-cli/index.md))
 - **`tools/production-ops-cli`** — NestJS CLI application providing the production database and tunnel operations `deploy-production` invokes (see [docs/production-ops-cli/index.md](docs/production-ops-cli/index.md))

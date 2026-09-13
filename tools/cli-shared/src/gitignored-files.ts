@@ -12,6 +12,7 @@ export const GITIGNORED_SYNC_FILES: readonly string[] = [
   'tools/review-match/review-match-config.json5',
   'tools/review-player/review-player-config.json5',
   'tools/review-race/review-race-config.json5',
+  'tools/review-star-player/review-star-player-config.json5',
 ];
 
 /**
