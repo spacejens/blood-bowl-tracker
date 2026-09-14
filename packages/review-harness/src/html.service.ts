@@ -32,10 +32,20 @@ export type TableCell =
  * disagrees with its trusted counterpart). Highlighting is never the only
  * signal — a highlighted row also carries an explicit textual label in one of
  * its cells, so the report stays readable without colour.
+ *
+ * `differingCells` narrows the emphasis: the 0-based indices, within `cells`,
+ * of the cells that actually disagree. Omitting it highlights the row without
+ * emphasising any single cell — the right rendering for a row highlighted for
+ * a whole-row reason (a missing counterpart, an identity-string mismatch, a
+ * source page that could not be read), where no one column is the culprit.
  */
 export type TableRow =
   | readonly TableCell[]
-  | { readonly cells: readonly TableCell[]; readonly highlight: true };
+  | {
+      readonly cells: readonly TableCell[];
+      readonly highlight: true;
+      readonly differingCells?: readonly number[];
+    };
 
 /**
  * Builds the small HTML fragments every renderer needs. Escaping lives here
@@ -66,9 +76,18 @@ export class HtmlService {
     return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
 
-  /** Mark a row as disagreeing with its trusted counterpart. */
-  highlight(cells: readonly TableCell[]): TableRow {
-    return { cells, highlight: true };
+  /**
+   * Mark a row as disagreeing with its trusted counterpart. `differingIndices`
+   * names the 0-based cell indices that carry the disagreement; omit it when
+   * the whole row is the disagreement and no single cell is to blame.
+   */
+  highlight(
+    cells: readonly TableCell[],
+    differingIndices?: readonly number[],
+  ): TableRow {
+    return differingIndices === undefined
+      ? { cells, highlight: true }
+      : { cells, highlight: true, differingCells: differingIndices };
   }
 
   /** An inline explanatory note (missing source file, gap, render error). */
@@ -91,14 +110,26 @@ export class HtmlService {
   }
 
   private rowHtml(row: TableRow): string {
-    const highlighted = !Array.isArray(row);
-    const cells = highlighted
-      ? (row as { readonly cells: readonly TableCell[] }).cells
-      : (row as readonly TableCell[]);
-    const open = highlighted ? '<tr class="mismatch">' : '<tr>';
-    return `${open}${cells
-      .map((cell) => `<td>${this.cellHtml(cell)}</td>`)
-      .join('')}</tr>`;
+    if (Array.isArray(row)) {
+      const plain = row as readonly TableCell[];
+      return `<tr>${plain
+        .map((cell) => `<td>${this.cellHtml(cell)}</td>`)
+        .join('')}</tr>`;
+    }
+    const { cells, differingCells } = row as {
+      readonly cells: readonly TableCell[];
+      readonly differingCells?: readonly number[];
+    };
+    const differing = new Set(differingCells ?? []);
+    const body = cells
+      .map((cell, index) => {
+        const open = differing.has(index)
+          ? '<td class="mismatch-cell">'
+          : '<td>';
+        return `${open}${this.cellHtml(cell)}</td>`;
+      })
+      .join('');
+    return `<tr class="mismatch">${body}</tr>`;
   }
 
   private cellHtml(cell: TableCell): string {
