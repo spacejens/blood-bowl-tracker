@@ -26,7 +26,7 @@ describe('EligibilityMismatchStratificationService', () => {
       {
         id: 'eligibility-mismatch',
         label:
-          'Star player is hireable in an era whose rules set it has no characteristics for',
+          'Star player has characteristics for some, but not all, rules sets it is hireable under',
         sources: ['bbl', 'tp', 'manual'],
       },
     ]);
@@ -46,7 +46,7 @@ describe('EligibilityMismatchStratificationService', () => {
     expect(stars).toEqual([{ positionId: 43, positionName: 'Morg N Thorg' }]);
   });
 
-  it('issues a left-join is-null query, orders randomly, and applies limit', async () => {
+  it('issues a left-join query filtered to star players, orders randomly, and applies limit', async () => {
     const dbResult = mockDb([]);
     const service = await makeService(dbResult);
 
@@ -57,9 +57,8 @@ describe('EligibilityMismatchStratificationService', () => {
     });
 
     const whereCondition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
-    const rendered = new PgDialect().sqlToQuery(whereCondition).sql;
-    expect(rendered.toLowerCase()).toContain('is null');
-    expect(rendered).toContain('is_star_player');
+    const renderedWhere = new PgDialect().sqlToQuery(whereCondition).sql;
+    expect(renderedWhere).toContain('is_star_player');
     expect(dbResult.chains[0].leftJoin).toHaveBeenCalled();
 
     const orderByArg = dbResult.chains[0].orderBy.mock.calls[0][0] as SQL;
@@ -67,6 +66,25 @@ describe('EligibilityMismatchStratificationService', () => {
     expect(renderedOrderBy.toLowerCase()).toContain('random()');
 
     expect(dbResult.chains[0].limit).toHaveBeenCalledWith(5);
+  });
+
+  it('requires both a matched and an unmatched rules-set row in the having clause', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.sampleStratum({
+      stratumId: 'eligibility-mismatch',
+      limit: 5,
+      source: 'bbl',
+    });
+
+    const havingCondition = dbResult.chains[0].having.mock.calls[0][0] as SQL;
+    const rendered = new PgDialect().sqlToQuery(havingCondition).sql;
+    const lowered = rendered.toLowerCase();
+    expect(lowered).toContain('bool_or');
+    expect(lowered).toContain('is not null');
+    expect(lowered).toContain('is null');
+    expect(lowered).toContain(' and ');
   });
 
   it('rejects an unknown stratum id', async () => {

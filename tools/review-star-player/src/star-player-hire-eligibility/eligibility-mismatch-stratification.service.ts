@@ -4,7 +4,6 @@ import {
   DB,
   eq,
   eraRulesSets,
-  isNull,
   positionRulesSets,
   positions,
   positionsRaceEras,
@@ -22,19 +21,23 @@ import type {
 const MISMATCH = 'eligibility-mismatch';
 
 /**
- * Star players claimed hireable in an era whose rules set they have no
- * characteristics row for. Read from the eligibility side rather than the
- * characteristics side (which is what `MissingRulesSetStratificationService`
- * does), this is the same inconsistency seen from the direction a reviewer
- * checking hire eligibility cares about: the DB says "this race could hire
- * this star in this era" while nothing in the data says what the star's stat
- * line was then.
+ * Star players with partial, inconsistent `position_rules_sets` coverage:
+ * the star has characteristics for at least one rules set it is hireable
+ * under, but is also hireable under at least one other rules set it has no
+ * characteristics row for. This is a genuine inconsistency in the curated
+ * data rather than a blanket gap — some of the star's stat lines were
+ * curated, so the missing ones are not simply "not done yet."
  *
- * `tools/import-bbl`'s star-player exception links a star as available in
- * essentially every era its races span, so this is where over-linking
- * surfaces. It is a DB-only query: comparing against what BBL's "Can play
- * for" line or TP's masks actually support is the raw panel's job, since only
- * a human can judge whether a special rule really covers a given race.
+ * `MissingRulesSetStratificationService` fires on ANY gap, including a star
+ * with zero characteristics rows at all — that is the far more common case
+ * `tools/import-bbl`'s star-player exception produces by over-linking a star
+ * to essentially every era its races span. This stratum narrows to the
+ * subset with mixed coverage, so it no longer duplicates that stratum's
+ * candidate set: a star with characteristics for none of its eligible rules
+ * sets matches `missing-rules-set` only, not this one. It is a DB-only
+ * query: comparing against what BBL's "Can play for" line or TP's masks
+ * actually support is the raw panel's job, since only a human can judge
+ * whether a special rule really covers a given race.
  */
 @Injectable()
 export class EligibilityMismatchStratificationService implements StarPlayerStratifier {
@@ -42,7 +45,7 @@ export class EligibilityMismatchStratificationService implements StarPlayerStrat
     {
       id: MISMATCH,
       label:
-        'Star player is hireable in an era whose rules set it has no characteristics for',
+        'Star player has characteristics for some, but not all, rules sets it is hireable under',
       sources: ['bbl', 'tp', 'manual'],
     },
   ];
@@ -75,10 +78,11 @@ export class EligibilityMismatchStratificationService implements StarPlayerStrat
           eq(positionRulesSets.rulesSetId, eraRulesSets.rulesSetId),
         ),
       )
-      .where(
-        and(eq(positions.isStarPlayer, true), isNull(positionRulesSets.id)),
-      )
+      .where(eq(positions.isStarPlayer, true))
       .groupBy(positions.id, positions.name)
+      .having(
+        sql`bool_or(${positionRulesSets.id} is not null) and bool_or(${positionRulesSets.id} is null)`,
+      )
       .orderBy(sql`random()`)
       .limit(limit);
   }
