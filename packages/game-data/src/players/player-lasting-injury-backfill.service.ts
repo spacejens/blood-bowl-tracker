@@ -133,8 +133,16 @@ export class PlayerLastingInjuryBackfillService {
     // recheck (after acquiring the lock) sees the first transaction's
     // now-committed history row and skips.
     const backfilledPlayerIds: number[] = [];
+    // Sorted by id before locking: two concurrent transactions processing
+    // overlapping candidate sets must always acquire row locks in the same
+    // global order, or they can deadlock (transaction A holds player 7 and
+    // waits on player 8 while transaction B holds player 8 and waits on
+    // player 7). This ordering is load-bearing for deadlock avoidance, not
+    // merely for the response shape — `backfilledPlayerIds` below is already
+    // re-sorted independently for that — so do not remove it as redundant.
+    const orderedCandidates = [...candidates].sort((a, b) => a.id - b.id);
     await this.db.transaction(async (tx) => {
-      for (const row of candidates) {
+      for (const row of orderedCandidates) {
         await this.lockPlayerRow(tx, row.id);
         const alreadyBackfilled = await this.alreadyBackfilled([row.id], tx);
         if (alreadyBackfilled.has(row.id)) {

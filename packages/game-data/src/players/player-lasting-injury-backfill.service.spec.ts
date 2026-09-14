@@ -336,6 +336,18 @@ describe('PlayerLastingInjuryBackfillService', () => {
     // Query 2 is the in-transaction row lock.
     expect(db.chains[2].from).toHaveBeenCalledWith(players);
     expect(db.chains[2].for).toHaveBeenCalledWith('update');
+    expect(extractAllFilterValues(firstCallArg(db.chains[2].where))).toEqual([
+      7,
+    ]);
+
+    // mockDb's transaction() hands the callback the same mock db as `tx`, so
+    // without this the lock+recheck could be moved to run before
+    // this.db.transaction(...) opens -- exactly the bug this fix exists to
+    // prevent -- and this test would still pass. Comparing call order against
+    // when the transaction itself was invoked catches that regression.
+    expect(db.chains[2].from.mock.invocationCallOrder[0]).toBeGreaterThan(
+      db.transaction.mock.invocationCallOrder[0],
+    );
   });
 
   it('skips a player id with no row in the database', async () => {
