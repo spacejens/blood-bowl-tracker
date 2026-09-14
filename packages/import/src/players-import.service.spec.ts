@@ -10,6 +10,27 @@ import { stubImportRunner } from './import-runner.test-helpers';
 import { PlayersImportService } from './players-import.service';
 import type { ImportError } from './types';
 
+const upsertResult = {
+  id: 1,
+  name: 'Griff Oberwald',
+  teamEraId: 10,
+  positionId: 20,
+  move: 6,
+  strength: 3,
+  agility: 3,
+  passing: 4,
+  armour: 9,
+  missNextGame: false,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
+  createdAt: new Date('2026-01-01'),
+  created: true,
+};
+
 async function makeModule() {
   const client = mockDeep<ApiClient>();
   const runner = mock<ImportRunnerService>();
@@ -40,26 +61,7 @@ describe('PlayersImportService', () => {
   };
 
   it('returns true and calls the client with the given data on success', async () => {
-    client.players.upsert.mockResolvedValue({
-      id: 1,
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 4,
-      armour: 9,
-      missNextGame: false,
-      nigglingInjuryCount: 0,
-      moveReductionCount: 0,
-      strengthReductionCount: 0,
-      agilityReductionCount: 0,
-      passingReductionCount: 0,
-      armourReductionCount: 0,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    client.players.upsert.mockResolvedValue(upsertResult);
     const errors: ImportError[] = [];
 
     const result = await service.upsertPlayer(data, errors);
@@ -116,26 +118,7 @@ describe('PlayersImportService.upsertPlayerResult', () => {
   };
 
   it('resolves to the upserted player, including its DB id, on success', async () => {
-    client.players.upsert.mockResolvedValue({
-      id: 42,
-      name: 'Griff Oberwald',
-      teamEraId: 10,
-      positionId: 20,
-      move: 6,
-      strength: 3,
-      agility: 3,
-      passing: 4,
-      armour: 9,
-      missNextGame: false,
-      nigglingInjuryCount: 0,
-      moveReductionCount: 0,
-      strengthReductionCount: 0,
-      agilityReductionCount: 0,
-      passingReductionCount: 0,
-      armourReductionCount: 0,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    client.players.upsert.mockResolvedValue({ ...upsertResult, id: 42 });
     const errors: ImportError[] = [];
 
     const result = await service.upsertPlayerResult(data, errors);
@@ -177,9 +160,10 @@ describe('PlayersImportService.upsertPlayerResult', () => {
 
   it('resolves to the id and the created flag', async () => {
     client.players.upsert.mockResolvedValue({
+      ...upsertResult,
       id: 900,
       created: true,
-    } as never);
+    });
 
     await expect(
       service.upsertPlayerResult(
