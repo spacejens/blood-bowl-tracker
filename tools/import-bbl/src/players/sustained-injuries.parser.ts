@@ -17,7 +17,12 @@ export interface BblLastingInjuries {
 }
 
 /** Which counter each of BBL's five stat tags feeds. */
-const COUNTER_BY_TAG: Readonly<Record<string, keyof BblLastingInjuries>> = {
+const COUNTER_BY_TAG: Readonly<
+  Record<
+    'MA' | 'ST' | 'AG' | 'PA' | 'AV',
+    Exclude<keyof BblLastingInjuries, 'missNextGame' | 'nigglingInjuryCount'>
+  >
+> = {
   MA: 'moveReductionCount',
   ST: 'strengthReductionCount',
   AG: 'agilityReductionCount',
@@ -89,12 +94,8 @@ export class SustainedInjuriesParser {
       if (absorbed !== undefined) {
         continue;
       }
-      const counter = COUNTER_BY_TAG[tag];
-      // `counter` is always defined: the regex only matches the five tags the
-      // map holds. The guard keeps the types honest without a cast.
-      if (counter !== undefined && counter !== 'missNextGame') {
-        injuries[counter] += 1;
-      }
+      const counter = COUNTER_BY_TAG[tag as 'MA' | 'ST' | 'AG' | 'PA' | 'AV'];
+      injuries[counter] += 1;
     }
 
     return injuries;
