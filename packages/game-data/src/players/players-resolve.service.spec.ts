@@ -4,12 +4,13 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 
 async function makeService(rows: unknown[]) {
@@ -32,8 +33,12 @@ async function makeService(rows: unknown[]) {
         useValue: mock<PlayerContextNamesService>(),
       },
       {
-        provide: CharacteristicFormatValidationService,
-        useValue: mock<CharacteristicFormatValidationService>(),
+        provide: PlayerCharacteristicsValidationService,
+        useValue: mock<PlayerCharacteristicsValidationService>(),
+      },
+      {
+        provide: PlayerLastingInjuryValidationService,
+        useValue: mock<PlayerLastingInjuryValidationService>(),
       },
       { provide: DB, useValue: db },
     ],

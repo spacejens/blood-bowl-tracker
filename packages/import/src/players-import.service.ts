@@ -28,15 +28,17 @@ export class PlayersImportService {
   }
 
   /**
-   * Like {@link upsertPlayer}, but resolves to the upserted player
-   * (including its DB `id`) on success, or `undefined` on failure. Used
+   * Like {@link upsertPlayer}, but resolves to the upserted player's DB `id`
+   * and whether this call INSERTED the row, or `undefined` on failure. Used
    * where the caller needs the player's DB id (e.g. to link match events to
-   * them).
+   * them), and where it needs to know which players were fresh this run (the
+   * lasting-injury history backfill, which must not re-manufacture history
+   * for a player that already has some).
    */
   upsertPlayerResult(
     data: UpsertPlayer,
     errors: ImportError[],
-  ): Promise<{ id: number } | undefined> {
+  ): Promise<{ id: number; created: boolean } | undefined> {
     return this.importRunner.recordUpsertResult({
       upsert: () => this.client.players.upsert(data),
       item: data,

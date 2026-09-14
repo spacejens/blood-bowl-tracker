@@ -10,6 +10,7 @@ import { ExternalSystemBootstrapService } from './external-system-bootstrap.serv
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { LastingInjuriesImportService } from './lasting-injuries-import.service';
 import { LeaguesImportService } from './leagues-import.service';
 import { MatchDateRangeService } from './match-date-range.service';
 import { MatchEventsImportService } from './match-events-import.service';
@@ -37,6 +38,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     CoachesImportService,
     CompetitionGroupsImportService,
     CompetitionsImportService,
+    LastingInjuriesImportService,
     LeaguesImportService,
     MatchEventsImportService,
     MatchOutcomesImportService,
@@ -67,6 +69,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     CoachesImportService,
     CompetitionGroupsImportService,
     CompetitionsImportService,
+    LastingInjuriesImportService,
     LeaguesImportService,
     MatchEventsImportService,
     MatchOutcomesImportService,

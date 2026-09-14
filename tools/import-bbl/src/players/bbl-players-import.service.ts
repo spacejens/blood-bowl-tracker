@@ -79,6 +79,7 @@ export class BblPlayersImportService {
     teamEraIdsByPid: Map<string, number>;
     positionsUsedByEra: Set<string>;
     scrapedSppTotalsByPlayerId: Map<number, number | null>;
+    insertedPlayerIds: number[];
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -89,6 +90,11 @@ export class BblPlayersImportService {
     // Only an input to the spp_adjustment computation — never stored as
     // players.spp_total, since BBL's figure mixes award rates across eras.
     const scrapedSppTotalsByPlayerId = new Map<number, number | null>();
+    // The DB ids of players this run INSERTED, as opposed to updated. Only
+    // these need the post-matchEvents lasting-injury history backfill: an
+    // existing player already has whatever history their earlier runs built,
+    // and re-manufacturing it would add a spurious version pair every run.
+    const insertedPlayerIds: number[] = [];
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
@@ -103,6 +109,7 @@ export class BblPlayersImportService {
         teamEraIdsByPid,
         positionsUsedByEra,
         scrapedSppTotalsByPlayerId,
+        insertedPlayerIds,
       };
     }
     const [bblSystemId] = bootstrap.ids;
@@ -343,6 +350,7 @@ export class BblPlayersImportService {
               player.characteristics.armour,
               rulesSet.armourFormat,
             ),
+            ...player.lastingInjuries,
             rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },
@@ -356,6 +364,9 @@ export class BblPlayersImportService {
           teamEraIdsByPid.set(player.pid, teamEra.id);
           positionsUsedByEra.add(`${positionId}:${eraId}`);
           scrapedSppTotalsByPlayerId.set(upserted.id, player.sppTotal);
+          if (upserted.created) {
+            insertedPlayerIds.push(upserted.id);
+          }
         }
       } catch (error) {
         errors.push(this.pageParseError.build(page.params, 'player', error));
@@ -369,6 +380,7 @@ export class BblPlayersImportService {
       teamEraIdsByPid,
       positionsUsedByEra,
       scrapedSppTotalsByPlayerId,
+      insertedPlayerIds,
     };
   }
 }

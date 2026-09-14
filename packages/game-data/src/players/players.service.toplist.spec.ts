@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
@@ -34,7 +33,9 @@ import {
   sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 
 describe('PlayersService toplist queries', () => {
@@ -58,7 +59,14 @@ describe('PlayersService toplist queries', () => {
         { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: PlayerContextNamesService, useValue: playerContextNames },
-        CharacteristicFormatValidationService,
+        {
+          provide: PlayerCharacteristicsValidationService,
+          useValue: mock<PlayerCharacteristicsValidationService>(),
+        },
+        {
+          provide: PlayerLastingInjuryValidationService,
+          useValue: mock<PlayerLastingInjuryValidationService>(),
+        },
         { provide: DB, useValue: db },
       ],
     }).compile();

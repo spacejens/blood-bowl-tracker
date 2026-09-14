@@ -1,4 +1,7 @@
-import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
+import type {
+  RulesSet,
+  UpsertRulesSet,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -33,9 +36,18 @@ export class TpRulesSetsImportService {
    */
   async importRulesSets(): Promise<{
     result: ImportResult;
+    /**
+     * Every rules set this step upserted, keyed by name, carrying the five
+     * `CharacteristicFormat`s the server returned. The players step needs
+     * them to tell a current-vs-template stat reduction from an advancement:
+     * which direction is "worse" is per characteristic per rules set. Mirrors
+     * what `BblRulesSetsImportService` already returns.
+     */
+    rulesSetsByName: Map<string, RulesSet>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const rulesSetsByName = new Map<string, RulesSet>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
 
@@ -53,6 +65,7 @@ export class TpRulesSetsImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
+        rulesSetsByName,
       };
     }
 
@@ -64,6 +77,7 @@ export class TpRulesSetsImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
+        rulesSetsByName,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -82,11 +96,13 @@ export class TpRulesSetsImportService {
       const rulesSet = await this.rulesSetsImport.upsert(rulesSetData, errors);
       if (rulesSet) {
         imported += 1;
+        rulesSetsByName.set(name, rulesSet);
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
+      rulesSetsByName,
     };
   }
 }

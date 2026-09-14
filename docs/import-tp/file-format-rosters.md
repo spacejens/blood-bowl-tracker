@@ -52,6 +52,18 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
   entry's own `position`/`isBigGuy` fields (present on every `lineUps[]`
   entry, standalone or match-embedded) — see "Mercenary Big Guys" below for
   why.
+  - `nigglingInjuries` — how many niggling injuries the player currently
+    carries. Live state, unlike the sibling `totalInjuries`, which is a career
+    counter. Observed range in the downloaded data: 0–3.
+  - `canPlayNextGame` — `false` means the player must miss their next game.
+    Independent of `nigglingInjuries`: entries exist with either one set and
+    the other not.
+  - `lineUpMaster` — the position template the player was recruited from,
+    repeated inline on every entry. Only its `ma/st/ag/pa/av` are read, as the
+    baseline a current-vs-template characteristic comparison needs. The
+    per-entry copy is used rather than a lookup into
+    `rosterMaster.lineUpMasters[]` by id, since a mercenary hire has no
+    catalog entry at all but still carries one here.
 
 **Races and positions** are not imported from this file at all — see
 [file-format-official-teams.md](./file-format-official-teams.md) and

@@ -11,6 +11,7 @@ import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblMatchEventsImportService } from './match-events/bbl-match-events-import.service';
 import { BblMatchOutcomesImportService } from './matches/bbl-match-outcomes-import.service';
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
+import { BblLastingInjuryBackfillImportService } from './players/bbl-lasting-injury-backfill-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
 import { BblSppAdjustmentsImportService } from './players/bbl-spp-adjustments-import.service';
 import { BblPositionCharacteristicsImportService } from './positions/bbl-position-characteristics-import.service';
@@ -105,6 +106,17 @@ async function run(): Promise<ImportResult> {
       .get(BblSppAdjustmentsImportService)
       .importSppAdjustments(playerOutcome.scrapedSppTotalsByPlayerId);
 
+    // Also runs after the match-events step, and for the same structural
+    // reason: it recomputes each freshly-inserted player's accumulated
+    // niggling injuries and stat reductions from the match events just
+    // written, so it can manufacture the players_history versions a player
+    // whose injury was healed before this run would otherwise never get.
+    // Scoped to players this run INSERTED — an existing player already has
+    // whatever history earlier runs built.
+    const lastingInjuryBackfillOutcome = await app
+      .get(BblLastingInjuryBackfillImportService)
+      .importLastingInjuryHistory(playerOutcome.insertedPlayerIds);
+
     // Match outcomes run after match events: scores are counted from the
     // touchdown events imported just above, and a tied knock-out match's
     // winner is traced through sibling matches that must already exist.
@@ -162,6 +174,7 @@ async function run(): Promise<ImportResult> {
       positionCharacteristicsOutcome.result,
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
+      lastingInjuryBackfillOutcome.result,
       matchOutcomesOutcome.result,
       trophyAwardsOutcome.result,
       missingTrophyAwardsOutcome.result,

@@ -1,132 +1,33 @@
 import {
   CharacteristicFormatMismatchError,
-  CoachesService,
   CoachUpsertConflictError,
-  CompetitionGroupsService,
-  CompetitionsService,
   CompetitionUpsertConflictError,
-  ErasService,
   EraUpsertConflictError,
-  ExternalSystemsService,
-  LeaguesService,
   LeagueUpsertConflictError,
-  MatchesService,
-  MatchEventsService,
   MatchEventUpsertConflictError,
-  MatchOutcomesService,
   MatchUpsertConflictError,
   MissingRequiredFieldError,
-  MissingTrophyAwardsService,
-  PlayersService,
   PlayerUpsertConflictError,
-  PositionRulesSetsService,
-  PositionsService,
   PositionUpsertConflictError,
-  RacesService,
   RaceUpsertConflictError,
-  RulesSetsService,
   RulesSetUpsertConflictError,
-  SppAdjustmentsService,
-  SppAwardValuesService,
-  TeamsService,
   TeamUpsertConflictError,
-  TrophiesService,
-  TrophyAwardsService,
   TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
-import { Test } from '@nestjs/testing';
 import { call } from '@orpc/server';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { RpcRouterFactoryService } from './rpc-router-factory.service';
-import { UpsertHandlerService } from './upsert-handler.service';
+import { createRouterHarness } from './rpc-router-factory.test-helpers';
 
 describe('RpcRouterFactoryService', () => {
-  let router: ReturnType<RpcRouterFactoryService['build']>;
-  let coachesService: MockProxy<CoachesService>;
-  let externalSystemsService: MockProxy<ExternalSystemsService>;
-  let leaguesService: MockProxy<LeaguesService>;
-  let racesService: MockProxy<RacesService>;
-  let rulesSetsService: MockProxy<RulesSetsService>;
-  let erasService: MockProxy<ErasService>;
-  let positionsService: MockProxy<PositionsService>;
-  let teamsService: MockProxy<TeamsService>;
-  let trophiesService: MockProxy<TrophiesService>;
-  let trophyAwardsService: MockProxy<TrophyAwardsService>;
-  let missingTrophyAwardsService: MockProxy<MissingTrophyAwardsService>;
-  let competitionGroupsService: MockProxy<CompetitionGroupsService>;
-  let competitionsService: MockProxy<CompetitionsService>;
-  let matchesService: MockProxy<MatchesService>;
-  let matchOutcomesService: MockProxy<MatchOutcomesService>;
-  let playersService: MockProxy<PlayersService>;
-  let matchEventsService: MockProxy<MatchEventsService>;
-  let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
-  let sppAwardValuesService: MockProxy<SppAwardValuesService>;
-  let positionRulesSetsService: MockProxy<PositionRulesSetsService>;
+  let harness: Awaited<ReturnType<typeof createRouterHarness>>;
 
   beforeEach(async () => {
-    coachesService = mock<CoachesService>();
-    externalSystemsService = mock<ExternalSystemsService>();
-    leaguesService = mock<LeaguesService>();
-    racesService = mock<RacesService>();
-    rulesSetsService = mock<RulesSetsService>();
-    erasService = mock<ErasService>();
-    positionsService = mock<PositionsService>();
-    teamsService = mock<TeamsService>();
-    trophiesService = mock<TrophiesService>();
-    trophyAwardsService = mock<TrophyAwardsService>();
-    missingTrophyAwardsService = mock<MissingTrophyAwardsService>();
-    competitionGroupsService = mock<CompetitionGroupsService>();
-    competitionsService = mock<CompetitionsService>();
-    matchesService = mock<MatchesService>();
-    matchOutcomesService = mock<MatchOutcomesService>();
-    playersService = mock<PlayersService>();
-    matchEventsService = mock<MatchEventsService>();
-    sppAdjustmentsService = mock<SppAdjustmentsService>();
-    sppAwardValuesService = mock<SppAwardValuesService>();
-    positionRulesSetsService = mock<PositionRulesSetsService>();
-
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        RpcRouterFactoryService,
-        { provide: CoachesService, useValue: coachesService },
-        { provide: ExternalSystemsService, useValue: externalSystemsService },
-        { provide: LeaguesService, useValue: leaguesService },
-        { provide: RacesService, useValue: racesService },
-        { provide: RulesSetsService, useValue: rulesSetsService },
-        { provide: ErasService, useValue: erasService },
-        { provide: PositionsService, useValue: positionsService },
-        { provide: TeamsService, useValue: teamsService },
-        { provide: TrophiesService, useValue: trophiesService },
-        { provide: TrophyAwardsService, useValue: trophyAwardsService },
-        {
-          provide: MissingTrophyAwardsService,
-          useValue: missingTrophyAwardsService,
-        },
-        {
-          provide: CompetitionGroupsService,
-          useValue: competitionGroupsService,
-        },
-        { provide: CompetitionsService, useValue: competitionsService },
-        { provide: MatchesService, useValue: matchesService },
-        { provide: MatchOutcomesService, useValue: matchOutcomesService },
-        { provide: PlayersService, useValue: playersService },
-        { provide: MatchEventsService, useValue: matchEventsService },
-        { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
-        { provide: SppAwardValuesService, useValue: sppAwardValuesService },
-        {
-          provide: PositionRulesSetsService,
-          useValue: positionRulesSetsService,
-        },
-        UpsertHandlerService,
-      ],
-    }).compile();
-    router = moduleRef.get(RpcRouterFactoryService).build();
+    harness = await createRouterHarness();
   });
 
   it('coaches.upsert returns the flat entity with a created flag', async () => {
-    coachesService.upsert.mockResolvedValue({
+    harness.mocks.coachesService.upsert.mockResolvedValue({
       coach: {
         id: 1,
         name: 'Roze Madder',
@@ -138,7 +39,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.coaches.upsert, {
+    const result = await call(harness.router.coaches.upsert, {
       name: 'Roze Madder',
       externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
     });
@@ -152,14 +53,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('coaches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    coachesService.upsert.mockRejectedValue(
+    harness.mocks.coachesService.upsert.mockRejectedValue(
       new CoachUpsertConflictError(
         'External IDs matched multiple existing coaches: 1, 2',
       ),
     );
 
     await expect(
-      call(router.coaches.upsert, {
+      call(harness.router.coaches.upsert, {
         name: 'Roze Madder',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
@@ -170,10 +71,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('coaches.upsert rethrows errors that are not a conflict', async () => {
-    coachesService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.coachesService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.coaches.upsert, {
+      call(harness.router.coaches.upsert, {
         name: 'Roze Madder',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
@@ -181,7 +84,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('externalSystems.upsert returns the flat entity with a created flag', async () => {
-    externalSystemsService.upsert.mockResolvedValue({
+    harness.mocks.externalSystemsService.upsert.mockResolvedValue({
       system: {
         id: 1,
         name: 'BBL',
@@ -194,7 +97,7 @@ describe('RpcRouterFactoryService', () => {
       created: false,
     });
 
-    const result = await call(router.externalSystems.upsert, {
+    const result = await call(harness.router.externalSystems.upsert, {
       name: 'BBL',
       category: 'imported_data_source',
     });
@@ -209,7 +112,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('leagues.upsert returns the flat entity with a created flag', async () => {
-    leaguesService.upsert.mockResolvedValue({
+    harness.mocks.leaguesService.upsert.mockResolvedValue({
       league: {
         id: 1,
         name: 'Test League',
@@ -221,7 +124,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.leagues.upsert, {
+    const result = await call(harness.router.leagues.upsert, {
       name: 'Test League',
       externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
     });
@@ -235,14 +138,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('leagues.upsert throws CONFLICT when the service reports a conflict', async () => {
-    leaguesService.upsert.mockRejectedValue(
+    harness.mocks.leaguesService.upsert.mockRejectedValue(
       new LeagueUpsertConflictError(
         'External IDs matched multiple existing leagues: 1, 2',
       ),
     );
 
     await expect(
-      call(router.leagues.upsert, {
+      call(harness.router.leagues.upsert, {
         name: 'Test League',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
@@ -253,10 +156,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('leagues.upsert rethrows errors that are not a conflict', async () => {
-    leaguesService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.leaguesService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.leagues.upsert, {
+      call(harness.router.leagues.upsert, {
         name: 'Test League',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
@@ -264,7 +169,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('races.upsert returns the flat entity with a created flag', async () => {
-    racesService.upsert.mockResolvedValue({
+    harness.mocks.racesService.upsert.mockResolvedValue({
       race: {
         id: 1,
         name: 'Orc',
@@ -277,7 +182,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.races.upsert, {
+    const result = await call(harness.router.races.upsert, {
       name: 'Orc',
       eras: [5],
       externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
@@ -293,14 +198,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('races.upsert throws CONFLICT when the service reports a conflict', async () => {
-    racesService.upsert.mockRejectedValue(
+    harness.mocks.racesService.upsert.mockRejectedValue(
       new RaceUpsertConflictError(
         'External IDs matched multiple existing races: 1, 2',
       ),
     );
 
     await expect(
-      call(router.races.upsert, {
+      call(harness.router.races.upsert, {
         name: 'Orc',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
@@ -311,10 +216,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('races.upsert rethrows errors that are not a conflict', async () => {
-    racesService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.racesService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.races.upsert, {
+      call(harness.router.races.upsert, {
         name: 'Orc',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
@@ -322,7 +229,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('rulesSets.upsert returns the flat entity with a created flag', async () => {
-    rulesSetsService.upsert.mockResolvedValue({
+    harness.mocks.rulesSetsService.upsert.mockResolvedValue({
       rulesSet: {
         id: 1,
         name: 'BB2020',
@@ -339,7 +246,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.rulesSets.upsert, {
+    const result = await call(harness.router.rulesSets.upsert, {
       name: 'BB2020',
       externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
     });
@@ -358,14 +265,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('rulesSets.upsert throws CONFLICT when the service reports a conflict', async () => {
-    rulesSetsService.upsert.mockRejectedValue(
+    harness.mocks.rulesSetsService.upsert.mockRejectedValue(
       new RulesSetUpsertConflictError(
         'External IDs matched multiple existing rules sets: 1, 2',
       ),
     );
 
     await expect(
-      call(router.rulesSets.upsert, {
+      call(harness.router.rulesSets.upsert, {
         name: 'BB2020',
         externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
       }),
@@ -376,10 +283,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('rulesSets.upsert rethrows errors that are not a conflict', async () => {
-    rulesSetsService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.rulesSetsService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.rulesSets.upsert, {
+      call(harness.router.rulesSets.upsert, {
         name: 'BB2020',
         externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
       }),
@@ -387,7 +296,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('eras.upsert returns the flat entity with a created flag', async () => {
-    erasService.upsert.mockResolvedValue({
+    harness.mocks.erasService.upsert.mockResolvedValue({
       era: {
         id: 1,
         name: 'BB2020',
@@ -403,7 +312,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.eras.upsert, {
+    const result = await call(harness.router.eras.upsert, {
       name: 'BB2020',
       leagueId: 10,
       rulesSetIds: [20],
@@ -425,14 +334,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('eras.upsert throws CONFLICT when the service reports a conflict', async () => {
-    erasService.upsert.mockRejectedValue(
+    harness.mocks.erasService.upsert.mockRejectedValue(
       new EraUpsertConflictError(
         'External IDs matched multiple existing eras: 1, 2',
       ),
     );
 
     await expect(
-      call(router.eras.upsert, {
+      call(harness.router.eras.upsert, {
         name: 'BB2020',
         leagueId: 10,
         rulesSetIds: [20],
@@ -446,10 +355,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('eras.upsert rethrows errors that are not a conflict', async () => {
-    erasService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.erasService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.eras.upsert, {
+      call(harness.router.eras.upsert, {
         name: 'BB2020',
         leagueId: 10,
         rulesSetIds: [20],
@@ -460,7 +371,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.upsert returns the flat entity with a created flag', async () => {
-    positionsService.upsert.mockResolvedValue({
+    harness.mocks.positionsService.upsert.mockResolvedValue({
       position: {
         id: 1,
         name: 'Lineman',
@@ -473,7 +384,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.positions.upsert, {
+    const result = await call(harness.router.positions.upsert, {
       name: 'Lineman',
       isStarPlayer: false,
       externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
@@ -489,7 +400,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.syncRaceEras forwards input and returns the service result unchanged', async () => {
-    positionsService.syncRaceEras.mockResolvedValue({
+    harness.mocks.positionsService.syncRaceEras.mockResolvedValue({
       positionId: 1,
       raceEraIds: [10, 11],
     });
@@ -501,9 +412,11 @@ describe('RpcRouterFactoryService', () => {
         { raceId: 7, eraId: 2 },
       ],
     };
-    const result = await call(router.positions.syncRaceEras, input);
+    const result = await call(harness.router.positions.syncRaceEras, input);
 
-    expect(positionsService.syncRaceEras).toHaveBeenCalledWith(input);
+    expect(harness.mocks.positionsService.syncRaceEras).toHaveBeenCalledWith(
+      input,
+    );
     expect(result).toEqual({
       positionId: 1,
       raceEraIds: [10, 11],
@@ -511,14 +424,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.upsert throws CONFLICT when the service reports a conflict', async () => {
-    positionsService.upsert.mockRejectedValue(
+    harness.mocks.positionsService.upsert.mockRejectedValue(
       new PositionUpsertConflictError(
         'External IDs matched multiple existing positions: 1, 2',
       ),
     );
 
     await expect(
-      call(router.positions.upsert, {
+      call(harness.router.positions.upsert, {
         name: 'Lineman',
         isStarPlayer: false,
         externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
@@ -530,10 +443,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.upsert rethrows errors that are not a conflict', async () => {
-    positionsService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.positionsService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.positions.upsert, {
+      call(harness.router.positions.upsert, {
         name: 'Lineman',
         isStarPlayer: false,
         externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
@@ -542,7 +457,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('teams.upsert returns the flat entity with a created flag', async () => {
-    teamsService.upsert.mockResolvedValue({
+    harness.mocks.teamsService.upsert.mockResolvedValue({
       team: {
         id: 1,
         name: '40 grinders',
@@ -557,7 +472,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.teams.upsert, {
+    const result = await call(harness.router.teams.upsert, {
       name: '40 grinders',
       raceId: 5,
       coachId: 9,
@@ -576,14 +491,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('teams.upsert throws CONFLICT when the service reports a conflict', async () => {
-    teamsService.upsert.mockRejectedValue(
+    harness.mocks.teamsService.upsert.mockRejectedValue(
       new TeamUpsertConflictError(
         'External IDs matched multiple existing teams: 1, 2',
       ),
     );
 
     await expect(
-      call(router.teams.upsert, {
+      call(harness.router.teams.upsert, {
         name: '40 grinders',
         raceId: 5,
         coachId: 9,
@@ -596,10 +511,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('teams.upsert rethrows errors that are not a conflict', async () => {
-    teamsService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.teamsService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.teams.upsert, {
+      call(harness.router.teams.upsert, {
         name: '40 grinders',
         raceId: 5,
         coachId: 9,
@@ -609,7 +526,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('competitions.upsert returns the flat entity with a created flag', async () => {
-    competitionsService.upsert.mockResolvedValue({
+    harness.mocks.competitionsService.upsert.mockResolvedValue({
       competition: {
         id: 1,
         name: 'Major Season 24',
@@ -627,7 +544,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.competitions.upsert, {
+    const result = await call(harness.router.competitions.upsert, {
       name: 'Major Season 24',
       type: 'season',
       eraId: 20,
@@ -649,14 +566,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('competitions.upsert throws CONFLICT when the service reports a conflict', async () => {
-    competitionsService.upsert.mockRejectedValue(
+    harness.mocks.competitionsService.upsert.mockRejectedValue(
       new CompetitionUpsertConflictError(
         'External IDs matched multiple existing competitions: 1, 2',
       ),
     );
 
     await expect(
-      call(router.competitions.upsert, {
+      call(harness.router.competitions.upsert, {
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
@@ -669,10 +586,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('competitions.upsert rethrows errors that are not a conflict', async () => {
-    competitionsService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.competitionsService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.competitions.upsert, {
+      call(harness.router.competitions.upsert, {
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
@@ -682,7 +601,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matches.upsert returns the flat entity with a created flag', async () => {
-    matchesService.upsert.mockResolvedValue({
+    harness.mocks.matchesService.upsert.mockResolvedValue({
       match: {
         id: 1,
         competitionId: 20,
@@ -699,7 +618,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.matches.upsert, {
+    const result = await call(harness.router.matches.upsert, {
       competitionId: 20,
       playedAt: new Date('2021-09-25'),
       name: 'Final',
@@ -720,14 +639,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    matchesService.upsert.mockRejectedValue(
+    harness.mocks.matchesService.upsert.mockRejectedValue(
       new MatchUpsertConflictError(
         'External IDs matched multiple existing matches: 1, 2',
       ),
     );
 
     await expect(
-      call(router.matches.upsert, {
+      call(harness.router.matches.upsert, {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
         name: 'Final',
@@ -741,10 +660,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matches.upsert rethrows errors that are not a conflict', async () => {
-    matchesService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.matchesService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.matches.upsert, {
+      call(harness.router.matches.upsert, {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
         name: 'Final',
@@ -760,23 +681,25 @@ describe('RpcRouterFactoryService', () => {
       resolvedMatchIds: [1, 2],
       unresolvedMatchIds: [3],
     };
-    matchOutcomesService.resolveForCompetition.mockResolvedValue(expected);
+    harness.mocks.matchOutcomesService.resolveForCompetition.mockResolvedValue(
+      expected,
+    );
 
     const input = {
       competitionId: 7,
       overrides: [],
       tieBreaks: [{ matchId: 3, winnerTeamEraId: null }],
     };
-    const result = await call(router.matches.resolveOutcomes, input);
+    const result = await call(harness.router.matches.resolveOutcomes, input);
 
     expect(result).toEqual(expected);
-    expect(matchOutcomesService.resolveForCompetition).toHaveBeenCalledWith(
-      input,
-    );
+    expect(
+      harness.mocks.matchOutcomesService.resolveForCompetition,
+    ).toHaveBeenCalledWith(input);
   });
 
   it('players.upsert returns the flat entity with a created flag', async () => {
-    playersService.upsert.mockResolvedValue({
+    harness.mocks.playersService.upsert.mockResolvedValue({
       player: {
         id: 1,
         name: 'Griff Oberwald',
@@ -789,6 +712,13 @@ describe('RpcRouterFactoryService', () => {
         armour: 9,
         sppTotal: null,
         sppAdjustment: null,
+        missNextGame: false,
+        nigglingInjuryCount: 0,
+        moveReductionCount: 0,
+        strengthReductionCount: 0,
+        agilityReductionCount: 0,
+        passingReductionCount: 0,
+        armourReductionCount: 0,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -797,7 +727,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.players.upsert, {
+    const result = await call(harness.router.players.upsert, {
       name: 'Griff Oberwald',
       teamEraId: 10,
       positionId: 20,
@@ -814,20 +744,27 @@ describe('RpcRouterFactoryService', () => {
       agility: 3,
       passing: 4,
       armour: 9,
+      missNextGame: false,
+      nigglingInjuryCount: 0,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 0,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
   });
 
   it('players.upsert throws CONFLICT when the service reports a conflict', async () => {
-    playersService.upsert.mockRejectedValue(
+    harness.mocks.playersService.upsert.mockRejectedValue(
       new PlayerUpsertConflictError(
         'External IDs matched multiple existing players: 1, 2',
       ),
     );
 
     await expect(
-      call(router.players.upsert, {
+      call(harness.router.players.upsert, {
         name: 'Griff Oberwald',
         teamEraId: 10,
         positionId: 20,
@@ -837,14 +774,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('players.upsert maps a characteristic format mismatch to BAD_REQUEST', async () => {
-    playersService.upsert.mockRejectedValue(
+    harness.mocks.playersService.upsert.mockRejectedValue(
       new CharacteristicFormatMismatchError(
         'Rules set 5 has no Passing characteristic, but player 1:12345 supplies one',
       ),
     );
 
     await expect(
-      call(router.players.upsert, {
+      call(harness.router.players.upsert, {
         name: 'Griff Oberwald',
         move: 6,
         strength: 3,
@@ -858,7 +795,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matchEvents.upsert returns the flat entity with a created flag', async () => {
-    matchEventsService.upsert.mockResolvedValue({
+    harness.mocks.matchEventsService.upsert.mockResolvedValue({
       matchEvent: {
         id: 1,
         matchId: 10,
@@ -892,7 +829,7 @@ describe('RpcRouterFactoryService', () => {
       created: true,
     });
 
-    const result = await call(router.matchEvents.upsert, {
+    const result = await call(harness.router.matchEvents.upsert, {
       matchId: 10,
       actingTeamEraId: 100,
       actingPlayerId: 9,
@@ -908,14 +845,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matchEvents.upsert throws CONFLICT when the service reports a conflict', async () => {
-    matchEventsService.upsert.mockRejectedValue(
+    harness.mocks.matchEventsService.upsert.mockRejectedValue(
       new MatchEventUpsertConflictError(
         'External IDs matched multiple existing match events: 1, 2',
       ),
     );
 
     await expect(
-      call(router.matchEvents.upsert, {
+      call(harness.router.matchEvents.upsert, {
         matchId: 10,
         actingTeamEraId: 100,
         actingPlayerId: 9,
@@ -929,10 +866,12 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matchEvents.upsert rethrows errors that are not a conflict', async () => {
-    matchEventsService.upsert.mockRejectedValue(new Error('db unavailable'));
+    harness.mocks.matchEventsService.upsert.mockRejectedValue(
+      new Error('db unavailable'),
+    );
 
     await expect(
-      call(router.matchEvents.upsert, {
+      call(harness.router.matchEvents.upsert, {
         matchId: 10,
         actingTeamEraId: 100,
         actingPlayerId: 9,
@@ -943,7 +882,9 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('routes sppAwardValues.sync to SppAwardValuesService.sync', async () => {
-    sppAwardValuesService.sync.mockResolvedValue({ sppAwardValueIds: [11] });
+    harness.mocks.sppAwardValuesService.sync.mockResolvedValue({
+      sppAwardValueIds: [11],
+    });
 
     const input = {
       values: [
@@ -955,15 +896,17 @@ describe('RpcRouterFactoryService', () => {
         },
       ],
     };
-    const result = await call(router.sppAwardValues.sync, input);
+    const result = await call(harness.router.sppAwardValues.sync, input);
 
     expect(result).toEqual({ sppAwardValueIds: [11] });
-    expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
+    expect(harness.mocks.sppAwardValuesService.sync).toHaveBeenCalledWith(
+      input,
+    );
   });
 
   describe('positionRulesSets.sync', () => {
     it('delegates to the position rules sets service', async () => {
-      positionRulesSetsService.sync.mockResolvedValue({
+      harness.mocks.positionRulesSetsService.sync.mockResolvedValue({
         positionRulesSetIds: [21],
       });
       const input = {
@@ -980,37 +923,41 @@ describe('RpcRouterFactoryService', () => {
         ],
       };
 
-      const result = await call(router.positionRulesSets.sync, input);
+      const result = await call(harness.router.positionRulesSets.sync, input);
 
       expect(result).toEqual({ positionRulesSetIds: [21] });
-      expect(positionRulesSetsService.sync).toHaveBeenCalledWith(input);
+      expect(harness.mocks.positionRulesSetsService.sync).toHaveBeenCalledWith(
+        input,
+      );
     });
 
     it('maps a format mismatch to BAD_REQUEST', async () => {
-      positionRulesSetsService.sync.mockRejectedValue(
+      harness.mocks.positionRulesSetsService.sync.mockRejectedValue(
         new CharacteristicFormatMismatchError('Rules set 5 has no Passing'),
       );
 
       await expect(
-        call(router.positionRulesSets.sync, { entries: [] }),
+        call(harness.router.positionRulesSets.sync, { entries: [] }),
       ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     });
 
     it('lets an unrelated failure through untouched', async () => {
-      positionRulesSetsService.sync.mockRejectedValue(
+      harness.mocks.positionRulesSetsService.sync.mockRejectedValue(
         new Error('connection lost'),
       );
 
       await expect(
-        call(router.positionRulesSets.sync, { entries: [] }),
+        call(harness.router.positionRulesSets.sync, { entries: [] }),
       ).rejects.toThrow('connection lost');
     });
   });
 
   it('routes players.syncScrapedSppAdjustments to SppAdjustmentsService.syncScrapedAdjustments', async () => {
-    sppAdjustmentsService.syncScrapedAdjustments.mockResolvedValue({
-      updatedPlayerIds: [1, 2],
-    });
+    harness.mocks.sppAdjustmentsService.syncScrapedAdjustments.mockResolvedValue(
+      {
+        updatedPlayerIds: [1, 2],
+      },
+    );
 
     const input = {
       players: [
@@ -1018,26 +965,34 @@ describe('RpcRouterFactoryService', () => {
         { playerId: 2, scrapedTotal: null },
       ],
     };
-    const result = await call(router.players.syncScrapedSppAdjustments, input);
-
-    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
-    expect(sppAdjustmentsService.syncScrapedAdjustments).toHaveBeenCalledWith(
+    const result = await call(
+      harness.router.players.syncScrapedSppAdjustments,
       input,
     );
+
+    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
+    expect(
+      harness.mocks.sppAdjustmentsService.syncScrapedAdjustments,
+    ).toHaveBeenCalledWith(input);
   });
 
   it('routes players.syncReportedSppAdjustments to SppAdjustmentsService.syncReportedAdjustments', async () => {
-    sppAdjustmentsService.syncReportedAdjustments.mockResolvedValue({
-      updatedPlayerIds: [3],
-    });
+    harness.mocks.sppAdjustmentsService.syncReportedAdjustments.mockResolvedValue(
+      {
+        updatedPlayerIds: [3],
+      },
+    );
 
     const input = { players: [{ playerId: 3 }, { playerId: 4 }] };
-    const result = await call(router.players.syncReportedSppAdjustments, input);
-
-    expect(result).toEqual({ updatedPlayerIds: [3] });
-    expect(sppAdjustmentsService.syncReportedAdjustments).toHaveBeenCalledWith(
+    const result = await call(
+      harness.router.players.syncReportedSppAdjustments,
       input,
     );
+
+    expect(result).toEqual({ updatedPlayerIds: [3] });
+    expect(
+      harness.mocks.sppAdjustmentsService.syncReportedAdjustments,
+    ).toHaveBeenCalledWith(input);
   });
 
   describe('trophies.upsert', () => {
@@ -1060,9 +1015,12 @@ describe('RpcRouterFactoryService', () => {
         historyVersion: 1,
         historyPeriod: '["2026-01-01 00:00:00+00",)',
       };
-      trophiesService.upsert.mockResolvedValue({ trophy, created: true });
+      harness.mocks.trophiesService.upsert.mockResolvedValue({
+        trophy,
+        created: true,
+      });
 
-      const result = await call(router.trophies.upsert, {
+      const result = await call(harness.router.trophies.upsert, {
         name: 'Chaos Cup',
         recipientKind: 'team',
         externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
@@ -1087,24 +1045,24 @@ describe('RpcRouterFactoryService', () => {
     });
 
     it('maps a TrophyUpsertConflictError to CONFLICT', async () => {
-      trophiesService.upsert.mockRejectedValue(
+      harness.mocks.trophiesService.upsert.mockRejectedValue(
         new TrophyUpsertConflictError('two trophies'),
       );
 
       await expect(
-        call(router.trophies.upsert, {
+        call(harness.router.trophies.upsert, {
           externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
         }),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
     it('maps a MissingRequiredFieldError to BAD_REQUEST', async () => {
-      trophiesService.upsert.mockRejectedValue(
+      harness.mocks.trophiesService.upsert.mockRejectedValue(
         new MissingRequiredFieldError('missing recipientKind'),
       );
 
       await expect(
-        call(router.trophies.upsert, {
+        call(harness.router.trophies.upsert, {
           externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
         }),
       ).rejects.toMatchObject({ code: 'BAD_REQUEST' });

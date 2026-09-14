@@ -38,6 +38,13 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       agility: 3,
       passing: 4,
       armour: 8,
+      nigglingInjuries: null,
+      canPlayNextGame: null,
+      templateMove: null,
+      templateStrength: null,
+      templateAgility: null,
+      templatePassing: null,
+      templateArmour: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -65,6 +72,13 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       agility: 2,
       passing: null,
       armour: 9,
+      nigglingInjuries: null,
+      canPlayNextGame: null,
+      templateMove: null,
+      templateStrength: null,
+      templateAgility: null,
+      templatePassing: null,
+      templateArmour: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -92,6 +106,13 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       agility: 3,
       passing: 0,
       armour: 8,
+      nigglingInjuries: null,
+      canPlayNextGame: null,
+      templateMove: null,
+      templateStrength: null,
+      templateAgility: null,
+      templatePassing: null,
+      templateArmour: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -126,6 +147,13 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       agility: null,
       passing: null,
       armour: null,
+      nigglingInjuries: null,
+      canPlayNextGame: null,
+      templateMove: null,
+      templateStrength: null,
+      templateAgility: null,
+      templatePassing: null,
+      templateArmour: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 

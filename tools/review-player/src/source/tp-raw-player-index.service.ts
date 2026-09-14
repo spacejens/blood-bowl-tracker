@@ -41,6 +41,24 @@ export interface TpRawPlayerAggregate {
   agility: number | null;
   passing: number | null;
   armour: number | null;
+  /**
+   * The player's live lasting-injury state and the characteristics of the
+   * position template they were recruited from, both from the roster file
+   * that carries their line-up id. Null when no downloaded roster file does —
+   * TP publishes all of this only in `rosters_<id>.json`.
+   *
+   * The template is what makes a stat reduction visible at all: TP has no
+   * explicit flag for one, and the review panel shows the current value next
+   * to its template so a reviewer can see the gap the importer claims to have
+   * read — without this tool re-deriving the importer's own conclusion.
+   */
+  nigglingInjuries: number | null;
+  canPlayNextGame: boolean | null;
+  templateMove: number | null;
+  templateStrength: number | null;
+  templateAgility: number | null;
+  templatePassing: number | null;
+  templateArmour: number | null;
 }
 
 /** Mutable accumulator, plus the match id the reported total came from. */
@@ -60,6 +78,13 @@ interface RawCharacteristics {
   agility: number | null;
   passing: number | null;
   armour: number | null;
+  nigglingInjuries: number | null;
+  canPlayNextGame: boolean | null;
+  templateMove: number | null;
+  templateStrength: number | null;
+  templateAgility: number | null;
+  templatePassing: number | null;
+  templateArmour: number | null;
 }
 
 /**
@@ -168,6 +193,13 @@ export class TpRawPlayerIndexService {
         player.agility = line.agility;
         player.passing = line.passing;
         player.armour = line.armour;
+        player.nigglingInjuries = line.nigglingInjuries;
+        player.canPlayNextGame = line.canPlayNextGame;
+        player.templateMove = line.templateMove;
+        player.templateStrength = line.templateStrength;
+        player.templateAgility = line.templateAgility;
+        player.templatePassing = line.templatePassing;
+        player.templateArmour = line.templateArmour;
       }
     }
   }
@@ -220,6 +252,13 @@ export class TpRawPlayerIndexService {
       agility: null,
       passing: null,
       armour: null,
+      nigglingInjuries: null,
+      canPlayNextGame: null,
+      templateMove: null,
+      templateStrength: null,
+      templateAgility: null,
+      templatePassing: null,
+      templateArmour: null,
     };
     player.matchCount += 1;
     // TP's match ids increase over time, so the highest one a player appears
@@ -281,6 +320,28 @@ export class TpRawPlayerIndexService {
         // marker, so it is passed through unchanged like the other four.
         passing: this.numberProperty(entry, 'pa'),
         armour: this.numberProperty(entry, 'av'),
+        nigglingInjuries: this.numberProperty(entry, 'nigglingInjuries'),
+        canPlayNextGame: this.booleanProperty(entry, 'canPlayNextGame'),
+        templateMove: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'ma',
+        ),
+        templateStrength: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'st',
+        ),
+        templateAgility: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'ag',
+        ),
+        templatePassing: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'pa',
+        ),
+        templateArmour: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'av',
+        ),
       });
     }
   }
@@ -288,6 +349,11 @@ export class TpRawPlayerIndexService {
   private numberProperty(value: unknown, key: string): number | null {
     const property = this.property(value, key);
     return typeof property === 'number' ? property : null;
+  }
+
+  private booleanProperty(value: unknown, key: string): boolean | null {
+    const property = this.property(value, key);
+    return typeof property === 'boolean' ? property : null;
   }
 
   private lineUpsOf(file: unknown, key: string): unknown[] {

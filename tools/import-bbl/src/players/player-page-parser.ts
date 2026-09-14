@@ -3,6 +3,8 @@ import type { CheerioAPI } from 'cheerio';
 
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import type { BblLastingInjuries } from './sustained-injuries.parser';
+import { SustainedInjuriesParser } from './sustained-injuries.parser';
 
 /**
  * One player's raw characteristics line, exactly as their page shows it. This
@@ -23,6 +25,9 @@ export interface BblPlayerCharacteristics {
 
 /** The characteristics table's header cells, in column order. */
 const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'];
+
+/** The label cell that identifies the sustained-injuries row. */
+const SUSTAINED_INJURIES_LABEL = 'Sustained Injuries:';
 
 /**
  * A player read off a `p=pl` page. `pid` is the player's page id (from
@@ -52,11 +57,22 @@ export interface BblPlayer {
    * entirely, the same way a missing name/position/team link does.
    */
   characteristics: BblPlayerCharacteristics;
+  /**
+   * The player's currently outstanding lasting injuries, from the page's
+   * free-text "Sustained Injuries" row. Non-nullable, and a missing row is
+   * NOT a parse failure the way a missing characteristics line is: "no
+   * injuries" is an ordinary state that most pages are in, so an absent row
+   * reads as all-clean.
+   */
+  lastingInjuries: BblLastingInjuries;
 }
 
 @Injectable()
 export class PlayerPageParser {
-  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+  constructor(
+    private readonly normalizeText: NormalizeExtractedTextService,
+    private readonly sustainedInjuries: SustainedInjuriesParser,
+  ) {}
 
   /**
    * Extract player data from a player page. Reads `pid` from the page params,
@@ -108,6 +124,7 @@ export class PlayerPageParser {
       teamCode,
       sppTotal: this.extractSppTotal($),
       characteristics,
+      lastingInjuries: this.extractLastingInjuries($),
     };
   }
 
@@ -127,6 +144,44 @@ export class PlayerPageParser {
       return match ? Number(match[1]) : null;
     }
     return null;
+  }
+
+  /**
+   * The sustained-injuries cell, located the same way the SPP total is: find
+   * the label cell by its exact text, then read the cell next to it. Cheerio
+   * flattens the label's anchor, so the comparison is against plain text.
+   *
+   * `<br>` is replaced with a space before flattening: `.text()` drops it with
+   * no separator, which would glue the miss-next-game sentence onto whatever
+   * preceded it ("1 niggling inj.Must miss..."). The parser tolerates that
+   * anyway, but keeping the words apart makes the extracted text readable in
+   * a debugger and in any future raw rendering of it.
+   *
+   * A page with no such row yields the all-clean value, not null — see
+   * `BblPlayer.lastingInjuries`.
+   */
+  private extractLastingInjuries($: CheerioAPI): BblLastingInjuries {
+    for (const element of $('td').toArray()) {
+      if (
+        this.normalizeText.normalize($(element).text()) !==
+        SUSTAINED_INJURIES_LABEL
+      ) {
+        continue;
+      }
+      const valueCell = $(element).next('td');
+      if (valueCell.length === 0) {
+        // The label WAS found, so this is a malformed/truncated page, not the
+        // ordinary "no injury row at all" case handled below. Defaulting to
+        // the same clean result here could silently overwrite a genuinely
+        // injured player's data if the page ever fails to load completely.
+        throw new Error('Invalid sustained-injuries row: missing value cell');
+      }
+      const html = (valueCell.html() ?? '').replace(/<br\s*\/?>/gi, ' ');
+      return this.sustainedInjuries.parse(
+        this.normalizeText.normalize($(`<td>${html}</td>`).text()),
+      );
+    }
+    return this.sustainedInjuries.parse('');
   }
 
   /**

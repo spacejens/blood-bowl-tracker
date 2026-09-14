@@ -7,7 +7,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
-import { CharacteristicFormatValidationService } from '../shared/characteristic-format-validation.service';
+import { LastingInjuryValidationError } from '../shared/lasting-injury-validation-error';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
@@ -18,8 +18,10 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService, PlayerUpsertConflictError } from './players.service';
 
 const fakePlayer = {
@@ -32,6 +34,13 @@ const fakePlayer = {
   agility: 3,
   passing: 4,
   armour: 9,
+  missNextGame: false,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -41,6 +50,7 @@ describe('PlayersService', () => {
   let deepdiveCounts: MockProxy<PlayerDeepdiveCountsService>;
   let matchEventCounts: MockProxy<MatchEventCountsService>;
   let playerContextNames: MockProxy<PlayerContextNamesService>;
+  let characteristicsValidation: MockProxy<PlayerCharacteristicsValidationService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<MockDbResult> {
     const dbMock = mockDb(...rowsPerQuery);
@@ -52,7 +62,17 @@ describe('PlayersService', () => {
         { provide: PlayerDeepdiveCountsService, useValue: deepdiveCounts },
         { provide: MatchEventCountsService, useValue: matchEventCounts },
         { provide: PlayerContextNamesService, useValue: playerContextNames },
-        CharacteristicFormatValidationService,
+        // PlayerCharacteristicsValidationService has a real @Inject(DB) and
+        // performs its own query, so it is mocked like any other I/O-bearing
+        // collaborator — CLAUDE.md's pure-decision-service carve-out does not
+        // extend to it.
+        {
+          provide: PlayerCharacteristicsValidationService,
+          useValue: characteristicsValidation,
+        },
+        // Pure and dependency-free (CLAUDE.md's decision-service carve-out):
+        // no constructor, no I/O — passed real rather than mocked.
+        PlayerLastingInjuryValidationService,
         { provide: DB, useValue: dbMock.db },
       ],
     }).compile();
@@ -65,6 +85,7 @@ describe('PlayersService', () => {
     deepdiveCounts = mock<PlayerDeepdiveCountsService>();
     matchEventCounts = mock<MatchEventCountsService>();
     playerContextNames = mock<PlayerContextNamesService>();
+    characteristicsValidation = mock<PlayerCharacteristicsValidationService>();
   });
 
   describe('upsert', () => {
@@ -184,20 +205,6 @@ describe('PlayersService', () => {
       ).toBeUndefined();
     });
 
-    const bb2020Formats = {
-      moveFormat: 'bare',
-      strengthFormat: 'bare',
-      agilityFormat: 'plus',
-      passingFormat: 'plus',
-      armourFormat: 'plus',
-    };
-    const crpFormats = {
-      moveFormat: 'bare',
-      strengthFormat: 'bare',
-      agilityFormat: 'bare',
-      passingFormat: 'absent',
-      armourFormat: 'bare',
-    };
     const characteristics = {
       move: 6,
       strength: 3,
@@ -206,10 +213,12 @@ describe('PlayersService', () => {
       armour: 9,
     };
 
-    it('writes the five characteristics when they match the rules set', async () => {
-      // Query 0: the rules-set format lookup. Query 1: the external-id
-      // lookup finds nothing. Query 2: the insert. Query 3: external ids.
-      const { chains } = await build([bb2020Formats], [], [fakePlayer]);
+    it('writes the five characteristics after validation passes', async () => {
+      // Query 0: the external-id lookup finds nothing. Query 1: the insert.
+      // Characteristics validation is mocked, so it issues no query of its
+      // own here — that lookup is covered by
+      // PlayerCharacteristicsValidationService's own spec.
+      const { chains } = await build([], [fakePlayer]);
 
       await service.upsert({
         ...base,
@@ -218,11 +227,14 @@ describe('PlayersService', () => {
         externalIds,
       });
 
-      expect(firstCallArg(chains[2].values)).toMatchObject(characteristics);
+      expect(characteristicsValidation.validate).toHaveBeenCalledWith(
+        expect.objectContaining({ rulesSetId: 4 }),
+      );
+      expect(firstCallArg(chains[1].values)).toMatchObject(characteristics);
     });
 
-    it('writes a null passing for a rules set that has no Passing', async () => {
-      const { chains } = await build([crpFormats], [], [fakePlayer]);
+    it('writes a null passing after validation passes', async () => {
+      const { chains } = await build([], [fakePlayer]);
 
       await service.upsert({
         ...base,
@@ -233,7 +245,7 @@ describe('PlayersService', () => {
         externalIds,
       });
 
-      expect(firstCallArg(chains[2].values)).toMatchObject({ passing: null });
+      expect(firstCallArg(chains[1].values)).toMatchObject({ passing: null });
     });
 
     it('leaves the characteristic columns untouched when the caller omits them', async () => {
@@ -250,8 +262,20 @@ describe('PlayersService', () => {
       expect(values.passing).toBeUndefined();
     });
 
+    // The following tests exercise PlayersService.upsert's propagation of a
+    // characteristics-validation rejection, not the validation logic itself
+    // (which is PlayerCharacteristicsValidationService's own spec's job, now
+    // that it is mocked here rather than passed real). Each configures the
+    // mock to reject the way the real service would for an equivalent input,
+    // and asserts upsert both rejects with it and writes nothing.
+
     it('rejects a Passing value the rules set declares absent, writing nothing', async () => {
-      const { transaction, chains } = await build([crpFormats]);
+      const { transaction, chains } = await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError(
+          'Rules set 5 declares no Passing characteristic for player 1:12345, but a Passing value was supplied',
+        ),
+      );
 
       await expect(
         service.upsert({
@@ -261,12 +285,17 @@ describe('PlayersService', () => {
           externalIds,
         }),
       ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
-      expect(chains).toHaveLength(1);
+      expect(chains).toHaveLength(0);
       expect(transaction).not.toHaveBeenCalled();
     });
 
     it('rejects a missing characteristic the rules set requires, writing nothing', async () => {
-      const { transaction, chains } = await build([bb2020Formats]);
+      const { transaction, chains } = await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError(
+          'Rules set 4 requires a Passing characteristic for player 1:12345, but none was supplied',
+        ),
+      );
 
       await expect(
         service.upsert({
@@ -277,12 +306,15 @@ describe('PlayersService', () => {
           externalIds,
         }),
       ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
-      expect(chains).toHaveLength(1);
+      expect(chains).toHaveLength(0);
       expect(transaction).not.toHaveBeenCalled();
     });
 
     it('rejects an unknown rulesSetId, writing nothing', async () => {
-      const { transaction, chains } = await build([]);
+      const { transaction, chains } = await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError('Rules set 99 does not exist'),
+      );
 
       await expect(
         service.upsert({
@@ -292,12 +324,17 @@ describe('PlayersService', () => {
           externalIds,
         }),
       ).rejects.toBeInstanceOf(CharacteristicFormatMismatchError);
-      expect(chains).toHaveLength(1);
+      expect(chains).toHaveLength(0);
       expect(transaction).not.toHaveBeenCalled();
     });
 
-    it('names the offending player in the rejection', async () => {
-      await build([crpFormats]);
+    it('propagates the offending player named in the rejection', async () => {
+      await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError(
+          'Rules set 5 declares no Passing characteristic for player 1:12345, but a Passing value was supplied',
+        ),
+      );
 
       await expect(
         service.upsert({
@@ -311,6 +348,11 @@ describe('PlayersService', () => {
 
     it('rejects a rulesSetId supplied without a complete characteristic line', async () => {
       const { transaction } = await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError(
+          'Rules set 4 was supplied for player 1:12345 without a complete set of characteristics',
+        ),
+      );
 
       await expect(
         service.upsert({ ...base, rulesSetId: 4, externalIds }),
@@ -320,6 +362,11 @@ describe('PlayersService', () => {
 
     it('rejects characteristics supplied without a rulesSetId', async () => {
       const { transaction } = await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError(
+          'Characteristics were supplied for player 1:12345 without a rules set to validate them against',
+        ),
+      );
 
       await expect(
         service.upsert({ ...base, ...characteristics, externalIds }),
@@ -329,11 +376,85 @@ describe('PlayersService', () => {
 
     it('rejects a partial characteristic line supplied without a rulesSetId', async () => {
       const { transaction } = await build();
+      characteristicsValidation.validate.mockRejectedValueOnce(
+        new CharacteristicFormatMismatchError(
+          'Characteristics are all-or-nothing: a partial characteristic line was supplied for player 1:12345',
+        ),
+      );
 
       await expect(
         service.upsert({ ...base, move: 6, externalIds }),
       ).rejects.toThrow(/all-or-nothing/);
       expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects a partial lasting-injury line, writing nothing', async () => {
+      // Exercises the real PlayerLastingInjuryValidationService (passed real
+      // per the pure-decision-service carve-out): crafted invalid input
+      // triggers its actual validation logic, rather than a mocked
+      // rejection.
+      const { transaction, chains } = await build();
+
+      await expect(
+        service.upsert({ ...base, missNextGame: true, externalIds }),
+      ).rejects.toBeInstanceOf(LastingInjuryValidationError);
+      expect(chains).toHaveLength(0);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('writes every supplied lasting-injury field', async () => {
+      // Query 0: the external-id lookup, finding nothing. Query 1: the
+      // insert. Query 2: the external ids. Characteristics validation is
+      // mocked, so it issues no query of its own here.
+      const { chains } = await build([], [fakePlayer], []);
+
+      await service.upsert({
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        move: 6,
+        strength: 3,
+        agility: 3,
+        passing: 4,
+        armour: 9,
+        rulesSetId: 20,
+        missNextGame: true,
+        nigglingInjuryCount: 2,
+        moveReductionCount: 1,
+        strengthReductionCount: 0,
+        agilityReductionCount: 0,
+        passingReductionCount: 0,
+        armourReductionCount: 3,
+        externalIds: [{ externalSystemId: 1, externalId: 'pid-7' }],
+      });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        missNextGame: true,
+        nigglingInjuryCount: 2,
+        moveReductionCount: 1,
+        strengthReductionCount: 0,
+        agilityReductionCount: 0,
+        passingReductionCount: 0,
+        armourReductionCount: 3,
+      });
+    });
+
+    it('leaves the stored lasting-injury state untouched when the group is omitted', async () => {
+      // Query 0: the external-id lookup (no characteristics supplied, so no
+      // format lookup fires). Query 1: the insert. Query 2: the external ids.
+      const { chains } = await build([], [fakePlayer], []);
+
+      await service.upsert({
+        name: 'Griff Oberwald',
+        teamEraId: 10,
+        positionId: 20,
+        externalIds: [{ externalSystemId: 1, externalId: 'pid-7' }],
+      });
+
+      const values = firstCallArg(chains[1].values) as Record<string, unknown>;
+      expect(values.missNextGame).toBeUndefined();
+      expect(values.nigglingInjuryCount).toBeUndefined();
+      expect(values.armourReductionCount).toBeUndefined();
     });
   });
 
@@ -502,6 +623,24 @@ describe('PlayersService', () => {
     it('returns undefined when no player matches', async () => {
       await build([]);
       await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+
+    it('selects the seven lasting-injury columns', async () => {
+      const { db } = await build([fakePlayer]);
+
+      await service.findById(1);
+
+      expect(Object.keys(firstCallArg(db.select, 0, 0) as object)).toEqual(
+        expect.arrayContaining([
+          'missNextGame',
+          'nigglingInjuryCount',
+          'moveReductionCount',
+          'strengthReductionCount',
+          'agilityReductionCount',
+          'passingReductionCount',
+          'armourReductionCount',
+        ]),
+      );
     });
   });
 

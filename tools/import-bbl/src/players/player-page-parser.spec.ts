@@ -6,10 +6,22 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { PlayerPageParser } from './player-page-parser';
+import { SustainedInjuriesParser } from './sustained-injuries.parser';
 
 function playerPage(html: string, pid = '5'): BblPage {
   return { type: 'pl', params: { pid }, load: () => load(html) };
 }
+
+/** The all-clean lasting-injuries value a page with no injuries parses to. */
+const NO_INJURIES = {
+  missNextGame: false,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
+};
 
 describe('PlayerPageParser', () => {
   let parser: PlayerPageParser;
@@ -23,6 +35,7 @@ describe('PlayerPageParser', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerPageParser,
+        SustainedInjuriesParser,
         { provide: NormalizeExtractedTextService, useValue: normalizeText },
       ],
     }).compile();
@@ -70,6 +83,7 @@ describe('PlayerPageParser', () => {
         passing: 4,
         armour: 8,
       },
+      lastingInjuries: NO_INJURIES,
     });
   });
 
@@ -93,6 +107,7 @@ describe('PlayerPageParser', () => {
         passing: 4,
         armour: 8,
       },
+      lastingInjuries: NO_INJURIES,
     });
   });
 
@@ -118,6 +133,7 @@ describe('PlayerPageParser', () => {
         passing: 4,
         armour: 8,
       },
+      lastingInjuries: NO_INJURIES,
     });
   });
 
@@ -165,6 +181,7 @@ describe('PlayerPageParser', () => {
         passing: 4,
         armour: 8,
       },
+      lastingInjuries: NO_INJURIES,
     });
   });
 
@@ -347,5 +364,100 @@ describe('PlayerPageParser', () => {
   it('returns null when the page has no characteristics table at all', () => {
     const page = playerPage('<h1>Griff Oberwald</h1>' + PLAYER_LINKS);
     expect(parser.extractPlayer(page)).toBeNull();
+  });
+
+  /** The real markup of a player page's Sustained Injuries row. */
+  function sustainedInjuriesRow(value: string): string {
+    return `
+<table class="tblist" width="320">
+ <tr height="25">
+  <td width="94" class="small dark3" align="center" valign="middle"><a href="default.asp?p=mp&act=inj&pid=1990" title="se list of matches">Sustained Injuries:</a></td>
+  <td class="small red3">${value}</td>
+ </tr>
+</table>`;
+  }
+
+  it('parses the sustained-injuries row', () => {
+    const page = playerPage(
+      `<h1>Griff Oberwald</h1>${PLAYER_LINKS}${characteristicsTable('6', '3', '3', '4', '9')}${sustainedInjuriesRow(
+        `-AV, &nbsp;<span color='#ffa0a0'>1</span> niggling inj.`,
+      )}`,
+      '1990',
+    );
+
+    expect(parser.extractPlayer(page)?.lastingInjuries).toEqual({
+      missNextGame: false,
+      nigglingInjuryCount: 1,
+      moveReductionCount: 0,
+      strengthReductionCount: 0,
+      agilityReductionCount: 0,
+      passingReductionCount: 0,
+      armourReductionCount: 1,
+    });
+  });
+
+  it("reads BBL's greyed-out none as a clean player", () => {
+    const page = playerPage(
+      `<h1>Griff Oberwald</h1>${PLAYER_LINKS}${characteristicsTable('6', '3', '3', '4', '9')}${sustainedInjuriesRow(
+        `<span style='color:#808080'>none</span>`,
+      )}`,
+      '1990',
+    );
+
+    expect(
+      parser.extractPlayer(page)?.lastingInjuries.nigglingInjuryCount,
+    ).toBe(0);
+    expect(parser.extractPlayer(page)?.lastingInjuries.missNextGame).toBe(
+      false,
+    );
+  });
+
+  it('keeps the <br> before the miss-next-game line from gluing words together', () => {
+    const page = playerPage(
+      `<h1>Griff Oberwald</h1>${PLAYER_LINKS}${characteristicsTable('6', '3', '3', '4', '9')}${sustainedInjuriesRow(
+        `<span color='#ffa0a0'>1</span> niggling inj.<br>Must miss the next match due to injury`,
+      )}`,
+      '1990',
+    );
+
+    const injuries = parser.extractPlayer(page)?.lastingInjuries;
+    expect(injuries?.nigglingInjuryCount).toBe(1);
+    expect(injuries?.missNextGame).toBe(true);
+  });
+
+  it('treats a page with no sustained-injuries row as a clean player, not a parse failure', () => {
+    // Unlike the characteristics line, whose absence means the page cannot be
+    // read at all, "no injuries" is an ordinary state.
+    const page = playerPage(
+      `<h1>Griff Oberwald</h1>${PLAYER_LINKS}${characteristicsTable('6', '3', '3', '4', '9')}`,
+      '1990',
+    );
+
+    const player = parser.extractPlayer(page);
+    expect(player).not.toBeNull();
+    expect(player?.lastingInjuries.nigglingInjuryCount).toBe(0);
+  });
+
+  it('throws when the sustained-injuries label is found but has no following value cell', () => {
+    // Distinct from "no row at all": here the label WAS found, so the page
+    // structure is malformed/truncated rather than genuinely injury-free.
+    // Silently falling through to the same clean default as the "no row"
+    // case would risk masking a real injury if the page ever fails to load
+    // completely or BBL's structure glitches.
+    const page = playerPage(
+      `<h1>Griff Oberwald</h1>${PLAYER_LINKS}${characteristicsTable('6', '3', '3', '4', '9')}` +
+        '<table class="tblist" width="320">' +
+        ' <tr height="25">' +
+        '  <td width="94" class="small dark3" align="center" valign="middle">' +
+        '   <a href="default.asp?p=mp&act=inj&pid=1990" title="se list of matches">Sustained Injuries:</a>' +
+        '  </td>' +
+        ' </tr>' +
+        '</table>',
+      '1990',
+    );
+
+    expect(() => parser.extractPlayer(page)).toThrow(
+      'Invalid sustained-injuries row: missing value cell',
+    );
   });
 });
