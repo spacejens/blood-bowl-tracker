@@ -97,7 +97,9 @@ describe('PlayerCharacteristicsDbRendererService', () => {
     const html = await service.render(player);
 
     expect(html).toContain('class="mismatch"');
-    expect(html).toContain('<td>Player (changed)</td><td>7 ▲</td>');
+    expect(html).toContain(
+      '<td>Player (changed)</td><td class="mismatch-cell">7 ▲</td>',
+    );
   });
 
   it('marks a decreased characteristic', async () => {
@@ -108,7 +110,7 @@ describe('PlayerCharacteristicsDbRendererService', () => {
     const html = await service.render(player);
 
     expect(html).toContain('class="mismatch"');
-    expect(html).toContain('<td>8+ ▼</td>');
+    expect(html).toContain('<td class="mismatch-cell">8+ ▼</td>');
   });
 
   it('marks a change to a zero and shows the zero itself', async () => {
@@ -118,7 +120,7 @@ describe('PlayerCharacteristicsDbRendererService', () => {
 
     const html = await service.render(player);
 
-    expect(html).toContain('<td>0 ▼</td>');
+    expect(html).toContain('<td class="mismatch-cell">0 ▼</td>');
   });
 
   it('treats Passing appearing where the baseline has none as a change', async () => {
@@ -129,7 +131,7 @@ describe('PlayerCharacteristicsDbRendererService', () => {
     const html = await service.render(player);
 
     expect(html).toContain('class="mismatch"');
-    expect(html).toContain('<td>4+ ▲</td>');
+    expect(html).toContain('<td class="mismatch-cell">4+ ▲</td>');
   });
 
   it('treats Passing missing where the baseline has one as a change', async () => {
@@ -140,7 +142,7 @@ describe('PlayerCharacteristicsDbRendererService', () => {
     const html = await service.render(player);
 
     expect(html).toContain('class="mismatch"');
-    expect(html).toContain('<td>— ▼</td>');
+    expect(html).toContain('<td class="mismatch-cell">— ▼</td>');
   });
 
   it('treats Passing absent on both sides as unchanged', async () => {
@@ -167,7 +169,8 @@ describe('PlayerCharacteristicsDbRendererService', () => {
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain(
-      '<td>Position baseline (BB2020)</td><td>missing</td><td>missing</td><td>missing</td><td>missing</td><td>missing</td>',
+      '<td>Position baseline (BB2020)</td>' +
+        '<td class="mismatch-cell">missing</td>'.repeat(5),
     );
     expect(html).toContain('<td>Player</td><td>6</td>');
     expect(html).not.toContain('▲');
@@ -202,5 +205,33 @@ describe('PlayerCharacteristicsDbRendererService', () => {
 
     expect(dbResult.chains[1].orderBy).toHaveBeenCalled();
     expect(dbResult.chains[1].limit).toHaveBeenCalledWith(1);
+  });
+
+  it('emphasises only the characteristic that changed, not the last column', async () => {
+    const service = await makeService(
+      mockDb([playerRow({ move: 7 })], [rulesSetRow()], [baselineRow()]),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td class="mismatch-cell">7 ▲</td>');
+    expect(html.match(/mismatch-cell/g)).toHaveLength(1);
+    expect(html).not.toContain('<td class="mismatch-cell">9+</td>');
+  });
+
+  it('emphasises every characteristic that changed when several do', async () => {
+    const service = await makeService(
+      mockDb(
+        [playerRow({ move: 7, armour: 8 })],
+        [rulesSetRow()],
+        [baselineRow()],
+      ),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td class="mismatch-cell">7 ▲</td>');
+    expect(html).toContain('<td class="mismatch-cell">8+ ▼</td>');
+    expect(html.match(/mismatch-cell/g)).toHaveLength(2);
   });
 });
