@@ -258,6 +258,31 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
     expect(html).not.toContain('Someone Else');
   });
 
+  it('falls back to a normalized Name match when the star owns no external ids', async () => {
+    const d = deps();
+    d.externalIds.allForPosition.mockResolvedValue([]);
+    d.manual.characteristics.mockResolvedValue([
+      {
+        // Case-only difference from STAR.positionName — refMatches cannot
+        // succeed (no owned external ids), so this can only be found through
+        // StarPlayerNameMatcherService.normalize()'s case-folding.
+        position: { system: 'Name', id: 'eldril sidewinder' },
+        rulesSet: { system: 'Name', id: 'BB2020' },
+        move: 8,
+        strength: 3,
+        agility: 2,
+        passing: 5,
+        armour: 8,
+      },
+    ]);
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain('Manual curation');
+    expect(html).toContain('BB2020');
+  });
+
   it('renders a curated entry omitting passing as a dash', async () => {
     const d = deps();
     d.externalIds.allForPosition.mockResolvedValue([
