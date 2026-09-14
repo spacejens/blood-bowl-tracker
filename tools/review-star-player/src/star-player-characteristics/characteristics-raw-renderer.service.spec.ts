@@ -99,6 +99,37 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
     expect(html).toContain('8+');
   });
 
+  it('renders a dash for BBL passing when the page has no passing value', async () => {
+    const d = deps();
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Eldril Sidewinder',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: {
+          move: '8',
+          strength: '3',
+          agility: '2+',
+          passing: null,
+          armour: '8+',
+        },
+      },
+      notFoundNote: '',
+    });
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain('BBL');
+    expect(html).toContain('8');
+    expect(html).toContain('3');
+    expect(html).toContain('2+');
+    expect(html).toContain('8+');
+    expect(html).toContain('—');
+  });
+
   it('highlights a BBL page with unreadable characteristics', async () => {
     const d = deps();
     d.lookup.bblStarFor.mockResolvedValue({
