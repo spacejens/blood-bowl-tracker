@@ -5,7 +5,13 @@
  * (`PlayersService.upsert`'s lasting-injury counterpart to
  * `CharacteristicFormatMismatchError`).
  *
- * Authored-data feedback, not a server fault — the API maps it to BAD_REQUEST
- * so an importer reports it against the offending entry.
+ * Unlike `CharacteristicFormatMismatchError`, this error is not exported from
+ * this package's index and is not classified by
+ * `UpsertHandlerService` — it is only reachable from a direct in-process
+ * `PlayersService.upsert` call, since `UpsertPlayerSchema`'s zod schema
+ * already rejects both failure shapes (negative counts via
+ * `.int().nonnegative()`, and the all-or-nothing violation via its
+ * `superRefine`) at the RPC boundary before this validator is ever reached
+ * from that path.
  */
 export class LastingInjuryValidationError extends Error {}
