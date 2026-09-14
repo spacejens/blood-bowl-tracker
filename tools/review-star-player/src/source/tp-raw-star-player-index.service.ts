@@ -43,7 +43,7 @@ export interface TpRawStarPlayerEntry {
 /** One star as TP carries it, across every rules set. */
 export interface TpRawStarPlayer {
   name: string;
-  /** One entry per rules set, in folder order. */
+  /** One entry per rules set, in rules-set name order. */
   entries: TpRawStarPlayerEntry[];
 }
 
@@ -248,7 +248,8 @@ export class TpRawStarPlayerIndexService {
 
   private async entries(dir: string): Promise<Dirent[]> {
     try {
-      return await readdir(dir, { withFileTypes: true });
+      const entries = await readdir(dir, { withFileTypes: true });
+      return entries.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];

@@ -167,6 +167,49 @@ describe('TpRawStarPlayerIndexService', () => {
     ]);
   });
 
+  it('orders entries by rules-set name regardless of write order', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [ELDRIL],
+    });
+    writeRulesSet('BB2020', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [{ ...ELDRIL, cost: 200000 }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries.map((entry) => entry.rulesSet)).toEqual([
+      'BB2020',
+      'BB2025',
+    ]);
+  });
+
+  it('orders files within a rules set by file name regardless of write order', async () => {
+    const rulesSetDir = join(dir, 'teams', 'BB2025');
+    mkdirSync(rulesSetDir, { recursive: true });
+    writeFileSync(
+      join(rulesSetDir, 'zzz_last.json'),
+      JSON.stringify({
+        rosterMasters: [WOOD_ELF],
+        starplayerMasters: [{ ...ELDRIL, position: 'Zed Zebra' }],
+      }),
+      'utf8',
+    );
+    writeFileSync(
+      join(rulesSetDir, 'aaa_first.json'),
+      JSON.stringify({
+        rosterMasters: [WOOD_ELF],
+        starplayerMasters: [{ ...ELDRIL, position: 'Aaron Apple' }],
+      }),
+      'utf8',
+    );
+    const service = await makeService();
+
+    expect(await service.allNames()).toEqual(['Aaron Apple', 'Zed Zebra']);
+  });
+
   it('falls back to a normalized name match when the exact spelling differs', async () => {
     writeRulesSet('BB2025', {
       rosterMasters: [WOOD_ELF, DWARF],
