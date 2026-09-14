@@ -99,9 +99,13 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
      `teamRace` codes TP's `availableLeagues`/`availableTeamSpecialRules` masks
      make the star hireable by (including `selectable*` halves, official and
      legacy rosters only), the curated `raceEras` pairs, and a race-count verdict
-     that highlights `WIDER IN DB` when the database claims strictly more races
-     than TP's masks support. Right: one row per stored `(race, era)` pair, headed
-     by the distinct-race count.
+     comparing the database's distinct race count against TP's: a highlighted
+     `WIDER IN DB` when the database claims strictly more races than TP's masks
+     support, a highlighted `NARROWER IN DB` when it claims strictly fewer, and
+     a non-highlighted `counts match (race identity not compared)` when the
+     counts are equal — a count match does not confirm the two sides agree on
+     _which_ races those are. Right: one row per stored `(race, era)` pair,
+     headed by the distinct-race count.
 
 4. Writes the report under `tools/review-star-player/output/` (gitignored) with a
    timestamp in the filename, and prints where it landed.

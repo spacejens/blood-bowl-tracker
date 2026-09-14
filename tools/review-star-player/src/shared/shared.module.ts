@@ -3,8 +3,8 @@ import { Module } from '@nestjs/common';
 
 import { SourceModule } from '../source/source.module';
 import { ExternalSystemLookupService } from './external-system-lookup.service';
+import { NameMatcherModule } from './name-matcher.module';
 import { StarPlayerExternalIdsService } from './star-player-external-ids.service';
-import { StarPlayerNameMatcherService } from './star-player-name-matcher.service';
 import { StarPlayerPositionsQueryService } from './star-player-positions-query.service';
 import { StarSourceLookupService } from './star-source-lookup.service';
 
@@ -16,23 +16,22 @@ import { StarSourceLookupService } from './star-source-lookup.service';
  * data-type module injects it through this one module.
  *
  * Imports `SourceModule` for `StarSourceLookupService`'s own dependency on
- * BBL's and TP's raw source services. That import runs one way only:
- * `SourceModule` does not import `SharedModule` back (its two raw services
- * that need `StarPlayerNameMatcherService` register their own copy of that
- * stateless, dependency-free class instead — see `SourceModule`), so no
- * module-import cycle exists between the two.
+ * BBL's and TP's raw source services, and `NameMatcherModule` for
+ * `StarSourceLookupService`'s dependency on `StarPlayerNameMatcherService`
+ * (provided there, not here — see `NameMatcherModule` for why). That
+ * `SourceModule` import runs one way only: `SourceModule` does not import
+ * `SharedModule` back, so no module-import cycle exists between the two.
  */
 const SHARED = [
   ExternalSystemLookupService,
   HtmlService,
   StarPlayerExternalIdsService,
-  StarPlayerNameMatcherService,
   StarPlayerPositionsQueryService,
   StarSourceLookupService,
 ];
 
 @Module({
-  imports: [SourceModule],
+  imports: [SourceModule, NameMatcherModule],
   providers: SHARED,
   exports: SHARED,
 })
