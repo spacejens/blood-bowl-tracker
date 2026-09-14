@@ -49,8 +49,10 @@ describe('PlayerLastingInjuryBackfillService', () => {
     expect(db.chains).toHaveLength(0);
   });
 
-  it('leaves a player whose events agree with their current row untouched', async () => {
-    // Query 0: the current rows. Query 1: the per-type event counts.
+  it('leaves a player whose current row already shows an outstanding injury untouched', async () => {
+    // Query 0: the current rows. Query 1: the per-type event counts. The
+    // player's current row is not entirely clean, so no backfill pair is
+    // written even though it happens to agree with the accumulated count.
     const { service, db } = await build(
       [current({ nigglingInjuryCount: 1 })],
       [{ playerId: 7, consequenceType: 'niggling_injury', total: 1 }],
@@ -62,6 +64,64 @@ describe('PlayerLastingInjuryBackfillService', () => {
 
     expect(db.chains).toHaveLength(2);
     expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('leaves a player whose current row shows an outstanding injury untouched, even when the raw event count differs', async () => {
+    // BBL's "(no effect)" tag still records a match event even when the
+    // stat was already at its floor/cap, so the raw accumulated count can
+    // exceed the real (capped) magnitude stored on an already-injured
+    // player. Since the player is not currently clean, no backfill pair
+    // should be written regardless of that mismatch.
+    const { service, db } = await build(
+      [current({ armourReductionCount: 1 })],
+      [{ playerId: 7, consequenceType: 'stat_reduction_av', total: 2 }],
+    );
+
+    await expect(
+      service.syncLastingInjuryHistory({ playerIds: [7] }),
+    ).resolves.toEqual({ backfilledPlayerIds: [] });
+
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('leaves a player currently flagged to miss the next game untouched, even if match events differ', async () => {
+    // missNextGame === true means the player is not in the "entirely
+    // clean" state the backfill targets, regardless of what the event
+    // counts say.
+    const { service, db } = await build(
+      [current({ missNextGame: true })],
+      [{ playerId: 7, consequenceType: 'niggling_injury', total: 1 }],
+    );
+
+    await expect(
+      service.syncLastingInjuryHistory({ playerIds: [7] }),
+    ).resolves.toEqual({ backfilledPlayerIds: [] });
+
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('backfills a clean player even when the only recorded event was a "no effect" reduction', async () => {
+    // The player's current row is entirely clean (never had an effective
+    // reduction of any kind), but their match-event history records one
+    // stat-reduction roll that BBL reported as having no numeric effect.
+    // The current value legitimately stays 0, but the history still proves
+    // the player was once hit with a lasting-injury roll — exactly what the
+    // healed stratum is meant to surface.
+    const { service, db } = await build(
+      [current()],
+      [{ playerId: 7, consequenceType: 'stat_reduction_st', total: 1 }],
+    );
+
+    await expect(
+      service.syncLastingInjuryHistory({ playerIds: [7] }),
+    ).resolves.toEqual({ backfilledPlayerIds: [7] });
+
+    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+      strengthReductionCount: 1,
+    });
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
+      strengthReductionCount: 0,
+    });
   });
 
   it('writes the accumulated state and then the current state back, in that order', async () => {
@@ -109,18 +169,22 @@ describe('PlayerLastingInjuryBackfillService', () => {
   });
 
   it('never writes missNextGame, keeping both versions at the current value', async () => {
+    // missNextGame must be false for the player to be eligible for backfill
+    // at all (see the "currently flagged to miss the next game" test
+    // above), so the only value this pass-through can be observed carrying
+    // through both writes is false.
     const { service, db } = await build(
-      [current({ missNextGame: true })],
+      [current({ missNextGame: false })],
       [{ playerId: 7, consequenceType: 'niggling_injury', total: 1 }],
     );
 
     await service.syncLastingInjuryHistory({ playerIds: [7] });
 
     expect(firstCallArg(db.chains[2].set)).toMatchObject({
-      missNextGame: true,
+      missNextGame: false,
     });
     expect(firstCallArg(db.chains[3].set)).toMatchObject({
-      missNextGame: true,
+      missNextGame: false,
     });
   });
 

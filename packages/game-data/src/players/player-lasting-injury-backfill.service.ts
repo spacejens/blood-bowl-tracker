@@ -98,7 +98,7 @@ export class PlayerLastingInjuryBackfillService {
     );
 
     const needingBackfill = currentRows.filter((row) =>
-      this.differs(row, accumulated.get(row.id) ?? EMPTY),
+      this.needsBackfill(row, accumulated.get(row.id) ?? EMPTY),
     );
     if (needingBackfill.length === 0) {
       return { backfilledPlayerIds: [] };
@@ -193,9 +193,39 @@ export class PlayerLastingInjuryBackfillService {
     return values;
   }
 
-  private differs(row: CurrentRow, past: AccumulatedInjuries): boolean {
+  /**
+   * Whether this player's current row and accumulated match-event history
+   * justify manufacturing the accumulated-then-real backfill pair.
+   *
+   * A raw match-event count and the real row's effective, capped magnitude
+   * are structurally different quantities — BBL's "(no effect)" tag still
+   * records an event even when the roll changed nothing, and either
+   * importer's locally mirrored match history can have gaps — so they
+   * cannot be expected to agree in general. Rather than compare them
+   * directly, this only backfills when the current row is entirely at its
+   * default state (no active lasting injury) and the accumulated history
+   * proves an injury was recorded at some point: exactly "shows no injury
+   * now, but history proves once injured", which is what the healed
+   * stratum is meant to detect. A player who is already showing an
+   * outstanding injury needs no manufactured history, since their current
+   * row already is the accurate, live-scraped truth.
+   */
+  private needsBackfill(row: CurrentRow, past: AccumulatedInjuries): boolean {
+    return this.isCurrentlyClean(row) && this.hasAccumulatedInjury(past);
+  }
+
+  private isCurrentlyClean(row: CurrentRow): boolean {
+    return (
+      !row.missNextGame &&
+      (Object.keys(EMPTY) as (keyof AccumulatedInjuries)[]).every(
+        (key) => row[key] === 0,
+      )
+    );
+  }
+
+  private hasAccumulatedInjury(past: AccumulatedInjuries): boolean {
     return (Object.keys(EMPTY) as (keyof AccumulatedInjuries)[]).some(
-      (key) => row[key] !== past[key],
+      (key) => past[key] !== 0,
     );
   }
 }
