@@ -115,6 +115,27 @@ describe('StarPlayerCharacteristicsDbRendererService', () => {
     );
   });
 
+  it('notes the missing era mapping while still listing an orphan characteristic row', async () => {
+    const query = mock<StarPlayerPositionsQueryService>();
+    query.rulesSetsFor.mockResolvedValue([]);
+    query.characteristicsFor.mockResolvedValue([
+      {
+        rulesSetId: 9,
+        move: 7,
+        strength: 3,
+        agility: 3,
+        passing: null,
+        armour: 8,
+      },
+    ]);
+    const service = await makeService(query);
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain('has no era mapped to a rules set');
+    expect(html).toContain('rules set id 9');
+  });
+
   it('lists a stored row whose rules set no era maps to as an extra row', async () => {
     const query = mock<StarPlayerPositionsQueryService>();
     query.rulesSetsFor.mockResolvedValue([BB2020]);
