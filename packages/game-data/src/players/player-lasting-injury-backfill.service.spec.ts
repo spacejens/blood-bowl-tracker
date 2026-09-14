@@ -131,10 +131,12 @@ describe('PlayerLastingInjuryBackfillService', () => {
       service.syncLastingInjuryHistory({ playerIds: [7] }),
     ).resolves.toEqual({ backfilledPlayerIds: [7] });
 
-    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+    // Queries 0-2 are the current/accumulated/already-backfilled reads; 3
+    // and 4 are the two UPDATEs.
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
       strengthReductionCount: 1,
     });
-    expect(firstCallArg(db.chains[3].set)).toMatchObject({
+    expect(firstCallArg(db.chains[4].set)).toMatchObject({
       strengthReductionCount: 0,
     });
   });
@@ -151,11 +153,12 @@ describe('PlayerLastingInjuryBackfillService', () => {
     ).resolves.toEqual({ backfilledPlayerIds: [7] });
 
     expect(db.transaction).toHaveBeenCalledTimes(1);
-    // Queries 2 and 3 are the two UPDATEs, in order.
-    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+    // Queries 3 and 4 are the two UPDATEs, in order (0-2 are the
+    // current/accumulated/already-backfilled reads).
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
       nigglingInjuryCount: 2,
     });
-    expect(firstCallArg(db.chains[3].set)).toMatchObject({
+    expect(firstCallArg(db.chains[4].set)).toMatchObject({
       nigglingInjuryCount: 0,
     });
   });
@@ -174,7 +177,7 @@ describe('PlayerLastingInjuryBackfillService', () => {
 
     await service.syncLastingInjuryHistory({ playerIds: [7] });
 
-    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
       moveReductionCount: 1,
       strengthReductionCount: 2,
       agilityReductionCount: 3,
@@ -195,10 +198,10 @@ describe('PlayerLastingInjuryBackfillService', () => {
 
     await service.syncLastingInjuryHistory({ playerIds: [7] });
 
-    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
       missNextGame: false,
     });
-    expect(firstCallArg(db.chains[3].set)).toMatchObject({
+    expect(firstCallArg(db.chains[4].set)).toMatchObject({
       missNextGame: false,
     });
   });
@@ -264,23 +267,44 @@ describe('PlayerLastingInjuryBackfillService', () => {
       service.syncLastingInjuryHistory({ playerIds: [7, 8] }),
     ).resolves.toEqual({ backfilledPlayerIds: [7, 8] });
 
-    // Queries 0 and 1 are the current/accumulated reads; 2-5 are the four
-    // UPDATEs, which must appear as player 7's accumulated-then-real pair
-    // immediately followed by player 8's, never interleaved or reordered,
-    // since the versioning() trigger relies on each pair being adjacent.
-    expect(db.chains).toHaveLength(6);
-    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+    // Queries 0-2 are the current/accumulated/already-backfilled reads; 3-6
+    // are the four UPDATEs, which must appear as player 7's
+    // accumulated-then-real pair immediately followed by player 8's, never
+    // interleaved or reordered, since the versioning() trigger relies on
+    // each pair being adjacent.
+    expect(db.chains).toHaveLength(7);
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
       nigglingInjuryCount: 1,
     });
-    expect(firstCallArg(db.chains[3].set)).toMatchObject({
+    expect(firstCallArg(db.chains[4].set)).toMatchObject({
       nigglingInjuryCount: 0,
     });
-    expect(firstCallArg(db.chains[4].set)).toMatchObject({
+    expect(firstCallArg(db.chains[5].set)).toMatchObject({
       armourReductionCount: 1,
     });
-    expect(firstCallArg(db.chains[5].set)).toMatchObject({
+    expect(firstCallArg(db.chains[6].set)).toMatchObject({
       armourReductionCount: 0,
     });
+  });
+
+  it('skips a player who was already backfilled by a prior call', async () => {
+    // The player is currently clean and their match-event history proves a
+    // past injury -- normally enough to qualify for backfill -- but a
+    // players_history row already shows a non-default lasting-injury value,
+    // meaning a prior call already wrote the manufactured pair. A repeated
+    // call (e.g. a retried RPC request) must be a safe no-op rather than
+    // manufacturing a second pair.
+    const { service, db } = await build(
+      [current()],
+      [{ playerId: 7, consequenceType: 'niggling_injury', total: 2 }],
+      [{ id: 7 }],
+    );
+
+    await expect(
+      service.syncLastingInjuryHistory({ playerIds: [7] }),
+    ).resolves.toEqual({ backfilledPlayerIds: [] });
+
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 
   it('skips a player id with no row in the database', async () => {

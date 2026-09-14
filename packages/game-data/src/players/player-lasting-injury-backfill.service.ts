@@ -3,14 +3,18 @@ import type {
   SyncLastingInjuryHistory,
   SyncLastingInjuryHistoryResult,
 } from '@blood-bowl-tracker/api-contract';
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, SQL } from '@blood-bowl-tracker/db';
 import {
   and,
   count,
   DB,
+  eq,
+  gt,
   inArray,
   matchEvents,
+  or,
   players,
+  playersHistory,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -97,8 +101,24 @@ export class PlayerLastingInjuryBackfillService {
       currentRows.map((row) => row.id),
     );
 
-    const needingBackfill = currentRows.filter((row) =>
+    const candidates = currentRows.filter((row) =>
       this.needsBackfill(row, accumulated.get(row.id) ?? EMPTY),
+    );
+    if (candidates.length === 0) {
+      return { backfilledPlayerIds: [] };
+    }
+
+    // A retried/repeated call for the same currently-clean player would
+    // otherwise manufacture another duplicate accumulated-then-real history
+    // pair every time, since nothing else records that the backfill already
+    // happened. A player already carrying a non-default players_history row
+    // was already backfilled by an earlier call, so this makes a repeated
+    // call a safe no-op.
+    const alreadyBackfilled = await this.alreadyBackfilled(
+      candidates.map((row) => row.id),
+    );
+    const needingBackfill = candidates.filter(
+      (row) => !alreadyBackfilled.has(row.id),
     );
     if (needingBackfill.length === 0) {
       return { backfilledPlayerIds: [] };
@@ -185,6 +205,42 @@ export class PlayerLastingInjuryBackfillService {
       byPlayer.set(row.playerId, existing);
     }
     return byPlayer;
+  }
+
+  /**
+   * Which of the given players already carry a `players_history` row proving
+   * a prior backfill: any version whose lasting-injury columns are not all at
+   * their default. Follows the same query shape as
+   * `HealedInjuryStratificationService.anyInjuryInHistory` — this codebase's
+   * other `playersHistory` consumer — including its bracket-access pattern
+   * for the mirrored columns (see that file for why).
+   *
+   * `playersHistory`'s generated column map types every property through an
+   * index signature (see that file's own comment for why), so the selected
+   * `id` column type-checks but comes back as `unknown` — the same table
+   * `players.id` mirrors, so the cast back to `number` is safe.
+   */
+  private async alreadyBackfilled(playerIds: number[]): Promise<Set<number>> {
+    const rows = await this.db
+      .select({ id: playersHistory.id })
+      .from(playersHistory)
+      .where(
+        and(inArray(playersHistory.id, playerIds), this.anyInjuryInHistory()),
+      );
+    return new Set(rows.map((row) => row.id as number));
+  }
+
+  /** Any one of the seven lasting-injury columns away from its default. */
+  private anyInjuryInHistory(): SQL {
+    return or(
+      eq(playersHistory[players.missNextGame.name], true),
+      gt(playersHistory[players.nigglingInjuryCount.name], 0),
+      gt(playersHistory[players.moveReductionCount.name], 0),
+      gt(playersHistory[players.strengthReductionCount.name], 0),
+      gt(playersHistory[players.agilityReductionCount.name], 0),
+      gt(playersHistory[players.passingReductionCount.name], 0),
+      gt(playersHistory[players.armourReductionCount.name], 0),
+    ) as SQL;
   }
 
   /** The row's own values, minus its id — what the second UPDATE writes back. */
