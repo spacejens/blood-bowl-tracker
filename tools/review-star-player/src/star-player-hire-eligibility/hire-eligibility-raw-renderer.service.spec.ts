@@ -276,8 +276,47 @@ describe('HireEligibilityRawRendererService', () => {
 
     const html = await service.render(STAR);
 
-    expect(html).toContain('WIDER IN DB');
-    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('<tr class="mismatch">');
+    expect(html).toContain(
+      '<td>5</td><td>1</td><td class="mismatch-cell">WIDER IN DB</td>',
+    );
+  });
+
+  it('leaves the count columns unemphasised in a WIDER IN DB verdict row', async () => {
+    const d = deps();
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
+        {
+          name: 'Eldril Sidewinder',
+          entries: [
+            {
+              rulesSet: 'BB2020',
+              cost: null,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: ['highelf'],
+            },
+          ],
+        },
+      ],
+      notFoundNote: '',
+    });
+    d.query.hireEligibilityFor.mockResolvedValue(
+      [1, 2, 3, 4, 5].map((raceId) => ({
+        raceId,
+        raceName: `Race ${raceId}`,
+        eraId: 1,
+        eraName: 'Era',
+        startDate: '2020-11-28',
+        endDate: null,
+      })),
+    );
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).not.toContain('<td class="mismatch-cell">5</td>');
+    expect(html).not.toContain('<td class="mismatch-cell">1</td>');
   });
 
   it('renders a NARROWER IN DB verdict highlighted when the DB has fewer races than TP supports', async () => {
@@ -313,8 +352,47 @@ describe('HireEligibilityRawRendererService', () => {
 
     const html = await service.render(STAR);
 
-    expect(html).toContain('NARROWER IN DB');
-    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('<tr class="mismatch">');
+    expect(html).toContain(
+      '<td>1</td><td>3</td><td class="mismatch-cell">NARROWER IN DB</td>',
+    );
+  });
+
+  it('leaves the count columns unemphasised in a NARROWER IN DB verdict row', async () => {
+    const d = deps();
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
+        {
+          name: 'Eldril Sidewinder',
+          entries: [
+            {
+              rulesSet: 'BB2020',
+              cost: null,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: ['highelf', 'woodelf', 'dwarf'],
+            },
+          ],
+        },
+      ],
+      notFoundNote: '',
+    });
+    d.query.hireEligibilityFor.mockResolvedValue([
+      {
+        raceId: 1,
+        raceName: 'Wood Elf',
+        eraId: 1,
+        eraName: 'Era',
+        startDate: '2020-11-28',
+        endDate: null,
+      },
+    ]);
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).not.toContain('<td class="mismatch-cell">1</td>');
+    expect(html).not.toContain('<td class="mismatch-cell">3</td>');
   });
 
   it('labels a matching race count without claiming race identity was compared', async () => {

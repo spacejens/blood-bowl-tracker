@@ -103,6 +103,8 @@ describe('ReportBuilderBase', () => {
     expect(html).toContain('.panels { display: grid;');
     expect(html).toContain('.result {');
     expect(html).toContain('tr.mismatch td {');
+    expect(html).toContain('tr.mismatch td.mismatch-cell {');
+    expect(html).not.toContain('tr.mismatch td:last-child');
   });
 
   it('states when the report was generated and how many entities it covers', () => {

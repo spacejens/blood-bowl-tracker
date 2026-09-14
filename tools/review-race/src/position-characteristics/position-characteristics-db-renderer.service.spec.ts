@@ -134,8 +134,9 @@ describe('PositionCharacteristicsDbRendererService', () => {
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain(
-      '<td>Blitzer</td><td>missing</td><td>missing</td><td>missing</td><td>missing</td><td>missing</td>',
+      '<td>Blitzer</td>' + '<td class="mismatch-cell">missing</td>'.repeat(5),
     );
+    expect(html.match(/mismatch-cell/g)).toHaveLength(5);
   });
 
   it('renders a note when the race has no positions', async () => {

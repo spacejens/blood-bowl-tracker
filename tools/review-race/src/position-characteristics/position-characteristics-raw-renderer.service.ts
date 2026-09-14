@@ -60,33 +60,41 @@ export class PositionCharacteristicsRawRendererService {
       return null;
     }
     const rows: TableRow[] = [];
+    // Cells 0-1 are the position name and BBL typID, so the five
+    // MA/ST/AG/PA/AV columns are cells 2-6, matching the headers below.
     for (const [positionName, typId] of typIds) {
       const page = await this.bbl.positionFor(typId);
       if (page === null) {
         rows.push(
-          this.html.highlight([
-            positionName,
-            typId,
-            'page not in the mirror',
-            NONE,
-            NONE,
-            NONE,
-            NONE,
-          ]),
+          this.html.highlight(
+            [
+              positionName,
+              typId,
+              'page not in the mirror',
+              NONE,
+              NONE,
+              NONE,
+              NONE,
+            ],
+            [2, 3, 4, 5, 6],
+          ),
         );
         continue;
       }
       if (page.characteristics === null) {
         rows.push(
-          this.html.highlight([
-            positionName,
-            typId,
-            'no characteristics table on the page',
-            NONE,
-            NONE,
-            NONE,
-            NONE,
-          ]),
+          this.html.highlight(
+            [
+              positionName,
+              typId,
+              'no characteristics table on the page',
+              NONE,
+              NONE,
+              NONE,
+              NONE,
+            ],
+            [2, 3, 4, 5, 6],
+          ),
         );
         continue;
       }

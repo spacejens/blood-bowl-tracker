@@ -185,7 +185,7 @@ export class HireEligibilityRawRendererService {
       this.html.subheading('Race-count comparison') +
       this.html.table(
         ['DB distinct races', 'TP distinct teamRace codes', 'Verdict'],
-        [wider || narrower ? this.html.highlight(cells) : cells],
+        [wider || narrower ? this.html.highlight(cells, [2]) : cells],
       )
     );
   }

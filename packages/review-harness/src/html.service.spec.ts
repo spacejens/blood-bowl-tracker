@@ -144,5 +144,58 @@ describe('HtmlService', () => {
         '<tr class="mismatch"><td>&lt;script&gt;&amp;&quot;</td></tr>',
       );
     });
+
+    it('marks only the cell indices named as differing', () => {
+      const html = service.table(
+        ['Row', 'MA', 'ST'],
+        [service.highlight(['Player', '7', '3'], [1])],
+      );
+
+      expect(html).toContain(
+        '<tr class="mismatch"><td>Player</td>' +
+          '<td class="mismatch-cell">7</td><td>3</td></tr>',
+      );
+    });
+
+    it('marks several differing cells in one row', () => {
+      const html = service.table(
+        ['Action type', 'Recorded', 'Expected'],
+        [service.highlight(['touchdown', '5', '3'], [1, 2])],
+      );
+
+      expect(html).toContain(
+        '<tr class="mismatch"><td>touchdown</td>' +
+          '<td class="mismatch-cell">5</td>' +
+          '<td class="mismatch-cell">3</td></tr>',
+      );
+    });
+
+    it('marks no cell at all when no differing indices are given', () => {
+      const html = service.table(
+        ['Row', 'MA'],
+        [service.highlight(['Position baseline', 'missing'])],
+      );
+
+      expect(html).toContain('<tr class="mismatch">');
+      expect(html).not.toContain('mismatch-cell');
+    });
+
+    it('marks no cell when an empty differing-index list is given', () => {
+      const html = service.table(
+        ['Row', 'MA'],
+        [service.highlight(['Position baseline', 'missing'], [])],
+      );
+
+      expect(html).not.toContain('mismatch-cell');
+    });
+
+    it('escapes a marked cell like any other cell', () => {
+      const html = service.table(
+        ['Row', 'Note'],
+        [service.highlight(['Player', '<b>&'], [1])],
+      );
+
+      expect(html).toContain('<td class="mismatch-cell">&lt;b&gt;&amp;</td>');
+    });
   });
 });

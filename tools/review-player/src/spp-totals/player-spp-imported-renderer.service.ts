@@ -29,7 +29,7 @@ export class PlayerSppImportedRendererService {
         'spp_adjustment',
         totals.sppAdjustment === null ? NONE : String(totals.sppAdjustment),
       ],
-      totals.mismatch ? this.html.highlight(verdict) : verdict,
+      totals.mismatch ? this.html.highlight(verdict, [1]) : verdict,
     ];
     return this.html.table(['Field', 'Value'], rows);
   }

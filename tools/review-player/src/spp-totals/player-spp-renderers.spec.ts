@@ -47,7 +47,9 @@ describe('PlayerSppComputedRendererService', () => {
     const html = computed.render(totals({ mismatch: true, sppTotal: 20 }));
 
     expect(html).toContain('<tr class="mismatch">');
-    expect(html).toContain('<td>MISMATCH</td>');
+    expect(html).toContain(
+      '<td>Agrees with stored total</td><td class="mismatch-cell">MISMATCH</td>',
+    );
   });
 
   it('leaves an agreeing pair unmarked', () => {
@@ -73,7 +75,19 @@ describe('PlayerSppComputedRendererService', () => {
     expect(html).toContain('<th>Recorded SPP</th>');
     expect(html).toContain('<th>Expected SPP</th>');
     expect(html.match(/<tr class="mismatch">/g)).toHaveLength(1);
-    expect(html).toContain('<td>touchdown</td><td>5</td><td>3</td>');
+    expect(html).toContain(
+      '<td>touchdown</td>' +
+        '<td class="mismatch-cell">5</td>' +
+        '<td class="mismatch-cell">3</td>',
+    );
+  });
+
+  it('leaves the field label of a verdict row unemphasised', () => {
+    const html = computed.render(totals({ mismatch: true, sppTotal: 20 }));
+
+    expect(html).not.toContain(
+      '<td class="mismatch-cell">Agrees with stored total</td>',
+    );
   });
 });
 
@@ -92,6 +106,17 @@ describe('PlayerSppImportedRendererService', () => {
 
     expect(html).toContain('<td>spp_total</td><td>—</td>');
     expect(html).toContain('<tr class="mismatch">');
-    expect(html).toContain('<td>MISMATCH</td>');
+    expect(html).toContain(
+      '<td>Agrees with computed total</td><td class="mismatch-cell">MISMATCH</td>',
+    );
+  });
+
+  it('emphasises the verdict cell, not the field label', () => {
+    const html = imported.render(totals({ mismatch: true, computedTotal: 20 }));
+
+    expect(html).toContain(
+      '<td>Agrees with computed total</td>' +
+        '<td class="mismatch-cell">MISMATCH</td>',
+    );
   });
 });

@@ -109,14 +109,10 @@ export class PlayerCharacteristicsDbRendererService {
     const label = `Position baseline (${rulesSet.rulesSetName})`;
     if (baseline === undefined) {
       return this.html.table(HEADERS, [
-        this.html.highlight([
-          label,
-          'missing',
-          'missing',
-          'missing',
-          'missing',
-          'missing',
-        ]),
+        this.html.highlight(
+          [label, 'missing', 'missing', 'missing', 'missing', 'missing'],
+          [1, 2, 3, 4, 5],
+        ),
         ['Player', ...this.formatted(stored, formats)],
       ]);
     }
@@ -135,18 +131,19 @@ export class PlayerCharacteristicsDbRendererService {
     const { player, baseline, formats } = input;
     const values = this.values(player);
     const baselineValues = this.values(baseline);
-    let changed = false;
+    // Cell 0 is the row label, so characteristic `index` is cell `index + 1`.
+    const differingIndices: number[] = [];
     const cells = values.map((value, index) => {
       const marker = this.marker(value, baselineValues[index]);
       const text = this.formats.format(value, formats[index]);
       if (marker === '') {
         return text;
       }
-      changed = true;
+      differingIndices.push(index + 1);
       return `${text} ${marker}`;
     });
-    return changed
-      ? this.html.highlight(['Player (changed)', ...cells])
+    return differingIndices.length > 0
+      ? this.html.highlight(['Player (changed)', ...cells], differingIndices)
       : ['Player (unchanged)', ...cells];
   }
 

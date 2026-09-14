@@ -142,7 +142,7 @@ export class StarPlayerIdentityRawRendererService {
         tpStar.name,
         agrees ? 'agree' : 'MISMATCH',
       ];
-      return agrees ? cells : this.html.highlight(cells);
+      return agrees ? cells : this.html.highlight(cells, [2]);
     });
     return (
       this.html.subheading('BBL / TP name agreement') +

@@ -72,14 +72,19 @@ export class PositionCharacteristicsDbRendererService {
       ([positionId, positionName]) => {
         const row = stored.get(`${positionId}:${rulesSet.rulesSetId}`);
         if (row === undefined) {
-          return this.html.highlight([
-            positionName,
-            'missing',
-            'missing',
-            'missing',
-            'missing',
-            'missing',
-          ]);
+          // Cell 0 is the position name, so the five MA/ST/AG/PA/AV columns
+          // are cells 1-5, matching HEADERS below.
+          return this.html.highlight(
+            [
+              positionName,
+              'missing',
+              'missing',
+              'missing',
+              'missing',
+              'missing',
+            ],
+            [1, 2, 3, 4, 5],
+          );
         }
         const cells: TableCell[] = [
           positionName,

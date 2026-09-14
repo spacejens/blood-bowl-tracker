@@ -319,8 +319,38 @@ describe('RaceIdentityRawRendererService', () => {
 
     const html = await service.render(race);
 
-    expect(html).toContain('MISMATCH');
-    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('<tr class="mismatch">');
+    expect(html).toContain(
+      '<td>Elven Union Team</td><td>Wood Elf</td><td class="mismatch-cell">MISMATCH</td>',
+    );
+  });
+
+  it('leaves the name columns unemphasised in a verdict mismatch row', async () => {
+    externalIds.forRace.mockResolvedValue({
+      bbl: ['9'],
+      tp: ['woodelf'],
+      name: [],
+    });
+    bbl.raceFor.mockResolvedValue({
+      bblId: '9',
+      listName: 'Elven Union Team',
+      teamPageName: 'Elven Union Team',
+      teamPageCount: 1,
+      teamCodes: [],
+    });
+    tp.raceFor.mockResolvedValue({
+      teamRaceCode: 'woodelf',
+      raceName: 'Wood Elf',
+      rulesSets: ['BB2025'],
+      positions: [],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).not.toContain(
+      '<td class="mismatch-cell">Elven Union Team</td>',
+    );
+    expect(html).not.toContain('<td class="mismatch-cell">Wood Elf</td>');
   });
 
   it('omits the agreement table when either side has no name', async () => {
