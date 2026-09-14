@@ -56,6 +56,14 @@ interface Comparison {
  * injury at the same time (a real example in the mirror has `ma` one better
  * than template and `av` one worse) without either masking the other.
  *
+ * That soundness argument does not extend to an advancement and an injury on
+ * the SAME characteristic: a `+1` advancement and a `-1` injury applied to
+ * the same stat in the same run net to zero and leave the current value equal
+ * to the template, so the injury is completely undetectable by this diff. TP
+ * exposes no field that would let the two be disentangled, so this is an
+ * inherent limitation of the available data, not something a different diff
+ * strategy could fix.
+ *
  * Pure and dependency-free: no I/O, no collaborators, no state.
  */
 @Injectable()
