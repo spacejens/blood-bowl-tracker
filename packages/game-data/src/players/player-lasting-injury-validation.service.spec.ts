@@ -116,4 +116,19 @@ describe('PlayerLastingInjuryValidationService', () => {
       }),
     ).toThrow(LastingInjuryValidationError);
   });
+
+  it('throws when missNextGame is not a boolean', () => {
+    // TypeScript's compile-time type would normally reject this input, so a
+    // caller can only reach it by bypassing the type system (e.g. from
+    // JavaScript, or a cast) — this asserts the runtime check independently
+    // rejects it too, alongside the six numeric fields' own runtime checks.
+    expect(() =>
+      service.validate({
+        ...base,
+        ...fullLine,
+        missNextGame: 1 as unknown as boolean,
+        externalIds,
+      }),
+    ).toThrow(LastingInjuryValidationError);
+  });
 });

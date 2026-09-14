@@ -48,6 +48,19 @@ export class PlayerLastingInjuryValidationService {
       return;
     }
 
+    // The all-or-nothing check above already guarantees every key —
+    // including missNextGame — is present here, so this needs no
+    // `!== undefined` guard: reaching this point means supplied.length
+    // equals PLAYER_LASTING_INJURY_KEYS.length. TypeScript's compile-time
+    // boolean type does not stop a caller who bypasses it (e.g. from
+    // JavaScript, or by casting), so it is still checked at runtime like
+    // every other lasting-injury field.
+    if (typeof data.missNextGame !== 'boolean') {
+      throw new LastingInjuryValidationError(
+        `missNextGame must be a boolean for ${this.playerSubject(data)}, got ${data.missNextGame}`,
+      );
+    }
+
     for (const key of COUNT_KEYS) {
       const value = data[key];
       if (value === undefined) {
