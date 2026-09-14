@@ -116,7 +116,7 @@ they will plug in as another data-type module without touching the harness servi
    the extremes. A player with no stored total at all — commonly an induced star
    player — is excluded from all three, needing no exclusion of its own to arrange.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders two panel pairs:
+3. For each sampled player, renders four panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
      for name, position, team and its career achievement counters, including the career
      SPP figure BBL publishes in the "Unspent SPP" row; or, for TP (which has no
@@ -177,7 +177,7 @@ cp tools/review-player/review-player-config.example.json5 tools/review-player/re
 | Key | Meaning |
 | --- | --- |
 | `database.url` | Connection string of the database holding the imported data (required) |
-| `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP and the three magnitude strata (default 3); the discrepancy stratum ignores it |
+| `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP, the three magnitude strata, and the currently-injured and healed-injury strata (default 3); the discrepancy stratum ignores it |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
 | `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP` if unset or empty; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`) |
