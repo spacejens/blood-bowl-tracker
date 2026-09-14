@@ -268,6 +268,45 @@ describe('TpLastingInjuryBuilderService', () => {
     ).toBeUndefined();
   });
 
+  it('detects a raised Agility target as a reduction under plus_zero_legal formats', () => {
+    // plus_zero_legal is a roll-target format just like plus: agility is a
+    // target the PLAYER rolls, so a higher stored number is still worse.
+    expect(
+      service.forRosterPlayer({
+        player: player({
+          characteristics: {
+            move: 5,
+            strength: 2,
+            agility: 5,
+            passing: 4,
+            armour: 7,
+          },
+        }),
+        rulesSet: { ...bb2020, agilityFormat: 'plus_zero_legal' },
+      }),
+    ).toEqual({ ...CLEAN, agilityReductionCount: 2 });
+  });
+
+  it('does not report a reduction when a roll-target characteristic has improved', () => {
+    // Under plus/plus_zero_legal, agility and passing are roll targets the
+    // PLAYER rolls, so a LOWER stored number than the template is an
+    // advancement, not a reduction — the gap must floor at 0.
+    expect(
+      service.forRosterPlayer({
+        player: player({
+          characteristics: {
+            move: 5,
+            strength: 2,
+            agility: 2,
+            passing: 3,
+            armour: 7,
+          },
+        }),
+        rulesSet: bb2020,
+      }),
+    ).toEqual(CLEAN);
+  });
+
   it('sends no reductions when the player carries no characteristics', () => {
     expect(
       service.forRosterPlayer({
