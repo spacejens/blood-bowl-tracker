@@ -45,10 +45,16 @@ export class TpLastingInjuriesRawRendererService {
         `Line-up id ${externalId} appears in no downloaded TP match file.`,
       );
     }
-    if (
-      aggregate.nigglingInjuries === null &&
-      aggregate.canPlayNextGame === null
-    ) {
+    const hasLastingInjuryData = [
+      aggregate.nigglingInjuries,
+      aggregate.canPlayNextGame,
+      aggregate.templateMove,
+      aggregate.templateStrength,
+      aggregate.templateAgility,
+      aggregate.templatePassing,
+      aggregate.templateArmour,
+    ].some((value) => value !== null);
+    if (!hasLastingInjuryData) {
       return this.html.note(
         `No lasting-injury data for line-up id ${externalId} in any ` +
           'downloaded TP roster file.',

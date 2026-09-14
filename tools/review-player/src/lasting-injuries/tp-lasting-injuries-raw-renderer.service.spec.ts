@@ -121,4 +121,22 @@ describe('TpLastingInjuriesRawRendererService', () => {
       '<p class="note">No lasting-injury data for line-up id 4 in any downloaded TP roster file.</p>',
     );
   });
+
+  it('renders the comparison table when only a template field is non-null', async () => {
+    index.aggregateFor.mockResolvedValue(
+      aggregate({
+        nigglingInjuries: null,
+        canPlayNextGame: null,
+        templateMove: 6,
+      }),
+    );
+
+    const html = await service.render('5');
+
+    expect(html).not.toContain('No lasting-injury data');
+    expect(html).toContain('Current vs. position template');
+    expect(html).toContain(
+      '<td>Template</td><td>6</td><td>—</td><td>—</td><td>—</td><td>—</td>',
+    );
+  });
 });
