@@ -120,7 +120,7 @@ set can be resolved for the player's era at all.
 
 Then, on the next line, the player's currently outstanding lasting injuries:
 a miss-next-game note, a niggling-injury count, and one `-N` entry per
-characteristic that currently sits below its baseline, in MA/ST/AG/PA/AV
+outstanding characteristic reduction, in MA/ST/AG/PA/AV
 order, all on one comma-separated line. This is live state, not a career
 tally — the event counts further down already cover what the player has ever
 suffered. The line is omitted entirely for a player carrying no active lasting
