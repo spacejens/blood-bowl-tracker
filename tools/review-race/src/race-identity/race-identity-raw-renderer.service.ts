@@ -176,7 +176,7 @@ export class RaceIdentityRawRendererService {
     }
     const agrees = this.names.agree(bblName, tpName);
     const cells: TableCell[] = [bblName, tpName, agrees ? 'agree' : 'MISMATCH'];
-    const row: TableRow = agrees ? cells : this.html.highlight(cells);
+    const row: TableRow = agrees ? cells : this.html.highlight(cells, [2]);
     return (
       this.html.subheading('BBL / TP name agreement') +
       this.html.table(['BBL name', 'TP name', 'Verdict'], [row])

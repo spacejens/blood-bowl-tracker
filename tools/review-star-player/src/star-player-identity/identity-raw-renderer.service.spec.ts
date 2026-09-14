@@ -175,7 +175,37 @@ describe('StarPlayerIdentityRawRendererService', () => {
 
     const html = await service.render(STAR);
 
-    expect(html).toContain('MISMATCH');
+    expect(html).toContain('<tr class="mismatch">');
+    expect(html).toContain(
+      '<td>Griff Oberwald</td><td>Eldril Sidewinder</td><td class="mismatch-cell">MISMATCH</td>',
+    );
+  });
+
+  it('leaves the name columns unemphasised in a verdict mismatch row', async () => {
+    const d = deps();
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Griff Oberwald',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: null,
+      },
+      notFoundNote: '',
+    });
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [{ name: 'Eldril Sidewinder', entries: [] }],
+      notFoundNote: '',
+    });
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).not.toContain('<td class="mismatch-cell">Griff Oberwald</td>');
+    expect(html).not.toContain(
+      '<td class="mismatch-cell">Eldril Sidewinder</td>',
+    );
   });
 
   it('flags a mismatch carried by a second TP spelling, not just the first', async () => {

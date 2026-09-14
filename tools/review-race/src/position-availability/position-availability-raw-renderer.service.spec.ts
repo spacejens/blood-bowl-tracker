@@ -84,8 +84,28 @@ describe('PositionAvailabilityRawRendererService', () => {
 
     const html = await service.render(race);
 
-    expect(html).toContain('NOT LISTED');
-    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('<tr class="mismatch">');
+    expect(html).toContain(
+      '<td>Blitzer</td><td>310</td><td>Dwarf Blitzer</td><td class="mismatch-cell">NOT LISTED</td>',
+    );
+  });
+
+  it('leaves the position data columns unemphasised in a verdict mismatch row', async () => {
+    typIds.forRace.mockResolvedValue(new Map([['Blitzer', '310']]));
+    raceIds.forRace.mockResolvedValue({ bbl: ['44'], tp: [], name: [] });
+    bbl.positionFor.mockResolvedValue({
+      typId: '310',
+      name: 'Dwarf Blitzer',
+      isStarPlayer: false,
+      races: [{ bblId: '99', name: 'Orc' }],
+      characteristics: null,
+    });
+
+    const html = await service.render(race);
+
+    expect(html).not.toContain('<td class="mismatch-cell">Blitzer</td>');
+    expect(html).not.toContain('<td class="mismatch-cell">310</td>');
+    expect(html).not.toContain('<td class="mismatch-cell">Dwarf Blitzer</td>');
   });
 
   it('renders "page not in the mirror" when the BBL position page cannot be read', async () => {

@@ -72,7 +72,7 @@ export class PositionAvailabilityRawRendererService {
         page.name,
         listed ? 'listed' : 'NOT LISTED',
       ];
-      rows.push(listed ? cells : this.html.highlight(cells));
+      rows.push(listed ? cells : this.html.highlight(cells, [3]));
     }
     return (
       this.html.subheading('BBL') +
