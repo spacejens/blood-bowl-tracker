@@ -124,6 +124,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
         '<td class="mismatch-cell">no characteristics table on the page</td>' +
         '<td class="mismatch-cell">—</td>'.repeat(4),
     );
+    expect(html.match(/mismatch-cell/g)).toHaveLength(5);
   });
 
   it('renders "page not in the mirror" when the BBL position page cannot be read', async () => {
@@ -139,7 +140,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
         '<td class="mismatch-cell">page not in the mirror</td>' +
         '<td class="mismatch-cell">—</td>'.repeat(4),
     );
-    expect(html).not.toContain('<td>Blitzer</td><td class="mismatch-cell">');
+    expect(html.match(/mismatch-cell/g)).toHaveLength(5);
   });
 
   it('lists TP official-list characteristics deduplicated by (rules set, name), excluding star players', async () => {

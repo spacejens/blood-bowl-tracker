@@ -60,6 +60,8 @@ export class PositionCharacteristicsRawRendererService {
       return null;
     }
     const rows: TableRow[] = [];
+    // Cells 0-1 are the position name and BBL typID, so the five
+    // MA/ST/AG/PA/AV columns are cells 2-6, matching the headers below.
     for (const [positionName, typId] of typIds) {
       const page = await this.bbl.positionFor(typId);
       if (page === null) {
