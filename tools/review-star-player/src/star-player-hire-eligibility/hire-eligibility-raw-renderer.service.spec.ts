@@ -146,6 +146,34 @@ describe('HireEligibilityRawRendererService', () => {
     expect(html).toContain('Elven Kingdoms League');
   });
 
+  it('highlights TP entries that have no eligible teamRace codes instead of an empty table', async () => {
+    const d = deps();
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
+        {
+          name: 'Eldril Sidewinder',
+          entries: [
+            {
+              rulesSet: 'BB2020',
+              cost: null,
+              specialRuleName: 'Elven Kingdoms League',
+              characteristics: null,
+              eligibleTeamRaces: [],
+            },
+          ],
+        },
+      ],
+      notFoundNote: '',
+    });
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain('TP');
+    expect(html).toContain('no eligible teamRace codes');
+    expect(html).toContain('class="mismatch"');
+  });
+
   it('contributes a curated availability entry matching by name, and skips a non-matching entry', async () => {
     const d = deps();
     d.manual.availability.mockResolvedValue([

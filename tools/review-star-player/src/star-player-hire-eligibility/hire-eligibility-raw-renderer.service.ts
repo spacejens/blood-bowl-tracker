@@ -98,7 +98,18 @@ export class HireEligibilityRawRendererService {
     );
     return (
       this.html.subheading('TP') +
-      this.html.table(['Rules set', 'teamRace code', 'Special rule'], rows)
+      this.html.table(
+        ['Rules set', 'teamRace code', 'Special rule'],
+        rows.length === 0
+          ? [
+              this.html.highlight([
+                'TP entry has no eligible teamRace codes',
+                NONE,
+                NONE,
+              ]),
+            ]
+          : rows,
+      )
     );
   }
 
