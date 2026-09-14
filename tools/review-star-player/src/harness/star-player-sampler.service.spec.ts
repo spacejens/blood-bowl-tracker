@@ -95,6 +95,26 @@ describe('StarPlayerSamplerService', () => {
     ]);
   });
 
+  it('does not duplicate the reason when one stratum returns the same star twice', async () => {
+    const stratifier = mock<StarPlayerStratifier>();
+    stratifier.listStrata.mockReturnValue([
+      { id: 'random', label: 'Random sample', sources: ['bbl'] },
+    ]);
+    stratifier.sampleStratum.mockResolvedValue([
+      reviewStarPlayer(),
+      reviewStarPlayer(),
+    ]);
+    const config = mock<StarPlayerReviewConfigService>();
+    config.getStarsPerStratum.mockReturnValue(3);
+    config.getOverrides.mockReturnValue([]);
+    const service = await makeService({ stratifier, config });
+
+    const { items: stars } = await service.sample();
+
+    expect(stars).toHaveLength(1);
+    expect(stars[0].selectedFor).toEqual(['Random sample']);
+  });
+
   it('records a gap for a stratum that produced nothing for a source', async () => {
     const stratifier = mock<StarPlayerStratifier>();
     stratifier.listStrata.mockReturnValue([
