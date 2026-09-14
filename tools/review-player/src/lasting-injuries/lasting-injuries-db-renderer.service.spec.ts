@@ -46,7 +46,7 @@ async function makeService(
 }
 
 describe('LastingInjuriesDbRendererService', () => {
-  it('labels an uninjured row and does not highlight it', async () => {
+  it('labels an uninjured row', async () => {
     const service = await makeService(mockDb([storedRow()]));
 
     const html = await service.render(player);
@@ -57,36 +57,36 @@ describe('LastingInjuriesDbRendererService', () => {
     );
   });
 
-  it('highlights a row with a niggling injury', async () => {
+  it('labels a row with a niggling injury, without the mismatch highlight', async () => {
     const service = await makeService(
       mockDb([storedRow({ nigglingInjuryCount: 2 })]),
     );
 
     const html = await service.render(player);
 
-    expect(html).toContain('class="mismatch"');
+    expect(html).not.toContain('class="mismatch"');
     expect(html).toContain('<td>Stored (injured)</td>');
   });
 
-  it('treats a miss-next-game-only row as injured', async () => {
+  it('treats a miss-next-game-only row as injured, without the mismatch highlight', async () => {
     const service = await makeService(
       mockDb([storedRow({ missNextGame: true })]),
     );
 
     const html = await service.render(player);
 
-    expect(html).toContain('class="mismatch"');
+    expect(html).not.toContain('class="mismatch"');
     expect(html).toContain('<td>Stored (injured)</td><td>true</td>');
   });
 
-  it('highlights a row with a characteristic reduction', async () => {
+  it('labels a row with a characteristic reduction, without the mismatch highlight', async () => {
     const service = await makeService(
       mockDb([storedRow({ armourReductionCount: 1 })]),
     );
 
     const html = await service.render(player);
 
-    expect(html).toContain('class="mismatch"');
+    expect(html).not.toContain('class="mismatch"');
     expect(html).toContain('<td>Stored (injured)</td>');
   });
 

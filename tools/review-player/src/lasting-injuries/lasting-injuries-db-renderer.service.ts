@@ -20,11 +20,13 @@ const HEADERS = [
  * no derivation: the raw panel beside this one carries what each source said,
  * and the reviewer's job is to decide whether the two agree.
  *
- * A row whose values are all at their defaults is labelled as such rather than
- * highlighted — "no lasting injury" is the overwhelmingly common and entirely
- * correct state, not a finding. A row with any non-default value is
- * highlighted, so the handful of players worth actually reading stand out in a
- * long report.
+ * The row is always labelled "Stored (no lasting injury)" or "Stored
+ * (injured)", but never carries `HtmlService`'s `highlight()` marker: that
+ * marker means "disagrees with its trusted counterpart" everywhere else in
+ * this report, and reusing it here for "currently has an injury" would make
+ * a genuinely uninteresting, fully-agreeing row (raw and imported match) look
+ * exactly like a real mismatch elsewhere in the same report. The label text
+ * is the only signal for "worth reading" here, by design.
  *
  * `HtmlService` is injected real in this service's spec — it is a pure
  * formatter with its own tests, and mocking it would leave the markup
@@ -77,11 +79,7 @@ export class LastingInjuriesDbRendererService {
 
     return this.html.table(
       ['Row', ...HEADERS],
-      [
-        injured
-          ? this.html.highlight(['Stored (injured)', ...cells])
-          : ['Stored (no lasting injury)', ...cells],
-      ],
+      [[injured ? 'Stored (injured)' : 'Stored (no lasting injury)', ...cells]],
     );
   }
 }
