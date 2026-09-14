@@ -6,12 +6,9 @@ import type { SampledStarPlayer } from '../shared/review.types';
 import type { StarPlayerExternalIdRow } from '../shared/star-player-external-ids.service';
 import { StarPlayerExternalIdsService } from '../shared/star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
-import type { BblRawStarPlayer } from '../source/bbl-raw-star-player-page.service';
-import { BblRawStarPlayerPageService } from '../source/bbl-raw-star-player-page.service';
+import { StarSourceLookupService } from '../shared/star-source-lookup.service';
 import type { ManualCharacteristicsEntry } from '../source/manual-raw-data.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import type { TpRawStarPlayer } from '../source/tp-raw-star-player-index.service';
-import { TpRawStarPlayerIndexService } from '../source/tp-raw-star-player-index.service';
 
 const NONE = '—';
 const NAME_SYSTEM = 'Name';
@@ -36,8 +33,7 @@ const NAME_SYSTEM = 'Name';
 export class StarPlayerCharacteristicsRawRendererService {
   constructor(
     private readonly externalIds: StarPlayerExternalIdsService,
-    private readonly bbl: BblRawStarPlayerPageService,
-    private readonly tp: TpRawStarPlayerIndexService,
+    private readonly lookup: StarSourceLookupService,
     private readonly manual: ManualRawDataService,
     private readonly names: StarPlayerNameMatcherService,
     private readonly html: HtmlService,
@@ -49,76 +45,56 @@ export class StarPlayerCharacteristicsRawRendererService {
       await this.tpSection(star),
       await this.manualSection(star),
     ].filter((section) => section !== null);
-
-    if (sections.length === 0) {
-      return this.html.note(
-        `No raw characteristics for star player "${star.positionName}" in BBL, TP or the curated files.`,
-      );
-    }
     return sections.join('\n');
   }
 
-  /**
-   * BBL's page for this star, found the same way as the identity panel: the
-   * typID recovered from its external ids is tried first, then a lookup by
-   * the stored name for a star whose BBL page listed no races.
-   */
-  private async bblStar(
-    star: SampledStarPlayer,
-  ): Promise<BblRawStarPlayer | null> {
-    for (const typId of await this.externalIds.bblTypIdsFor(star.positionId)) {
-      const found = await this.bbl.starFor(typId);
-      if (found !== null) {
-        return found;
-      }
-    }
-    return await this.bbl.starForName(star.positionName);
-  }
-
-  private async bblSection(star: SampledStarPlayer): Promise<string | null> {
-    const found = await this.bblStar(star);
-    if (found === null) {
-      return null;
-    }
+  private async bblSection(star: SampledStarPlayer): Promise<string> {
+    const found = await this.lookup.bblStarFor(star);
     const row: TableRow =
-      found.characteristics === null
-        ? this.html.highlight([
-            'unreadable — no characteristics table on the page',
-            NONE,
-            NONE,
-            NONE,
-            NONE,
-          ])
-        : [
-            found.characteristics.move,
-            found.characteristics.strength,
-            found.characteristics.agility,
-            found.characteristics.passing ?? NONE,
-            found.characteristics.armour,
-          ];
+      found.star === null
+        ? this.html.highlight([found.notFoundNote, NONE, NONE, NONE, NONE])
+        : found.star.characteristics === null
+          ? this.html.highlight([
+              'unreadable — no characteristics table on the page',
+              NONE,
+              NONE,
+              NONE,
+              NONE,
+            ])
+          : [
+              found.star.characteristics.move,
+              found.star.characteristics.strength,
+              found.star.characteristics.agility,
+              found.star.characteristics.passing ?? NONE,
+              found.star.characteristics.armour,
+            ];
     return (
       this.html.subheading('BBL — current page values') +
       this.html.table(['MA', 'ST', 'AG', 'PA', 'AV'], [row])
     );
   }
 
-  /** TP's entries, one per TP spelling the star's external ids carry. */
-  private async tpStars(star: SampledStarPlayer): Promise<TpRawStarPlayer[]> {
-    const ids = await this.externalIds.forPosition(star.positionId);
-    const spellings = [...new Set([...ids.tp, star.positionName])];
-    const found: TpRawStarPlayer[] = [];
-    for (const spelling of spellings) {
-      const tpStar = await this.tp.starFor(spelling);
-      if (tpStar !== null && !found.some((one) => one.name === tpStar.name)) {
-        found.push(tpStar);
-      }
+  private async tpSection(star: SampledStarPlayer): Promise<string> {
+    const lookup = await this.lookup.tpStarsFor(star);
+    if (lookup.stars.length === 0) {
+      return (
+        this.html.subheading('TP') +
+        this.html.table(
+          ['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'],
+          [
+            this.html.highlight([
+              lookup.notFoundNote,
+              NONE,
+              NONE,
+              NONE,
+              NONE,
+              NONE,
+            ]),
+          ],
+        )
+      );
     }
-    return found;
-  }
-
-  private async tpSection(star: SampledStarPlayer): Promise<string | null> {
-    const stars = await this.tpStars(star);
-    const rows: TableCell[][] = stars.flatMap((tpStar) =>
+    const rows: TableCell[][] = lookup.stars.flatMap((tpStar) =>
       tpStar.entries.map((entry) => [
         entry.rulesSet,
         ...this.characteristicCells(
@@ -134,9 +110,6 @@ export class StarPlayerCharacteristicsRawRendererService {
         ),
       ]),
     );
-    if (rows.length === 0) {
-      return null;
-    }
     return (
       this.html.subheading('TP') +
       this.html.table(['Rules set', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)

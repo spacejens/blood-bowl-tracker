@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 import { BblRawStarPlayerPageService } from './bbl-raw-star-player-page.service';
 
@@ -34,6 +35,7 @@ async function makeService(
     providers: [
       BblRawStarPlayerPageService,
       { provide: BblMirrorReaderService, useValue: reader },
+      StarPlayerNameMatcherService,
     ],
   }).compile();
   return moduleRef.get(BblRawStarPlayerPageService);
@@ -126,6 +128,19 @@ describe('BblRawStarPlayerPageService', () => {
     await service.starForName('Nobody At All');
 
     expect(reader.listPositionPageFilenames).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to a normalized name match when the exact spelling differs', async () => {
+    const reader = mock<BblMirrorReaderService>();
+    reader.listPositionPageFilenames.mockResolvedValue([
+      'default.asp?p=pt&typID=126',
+    ]);
+    reader.readPage.mockResolvedValue(starPage('Dolfar Longstride (& Grak)'));
+    const service = await makeService(reader);
+
+    const star = await service.starForName('Dolfar Longstride');
+
+    expect(star?.typId).toBe('126');
   });
 
   it('returns null for a name no star page carries', async () => {

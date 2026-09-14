@@ -62,6 +62,16 @@ describe('StarPlayerPositionsQueryService', () => {
     expect(await service.characteristicsFor(5)).toEqual(rows);
   });
 
+  it('binds the position id into the characteristics query', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.characteristicsFor(5);
+
+    const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
+    expect(new PgDialect().sqlToQuery(condition).params).toEqual([5]);
+  });
+
   it('returns the races and eras the star is hireable in', async () => {
     const rows = [
       {

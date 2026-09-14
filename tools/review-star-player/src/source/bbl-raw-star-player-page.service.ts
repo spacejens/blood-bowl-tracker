@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
+import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 
 /** BBL's own position ids are always plain numbers (the `typID` param). */
@@ -49,13 +50,23 @@ export interface BblRawStarPlayer {
  * `starFor` addresses a page directly; `starForName` falls back to a one-time
  * sweep of every `default.asp?p=pt&typID=<n>` file (about 216 of them in this
  * repo's mirror, so the sweep is cheap), indexed by typID and by name.
+ *
+ * The name index is keyed both by an exact fold and by
+ * `StarPlayerNameMatcherService.normalize()`, so a lookup tries an exact
+ * match first and falls back to the normalized form — BBL and TP disagree
+ * routinely on apostrophes, quote style and a duo star's parenthesised
+ * partner, and a raw source lookup keyed on exact text alone would report
+ * "no data" for a star that really is there under a different spelling.
  */
 @Injectable()
 export class BblRawStarPlayerPageService {
   private readonly byTypId = new Map<string, BblRawStarPlayer | null>();
   private sweep: Promise<Map<string, BblRawStarPlayer>> | undefined;
 
-  constructor(private readonly reader: BblMirrorReaderService) {}
+  constructor(
+    private readonly reader: BblMirrorReaderService,
+    private readonly names: StarPlayerNameMatcherService,
+  ) {}
 
   async starFor(typId: string): Promise<BblRawStarPlayer | null> {
     if (!NUMERIC_TYP_ID.test(typId)) {
@@ -71,10 +82,16 @@ export class BblRawStarPlayerPageService {
     return parsed;
   }
 
-  /** The star page whose `<h1>` is exactly this name, or null. */
+  /**
+   * The star page whose `<h1>` names this star: an exact fold match first,
+   * then a fall back to `StarPlayerNameMatcherService.normalize()`.
+   */
   async starForName(name: string): Promise<BblRawStarPlayer | null> {
     this.sweep ??= this.buildNameIndex();
-    return (await this.sweep).get(this.key(name)) ?? null;
+    const index = await this.sweep;
+    return (
+      index.get(this.key(name)) ?? index.get(this.names.normalize(name)) ?? null
+    );
   }
 
   private async buildNameIndex(): Promise<Map<string, BblRawStarPlayer>> {
@@ -82,8 +99,16 @@ export class BblRawStarPlayerPageService {
     for (const filename of await this.reader.listPositionPageFilenames()) {
       const typId = filename.slice(filename.lastIndexOf('=') + 1);
       const star = await this.starFor(typId);
-      if (star !== null && !index.has(this.key(star.name))) {
-        index.set(this.key(star.name), star);
+      if (star === null) {
+        continue;
+      }
+      for (const key of [
+        this.key(star.name),
+        this.names.normalize(star.name),
+      ]) {
+        if (!index.has(key)) {
+          index.set(key, star);
+        }
       }
     }
     return index;

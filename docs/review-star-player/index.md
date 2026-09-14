@@ -144,9 +144,10 @@ success; `1` with `Review failed: <error>` when the database is unreachable or t
 config is unusable.
 
 A run scans every downloaded `teams/<rulesSet>/*.json` file once, and every one of
-the roughly 216 BBL `p=pt` position pages once, per process — the slowest part of a
-run by a wide margin. That cost is the price of not reusing the importers' readers,
-which are code under review.
+the roughly 216 BBL `p=pt` position pages once, the first time any star needs the
+name fallback — the slowest part of a run by a wide margin, when it happens. That
+cost is the price of not reusing the importers' readers, which are code under
+review.
 
 The tool only reads game data. It does connect through `packages/db`'s `DbModule`,
 which applies any pending migrations on connect — against a stack deployed from the

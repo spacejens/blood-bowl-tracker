@@ -6,9 +6,8 @@ import { mock } from 'vitest-mock-extended';
 
 import { StarPlayerExternalIdsService } from '../shared/star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
-import { BblRawStarPlayerPageService } from '../source/bbl-raw-star-player-page.service';
+import { StarSourceLookupService } from '../shared/star-source-lookup.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawStarPlayerIndexService } from '../source/tp-raw-star-player-index.service';
 import { StarPlayerIdentityRawRendererService } from './identity-raw-renderer.service';
 
 const STAR = {
@@ -19,24 +18,26 @@ const STAR = {
 
 interface Deps {
   externalIds: MockProxy<StarPlayerExternalIdsService>;
-  bbl: MockProxy<BblRawStarPlayerPageService>;
-  tp: MockProxy<TpRawStarPlayerIndexService>;
+  lookup: MockProxy<StarSourceLookupService>;
   manual: MockProxy<ManualRawDataService>;
 }
 
 function deps(): Deps {
   const externalIds = mock<StarPlayerExternalIdsService>();
-  externalIds.bblTypIdsFor.mockResolvedValue([]);
-  externalIds.forPosition.mockResolvedValue({ bbl: [], tp: [], name: [] });
   externalIds.allForPosition.mockResolvedValue([]);
-  const bbl = mock<BblRawStarPlayerPageService>();
-  bbl.starFor.mockResolvedValue(null);
-  bbl.starForName.mockResolvedValue(null);
-  const tp = mock<TpRawStarPlayerIndexService>();
-  tp.starFor.mockResolvedValue(null);
+  const lookup = mock<StarSourceLookupService>();
+  lookup.bblStarFor.mockResolvedValue({
+    star: null,
+    notFoundNote:
+      'no BBL page found for "Eldril Sidewinder" (no BBL typID recorded)',
+  });
+  lookup.tpStarsFor.mockResolvedValue({
+    stars: [],
+    notFoundNote: 'no TP entry found for spelling(s) Eldril Sidewinder',
+  });
   const manual = mock<ManualRawDataService>();
   manual.starPlayers.mockResolvedValue([]);
-  return { externalIds, bbl, tp, manual };
+  return { externalIds, lookup, manual };
 }
 
 async function makeService(
@@ -49,8 +50,7 @@ async function makeService(
         provide: StarPlayerExternalIdsService,
         useValue: overrides.externalIds,
       },
-      { provide: BblRawStarPlayerPageService, useValue: overrides.bbl },
-      { provide: TpRawStarPlayerIndexService, useValue: overrides.tp },
+      { provide: StarSourceLookupService, useValue: overrides.lookup },
       { provide: ManualRawDataService, useValue: overrides.manual },
       StarPlayerNameMatcherService,
       HtmlService,
@@ -60,22 +60,28 @@ async function makeService(
 }
 
 describe('StarPlayerIdentityRawRendererService', () => {
-  it('renders a note when no source carries the star', async () => {
+  it('highlights BBL and TP as not found when neither source has the star', async () => {
     const service = await makeService(deps());
 
-    expect(await service.render(STAR)).toContain('No raw data');
+    const html = await service.render(STAR);
+
+    expect(html).toContain('no BBL page found for');
+    expect(html).toContain('no TP entry found for spelling(s)');
+    expect(html).toContain('class="mismatch"');
   });
 
   it("renders BBL's page found by typID", async () => {
     const d = deps();
-    d.externalIds.bblTypIdsFor.mockResolvedValue(['126']);
-    d.bbl.starFor.mockResolvedValue({
-      typId: '126',
-      name: 'Eldril Sidewinder',
-      cost: '230 000 gp',
-      canPlayFor: 'Any team with Elven Kingdoms League',
-      skills: 'Catch, Dodge',
-      characteristics: null,
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Eldril Sidewinder',
+        cost: '230 000 gp',
+        canPlayFor: 'Any team with Elven Kingdoms League',
+        skills: 'Catch, Dodge',
+        characteristics: null,
+      },
+      notFoundNote: '',
     });
     const service = await makeService(d);
 
@@ -86,41 +92,24 @@ describe('StarPlayerIdentityRawRendererService', () => {
     expect(html).toContain('126');
   });
 
-  it('falls back to a BBL name lookup when the star carries no BBL typID', async () => {
+  it("renders TP's per-rules-set costs", async () => {
     const d = deps();
-    d.bbl.starForName.mockResolvedValue({
-      typId: '126',
-      name: 'Eldril Sidewinder',
-      cost: null,
-      canPlayFor: null,
-      skills: null,
-      characteristics: null,
-    });
-    const service = await makeService(d);
-
-    await service.render(STAR);
-
-    expect(d.bbl.starForName).toHaveBeenCalledWith('Eldril Sidewinder');
-  });
-
-  it("renders TP's per-rules-set costs, looked up by each TP spelling", async () => {
-    const d = deps();
-    d.externalIds.forPosition.mockResolvedValue({
-      bbl: [],
-      tp: ['Eldril Sidewinder'],
-      name: [],
-    });
-    d.tp.starFor.mockResolvedValue({
-      name: 'Eldril Sidewinder',
-      entries: [
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
         {
-          rulesSet: 'BB2025',
-          cost: 220000,
-          specialRuleName: 'Elven Kingdoms League',
-          characteristics: null,
-          eligibleTeamRaces: ['WoodElf_BB2025'],
+          name: 'Eldril Sidewinder',
+          entries: [
+            {
+              rulesSet: 'BB2025',
+              cost: 220000,
+              specialRuleName: 'Elven Kingdoms League',
+              characteristics: null,
+              eligibleTeamRaces: ['WoodElf_BB2025'],
+            },
+          ],
         },
       ],
+      notFoundNote: '',
     });
     const service = await makeService(d);
 
@@ -130,14 +119,16 @@ describe('StarPlayerIdentityRawRendererService', () => {
     expect(html).toContain('220000');
   });
 
-  it('renders the curated entry matched by external id', async () => {
+  it('renders the curated entry matched by external id, independent of name matching', async () => {
     const d = deps();
     d.externalIds.allForPosition.mockResolvedValue([
       { systemName: 'Name', externalId: 'Eldril Sidewinder' },
     ]);
     d.manual.starPlayers.mockResolvedValue([
       {
-        name: 'Eldril Sidewinder',
+        // Deliberately not STAR.positionName, so this entry can only match
+        // through its external id — matchesName(...) must not short-circuit.
+        name: 'Curated Alias For Eldril',
         externalIds: [{ system: 'Name', id: 'Eldril Sidewinder' }],
       },
       { name: 'Someone Else', externalIds: [] },
@@ -147,28 +138,26 @@ describe('StarPlayerIdentityRawRendererService', () => {
     const html = await service.render(STAR);
 
     expect(html).toContain('Manual curation');
+    expect(html).toContain('Curated Alias For Eldril');
     expect(html).not.toContain('Someone Else');
   });
 
   it('highlights a BBL/TP name disagreement beyond spelling conventions', async () => {
     const d = deps();
-    d.externalIds.bblTypIdsFor.mockResolvedValue(['126']);
-    d.bbl.starFor.mockResolvedValue({
-      typId: '126',
-      name: 'Griff Oberwald',
-      cost: null,
-      canPlayFor: null,
-      skills: null,
-      characteristics: null,
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Griff Oberwald',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: null,
+      },
+      notFoundNote: '',
     });
-    d.externalIds.forPosition.mockResolvedValue({
-      bbl: [],
-      tp: ['Eldril Sidewinder'],
-      name: [],
-    });
-    d.tp.starFor.mockResolvedValue({
-      name: 'Eldril Sidewinder',
-      entries: [],
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [{ name: 'Eldril Sidewinder', entries: [] }],
+      notFoundNote: '',
     });
     const service = await makeService(d);
 
@@ -179,21 +168,21 @@ describe('StarPlayerIdentityRawRendererService', () => {
 
   it('does not call a duo-star spelling difference a mismatch', async () => {
     const d = deps();
-    d.externalIds.bblTypIdsFor.mockResolvedValue(['126']);
-    d.bbl.starFor.mockResolvedValue({
-      typId: '126',
-      name: 'Dolfar Longstride (& Grak)',
-      cost: null,
-      canPlayFor: null,
-      skills: null,
-      characteristics: null,
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Dolfar Longstride (& Grak)',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: null,
+      },
+      notFoundNote: '',
     });
-    d.externalIds.forPosition.mockResolvedValue({
-      bbl: [],
-      tp: ['Dolfar Longstride'],
-      name: [],
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [{ name: 'Dolfar Longstride', entries: [] }],
+      notFoundNote: '',
     });
-    d.tp.starFor.mockResolvedValue({ name: 'Dolfar Longstride', entries: [] });
     const service = await makeService(d);
 
     const html = await service.render(STAR);

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
+import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { TpRawStarPlayerIndexService } from './tp-raw-star-player-index.service';
 
 let dir: string;
@@ -28,6 +29,7 @@ async function makeService(): Promise<TpRawStarPlayerIndexService> {
     providers: [
       TpRawStarPlayerIndexService,
       { provide: StarPlayerReviewConfigService, useValue: config },
+      StarPlayerNameMatcherService,
     ],
   }).compile();
   return moduleRef.get(TpRawStarPlayerIndexService);
@@ -163,6 +165,20 @@ describe('TpRawStarPlayerIndexService', () => {
       ['BB2020', 200000],
       ['BB2025', 220000],
     ]);
+  });
+
+  it('falls back to a normalized name match when the exact spelling differs', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF, DWARF],
+      starplayerMasters: [
+        { ...ELDRIL, position: 'Dolfar Longstride (& Grak)' },
+      ],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Dolfar Longstride');
+
+    expect(star?.name).toBe('Dolfar Longstride (& Grak)');
   });
 
   it('returns null for a star TP does not carry', async () => {

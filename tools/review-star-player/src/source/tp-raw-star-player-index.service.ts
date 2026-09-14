@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { Injectable } from '@nestjs/common';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
+import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 
 /** The folder under the TP data root holding one subfolder per rules set. */
 const TEAMS_DIR = 'teams';
@@ -71,16 +72,42 @@ interface FileSource {
  * that shows a gap. Deliberately does not use packages/parse-tp — that
  * parser's reading of these files is code under review, and a bug in it must
  * not agree with itself against the raw display.
+ *
+ * `starFor` tries an exact name match first, then falls back to
+ * `StarPlayerNameMatcherService.normalize()` — BBL and TP disagree routinely
+ * on apostrophes, quote style and a duo star's parenthesised partner, and a
+ * lookup keyed on exact text alone would report "no data" for a star that
+ * really is there under a different spelling.
  */
 @Injectable()
 export class TpRawStarPlayerIndexService {
   private index: Promise<Map<string, TpRawStarPlayer>> | undefined;
+  private normalizedIndex: Promise<Map<string, TpRawStarPlayer>> | undefined;
 
-  constructor(private readonly config: StarPlayerReviewConfigService) {}
+  constructor(
+    private readonly config: StarPlayerReviewConfigService,
+    private readonly names: StarPlayerNameMatcherService,
+  ) {}
 
   async starFor(name: string): Promise<TpRawStarPlayer | null> {
     this.index ??= this.buildIndex();
-    return (await this.index).get(name) ?? null;
+    const exact = (await this.index).get(name);
+    if (exact !== undefined) {
+      return exact;
+    }
+    this.normalizedIndex ??= this.buildNormalizedIndex();
+    return (await this.normalizedIndex).get(this.names.normalize(name)) ?? null;
+  }
+
+  private async buildNormalizedIndex(): Promise<Map<string, TpRawStarPlayer>> {
+    const index = new Map<string, TpRawStarPlayer>();
+    for (const [name, star] of await (this.index ??= this.buildIndex())) {
+      const key = this.names.normalize(name);
+      if (!index.has(key)) {
+        index.set(key, star);
+      }
+    }
+    return index;
   }
 
   /** Every star name TP carries, in the order they were indexed. */

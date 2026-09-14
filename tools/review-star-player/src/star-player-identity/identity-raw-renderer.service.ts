@@ -5,11 +5,14 @@ import { Injectable } from '@nestjs/common';
 import type { SampledStarPlayer } from '../shared/review.types';
 import { StarPlayerExternalIdsService } from '../shared/star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
+import type {
+  BblStarLookup,
+  TpStarsLookup,
+} from '../shared/star-source-lookup.service';
+import { StarSourceLookupService } from '../shared/star-source-lookup.service';
 import type { BblRawStarPlayer } from '../source/bbl-raw-star-player-page.service';
-import { BblRawStarPlayerPageService } from '../source/bbl-raw-star-player-page.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
 import type { TpRawStarPlayer } from '../source/tp-raw-star-player-index.service';
-import { TpRawStarPlayerIndexService } from '../source/tp-raw-star-player-index.service';
 
 /**
  * The star-identity raw panel: what each source, on its own, calls this star
@@ -27,83 +30,52 @@ import { TpRawStarPlayerIndexService } from '../source/tp-raw-star-player-index.
 export class StarPlayerIdentityRawRendererService {
   constructor(
     private readonly externalIds: StarPlayerExternalIdsService,
-    private readonly bbl: BblRawStarPlayerPageService,
-    private readonly tp: TpRawStarPlayerIndexService,
+    private readonly lookup: StarSourceLookupService,
     private readonly manual: ManualRawDataService,
     private readonly names: StarPlayerNameMatcherService,
     private readonly html: HtmlService,
   ) {}
 
   async render(star: SampledStarPlayer): Promise<string> {
-    const bblStar = await this.bblStar(star);
-    const tpStars = await this.tpStars(star);
+    const bblLookup = await this.lookup.bblStarFor(star);
+    const tpLookup = await this.lookup.tpStarsFor(star);
     const sections = [
-      this.bblSection(bblStar),
-      this.tpSection(tpStars),
+      this.bblSection(bblLookup),
+      this.tpSection(tpLookup),
       await this.manualSection(star),
     ].filter((section) => section !== null);
 
-    if (sections.length === 0) {
-      return this.html.note(
-        `No raw data for star player "${star.positionName}" in BBL, TP or the curated files.`,
-      );
-    }
-    const agreement = this.agreementSection(bblStar, tpStars);
+    const agreement = this.agreementSection(bblLookup.star, tpLookup.stars);
     return [...sections, agreement].filter((part) => part !== null).join('\n');
   }
 
-  /**
-   * BBL's page for this star. The typID recovered from its external ids is
-   * tried first; a star whose BBL page listed no races carries no BBL id at
-   * all, so the stored name is looked up against the mirror sweep instead.
-   */
-  private async bblStar(
-    star: SampledStarPlayer,
-  ): Promise<BblRawStarPlayer | null> {
-    for (const typId of await this.externalIds.bblTypIdsFor(star.positionId)) {
-      const found = await this.bbl.starFor(typId);
-      if (found !== null) {
-        return found;
-      }
-    }
-    return await this.bbl.starForName(star.positionName);
-  }
-
-  /** TP's entries, one per TP spelling the star's external ids carry. */
-  private async tpStars(star: SampledStarPlayer): Promise<TpRawStarPlayer[]> {
-    const ids = await this.externalIds.forPosition(star.positionId);
-    const spellings = [...new Set([...ids.tp, star.positionName])];
-    const found: TpRawStarPlayer[] = [];
-    for (const spelling of spellings) {
-      const tpStar = await this.tp.starFor(spelling);
-      if (tpStar !== null && !found.some((one) => one.name === tpStar.name)) {
-        found.push(tpStar);
-      }
-    }
-    return found;
-  }
-
-  private bblSection(star: BblRawStarPlayer | null): string | null {
-    if (star === null) {
-      return null;
-    }
-    const rows: TableCell[][] = [
-      ['BBL typID', star.typId],
-      ['Page name', star.name],
-      ['Inducement price', star.cost ?? '—'],
-      ['Can play for', star.canPlayFor ?? '—'],
-      ['Skills', star.skills ?? '—'],
-    ];
+  private bblSection(lookup: BblStarLookup): string {
+    const rows: TableRow[] =
+      lookup.star === null
+        ? [this.html.highlight(['BBL', lookup.notFoundNote])]
+        : [
+            ['BBL typID', lookup.star.typId],
+            ['Page name', lookup.star.name],
+            ['Inducement price', lookup.star.cost ?? '—'],
+            ['Can play for', lookup.star.canPlayFor ?? '—'],
+            ['Skills', lookup.star.skills ?? '—'],
+          ];
     return (
       this.html.subheading('BBL') + this.html.table(['Field', 'Value'], rows)
     );
   }
 
-  private tpSection(stars: TpRawStarPlayer[]): string | null {
-    if (stars.length === 0) {
-      return null;
+  private tpSection(lookup: TpStarsLookup): string {
+    if (lookup.stars.length === 0) {
+      return (
+        this.html.subheading('TP') +
+        this.html.table(
+          ['TP name', 'Rules set', 'Cost', 'Special rule', 'Eligible rosters'],
+          [this.html.highlight([lookup.notFoundNote, '—', '—', '—', '—'])],
+        )
+      );
     }
-    const rows: TableCell[][] = stars.flatMap((star) =>
+    const rows: TableCell[][] = lookup.stars.flatMap((star) =>
       star.entries.map((entry) => [
         star.name,
         entry.rulesSet,

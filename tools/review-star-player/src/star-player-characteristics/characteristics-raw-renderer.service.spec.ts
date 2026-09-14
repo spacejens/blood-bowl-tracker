@@ -6,9 +6,8 @@ import { mock } from 'vitest-mock-extended';
 
 import { StarPlayerExternalIdsService } from '../shared/star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
-import { BblRawStarPlayerPageService } from '../source/bbl-raw-star-player-page.service';
+import { StarSourceLookupService } from '../shared/star-source-lookup.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
-import { TpRawStarPlayerIndexService } from '../source/tp-raw-star-player-index.service';
 import { StarPlayerCharacteristicsRawRendererService } from './characteristics-raw-renderer.service';
 
 const STAR = {
@@ -19,24 +18,26 @@ const STAR = {
 
 interface Deps {
   externalIds: MockProxy<StarPlayerExternalIdsService>;
-  bbl: MockProxy<BblRawStarPlayerPageService>;
-  tp: MockProxy<TpRawStarPlayerIndexService>;
+  lookup: MockProxy<StarSourceLookupService>;
   manual: MockProxy<ManualRawDataService>;
 }
 
 function deps(): Deps {
   const externalIds = mock<StarPlayerExternalIdsService>();
-  externalIds.bblTypIdsFor.mockResolvedValue([]);
-  externalIds.forPosition.mockResolvedValue({ bbl: [], tp: [], name: [] });
   externalIds.allForPosition.mockResolvedValue([]);
-  const bbl = mock<BblRawStarPlayerPageService>();
-  bbl.starFor.mockResolvedValue(null);
-  bbl.starForName.mockResolvedValue(null);
-  const tp = mock<TpRawStarPlayerIndexService>();
-  tp.starFor.mockResolvedValue(null);
+  const lookup = mock<StarSourceLookupService>();
+  lookup.bblStarFor.mockResolvedValue({
+    star: null,
+    notFoundNote:
+      'no BBL page found for "Eldril Sidewinder" (no BBL typID recorded)',
+  });
+  lookup.tpStarsFor.mockResolvedValue({
+    stars: [],
+    notFoundNote: 'no TP entry found for spelling(s) Eldril Sidewinder',
+  });
   const manual = mock<ManualRawDataService>();
   manual.characteristics.mockResolvedValue([]);
-  return { externalIds, bbl, tp, manual };
+  return { externalIds, lookup, manual };
 }
 
 async function makeService(
@@ -49,8 +50,7 @@ async function makeService(
         provide: StarPlayerExternalIdsService,
         useValue: overrides.externalIds,
       },
-      { provide: BblRawStarPlayerPageService, useValue: overrides.bbl },
-      { provide: TpRawStarPlayerIndexService, useValue: overrides.tp },
+      { provide: StarSourceLookupService, useValue: overrides.lookup },
       { provide: ManualRawDataService, useValue: overrides.manual },
       StarPlayerNameMatcherService,
       HtmlService,
@@ -60,28 +60,34 @@ async function makeService(
 }
 
 describe('StarPlayerCharacteristicsRawRendererService', () => {
-  it('renders a note when no source carries characteristics for the star', async () => {
+  it('highlights BBL and TP as not found when neither source carries the star', async () => {
     const service = await makeService(deps());
 
-    expect(await service.render(STAR)).toContain('No raw characteristics');
+    const html = await service.render(STAR);
+
+    expect(html).toContain('no BBL page found for');
+    expect(html).toContain('no TP entry found for spelling(s)');
+    expect(html).toContain('class="mismatch"');
   });
 
   it("renders BBL's stat line with its +-suffixed values verbatim", async () => {
     const d = deps();
-    d.externalIds.bblTypIdsFor.mockResolvedValue(['126']);
-    d.bbl.starFor.mockResolvedValue({
-      typId: '126',
-      name: 'Eldril Sidewinder',
-      cost: null,
-      canPlayFor: null,
-      skills: null,
-      characteristics: {
-        move: '8',
-        strength: '3',
-        agility: '2+',
-        passing: '5+',
-        armour: '8+',
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Eldril Sidewinder',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: {
+          move: '8',
+          strength: '3',
+          agility: '2+',
+          passing: '5+',
+          armour: '8+',
+        },
       },
+      notFoundNote: '',
     });
     const service = await makeService(d);
 
@@ -95,14 +101,16 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
 
   it('highlights a BBL page with unreadable characteristics', async () => {
     const d = deps();
-    d.externalIds.bblTypIdsFor.mockResolvedValue(['126']);
-    d.bbl.starFor.mockResolvedValue({
-      typId: '126',
-      name: 'Eldril Sidewinder',
-      cost: null,
-      canPlayFor: null,
-      skills: null,
-      characteristics: null,
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Eldril Sidewinder',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: null,
+      },
+      notFoundNote: '',
     });
     const service = await makeService(d);
 
@@ -114,41 +122,41 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
 
   it("renders TP's two rules-set rows with their own rules-set labels", async () => {
     const d = deps();
-    d.externalIds.forPosition.mockResolvedValue({
-      bbl: [],
-      tp: ['Eldril Sidewinder'],
-      name: [],
-    });
-    d.tp.starFor.mockResolvedValue({
-      name: 'Eldril Sidewinder',
-      entries: [
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
         {
-          rulesSet: 'BB2020',
-          cost: 230000,
-          specialRuleName: null,
-          characteristics: {
-            move: 8,
-            strength: 3,
-            agility: 2,
-            passing: 5,
-            armour: 8,
-          },
-          eligibleTeamRaces: [],
-        },
-        {
-          rulesSet: 'BB2025',
-          cost: 220000,
-          specialRuleName: null,
-          characteristics: {
-            move: 8,
-            strength: 3,
-            agility: 3,
-            passing: 0,
-            armour: 8,
-          },
-          eligibleTeamRaces: [],
+          name: 'Eldril Sidewinder',
+          entries: [
+            {
+              rulesSet: 'BB2020',
+              cost: 230000,
+              specialRuleName: null,
+              characteristics: {
+                move: 8,
+                strength: 3,
+                agility: 2,
+                passing: 5,
+                armour: 8,
+              },
+              eligibleTeamRaces: [],
+            },
+            {
+              rulesSet: 'BB2025',
+              cost: 220000,
+              specialRuleName: null,
+              characteristics: {
+                move: 8,
+                strength: 3,
+                agility: 3,
+                passing: 0,
+                armour: 8,
+              },
+              eligibleTeamRaces: [],
+            },
+          ],
         },
       ],
+      notFoundNote: '',
     });
     const service = await makeService(d);
 
@@ -160,22 +168,22 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
 
   it('renders a TP entry with unreadable characteristics as dashes', async () => {
     const d = deps();
-    d.externalIds.forPosition.mockResolvedValue({
-      bbl: [],
-      tp: ['Eldril Sidewinder'],
-      name: [],
-    });
-    d.tp.starFor.mockResolvedValue({
-      name: 'Eldril Sidewinder',
-      entries: [
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
         {
-          rulesSet: 'BB2020',
-          cost: null,
-          specialRuleName: null,
-          characteristics: null,
-          eligibleTeamRaces: [],
+          name: 'Eldril Sidewinder',
+          entries: [
+            {
+              rulesSet: 'BB2020',
+              cost: null,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: [],
+            },
+          ],
         },
       ],
+      notFoundNote: '',
     });
     const service = await makeService(d);
 

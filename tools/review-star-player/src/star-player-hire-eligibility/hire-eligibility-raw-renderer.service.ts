@@ -6,11 +6,13 @@ import type { SampledStarPlayer } from '../shared/review.types';
 import { StarPlayerExternalIdsService } from '../shared/star-player-external-ids.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { StarPlayerPositionsQueryService } from '../shared/star-player-positions-query.service';
-import type { BblRawStarPlayer } from '../source/bbl-raw-star-player-page.service';
-import { BblRawStarPlayerPageService } from '../source/bbl-raw-star-player-page.service';
+import type {
+  BblStarLookup,
+  TpStarsLookup,
+} from '../shared/star-source-lookup.service';
+import { StarSourceLookupService } from '../shared/star-source-lookup.service';
 import { ManualRawDataService } from '../source/manual-raw-data.service';
 import type { TpRawStarPlayer } from '../source/tp-raw-star-player-index.service';
-import { TpRawStarPlayerIndexService } from '../source/tp-raw-star-player-index.service';
 
 const NONE = '—';
 
@@ -37,77 +39,55 @@ export class HireEligibilityRawRendererService {
   constructor(
     private readonly query: StarPlayerPositionsQueryService,
     private readonly externalIds: StarPlayerExternalIdsService,
-    private readonly bbl: BblRawStarPlayerPageService,
-    private readonly tp: TpRawStarPlayerIndexService,
+    private readonly lookup: StarSourceLookupService,
     private readonly manual: ManualRawDataService,
     private readonly names: StarPlayerNameMatcherService,
     private readonly html: HtmlService,
   ) {}
 
   async render(star: SampledStarPlayer): Promise<string> {
-    const bblStar = await this.bblStar(star);
-    const tpStars = await this.tpStars(star);
+    const bblLookup = await this.lookup.bblStarFor(star);
+    const tpLookup = await this.lookup.tpStarsFor(star);
     const sections = [
-      this.bblSection(bblStar),
-      this.tpSection(tpStars),
+      this.bblSection(bblLookup),
+      this.tpSection(tpLookup),
       await this.manualSection(star),
     ].filter((section) => section !== null);
 
-    if (sections.length === 0) {
-      return this.html.note(
-        `No raw hire-eligibility data for star player "${star.positionName}".`,
-      );
-    }
-    const verdict = await this.verdictSection(star, tpStars);
+    const verdict = await this.verdictSection(star, tpLookup.stars);
     return [...sections, verdict].filter((part) => part !== null).join('\n');
   }
 
-  /**
-   * BBL's page for this star, found the same way as the identity panel: the
-   * typID recovered from its external ids is tried first, then a lookup by
-   * the stored name for a star whose BBL page listed no races.
-   */
-  private async bblStar(
-    star: SampledStarPlayer,
-  ): Promise<BblRawStarPlayer | null> {
-    for (const typId of await this.externalIds.bblTypIdsFor(star.positionId)) {
-      const found = await this.bbl.starFor(typId);
-      if (found !== null) {
-        return found;
-      }
-    }
-    return await this.bbl.starForName(star.positionName);
-  }
-
-  /** TP's entries, one per TP spelling the star's external ids carry. */
-  private async tpStars(star: SampledStarPlayer): Promise<TpRawStarPlayer[]> {
-    const ids = await this.externalIds.forPosition(star.positionId);
-    const spellings = [...new Set([...ids.tp, star.positionName])];
-    const found: TpRawStarPlayer[] = [];
-    for (const spelling of spellings) {
-      const tpStar = await this.tp.starFor(spelling);
-      if (tpStar !== null && !found.some((one) => one.name === tpStar.name)) {
-        found.push(tpStar);
-      }
-    }
-    return found;
-  }
-
-  private bblSection(star: BblRawStarPlayer | null): string | null {
-    if (star === null) {
-      return null;
+  private bblSection(lookup: BblStarLookup): string {
+    if (lookup.star === null) {
+      return (
+        this.html.subheading('BBL') +
+        this.html.table(
+          ['Can play for'],
+          [this.html.highlight([lookup.notFoundNote])],
+        )
+      );
     }
     return (
       this.html.subheading('BBL') +
       this.html.note(
         'BBL states eligibility as a team special rule, not as a race list.',
       ) +
-      this.html.table(['Can play for'], [[star.canPlayFor ?? NONE]])
+      this.html.table(['Can play for'], [[lookup.star.canPlayFor ?? NONE]])
     );
   }
 
-  private tpSection(stars: TpRawStarPlayer[]): string | null {
-    const rows: TableCell[][] = stars.flatMap((star) =>
+  private tpSection(lookup: TpStarsLookup): string {
+    if (lookup.stars.length === 0) {
+      return (
+        this.html.subheading('TP') +
+        this.html.table(
+          ['Rules set', 'teamRace code', 'Special rule'],
+          [this.html.highlight([lookup.notFoundNote, NONE, NONE])],
+        )
+      );
+    }
+    const rows: TableCell[][] = lookup.stars.flatMap((star) =>
       star.entries.flatMap((entry) =>
         entry.eligibleTeamRaces.map((code) => [
           entry.rulesSet,
@@ -116,9 +96,6 @@ export class HireEligibilityRawRendererService {
         ]),
       ),
     );
-    if (rows.length === 0) {
-      return null;
-    }
     return (
       this.html.subheading('TP') +
       this.html.table(['Rules set', 'teamRace code', 'Special rule'], rows)
@@ -155,6 +132,17 @@ export class HireEligibilityRawRendererService {
    * TP's distinct `teamRace` codes beside the database's distinct race
    * count. Rendered only when TP carries at least one code for the star —
    * with none, there is nothing to compare against.
+   *
+   * A count-only comparison, not a full race-identity comparison — the two
+   * sides could carry the same COUNT of distinct races while disagreeing on
+   * which races those are, and this verdict cannot see that. A DB count
+   * higher than TP's is `WIDER IN DB`; a DB count lower than TP's is its own
+   * distinct `NARROWER IN DB` case — the mercenary-vs-embedded stratifier's
+   * own doc comment names "a wrongly narrow eligibility row" as a real
+   * concern, so a DB that under-claims must not read the same as one that
+   * matches. Equal counts are labelled accordingly, not "consistent" — that
+   * word claims more than a count comparison can support. Full race-identity
+   * comparison is a deliberate follow-up, not implemented here.
    */
   private async verdictSection(
     star: SampledStarPlayer,
@@ -171,16 +159,22 @@ export class HireEligibilityRawRendererService {
     const dbRows = await this.query.hireEligibilityFor(star.positionId);
     const dbRaces = new Set(dbRows.map((row) => row.raceId));
     const wider = dbRaces.size > tpCodes.size;
+    const narrower = dbRaces.size < tpCodes.size;
+    const verdict = wider
+      ? 'WIDER IN DB'
+      : narrower
+        ? 'NARROWER IN DB'
+        : 'counts match (race identity not compared)';
     const cells: TableCell[] = [
       String(dbRaces.size),
       String(tpCodes.size),
-      wider ? 'WIDER IN DB' : 'consistent',
+      verdict,
     ];
     return (
       this.html.subheading('Race-count comparison') +
       this.html.table(
         ['DB distinct races', 'TP distinct teamRace codes', 'Verdict'],
-        [wider ? this.html.highlight(cells) : cells],
+        [wider || narrower ? this.html.highlight(cells) : cells],
       )
     );
   }
