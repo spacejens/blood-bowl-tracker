@@ -15,8 +15,9 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   [rules sets](../rules-sets/index.md) let these heal between
   [competitions](../competitions/index.md), so what a player has ever suffered
   (which the [match events](../match-events/index.md) record) and what is
-  still outstanding are two different facts. Both source systems publish the
-  live state directly, so it is imported rather than derived.
+  still outstanding are two different facts. BBL publishes this live state
+  directly. TP publishes miss-next-game and niggling injuries directly, while
+  the importer derives characteristic reductions from characteristic values.
 - A reduction count is the _effective_ magnitude — how far the stored
   characteristic actually sits below the player's baseline — not a tally of
   every reduction ever suffered. A reduction the rules absorbed, because the
