@@ -437,4 +437,27 @@ describe('PlayerPageParser', () => {
     expect(player).not.toBeNull();
     expect(player?.lastingInjuries.nigglingInjuryCount).toBe(0);
   });
+
+  it('throws when the sustained-injuries label is found but has no following value cell', () => {
+    // Distinct from "no row at all": here the label WAS found, so the page
+    // structure is malformed/truncated rather than genuinely injury-free.
+    // Silently falling through to the same clean default as the "no row"
+    // case would risk masking a real injury if the page ever fails to load
+    // completely or BBL's structure glitches.
+    const page = playerPage(
+      `<h1>Griff Oberwald</h1>${PLAYER_LINKS}${characteristicsTable('6', '3', '3', '4', '9')}` +
+        '<table class="tblist" width="320">' +
+        ' <tr height="25">' +
+        '  <td width="94" class="small dark3" align="center" valign="middle">' +
+        '   <a href="default.asp?p=mp&act=inj&pid=1990" title="se list of matches">Sustained Injuries:</a>' +
+        '  </td>' +
+        ' </tr>' +
+        '</table>',
+      '1990',
+    );
+
+    expect(() => parser.extractPlayer(page)).toThrow(
+      'Invalid sustained-injuries row: missing value cell',
+    );
+  });
 });

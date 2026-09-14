@@ -170,7 +170,11 @@ export class PlayerPageParser {
       }
       const valueCell = $(element).next('td');
       if (valueCell.length === 0) {
-        break;
+        // The label WAS found, so this is a malformed/truncated page, not the
+        // ordinary "no injury row at all" case handled below. Defaulting to
+        // the same clean result here could silently overwrite a genuinely
+        // injured player's data if the page ever fails to load completely.
+        throw new Error('Invalid sustained-injuries row: missing value cell');
       }
       const html = (valueCell.html() ?? '').replace(/<br\s*\/?>/gi, ' ');
       return this.sustainedInjuries.parse(
