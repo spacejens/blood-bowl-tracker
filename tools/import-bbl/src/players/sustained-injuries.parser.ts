@@ -48,7 +48,7 @@ const STAT_TAG = /-(MA|ST|AG|PA|AV)(\s*\(no effect\))?/g;
 const NIGGLING = /(\d+)\s*niggl/;
 
 /**
- * Reads BBL's free-text "Sustained Injuries" field into the six lasting-injury
+ * Reads BBL's free-text "Sustained Injuries" field into the seven lasting-injury
  * values. The field states the player's LIVE state directly — which is the
  * whole reason it is worth parsing, since a career tally of injury events
  * cannot tell you what is still outstanding under rules sets that let these

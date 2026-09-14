@@ -81,6 +81,8 @@ describe('BblLastingInjuryBackfillImportService', () => {
     const outcome = await service.importLastingInjuryHistory(ids);
 
     expect(backfill.syncLastingInjuryHistory).toHaveBeenCalledTimes(2);
+    const [, second] = backfill.syncLastingInjuryHistory.mock.calls;
+    expect(second[0].playerIds).toEqual([DEFAULT_BATCH_CHUNK_SIZE + 1]);
     expect(outcome.result.imported).toBe(1);
   });
 
