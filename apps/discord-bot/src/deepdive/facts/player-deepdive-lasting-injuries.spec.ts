@@ -13,7 +13,7 @@ const bb2020 = {
   moveFormat: 'bare',
   strengthFormat: 'bare',
   agilityFormat: 'plus',
-  passingFormat: 'plus',
+  passingFormat: 'plus_zero_legal',
   armourFormat: 'plus',
   baseline: undefined,
 } as const;
