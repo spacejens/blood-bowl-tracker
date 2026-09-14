@@ -812,5 +812,6 @@ describe('BblPositionsImportService', () => {
     // whole positions-import run.
     expect(outcome.result).toBe(CANNED_RESULT);
     expect(mocks.positionsImport.upsert).toHaveBeenCalledTimes(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 });
