@@ -99,6 +99,21 @@ describe('PlayerDeepdiveService lasting-injuries line', () => {
     );
   });
 
+  it('renders a passing reduction', async () => {
+    // The other reduction fields (MA/ST/AG/AV) each have their own dedicated
+    // coverage above; PA does not, so this exercises it individually.
+    const { service } = await makeService({
+      players: makePlayers({
+        player: { ...griff, passingReductionCount: 1 },
+      }),
+      positionRulesSets: makePositionRulesSets({ ...bb2020 }),
+    });
+
+    expect(descriptionOf(await service.resolve(1))).toContain(
+      'Lasting injuries: PA -1',
+    );
+  });
+
   it('renders a miss-next-game on its own', async () => {
     const { service } = await makeService({
       players: makePlayers({ player: { ...griff, missNextGame: true } }),
