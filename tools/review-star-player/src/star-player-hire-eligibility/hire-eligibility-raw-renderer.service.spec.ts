@@ -148,6 +148,17 @@ describe('HireEligibilityRawRendererService', () => {
 
   it('highlights TP entries that have no eligible teamRace codes instead of an empty table', async () => {
     const d = deps();
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Eldril Sidewinder',
+        cost: null,
+        canPlayFor: 'Any team with Elven Kingdoms League',
+        skills: null,
+        characteristics: null,
+      },
+      notFoundNote: '',
+    });
     d.lookup.tpStarsFor.mockResolvedValue({
       stars: [
         {
