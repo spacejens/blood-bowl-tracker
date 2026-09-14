@@ -1,223 +1,21 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import {
-  ExternalSystemBootstrapService,
-  ImportResultService,
-  NameExternalIdService,
-  PositionsImportService,
-} from '@blood-bowl-tracker/import';
-import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { BblPlayer } from '../players/player-page-parser';
-import { PlayerPageParser } from '../players/player-page-parser';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
-import { BblRaceNameService } from '../source/bbl-race-name.service';
-import { BblSourceReader } from '../source/bbl-source-reader';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { PageParseErrorService } from '../source/page-parse-error.service';
-import { BblPositionsImportService } from './bbl-positions-import.service';
-import type { BblPosition } from './position-page-parser';
-import { PositionPageParser } from './position-page-parser';
-
-/**
- * The canned ImportResult the mocked ImportResultService.result returns.
- * ImportResultService's own `success: errors.length === 0` derivation is
- * covered by packages/import/src/import-result.service.spec.ts; this spec
- * asserts what the service under test *passes to* result() (via
- * `resultArgs()`) and that it returns result()'s value unchanged. The
- * deliberately impossible field values make any leftover assertion that reads
- * the returned object instead of the recorded call arguments fail loudly.
- */
-const CANNED_RESULT: ImportResult = {
-  success: false,
-  imported: -1,
-  errors: [{ item: { canned: true }, message: 'canned import result' }],
-};
-
-/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
-function resultArgs(importResults: MockProxy<ImportResultService>): {
-  imported: number;
-  errors: ImportError[];
-} {
-  return importResults.result.mock.calls[0][0];
-}
-
-/**
- * The canned ImportError the mocked PageParseErrorService.build returns.
- * PageParseErrorService's own message template — including the
- * `error instanceof Error ? error.message : String(error)` branch — is
- * covered by ../source/page-parse-error.service.spec.ts. This spec asserts
- * only what BblPositionsImportService hands to build() and that it pushes
- * build()'s return value onto the errors list.
- */
-const CANNED_PAGE_PARSE_ERROR: ImportError = {
-  item: { page: 'canned' },
-  message: 'canned page parse error',
-};
-
-/**
- * The full upsert result record (PositionsImportService.upsert
- * resolves the API's Position + created shape). Defaults match the id=100
- * value repeated across these tests; pass overrides to vary the id.
- */
-function makePositionRecord(overrides: { id?: number } = {}) {
-  return {
-    id: overrides.id ?? 100,
-    name: 'Position',
-    isStarPlayer: false,
-    createdAt: new Date('2026-01-01'),
-    created: true,
-  };
-}
-
-function ptPage(position: BblPosition | null): BblPage {
-  return {
-    type: 'pt',
-    params: { position: JSON.stringify(position) },
-    load: () => {
-      throw new Error('load() should not be called in this test');
-    },
-  };
-}
-
-function plPage(player: BblPlayer | null): BblPage {
-  return {
-    type: 'pl',
-    params: { player: JSON.stringify(player) },
-    load: () => {
-      throw new Error('load() should not be called in this test');
-    },
-  };
-}
-
-interface Mocks {
-  positionParser: MockProxy<PositionPageParser>;
-  playerParser: MockProxy<PlayerPageParser>;
-  positionsImport: MockProxy<PositionsImportService>;
-  bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  nameExternalId: MockProxy<NameExternalIdService>;
-  importResults: MockProxy<ImportResultService>;
-  pageParseError: MockProxy<PageParseErrorService>;
-  bblRaceName: MockProxy<BblRaceNameService>;
-}
-
-/**
- * Builds the service under test through a TestingModule with every
- * collaborator mocked. ImportResultService.result and
- * PageParseErrorService.build return canned values (see the constants above);
- * tests assert what this service passes to them, not what they compute.
- */
-async function makeService(
-  reader: BblSourceReader,
-): Promise<{ service: BblPositionsImportService; mocks: Mocks }> {
-  const positionParser = mock<PositionPageParser>();
-  positionParser.extractPosition.mockImplementation(
-    (p) => JSON.parse(p.params.position) as BblPosition | null,
-  );
-
-  const playerParser = mock<PlayerPageParser>();
-  playerParser.extractPlayer.mockImplementation(
-    (p) => JSON.parse(p.params.player) as BblPlayer | null,
-  );
-
-  const positionsImport = mock<PositionsImportService>();
-
-  const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
-
-  const nameConfig = mock<ExternalSystemNameConfigService>();
-  nameConfig.getBblSystemName.mockReturnValue('BBL');
-
-  const nameExternalId = mock<NameExternalIdService>();
-  // `forStarPosition` is a pure identity passthrough with no branching or
-  // formatting, so there is no algorithm here that can drift out of sync with
-  // the real NameExternalIdService — exempt from the canned-response rule.
-  nameExternalId.forStarPosition.mockImplementation((name) => name);
-
-  const importResults = mock<ImportResultService>();
-  // `error` is a pure identity field copy with no branching or formatting, so
-  // there is no algorithm here that can drift out of sync with the real
-  // ImportResultService — exempt from the canned-response rule.
-  importResults.error.mockImplementation((args) => ({
-    item: args.item,
-    message: args.message,
-  }));
-  importResults.result.mockReturnValue(CANNED_RESULT);
-
-  const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
-
-  const bblRaceName = mock<BblRaceNameService>();
-  // Canned pass-through: these tests assert which race name the service under
-  // test hands to the canonicalizer and to forPosition, not what the
-  // canonicalizer computes -- that is BblRaceNameService's own spec's job.
-  bblRaceName.canonical.mockImplementation((name) => name);
-
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      BblPositionsImportService,
-      { provide: BblSourceReader, useValue: reader },
-      { provide: PositionPageParser, useValue: positionParser },
-      { provide: PlayerPageParser, useValue: playerParser },
-      { provide: PositionsImportService, useValue: positionsImport },
-      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
-      { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: ImportResultService, useValue: importResults },
-      { provide: PageParseErrorService, useValue: pageParseError },
-      { provide: BblRaceNameService, useValue: bblRaceName },
-    ],
-  }).compile();
-
-  return {
-    service: moduleRef.get(BblPositionsImportService),
-    mocks: {
-      positionParser,
-      playerParser,
-      positionsImport,
-      bootstrap,
-      nameExternalId,
-      importResults,
-      pageParseError,
-      bblRaceName,
-    },
-  };
-}
-
-const CHARACTERISTICS = {
-  move: 6,
-  strength: 3,
-  agility: 3,
-  passing: null,
-  armour: 8,
-};
-
-/**
- * An arbitrary player characteristics line. This service never reads
- * `BblPlayer.characteristics` — it only exists because the field is
- * required — so its exact values are irrelevant; shared here rather than
- * repeated at every `plPage(...)` fixture in this file.
- */
-const ANY_PLAYER_CHARACTERISTICS: BblPlayer['characteristics'] = {
-  move: 5,
-  strength: 3,
-  agility: 3,
-  passing: 4,
-  armour: 8,
-};
-
-const racesByBblId = new Map<string, { id: number; name: string }>([
-  ['48', { id: 480, name: 'College of Shadow' }],
-  ['7', { id: 70, name: 'Goblin Team' }],
-  ['14', { id: 140, name: 'Norse Team' }],
-]);
-
-const teamRaceIdsByCode = new Map<string, number>([
-  ['knu', 140],
-  ['col', 480],
-]);
+import {
+  ANY_LASTING_INJURIES,
+  ANY_PLAYER_CHARACTERISTICS,
+  CANNED_PAGE_PARSE_ERROR,
+  CANNED_RESULT,
+  CHARACTERISTICS,
+  makePositionRecord,
+  makeService,
+  plPage,
+  ptPage,
+  racesByBblId,
+  resultArgs,
+  teamRaceIdsByCode,
+} from './bbl-positions-import.test-helpers';
 
 describe('BblPositionsImportService', () => {
   it('upserts one row per listed race with composite external ids', async () => {
@@ -360,6 +158,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -437,6 +236,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -519,6 +319,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'col', // -> race 480 (College of Shadow, bblId '48') = already listed
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -579,6 +380,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
           plPage({
             pid: '123',
@@ -587,6 +389,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'col',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -656,6 +459,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'knu',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -763,6 +567,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'unknown-code',
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -875,6 +680,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'ghost', // not in teamRaceIdsByCode
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -919,6 +725,7 @@ describe('BblPositionsImportService', () => {
             teamCode: 'orphan', // -> db id 999, absent from racesByBblId
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
+            lastingInjuries: ANY_LASTING_INJURIES,
           }),
         ],
       }),
@@ -961,153 +768,50 @@ describe('BblPositionsImportService', () => {
     expect(result).toBe(CANNED_RESULT);
   });
 
-  it('records characteristics for a listed-race position under its upserted id', async () => {
+  it('records a page-parse error and continues when a player page throws during pre-scan, instead of aborting the whole run', async () => {
+    const malformedPlPage: BblPage = {
+      type: 'pl',
+      params: { player: 'not valid json' },
+      load: () => {
+        throw new Error('load() should not be called in this test');
+      },
+    };
+
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({
         pt: [
           ptPage({
             typId: '33',
             name: 'Goblin Linemen',
+            isStarPlayer: false,
             races: [{ bblId: '7', name: 'Goblin Team' }],
-            isStarPlayer: false,
-            characteristics: CHARACTERISTICS,
-          }),
-        ],
-      }),
-    );
-    mocks.positionsImport.upsert.mockResolvedValue(
-      makePositionRecord({ id: 100 }),
-    );
-
-    const outcome = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
-
-    expect(outcome.characteristicsByPositionId).toEqual(
-      new Map([[100, CHARACTERISTICS]]),
-    );
-  });
-
-  it('records characteristics for a star player under its single consolidated id', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({
-        pt: [
-          ptPage({
-            typId: '99',
-            name: 'Wilhelm Chaney',
-            races: [],
-            isStarPlayer: true,
-            characteristics: CHARACTERISTICS,
-          }),
-        ],
-        pl: [
-          plPage({
-            pid: '1',
-            name: 'Wilhelm Chaney',
-            typId: '99',
-            teamCode: 'knu',
-            sppTotal: null,
-            characteristics: ANY_PLAYER_CHARACTERISTICS,
-          }),
-        ],
-      }),
-    );
-    mocks.positionsImport.upsert.mockResolvedValue(
-      makePositionRecord({ id: 900 }),
-    );
-
-    const outcome = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
-
-    expect(outcome.characteristicsByPositionId).toEqual(
-      new Map([[900, CHARACTERISTICS]]),
-    );
-  });
-
-  it('records characteristics for each row of a reverse-engineered multi-race position', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({
-        pt: [
-          ptPage({
-            typId: '55',
-            name: 'Kroxigor',
-            races: [],
-            isStarPlayer: false,
-            characteristics: CHARACTERISTICS,
-          }),
-        ],
-        pl: [
-          plPage({
-            pid: '1',
-            name: 'Kroxigor',
-            typId: '55',
-            teamCode: 'knu',
-            sppTotal: null,
-            characteristics: ANY_PLAYER_CHARACTERISTICS,
-          }),
-          plPage({
-            pid: '2',
-            name: 'Kroxigor',
-            typId: '55',
-            teamCode: 'col',
-            sppTotal: null,
-            characteristics: ANY_PLAYER_CHARACTERISTICS,
-          }),
-        ],
-      }),
-    );
-    mocks.positionsImport.upsert
-      .mockResolvedValueOnce(makePositionRecord({ id: 101 }))
-      .mockResolvedValueOnce(makePositionRecord({ id: 102 }));
-
-    const outcome = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
-
-    expect(outcome.characteristicsByPositionId).toEqual(
-      new Map([
-        [101, CHARACTERISTICS],
-        [102, CHARACTERISTICS],
-      ]),
-    );
-  });
-
-  it('records an error and no characteristics when the table could not be parsed', async () => {
-    const { service, mocks } = await makeService(
-      mockBblSourceReaderByType({
-        pt: [
-          ptPage({
-            typId: '33',
-            name: 'Goblin Linemen',
-            races: [{ bblId: '7', name: 'Goblin Team' }],
-            isStarPlayer: false,
             characteristics: null,
           }),
         ],
+        pl: [malformedPlPage],
       }),
     );
-    mocks.positionsImport.upsert.mockResolvedValue(
-      makePositionRecord({ id: 100 }),
-    );
+    mocks.positionsImport.upsert.mockResolvedValue(makePositionRecord());
+    mocks.nameExternalId.forPosition.mockReturnValueOnce('name-id-goblin');
 
     const outcome = await service.importPositions(
       racesByBblId,
       teamRaceIdsByCode,
     );
 
-    expect(outcome.characteristicsByPositionId.size).toBe(0);
-    // The position's identity still imported; only its characteristics are lost.
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      malformedPlPage.params,
+      'player',
+      expect.any(Error),
+    );
+    expect(resultArgs(mocks.importResults).errors).toContainEqual(
+      CANNED_PAGE_PARSE_ERROR,
+    );
+    // The listed race for the position on the `pt` page still imported
+    // normally -- a malformed player page during pre-scan must not abort the
+    // whole positions-import run.
+    expect(outcome.result).toBe(CANNED_RESULT);
     expect(mocks.positionsImport.upsert).toHaveBeenCalledTimes(1);
-    expect(resultArgs(mocks.importResults).errors).toEqual([
-      {
-        item: { typId: '33', name: 'Goblin Linemen' },
-        message:
-          'Could not read characteristics for position "Goblin Linemen" (33): no MA/ST/AG/PA/AV table on the page',
-      },
-    ]);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 });

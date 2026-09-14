@@ -9,6 +9,7 @@ import {
   MatchEventsService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
+  PlayerLastingInjuryBackfillService,
   PlayersService,
   PositionRulesSetsService,
   PositionsService,
@@ -57,6 +58,8 @@ export async function createRouterHarness() {
     matchEventsService: mock<MatchEventsService>(),
     sppAdjustmentsService: mock<SppAdjustmentsService>(),
     sppAwardValuesService: mock<SppAwardValuesService>(),
+    playerLastingInjuryBackfillService:
+      mock<PlayerLastingInjuryBackfillService>(),
   };
 
   const moduleRef = await Test.createTestingModule({
@@ -99,6 +102,10 @@ export async function createRouterHarness() {
       {
         provide: SppAwardValuesService,
         useValue: mocks.sppAwardValuesService,
+      },
+      {
+        provide: PlayerLastingInjuryBackfillService,
+        useValue: mocks.playerLastingInjuryBackfillService,
       },
       UpsertHandlerService,
     ],

@@ -34,6 +34,8 @@ import {
 } from './schemas/match-event';
 import {
   PlayerSchema,
+  SyncLastingInjuryHistoryResultSchema,
+  SyncLastingInjuryHistorySchema,
   SyncReportedSppAdjustmentsSchema,
   SyncScrapedSppAdjustmentsSchema,
   SyncSppAdjustmentsResultSchema,
@@ -112,6 +114,15 @@ export const contract = {
     syncReportedSppAdjustments: oc
       .input(SyncReportedSppAdjustmentsSchema)
       .output(SyncSppAdjustmentsResultSchema),
+    // Also not an upsert: this manufactures the players_history versions a
+    // freshly-inserted player needs for an injury healed before this run,
+    // reading match_events the importer has already written. Must be called
+    // AFTER the matchEvents step — the accumulated data does not exist until
+    // then — which is why it is a separate procedure rather than part of
+    // players.upsert.
+    syncLastingInjuryHistory: oc
+      .input(SyncLastingInjuryHistorySchema)
+      .output(SyncLastingInjuryHistoryResultSchema),
     // Players became resolvable when tools/import-manual gained a curated
     // trophy-awards file: a manually curated award names its winning player
     // by external id, across tools and phases, exactly like every other

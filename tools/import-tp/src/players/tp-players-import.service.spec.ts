@@ -203,26 +203,29 @@ describe('TpPlayersImportService', () => {
   });
 
   it('imports a hired star player as an isStarPlayer position + a player on the hiring team-era', async () => {
-    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const upsertPlayerResult = vi
+      .fn()
+      .mockResolvedValue({ id: 900, created: true });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
     const { service } = await makeService({
       upsertPlayerResult,
       upsertPosition,
     });
 
-    const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
-      rosters,
-      teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
-      inducedStarPlayerHireGroups: [
-        {
-          rosterId: 168446,
-          eraId: 500,
-          starPlayers: [
-            { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
-          ],
-        },
-      ],
-    });
+    const { starPlayerIdsByRosterAndMaster, insertedPlayerIds } =
+      await service.importPlayers({
+        rosters,
+        teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
+        inducedStarPlayerHireGroups: [
+          {
+            rosterId: 168446,
+            eraId: 500,
+            starPlayers: [
+              { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
+            ],
+          },
+        ],
+      });
 
     expect(upsertPosition).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Fungus the Loon', isStarPlayer: true }),
@@ -237,6 +240,9 @@ describe('TpPlayersImportService', () => {
       expect.anything(),
     );
     expect(starPlayerIdsByRosterAndMaster.get('168446:1122')).toBe(900);
+    // A freshly hired star is a genuine new players row, same as any other
+    // inserted player.
+    expect(insertedPlayerIds).toEqual([900]);
   });
 
   it('records a non-fatal error and skips a star player whose hiring team-era cannot be resolved', async () => {

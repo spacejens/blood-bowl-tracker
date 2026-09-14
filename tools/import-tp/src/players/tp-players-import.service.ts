@@ -1,4 +1,7 @@
-import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
+import type {
+  RulesSet,
+  SppCareerCounts,
+} from '@blood-bowl-tracker/api-contract';
 import { SPP_CAREER_COUNT_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -24,6 +27,7 @@ import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 
@@ -90,6 +94,14 @@ export interface ImportPlayersOptions {
     number,
     Map<number, TpPositionCharacteristics>
   >;
+  /**
+   * Every rules set the run upserted, keyed by name, from the rules-sets
+   * step. Needed to read a stat reduction out of a current-vs-template gap:
+   * which direction is "worse" is per characteristic per rules set. Optional
+   * so callers that do not need lasting injuries (tests, future callers) can
+   * omit it — a player then simply gets no reduction counts.
+   */
+  rulesSetsByName?: Map<string, RulesSet>;
 }
 
 @Injectable()
@@ -107,6 +119,7 @@ export class TpPlayersImportService {
     private readonly eraRulesSetResolver: TpEraRulesSetResolverService,
     private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
     private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
+    private readonly lastingInjuryBuilder: TpLastingInjuryBuilderService,
   ) {}
 
   /**
@@ -135,12 +148,14 @@ export class TpPlayersImportService {
     inducedStarPlayerHireGroups,
     matchEmbeddedPlayersByRosterId,
     characteristicsByPositionId,
+    rulesSetsByName,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByLineUpId: Map<number, number>;
     starPlayerIdsByRosterAndMaster: Map<string, number>;
     careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
     mercenaryPositionUsages: MercenaryPositionUsage[];
+    insertedPlayerIds: number[];
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -148,6 +163,10 @@ export class TpPlayersImportService {
     const starPlayerIdsByRosterAndMaster = new Map<string, number>();
     const careerSppCountsByPlayerId = new Map<number, SppCareerCounts>();
     const mercenaryPositionUsages: MercenaryPositionUsage[] = [];
+    // The DB ids of players this run INSERTED. Only these need the
+    // post-matchEvents lasting-injury history backfill: an existing player
+    // already carries whatever history earlier runs built for them.
+    const insertedPlayerIds: number[] = [];
 
     // Star Player Points is a career total that only ever increases. The
     // same player (lineUp) id can legitimately recur across multiple
@@ -239,6 +258,7 @@ export class TpPlayersImportService {
         starPlayerIdsByRosterAndMaster,
         careerSppCountsByPlayerId,
         mercenaryPositionUsages,
+        insertedPlayerIds,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -259,6 +279,7 @@ export class TpPlayersImportService {
         starPlayerIdsByRosterAndMaster,
         careerSppCountsByPlayerId,
         mercenaryPositionUsages,
+        insertedPlayerIds,
       };
     }
     const eraNames = [...new Set(eras.map((era) => era.name))];
@@ -431,6 +452,17 @@ export class TpPlayersImportService {
           });
         }
 
+        // The rules set's declared formats, reached through the same
+        // era -> rules-set-name map the mercenary path already uses, so no
+        // second era resolution is introduced. Undefined when the era
+        // resolved to no single rules set, or the rules-sets step did not
+        // return one: the builder then still sends the two kinds TP reports
+        // directly and no reduction counts.
+        const lastingInjuries = this.lastingInjuryBuilder.forRosterPlayer({
+          player,
+          rulesSet: rulesSetsByName?.get(rulesSetNameByEraName.get(era) ?? ''),
+        });
+
         const upserted = await this.playersImport.upsertPlayerResult(
           {
             name: player.name,
@@ -447,6 +479,7 @@ export class TpPlayersImportService {
               maxSppTotalByPlayerId.get(player.id) ??
               player.totalStarPlayerPoints,
             ...characteristics,
+            ...lastingInjuries,
             externalIds: [
               { externalSystemId: tpSystemId, externalId: String(player.id) },
             ],
@@ -456,6 +489,9 @@ export class TpPlayersImportService {
         if (upserted) {
           imported += 1;
           playerIdsByLineUpId.set(player.id, upserted.id);
+          if (upserted.created) {
+            insertedPlayerIds.push(upserted.id);
+          }
           const careerCounts = maxCareerCountsByLineUpId.get(player.id);
           if (careerCounts !== undefined) {
             careerSppCountsByPlayerId.set(upserted.id, careerCounts);
@@ -556,6 +592,9 @@ export class TpPlayersImportService {
           if (upserted) {
             imported += 1;
             starPlayerIdsByRosterAndMaster.set(key, upserted.id);
+            if (upserted.created) {
+              insertedPlayerIds.push(upserted.id);
+            }
           }
         }
       }
@@ -567,6 +606,7 @@ export class TpPlayersImportService {
       starPlayerIdsByRosterAndMaster,
       careerSppCountsByPlayerId,
       mercenaryPositionUsages,
+      insertedPlayerIds,
     };
   }
 

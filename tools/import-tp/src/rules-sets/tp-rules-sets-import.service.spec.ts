@@ -237,4 +237,45 @@ describe('TpRulesSetsImportService', () => {
 
     expect(result).toBe(CANNED_RESULT);
   });
+
+  it('returns every upserted rules set by name, with its characteristic formats', async () => {
+    // The players step needs the formats to know which direction of a
+    // current-vs-template stat gap is a reduction rather than an advancement.
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertRulesSet = vi.fn().mockResolvedValue({
+      id: 900,
+      name: 'BB2020',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'plus',
+      passingFormat: 'plus',
+      armourFormat: 'plus',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+    const { service } = await makeService({
+      getEras: () => eras,
+      bootstrap,
+      upsertRulesSet,
+    });
+
+    const outcome = await service.importRulesSets();
+
+    expect(outcome.rulesSetsByName.get('BB2020')?.agilityFormat).toBe('plus');
+    expect(outcome.rulesSetsByName.get('BB2020')?.id).toBe(900);
+  });
+
+  it('returns an empty map when no rules set could be upserted', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertRulesSet = vi.fn().mockResolvedValue(undefined);
+    const { service } = await makeService({
+      getEras: () => eras,
+      bootstrap,
+      upsertRulesSet,
+    });
+
+    const outcome = await service.importRulesSets();
+
+    expect(outcome.rulesSetsByName.size).toBe(0);
+  });
 });

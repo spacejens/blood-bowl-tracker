@@ -10,6 +10,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { REVIEW_PLAYER_CONFIG_PATH } from './config/review-player-config.service';
 import { ReviewService } from './harness/review.service';
+import { CurrentInjuryStratificationService } from './lasting-injuries/current-injury-stratification.service';
+import { HealedInjuryStratificationService } from './lasting-injuries/healed-injury-stratification.service';
 import { CharacteristicsChangeStratificationService } from './player-characteristics/characteristics-change-stratification.service';
 import { RandomPlayerStratificationService } from './player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from './player-info/star-player-stratification.service';
@@ -52,7 +54,7 @@ describe('AppModule', () => {
     expect(moduleRef.get(ReviewService)).toBeInstanceOf(ReviewService);
   });
 
-  it('registers all six player stratifiers in PLAYER_STRATIFIERS', async () => {
+  it('registers all eight player stratifiers in PLAYER_STRATIFIERS', async () => {
     const configPath = join(dir, 'review-player-config.json5');
     writeFileSync(
       configPath,
@@ -70,7 +72,7 @@ describe('AppModule', () => {
       .compile();
 
     const stratifiers = moduleRef.get<PlayerStratifier[]>(PLAYER_STRATIFIERS);
-    expect(stratifiers).toHaveLength(6);
+    expect(stratifiers).toHaveLength(8);
     expect(
       [
         RandomPlayerStratificationService,
@@ -79,6 +81,8 @@ describe('AppModule', () => {
         SppMagnitudeStratificationService,
         SppNonStandardContributionStratificationService,
         CharacteristicsChangeStratificationService,
+        CurrentInjuryStratificationService,
+        HealedInjuryStratificationService,
       ].every((serviceClass) =>
         stratifiers.some((stratifier) => stratifier instanceof serviceClass),
       ),

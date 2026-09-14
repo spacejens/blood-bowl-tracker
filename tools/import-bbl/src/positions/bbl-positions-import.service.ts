@@ -143,7 +143,7 @@ export class BblPositionsImportService {
       raceInfoByDbId.set(info.id, { bblId, name: info.name });
     }
 
-    const teamCodesByTypId = await this.scanPlayers();
+    const teamCodesByTypId = await this.scanPlayers(errors);
 
     const resolveRaces = (typId: string): ResolvedRace[] => {
       const codes = teamCodesByTypId.get(typId);
@@ -340,11 +340,25 @@ export class BblPositionsImportService {
     ];
   }
 
-  /** Pre-scan every player page into a map of position typId -> team codes. */
-  private async scanPlayers(): Promise<Map<string, Set<string>>> {
+  /**
+   * Pre-scan every player page into a map of position typId -> team codes.
+   * A page that throws while parsing (see `PlayerPageParser.extractPlayer`)
+   * is recorded as a page-parse error and skipped, same as the main `pt` page
+   * loop above — this pre-scan only reverse-engineers extra races and must
+   * not abort the whole positions-import run over one malformed player page.
+   */
+  private async scanPlayers(
+    errors: ImportError[],
+  ): Promise<Map<string, Set<string>>> {
     const teamCodesByTypId = new Map<string, Set<string>>();
     for await (const page of this.sourceReader.pages(PLAYER_PAGE_TYPE)) {
-      const player = this.playerPageParser.extractPlayer(page);
+      let player;
+      try {
+        player = this.playerPageParser.extractPlayer(page);
+      } catch (error) {
+        errors.push(this.pageParseError.build(page.params, 'player', error));
+        continue;
+      }
       if (!player) {
         continue;
       }

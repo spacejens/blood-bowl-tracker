@@ -77,6 +77,7 @@ describe('BblPlayersImportService', () => {
         agility: 3,
         passing: 4,
         armour: 8,
+        ...goodPlayer.lastingInjuries,
         rulesSetId: 800,
         externalIds: [{ externalSystemId: 1, externalId: '42' }],
       },
@@ -587,6 +588,7 @@ describe('BblPlayersImportService', () => {
       teamCode: 'knu',
       sppTotal: null,
       characteristics: goodPlayer.characteristics,
+      lastingInjuries: goodPlayer.lastingInjuries,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
@@ -606,6 +608,7 @@ describe('BblPlayersImportService', () => {
         agility: 3,
         passing: 4,
         armour: 8,
+        ...goodPlayer.lastingInjuries,
         rulesSetId: 800,
         externalIds: [{ externalSystemId: 1, externalId: '388' }],
       },
@@ -715,6 +718,7 @@ describe('BblPlayersImportService', () => {
       teamCode: 'bad',
       sppTotal: null,
       characteristics: goodPlayer.characteristics,
+      lastingInjuries: goodPlayer.lastingInjuries,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({
@@ -805,8 +809,8 @@ describe('BblPlayersImportService', () => {
       }),
     );
     mocks.playersImport.upsertPlayerResult
-      .mockResolvedValueOnce({ id: 101 })
-      .mockResolvedValueOnce({ id: 102 });
+      .mockResolvedValueOnce({ id: 101, created: false })
+      .mockResolvedValueOnce({ id: 102, created: false });
 
     const outcome = await service.importPlayers(importOptions);
 

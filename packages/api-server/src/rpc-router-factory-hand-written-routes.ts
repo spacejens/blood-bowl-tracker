@@ -4,6 +4,7 @@ import {
   ExternalSystemsService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
+  PlayerLastingInjuryBackfillService,
   PositionRulesSetsService,
   PositionsService,
   SppAdjustmentsService,
@@ -110,12 +111,18 @@ export function buildExternalSystemsRoutes(
   };
 }
 
-// players.syncScrapedSppAdjustments / syncReportedSppAdjustments: not routed
-// through the upsert handler, for the same reason sppAwardValues.sync is
-// not — no external-id conflict to map and no entity+created shape to
-// return.
+// players.syncScrapedSppAdjustments / syncReportedSppAdjustments /
+// syncLastingInjuryHistory: not routed through the upsert handler, for the
+// same reason sppAwardValues.sync is not — no external-id conflict to map and
+// no entity+created shape to return.
+//
+// syncLastingInjuryHistory is the post-matchEvents backfill: it manufactures
+// the players_history versions a freshly-inserted player needs for a lasting
+// injury healed before the run, reading match_events the importer has already
+// written. It delegates straight through, like every other sync route here.
 export function buildPlayerSppAdjustmentRoutes(
   sppAdjustmentsService: SppAdjustmentsService,
+  lastingInjuryBackfillService: PlayerLastingInjuryBackfillService,
 ) {
   return {
     syncScrapedSppAdjustments: implement(
@@ -127,6 +134,11 @@ export function buildPlayerSppAdjustmentRoutes(
       contract.players.syncReportedSppAdjustments,
     ).handler(({ input }) =>
       sppAdjustmentsService.syncReportedAdjustments(input),
+    ),
+    syncLastingInjuryHistory: implement(
+      contract.players.syncLastingInjuryHistory,
+    ).handler(({ input }) =>
+      lastingInjuryBackfillService.syncLastingInjuryHistory(input),
     ),
   };
 }

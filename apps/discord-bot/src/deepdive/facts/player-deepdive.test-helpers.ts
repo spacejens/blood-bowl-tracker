@@ -68,6 +68,13 @@ export const griff = {
   agility: 3,
   passing: 4 as number | null,
   armour: 9,
+  missNextGame: false,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 0,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
 };
 
 export const gougedEye = {
@@ -235,6 +242,13 @@ export function makePlayers(options: {
     agility: number;
     passing: number | null;
     armour: number;
+    missNextGame: boolean;
+    nigglingInjuryCount: number;
+    moveReductionCount: number;
+    strengthReductionCount: number;
+    agilityReductionCount: number;
+    passingReductionCount: number;
+    armourReductionCount: number;
   };
   counts?: Partial<PlayerDeepdiveCategoryCounts>;
 }): PlayersService {

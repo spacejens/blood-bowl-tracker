@@ -1,4 +1,4 @@
-import { integer, serial, varchar } from 'drizzle-orm/pg-core';
+import { boolean, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
@@ -63,6 +63,41 @@ const playersTable = historyTrackedTable({
     // `plus_zero_legal` characteristic format renders as a bare "0".
     passing: integer('passing'),
     armour: integer('armour').notNull().default(0),
+    // The player's CURRENTLY OUTSTANDING lasting injuries, as the source
+    // reports them right now. Deliberately not derivable from match events:
+    // `LASTING_INJURY_SUFFERED_TYPES` counts every lasting injury a player
+    // has ever suffered, while newer rules sets let these be healed between
+    // competitions, so "what happened" and "what is still outstanding" are
+    // two different facts. Both BBL (its player page's free-text "Sustained
+    // Injuries" field) and TP (`nigglingInjuries` / `canPlayNextGame`, plus a
+    // current-vs-template characteristics diff) publish the live state
+    // directly, which is what these columns store.
+    //
+    // Unlike the characteristics columns above, the defaults here are NOT
+    // temporary placeholders: false and 0 are permanently legitimate values
+    // meaning "no lasting injury of this kind", so there is no follow-up
+    // migration to drop them.
+    missNextGame: boolean('miss_next_game').notNull().default(false),
+    nigglingInjuryCount: integer('niggling_injury_count').notNull().default(0),
+    // The EFFECTIVE, capped magnitude of each characteristic's current
+    // reduction — the real distance between the stored characteristic and
+    // the player's baseline — not an occurrence count of every reduction
+    // event. A reduction the rules absorbed (BBL's "-XX (no effect)": the
+    // stat is already at its floor, or at the rules' max-reductions cap)
+    // never moved the stored characteristic, so it is not counted here.
+    moveReductionCount: integer('move_reduction_count').notNull().default(0),
+    strengthReductionCount: integer('strength_reduction_count')
+      .notNull()
+      .default(0),
+    agilityReductionCount: integer('agility_reduction_count')
+      .notNull()
+      .default(0),
+    passingReductionCount: integer('passing_reduction_count')
+      .notNull()
+      .default(0),
+    armourReductionCount: integer('armour_reduction_count')
+      .notNull()
+      .default(0),
   },
 });
 

@@ -160,7 +160,10 @@ export async function makeService(
   );
 
   const playersImport = mock<PlayersImportService>();
-  playersImport.upsertPlayerResult.mockResolvedValue({ id: 900 });
+  playersImport.upsertPlayerResult.mockResolvedValue({
+    id: 900,
+    created: true,
+  });
 
   const teamsImport = mock<TeamsImportService>();
   teamsImport.upsert.mockResolvedValue(
@@ -252,6 +255,15 @@ export const goodPlayer: BblPlayer = {
     agility: 3,
     passing: 4,
     armour: 8,
+  },
+  lastingInjuries: {
+    missNextGame: false,
+    nigglingInjuryCount: 0,
+    moveReductionCount: 0,
+    strengthReductionCount: 0,
+    agilityReductionCount: 0,
+    passingReductionCount: 0,
+    armourReductionCount: 0,
   },
 };
 
