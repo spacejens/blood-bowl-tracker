@@ -60,6 +60,15 @@ interface CurrentRow extends PlayerLastingInjuries {
 }
 
 /**
+ * The `tx` handle `Db['transaction']`'s callback receives. It is not the same
+ * type as `Db` itself (drizzle's transaction client is missing `$client` and a
+ * couple of other top-level-only members), so a method that must run either
+ * on `this.db` or inside a transaction takes `Db | TransactionClient` rather
+ * than `Db` alone.
+ */
+type TransactionClient = Parameters<Parameters<Db['transaction']>[0]>[0];
+
+/**
  * Manufactures the `players_history` versions a freshly-inserted player needs
  * for a lasting injury that was already healed before this import run.
  *
@@ -108,28 +117,30 @@ export class PlayerLastingInjuryBackfillService {
       return { backfilledPlayerIds: [] };
     }
 
-    // A retried/repeated call for the same currently-clean player would
-    // otherwise manufacture another duplicate accumulated-then-real history
-    // pair every time, since nothing else records that the backfill already
-    // happened. A player already carrying a non-default players_history row
-    // was already backfilled by an earlier call, so this makes a repeated
-    // call a safe no-op.
-    const alreadyBackfilled = await this.alreadyBackfilled(
-      candidates.map((row) => row.id),
-    );
-    const needingBackfill = candidates.filter(
-      (row) => !alreadyBackfilled.has(row.id),
-    );
-    if (needingBackfill.length === 0) {
-      return { backfilledPlayerIds: [] };
-    }
-
     // One transaction around every player's pair of writes: a failure part-way
     // through would otherwise leave some players with the ACCUMULATED values
     // committed as their current state, which is worse than not backfilling
     // at all.
+    //
+    // The already-backfilled check itself also happens inside this
+    // transaction, per player, immediately after a row lock on that player —
+    // never before the transaction opens. Two overlapping calls for the same
+    // currently-clean player (e.g. two concurrent RPC invocations) would
+    // otherwise both read an empty already-backfilled set before either
+    // transaction committed its writes, and both would manufacture a
+    // duplicate accumulated-then-real pair: exactly the race the lock closes.
+    // The lock serializes the second transaction behind the first, so its
+    // recheck (after acquiring the lock) sees the first transaction's
+    // now-committed history row and skips.
+    const backfilledPlayerIds: number[] = [];
     await this.db.transaction(async (tx) => {
-      for (const row of needingBackfill) {
+      for (const row of candidates) {
+        await this.lockPlayerRow(tx, row.id);
+        const alreadyBackfilled = await this.alreadyBackfilled([row.id], tx);
+        if (alreadyBackfilled.has(row.id)) {
+          continue;
+        }
+
         const past = accumulated.get(row.id) ?? EMPTY;
         // Two sequential UPDATEs, never batched with another player's: the
         // versioning() trigger records one history row per UPDATE, so the
@@ -143,14 +154,30 @@ export class PlayerLastingInjuryBackfillService {
           .update(players)
           .set(this.currentValues(row))
           .where(inArray(players.id, [row.id]));
+        backfilledPlayerIds.push(row.id);
       }
     });
 
     return {
-      backfilledPlayerIds: needingBackfill
-        .map((row) => row.id)
-        .sort((a, b) => a - b),
+      backfilledPlayerIds: backfilledPlayerIds.sort((a, b) => a - b),
     };
+  }
+
+  /**
+   * Locks the player row for the duration of the enclosing transaction, so a
+   * second concurrent call for the same player blocks here until the first
+   * transaction commits (or rolls back) rather than racing it — see the
+   * comment above this method's only call site.
+   */
+  private async lockPlayerRow(
+    tx: TransactionClient,
+    playerId: number,
+  ): Promise<void> {
+    await tx
+      .select({ id: players.id })
+      .from(players)
+      .where(inArray(players.id, [playerId]))
+      .for('update');
   }
 
   private async currentState(playerIds: number[]): Promise<CurrentRow[]> {
@@ -219,9 +246,16 @@ export class PlayerLastingInjuryBackfillService {
    * index signature (see that file's own comment for why), so the selected
    * `id` column type-checks but comes back as `unknown` — the same table
    * `players.id` mirrors, so the cast back to `number` is safe.
+   *
+   * Takes an explicit `executor` (defaulting to `this.db`) so the same query
+   * can run either outside a transaction or, as its only real caller does,
+   * inside one after a row lock — see `lockPlayerRow`.
    */
-  private async alreadyBackfilled(playerIds: number[]): Promise<Set<number>> {
-    const rows = await this.db
+  private async alreadyBackfilled(
+    playerIds: number[],
+    executor: Db | TransactionClient = this.db,
+  ): Promise<Set<number>> {
+    const rows = await executor
       .select({ id: playersHistory.id })
       .from(playersHistory)
       .where(
