@@ -117,11 +117,14 @@ export interface TpRosterPlayer {
   lastingInjuries?: TpPlayerLastingInjuries;
   /**
    * The characteristics of the position template this player was recruited
-   * from, from the entry's own nested `lineUpMaster`. This is the baseline a
-   * current-vs-template diff needs in order to spot a stat reduction TP does
-   * not otherwise report — advancement only ever moves a stat toward better,
-   * so any current value on the worse side of this is an active, unhealed
-   * reduction.
+   * from, from the entry's own nested `lineUpMaster`. A current-vs-template
+   * diff against this can surface that a stat sits on the worse side of the
+   * template, which TP does not otherwise report directly. It is not by
+   * itself a sufficient baseline for an exact reduction count, though: TP
+   * exposes no field distinguishing an advancement from an injury, so an
+   * advancement and a reduction on the same characteristic in the same
+   * player can cancel in this diff. An exact count needs TP injury history
+   * or another baseline that also accounts for advancements.
    *
    * The per-entry copy rather than a cross-reference into
    * `rosterMaster.lineUpMasters[]` by id: it is right there on the player, so
