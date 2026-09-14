@@ -382,8 +382,9 @@ trace anywhere. For each freshly-inserted player the server recomputes what
 their imported match events say they have accumulated — niggling injuries and
 stat reductions, deliberately not miss-next-game, which clears after one game
 and would otherwise flag nearly every player who has ever been hurt — and,
-where that differs from the current row, writes the accumulated values and
-immediately writes the real ones back, producing the two history versions
+when the current row is clean and the accumulated state is nonzero, writes
+the accumulated values and immediately writes the real ones back, producing
+the two history versions
 `tools/review-player`'s "healed" stratum needs.
 
 It must run after match events for a structural reason: `match_events` rows
