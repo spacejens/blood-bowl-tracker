@@ -30,7 +30,7 @@ type AccumulatedInjuries = Omit<PlayerLastingInjuries, 'missNextGame'>;
  * out-of-scope consequence type is a safe, silent no-op rather than a compile
  * error.
  */
-const COUNTER_BY_CONSEQUENCE_TYPE: Readonly<
+export const COUNTER_BY_CONSEQUENCE_TYPE: Readonly<
   Partial<Record<ConsequenceType, keyof AccumulatedInjuries>>
 > = {
   niggling_injury: 'nigglingInjuryCount',

@@ -4,11 +4,15 @@ import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
+import { LASTING_INJURY_SUFFERED_TYPES } from '../shared/match-event-types';
 import {
   extractAllFilterValues,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
-import { PlayerLastingInjuryBackfillService } from './player-lasting-injury-backfill.service';
+import {
+  COUNTER_BY_CONSEQUENCE_TYPE,
+  PlayerLastingInjuryBackfillService,
+} from './player-lasting-injury-backfill.service';
 
 /** A player row as the service's first query selects it. */
 function current(overrides: Record<string, unknown> = {}) {
@@ -39,6 +43,17 @@ async function build(
 }
 
 describe('PlayerLastingInjuryBackfillService', () => {
+  it('has an accumulator counter for every lasting-injury suffered type', () => {
+    // COUNTER_BY_CONSEQUENCE_TYPE and LASTING_INJURY_SUFFERED_TYPES are two
+    // independently-maintained lists of the same six consequence types; this
+    // catches future drift between them.
+    expect(
+      LASTING_INJURY_SUFFERED_TYPES.every(
+        (type) => COUNTER_BY_CONSEQUENCE_TYPE[type] !== undefined,
+      ),
+    ).toBe(true);
+  });
+
   it('issues no query at all for an empty player list', async () => {
     const { service, db } = await build();
 
@@ -217,6 +232,55 @@ describe('PlayerLastingInjuryBackfillService', () => {
     await expect(
       service.syncLastingInjuryHistory({ playerIds: [7, 8] }),
     ).resolves.toEqual({ backfilledPlayerIds: [7] });
+  });
+
+  it('leaves a player with nonzero current counts untouched when no matching match events exist at all', async () => {
+    // The player is not "currently clean" (nonzero armourReductionCount), so
+    // even though the accumulated/history-derived state (nothing recorded)
+    // is LOWER than the current real state, the isCurrentlyClean gate must
+    // still block a backfill.
+    const { service, db } = await build(
+      [current({ armourReductionCount: 1 })],
+      [],
+    );
+
+    await expect(
+      service.syncLastingInjuryHistory({ playerIds: [7] }),
+    ).resolves.toEqual({ backfilledPlayerIds: [] });
+
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('writes two adjacent update pairs, one per player, when backfilling multiple players', async () => {
+    const { service, db } = await build(
+      [current({ id: 7 }), current({ id: 8 })],
+      [
+        { playerId: 7, consequenceType: 'niggling_injury', total: 1 },
+        { playerId: 8, consequenceType: 'stat_reduction_av', total: 1 },
+      ],
+    );
+
+    await expect(
+      service.syncLastingInjuryHistory({ playerIds: [7, 8] }),
+    ).resolves.toEqual({ backfilledPlayerIds: [7, 8] });
+
+    // Queries 0 and 1 are the current/accumulated reads; 2-5 are the four
+    // UPDATEs, which must appear as player 7's accumulated-then-real pair
+    // immediately followed by player 8's, never interleaved or reordered,
+    // since the versioning() trigger relies on each pair being adjacent.
+    expect(db.chains).toHaveLength(6);
+    expect(firstCallArg(db.chains[2].set)).toMatchObject({
+      nigglingInjuryCount: 1,
+    });
+    expect(firstCallArg(db.chains[3].set)).toMatchObject({
+      nigglingInjuryCount: 0,
+    });
+    expect(firstCallArg(db.chains[4].set)).toMatchObject({
+      armourReductionCount: 1,
+    });
+    expect(firstCallArg(db.chains[5].set)).toMatchObject({
+      armourReductionCount: 0,
+    });
   });
 
   it('skips a player id with no row in the database', async () => {
