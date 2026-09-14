@@ -9,6 +9,7 @@ import { PlayerCharacteristicsValidationService } from './player-characteristics
 import { PlayerDeathService } from './player-death.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryBackfillService } from './player-lasting-injury-backfill.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 import { StarPlayersService } from './star-players.service';
 
@@ -26,6 +27,7 @@ import { StarPlayersService } from './star-players.service';
     PlayerDeathService,
     PlayerDeepdiveCountsService,
     PlayerLastingInjuryBackfillService,
+    PlayerLastingInjuryValidationService,
     StarPlayersService,
   ],
   exports: [

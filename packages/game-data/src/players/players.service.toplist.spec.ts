@@ -35,6 +35,7 @@ import {
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 
 describe('PlayersService toplist queries', () => {
@@ -61,6 +62,10 @@ describe('PlayersService toplist queries', () => {
         {
           provide: PlayerCharacteristicsValidationService,
           useValue: mock<PlayerCharacteristicsValidationService>(),
+        },
+        {
+          provide: PlayerLastingInjuryValidationService,
+          useValue: mock<PlayerLastingInjuryValidationService>(),
         },
         { provide: DB, useValue: db },
       ],

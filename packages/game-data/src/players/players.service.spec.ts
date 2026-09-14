@@ -21,6 +21,7 @@ import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService, PlayerUpsertConflictError } from './players.service';
 
 const fakePlayer = {
@@ -67,6 +68,9 @@ describe('PlayersService', () => {
         // except for one rules-set format read that the same mockDb
         // already serves.
         CharacteristicFormatValidationService,
+        // Pure and dependency-free (CLAUDE.md's decision-service carve-out):
+        // no constructor, no I/O — passed real rather than mocked.
+        PlayerLastingInjuryValidationService,
         { provide: DB, useValue: dbMock.db },
       ],
     }).compile();

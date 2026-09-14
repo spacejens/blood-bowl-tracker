@@ -53,6 +53,7 @@ import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 
 export class PlayerUpsertConflictError extends UpsertConflictError {}
 
@@ -66,6 +67,7 @@ export class PlayersService {
     private readonly matchEventCounts: MatchEventCountsService,
     private readonly playerContextNames: PlayerContextNamesService,
     private readonly characteristicsValidation: PlayerCharacteristicsValidationService,
+    private readonly lastingInjuryValidation: PlayerLastingInjuryValidationService,
   ) {}
 
   async findById(id: number): Promise<
@@ -232,11 +234,16 @@ export class PlayersService {
    * `rulesSetId` is used only for that check — it is never persisted, so
    * which rules set a player's characteristics were validated against is not
    * itself recorded anywhere.
+   *
+   * Any supplied lasting injuries are similarly validated — all-or-nothing,
+   * and every count a nonnegative integer — before anything is written; a
+   * violation throws `LastingInjuryValidationError` and nothing is stored.
    */
   async upsert(
     data: UpsertPlayer,
   ): Promise<{ player: Player; created: boolean }> {
     await this.characteristicsValidation.validate(data);
+    this.lastingInjuryValidation.validate(data);
 
     const columns = {
       name: data.name,

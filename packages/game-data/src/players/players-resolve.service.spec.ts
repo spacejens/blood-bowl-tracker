@@ -10,6 +10,7 @@ import { PlayerContextNamesService } from '../shared/player-context-names.servic
 import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
+import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
 import { PlayersService } from './players.service';
 
 async function makeService(rows: unknown[]) {
@@ -34,6 +35,10 @@ async function makeService(rows: unknown[]) {
       {
         provide: PlayerCharacteristicsValidationService,
         useValue: mock<PlayerCharacteristicsValidationService>(),
+      },
+      {
+        provide: PlayerLastingInjuryValidationService,
+        useValue: mock<PlayerLastingInjuryValidationService>(),
       },
       { provide: DB, useValue: db },
     ],
