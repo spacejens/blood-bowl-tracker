@@ -110,19 +110,30 @@ export class HealedInjuryStratificationService implements PlayerStratifier {
    * them via `Object.fromEntries(historyMirroredShapes.map((shape) => [shape.name, ...]))`.
    * The generated column map's type is an index signature, so
    * `playersHistory.missNextGame` type-checks but is `undefined` at runtime —
-   * it only fails once the query actually runs. Bracket access with the
-   * literal SQL name is required here; it cannot be shared with `noInjury()`'s
-   * camelCase access on `players` via one generic helper.
+   * it only fails once the query actually runs. Bracket access is required
+   * here; it cannot be shared with `noInjury()`'s camelCase access on
+   * `players` via one generic helper. Each key is `players.<column>.name`
+   * rather than a bare string literal, so the SQL name is derived from the
+   * same column definition `noInjury()` uses — a rename in
+   * `packages/db/src/schema/game-data/players.ts` then breaks this reference
+   * at its source instead of leaving a stale literal here.
+   *
+   * Includes `miss_next_game` even though the one-time lasting-injury history
+   * backfill (`packages/game-data/src/players/player-lasting-injury-backfill.service.ts`)
+   * deliberately never manufactures miss-next-game history — only ordinary
+   * imports over time write it, as a player's status changes call to call —
+   * so this stratum can also surface a player whose only history-vs-current
+   * difference is a cleared miss-next-game, distinct from the backfill's gap.
    */
   private anyInjuryInHistory(): SQL {
     return or(
-      eq(playersHistory['miss_next_game'], true),
-      gt(playersHistory['niggling_injury_count'], 0),
-      gt(playersHistory['move_reduction_count'], 0),
-      gt(playersHistory['strength_reduction_count'], 0),
-      gt(playersHistory['agility_reduction_count'], 0),
-      gt(playersHistory['passing_reduction_count'], 0),
-      gt(playersHistory['armour_reduction_count'], 0),
+      eq(playersHistory[players.missNextGame.name], true),
+      gt(playersHistory[players.nigglingInjuryCount.name], 0),
+      gt(playersHistory[players.moveReductionCount.name], 0),
+      gt(playersHistory[players.strengthReductionCount.name], 0),
+      gt(playersHistory[players.agilityReductionCount.name], 0),
+      gt(playersHistory[players.passingReductionCount.name], 0),
+      gt(playersHistory[players.armourReductionCount.name], 0),
     ) as SQL;
   }
 }
