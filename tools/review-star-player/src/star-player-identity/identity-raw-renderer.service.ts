@@ -93,20 +93,25 @@ export class StarPlayerIdentityRawRendererService {
     );
   }
 
-  private async manualSection(star: SampledStarPlayer): Promise<string | null> {
+  private async manualSection(star: SampledStarPlayer): Promise<string> {
     const owned = await this.externalIds.allForPosition(star.positionId);
     const entries = (await this.manual.starPlayers()).filter(
       (entry) =>
         this.names.matchesName(entry.name, star.positionName) ||
         entry.externalIds.some((ref) => this.names.refMatches(ref, owned)),
     );
-    if (entries.length === 0) {
-      return null;
-    }
-    const rows: TableCell[][] = entries.map((entry) => [
-      entry.name,
-      entry.externalIds.map((ref) => `${ref.system}: ${ref.id}`),
-    ]);
+    const rows: TableRow[] =
+      entries.length === 0
+        ? [
+            this.html.highlight([
+              `no curated entry found for "${star.positionName}"`,
+              '—',
+            ]),
+          ]
+        : entries.map((entry) => [
+            entry.name,
+            entry.externalIds.map((ref) => `${ref.system}: ${ref.id}`),
+          ]);
     return (
       this.html.subheading('Manual curation') +
       this.html.table(['Curated name', 'Registered external ids'], rows)
