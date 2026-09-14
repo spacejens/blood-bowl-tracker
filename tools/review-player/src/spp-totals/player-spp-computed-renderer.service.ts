@@ -23,18 +23,21 @@ export class PlayerSppComputedRendererService {
     const rows: TableRow[] = [
       ['Computed total (sum of match events)', String(totals.computedTotal)],
       ['SPP-earning events', String(totals.eventCount)],
-      totals.mismatch ? this.html.highlight(verdict) : verdict,
+      totals.mismatch ? this.html.highlight(verdict, [1]) : verdict,
     ];
     const table = this.html.table(['Field', 'Value'], rows);
     if (totals.nonStandardEvents.length === 0) {
       return table;
     }
     const eventRows: TableRow[] = totals.nonStandardEvents.map((event) =>
-      this.html.highlight([
-        event.actionType,
-        String(event.recordedValue),
-        String(event.expectedValue),
-      ]),
+      this.html.highlight(
+        [
+          event.actionType,
+          String(event.recordedValue),
+          String(event.expectedValue),
+        ],
+        [1, 2],
+      ),
     );
     const eventsTable = this.html.table(
       ['Action type', 'Recorded SPP', 'Expected SPP'],
