@@ -119,30 +119,34 @@ export class StarPlayerIdentityRawRendererService {
   }
 
   /**
-   * BBL's and TP's own spellings side by side. Apostrophe style, quote style,
-   * case and a duo star's parenthesised partner are known, expected
-   * differences and never a mismatch on their own; anything else is, and gets
-   * a highlighted row carrying an explicit MISMATCH label so the report stays
-   * readable without colour.
+   * BBL's and TP's own spellings side by side, one row per TP record — TP
+   * can carry a star under several deduplicated spellings, and a mismatch
+   * carried by a later one must not be hidden behind an earlier one that
+   * agrees. Apostrophe style, quote style, case and a duo star's
+   * parenthesised partner are known, expected differences and never a
+   * mismatch on their own; anything else is, and gets a highlighted row
+   * carrying an explicit MISMATCH label so the report stays readable without
+   * colour.
    */
   private agreementSection(
     bblStar: BblRawStarPlayer | null,
     tpStars: TpRawStarPlayer[],
   ): string | null {
-    const tpName = tpStars[0]?.name;
-    if (bblStar === null || tpName === undefined) {
+    if (bblStar === null || tpStars.length === 0) {
       return null;
     }
-    const agrees = this.names.matchesName(bblStar.name, tpName);
-    const cells: TableCell[] = [
-      bblStar.name,
-      tpName,
-      agrees ? 'agree' : 'MISMATCH',
-    ];
-    const row: TableRow = agrees ? cells : this.html.highlight(cells);
+    const rows: TableRow[] = tpStars.map((tpStar) => {
+      const agrees = this.names.matchesName(bblStar.name, tpStar.name);
+      const cells: TableCell[] = [
+        bblStar.name,
+        tpStar.name,
+        agrees ? 'agree' : 'MISMATCH',
+      ];
+      return agrees ? cells : this.html.highlight(cells);
+    });
     return (
       this.html.subheading('BBL / TP name agreement') +
-      this.html.table(['BBL name', 'TP name', 'Verdict'], [row])
+      this.html.table(['BBL name', 'TP name', 'Verdict'], rows)
     );
   }
 }

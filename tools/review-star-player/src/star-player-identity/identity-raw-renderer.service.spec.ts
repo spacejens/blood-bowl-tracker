@@ -178,6 +178,35 @@ describe('StarPlayerIdentityRawRendererService', () => {
     expect(html).toContain('MISMATCH');
   });
 
+  it('flags a mismatch carried by a second TP spelling, not just the first', async () => {
+    const d = deps();
+    d.lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '126',
+        name: 'Eldril Sidewinder',
+        cost: null,
+        canPlayFor: null,
+        skills: null,
+        characteristics: null,
+      },
+      notFoundNote: '',
+    });
+    d.lookup.tpStarsFor.mockResolvedValue({
+      stars: [
+        { name: 'Eldril Sidewinder', entries: [] },
+        { name: 'Something Entirely Different', entries: [] },
+      ],
+      notFoundNote: '',
+    });
+    const service = await makeService(d);
+
+    const html = await service.render(STAR);
+
+    expect(html).toContain('agree');
+    expect(html).toContain('MISMATCH');
+    expect(html).toContain('Something Entirely Different');
+  });
+
   it('does not call a duo-star spelling difference a mismatch', async () => {
     const d = deps();
     d.lookup.bblStarFor.mockResolvedValue({
