@@ -120,7 +120,9 @@ describe('PositionCharacteristicsRawRendererService', () => {
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain(
-      '<td>Blitzer</td><td>310</td><td>no characteristics table on the page</td><td>—</td><td>—</td><td>—</td><td>—</td>',
+      '<td>Blitzer</td><td>310</td>' +
+        '<td class="mismatch-cell">no characteristics table on the page</td>' +
+        '<td class="mismatch-cell">—</td>'.repeat(4),
     );
   });
 
@@ -133,8 +135,11 @@ describe('PositionCharacteristicsRawRendererService', () => {
     expect(html).toContain('<h5>BBL</h5>');
     expect(html).toContain('class="mismatch"');
     expect(html).toContain(
-      '<td>Blitzer</td><td>310</td><td>page not in the mirror</td><td>—</td><td>—</td><td>—</td><td>—</td>',
+      '<td>Blitzer</td><td>310</td>' +
+        '<td class="mismatch-cell">page not in the mirror</td>' +
+        '<td class="mismatch-cell">—</td>'.repeat(4),
     );
+    expect(html).not.toContain('<td>Blitzer</td><td class="mismatch-cell">');
   });
 
   it('lists TP official-list characteristics deduplicated by (rules set, name), excluding star players', async () => {
