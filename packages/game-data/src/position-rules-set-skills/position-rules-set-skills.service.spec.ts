@@ -225,6 +225,78 @@ describe('PositionRulesSetSkillsService', () => {
       expect(result).toEqual({ positionRulesSetSkillIds: [51] });
     });
 
+    it('allows a batch that reassigns the star player unique skill from one skill to another', async () => {
+      const otherSkillRulesSetRow = { skillId: 8, rulesSetId: 4 };
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow, otherSkillRulesSetRow],
+        [
+          {
+            id: 51,
+            positionRulesSetId: 21,
+            skillId: 7,
+            isStarPlayerUniqueSkill: true,
+          },
+          {
+            id: 52,
+            positionRulesSetId: 21,
+            skillId: 8,
+            isStarPlayerUniqueSkill: false,
+          },
+        ],
+        [{ id: 51 }],
+        [{ id: 52 }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [
+          { ...entry, skillId: 7, isStarPlayerUniqueSkill: false },
+          { ...entry, skillId: 8, isStarPlayerUniqueSkill: true },
+        ],
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51, 52] });
+      // Update clearing skill A's flag (id 51) is issued before the update
+      // setting skill B's flag (id 52), so the partial unique index is never
+      // transiently violated within the transaction.
+      expect(firstCallArg(db.chains[3].where)).toBeDefined();
+      expect(firstCallArg(db.chains[3].set)).toEqual({
+        isStarPlayerUniqueSkill: false,
+      });
+      expect(firstCallArg(db.chains[4].set)).toEqual({
+        isStarPlayerUniqueSkill: true,
+      });
+      expect(db.transaction).toHaveBeenCalled();
+    });
+
+    it('rejects a batch reassigning the flag out of order in the request when a different, unrelated skill also claims it', async () => {
+      const otherSkillRulesSetRow = { skillId: 8, rulesSetId: 4 };
+      const thirdSkillRulesSetRow = { skillId: 9, rulesSetId: 4 };
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow, otherSkillRulesSetRow, thirdSkillRulesSetRow],
+        [
+          {
+            id: 51,
+            positionRulesSetId: 21,
+            skillId: 7,
+            isStarPlayerUniqueSkill: true,
+          },
+        ],
+      );
+      const service = await makeService(db);
+
+      // Skill 7's flag is never cleared in this batch, so skill 9 claiming
+      // the flag still conflicts with it.
+      await expect(
+        service.sync({
+          entries: [{ ...entry, skillId: 9, isStarPlayerUniqueSkill: true }],
+        }),
+      ).rejects.toBeInstanceOf(SkillValidationError);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
     it('looks both preconditions up by the rules sets the batch names', async () => {
       const db = mockDb(
         [positionRulesSetRow],
