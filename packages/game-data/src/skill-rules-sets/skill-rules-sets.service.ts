@@ -156,9 +156,8 @@ export class SkillRulesSetsService {
 
   /**
    * Every skill this rules set has, with its category, ordered by skill name.
-   * The mirror of listBySkill, for a caller holding a rules set rather than a
-   * skill — the read #864's importer and #865's views will need. Not exposed
-   * over the contract by this issue; see the plan's implementer notes.
+   * The mirror of listBySkill, for a caller holding a rules set id rather
+   * than a skill id.
    */
   listByRulesSet(rulesSetId: number): Promise<RulesSetSkillCategory[]> {
     return this.db
