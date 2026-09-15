@@ -107,6 +107,11 @@ export { MissingRequiredFieldError } from './shared/missing-required-field-error
 export type { PlayerContextNames } from './shared/player-context-names.service';
 export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names.service';
 export type { TeamTopPlayer } from './shared/team-top-player';
+export { SkillsModule } from './skills/skills.module';
+export {
+  SkillsService,
+  SkillUpsertConflictError,
+} from './skills/skills.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
