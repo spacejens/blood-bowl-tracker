@@ -59,12 +59,10 @@ export class PositionRulesSetSkillsService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /**
-   * Insert or update the supplied starting skills, matched on their natural
-   * key `(positionId, rulesSetId, skillId)`. Idempotent: re-syncing a triple
-   * is a no-op write to the same row.
-   *
-   * Deliberately *not* `INSERT ... ON CONFLICT DO UPDATE`, for the same
-   * history-trigger reason PositionRulesSetsService.sync avoids it.
+   * Insert any supplied starting skill that is not already recorded, matched
+   * on its natural key `(positionId, rulesSetId, skillId)`. Idempotent: an
+   * entry that already exists needs no write at all, since the natural key
+   * is the whole row — its id is returned unchanged.
    *
    * Every validation runs over the whole batch before any write, so one bad
    * entry fails the call rather than half-applying it.
@@ -168,22 +166,26 @@ export class PositionRulesSetSkillsService {
     // that is also its natural key — there is no other column left to
     // change, so an entry matching an existing row needs no write at all;
     // its id is simply carried through. Only entries with no existing row
-    // need an insert.
-    const existingIds: number[] = [];
+    // need an insert. `resultIds` is sized and indexed to `resolved` so the
+    // returned ids line up positionally with `data.entries`, regardless of
+    // which entries were pre-existing and which were newly inserted.
+    const resultIds: number[] = new Array<number>(resolved.length);
     const toInsert: NewPositionRulesSetSkill[] = [];
-    for (const row of resolved) {
+    const toInsertIndexes: number[] = [];
+    for (const [index, row] of resolved.entries()) {
       const existingId = existingIdByKey.get(
         `${row.positionRulesSetId}|${row.skillId}`,
       );
       if (existingId === undefined) {
         toInsert.push(row);
+        toInsertIndexes.push(index);
       } else {
-        existingIds.push(existingId);
+        resultIds[index] = existingId;
       }
     }
 
     if (toInsert.length === 0) {
-      return { positionRulesSetSkillIds: existingIds };
+      return { positionRulesSetSkillIds: resultIds };
     }
 
     // One transaction around every insert: the caller treats this single
@@ -193,12 +195,10 @@ export class PositionRulesSetSkillsService {
         .insert(positionRulesSetSkills)
         .values(toInsert)
         .returning({ id: positionRulesSetSkills.id });
-      return {
-        positionRulesSetSkillIds: [
-          ...existingIds,
-          ...inserted.map((row) => row.id),
-        ],
-      };
+      inserted.forEach((row, insertedIndex) => {
+        resultIds[toInsertIndexes[insertedIndex]] = row.id;
+      });
+      return { positionRulesSetSkillIds: resultIds };
     });
   }
 

@@ -129,10 +129,38 @@ describe('PositionRulesSetSkillsService', () => {
 
       await expect(
         service.sync({
-          entries: [entry, { ...entry }],
+          entries: [entry, entry],
         }),
       ).rejects.toBeInstanceOf(SkillValidationError);
       expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('returns ids in the same order as the input entries, not grouped by existing/new', async () => {
+      // entryA and entryC already exist; entryB is new. Interleaving them
+      // guards against the result being built as [...existing, ...inserted].
+      const entryA = { positionId: 3, rulesSetId: 4, skillId: 7 };
+      const entryB = { positionId: 5, rulesSetId: 4, skillId: 8 };
+      const entryC = { positionId: 3, rulesSetId: 4, skillId: 9 };
+      const db = mockDb(
+        [positionRulesSetRow, { id: 22, positionId: 5, rulesSetId: 4 }],
+        [
+          skillRulesSetRow,
+          { skillId: 8, rulesSetId: 4 },
+          { skillId: 9, rulesSetId: 4 },
+        ],
+        [
+          { id: 51, positionRulesSetId: 21, skillId: 7 },
+          { id: 53, positionRulesSetId: 21, skillId: 9 },
+        ],
+        [{ id: 52 }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [entryA, entryB, entryC],
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51, 52, 53] });
     });
 
     it('looks both preconditions up by the rules sets the batch names', async () => {
