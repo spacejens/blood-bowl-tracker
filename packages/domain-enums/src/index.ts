@@ -4,4 +4,5 @@ export * from './external-systems';
 export * from './match-events';
 export * from './matches';
 export * from './rules-sets';
+export * from './skills';
 export * from './trophies';

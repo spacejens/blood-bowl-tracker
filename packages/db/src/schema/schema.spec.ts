@@ -19,11 +19,15 @@ import {
   players,
   positionExternalIds,
   positionRulesSets,
+  positionRulesSetSkills,
   positions,
   positionsRaceEras,
   raceEras,
   races,
   rulesSets,
+  skillExternalIds,
+  skillRulesSets,
+  skills,
   sppAwardValues,
   teamEras,
   teams,
@@ -418,5 +422,30 @@ describe('schema', () => {
       'position_id',
       'rules_set_id',
     ]);
+  });
+
+  it('exports skills table', () => {
+    expect(skills.id).toBeDefined();
+    expect(skills.name).toBeDefined();
+  });
+
+  it('exports skillRulesSets association table', () => {
+    expect(skillRulesSets.id).toBeDefined();
+    expect(skillRulesSets.skillId).toBeDefined();
+    expect(skillRulesSets.rulesSetId).toBeDefined();
+    expect(skillRulesSets.category).toBeDefined();
+  });
+
+  it('exports positionRulesSetSkills association table', () => {
+    expect(positionRulesSetSkills.id).toBeDefined();
+    expect(positionRulesSetSkills.positionRulesSetId).toBeDefined();
+    expect(positionRulesSetSkills.skillId).toBeDefined();
+  });
+
+  it('exports skillExternalIds table', () => {
+    expect(skillExternalIds.id).toBeDefined();
+    expect(skillExternalIds.skillId).toBeDefined();
+    expect(skillExternalIds.externalSystemId).toBeDefined();
+    expect(skillExternalIds.externalId).toBeDefined();
   });
 });

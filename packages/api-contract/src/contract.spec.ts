@@ -297,6 +297,31 @@ describe('contract', () => {
       ]).success,
     ).toBe(false);
   });
+
+  it('defines skills.upsert with CONFLICT and BAD_REQUEST errors', () => {
+    expect(errorCodesOf(contract.skills.upsert)).toEqual([
+      'CONFLICT',
+      'BAD_REQUEST',
+    ]);
+  });
+
+  it('defines skillRulesSets.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.skillRulesSets.sync)).toEqual(['BAD_REQUEST']);
+  });
+
+  it('defines skillRulesSets.list with no declared errors', () => {
+    expect(errorCodesOf(contract.skillRulesSets.list)).toEqual([]);
+  });
+
+  it('defines positionRulesSetSkills.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.positionRulesSetSkills.sync)).toEqual([
+      'BAD_REQUEST',
+    ]);
+  });
+
+  it('defines positionRulesSetSkills.list with no declared errors', () => {
+    expect(errorCodesOf(contract.positionRulesSetSkills.list)).toEqual([]);
+  });
 });
 
 describe('resolve procedures', () => {

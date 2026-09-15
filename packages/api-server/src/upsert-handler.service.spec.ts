@@ -2,6 +2,7 @@ import {
   CharacteristicFormatMismatchError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  SkillValidationError,
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
@@ -382,6 +383,17 @@ describe('UpsertHandlerService', () => {
         }),
       ).rejects.toBe(missing);
       expect(errors.BAD_REQUEST).not.toHaveBeenCalled();
+    });
+
+    it('maps a skill validation error to BAD_REQUEST in runSync', async () => {
+      await expect(
+        handler.runSync(errors, () => {
+          throw new SkillValidationError('Skill 7 is not available');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message: 'Skill 7 is not available',
+      });
     });
   });
 });
