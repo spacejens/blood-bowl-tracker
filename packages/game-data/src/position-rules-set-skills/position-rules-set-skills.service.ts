@@ -194,9 +194,32 @@ export class PositionRulesSetSkillsService {
       const inserted = await tx
         .insert(positionRulesSetSkills)
         .values(toInsert)
-        .returning({ id: positionRulesSetSkills.id });
-      inserted.forEach((row, insertedIndex) => {
-        resultIds[toInsertIndexes[insertedIndex]] = row.id;
+        .returning({
+          id: positionRulesSetSkills.id,
+          positionRulesSetId: positionRulesSetSkills.positionRulesSetId,
+          skillId: positionRulesSetSkills.skillId,
+        });
+      // Postgres does not guarantee INSERT ... RETURNING preserves the
+      // input `values()` order, so the returned rows cannot be zipped back
+      // onto `toInsert` by array position — match by natural key instead.
+      const insertedIdByKey = new Map(
+        inserted.map((row) => [
+          `${row.positionRulesSetId}|${row.skillId}`,
+          row.id,
+        ]),
+      );
+      toInsert.forEach((row, insertedIndex) => {
+        const key = `${row.positionRulesSetId}|${row.skillId}`;
+        const id = insertedIdByKey.get(key);
+        if (id === undefined) {
+          // Every `toInsert` row was just inserted in this same statement,
+          // so its key must be present in `inserted` — this can only mean
+          // the insert silently dropped a row.
+          throw new Error(
+            `Insert into position_rules_set_skills did not return a row for key ${key}`,
+          );
+        }
+        resultIds[toInsertIndexes[insertedIndex]] = id;
       });
       return { positionRulesSetSkillIds: resultIds };
     });

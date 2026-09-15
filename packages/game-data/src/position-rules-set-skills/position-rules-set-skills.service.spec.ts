@@ -52,7 +52,7 @@ describe('PositionRulesSetSkillsService', () => {
         [positionRulesSetRow],
         [skillRulesSetRow],
         [],
-        [{ id: 51 }],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7 }],
       );
       const service = await makeService(db);
 
@@ -152,7 +152,7 @@ describe('PositionRulesSetSkillsService', () => {
           { id: 51, positionRulesSetId: 21, skillId: 7 },
           { id: 53, positionRulesSetId: 21, skillId: 9 },
         ],
-        [{ id: 52 }],
+        [{ id: 52, positionRulesSetId: 22, skillId: 8 }],
       );
       const service = await makeService(db);
 
@@ -163,12 +163,38 @@ describe('PositionRulesSetSkillsService', () => {
       expect(result).toEqual({ positionRulesSetSkillIds: [51, 52, 53] });
     });
 
+    it('matches inserted ids to their entries by natural key, not by RETURNING row order', async () => {
+      // Both entries are new (no existing rows), so both go through the
+      // insert path. Postgres does not guarantee INSERT ... RETURNING
+      // preserves the input `values()` order, so the mock returns the two
+      // inserted rows in the *reverse* of the order they were supplied in
+      // `toInsert` — entryY's row first, then entryX's. If `sync` matched
+      // by array position instead of by natural key, this would silently
+      // swap the two ids in the result.
+      const entryX = { positionId: 3, rulesSetId: 4, skillId: 7 };
+      const entryY = { positionId: 5, rulesSetId: 4, skillId: 8 };
+      const db = mockDb(
+        [positionRulesSetRow, { id: 22, positionId: 5, rulesSetId: 4 }],
+        [skillRulesSetRow, { skillId: 8, rulesSetId: 4 }],
+        [],
+        [
+          { id: 102, positionRulesSetId: 22, skillId: 8 },
+          { id: 101, positionRulesSetId: 21, skillId: 7 },
+        ],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({ entries: [entryX, entryY] });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [101, 102] });
+    });
+
     it('looks both preconditions up by the rules sets the batch names', async () => {
       const db = mockDb(
         [positionRulesSetRow],
         [skillRulesSetRow],
         [],
-        [{ id: 51 }],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7 }],
       );
       const service = await makeService(db);
 
