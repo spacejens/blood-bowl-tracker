@@ -18,7 +18,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { SkillValidationError } from '../shared/skill-validation-error';
 
 /** One rules set's category for a given skill, named for display. */
-export interface SkillRulesSetCategory {
+export interface SkillCategoryByRulesSet {
   rulesSetId: number;
   rulesSetName: string;
   category: SkillCategory;
@@ -59,7 +59,11 @@ export class SkillRulesSetsService {
    * avoids that.
    *
    * Validation runs over the whole batch before any write: one bad entry
-   * fails the call rather than half-applying it.
+   * fails the call rather than half-applying it. Unlike
+   * PositionRulesSetSkillsService.sync, this does not check that a supplied
+   * `skillId` or `rulesSetId` actually exists first — a nonexistent one
+   * surfaces as a raw database foreign-key-violation error rather than a
+   * typed SkillValidationError.
    */
   async sync(data: SyncSkillRulesSets): Promise<SyncSkillRulesSetsResult> {
     if (data.entries.length === 0) {
@@ -141,7 +145,7 @@ export class SkillRulesSetsService {
    * Every rules set that has this skill, with its category under each,
    * ordered by rules-set name so the list is stable across calls.
    */
-  listBySkill(skillId: number): Promise<SkillRulesSetCategory[]> {
+  listBySkill(skillId: number): Promise<SkillCategoryByRulesSet[]> {
     return this.db
       .select({
         rulesSetId: rulesSets.id,

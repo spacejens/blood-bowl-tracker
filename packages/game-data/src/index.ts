@@ -114,7 +114,7 @@ export type { TeamTopPlayer } from './shared/team-top-player';
 export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module';
 export type {
   RulesSetSkillCategory,
-  SkillRulesSetCategory,
+  SkillCategoryByRulesSet,
 } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillsModule } from './skills/skills.module';

@@ -44,3 +44,8 @@ its starting skills are recorded the same way. Rules sets that give a star one
 skill exclusive to them mark that on the individual starting-skill row rather
 than on the skill itself, so an ordinary skill row can still be shared by
 every position that starts with it.
+
+Syncing starting skills, and syncing skills' rules-set categories, only adds
+or updates rows for what's supplied. A starting skill or skill × rules-set
+association that a later sync no longer includes is not automatically
+removed — its row stays in place.
