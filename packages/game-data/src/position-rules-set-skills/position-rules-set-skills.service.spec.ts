@@ -156,6 +156,75 @@ describe('PositionRulesSetSkillsService', () => {
       expect(db.transaction).not.toHaveBeenCalled();
     });
 
+    it('rejects a batch with two entries both flagged as the star player unique skill for the same position/rules set', async () => {
+      const otherSkillRulesSetRow = { skillId: 8, rulesSetId: 4 };
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow, otherSkillRulesSetRow],
+      );
+      const service = await makeService(db);
+
+      await expect(
+        service.sync({
+          entries: [
+            { ...entry, isStarPlayerUniqueSkill: true },
+            {
+              ...entry,
+              skillId: 8,
+              isStarPlayerUniqueSkill: true,
+            },
+          ],
+        }),
+      ).rejects.toBeInstanceOf(SkillValidationError);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects a new star player unique skill entry when a different skill already holds that flag for the same position/rules set', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [
+          {
+            id: 51,
+            positionRulesSetId: 21,
+            skillId: 9,
+            isStarPlayerUniqueSkill: true,
+          },
+        ],
+      );
+      const service = await makeService(db);
+
+      await expect(
+        service.sync({
+          entries: [{ ...entry, isStarPlayerUniqueSkill: true }],
+        }),
+      ).rejects.toBeInstanceOf(SkillValidationError);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it('allows an entry updating its own row to keep its star player unique skill flag', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [
+          {
+            id: 51,
+            positionRulesSetId: 21,
+            skillId: 7,
+            isStarPlayerUniqueSkill: true,
+          },
+        ],
+        [{ id: 51 }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, isStarPlayerUniqueSkill: true }],
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51] });
+    });
+
     it('looks both preconditions up by the rules sets the batch names', async () => {
       const db = mockDb(
         [positionRulesSetRow],

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "c2d10557-895d-44c2-995b-e93eab66a362",
+  "id": "0889e476-b789-4773-bae0-56aab3e7433e",
   "prevIds": [
     "522b17ee-5570-41f0-8dad-92b53591909f"
   ],
@@ -12324,6 +12324,27 @@
       "entityType": "columns",
       "schema": "game_data",
       "table": "trophies_external_ids_history"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "position_rules_set_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": "\"is_star_player_unique_skill\" = true",
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "position_rules_set_skills_one_star_player_unique_skill",
+      "entityType": "indexes",
+      "schema": "game_data",
+      "table": "position_rules_set_skills"
     },
     {
       "nameExplicit": false,

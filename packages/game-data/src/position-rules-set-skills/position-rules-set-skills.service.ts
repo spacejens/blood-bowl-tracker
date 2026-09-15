@@ -63,8 +63,13 @@ export class PositionRulesSetSkillsService {
    * Deliberately *not* `INSERT ... ON CONFLICT DO UPDATE`, for the same
    * history-trigger reason PositionRulesSetsService.sync avoids it.
    *
-   * Both validations run over the whole batch before any write, so one bad
-   * entry fails the call rather than half-applying it.
+   * Every validation runs over the whole batch before any write, so one bad
+   * entry fails the call rather than half-applying it. This includes the
+   * `is_star_player_unique_skill` flag: at most one skill per position/rules
+   * set may carry it, checked both within the batch itself and against
+   * whatever already exists in the table (mirroring the database's own
+   * partial unique index, so a violation surfaces as this method's clearer
+   * error rather than a raw constraint failure).
    */
   async sync(
     data: SyncPositionRulesSetSkills,
@@ -108,6 +113,14 @@ export class PositionRulesSetSkillsService {
 
     const resolved: ResolvedStartingSkill[] = [];
     const seenKeys = new Set<string>();
+    // Tracks, per association row, which entry (if any) in this batch has
+    // already claimed the star-player-unique-skill flag there — so a second
+    // entry for the same position/rules set claiming it too is caught before
+    // any write, with a message naming both conflicting skills.
+    const starPlayerUniqueSkillByAssociation = new Map<
+      number,
+      { skillId: number; positionId: number; rulesSetId: number }
+    >();
     for (const entry of data.entries) {
       const associationId = associationIdByKey.get(
         `${entry.positionId}|${entry.rulesSetId}`,
@@ -134,6 +147,19 @@ export class PositionRulesSetSkillsService {
         );
       }
       seenKeys.add(key);
+      if (entry.isStarPlayerUniqueSkill) {
+        const claimedBy = starPlayerUniqueSkillByAssociation.get(associationId);
+        if (claimedBy !== undefined && claimedBy.skillId !== entry.skillId) {
+          throw new SkillValidationError(
+            `Position ${entry.positionId} under rules set ${entry.rulesSetId} marks both skill ${claimedBy.skillId} and skill ${entry.skillId} as the star player's unique skill in the same batch`,
+          );
+        }
+        starPlayerUniqueSkillByAssociation.set(associationId, {
+          skillId: entry.skillId,
+          positionId: entry.positionId,
+          rulesSetId: entry.rulesSetId,
+        });
+      }
       resolved.push({
         positionRulesSetId: associationId,
         skillId: entry.skillId,
@@ -149,6 +175,7 @@ export class PositionRulesSetSkillsService {
         id: positionRulesSetSkills.id,
         positionRulesSetId: positionRulesSetSkills.positionRulesSetId,
         skillId: positionRulesSetSkills.skillId,
+        isStarPlayerUniqueSkill: positionRulesSetSkills.isStarPlayerUniqueSkill,
       })
       .from(positionRulesSetSkills)
       .where(
@@ -161,6 +188,25 @@ export class PositionRulesSetSkillsService {
         row.id,
       ]),
     );
+
+    // A batch entry claiming the flag can only conflict with an *existing*
+    // row's flag when that existing row belongs to a different skill: an
+    // entry updating its own row's flag in place is not a conflict with
+    // itself.
+    for (const existingRow of existingRows) {
+      if (!existingRow.isStarPlayerUniqueSkill) continue;
+      const claimedBy = starPlayerUniqueSkillByAssociation.get(
+        existingRow.positionRulesSetId,
+      );
+      if (
+        claimedBy !== undefined &&
+        claimedBy.skillId !== existingRow.skillId
+      ) {
+        throw new SkillValidationError(
+          `Position ${claimedBy.positionId} under rules set ${claimedBy.rulesSetId} cannot mark skill ${claimedBy.skillId} as the star player's unique skill: skill ${existingRow.skillId} already has that flag there`,
+        );
+      }
+    }
 
     const toInsert: NewPositionRulesSetSkill[] = [];
     const toUpdate: { id: number; isStarPlayerUniqueSkill: boolean }[] = [];

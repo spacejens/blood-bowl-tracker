@@ -52,6 +52,7 @@ CREATE TABLE "game_data"."skills_external_ids" (
 --> statement-breakpoint
 CREATE TABLE "game_data"."skills_external_ids_history" (LIKE "game_data"."skills_external_ids");
 --> statement-breakpoint
+CREATE UNIQUE INDEX "position_rules_set_skills_one_star_player_unique_skill" ON "game_data"."position_rules_set_skills" ("position_rules_set_id") WHERE "is_star_player_unique_skill" = true;--> statement-breakpoint
 ALTER TABLE "game_data"."position_rules_set_skills" ADD CONSTRAINT "position_rules_set_skills_vRafK7R4aLbg_fkey" FOREIGN KEY ("position_rules_set_id") REFERENCES "game_data"."position_rules_sets"("id");--> statement-breakpoint
 ALTER TABLE "game_data"."position_rules_set_skills" ADD CONSTRAINT "position_rules_set_skills_skill_id_skills_id_fkey" FOREIGN KEY ("skill_id") REFERENCES "game_data"."skills"("id");--> statement-breakpoint
 ALTER TABLE "game_data"."skill_rules_sets" ADD CONSTRAINT "skill_rules_sets_skill_id_skills_id_fkey" FOREIGN KEY ("skill_id") REFERENCES "game_data"."skills"("id");--> statement-breakpoint
