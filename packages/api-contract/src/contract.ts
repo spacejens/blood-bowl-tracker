@@ -53,8 +53,21 @@ import {
   SyncPositionRulesSetsResultSchema,
   SyncPositionRulesSetsSchema,
 } from './schemas/position-rules-set';
+import {
+  ListPositionRulesSetSkillsSchema,
+  PositionRulesSetSkillRefSchema,
+  SyncPositionRulesSetSkillsResultSchema,
+  SyncPositionRulesSetSkillsSchema,
+} from './schemas/position-rules-set-skill';
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
+import { SkillSchema, UpsertSkillSchema } from './schemas/skill';
+import {
+  ListSkillRulesSetsSchema,
+  SkillRulesSetCategorySchema,
+  SyncSkillRulesSetsResultSchema,
+  SyncSkillRulesSetsSchema,
+} from './schemas/skill-rules-set';
 import {
   SyncSppAwardValuesResultSchema,
   SyncSppAwardValuesSchema,
@@ -173,6 +186,62 @@ export const contract = {
     list: oc
       .input(ListPositionRulesSetsSchema)
       .output(z.array(PositionRulesSetCharacteristicsSchema)),
+  },
+  skills: {
+    upsert: upsertProcedure(UpsertSkillSchema, SkillSchema),
+    upsertBatch: batchUpsertProcedure(UpsertSkillSchema, SkillSchema),
+    // Resolvable like every other entity an import tool references by
+    // external id across files, phases or tools — a starting-skill sync
+    // names its skills by id, which the caller got from here.
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
+  },
+  skillRulesSets: {
+    // Not an upsert: a skill's category row is keyed by (skillId,
+    // rulesSetId) rather than external ids, so there is no external-id
+    // conflict to detect and no entity+created shape to return, only the
+    // resulting row ids — same shape as positionRulesSets.sync.
+    // BAD_REQUEST is declared because the server rejects a batch naming the
+    // same (skill, rules set) pair twice: those two entries would otherwise
+    // both take the insert path and collide on the table's unique
+    // constraint, turning an authoring mistake into a raw database error.
+    sync: oc
+      .input(SyncSkillRulesSetsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Skill rules-set entries are not valid',
+        },
+      })
+      .output(SyncSkillRulesSetsResultSchema),
+    // Read-only, so it declares no errors — like competitionGroups.list and
+    // positionRulesSets.list. One skill per call: the caller already holds
+    // the skill id from its own `skills.upsert` response.
+    list: oc
+      .input(ListSkillRulesSetsSchema)
+      .output(z.array(SkillRulesSetCategorySchema)),
+  },
+  positionRulesSetSkills: {
+    // Not an upsert, for the same reason positionRulesSets.sync is not.
+    // BAD_REQUEST is declared because the server rejects an entry naming a
+    // skill with no skill_rules_sets row for that rules set, and one whose
+    // position/rules-set pair has no position_rules_sets row yet; both are
+    // authored-data feedback the importer reports per entry, not a server
+    // fault — matching how positionRulesSets.sync reports a characteristics
+    // format mismatch.
+    sync: oc
+      .input(SyncPositionRulesSetSkillsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Starting skills do not match the rules set',
+        },
+      })
+      .output(SyncPositionRulesSetSkillsResultSchema),
+    // Read-only, so it declares no errors. The service's rows also carry the
+    // rules set's and the skill's names; the output schema carries neither,
+    // so those never reach the caller.
+    list: oc
+      .input(ListPositionRulesSetSkillsSchema)
+      .output(z.array(PositionRulesSetSkillRefSchema)),
   },
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
