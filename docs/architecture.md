@@ -386,6 +386,30 @@ exist under that rules set. `PositionRulesSetsService.sync` in
 `packages/game-data` is the single place that writes it, and it rejects any
 row whose values disagree with the rules set's declared formats.
 
+`skills` is the catalogue of named player abilities (Block, Dodge,
+Regeneration, ...), carrying only a name; `skills_external_ids` links each to
+the source systems that name it, exactly as every other imported entity. A
+skill's _category_ is not on the row, because a rules set can move a skill
+between categories (BB2025 introduced Devious and moved existing skills into
+it) — it lives on `skill_rules_sets`, the skill × rules-set association, keyed
+by `(skill_id, rules_set_id)` and carrying a `skill_category` enum column
+(`general`, `agility`, `passing`, `strength`, `mutation`, `devious`, `trait`).
+A missing row means the skill does not exist under that rules set. This is the
+same split, for the same reason, as characteristics living on
+`position_rules_sets` rather than on `positions`.
+
+`position_rules_set_skills` records a position's _starting_ skills, anchored
+to `position_rules_sets.id` rather than to a duplicated position/rules-set
+pair, so a starting skill can only ever be recorded against a position and
+rules set that already has characteristics recorded. Its
+`is_star_player_unique_skill` flag marks the one skill a rules set makes
+exclusive to a given star player; it sits on the association row rather than
+on `skills`, so an ordinary skill row stays shareable between positions.
+`PositionRulesSetSkillsService.sync` in `packages/game-data` is the single
+place that writes it, and it rejects a row naming a skill with no
+`skill_rules_sets` entry for that rules set, or a position/rules-set pair with
+no `position_rules_sets` row yet.
+
 `players` carries its own `move`, `strength`, `agility`, `passing` and
 `armour`: both BBL and TP report a player's _current_ characteristics, which
 drift from the position's baseline through injuries and advancements, so

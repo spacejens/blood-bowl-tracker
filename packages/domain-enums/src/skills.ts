@@ -1,0 +1,37 @@
+/**
+ * Which group a skill belongs to under one rules set — what an advancing
+ * player rolls against to decide which skills they may take.
+ *
+ * - `general` — the common skills nearly every position can learn (Block,
+ *   Sure Hands, Tackle, ...).
+ * - `agility` — moving, dodging, jumping and catching (Dodge, Catch, Leap).
+ * - `passing` — throwing the ball, and in some rules sets team-mates (Pass,
+ *   Accurate, Safe Pair of Hands).
+ * - `strength` — blocking, wrestling and raw physical force (Mighty Blow,
+ *   Guard, Break Tackle).
+ * - `mutation` — available only to positions whose rules allow mutations, on
+ *   Chaos, Nurgle and similar teams (Claws, Horns, Tentacles).
+ * - `devious` — BB2025's category for underhanded, cheating and dirty-trick
+ *   skills. It is its own value rather than a re-use of `general` because
+ *   BB2025 both created it and moved existing skills into it, which is
+ *   precisely why a skill's category is recorded per rules set.
+ * - `trait` — skills intrinsic to a position rather than learnable: the
+ *   rulebooks' Extraordinary skills, traits and special rules (Regeneration,
+ *   Loner, Really Stupid). Recorded so a position's starting skill set is
+ *   complete, even though no advancement can ever grant one.
+ *
+ * The list is closed and small, so it is a `domain-enums` constant consumed
+ * as a Postgres enum, exactly like CHARACTERISTIC_FORMATS. The skills
+ * themselves are not: there are dozens of them, they are imported and
+ * curated, and they therefore live in the `skills` table like positions and
+ * races do.
+ */
+export const SKILL_CATEGORIES = [
+  'general',
+  'agility',
+  'passing',
+  'strength',
+  'mutation',
+  'devious',
+  'trait',
+] as const;
