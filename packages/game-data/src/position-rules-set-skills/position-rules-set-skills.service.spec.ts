@@ -189,6 +189,28 @@ describe('PositionRulesSetSkillsService', () => {
       expect(result).toEqual({ positionRulesSetSkillIds: [101, 102] });
     });
 
+    it('throws when the RETURNING result omits a row for one of the inserted keys', async () => {
+      // Both entries are new, so both go through the insert path. The mock
+      // returns a row only for entryY's key (22|8) and omits entryX's key
+      // (21|7) entirely — simulating an insert that silently dropped a row.
+      // This should never happen (every `toInsert` row was just inserted in
+      // the same statement), but the defensive check should still surface it
+      // as a clear internal-invariant error rather than an undefined id.
+      const entryX = { positionId: 3, rulesSetId: 4, skillId: 7 };
+      const entryY = { positionId: 5, rulesSetId: 4, skillId: 8 };
+      const db = mockDb(
+        [positionRulesSetRow, { id: 22, positionId: 5, rulesSetId: 4 }],
+        [skillRulesSetRow, { skillId: 8, rulesSetId: 4 }],
+        [],
+        [{ id: 102, positionRulesSetId: 22, skillId: 8 }],
+      );
+      const service = await makeService(db);
+
+      await expect(service.sync({ entries: [entryX, entryY] })).rejects.toThrow(
+        'Insert into position_rules_set_skills did not return a row for key 21|7',
+      );
+    });
+
     it('looks both preconditions up by the rules sets the batch names', async () => {
       const db = mockDb(
         [positionRulesSetRow],
