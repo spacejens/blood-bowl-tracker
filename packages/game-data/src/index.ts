@@ -105,8 +105,15 @@ export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
 export type { PlayerContextNames } from './shared/player-context-names.service';
+export { SkillValidationError } from './shared/skill-validation-error';
 export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names.service';
 export type { TeamTopPlayer } from './shared/team-top-player';
+export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module';
+export type {
+  RulesSetSkillCategory,
+  SkillRulesSetCategory,
+} from './skill-rules-sets/skill-rules-sets.service';
+export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
 export { SkillsModule } from './skills/skills.module';
 export {
   SkillsService,
