@@ -156,7 +156,7 @@ See [game-concepts/skills](game-concepts/skills/index.md).
 
 ### Skill Category
 
-The group a [skill](#skill) belongs to — General, Agility, Passing, Strength, Mutation, Devious or Trait — which is what an advancing [player](#player) rolls against to decide which skills they may take. A skill's category is recorded per [rules set](#rules-set), not globally, because a rules set can move a skill from one category to another.
+The group a [skill](#skill) belongs to — General, Agility, Passing, Strength, Mutation, Devious, Trait or Unique — which is what an advancing [player](#player) rolls against to decide which skills they may take. A skill's category is recorded per [rules set](#rules-set), not globally, because a rules set can move a skill from one category to another. Unique is the category for a [star player](#star-player)'s one skill exclusive to them under a rules set.
 
 See [game-concepts/skills](game-concepts/skills/index.md).
 

@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "0889e476-b789-4773-bae0-56aab3e7433e",
+  "id": "75dd7aa8-77ee-49b4-ae24-6794fb8c1afc",
   "prevIds": [
     "522b17ee-5570-41f0-8dad-92b53591909f"
   ],
@@ -214,7 +214,8 @@
         "strength",
         "mutation",
         "devious",
-        "trait"
+        "trait",
+        "unique"
       ],
       "name": "skill_category",
       "entityType": "enums",
@@ -7373,19 +7374,6 @@
       "table": "position_rules_set_skills"
     },
     {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": "false",
-      "generated": null,
-      "identity": null,
-      "name": "is_star_player_unique_skill",
-      "entityType": "columns",
-      "schema": "game_data",
-      "table": "position_rules_set_skills"
-    },
-    {
       "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
@@ -7472,19 +7460,6 @@
       "generated": null,
       "identity": null,
       "name": "skill_id",
-      "entityType": "columns",
-      "schema": "game_data",
-      "table": "position_rules_set_skills_history"
-    },
-    {
-      "type": "boolean",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "is_star_player_unique_skill",
       "entityType": "columns",
       "schema": "game_data",
       "table": "position_rules_set_skills_history"
@@ -12324,27 +12299,6 @@
       "entityType": "columns",
       "schema": "game_data",
       "table": "trophies_external_ids_history"
-    },
-    {
-      "nameExplicit": true,
-      "columns": [
-        {
-          "value": "position_rules_set_id",
-          "isExpression": false,
-          "asc": true,
-          "nullsFirst": false,
-          "opclass": null
-        }
-      ],
-      "isUnique": true,
-      "where": "\"is_star_player_unique_skill\" = true",
-      "with": "",
-      "method": "btree",
-      "concurrently": false,
-      "name": "position_rules_set_skills_one_star_player_unique_skill",
-      "entityType": "indexes",
-      "schema": "game_data",
-      "table": "position_rules_set_skills"
     },
     {
       "nameExplicit": false,

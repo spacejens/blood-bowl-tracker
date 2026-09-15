@@ -19,6 +19,13 @@
  *   rulebooks' Extraordinary skills, traits and special rules (Regeneration,
  *   Loner, Really Stupid). Recorded so a position's starting skill set is
  *   complete, even though no advancement can ever grant one.
+ * - `unique` — the category for a star player's one skill exclusive to them
+ *   under a rules set. Used instead of a per-association flag on
+ *   `position_rules_set_skills`: a star player's unique skill is identified
+ *   purely by checking that its `skill_rules_sets` category is `unique` for
+ *   the relevant rules set. Deliberately not enforced as globally unique
+ *   across star players — if two star players are published sharing the same
+ *   "unique" skill, that is not treated as a data error.
  *
  * The list is closed and small, so it is a `domain-enums` constant consumed
  * as a Postgres enum, exactly like CHARACTERISTIC_FORMATS. The skills
@@ -34,4 +41,5 @@ export const SKILL_CATEGORIES = [
   'mutation',
   'devious',
   'trait',
+  'unique',
 ] as const;

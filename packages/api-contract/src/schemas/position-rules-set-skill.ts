@@ -8,16 +8,11 @@ import { z } from 'zod';
  * rules-set ids from their own upserts, never the internal association id.
  * The server resolves the association row itself and rejects an entry whose
  * position/rules-set pair has no characteristics recorded yet.
- *
- * `isStarPlayerUniqueSkill` defaults to false rather than being required:
- * almost every starting skill is an ordinary one, and marking the exception
- * is what carries information.
  */
 export const PositionRulesSetSkillEntrySchema = z.object({
   positionId: z.number().int(),
   rulesSetId: z.number().int(),
   skillId: z.number().int(),
-  isStarPlayerUniqueSkill: z.boolean().default(false),
 });
 
 /**
@@ -40,7 +35,6 @@ export const SyncPositionRulesSetSkillsResultSchema = z.object({
 export const PositionRulesSetSkillRefSchema = z.object({
   rulesSetId: z.number().int(),
   skillId: z.number().int(),
-  isStarPlayerUniqueSkill: z.boolean(),
 });
 
 /** Input of the read procedure: one position at a time. */

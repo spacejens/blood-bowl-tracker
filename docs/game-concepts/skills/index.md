@@ -30,6 +30,7 @@ modelled by the tracker).
 | Mutation | Skills only available to positions whose rules allow mutations — Chaos, Nurgle and similar teams. |
 | Devious | BB2025's category for underhanded, cheating and dirty-trick skills. |
 | Trait | Skills that are intrinsic to a position rather than learnable — the rulebooks' Extraordinary skills, traits and special rules. Recorded so a position's starting skill set is complete. |
+| Unique | The category for a star player's one skill exclusive to them under a rules set. |
 
 ## Starting skills
 
@@ -40,10 +41,11 @@ characteristics under that rules set already are — a starting skill for a
 position/rules-set pair that has no characteristics row is rejected.
 
 A [star player](../star-players/index.md) is a position in this tracker, so
-its starting skills are recorded the same way. Rules sets that give a star one
-skill exclusive to them mark that on the individual starting-skill row rather
-than on the skill itself, so an ordinary skill row can still be shared by
-every position that starts with it.
+its starting skills are recorded the same way. A star player's skill exclusive
+to them is identified purely by its Unique category under the relevant rules
+set — there is no per-position marking on the starting-skill row, and no
+enforced global uniqueness: any skill, Unique-category or not, can be a
+starting skill of any number of positions.
 
 Syncing starting skills, and syncing skills' rules-set categories, only adds
 or updates rows for what's supplied. A starting skill or skill × rules-set

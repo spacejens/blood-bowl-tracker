@@ -9,23 +9,13 @@ import {
 } from './position-rules-set-skill';
 
 describe('position rules set skill schemas', () => {
-  it('parses an entry and defaults the star-player-unique flag to false', () => {
+  it('parses an entry', () => {
     const parsed = PositionRulesSetSkillEntrySchema.parse({
       positionId: 3,
       rulesSetId: 4,
       skillId: 7,
     });
-    expect(parsed.isStarPlayerUniqueSkill).toBe(false);
-  });
-
-  it('parses an entry that marks a star player unique skill', () => {
-    const parsed = PositionRulesSetSkillEntrySchema.parse({
-      positionId: 3,
-      rulesSetId: 4,
-      skillId: 7,
-      isStarPlayerUniqueSkill: true,
-    });
-    expect(parsed.isStarPlayerUniqueSkill).toBe(true);
+    expect(parsed.skillId).toBe(7);
   });
 
   it('parses an empty sync batch', () => {
@@ -47,7 +37,6 @@ describe('position rules set skill schemas', () => {
       PositionRulesSetSkillRefSchema.parse({
         rulesSetId: 4,
         skillId: 7,
-        isStarPlayerUniqueSkill: false,
       }).skillId,
     ).toBe(7);
   });

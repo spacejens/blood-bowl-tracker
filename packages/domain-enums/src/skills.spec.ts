@@ -12,6 +12,7 @@ describe('SKILL_CATEGORIES', () => {
       'mutation',
       'devious',
       'trait',
+      'unique',
     ]);
   });
 

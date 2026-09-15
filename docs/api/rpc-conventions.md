@@ -193,8 +193,9 @@ copy of the same values in its own config file.
 `skills.upsert` response needs the rules sets and categories that skill
 belongs to, which `upsert` cannot answer either. `positionRulesSetSkills.list`
 is a related shape for a position: given a position id, it answers the
-position's starting skills per rules set, and which one (if any) is the
-star player's unique skill.
+position's starting skills per rules set. A star player's exclusive skill is
+not called out separately in this response — a caller identifies it by
+checking `skillRulesSets.list` for the `unique` category instead.
 
 ## Error responses
 

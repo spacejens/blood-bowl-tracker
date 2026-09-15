@@ -440,22 +440,6 @@ describe('schema', () => {
     expect(positionRulesSetSkills.id).toBeDefined();
     expect(positionRulesSetSkills.positionRulesSetId).toBeDefined();
     expect(positionRulesSetSkills.skillId).toBeDefined();
-    expect(positionRulesSetSkills.isStarPlayerUniqueSkill).toBeDefined();
-  });
-
-  it('allows at most one star-player-unique skill per position_rules_set_id', () => {
-    const config = getTableConfig(positionRulesSetSkills);
-    const index = config.indexes.find((i) => {
-      const column = i.config.columns[0];
-      return (
-        column !== undefined &&
-        'name' in column &&
-        column.name === 'position_rules_set_id'
-      );
-    });
-    expect(index).toBeDefined();
-    expect(index!.config.unique).toBe(true);
-    expect(index!.config.where).toBeDefined();
   });
 
   it('exports skillExternalIds table', () => {

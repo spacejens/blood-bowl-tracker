@@ -393,18 +393,21 @@ skill's _category_ is not on the row, because a rules set can move a skill
 between categories (BB2025 introduced Devious and moved existing skills into
 it) — it lives on `skill_rules_sets`, the skill × rules-set association, keyed
 by `(skill_id, rules_set_id)` and carrying a `skill_category` enum column
-(`general`, `agility`, `passing`, `strength`, `mutation`, `devious`, `trait`).
-A missing row means the skill does not exist under that rules set. This is the
-same split, for the same reason, as characteristics living on
-`position_rules_sets` rather than on `positions`.
+(`general`, `agility`, `passing`, `strength`, `mutation`, `devious`, `trait`,
+`unique`). `unique` is the category for the one skill a rules set makes
+exclusive to a given star player — used instead of a per-association flag, so
+an ordinary skill row stays shareable between positions and a star player's
+exclusive skill is identified purely by checking its category. This is
+deliberately not enforced as globally unique across star players: if two star
+players are published sharing the same "unique" skill, that is not treated as
+a data error. A missing `skill_rules_sets` row means the skill does not exist
+under that rules set. This is the same split, for the same reason, as
+characteristics living on `position_rules_sets` rather than on `positions`.
 
 `position_rules_set_skills` records a position's _starting_ skills, anchored
 to `position_rules_sets.id` rather than to a duplicated position/rules-set
 pair, so a starting skill can only ever be recorded against a position and
-rules set that already has characteristics recorded. Its
-`is_star_player_unique_skill` flag marks the one skill a rules set makes
-exclusive to a given star player; it sits on the association row rather than
-on `skills`, so an ordinary skill row stays shareable between positions.
+rules set that already has characteristics recorded.
 `PositionRulesSetSkillsService.sync` in `packages/game-data` is the single
 place that writes it, and it rejects a row naming a skill with no
 `skill_rules_sets` entry for that rules set, or a position/rules-set pair with

@@ -1,9 +1,8 @@
-CREATE TYPE "game_data"."skill_category" AS ENUM('general', 'agility', 'passing', 'strength', 'mutation', 'devious', 'trait');--> statement-breakpoint
+CREATE TYPE "game_data"."skill_category" AS ENUM('general', 'agility', 'passing', 'strength', 'mutation', 'devious', 'trait', 'unique');--> statement-breakpoint
 CREATE TABLE "game_data"."position_rules_set_skills" (
 	"id" serial PRIMARY KEY,
 	"position_rules_set_id" integer NOT NULL,
 	"skill_id" integer NOT NULL,
-	"is_star_player_unique_skill" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"history_version" integer DEFAULT 1 NOT NULL,
@@ -52,7 +51,6 @@ CREATE TABLE "game_data"."skills_external_ids" (
 --> statement-breakpoint
 CREATE TABLE "game_data"."skills_external_ids_history" (LIKE "game_data"."skills_external_ids");
 --> statement-breakpoint
-CREATE UNIQUE INDEX "position_rules_set_skills_one_star_player_unique_skill" ON "game_data"."position_rules_set_skills" ("position_rules_set_id") WHERE "is_star_player_unique_skill" = true;--> statement-breakpoint
 ALTER TABLE "game_data"."position_rules_set_skills" ADD CONSTRAINT "position_rules_set_skills_vRafK7R4aLbg_fkey" FOREIGN KEY ("position_rules_set_id") REFERENCES "game_data"."position_rules_sets"("id");--> statement-breakpoint
 ALTER TABLE "game_data"."position_rules_set_skills" ADD CONSTRAINT "position_rules_set_skills_skill_id_skills_id_fkey" FOREIGN KEY ("skill_id") REFERENCES "game_data"."skills"("id");--> statement-breakpoint
 ALTER TABLE "game_data"."skill_rules_sets" ADD CONSTRAINT "skill_rules_sets_skill_id_skills_id_fkey" FOREIGN KEY ("skill_id") REFERENCES "game_data"."skills"("id");--> statement-breakpoint
