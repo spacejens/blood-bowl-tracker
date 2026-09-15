@@ -70,6 +70,9 @@ export type {
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
+export { PositionRulesSetSkillsModule } from './position-rules-set-skills/position-rules-set-skills.module';
+export type { PositionStartingSkill } from './position-rules-set-skills/position-rules-set-skills.service';
+export { PositionRulesSetSkillsService } from './position-rules-set-skills/position-rules-set-skills.service';
 export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
 export type {
   PositionCharacteristics,
