@@ -192,8 +192,9 @@ copy of the same values in its own config file.
 `skillRulesSets.list`: a caller that already holds a skill's id from its own
 `skills.upsert` response needs the rules sets and categories that skill
 belongs to, which `upsert` cannot answer either. `positionRulesSetSkills.list`
-is the same shape for a position: given a position id, it answers the
-position's starting skills and their categories.
+is a related shape for a position: given a position id, it answers the
+position's starting skills per rules set, and which one (if any) is the
+star player's unique skill.
 
 ## Error responses
 
