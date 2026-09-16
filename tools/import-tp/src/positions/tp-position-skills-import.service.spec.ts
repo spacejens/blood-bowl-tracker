@@ -2,6 +2,7 @@ import {
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
+import { HatredTargetService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -26,6 +27,7 @@ describe('TpPositionSkillsImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpPositionSkillsImportService,
+        HatredTargetService,
         { provide: StartingSkillsImportService, useValue: startingSkills },
         { provide: ImportResultService, useValue: importResults },
       ],
@@ -189,6 +191,65 @@ describe('TpPositionSkillsImportService', () => {
     expect(result.errors[0].message).toContain('269');
     expect(result.errors[0].message).toContain('111');
     expect(result.errors[0].message).toContain('Blocker');
+  });
+
+  it('composes a type-3 reference whose opaque code the Hatred table explains', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 307, attributeValue: '110', attributeType: 3 }],
+            ],
+          ]),
+        ],
+      ]),
+      skillNamesByMasterId: new Map([[307, 'Hatred']]),
+      positionNamesById: new Map([[3, "Morg 'n' Thorg"]]),
+      rulesSetNamesById: new Map([[7, 'BB2025']]),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([
+        [3, new Map([[7, [{ name: 'Hatred', attributeValue: 'Undead' }]]])],
+      ]),
+      new Map([[7, 'BB2025']]),
+      [],
+    );
+  });
+
+  it('still reports a type-3 reference whose opaque code the Hatred table does not explain', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+            ],
+          ]),
+        ],
+      ]),
+      skillNamesByMasterId: new Map([[269, 'Animosity']]),
+      positionNamesById: new Map([[3, 'Black Ark Corsair']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
+    });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map(),
+      new Map([[7, 'BB2020']]),
+      result.errors,
+    );
   });
 
   it('reports a type-3 opaque attribute code once, however many positions reference it', async () => {

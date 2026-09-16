@@ -8,6 +8,7 @@ import {
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpPositionSkillRef } from '@blood-bowl-tracker/parse-tp';
+import { HatredTargetService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 export interface SyncTpPositionSkillsOptions {
@@ -57,6 +58,7 @@ export class TpPositionSkillsImportService {
   constructor(
     private readonly startingSkills: StartingSkillsImportService,
     private readonly importResults: ImportResultService,
+    private readonly hatredTargets: HatredTargetService,
   ) {}
 
   async syncPositionSkills({
@@ -112,7 +114,10 @@ export class TpPositionSkillsImportService {
    * type 3 (an opaque numeric code, not a composable value -- see
    * `TpPositionSkillRef`) is likewise recorded as an ImportError and left
    * out, once per distinct (skillMasterId, attributeValue) pair across the
-   * whole run.
+   * whole run. A type-3 code the Hatred lookup CAN explain
+   * (`HatredTargetService`, see docs/import-tp/index.md, "Hatred target
+   * codes") is composed normally instead, with the named target as its
+   * attribute value.
    */
   private resolveNames(options: {
     positionId: number;
@@ -161,6 +166,14 @@ export class TpPositionSkillsImportService {
         continue;
       }
       if (ref.attributeType === 3) {
+        const target =
+          ref.attributeValue === undefined
+            ? undefined
+            : this.hatredTargets.decode(ref.attributeValue);
+        if (target !== undefined) {
+          names.push({ name, attributeValue: target });
+          continue;
+        }
         const key = `${ref.skillMasterId}:${ref.attributeValue}`;
         if (!reportedAttributeTypeThreeRefs.has(key)) {
           reportedAttributeTypeThreeRefs.add(key);
