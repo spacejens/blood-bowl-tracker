@@ -194,3 +194,15 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   asserted by `curated-data-skills.spec.ts`. Star players under these three
   rules sets are absent because they have no curated characteristics to hang a
   starting skill off.
+
+### Expected first-run import errors
+
+A from-empty-database run of the BBL and TP importers reports a substantial
+number of "no curated category for rules set" `ImportError`s as a matter of
+course: `skills.json5` does not yet curate a CRP/CRP+/BB2016 category for
+every skill name BBL and TP's own source data mentions, and a skill with no
+category there is reported and left out of that position's starting skills
+rather than blocking the rest of the import. This is a known, accepted gap in
+curation coverage, not a bug — a large error count on first import does not by
+itself mean something is broken. Curating the missing category rows in
+`skills.json5` closes the gap over time.
