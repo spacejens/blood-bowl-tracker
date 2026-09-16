@@ -15,7 +15,7 @@ const SKILL_MASTER_FILE_TYPES = ['rosters', 'match'] as const;
  * TP's per-rules-set template (`rosters_masters`) carries ids only, but real
  * team rosters and match snapshots embed the skill's full name wherever a
  * skill appears -- and, on BB2025 skills, TP's `isElite` marker, which appears
- * nowhere else in the mirror at all. -- so the mirror already downloaded
+ * nowhere else in the mirror at all -- so the mirror already downloaded
  * answers almost every id, and coverage improves by itself as `download-tp`
  * pulls more history. An id no file explains stays unresolved and is reported
  * by the skills import, not here.
@@ -46,22 +46,16 @@ export class SkillMasterNameCollectionService {
   ) {}
 
   async collect(errors: ImportError[]): Promise<Map<number, TpSkillMaster>> {
-    const masters = new Map<number, TpSkillMaster>();
+    let masters = new Map<number, TpSkillMaster>();
     try {
       for await (const file of this.sourceReader.filesOfType(
         SKILL_MASTER_FILE_TYPES,
       )) {
         try {
-          for (const [id, master] of this.parser.extract(file.content)) {
-            const existing = masters.get(id);
-            // OR-accumulated across files for the same reason the parser does
-            // it within one file: a partial embedding omits isElite entirely,
-            // so overwriting would lose the flag depending on scan order.
-            masters.set(id, {
-              name: master.name,
-              isElite: (existing?.isElite ?? false) || master.isElite,
-            });
-          }
+          // Passing the running accumulator back into the parser reuses its
+          // OR-accumulation logic across files, the same way it already
+          // OR-accumulates across embeddings within one file.
+          masters = this.parser.extract(file.content, masters);
         } catch (error) {
           errors.push(
             this.importResults.error({

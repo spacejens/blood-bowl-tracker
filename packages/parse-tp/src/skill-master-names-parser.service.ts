@@ -35,8 +35,19 @@ export interface TpSkillMaster {
  */
 @Injectable()
 export class SkillMasterNamesParserService {
-  extract(content: unknown): Map<number, TpSkillMaster> {
-    const masters = new Map<number, TpSkillMaster>();
+  /**
+   * Extracts skill masters from `content`. When `into` is given, walks into
+   * that existing accumulator (so its entries take part in the same
+   * OR-accumulation as everything found in `content`) and returns it;
+   * otherwise starts from a fresh map. This lets a caller that scans several
+   * files (`SkillMasterNameCollectionService`) reuse this exact
+   * OR-accumulation logic across files instead of re-implementing it.
+   */
+  extract(
+    content: unknown,
+    into?: Map<number, TpSkillMaster>,
+  ): Map<number, TpSkillMaster> {
+    const masters = into ?? new Map<number, TpSkillMaster>();
     this.walk(content, masters);
     return masters;
   }

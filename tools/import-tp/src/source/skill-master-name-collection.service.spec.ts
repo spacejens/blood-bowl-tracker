@@ -52,9 +52,18 @@ describe('SkillMasterNameCollectionService', () => {
 
   it('merges the names found in every scanned file', async () => {
     seed([file('rosters_1.json', 'rosters'), file('match_2.json', 'match')]);
+    // parser.extract is mocked, so it does not actually merge `into` itself
+    // here -- each stubbed return simulates what the real parser would
+    // return given the accumulator it was passed, which is what collect()
+    // now threads through instead of merging results itself.
     parser.extract
       .mockReturnValueOnce(new Map([[87, { name: 'Dodge', isElite: false }]]))
-      .mockReturnValueOnce(new Map([[120, { name: 'Block', isElite: false }]]));
+      .mockReturnValueOnce(
+        new Map([
+          [87, { name: 'Dodge', isElite: false }],
+          [120, { name: 'Block', isElite: false }],
+        ]),
+      );
 
     const errors: ImportError[] = [];
     const names = await service.collect(errors);
@@ -66,6 +75,12 @@ describe('SkillMasterNameCollectionService', () => {
       ]),
     );
     expect(errors).toEqual([]);
+    expect(parser.extract).toHaveBeenNthCalledWith(1, {}, new Map());
+    expect(parser.extract).toHaveBeenNthCalledWith(
+      2,
+      {},
+      new Map([[87, { name: 'Dodge', isElite: false }]]),
+    );
   });
 
   it('scans only the rosters and match file types', async () => {
@@ -117,9 +132,13 @@ describe('SkillMasterNameCollectionService', () => {
 
   it('keeps a skill elite when only one scanned file marks it so', async () => {
     seed([file('rosters_1.json', 'rosters'), file('match_2.json', 'match')]);
+    // Simulates the real parser's OR-accumulation: once the first file's
+    // return is threaded back in as the second call's accumulator, the real
+    // parser would keep isElite: true even though the second file's own
+    // embedding is not elite.
     parser.extract
       .mockReturnValueOnce(new Map([[220, { name: 'Block', isElite: true }]]))
-      .mockReturnValueOnce(new Map([[220, { name: 'Block', isElite: false }]]));
+      .mockReturnValueOnce(new Map([[220, { name: 'Block', isElite: true }]]));
 
     const errors: ImportError[] = [];
     const masters = await service.collect(errors);

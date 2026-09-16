@@ -68,6 +68,50 @@ describe('SkillMasterNamesParserService', () => {
     expect(names.get(220)).toEqual({ name: 'Block', isElite: true });
   });
 
+  it('keeps isElite when an explicit isElite: false embedding comes after an elite one', () => {
+    // Distinct from the "omitted" case above: this embedding explicitly
+    // states isElite: false rather than leaving it out, and must still not
+    // clear the flag once another embedding has set it.
+    const names = service.extract({
+      a: {
+        skillMaster: { id: 220, name: 'Block', ruleSet: 25, isElite: true },
+      },
+      b: { skillMaster: { id: 220, name: 'Block', isElite: false } },
+    });
+
+    expect(names.get(220)).toEqual({ name: 'Block', isElite: true });
+  });
+
+  it('merges into an existing accumulator when one is given', () => {
+    const existing = new Map([[87, { name: 'Dodge', isElite: false }]]);
+
+    const result = service.extract(
+      {
+        skillMaster: { id: 220, name: 'Block', ruleSet: 25, isElite: true },
+      },
+      existing,
+    );
+
+    expect(result).toBe(existing);
+    expect(result).toEqual(
+      new Map([
+        [87, { name: 'Dodge', isElite: false }],
+        [220, { name: 'Block', isElite: true }],
+      ]),
+    );
+  });
+
+  it('OR-accumulates isElite into an existing accumulator entry', () => {
+    const existing = new Map([[220, { name: 'Block', isElite: true }]]);
+
+    const result = service.extract(
+      { skillMaster: { id: 220, name: 'Block', ruleSet: 25 } },
+      existing,
+    );
+
+    expect(result.get(220)).toEqual({ name: 'Block', isElite: true });
+  });
+
   it('ignores a skillMaster with no usable id or name', () => {
     const names = service.extract({
       a: { skillMaster: { id: 87 } },

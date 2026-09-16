@@ -26,7 +26,7 @@ export interface SyncPositionSkillsOptions {
   /** The skill refs scraped from each position's page. BBL has no concept of
    * BB2025 eliteness -- and is excluded from writing BB2025 starting skills
    * anyway -- so every ref is marked not elite below. */
-  skillsByPositionId: Map<number, { name: string; attributeValue?: string }[]>;
+  skillsByPositionId: Map<number, Omit<StartingSkillRef, 'isElite'>[]>;
   /** Rules set by name, used to resolve the curation-owned rules sets to
    * exclude below. A name missing from this map is simply skipped -- not
    * every environment necessarily has every rules set configured. */
@@ -96,7 +96,7 @@ export class BblPositionSkillsImportService {
       if (!skills || skills.length === 0) {
         continue;
       }
-      const eliteless: StartingSkillRef[] = skills.map((skill) => ({
+      const refs: StartingSkillRef[] = skills.map((skill) => ({
         ...skill,
         isElite: false,
       }));
@@ -105,7 +105,7 @@ export class BblPositionSkillsImportService {
         if (excludedRulesSetIds.has(rulesSetId)) {
           continue;
         }
-        byRulesSetId.set(rulesSetId, eliteless);
+        byRulesSetId.set(rulesSetId, refs);
       }
       if (byRulesSetId.size > 0) {
         skillNamesByPositionId.set(positionId, byRulesSetId);
