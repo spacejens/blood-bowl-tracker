@@ -11,6 +11,19 @@ function positionPage(html: string, typID = '33'): BblPage {
   return { type: 'pt', params: { typID }, load: () => load(html) };
 }
 
+function characteristicsTable(skillsCell = '&nbsp;'): string {
+  return (
+    '<table>' +
+    '<tr class="trlisthead">' +
+    '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+    '</tr>' +
+    '<tr class="trborder">' +
+    `<td>6</td><td>4</td><td>4+</td><td>6+</td><td>10+</td><td>${skillsCell}</td>` +
+    '</tr>' +
+    '</table>'
+  );
+}
+
 describe('PositionPageParser', () => {
   let parser: PositionPageParser;
   let normalizeText: MockProxy<NormalizeExtractedTextService>;
@@ -42,6 +55,7 @@ describe('PositionPageParser', () => {
       races: [{ bblId: '16', name: 'Orc Team' }],
       isStarPlayer: false,
       characteristics: null,
+      skills: [],
     });
   });
 
@@ -62,6 +76,7 @@ describe('PositionPageParser', () => {
       ],
       isStarPlayer: false,
       characteristics: null,
+      skills: [],
     });
   });
 
@@ -76,6 +91,7 @@ describe('PositionPageParser', () => {
       races: [],
       isStarPlayer: false,
       characteristics: null,
+      skills: [],
     });
   });
 
@@ -138,6 +154,7 @@ describe('PositionPageParser', () => {
       races: [{ bblId: '16', name: 'Orc Team' }],
       isStarPlayer: false,
       characteristics: null,
+      skills: [],
     });
   });
 
@@ -277,5 +294,41 @@ describe('PositionPageParser', () => {
       '10',
     );
     expect(parser.extractPosition(page)?.characteristics).toBeNull();
+  });
+
+  it('extracts the skills column, splitting only on top-level commas', () => {
+    const page = positionPage(
+      '<h1>Ogre</h1>' +
+        '<a href="default.asp?p=tl#16">Human Team</a>' +
+        characteristicsTable(
+          'Loner (4+), Bone-Head, Mighty Blow (+1), Thick Skull, Throw Team-Mate&nbsp;',
+        ),
+      '110',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([
+      'Loner (4+)',
+      'Bone-Head',
+      'Mighty Blow (+1)',
+      'Thick Skull',
+      'Throw Team-Mate',
+    ]);
+  });
+
+  it('reports no skills for a blank skills cell', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<a href="default.asp?p=tl#16">Orc Team</a>' +
+        characteristicsTable('&nbsp;'),
+      '10',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([]);
+  });
+
+  it('reports no skills when the page has no characteristics table', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1><a href="default.asp?p=tl#16">Orc Team</a>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([]);
   });
 });

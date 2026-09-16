@@ -41,6 +41,13 @@ export interface BblPosition {
   races: BblPositionRace[];
   isStarPlayer: boolean;
   characteristics: BblPositionCharacteristics | null;
+  /**
+   * The Skills column's comma-separated list, one entry per skill. A
+   * parenthetical value (`Loner (4+)`, `Mighty Blow (+1)`) is part of the
+   * skill's own display name, so the split is on commas only. Empty when the
+   * cell is blank or the characteristics table is missing.
+   */
+  skills: string[];
 }
 
 @Injectable()
@@ -98,6 +105,7 @@ export class PositionPageParser {
       races,
       isStarPlayer,
       characteristics: this.extractCharacteristics($),
+      skills: this.extractSkills($),
     };
   }
 
@@ -153,6 +161,37 @@ export class PositionPageParser {
       return { move, strength, agility, passing, armour };
     }
     return null;
+  }
+
+  /**
+   * The Skills cell of the characteristics table: the sixth cell of the row
+   * after the MA/ST/AG/PA/AV header row, split on top-level commas only —
+   * a parenthetical value (`Loner (4+)`, `Mighty Blow (+1)`) is part of the
+   * skill's own display name, not a separate segment. Returns an empty list
+   * when there is no such table, no sixth cell, or the cell is blank — a
+   * position with no starting skills is the common case, not an anomaly.
+   */
+  private extractSkills($: CheerioAPI): string[] {
+    for (const row of $('tr').toArray()) {
+      const headers = $(row)
+        .children('th, td')
+        .toArray()
+        .map((cell) => this.normalizeText.normalize($(cell).text()));
+      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+        continue;
+      }
+      const cells = $(row).next('tr').children('td').toArray();
+      const skillsCell = cells[CHARACTERISTIC_HEADERS.length];
+      if (skillsCell === undefined) {
+        return [];
+      }
+      return this.normalizeText
+        .normalize($(skillsCell).text())
+        .split(',')
+        .map((skill) => this.normalizeText.normalize(skill))
+        .filter((skill) => skill.length > 0);
+    }
+    return [];
   }
 
   /**

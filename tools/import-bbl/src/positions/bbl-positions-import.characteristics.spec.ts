@@ -25,6 +25,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
             isStarPlayer: false,
             characteristics: CHARACTERISTICS,
+            skills: [],
           }),
         ],
       }),
@@ -53,6 +54,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [],
             isStarPlayer: true,
             characteristics: CHARACTERISTICS,
+            skills: [],
           }),
         ],
         pl: [
@@ -92,6 +94,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [],
             isStarPlayer: false,
             characteristics: CHARACTERISTICS,
+            skills: [],
           }),
         ],
         pl: [
@@ -143,6 +146,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
             isStarPlayer: false,
             characteristics: null,
+            skills: [],
           }),
         ],
       }),
