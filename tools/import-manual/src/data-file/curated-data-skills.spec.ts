@@ -172,4 +172,19 @@ describe('curated data files - skills', () => {
 
     expect(crp.length).toBeGreaterThan(0);
   });
+
+  it('curates the Stunty Leeg races CRP itself does not list', () => {
+    const ids = new Set(
+      positionSkillsFile().positionRulesSetSkills.map(
+        (entry) => entry.position.id,
+      ),
+    );
+
+    // One position from each Stunty Leeg roster that has starting skills;
+    // replace these with the real curated ids as they are transcribed.
+    expect([...ids].some((id) => id.startsWith('SL - Albion Fae: '))).toBe(
+      true,
+    );
+    expect([...ids].some((id) => id.startsWith('SL - Pygmies: '))).toBe(true);
+  });
 });

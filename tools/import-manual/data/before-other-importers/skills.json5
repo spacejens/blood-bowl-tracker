@@ -422,6 +422,15 @@
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
 
+    // --- CRP: skills the core rulebook categories table (p.21) doesn't
+    // list, but the Stunty Leeg handbook rosters use, spelled exactly as it
+    // spells them (Stunty_Leeg_Handbook_v1_0.pdf pp.6-8) ---
+    { skill: { system: 'Name', id: 'Sidestep' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Secret Weapon (7+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon (8+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    // TODO: verify -- BBL scraping artifact (missing opening paren) for "Secret Weapon (6+)".
+    { skill: { system: 'Name', id: 'Secret Weapon 6+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+
     // --- CRP+ (NTBB2015.pdf): "Narrow-Tier Blood Bowl 2015" describes
     // itself as 10 house-rule changes layered on top of CRP (p.2, "THE CRP+
     // RULES"), none of which remove a skill from CRP's own catalog -- the
