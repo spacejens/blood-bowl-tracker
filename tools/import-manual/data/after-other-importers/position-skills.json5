@@ -1,0 +1,608 @@
+// Hand-curated starting skills (position_rules_set_skills) for the three older
+// rules sets no importer can supply (CRP, CRP+, BB2016).
+//
+// Placed in after-other-importers next to position-characteristics.json5 for
+// consistency and the same safety margin, though the ordering matters less
+// here than it does there: position_rules_set_skills entries are additive per
+// (position, rules set) rather than a single overwritable value, so an
+// importer writing to a rules set this file also curates would merge into a
+// union instead of being correctable by re-running curation afterwards. TP
+// never writes here because its configured eras (import-tp-config.json5) are
+// only BB2020, DB2021 and BB2025 -- none of the three rules sets this file
+// curates -- not because its data is per-rules-set (an older TP era, if ever
+// configured, would need the same exclusion BBL has). BBL IS excluded for
+// exactly that reason -- see BblPositionSkillsImportService.
+//
+// Every entry's (position, rules set) pair MUST already be curated in
+// after-other-importers/position-characteristics.json5: a starting skill hangs
+// off the position_rules_sets row, and the API rejects an entry whose pair has
+// none. Every skill MUST have a category row for that rules set in
+// before-other-importers/skills.json5, for the same reason. Both are asserted
+// by curated-data-skills.spec.ts.
+//
+// A position whose "Skills" cell reads "None" in the source table simply gets
+// no entry here.
+//
+// Every `position` id is the "Name" external id NameExternalIdService.forPosition
+// builds -- "<raceName>: <positionName>" -- copied verbatim from
+// position-characteristics.json5, not from the rulebook's own spelling.
+//
+// Source, this file's current scope (the 21 CRP main-book races):
+//   CRP -- m750496a_BB_Competition_Rules_Pack.pdf, roster pages 23-25
+//          (PDF page numbers; printed page numbers 71-76), "Skills" column.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  positionRulesSetSkills: [
+    // --- CRP: Dark Elf (CRP p.23) ---
+    // Dark Elf Lineman: no starting skills.
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dump-Off' }] },
+    { position: { system: 'Name', id: 'Dark Elf: Assassin' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stab' }] },
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Dark Elf: Witch Elf' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Jump Up' }] },
+
+    // --- CRP: Dwarf (CRP p.23) ---
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Troll Slayer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Deathroller' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Break Tackle' }, { system: 'Name', id: 'Dirty Player' }, { system: 'Name', id: 'Juggernaut' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stand Firm' }] },
+
+    // --- CRP: Amazon (CRP p.23) ---
+    { position: { system: 'Name', id: 'Amazon: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Amazon: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Amazon: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Catch' }] },
+    { position: { system: 'Name', id: 'Amazon: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Block' }] },
+
+    // --- CRP: Elf (CRP p.23) ---
+    // Elven Linemen: no starting skills.
+    { position: { system: 'Name', id: 'Elven Union: Elven Throwers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Catchers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Nerves of Steel' }] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Side Step' }] },
+
+    // --- CRP: Chaos (CRP p.23) ---
+    { position: { system: 'Name', id: 'Chaos Chosen: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Horns' }] },
+    // Chosen Blockers: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Chosen: Minotaur' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP: Chaos Dwarf (CRP p.23) ---
+    // Hobgoblin Linemen: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Bull Centaur' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Sure Feet' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP: Goblin (CRP p.24) ---
+    { position: { system: 'Name', id: 'Goblin: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Looney' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Fanatic' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Ball & Chain' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Pogoer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Very Long Legs' }] },
+    { position: { system: 'Name', id: 'Goblin: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Goblin: Bomma' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stunty' }] },
+
+    // --- CRP: Halfling (CRP p.24) ---
+    { position: { system: 'Name', id: 'Halfling: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+
+    // --- CRP: High Elf (CRP p.24) ---
+    // High Elf Linemen: no starting skills.
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Throw' }] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Catch' }] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
+
+    // --- CRP: Human (CRP p.24) ---
+    // Human Lineman: no starting skills.
+    { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- CRP: Khemri (CRP p.24) ---
+    { position: { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Sure Hands' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Decay' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- CRP: Lizardman (CRP p.24) ---
+    { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
+    // Saurus Blockers: no starting skills.
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+
+    // --- CRP: Necromantic (CRP p.24) ---
+    { position: { system: 'Name', id: 'Necromantic Horror: Zombie' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Flesh Golem' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Werewolf' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- CRP: Norse (CRP p.24) ---
+    { position: { system: 'Name', id: 'Norse: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Catchers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Jump Up' }] },
+    { position: { system: 'Name', id: 'Norse: Ulfwerener' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Frenzy' }] },
+    { position: { system: 'Name', id: 'Norse: Yhetee' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP: Nurgle (CRP p.25) ---
+    { position: { system: 'Name', id: 'Nurgle: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Decay' }, { system: 'Name', id: "Nurgle's Rot" }] },
+    { position: { system: 'Name', id: 'Nurgle: Pestigors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Horns' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Nurgle: Bloaters' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Nurgle: Rotspawn' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Tentacles' }] },
+
+    // --- CRP: Skaven (CRP p.25) ---
+    // Skaven Clanrat Lineman: no starting skills.
+    { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP: Undead (CRP p.25) ---
+    { position: { system: 'Name', id: 'Shambling Undead: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Zombie' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Mummy' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- CRP: Ogre (CRP p.25) ---
+    { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Titchy' }] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- CRP: Orc (CRP p.25) ---
+    // Orc Lineman: no starting skills.
+    { position: { system: 'Name', id: 'Orc: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Orc: Orc Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    // Big Un Blocker: no starting skills.
+    { position: { system: 'Name', id: 'Orc: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Orc: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- CRP: Vampire (CRP p.25) ---
+    // Thrall Linemen: no starting skills.
+    { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- CRP: Wood Elf (CRP p.25) ---
+    // Wood Elf Lineman: no starting skills.
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Sprint' }] },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }] },
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- CRP: Albion Fae (Stunty Leeg handbook p.8) ---
+    { position: { system: 'Name', id: 'SL - Albion Fae: SL - Brownies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Albion Fae: SL - Pixies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Very Long Legs' }] },
+    { position: { system: 'Name', id: 'SL - Albion Fae: SL - Leprechauns' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Strip Ball' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Right Stuff' }] },
+    { position: { system: 'Name', id: 'SL - Albion Fae: SL - Fenbeast' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+
+    // --- CRP: Chaos Halfling (Stunty Leeg handbook p.8) ---
+    { position: { system: 'Name', id: 'SL - Chaos Halflings: Chaos Halfling' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Head Carver' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }] },
+    { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }] },
+    { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Chaos Spawn' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP: Goblin Cheaters (Stunty Leeg handbook p.9) ---
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Goblin' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Looney' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Bombers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Dodge' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '8+' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Fanatic' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Ball & Chain' }, { system: 'Name', id: 'No Hands' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '6+' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Kickers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dirty Player' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Kick' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Pogo Stick' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Very Long Legs' }] },
+
+    // --- CRP: Horrors of Tzeentch (Stunty Leeg handbook p.9) ---
+    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Horror' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Greater Horror' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Flamers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Safe Throw' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Very Long Legs' }] },
+    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Fire Wyrms' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Wild Animal' }, { system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Safe Throw' }] },
+
+    // --- CRP: Pygmy (Stunty Leeg handbook p.10) ---
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Pygmies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Alligator Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Eagle Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Jaguar Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+
+    // --- CRP: Skink (Stunty Leeg handbook p.10) ---
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Skinks' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Whiptails' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stab' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Raptors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }] },
+
+    // --- CRP+: Amazon (NTBB2015 p.3) ---
+    // Identical to CRP's own Amazon roster.
+    { position: { system: 'Name', id: 'Amazon: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Amazon: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Amazon: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Catch' }] },
+    { position: { system: 'Name', id: 'Amazon: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Block' }] },
+
+    // --- CRP+: Chaos (NTBB2015 p.3) ---
+    // Chosen Blockers: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Chosen: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Horns' }] },
+    // Minotaur Lord: NTBB2015 p.3 prints "Leader" in red on top of CRP's own
+    // Minotaur skill list -- a genuine CRP+ addition, not present on the
+    // Chaos Dwarf table's plain (unenslaved) Minotaur row below.
+    { position: { system: 'Name', id: 'Chaos Chosen: Minotaur' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Leader' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP+: Chaos Dwarf (NTBB2015 p.3) ---
+    // Hobgoblin Linemen: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Bull Centaur' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Sure Feet' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP+: Dark Elf (NTBB2015 p.4) ---
+    // Dark Elf Lineman: no starting skills.
+    // Identical to CRP's own Dark Elf roster.
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dump-Off' }] },
+    { position: { system: 'Name', id: 'Dark Elf: Assassin' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stab' }] },
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Dark Elf: Witch Elf' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Jump Up' }] },
+
+    // --- CRP+: Dwarf (NTBB2015 p.4) ---
+    // Identical to CRP's own Dwarf roster.
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Troll Slayer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Dwarf: Deathroller' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Break Tackle' }, { system: 'Name', id: 'Dirty Player' }, { system: 'Name', id: 'Juggernaut' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stand Firm' }] },
+
+    // --- CRP+: Elf (NTBB2015 p.4) ---
+    // Elven Linemen: no starting skills.
+    // Identical to CRP's own Elf roster.
+    { position: { system: 'Name', id: 'Elven Union: Elven Throwers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Nerves of Steel' }] },
+    { position: { system: 'Name', id: 'Elven Union: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Side Step' }] },
+
+    // --- CRP+: Goblin (NTBB2015 p.4) ---
+    { position: { system: 'Name', id: 'Goblin: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Bomma' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Secret Weapon' }] },
+    { position: { system: 'Name', id: 'Goblin: Looney' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Secret Weapon' }] },
+    { position: { system: 'Name', id: 'Goblin: Pogoer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Very Long Legs' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Leap' }] },
+    { position: { system: 'Name', id: 'Goblin: Fanatic' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Ball & Chain' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Secret Weapon' }] },
+    // Untrained Troll ("River Trolls", NTBB2015 p.4): unlike CRP's own
+    // Untrained Troll, the source prints Loner struck through (removed) and
+    // Foul Appearance plus Thick Skull added in red -- a genuine CRP+
+    // roster change, not shared with the Orc race's own Untrained Troll
+    // below (which keeps CRP's original list unchanged).
+    { position: { system: 'Name', id: 'Goblin: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Always Hungry' }] },
+
+    // --- CRP+: Halfling (NTBB2015 p.5) ---
+    // Identical to CRP's own Halfling roster, plus a genuinely new position:
+    // Halfling Catcher has no CRP counterpart (see position-characteristics.json5).
+    { position: { system: 'Name', id: 'Halfling: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }] },
+    { position: { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Halfling: Halfling Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Right Stuff' }] },
+
+    // --- CRP+: High Elf (NTBB2015 p.5) ---
+    // High Elf Linemen: no starting skills.
+    // NTBB2015 prints "Accurate" in red on the Throwers row, on top of CRP's
+    // own Pass/Safe Throw list -- a genuine CRP+ addition.
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Throw' }, { system: 'Name', id: 'Accurate' }] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Catch' }] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
+
+    // --- CRP+: Human (NTBB2015 p.5) ---
+    // Human Lineman: no starting skills.
+    // Identical to CRP's own Human roster.
+    { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }] },
+
+    // --- CRP+: Khemri (NTBB2015 p.5) ---
+    // Skeleton Linemen, Anointed Thrower and Anointed Blitzer match CRP's
+    // own Khemri roster; Tomb Guardians print only "Regenerate" here,
+    // dropping the Decay CRP itself lists for the same position.
+    { position: { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+
+    // --- CRP+: Lizardman (NTBB2015 p.6) ---
+    // Saurus Blockers: no starting skills.
+    // Identical to CRP's own Lizardman roster.
+    { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }] },
+
+    // --- CRP+: Necromantic (NTBB2015 p.6) ---
+    // Zombie, Wight Blitzer, Ghoul Runners and Flesh Golem match CRP's own
+    // Necromantic roster. Werewolves print "Claw" (singular) here; "Claw" and
+    // "Claws" are the same skill (see skills.json5), so this is curated under
+    // the merged "Claws" spelling.
+    { position: { system: 'Name', id: 'Necromantic Horror: Zombie' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Werewolf' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Frenzy' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Flesh Golem' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- CRP+: Norse (NTBB2015 p.6) ---
+    // Identical to CRP's own Norse roster (Yhetee prints "Claws", plural).
+    { position: { system: 'Name', id: 'Norse: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Jump Up' }] },
+    { position: { system: 'Name', id: 'Norse: Ulfwerener' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Frenzy' }] },
+    { position: { system: 'Name', id: 'Norse: Yhetee' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Wild Animal' }, { system: 'Name', id: 'Loner' }] },
+
+    // --- CRP+: Nurgle (NTBB2015 p.6) ---
+    // Identical to CRP's own Nurgle roster.
+    { position: { system: 'Name', id: 'Nurgle: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Decay' }, { system: 'Name', id: "Nurgle's Rot" }] },
+    { position: { system: 'Name', id: 'Nurgle: Pestigors' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Horns' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Nurgle: Bloaters' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Foul Appearance' }] },
+    { position: { system: 'Name', id: 'Nurgle: Rotspawn' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Tentacles' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: "Nurgle's Rot" }] },
+
+    // --- CRP+: Ogre (NTBB2015 p.7) ---
+    // Identical to CRP's own Ogre roster.
+    { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Titchy' }, { system: 'Name', id: 'Side Step' }] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Bone-Head' }] },
+
+    // --- CRP+: Orc (NTBB2015 p.7) ---
+    // Orc Lineman and Big Un Blocker: no starting skills.
+    // Identical to CRP's own Orc roster; Untrained Troll here keeps CRP's
+    // original list unchanged (contrast the Goblin race's own Untrained
+    // Troll above, which NTBB2015 does change).
+    { position: { system: 'Name', id: 'Orc: Orc Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Orc: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Orc: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Orc: Untrained Troll' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Always Hungry' }] },
+
+    // --- CRP+: Skaven (NTBB2015 p.7) ---
+    // Skaven Clanrat Lineman: no starting skills.
+    // Identical to CRP's own Skaven roster.
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- CRP+: Slann (NTBB2015 p.7) ---
+    // No CRP baseline exists for this race -- transcribed directly.
+    { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
+    { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Very Long Legs' }, { system: 'Name', id: 'Diving Catch' }, { system: 'Name', id: 'Leap' }] },
+    { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Very Long Legs' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Diving Tackle' }] },
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }] },
+
+    // --- CRP+: Undead (NTBB2015 p.8) ---
+    // Skeleton Lineman, Zombie, Wight Blitzer and Ghoul Runners match CRP's
+    // own Undead roster. Mummies print "Regenerate, Grab" here (Grab in
+    // red), replacing CRP's "Mighty Blow, Regeneration" -- a genuine CRP+
+    // roster change.
+    { position: { system: 'Name', id: 'Shambling Undead: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Zombie' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Mummy' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Grab' }] },
+
+    // --- CRP+: Underworld (NTBB2015 p.8) ---
+    // No CRP baseline exists for this race -- transcribed directly.
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Goblin Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Right Stuff' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Animosity' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Warpstone Troll' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Always Hungry' }] },
+
+    // --- CRP+: Vampire (NTBB2015 p.8) ---
+    // Thrall Linemen: NTBB2015 prints "Thick Skull" in red -- a genuine
+    // CRP+ addition; CRP's own Thrall Linemen has no starting skills.
+    // Vampire Blitzers matches CRP's own roster.
+    { position: { system: 'Name', id: 'Vampire: Thrall Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Hypnotic Gaze' }] },
+
+    // --- CRP+: Wood Elf (NTBB2015 p.8) ---
+    // Wood Elf Lineman: no starting skills.
+    // Wood Elf Catcher and Thrower match CRP's own roster. Wardancers print
+    // "Dodge, Leap, Fend" here (Fend in red), dropping CRP's "Block" --
+    // a genuine CRP+ roster change. Loren Forest Treeman matches CRP's own
+    // Treeman list.
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Sprint' }] },
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Fend' }] },
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // ================================================================
+    // BB2016 -- BB-Teams-of-Legend-Revised-1.pdf covers 14 of the 24 BB2016
+    // groups curated in position-characteristics.json5 (Amazon p.1 ...
+    // Vampire p.9). The other 10 are legacy CRP-era races the same physical
+    // rulebook covers but this PDF does not (Human, Orc, Dwarf, Skaven, Dark
+    // Elf, Elven Union, High Elf, Wood Elf, Nurgle, Slann) -- every one of
+    // those ten races' entries below is sourced from public knowledge of the
+    // published BB2016 rules rather than a page in this session's PDF, and
+    // carries its own `// TODO: verify` comment.
+    // ================================================================
+
+    // --- BB2016: Amazon (Teams of Legend p.1) ---
+    { position: { system: 'Name', id: 'Amazon: Tribal Linewoman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Amazon: Eagle Warrior Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Amazon: Piranha Warrior Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Amazon: Koka Kalim Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dodge' }] },
+
+    // --- BB2016: Chaos Dwarf (Teams of Legend p.2) ---
+    // Hobgoblin Runners: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Bull Centaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Sure Feet' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Chaos Dwarf: Enslaved Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- BB2016: Chaos Renegades (Teams of Legend p.2) ---
+    // Renegade Human Lineman: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Goblin' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Skaven' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Dark Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- BB2016: Chaos Chosen (Teams of Legend p.3) ---
+    // Chosen Blockers: no starting skills.
+    { position: { system: 'Name', id: 'Chaos Chosen: Beastman Runner Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Horns' }] },
+    { position: { system: 'Name', id: 'Chaos Chosen: Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- BB2016: Goblin (Teams of Legend p.3) ---
+    { position: { system: 'Name', id: 'Goblin: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Bomma' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Looney' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Fanatic' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Ball & Chain' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Goblin: Pogoer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Very Long Legs' }] },
+    { position: { system: 'Name', id: 'Goblin: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- BB2016: Halfling (Teams of Legend p.5) ---
+    { position: { system: 'Name', id: 'Halfling: Hafling Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Timmm-ber!' }] },
+    { position: { system: 'Name', id: 'Halfling: Halfling Hopeful Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+
+    // --- BB2016: Khemri Tomb Kings (Teams of Legend p.5) ---
+    { position: { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Sure Hands' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Anointed Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Tomb Kings: Tomb Guardians' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Decay' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- BB2016: Lizardmen (Teams of Legend p.6) ---
+    { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
+    // Saurus Blockers: no starting skills.
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+
+    // --- BB2016: Norse (Teams of Legend p.6) ---
+    { position: { system: 'Name', id: 'Norse: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Pass' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }] },
+    { position: { system: 'Name', id: 'Norse: Norse Berserkers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Jump Up' }] },
+    { position: { system: 'Name', id: 'Norse: Ulfwerener' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Frenzy' }] },
+    { position: { system: 'Name', id: 'Norse: Yhetee' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- BB2016: Necromantic Horror (Teams of Legend p.7) ---
+    { position: { system: 'Name', id: 'Necromantic Horror: Zombie' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Flesh Golem' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Werewolf' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- BB2016: Shambling Undead (Teams of Legend p.7) ---
+    { position: { system: 'Name', id: 'Shambling Undead: Skeleton Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Zombie' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Regeneration' }] },
+    { position: { system: 'Name', id: 'Shambling Undead: Mummy' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // --- BB2016: Ogre (Teams of Legend p.8) ---
+    { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Titchy' }] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- BB2016: Underworld Denizens (Teams of Legend p.8) ---
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Goblin Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Underworld Skaven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Block' }] },
+    { position: { system: 'Name', id: 'Underworld Denizens: Warpstone Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- BB2016: Vampire (Teams of Legend p.9) ---
+    // Thrall Linemen: no starting skills.
+    { position: { system: 'Name', id: 'Vampire: Vampire Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Regeneration' }] },
+
+    // Teams of Legend is 9 pages total and does not cover the BB2016
+    // boxed-set teams or BB2016 CRP-legacy races -- those ten races below
+    // are sourced from public knowledge of the published BB2016 rules, not
+    // from a PDF this session may open, and every entry carries its own
+    // `// TODO: verify` comment.
+
+    // --- BB2016: Human (public rules reference -- TODO: verify) ---
+    // Human Lineman: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- BB2016: Orc (public rules reference -- TODO: verify) ---
+    // Orc Lineman and Big Un Blocker: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Orc: Goblin Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Orc: Orc Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Orc: Orc Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Orc: Untrained Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- BB2016: Dwarf (public rules reference -- TODO: verify) ---
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blocker Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Tackle' }, { system: 'Name', id: 'Thick Skull' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Thick Skull' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Thick Skull' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dwarf: Troll Slayer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Thick Skull' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dwarf: Deathroller' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Break Tackle' }, { system: 'Name', id: 'Dirty Player' }, { system: 'Name', id: 'Juggernaut' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon' }, { system: 'Name', id: 'Stand Firm' }] },
+
+    // --- BB2016: Skaven (public rules reference -- TODO: verify) ---
+    // Skaven Clanrat Lineman: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Skaven: Skaven Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Sure Hands' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Skaven: Gutter Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Skaven: Skaven Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Skaven: Rat Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Wild Animal' }] },
+
+    // --- BB2016: Dark Elf (public rules reference -- TODO: verify) ---
+    // Dark Elf Lineman: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Runner' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dump-Off' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dark Elf: Assassin' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stab' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dark Elf: Dark Elf Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Dark Elf: Witch Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Jump Up' }] },
+
+    // --- BB2016: Elven Union (public rules reference -- TODO: verify) ---
+    // Elven Linemen: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Elven Union: Elven Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Elven Union: Elven Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Nerves of Steel' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Elven Union: Elven Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Side Step' }] },
+
+    // --- BB2016: High Elf (public rules reference -- TODO: verify) ---
+    // High Elf Linemen: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Throw' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
+
+    // --- BB2016: Wood Elf (public rules reference -- TODO: verify) ---
+    // Wood Elf Lineman: no starting skills.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Sprint' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Wood Elf: Wood Elf Thrower' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Wood Elf: Wardancer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Wood Elf: Loren Forest Treeman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Strong Arm' }, { system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+
+    // --- BB2016: Nurgle (public rules reference -- TODO: verify) ---
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Nurgle: Rotter Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Decay' }, { system: 'Name', id: "Nurgle's Rot" }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Nurgle: Pestigors' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Horns' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Nurgle: Bloaters' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Regeneration' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Nurgle: Rotspawn' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: "Nurgle's Rot" }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Tentacles' }] },
+
+    // --- BB2016: Slann (public rules reference -- TODO: verify) ---
+    // Slann's BB2016 characteristics match its CRP+ characteristics exactly
+    // (position-characteristics.json5); this roster follows the CRP+ skill
+    // list for the same reason.
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Diving Catch' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Diving Tackle' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
+    // TODO: verify against the physical BB2016 rulebook.
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+  ],
+}

@@ -2,6 +2,7 @@ import {
   CharacteristicFormatSchema,
   COMPETITION_TYPES,
   ExternalSystemCategorySchema,
+  SkillCategorySchema,
   SppEarningActionTypeSchema,
   TrophyAwardRuleEventTypeSchema,
   TrophyAwardRuleKindSchema,
@@ -97,6 +98,64 @@ const PositionRulesSetEntrySchema = z.object({
   agility: z.number().int(),
   passing: z.number().int().optional(),
   armour: z.number().int(),
+});
+
+/**
+ * A skill that exists only in a rules set no source importer covers, so
+ * nothing else ever creates the row. A skill BBL or TP also knows needs no
+ * entry here -- its upsert creates the row under the same "Name" external id
+ * this file would.
+ */
+const SkillEntrySchema = z.object({
+  name: z.string().min(1),
+  externalIds,
+});
+
+/**
+ * One skill's category under one rules set. The row's existence is itself the
+ * assertion that the rules set has the skill at all, which is what the source
+ * importers read back before recording a starting skill -- so every skill any
+ * importer can produce needs a row here for each rules set it exists under.
+ * `unique` is a category like any other: it is how a star player's exclusive
+ * skill is marked (there is no per-association flag).
+ */
+const SkillRulesSetEntrySchema = z.object({
+  skill: ExternalRefSchema,
+  rulesSet: ExternalRefSchema,
+  category: SkillCategorySchema,
+});
+
+/**
+ * A starting skill whose value (e.g. "4+" for Loner, "+1" for Mighty Blow) is
+ * specific to this position rather than part of the skill's own identity --
+ * the skill itself is one deduplicated row (e.g. "Loner"), and each position
+ * that grants it carries its own attributeValue here.
+ */
+const PositionRulesSetSkillWithAttributeSchema = z.object({
+  skill: ExternalRefSchema,
+  attributeValue: z.string().min(1),
+});
+
+/**
+ * One item in a position's starting-skill list: either a bare skill
+ * reference (the common case, no position-specific value), or the wrapped
+ * form above carrying an attributeValue alongside the reference.
+ */
+const PositionRulesSetSkillRefSchema = z.union([
+  ExternalRefSchema,
+  PositionRulesSetSkillWithAttributeSchema,
+]);
+
+/**
+ * One position's full starting-skill list under one rules set. Grouped per
+ * (position, rules set) rather than one entry per skill because that is
+ * exactly the batch `positionRulesSetSkills.sync` takes, and because the
+ * curated source material (a roster table row) is grouped the same way.
+ */
+const PositionRulesSetSkillsEntrySchema = z.object({
+  position: ExternalRefSchema,
+  rulesSet: ExternalRefSchema,
+  skills: z.array(PositionRulesSetSkillRefSchema).min(1),
 });
 
 const CoachEntrySchema = z.object({
@@ -258,11 +317,16 @@ export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
     rulesSets: z.array(RulesSetEntrySchema).default([]),
+    skills: z.array(SkillEntrySchema).default([]),
+    skillRulesSets: z.array(SkillRulesSetEntrySchema).default([]),
     leagues: z.array(LeagueEntrySchema).default([]),
     eras: z.array(EraEntrySchema).default([]),
     races: z.array(RaceEntrySchema).default([]),
     positions: z.array(PositionEntrySchema).default([]),
     positionRulesSets: z.array(PositionRulesSetEntrySchema).default([]),
+    positionRulesSetSkills: z
+      .array(PositionRulesSetSkillsEntrySchema)
+      .default([]),
     coaches: z.array(CoachEntrySchema).default([]),
     teams: z.array(TeamEntrySchema).default([]),
     competitions: z.array(CompetitionEntrySchema).default([]),
@@ -275,4 +339,7 @@ export const ManualDataFileSchema = z
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
+export type PositionRulesSetSkillRef = z.infer<
+  typeof PositionRulesSetSkillRefSchema
+>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;

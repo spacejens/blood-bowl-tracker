@@ -65,6 +65,20 @@ numbers), and a `PA` cell reading `-` means the position has no Passing
 ability. That `-` is not confined to pre-BB2020 positions: "Big Guy"
 positions such as Kroxigor and Ogre show it under the current rules too.
 
+The table's sixth column, `Skills`, is a comma-separated list of the
+position's starting skills. A parenthetical value (`Loner (4+)`, `Mighty
+Blow (+1)`) is part of the skill's own display name, not a separate field, so
+the cell is split on commas only.
+
+This scraped skill list is a single BB2020-era snapshot, deliberately NOT
+written to CRP, CRP+ or BB2016: those three older rules sets are curated
+exclusively by `tools/import-manual`'s
+[`position-skills.json5`](../import-manual/curated-files.md#known-after-other-importers-cleanup-files),
+and `position_rules_set_skills` is additive per `(position, rules set)`
+rather than overwritable, so the BBL snapshot would otherwise merge into a
+union with the curated list instead of being excluded from it. See
+`BblPositionSkillsImportService`.
+
 Note on `pl` pages: a player page carries the player's `<h1>` name, two links —
 the player's position (`default.asp?p=pt&typID=<id>`) and team
 (`default.asp?p=tm&t=<code>`) — an "Unspent SPP" row whose parenthesized figure

@@ -25,6 +25,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
             isStarPlayer: false,
             characteristics: CHARACTERISTICS,
+            skills: [],
           }),
         ],
       }),
@@ -53,6 +54,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [],
             isStarPlayer: true,
             characteristics: CHARACTERISTICS,
+            skills: [],
           }),
         ],
         pl: [
@@ -92,6 +94,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [],
             isStarPlayer: false,
             characteristics: CHARACTERISTICS,
+            skills: [],
           }),
         ],
         pl: [
@@ -143,6 +146,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
             isStarPlayer: false,
             characteristics: null,
+            skills: [],
           }),
         ],
       }),
@@ -166,5 +170,62 @@ describe('BblPositionsImportService characteristics', () => {
           'Could not read characteristics for position "Goblin Linemen" (33): no MA/ST/AG/PA/AV table on the page',
       },
     ]);
+  });
+
+  it("records each upserted position's scraped skills", async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+            isStarPlayer: false,
+            characteristics: CHARACTERISTICS,
+            skills: [{ name: 'Block' }, { name: 'Dodge' }],
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 42 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.skillsByPositionId.get(42)).toEqual([
+      { name: 'Block' },
+      { name: 'Dodge' },
+    ]);
+  });
+
+  it('does not record a skills entry for a position whose page carried none', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+            isStarPlayer: false,
+            characteristics: CHARACTERISTICS,
+            skills: [],
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 100 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.skillsByPositionId.size).toBe(0);
   });
 });

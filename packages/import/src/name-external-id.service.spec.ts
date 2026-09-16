@@ -29,6 +29,10 @@ describe('NameExternalIdService', () => {
     expect(service.forRulesSet('CRP')).toBe('CRP');
   });
 
+  it('returns the bare name for a skill', () => {
+    expect(service.forSkill('Dodge')).toBe('Dodge');
+  });
+
   it('returns the bare name for a team', () => {
     expect(service.forTeam('The Reikland Reavers')).toBe(
       'The Reikland Reavers',

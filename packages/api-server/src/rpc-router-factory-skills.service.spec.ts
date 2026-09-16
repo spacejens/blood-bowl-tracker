@@ -132,6 +132,7 @@ describe('RpcRouterFactoryService skills routers', () => {
           rulesSetName: 'BB2020',
           skillId: 7,
           skillName: 'Block',
+          attributeValue: null,
         },
       ],
     );
@@ -143,6 +144,8 @@ describe('RpcRouterFactoryService skills routers', () => {
     expect(
       harness.mocks.positionRulesSetSkillsService.listByPosition,
     ).toHaveBeenCalledWith(3);
-    expect(result).toEqual([{ rulesSetId: 4, skillId: 7 }]);
+    expect(result).toEqual([
+      { rulesSetId: 4, skillId: 7, attributeValue: null },
+    ]);
   });
 });

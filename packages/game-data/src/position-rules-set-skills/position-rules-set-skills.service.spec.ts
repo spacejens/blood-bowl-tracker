@@ -60,16 +60,35 @@ describe('PositionRulesSetSkillsService', () => {
 
       expect(result).toEqual({ positionRulesSetSkillIds: [51] });
       expect(firstCallArg(db.chains[3].values)).toEqual([
-        { positionRulesSetId: 21, skillId: 7 },
+        { positionRulesSetId: 21, skillId: 7, attributeValue: null },
       ]);
       expect(db.transaction).toHaveBeenCalled();
+    });
+
+    it('inserts a starting skill with its attribute value when the entry supplies one', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7 }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, attributeValue: '4+' }],
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51] });
+      expect(firstCallArg(db.chains[3].values)).toEqual([
+        { positionRulesSetId: 21, skillId: 7, attributeValue: '4+' },
+      ]);
     });
 
     it('returns the existing id without writing when the entry already exists', async () => {
       const db = mockDb(
         [positionRulesSetRow],
         [skillRulesSetRow],
-        [{ id: 51, positionRulesSetId: 21, skillId: 7 }],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7, attributeValue: null }],
       );
       const service = await makeService(db);
 
@@ -77,7 +96,45 @@ describe('PositionRulesSetSkillsService', () => {
 
       expect(result).toEqual({ positionRulesSetSkillIds: [51] });
       // Only the two precondition selects and the existing-rows select were
-      // issued — no insert, and no transaction, since nothing needs writing.
+      // issued — no insert or update, and no transaction, since the entry
+      // said nothing about attributeValue.
+      expect(db.chains).toHaveLength(3);
+      expect(db.transaction).not.toHaveBeenCalled();
+    });
+
+    it("updates an existing row's attribute value when the entry supplies a different one", async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7, attributeValue: null }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, attributeValue: '4+' }],
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51] });
+      expect(db.transaction).toHaveBeenCalled();
+      // No new row is inserted -- only the existing one is updated.
+      const update = db.chains[3];
+      expect(update.set).toHaveBeenCalledWith({ attributeValue: '4+' });
+    });
+
+    it("leaves an existing row's attribute value alone when the entry already matches it", async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7, attributeValue: '4+' }],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, attributeValue: '4+' }],
+      });
+
+      expect(result).toEqual({ positionRulesSetSkillIds: [51] });
+      // The stored value already matches, so no write is issued at all.
       expect(db.chains).toHaveLength(3);
       expect(db.transaction).not.toHaveBeenCalled();
     });
@@ -239,6 +296,7 @@ describe('PositionRulesSetSkillsService', () => {
           rulesSetName: 'BB2020',
           skillId: 7,
           skillName: 'Block',
+          attributeValue: null,
         },
       ]);
       const service = await makeService(db);
@@ -249,9 +307,33 @@ describe('PositionRulesSetSkillsService', () => {
           rulesSetName: 'BB2020',
           skillId: 7,
           skillName: 'Block',
+          attributeValue: null,
         },
       ]);
       expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(3);
+    });
+
+    it("returns a starting skill's attribute value when it has one", async () => {
+      const db = mockDb([
+        {
+          rulesSetId: 4,
+          rulesSetName: 'BB2020',
+          skillId: 7,
+          skillName: 'Loner',
+          attributeValue: '4+',
+        },
+      ]);
+      const service = await makeService(db);
+
+      await expect(service.listByPosition(3)).resolves.toEqual([
+        {
+          rulesSetId: 4,
+          rulesSetName: 'BB2020',
+          skillId: 7,
+          skillName: 'Loner',
+          attributeValue: '4+',
+        },
+      ]);
     });
 
     it('returns an empty list for a position with no starting skills', async () => {

@@ -34,6 +34,15 @@ export class NameExternalIdService {
     return name;
   }
 
+  /**
+   * Skill names are globally unique (unlike positions, which are race-scoped),
+   * so the bare name is the identity BBL, TP and the curated files all
+   * converge on.
+   */
+  forSkill(name: string): string {
+    return name;
+  }
+
   forTeam(name: string): string {
     return name;
   }

@@ -1,0 +1,924 @@
+// Hand-curated skills and their per-rules-set categories (skills,
+// skill_rules_sets).
+//
+// Two sections, kept in one file so a skill's existence and its category can
+// be reviewed against the same source page side by side:
+//
+//   skills         -- EVERY skill this file's skillRulesSets section
+//                     references, not just the ones that are genuinely
+//                     exclusive to CRP, CRP+ or BB2016. This mirrors the
+//                     "pre-register so a later upsert matches" pattern
+//                     races-and-positions.json5 and
+//                     position-characteristics-gap-fill.json5 already use for
+//                     races and positions: this file's `before-other-
+//                     importers` phase runs as its own, EARLIER invocation
+//                     than the BBL/TP import (see docs/import-manual/index.md,
+//                     "Run it"), so on a from-empty-database run, a skill like
+//                     "Block" or "Dodge" does not exist yet when this file's
+//                     skillRulesSets rows are processed --
+//                     ExternalIdResolverService.resolve is a pure lookup with
+//                     no fallback, so an unregistered skill reference would
+//                     silently fail to resolve and drop that category row as
+//                     an ImportError. Pre-registering every skill here means
+//                     (1) BBL/TP's own later upsert matches onto this same
+//                     row via the shared "Name" external id instead of
+//                     creating a duplicate, and (2) BBL/TP's own category
+//                     read-back (during their run) finds the curated category
+//                     row already there.
+//   skillRulesSets -- the category table for EVERY skill, whichever importer
+//                     introduces it. A missing row means "this rules set does
+//                     not have this skill", and the BBL/TP skills imports read
+//                     these rows back before recording a starting skill: an
+//                     uncurated (skill, rules set) pair is reported as an
+//                     import error naming this file.
+//
+// Every id in both sections is the skill's own display name, which is what
+// NameExternalIdService.forSkill produces and what both source importers send.
+// A skill whose display name once carried a parenthetical value ("Loner
+// (4+)", "Mighty Blow (+1)") is NOT a distinct skill: the value is specific
+// to the position that grants it, not to the skill's identity, so it is
+// curated as a per-position attributeValue in
+// after-other-importers/position-skills.json5 instead -- only the bare skill
+// name is registered here.
+//
+// 'unique' is a category like any other: it is the only marker a star
+// player's exclusive skill has -- there is no per-association flag. This
+// file curates no 'unique' rows: CRP's own "SKILL CATEGORIES" table (p.21)
+// has no Extraordinary-vs-unique split, and cross-checking the CRP Star
+// Players list (pp.79-80) found no skill there that is not already one of
+// the 75 skills the categories table itself lists (i.e. no star-player-only
+// skill to mark unique). Every CRP-era Extraordinary skill is curated as
+// 'trait' per the task's mapping instructions.
+//
+// Sources, this file:
+//   CRP -- m750496a_BB_Competition_Rules_Pack.pdf:
+//          - p.21, "SKILL CATEGORIES" table -- the category for every skill.
+//          - pp.19-21, "SKILL DESCRIPTIONS" -- each skill's own heading
+//            confirms its category and exact spelling; used to cross-check
+//            the categories table, which lists this skill as "Claw / Claws"
+//            (see the Mutation group below for how the two spellings merge).
+//          - pp.22-25, "TEAM ROSTERS" -- the 21 core CRP races' starting
+//            skills, cross-checked against the categories table; introduced
+//            no skill the table did not already list.
+//   CRP -- Stunty_Leeg_Handbook_v1_0.pdf, "STUNTY TEAM ROSTERS" (pp.7-16) and
+//          "STAR PLAYERS" (pp.17+) -- the 15 Stunty Leeg races and their star
+//          players, checked for any skill not already in the CRP categories
+//          table. None found: every skill name on these rosters (allowing for
+//          this handbook's own inconsistent "Claw"/"Claws" and
+//          "Side Step"/"Sidestep" spellings, both merged as one skill each --
+//          see the Mutation and Agility groups below -- and a "Regenerate"
+//          typo for "Regeneration") already appears in the CRP core book's
+//          list, so this file adds no Stunty-Leeg-only `skills` entries.
+//
+// (CRP+ and BB2016 sources are out of scope for this file -- see a later
+// curation task/file for those rules sets' category rows.)
+//
+// The three "CRP-only" entries below (of the 76 total `skills` entries this
+// file curates) were identified by diffing the 76 skill spellings this file
+// curates for CRP against every literal skillMaster/skills-cell string
+// actually present in the downloaded tools/import-bbl and tools/import-tp
+// data dumps (the modern-era source data BBL/TP's own upserts read). Two
+// CRP-table skills never appear in either dump under any spelling and are
+// curated below. A third near-miss, "Blood Lust", is curated too: TP's data
+// only ever spells it "Bloodlust" (one word) -- the same skill under a
+// BB2020+ rename, confirmed by the developer, so its `skills` entry lists
+// both spellings as externalIds (see the Mutation/Extraordinary groups
+// below). The remaining 73 entries are skills BBL/TP can also create; see the
+// section header comment above for why they are pre-registered here too.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  skills: [
+    // --- CRP-only skills: absent from every downloaded BBL/TP roster, match
+    // or skillMaster record under any spelling (checked pp.19-21) ---
+    { name: "Nurgle's Rot", externalIds: [{ system: 'Name', id: "Nurgle's Rot" }] },
+    { name: 'Stakes', externalIds: [{ system: 'Name', id: 'Stakes' }] },
+    // CRP's own two-word spelling; BB2020+ renamed this skill "Bloodlust"
+    // (one word) -- same skill, merged under the CRP-era spelling (see
+    // externalIds).
+    { name: 'Blood Lust', externalIds: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Bloodlust' }] },
+
+    // --- Every other skill this file's skillRulesSets section references,
+    // pre-registered even though BBL/TP can also create these -- see the
+    // header comment above for why. Grouped and ordered to match the
+    // skillRulesSets category groups below. ---
+    { name: 'Block', externalIds: [{ system: 'Name', id: 'Block' }] },
+    { name: 'Pass Block', externalIds: [{ system: 'Name', id: 'Pass Block' }] },
+    { name: 'Dauntless', externalIds: [{ system: 'Name', id: 'Dauntless' }] },
+    { name: 'Pro', externalIds: [{ system: 'Name', id: 'Pro' }] },
+    { name: 'Dirty Player', externalIds: [{ system: 'Name', id: 'Dirty Player' }] },
+    { name: 'Shadowing', externalIds: [{ system: 'Name', id: 'Shadowing' }] },
+    { name: 'Fend', externalIds: [{ system: 'Name', id: 'Fend' }] },
+    { name: 'Strip Ball', externalIds: [{ system: 'Name', id: 'Strip Ball' }] },
+    { name: 'Frenzy', externalIds: [{ system: 'Name', id: 'Frenzy' }] },
+    { name: 'Sure Hands', externalIds: [{ system: 'Name', id: 'Sure Hands' }] },
+    { name: 'Kick', externalIds: [{ system: 'Name', id: 'Kick' }] },
+    { name: 'Tackle', externalIds: [{ system: 'Name', id: 'Tackle' }] },
+    { name: 'Kick-Off Return', externalIds: [{ system: 'Name', id: 'Kick-Off Return' }] },
+    { name: 'Wrestle', externalIds: [{ system: 'Name', id: 'Wrestle' }] },
+    { name: 'Catch', externalIds: [{ system: 'Name', id: 'Catch' }] },
+    { name: 'Leap', externalIds: [{ system: 'Name', id: 'Leap' }] },
+    { name: 'Diving Catch', externalIds: [{ system: 'Name', id: 'Diving Catch' }] },
+    { name: 'Side Step', externalIds: [{ system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Sidestep' }] },
+    { name: 'Diving Tackle', externalIds: [{ system: 'Name', id: 'Diving Tackle' }] },
+    { name: 'Sneaky Git', externalIds: [{ system: 'Name', id: 'Sneaky Git' }] },
+    { name: 'Dodge', externalIds: [{ system: 'Name', id: 'Dodge' }] },
+    { name: 'Sprint', externalIds: [{ system: 'Name', id: 'Sprint' }] },
+    { name: 'Jump Up', externalIds: [{ system: 'Name', id: 'Jump Up' }] },
+    { name: 'Sure Feet', externalIds: [{ system: 'Name', id: 'Sure Feet' }] },
+    { name: 'Accurate', externalIds: [{ system: 'Name', id: 'Accurate' }] },
+    { name: 'Nerves of Steel', externalIds: [{ system: 'Name', id: 'Nerves of Steel' }] },
+    { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }] },
+    { name: 'Pass', externalIds: [{ system: 'Name', id: 'Pass' }] },
+    { name: 'Hail Mary Pass', externalIds: [{ system: 'Name', id: 'Hail Mary Pass' }] },
+    { name: 'Safe Throw', externalIds: [{ system: 'Name', id: 'Safe Throw' }] },
+    { name: 'Leader', externalIds: [{ system: 'Name', id: 'Leader' }] },
+    { name: 'Break Tackle', externalIds: [{ system: 'Name', id: 'Break Tackle' }] },
+    { name: 'Multiple Block', externalIds: [{ system: 'Name', id: 'Multiple Block' }] },
+    { name: 'Grab', externalIds: [{ system: 'Name', id: 'Grab' }] },
+    { name: 'Piling On', externalIds: [{ system: 'Name', id: 'Piling On' }, { system: 'Name', id: 'Pile On' }] },
+    { name: 'Guard', externalIds: [{ system: 'Name', id: 'Guard' }] },
+    { name: 'Stand Firm', externalIds: [{ system: 'Name', id: 'Stand Firm' }] },
+    { name: 'Juggernaut', externalIds: [{ system: 'Name', id: 'Juggernaut' }] },
+    { name: 'Strong Arm', externalIds: [{ system: 'Name', id: 'Strong Arm' }] },
+    { name: 'Mighty Blow', externalIds: [{ system: 'Name', id: 'Mighty Blow' }] },
+    { name: 'Thick Skull', externalIds: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Think Skull' }] },
+    { name: 'Big Hand', externalIds: [{ system: 'Name', id: 'Big Hand' }] },
+    { name: 'Foul Appearance', externalIds: [{ system: 'Name', id: 'Foul Appearance' }] },
+    { name: 'Tentacles', externalIds: [{ system: 'Name', id: 'Tentacles' }] },
+    { name: 'Claws', externalIds: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Claw' }] },
+    { name: 'Horns', externalIds: [{ system: 'Name', id: 'Horns' }] },
+    { name: 'Two Heads', externalIds: [{ system: 'Name', id: 'Two Heads' }] },
+    { name: 'Disturbing Presence', externalIds: [{ system: 'Name', id: 'Disturbing Presence' }] },
+    { name: 'Prehensile Tail', externalIds: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Prehensive Tail' }] },
+    { name: 'Very Long Legs', externalIds: [{ system: 'Name', id: 'Very Long Legs' }] },
+    { name: 'Extra Arms', externalIds: [{ system: 'Name', id: 'Extra Arms' }] },
+    { name: 'Always Hungry', externalIds: [{ system: 'Name', id: 'Always Hungry' }] },
+    { name: 'Fan Favourite', externalIds: [{ system: 'Name', id: 'Fan Favourite' }] },
+    { name: 'Secret Weapon', externalIds: [{ system: 'Name', id: 'Secret Weapon' }] },
+    { name: 'Animosity', externalIds: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Aminosity' }] },
+    { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Hyptnotic Gaze' }] },
+    { name: 'Stab', externalIds: [{ system: 'Name', id: 'Stab' }] },
+    { name: 'Ball & Chain', externalIds: [{ system: 'Name', id: 'Ball & Chain' }] },
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }] },
+    { name: 'No Hands', externalIds: [{ system: 'Name', id: 'No Hands' }] },
+    { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Tak root' }] },
+    { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }] },
+    { name: 'Throw Team-Mate', externalIds: [{ system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Throw Team-mate' }, { system: 'Name', id: 'Throw Team.mate' }, { system: 'Name', id: 'Trow Team-Mate' }] },
+    { name: 'Really Stupid', externalIds: [{ system: 'Name', id: 'Really Stupid' }] },
+    { name: 'Titchy', externalIds: [{ system: 'Name', id: 'Titchy' }] },
+    { name: 'Chainsaw', externalIds: [{ system: 'Name', id: 'Chainsaw' }] },
+    { name: 'Regeneration', externalIds: [{ system: 'Name', id: 'Regeneration' }] },
+    { name: 'Wild Animal', externalIds: [{ system: 'Name', id: 'Wild Animal' }] },
+    { name: 'Decay', externalIds: [{ system: 'Name', id: 'Decay' }] },
+    { name: 'Right Stuff', externalIds: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Rightstuff' }] },
+    { name: 'Stunty', externalIds: [{ system: 'Name', id: 'Stunty' }] },
+
+    // --- BB2016-only skill: not part of CRP's catalog, and not one of the
+    // six skills BB-Teams-of-Legend-Revised-1.pdf itself labels "NEW SKILL"
+    // with an explicit category (those six -- Bombardier, Ball & Chain,
+    // Chainsaw, Animosity, Titchy, Blood Lust -- are all already registered
+    // above from CRP, under matching spellings). "Timmm-ber!" appears only
+    // in the Treeman's skill list (p.5, Halfling roster) with no skill
+    // description or category heading anywhere in this document.
+    // TODO: verify -- category guessed as 'trait' (Extraordinary) by analogy
+    // with this file's other Treeman/Treeman-adjacent special-ability
+    // skills (Take Root, Throw Team-Mate is Trait too), since nothing in
+    // either source PDF states its category; confirm against the full BB2016
+    // core rulebook, which is out of scope for this file.
+    { name: 'Timmm-ber!', externalIds: [{ system: 'Name', id: 'Timmm-ber!' }, { system: 'Name', id: 'Timmm-Ber!' }] },
+
+    // --- BB2020/DB2021/BB2025-only skills: pre-registered even though
+    // BBL/TP can also create these -- see the header comment above. Every
+    // name below was harvested verbatim from the downloaded BBL/TP data
+    // dumps (tools/import-bbl/data, tools/import-tp/data), including BBL's
+    // own scraping typos and inconsistent capitalization/punctuation, since
+    // BBL's importer performs no normalization and sends these literal
+    // strings. See the skillRulesSets section below for the per-skill
+    // reasoning behind each spelling and category. ---
+    { name: 'Animal Savagery', externalIds: [{ system: 'Name', id: 'Animal Savagery' }] },
+    { name: 'Arm Bar', externalIds: [{ system: 'Name', id: 'Arm Bar' }] },
+    { name: 'Bomber', externalIds: [{ system: 'Name', id: 'Bomber' }] },
+    { name: 'Bone-Head', externalIds: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Bone Head' }, { system: 'Name', id: 'Bone-head' }] },
+    { name: 'Brawler', externalIds: [{ system: 'Name', id: 'Brawler' }] },
+    { name: 'Breathe Fire', externalIds: [{ system: 'Name', id: 'Breathe Fire' }] },
+    { name: 'Bullseye', externalIds: [{ system: 'Name', id: 'Bullseye' }] },
+    { name: 'Cannoneer', externalIds: [{ system: 'Name', id: 'Cannoneer' }] },
+    { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }] },
+    { name: 'Defensive', externalIds: [{ system: 'Name', id: 'Defensive' }] },
+    { name: 'Drunkard', externalIds: [{ system: 'Name', id: 'Drunkard' }] },
+    { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
+    { name: 'Frenzied Rush', externalIds: [{ system: 'Name', id: 'Frenzied Rush' }] },
+    { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
+    { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
+    { name: 'Hit and Run', externalIds: [{ system: 'Name', id: 'Hit and Run' }] },
+    { name: 'Insignificant', externalIds: [{ system: 'Name', id: 'Insignificant' }] },
+    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }] },
+    { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
+    { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
+    { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
+    { name: 'Mesmerizing Dance', externalIds: [{ system: 'Name', id: 'Mesmerizing Dance' }] },
+    { name: 'Monstrous Mouth', externalIds: [{ system: 'Name', id: 'Monstrous Mouth' }] },
+    { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }] },
+    { name: 'No Ball', externalIds: [{ system: 'Name', id: 'No Ball' }] },
+    { name: 'On the Ball', externalIds: [{ system: 'Name', id: 'On the Ball' }] },
+    { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }, { system: 'Name', id: 'Pick-me-up' }] },
+    { name: 'Plague Ridden', externalIds: [{ system: 'Name', id: 'Plague Ridden' }] },
+    { name: 'Pogo Stick', externalIds: [{ system: 'Name', id: 'Pogo Stick' }, { system: 'Name', id: 'Pogo' }] },
+    { name: 'Projectile Vomit', externalIds: [{ system: 'Name', id: 'Projectile Vomit' }, { system: 'Name', id: 'Projctile Vomit' }] },
+    { name: 'Put the Boot In', externalIds: [{ system: 'Name', id: 'Put the Boot In' }] },
+    { name: 'Quick Foul', externalIds: [{ system: 'Name', id: 'Quick Foul' }] },
+    { name: 'Running Pass', externalIds: [{ system: 'Name', id: 'Running Pass' }] },
+    { name: 'Saboteur', externalIds: [{ system: 'Name', id: 'Saboteur' }] },
+    { name: 'Safe Pair of Hands', externalIds: [{ system: 'Name', id: 'Safe Pair of Hands' }] },
+    { name: 'Safe Pass', externalIds: [{ system: 'Name', id: 'Safe Pass' }] },
+    { name: 'Savage Mauling', externalIds: [{ system: 'Name', id: 'Savage Mauling' }] },
+    { name: 'Steady Footing', externalIds: [{ system: 'Name', id: 'Steady Footing' }] },
+    { name: 'Swarming', externalIds: [{ system: 'Name', id: 'Swarming' }] },
+    { name: 'Swoop', externalIds: [{ system: 'Name', id: 'Swoop' }] },
+    { name: 'Taunt', externalIds: [{ system: 'Name', id: 'Taunt' }] },
+    { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }] },
+    { name: 'Unchannelled Fury', externalIds: [{ system: 'Name', id: 'Unchannelled Fury' }] },
+    { name: 'Unsteady', externalIds: [{ system: 'Name', id: 'Unsteady' }] },
+  ],
+  skillRulesSets: [
+    // --- CRP: General skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pass Block' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    // TODO: verify -- BBL's downloaded data only ever spells this
+    // "Kick-off Return" (lowercase "off"); CRP's own heading (p.20) and
+    // categories table (p.21) both spell it "Kick-Off Return". Curated here
+    // under CRP's own spelling; confirm whether BBL's importer should
+    // normalize the case instead of this staying a second skill row.
+    { skill: { system: 'Name', id: 'Kick-Off Return' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+
+    // --- CRP: Agility skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+
+    // --- CRP: Passing skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+
+    // --- CRP: Strength skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Piling On' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+
+    // --- CRP: Mutation skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    // "Claw" and "Claws" are the same skill (confirmed by the developer):
+    // the Stunty Leeg Handbook's own rosters spell it "Claw", while CRP's
+    // categories table and every other roster spell it "Claws" -- merged
+    // under the "Claws" spelling (see the `skills` entry's externalIds).
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+
+    // --- CRP: Extraordinary skills, curated as 'trait' per the task's
+    // category mapping (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Fan Favourite' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stakes' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+
+
+    // --- CRP+ (NTBB2015.pdf): "Narrow-Tier Blood Bowl 2015" describes
+    // itself as 10 house-rule changes layered on top of CRP (p.2, "THE CRP+
+    // RULES"), none of which remove a skill from CRP's own catalog -- the
+    // on-pitch changes only touch Claw, Sneaky Git and Right Stuff's rules
+    // text, all under their existing CRP names/categories (cross-checked
+    // against every team roster, pp.3-8). CRP+'s category table therefore
+    // mirrors CRP's p.21 table row for row (same skill, same category),
+    // plus the one genuinely new skill CRP+ itself adds and labels with its
+    // own category, "Pile On (Strength)" (p.2, rule 1). ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pass Block' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick-Off Return' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    // NTBB2015 p.2, rule 4 rewrites Sneaky Git's K.O.-recovery text but
+    // keeps its name and (Agility) category.
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Piling On' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+
+    { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    // NTBB2015 p.2, rule 2 restates Claw's rules text under its (Mutation)
+    // category -- same merged "Claws" skill as CRP (see the Claw/Claws
+    // comment above).
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Fan Favourite' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    // NTBB2015 p.2, rule 5 adds text to Right Stuff but keeps its name and
+    // (Extraordinary/trait) category.
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stakes' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+
+    // --- BB2016 (BB-Teams-of-Legend-Revised-1.pdf): unlike CRP+, this is not
+    // a house-rule variant but an official Games Workshop product bringing
+    // legacy CRP-era teams into the then-current (2016) Blood Bowl edition
+    // (p.1, introduction). Rather than assume it shares CRP's entire skill
+    // catalog, this section curates only the skills actually evidenced in
+    // this specific document: every skill named on its team rosters
+    // (pp.1-9), plus the six skills its own "NEW SKILL" sections define with
+    // an explicit category label -- Animosity (p.2, "(EXTRAORDINARY)"),
+    // Bombardier, Ball & Chain and Chainsaw (all p.4, "(EXTRAORDINARY)"),
+    // Titchy (p.8, "(EXTRAORDINARY)") and Blood Lust (p.9,
+    // "(EXTRAORDINARY)"). CRP's Extraordinary category maps to 'trait' per
+    // the task's category mapping; all six are spelled identically to their
+    // already-registered CRP entries. Categories for the remaining,
+    // unlabelled roster skills are taken from CRP's own p.21 table, since
+    // named skills carry the same category across every edition cross-
+    // checked in this file (no in-document category conflict was found). ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    // TODO: verify -- the Treeman's "Timmm-ber!" skill (p.5, Halfling
+    // roster) has no skill description or category heading anywhere in
+    // either source PDF; category guessed as 'trait' by analogy with the
+    // Treeman's other special-ability skills (see the `skills` entry's
+    // comment). Confirm against the full BB2016 core rulebook.
+    { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+
+    // --- BB2016: additional skills needed only by the ten "physical
+    // rulebook" legacy races (Human, Orc, Dwarf, Skaven, Dark Elf, Elven
+    // Union, High Elf, Wood Elf, Nurgle, Slann), which Teams of Legend does
+    // not cover. Every category below is TODO: verify -- taken from this
+    // same skill's already-curated CRP/CRP+ category above (unchanged across
+    // every edition cross-checked in this file), not from a BB2016-specific
+    // source page, since none of these skills is evidenced anywhere in
+    // BB-Teams-of-Legend-Revised-1.pdf. Confirm against the full BB2016 core
+    // rulebook, which is out of scope for this file. ---
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+
+    // ================================================================
+    // BB2020, DB2021, BB2025 -- the modern rules sets BBL and TP import
+    // from directly. Their skill NAMES were first harvested via two
+    // throwaway scripts (a BBL regex script and a TP JSON-walking script,
+    // neither committed), then reconciled against the real, already-
+    // reviewed-and-merged production parsers (PositionPageParser for BBL;
+    // SkillMasterNamesParserService + OfficialTeamsParserService for TP)
+    // run over the same locally downloaded data dumps. That reconciliation
+    // corrected a handful of the throwaway scripts' own fabrications
+    // (spellings/explanations invented with no HTML or TP data backing
+    // them). Every name below is now backed by one of those two real
+    // parsers' actual output over the current data dumps -- BBL's own
+    // garbled-concatenation scraping bugs are fixed at the parser level
+    // (PositionPageParser splits them into their real component skills),
+    // so no placeholder entries for those garbled strings are curated
+    // here. Their CATEGORIES are not in that data at all, so every
+    // category below is curated from the published BB2020/BB2025 rules
+    // (public game-rules knowledge), not from any PDF this project uses
+    // -- none of the four PDFs cover the modern rules sets. Every
+    // category not carried over unchanged from an already-cited CRP-era
+    // row is marked TODO: verify, including every BBL scraping typo
+    // (BBL performs no normalization on the HTML it scrapes) and every
+    // BB2025-only skill (BB2025 postdates every source this project has).
+    // ================================================================
+
+    // --- BB2020: harvested from BBL/TP data dumps ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    // TODO: verify -- category recalled as General, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Pick-Me-Up' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Defensive' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Hit and Run' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    // TODO: verify -- Flight-related skill; category recalled as Agility, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Swoop' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Arm Bar' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Brawler' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    // TODO: verify -- Reduces Throw Team-Mate scatter; recalled as a Strength skill (paired with Throw Team-Mate/Right Stuff) but could be Passing -- verify against the BB2020/2025 rulebook.
+    { skill: { system: 'Name', id: 'Cannoneer' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Cloud Burster' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'On the Ball' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Running Pass' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Pair of Hands' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    // TODO: verify -- BB2020+ renamed CRP's "Safe Throw" to this; category carried over from CRP, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    // TODO: verify -- CRP-era spelling; BB2020+ renamed this skill "Safe Pass" -- confirm whether BBL truly still writes the old name under a modern rules set or this row is unreachable in practice.
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Iron Hard Skin' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Monstrous Mouth' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Animal Savagery' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Possibly a Bombardier-adjacent skill or scraping variant; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Bomber' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Breathe Fire' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Possibly a star-player skill; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Ghostly Flames' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // BBL's own HTML spells this skill "Kick Team-Mate" (capital M); TP's
+    // skillMaster data spells it "Kick Team-mate" (lowercase m) -- the same
+    // skill, merged under BBL's capitalization (see externalIds).
+    { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Pogo Stick' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Projectile Vomit' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Swarming' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+
+    // --- DB2021: harvested from BBL/TP data dumps ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    // TODO: verify -- category recalled as General, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Pick-Me-Up' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Defensive' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Hit and Run' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    // TODO: verify -- Flight-related skill; category recalled as Agility, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Swoop' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Arm Bar' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Brawler' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    // TODO: verify -- Reduces Throw Team-Mate scatter; recalled as a Strength skill (paired with Throw Team-Mate/Right Stuff) but could be Passing -- verify against the BB2020/2025 rulebook.
+    { skill: { system: 'Name', id: 'Cannoneer' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Cloud Burster' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'On the Ball' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Running Pass' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Pair of Hands' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    // TODO: verify -- BB2020+ renamed CRP's "Safe Throw" to this; category carried over from CRP, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    // TODO: verify -- CRP-era spelling; BB2020+ renamed this skill "Safe Pass" -- confirm whether BBL truly still writes the old name under a modern rules set or this row is unreachable in practice.
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Iron Hard Skin' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Animal Savagery' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Possibly a Bombardier-adjacent skill or scraping variant; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Bomber' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Breathe Fire' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Possibly a star-player skill; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Ghostly Flames' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Pogo Stick' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Projectile Vomit' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Not identified from a PDF this session has.
+    { skill: { system: 'Name', id: 'Swarming' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
+
+    // --- BB2025: harvested from BBL/TP data dumps ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name (fouling-themed, like Dirty Player), not sourced.
+    { skill: { system: 'Name', id: 'Lone Fouler' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    // TODO: verify -- Category recalled as General, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Pick-Me-Up' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name (fouling-themed, like Dirty Player), not sourced.
+    { skill: { system: 'Name', id: 'Put the Boot In' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name (fouling-themed, like Dirty Player), not sourced.
+    { skill: { system: 'Name', id: 'Quick Foul' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Defensive' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Give and Go' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Hit and Run' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    // BB2025's own renamed spelling of "Side Step"; category carried over
+    // from earlier editions, not independently confirmed.
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Steady Footing' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    // TODO: verify -- Flight-related skill; category recalled as Agility, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Swoop' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Arm Bar' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Brawler' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    // TODO: verify -- Reduces Throw Team-Mate scatter; recalled as a Strength skill (paired with Throw Team-Mate/Right Stuff) but could be Passing -- verify against the BB2020/2025 rulebook.
+    { skill: { system: 'Name', id: 'Cannoneer' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Bullseye' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'On the Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Pair of Hands' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    // TODO: verify -- BB2020+ renamed CRP's "Safe Throw" to this; category carried over from CRP, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Monstrous Mouth' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Animal Savagery' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Eye Gouge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Insignificant' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Lethal Flight' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'No Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Pogo Stick' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Projectile Vomit' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Saboteur' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Taunt' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
+    { skill: { system: 'Name', id: 'Unsteady' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+
+  ],
+}

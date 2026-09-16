@@ -1,0 +1,2 @@
+ALTER TABLE "game_data"."position_rules_set_skills" ADD COLUMN "attribute_value" text;--> statement-breakpoint
+ALTER TABLE "game_data"."position_rules_set_skills_history" ADD COLUMN "attribute_value" text;

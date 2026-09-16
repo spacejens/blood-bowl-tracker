@@ -12,10 +12,13 @@ import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
+import { PositionRulesSetSkillsProcessor } from '../entities/position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.processor';
 import { PositionsProcessor } from '../entities/positions.processor';
 import { RacesProcessor } from '../entities/races.processor';
 import { RulesSetsProcessor } from '../entities/rules-sets.processor';
+import { SkillRulesSetsProcessor } from '../entities/skill-rules-sets.processor';
+import { SkillsProcessor } from '../entities/skills.processor';
 import { SppAwardValuesProcessor } from '../entities/spp-award-values.processor';
 import { TeamsProcessor } from '../entities/teams.processor';
 import { TrophiesProcessor } from '../entities/trophies.processor';
@@ -32,6 +35,9 @@ function emptyData(): ManualDataFile {
     races: [],
     positions: [],
     positionRulesSets: [],
+    positionRulesSetSkills: [],
+    skills: [],
+    skillRulesSets: [],
     coaches: [],
     teams: [],
     competitions: [],
@@ -51,11 +57,14 @@ interface Overrides {
 
 interface ProcessorMocks {
   rulesSets: MockProxy<RulesSetsProcessor>;
+  skills: MockProxy<SkillsProcessor>;
+  skillRulesSets: MockProxy<SkillRulesSetsProcessor>;
   leagues: MockProxy<LeaguesProcessor>;
   eras: MockProxy<ErasProcessor>;
   races: MockProxy<RacesProcessor>;
   positions: MockProxy<PositionsProcessor>;
   positionRulesSets: MockProxy<PositionRulesSetsProcessor>;
+  positionRulesSetSkills: MockProxy<PositionRulesSetSkillsProcessor>;
   coaches: MockProxy<CoachesProcessor>;
   teams: MockProxy<TeamsProcessor>;
   competitionGroups: MockProxy<CompetitionGroupsProcessor>;
@@ -92,11 +101,14 @@ async function makeService(overrides: Overrides = {}): Promise<{
 
   const procs: ProcessorMocks = {
     rulesSets: mock<RulesSetsProcessor>(),
+    skills: mock<SkillsProcessor>(),
+    skillRulesSets: mock<SkillRulesSetsProcessor>(),
     leagues: mock<LeaguesProcessor>(),
     eras: mock<ErasProcessor>(),
     races: mock<RacesProcessor>(),
     positions: mock<PositionsProcessor>(),
     positionRulesSets: mock<PositionRulesSetsProcessor>(),
+    positionRulesSetSkills: mock<PositionRulesSetSkillsProcessor>(),
     coaches: mock<CoachesProcessor>(),
     teams: mock<TeamsProcessor>(),
     competitionGroups: mock<CompetitionGroupsProcessor>(),
@@ -108,6 +120,10 @@ async function makeService(overrides: Overrides = {}): Promise<{
   procs.rulesSets.process.mockImplementation(
     processImpl('rulesSets', overrides),
   );
+  procs.skills.process.mockImplementation(processImpl('skills', overrides));
+  procs.skillRulesSets.process.mockImplementation(
+    processImpl('skillRulesSets', overrides),
+  );
   procs.leagues.process.mockImplementation(processImpl('leagues', overrides));
   procs.eras.process.mockImplementation(processImpl('eras', overrides));
   procs.races.process.mockImplementation(processImpl('races', overrides));
@@ -116,6 +132,9 @@ async function makeService(overrides: Overrides = {}): Promise<{
   );
   procs.positionRulesSets.process.mockImplementation(
     processImpl('positionRulesSets', overrides),
+  );
+  procs.positionRulesSetSkills.process.mockImplementation(
+    processImpl('positionRulesSetSkills', overrides),
   );
   procs.coaches.process.mockImplementation(processImpl('coaches', overrides));
   procs.teams.process.mockImplementation(processImpl('teams', overrides));
@@ -146,6 +165,8 @@ async function makeService(overrides: Overrides = {}): Promise<{
       { provide: ManualDataReader, useValue: reader },
       { provide: ExternalSystemsProcessor, useValue: externalSystems },
       { provide: RulesSetsProcessor, useValue: procs.rulesSets },
+      { provide: SkillsProcessor, useValue: procs.skills },
+      { provide: SkillRulesSetsProcessor, useValue: procs.skillRulesSets },
       { provide: LeaguesProcessor, useValue: procs.leagues },
       { provide: ErasProcessor, useValue: procs.eras },
       { provide: RacesProcessor, useValue: procs.races },
@@ -153,6 +174,10 @@ async function makeService(overrides: Overrides = {}): Promise<{
       {
         provide: PositionRulesSetsProcessor,
         useValue: procs.positionRulesSets,
+      },
+      {
+        provide: PositionRulesSetSkillsProcessor,
+        useValue: procs.positionRulesSetSkills,
       },
       { provide: CoachesProcessor, useValue: procs.coaches },
       { provide: TeamsProcessor, useValue: procs.teams },
@@ -181,10 +206,13 @@ describe('ManualImportService', () => {
     const { service } = await makeService({
       counts: {
         rulesSets: 1,
+        skills: 1,
+        skillRulesSets: 1,
         leagues: 1,
         eras: 2,
         races: 1,
         positionRulesSets: 1,
+        positionRulesSetSkills: 1,
         coaches: 1,
         teams: 1,
         competitionGroups: 1,
@@ -197,7 +225,7 @@ describe('ManualImportService', () => {
 
     const result = await service.run('/data/dir');
 
-    expect(result.imported).toBe(13);
+    expect(result.imported).toBe(16);
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
@@ -227,6 +255,14 @@ describe('ManualImportService', () => {
       order.push('rulesSets');
       return Promise.resolve(0);
     });
+    procs.skills.process.mockImplementation(() => {
+      order.push('skills');
+      return Promise.resolve(0);
+    });
+    procs.skillRulesSets.process.mockImplementation(() => {
+      order.push('skillRulesSets');
+      return Promise.resolve(0);
+    });
     procs.leagues.process.mockImplementation(() => {
       order.push('leagues');
       return Promise.resolve(0);
@@ -245,6 +281,10 @@ describe('ManualImportService', () => {
     });
     procs.positionRulesSets.process.mockImplementation(() => {
       order.push('positionRulesSets');
+      return Promise.resolve(0);
+    });
+    procs.positionRulesSetSkills.process.mockImplementation(() => {
+      order.push('positionRulesSetSkills');
       return Promise.resolve(0);
     });
     procs.coaches.process.mockImplementation(() => {
@@ -280,11 +320,14 @@ describe('ManualImportService', () => {
 
     expect(order).toEqual([
       'rulesSets',
+      'skills',
+      'skillRulesSets',
       'leagues',
       'eras',
       'races',
       'positions',
       'positionRulesSets',
+      'positionRulesSetSkills',
       'coaches',
       'teams',
       'competitionGroups',

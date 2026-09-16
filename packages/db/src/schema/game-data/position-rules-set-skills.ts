@@ -1,4 +1,4 @@
-import { integer, serial, unique } from 'drizzle-orm/pg-core';
+import { integer, serial, text, unique } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
@@ -25,6 +25,12 @@ import { skills } from './skills';
  * rules set is enforced in PositionRulesSetSkillsService, not by a database
  * constraint: the rule spans another table's row, exactly like the
  * characteristic-format rule on `position_rules_sets`.
+ *
+ * `attributeValue` carries a position-specific variant of the skill that is
+ * no longer part of the skill's own identity — e.g. "Loner (4+)"'s "4+", or
+ * "Animosity (Orc Linemen)"'s "Orc Linemen" — now that skill identity is just
+ * the base name. It is nullable because most starting skills carry no such
+ * detail at all.
  */
 const positionRulesSetSkillsTable = historyTrackedTable({
   schema: gameData,
@@ -37,6 +43,7 @@ const positionRulesSetSkillsTable = historyTrackedTable({
     skillId: integer('skill_id')
       .references(() => skills.id)
       .notNull(),
+    attributeValue: text('attribute_value'),
   },
   extraConfig: (t) => ({
     uniquePositionRulesSetSkill: unique(

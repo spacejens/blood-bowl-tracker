@@ -1,0 +1,45 @@
+// Re-asserts the canonical spelling of every merged skill-name cluster
+// (before-other-importers/skills.json5 registers the same skills, with the
+// same externalIds, under the same canonical names).
+//
+// This file exists purely to win a name race. `SkillsService.upsert` writes
+// whatever `name` it is given onto the row an external id matches -- it does
+// not treat a pre-registered row's name as fixed. BBL and TP each re-upsert
+// these skills on every run using their OWN raw spelling (e.g. TP spells one
+// "Kick Team-mate" where BBL spells it "Kick Team-Mate"), and since BBL then
+// TP run after before-other-importers, whichever of them last touches a given
+// skill would otherwise leave that spelling as the stored name -- not
+// necessarily the canonical one chosen when the cluster was merged. Curating
+// the same canonical name again here, in after-other-importers (which always
+// runs last), makes the canonical spelling win regardless of import order.
+//
+// Only clusters that actually have more than one registered spelling need an
+// entry here -- a skill with a single external id has no other spelling that
+// could race it.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  skills: [
+    { name: 'Blood Lust', externalIds: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Bloodlust' }] },
+    { name: 'Side Step', externalIds: [{ system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Sidestep' }] },
+    { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }] },
+    { name: 'Thick Skull', externalIds: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Think Skull' }] },
+    { name: 'Claws', externalIds: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Claw' }] },
+    { name: 'Prehensile Tail', externalIds: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Prehensive Tail' }] },
+    { name: 'Animosity', externalIds: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Aminosity' }] },
+    { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Hyptnotic Gaze' }] },
+    { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Tak root' }] },
+    { name: 'Throw Team-Mate', externalIds: [{ system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Throw Team-mate' }, { system: 'Name', id: 'Throw Team.mate' }, { system: 'Name', id: 'Trow Team-Mate' }] },
+    { name: 'Right Stuff', externalIds: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Rightstuff' }] },
+    { name: 'Timmm-ber!', externalIds: [{ system: 'Name', id: 'Timmm-ber!' }, { system: 'Name', id: 'Timmm-Ber!' }] },
+    { name: 'Bone-Head', externalIds: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Bone Head' }, { system: 'Name', id: 'Bone-head' }] },
+    { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
+    { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }, { system: 'Name', id: 'Pick-me-up' }] },
+    { name: 'Projectile Vomit', externalIds: [{ system: 'Name', id: 'Projectile Vomit' }, { system: 'Name', id: 'Projctile Vomit' }] },
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }] },
+    { name: 'Piling On', externalIds: [{ system: 'Name', id: 'Piling On' }, { system: 'Name', id: 'Pile On' }] },
+    { name: 'Pogo Stick', externalIds: [{ system: 'Name', id: 'Pogo Stick' }, { system: 'Name', id: 'Pogo' }] },
+    { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
+  ],
+}

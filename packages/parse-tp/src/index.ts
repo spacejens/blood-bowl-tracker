@@ -17,6 +17,7 @@ export { MatchParserService } from './match-parser.service';
 export type {
   TpOfficialPosition,
   TpOfficialRace,
+  TpPositionSkillRef,
 } from './official-teams-parser.service';
 export { OfficialTeamsParserService } from './official-teams-parser.service';
 export { ParseTpModule } from './parse-tp.module';
@@ -31,6 +32,7 @@ export type {
 export { RosterParserService } from './roster-parser.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { SecretObjectiveService } from './secret-objective.service';
+export { SkillMasterNamesParserService } from './skill-master-names-parser.service';
 export type { TpTournament } from './tournament-parser.service';
 export { TournamentParserService } from './tournament-parser.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.

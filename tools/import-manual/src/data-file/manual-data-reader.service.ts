@@ -62,6 +62,9 @@ export class ManualDataReader {
       races: [],
       positions: [],
       positionRulesSets: [],
+      positionRulesSetSkills: [],
+      skills: [],
+      skillRulesSets: [],
       coaches: [],
       teams: [],
       competitions: [],
@@ -81,6 +84,9 @@ export class ManualDataReader {
       pooled.races.push(...file.races);
       pooled.positions.push(...file.positions);
       pooled.positionRulesSets.push(...file.positionRulesSets);
+      pooled.positionRulesSetSkills.push(...file.positionRulesSetSkills);
+      pooled.skills.push(...file.skills);
+      pooled.skillRulesSets.push(...file.skillRulesSets);
       pooled.coaches.push(...file.coaches);
       pooled.teams.push(...file.teams);
       pooled.competitions.push(...file.competitions);

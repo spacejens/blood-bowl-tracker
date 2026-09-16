@@ -21,7 +21,7 @@ interface ResolvableRouter {
 
 /**
  * Resolves an external-id pair to a database id over the API, for any of the
- * ten resolvable entity kinds.
+ * eleven resolvable entity kinds.
  *
  * Shared by every import tool. Because each upsert persists immediately, an
  * entity created earlier — in this run, in the other import-manual phase, or
@@ -55,6 +55,8 @@ export class ExternalIdResolverService {
         return this.client.races;
       case 'rulesSet':
         return this.client.rulesSets;
+      case 'skill':
+        return this.client.skills;
       case 'team':
         return this.client.teams;
     }

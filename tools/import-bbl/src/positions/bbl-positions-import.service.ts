@@ -14,7 +14,9 @@ import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import {
+  type BblPosition,
   type BblPositionCharacteristics,
+  type BblPositionSkillRef,
   PositionPageParser,
 } from './position-page-parser';
 
@@ -77,6 +79,7 @@ export class BblPositionsImportService {
       { isStarPlayer: boolean; raceDbIds: Set<number> }
     >;
     characteristicsByPositionId: Map<number, BblPositionCharacteristics>;
+    skillsByPositionId: Map<number, BblPositionSkillRef[]>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -105,18 +108,19 @@ export class BblPositionsImportService {
       number,
       BblPositionCharacteristics
     >();
+    const skillsByPositionId = new Map<number, BblPositionSkillRef[]>();
     /**
      * A position upserted for several races produces several rows, all sharing
-     * the one characteristics line its page showed — so this is set per
-     * upserted row, not per page. Kept separate from recordCandidate to stay
-     * inside the 3-parameter limit.
+     * the one characteristics line and skill list its page showed -- so this
+     * is set per upserted row, not per page. Kept separate from
+     * recordCandidate to stay inside the 3-parameter limit.
      */
-    const recordCharacteristics = (
-      positionId: number,
-      characteristics: BblPositionCharacteristics | null,
-    ) => {
-      if (characteristics) {
-        characteristicsByPositionId.set(positionId, characteristics);
+    const recordPageData = (positionId: number, position: BblPosition) => {
+      if (position.characteristics) {
+        characteristicsByPositionId.set(positionId, position.characteristics);
+      }
+      if (position.skills.length > 0) {
+        skillsByPositionId.set(positionId, position.skills);
       }
     };
 
@@ -134,6 +138,7 @@ export class BblPositionsImportService {
         result: this.importResults.result({ imported, errors }),
         positionRaceCandidates,
         characteristicsByPositionId,
+        skillsByPositionId,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
@@ -226,7 +231,7 @@ export class BblPositionsImportService {
           if (upserted) {
             imported += 1;
             recordCandidate(upserted.id, false, [dbId]);
-            recordCharacteristics(upserted.id, position.characteristics);
+            recordPageData(upserted.id, position);
           }
         }
 
@@ -279,7 +284,7 @@ export class BblPositionsImportService {
               true,
               resolved.map((r) => r.dbId),
             );
-            recordCharacteristics(upserted.id, position.characteristics);
+            recordPageData(upserted.id, position);
           }
         } else {
           for (const race of resolved) {
@@ -300,7 +305,7 @@ export class BblPositionsImportService {
             if (upserted) {
               imported += 1;
               recordCandidate(upserted.id, false, [race.dbId]);
-              recordCharacteristics(upserted.id, position.characteristics);
+              recordPageData(upserted.id, position);
             }
           }
         }
@@ -314,6 +319,7 @@ export class BblPositionsImportService {
       result: this.importResults.result({ imported, errors }),
       positionRaceCandidates,
       characteristicsByPositionId,
+      skillsByPositionId,
     };
   }
 

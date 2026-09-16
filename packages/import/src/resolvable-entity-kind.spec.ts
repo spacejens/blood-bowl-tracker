@@ -20,6 +20,7 @@ const CONTRACT_NAMESPACE_BY_KIND = {
   position: 'positions',
   race: 'races',
   rulesSet: 'rulesSets',
+  skill: 'skills',
   team: 'teams',
 } as const satisfies Record<(typeof RESOLVABLE_ENTITY_KINDS)[number], string>;
 

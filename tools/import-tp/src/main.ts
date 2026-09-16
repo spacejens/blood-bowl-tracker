@@ -22,11 +22,13 @@ import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
+import { TpPositionSkillsImportService } from './positions/tp-position-skills-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 import { OfficialTeamsCollectionService } from './source/official-teams-collection.service';
 import { RosterCollectionService } from './source/roster-collection.service';
+import { SkillMasterNameCollectionService } from './source/skill-master-name-collection.service';
 import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
 import { TpMissingTrophyAwardsImportService } from './trophy-awards/tp-missing-trophy-awards-import.service';
@@ -115,11 +117,14 @@ async function run(): Promise<ImportResult> {
       .get(TpTeamsImportService)
       .importTeams(rosters);
 
-    const { result: positionResult, characteristicsByPositionId } = await app
-      .get(TpPositionsImportService)
-      .importPositions(officialTeams, {
-        raceNamesById: raceOutcome.raceNamesById,
-      });
+    const {
+      result: positionResult,
+      characteristicsByPositionId,
+      skillRefsByPositionId,
+      positionNamesById,
+    } = await app.get(TpPositionsImportService).importPositions(officialTeams, {
+      raceNamesById: raceOutcome.raceNamesById,
+    });
 
     // Characteristics run immediately after the positions step that produced
     // them: the map is keyed by the position ids that step just upserted, and
@@ -136,6 +141,36 @@ async function run(): Promise<ImportResult> {
     const positionCharacteristicsOutcome = await app
       .get(TpPositionCharacteristicsImportService)
       .syncPositionCharacteristics(characteristicsByPositionId);
+
+    // The skillMasterId -> name lookup is scanned once here, from the same
+    // mirror the rosters/matches were read from: rosters_masters names skills
+    // by id only, while every real roster and match embeds the name.
+    const skillNameErrors: ImportError[] = [];
+    const skillNamesByMasterId = await app
+      .get(SkillMasterNameCollectionService)
+      .collect(skillNameErrors);
+    const skillNameCollectionResult = app.get(ImportResultService).result({
+      imported: 0,
+      errors: skillNameErrors,
+    });
+
+    // Starting skills run after the characteristics step for a hard reason:
+    // the API rejects a starting skill for a (position, rules set) with no
+    // characteristics row, which that step is what creates.
+    const rulesSetNamesById = new Map(
+      [...rulesSetsOutcome.rulesSetsByName.values()].map((rulesSet) => [
+        rulesSet.id,
+        rulesSet.name,
+      ]),
+    );
+    const positionSkillsOutcome = await app
+      .get(TpPositionSkillsImportService)
+      .syncPositionSkills({
+        skillRefsByPositionId,
+        skillNamesByMasterId,
+        positionNamesById,
+        rulesSetNamesById,
+      });
 
     // A roster id can appear under more than one era (TpTeamsImportService's
     // era-union grouping), so resolving a hired star player's team era later
@@ -395,6 +430,8 @@ async function run(): Promise<ImportResult> {
       teamOutcome.result,
       positionResult,
       positionCharacteristicsOutcome.result,
+      skillNameCollectionResult,
+      positionSkillsOutcome.result,
       playerResult,
       mercenaryPositionRaceErasOutcome.result,
       teamParticipationOutcome.result,
