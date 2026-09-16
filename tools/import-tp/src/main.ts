@@ -150,7 +150,7 @@ async function run(): Promise<ImportResult> {
       .get(SkillMasterNameCollectionService)
       .collect(skillNameErrors);
     const skillNameCollectionResult = app.get(ImportResultService).result({
-      imported: skillNamesByMasterId.size,
+      imported: 0,
       errors: skillNameErrors,
     });
 
