@@ -198,8 +198,19 @@ skill and `lineUpMasterId` points back at the position. Skills that carry a
 value add `skillAttributeMasterId` and `skillAttributeMaster`, e.g.
 `{ "type": 0, "value": "4+", "id": 3 }` (Loner 4+) or
 `{ "type": 1, "value": "+1", "id": 6 }`. Skill _names_ are not in this
-response — only the numeric `skillMasterId` — so a skill name lookup is not
-available from this file alone.
+response — only the numeric `skillMasterId` (plus the optional
+`skillAttributeMaster.value`) — so a skill name lookup is not available from
+this file alone.
+
+The name lookup instead comes from scanning the rest of the downloaded
+mirror: every real team roster (`rosters_<teamId>.json`) and match snapshot
+(`match_*.json`) embeds the full `skillMaster: { id, name }` object wherever
+a skill appears, and `SkillMasterNameCollectionService` builds the
+`skillMasterId -> name` map by walking every downloaded file once. A
+`skillMasterId` this file references but no downloaded roster or match
+happens to explain is reported by the positions' skills import as an
+`ImportError`, not by this scan — and resolves itself as `download-tp` pulls
+more history.
 
 ### `inducementsMasters[]`
 

@@ -85,6 +85,12 @@ real-world entity differently:
   positions those rows reference, since nothing else in this phase does.
   Currently one entry, Giant Mercenary under BB2020, which `tools/import-tp`
   reads for its mercenary hires.
+- `skills.json5` — the skills that exist only in CRP/CRP+/BB2016, plus the
+  category table (`skill_rules_sets`) for **every** skill under **every** rules
+  set. A missing row means the rules set does not have that skill, and the BBL
+  and TP skill imports read these rows back before recording a starting skill —
+  so an uncurated (skill, rules set) pair becomes an import error naming this
+  file. `unique` is the only marker a star player's exclusive skill has.
 
 ### Position renamed across rules-set generations
 
@@ -121,7 +127,8 @@ generation's id on the one existing curated row** in
 - `position-characteristics.json5` requires no change: each entry is keyed by
   the position's `Name` external id, not a display name, so the renamed row's
   merged identity (with both old and new ids registered) resolves the reference
-  correctly. The same holds for `before-other-importers/position-characteristics-gap-fill.json5`, except that its own `positions` entries carry a display `name` that must be kept current like any other.
+  correctly. The same holds for `before-other-importers/position-characteristics-gap-fill.json5`, except that its own `positions` entries carry a display `name` that must be kept current like any other. `after-other-importers/position-skills.json5` is keyed the same way, by the
+  position's `Name` external id, so it needs the identical no-change treatment.
 - Leave a comment on the entry naming each source, its id, and which generation
   that id belongs to, so the next curator can tell a genuine rename from a
   spelling difference between the two sources.
@@ -179,3 +186,11 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   winner. It sits in the **after** phase because each entry references a
   competition and a player by external id, both created by the BBL/TP
   importers.
+- `position-skills.json5` — hand-curated starting skills
+  (`position_rules_set_skills`) for CRP, CRP+ and BB2016, one entry per
+  (position, rules set) carrying that position's whole skill list. Each entry's
+  pair must already be curated in `position-characteristics.json5`, and each
+  skill must have a category for that rules set in `skills.json5`; both are
+  asserted by `curated-data-skills.spec.ts`. Star players under these three
+  rules sets are absent because they have no curated characteristics to hang a
+  starting skill off.

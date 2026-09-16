@@ -65,6 +65,11 @@ numbers), and a `PA` cell reading `-` means the position has no Passing
 ability. That `-` is not confined to pre-BB2020 positions: "Big Guy"
 positions such as Kroxigor and Ogre show it under the current rules too.
 
+The table's sixth column, `Skills`, is a comma-separated list of the
+position's starting skills. A parenthetical value (`Loner (4+)`, `Mighty
+Blow (+1)`) is part of the skill's own display name, not a separate field, so
+the cell is split on commas only.
+
 Note on `pl` pages: a player page carries the player's `<h1>` name, two links —
 the player's position (`default.asp?p=pt&typID=<id>`) and team
 (`default.asp?p=tm&t=<code>`) — an "Unspent SPP" row whose parenthesized figure
