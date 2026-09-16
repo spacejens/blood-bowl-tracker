@@ -73,6 +73,8 @@ export { SkillRulesSetsImportService } from './skill-rules-sets-import.service';
 export { SkillsImportService } from './skills-import.service';
 export { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 export { SppAwardValuesImportService } from './spp-award-values-import.service';
+export type { StartingSkillNames } from './starting-skills-import.service';
+export { StartingSkillsImportService } from './starting-skills-import.service';
 export { TeamsImportService } from './teams-import.service';
 export { TrophiesImportService } from './trophies-import.service';
 export { TrophyAwardsImportService } from './trophy-awards-import.service';

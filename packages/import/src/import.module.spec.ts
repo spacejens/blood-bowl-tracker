@@ -32,6 +32,7 @@ import { SkillRulesSetsImportService } from './skill-rules-sets-import.service';
 import { SkillsImportService } from './skills-import.service';
 import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
+import { StartingSkillsImportService } from './starting-skills-import.service';
 import { TeamsImportService } from './teams-import.service';
 import { TrophiesImportService } from './trophies-import.service';
 import { TrophyAwardsImportService } from './trophy-awards-import.service';
@@ -63,6 +64,7 @@ const providers = [
   SkillsImportService,
   SppAdjustmentsImportService,
   SppAwardValuesImportService,
+  StartingSkillsImportService,
   ErasImportService,
   TeamsImportService,
   TrophiesImportService,
