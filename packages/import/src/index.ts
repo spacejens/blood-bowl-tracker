@@ -60,6 +60,7 @@ export { MatchesImportService } from './matches-import.service';
 export { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
 export { NameExternalIdService } from './name-external-id.service';
 export { PlayersImportService } from './players-import.service';
+export { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 export { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 export type { SyncPositionRaceErasData } from './positions-import.service';
 export { PositionsImportService } from './positions-import.service';
