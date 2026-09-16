@@ -93,13 +93,8 @@ export class StartingSkillsImportService {
           skillId: number;
           attributeValue?: string;
         }[] = [];
-        const seen = new Set<string>();
+        const seenSkillIds = new Set<number>();
         for (const ref of refs) {
-          const dedupeKey = `${ref.name}|${ref.attributeValue ?? ''}`;
-          if (seen.has(dedupeKey)) {
-            continue;
-          }
-          seen.add(dedupeKey);
           const { name, attributeValue } = ref;
           const skillId = await this.resolveSkillId({
             name,
@@ -110,6 +105,16 @@ export class StartingSkillsImportService {
           if (skillId === undefined) {
             continue;
           }
+          // Dedupe on the resolved skill id, not the raw name/attributeValue
+          // pair: the stored row is keyed on (positionRulesSetId, skillId),
+          // so two refs that resolve to the same skill -- whether identical
+          // names or two spellings a curated merge folds into one skill,
+          // e.g. "Claw"/"Claws" -- would otherwise both reach the sync call
+          // and get the whole batch rejected as a duplicate pair.
+          if (seenSkillIds.has(skillId)) {
+            continue;
+          }
+          seenSkillIds.add(skillId);
           const rulesSetIds = await this.categoryRulesSetIds({
             name,
             skillId,

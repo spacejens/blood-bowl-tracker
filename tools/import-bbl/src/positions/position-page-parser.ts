@@ -65,7 +65,7 @@ const KNOWN_GARBLED_SKILL_ENTRIES: Record<
  * (`"Loner(4+)"`, `"Mighty Blow(+1)"`), a separate scraping inconsistency
  * from the space-before-paren case.
  */
-const PARENTHETICAL_VALUE = /^(.+?) ?\(([^()]*)\)$/;
+const PARENTHETICAL_VALUE = /^(.+?) ?\(([^()]+)\)$/;
 
 /**
  * A position ("player type") extracted from a `p=pt` page. `typId` is the
@@ -243,7 +243,7 @@ export class PositionPageParser {
    * through as a bare name.
    */
   private resolveSkillRefs(entry: string): BblPositionSkillRef[] {
-    if (entry in KNOWN_GARBLED_SKILL_ENTRIES) {
+    if (Object.hasOwn(KNOWN_GARBLED_SKILL_ENTRIES, entry)) {
       return KNOWN_GARBLED_SKILL_ENTRIES[entry] ?? [];
     }
     const match = PARENTHETICAL_VALUE.exec(entry);

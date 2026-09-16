@@ -109,7 +109,7 @@ describe('StartingSkillsImportService', () => {
     );
   });
 
-  it('passes the attribute value through to the synced entry and dedupes on the (name, attributeValue) pair', async () => {
+  it('passes the attribute value through to the synced entry and dedupes on the resolved skill id', async () => {
     skills.upsert.mockResolvedValueOnce(upserted(5, 'Loner'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
       { rulesSetId: 4, category: 'general' },
@@ -144,6 +144,44 @@ describe('StartingSkillsImportService', () => {
       {
         entries: [
           { positionId: 3, rulesSetId: 4, skillId: 5, attributeValue: '4+' },
+        ],
+      },
+      errors,
+    );
+  });
+
+  it('dedupes two different spellings that resolve to the same merged skill', async () => {
+    // Both spellings' upserts resolve to the same skill id -- a curated
+    // merge (e.g. "Claw" and "Claws") registers both as external ids of one
+    // row, so BBL/TP's own upsert of either raw string matches that row.
+    skills.upsert.mockResolvedValue(upserted(5, 'Claws'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 4, category: 'mutation' },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([[3, new Map([[4, [{ name: 'Claw' }, { name: 'Claws' }]]])]]),
+      new Map([[4, 'CRP']]),
+      errors,
+    );
+
+    // Both raw spellings upsert to the same skill id -- the server would
+    // reject the whole batch if both reached it as separate entries, since
+    // it's the same (positionId, rulesSetId, skillId) pair twice.
+    expect(synced).toBe(1);
+    expect(positionSkills.syncPositionRulesSetSkills).toHaveBeenCalledWith(
+      {
+        entries: [
+          {
+            positionId: 3,
+            rulesSetId: 4,
+            skillId: 5,
+            attributeValue: undefined,
+          },
         ],
       },
       errors,

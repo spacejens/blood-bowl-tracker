@@ -115,6 +115,39 @@ describe('curated data files - skills', () => {
     }
   });
 
+  it('re-asserts only skills already registered before, under the same external ids', () => {
+    // SkillsService.upsert overwrites a matched row's name with whatever it's
+    // given, so BBL/TP running after this file (each with their own raw
+    // spelling for a merged skill) could otherwise flip a curated canonical
+    // name back to a variant one. after-other-importers/skills.json5 exists
+    // solely to re-assert the canonical spelling last; it must never
+    // diverge from -- or add a skill beyond -- what's already registered
+    // here, or it stops being a safe no-op re-assertion.
+    const before = skillsFile();
+    const beforeByName = new Map(
+      before.skills.map((skill) => [skill.name, skill]),
+    );
+    const after = readFile('after-other-importers', 'skills.json5');
+
+    const sortedIds = (ids: { system: string; id: string }[]) =>
+      [...ids].map((ref) => `${ref.system}|${ref.id}`).sort();
+
+    for (const skill of after.skills) {
+      const beforeSkill = beforeByName.get(skill.name);
+      expect(beforeSkill).toBeDefined();
+      expect(sortedIds(skill.externalIds)).toEqual(
+        sortedIds(beforeSkill?.externalIds ?? []),
+      );
+    }
+
+    const afterNames = new Set(after.skills.map((skill) => skill.name));
+    for (const skill of before.skills) {
+      if (skill.externalIds.length > 1) {
+        expect(afterNames).toContain(skill.name);
+      }
+    }
+  });
+
   const positionSkillsFile = () =>
     readFile('after-other-importers', 'position-skills.json5');
 
