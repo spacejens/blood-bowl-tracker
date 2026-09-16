@@ -227,10 +227,6 @@
     { name: 'Animosity (all Dwarf and Halfling team-mates)', externalIds: [{ system: 'Name', id: 'Animosity (all Dwarf and Halfling team-mates)' }] },
     { name: 'Animosity (all team-mates)', externalIds: [{ system: 'Name', id: 'Animosity (all team-mates)' }] },
     { name: 'Arm Bar', externalIds: [{ system: 'Name', id: 'Arm Bar' }] },
-    { name: 'Baleful Hex', externalIds: [{ system: 'Name', id: 'Baleful Hex' }] },
-    { name: 'Beer Barrel Bash!', externalIds: [{ system: 'Name', id: 'Beer Barrel Bash!' }] },
-    { name: 'Blast it!', externalIds: [{ system: 'Name', id: 'Blast it!' }] },
-    { name: 'Blind Rage', externalIds: [{ system: 'Name', id: 'Blind Rage' }] },
     { name: 'Bloodlust (2+)', externalIds: [{ system: 'Name', id: 'Bloodlust (2+)' }] },
     { name: 'Bloodlust (3+)', externalIds: [{ system: 'Name', id: 'Bloodlust (3+)' }] },
     { name: 'Bomber', externalIds: [{ system: 'Name', id: 'Bomber' }] },
@@ -238,72 +234,69 @@
     { name: 'Bone-Head', externalIds: [{ system: 'Name', id: 'Bone-Head' }] },
     { name: 'Brawler', externalIds: [{ system: 'Name', id: 'Brawler' }] },
     { name: 'Breathe Fire', externalIds: [{ system: 'Name', id: 'Breathe Fire' }] },
-    { name: 'Brutal Block', externalIds: [{ system: 'Name', id: 'Brutal Block' }] },
     { name: 'Bullseye', externalIds: [{ system: 'Name', id: 'Bullseye' }] },
-    { name: 'Burst of Speed', externalIds: [{ system: 'Name', id: 'Burst of Speed' }] },
     { name: 'Cannoneer', externalIds: [{ system: 'Name', id: 'Cannoneer' }] },
     { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }] },
-    { name: 'Consummate Professional', externalIds: [{ system: 'Name', id: 'Consummate Professional' }] },
-    { name: 'Crushing Blow', externalIds: [{ system: 'Name', id: 'Crushing Blow' }] },
     { name: 'Defensive', externalIds: [{ system: 'Name', id: 'Defensive' }] },
     { name: 'Dirty Player (+1)', externalIds: [{ system: 'Name', id: 'Dirty Player (+1)' }] },
     { name: 'Dirty Player (+2)', externalIds: [{ system: 'Name', id: 'Dirty Player (+2)' }] },
-    { name: 'Dirty Player(+2)', externalIds: [{ system: 'Name', id: 'Dirty Player(+2)' }] },
     { name: 'Drunkard', externalIds: [{ system: 'Name', id: 'Drunkard' }] },
     { name: 'Dump-off', externalIds: [{ system: 'Name', id: 'Dump-off' }] },
     { name: 'Eye Gunge', externalIds: [{ system: 'Name', id: 'Eye Gunge' }] },
     { name: 'Frenzied Rush', externalIds: [{ system: 'Name', id: 'Frenzied Rush' }] },
-    { name: 'Fumblerooskie', externalIds: [{ system: 'Name', id: 'Fumblerooskie' }] },
     { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
     { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
     { name: 'Hit and Run', externalIds: [{ system: 'Name', id: 'Hit and Run' }] },
     { name: 'Hyptnotic Gaze', externalIds: [{ system: 'Name', id: 'Hyptnotic Gaze' }] },
-    { name: 'Ill Be Back!', externalIds: [{ system: 'Name', id: 'Ill Be Back!' }] },
-    { name: 'Indomitable', externalIds: [{ system: 'Name', id: 'Indomitable' }] },
     { name: 'Insignificant', externalIds: [{ system: 'Name', id: 'Insignificant' }] },
     { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }] },
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }] },
     { name: 'Kick Team-mate', externalIds: [{ system: 'Name', id: 'Kick Team-mate' }] },
     { name: 'Leap Right Stuff', externalIds: [{ system: 'Name', id: 'Leap Right Stuff' }] },
+    // Genuinely garbled BBL source data (typID=124's skills cell), not a
+    // parsing bug: the raw HTML cell reads "Loner, Dodge, Right Stuff,
+    // Stunty<br>(Note: comes with Brick Far'th, included in his price)". The
+    // real parser strips the <br> and splits on commas, producing "Stunty"
+    // (the genuine skill, already registered above) plus these two literal
+    // garbage fragments of the parenthetical note. Curated as distinct
+    // skills only so this file's pre-registration invariant holds for
+    // whatever BBL's own import actually sends.
+    { name: "Stunty(Note: comes with Brick Far'th", externalIds: [{ system: 'Name', id: "Stunty(Note: comes with Brick Far'th" }] },
+    { name: 'included in his price)', externalIds: [{ system: 'Name', id: 'included in his price)' }] },
+    // TP's own composed spelling of the Animosity variants BBL spells
+    // "Animosity (all Dwarf and Human team-mates)" / "... Halfling ...":
+    // TP's BB2020 skillAttributeMaster data composes these as
+    // "Animosity (Dwarf, Human)" / "Animosity (Dwarf, Halfling)". Each
+    // source's literal spelling is curated separately per this file's own
+    // exact-string-match convention (see header comment).
+    { name: 'Animosity (Dwarf, Halfling)', externalIds: [{ system: 'Name', id: 'Animosity (Dwarf, Halfling)' }] },
+    { name: 'Animosity (Dwarf, Human)', externalIds: [{ system: 'Name', id: 'Animosity (Dwarf, Human)' }] },
     { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
     { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
-    { name: 'Loner (2+)', externalIds: [{ system: 'Name', id: 'Loner (2+)' }] },
     { name: 'Loner (3+)', externalIds: [{ system: 'Name', id: 'Loner (3+)' }] },
     { name: 'Loner (4+)', externalIds: [{ system: 'Name', id: 'Loner (4+)' }] },
     { name: 'Loner (5+)', externalIds: [{ system: 'Name', id: 'Loner (5+)' }] },
-    { name: 'Loner(3+)', externalIds: [{ system: 'Name', id: 'Loner(3+)' }] },
     { name: 'Loner(4+)', externalIds: [{ system: 'Name', id: 'Loner(4+)' }] },
     { name: 'Lones', externalIds: [{ system: 'Name', id: 'Lones' }] },
-    { name: 'Lord of Chaos', externalIds: [{ system: 'Name', id: 'Lord of Chaos' }] },
     { name: 'Mesmerizing Dance', externalIds: [{ system: 'Name', id: 'Mesmerizing Dance' }] },
     { name: 'Mighty Blow (+1)', externalIds: [{ system: 'Name', id: 'Mighty Blow (+1)' }] },
     { name: 'Mighty Blow (+2)', externalIds: [{ system: 'Name', id: 'Mighty Blow (+2)' }] },
     { name: 'Mighty Blow(+1)', externalIds: [{ system: 'Name', id: 'Mighty Blow(+1)' }] },
-    { name: 'Mighty Blow(+2)', externalIds: [{ system: 'Name', id: 'Mighty Blow(+2)' }] },
     { name: 'Monstrous Mouth', externalIds: [{ system: 'Name', id: 'Monstrous Mouth' }] },
-    { name: 'Multible Block', externalIds: [{ system: 'Name', id: 'Multible Block' }] },
     { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }] },
     { name: 'No Ball', externalIds: [{ system: 'Name', id: 'No Ball' }] },
-    { name: 'Old Pro', externalIds: [{ system: 'Name', id: 'Old Pro' }] },
     { name: 'On the Ball', externalIds: [{ system: 'Name', id: 'On the Ball' }] },
     { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }] },
     { name: 'Pick-me-up', externalIds: [{ system: 'Name', id: 'Pick-me-up' }] },
-    { name: 'Pile Driver', externalIds: [{ system: 'Name', id: 'Pile Driver' }] },
     { name: 'Plague Ridden', externalIds: [{ system: 'Name', id: 'Plague Ridden' }] },
     { name: 'Pogo', externalIds: [{ system: 'Name', id: 'Pogo' }] },
     { name: 'Pogo Stick', externalIds: [{ system: 'Name', id: 'Pogo Stick' }] },
-    { name: 'Portal Navigator', externalIds: [{ system: 'Name', id: 'Portal Navigator' }] },
     { name: 'Prehensive Tail', externalIds: [{ system: 'Name', id: 'Prehensive Tail' }] },
-    { name: 'Primal Savegery!', externalIds: [{ system: 'Name', id: 'Primal Savegery!' }] },
     { name: 'Projctile Vomit', externalIds: [{ system: 'Name', id: 'Projctile Vomit' }] },
     { name: 'Projectile Vomit', externalIds: [{ system: 'Name', id: 'Projectile Vomit' }] },
-    { name: 'Pump Up the Crowd', externalIds: [{ system: 'Name', id: 'Pump Up the Crowd' }] },
     { name: 'Put the Boot In', externalIds: [{ system: 'Name', id: 'Put the Boot In' }] },
     { name: 'Quick Foul', externalIds: [{ system: 'Name', id: 'Quick Foul' }] },
-    { name: 'Raiding Party', externalIds: [{ system: 'Name', id: 'Raiding Party' }] },
-    { name: 'Ram', externalIds: [{ system: 'Name', id: 'Ram' }] },
     { name: 'Really Stupid.Throw Team-Mate', externalIds: [{ system: 'Name', id: 'Really Stupid.Throw Team-Mate' }] },
-    { name: 'Reliable', externalIds: [{ system: 'Name', id: 'Reliable' }] },
     { name: 'Rightstuff', externalIds: [{ system: 'Name', id: 'Rightstuff' }] },
     { name: 'Running Pass', externalIds: [{ system: 'Name', id: 'Running Pass' }] },
     { name: 'Saboteur', externalIds: [{ system: 'Name', id: 'Saboteur' }] },
@@ -313,13 +306,8 @@
     { name: 'Secret Weapon (7+)', externalIds: [{ system: 'Name', id: 'Secret Weapon (7+)' }] },
     { name: 'Secret Weapon (8+)', externalIds: [{ system: 'Name', id: 'Secret Weapon (8+)' }] },
     { name: 'Secret Weapon 6+)', externalIds: [{ system: 'Name', id: 'Secret Weapon 6+)' }] },
-    { name: 'Shot to Nothing', externalIds: [{ system: 'Name', id: 'Shot to Nothing' }] },
     { name: 'Sidestep', externalIds: [{ system: 'Name', id: 'Sidestep' }] },
-    { name: 'Slayer', externalIds: [{ system: 'Name', id: 'Slayer' }] },
-    { name: 'Sneakiest of The Lot', externalIds: [{ system: 'Name', id: 'Sneakiest of The Lot' }] },
     { name: 'Steady Footing', externalIds: [{ system: 'Name', id: 'Steady Footing' }] },
-    { name: 'Strong Passing Game', externalIds: [{ system: 'Name', id: 'Strong Passing Game' }] },
-    { name: 'Stynty', externalIds: [{ system: 'Name', id: 'Stynty' }] },
     { name: 'Swarming', externalIds: [{ system: 'Name', id: 'Swarming' }] },
     { name: 'Swoop', externalIds: [{ system: 'Name', id: 'Swoop' }] },
     { name: 'Tak root', externalIds: [{ system: 'Name', id: 'Tak root' }] },
@@ -328,14 +316,10 @@
     { name: 'Throw Team-mate', externalIds: [{ system: 'Name', id: 'Throw Team-mate' }] },
     { name: 'Throw Team.mate', externalIds: [{ system: 'Name', id: 'Throw Team.mate' }] },
     { name: 'Timmm-Ber!', externalIds: [{ system: 'Name', id: 'Timmm-Ber!' }] },
-    { name: 'Treacherous', externalIds: [{ system: 'Name', id: 'Treacherous' }] },
     { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }] },
     { name: 'Trow Team-Mate', externalIds: [{ system: 'Name', id: 'Trow Team-Mate' }] },
-    { name: 'Two for One', externalIds: [{ system: 'Name', id: 'Two for One' }] },
     { name: 'Unchannelled Fury', externalIds: [{ system: 'Name', id: 'Unchannelled Fury' }] },
     { name: 'Unsteady', externalIds: [{ system: 'Name', id: 'Unsteady' }] },
-    { name: 'Whirling Dervish', externalIds: [{ system: 'Name', id: 'Whirling Dervish' }] },
-    { name: 'Wisdom of the White Dwarf', externalIds: [{ system: 'Name', id: 'Wisdom of the White Dwarf' }] },
   ],
   skillRulesSets: [
     // --- CRP: General skills (CRP p.21) ---
@@ -610,12 +594,23 @@
 
     // ================================================================
     // BB2020, DB2021, BB2025 -- the modern rules sets BBL and TP import
-    // from directly. Their skill NAMES are already in the locally
-    // downloaded BBL/TP data dumps (harvested via two throwaway scripts,
-    // not committed); their CATEGORIES are not in that data at all, so
-    // every category below is curated from the published BB2020/BB2025
-    // rules (public game-rules knowledge), not from any PDF this project
-    // uses -- none of the four PDFs cover the modern rules sets. Every
+    // from directly. Their skill NAMES were first harvested via two
+    // throwaway scripts (a BBL regex script and a TP JSON-walking script,
+    // neither committed), then reconciled against the real, already-
+    // reviewed-and-merged production parsers (PositionPageParser for BBL;
+    // SkillMasterNamesParserService + OfficialTeamsParserService for TP)
+    // run over the same locally downloaded data dumps. That reconciliation
+    // corrected a handful of the throwaway scripts' own fabrications
+    // (spellings/explanations invented with no HTML or TP data backing
+    // them) and confirmed which apparent "concatenation" artifacts are
+    // instead genuinely garbled strings present in BBL's own source HTML
+    // (see e.g. the "Leap Right Stuff", "Really Stupid.Throw Team-Mate"
+    // and "Stunty(Note: ..." rows below). Every name below is now backed
+    // by one of those two real parsers' actual output over the current
+    // data dumps. Their CATEGORIES are not in that data at all, so every
+    // category below is curated from the published BB2020/BB2025 rules
+    // (public game-rules knowledge), not from any PDF this project uses
+    // -- none of the four PDFs cover the modern rules sets. Every
     // category not carried over unchanged from an already-cited CRP-era
     // row is marked TODO: verify, including every BBL scraping typo
     // (BBL performs no normalization on the HTML it scrapes) and every
@@ -628,8 +623,6 @@
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player (+1)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player (+2)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
-    // TODO: verify -- BBL scraping artifact (missing space) for "Dirty Player (+2)".
-    { skill: { system: 'Name', id: 'Dirty Player(+2)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
     { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
     { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
     { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'general' },
@@ -664,8 +657,6 @@
     { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     // TODO: verify -- Reduces Throw Team-Mate scatter; recalled as a Strength skill (paired with Throw Team-Mate/Right Stuff) but could be Passing -- verify against the BB2020/2025 rulebook.
     { skill: { system: 'Name', id: 'Cannoneer' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
-    // TODO: verify -- Guessed Strength by name; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Crushing Blow' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
@@ -674,26 +665,16 @@
     { skill: { system: 'Name', id: 'Mighty Blow (+2)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     // TODO: verify -- BBL scraping artifact (missing space) for "Mighty Blow (+1)".
     { skill: { system: 'Name', id: 'Mighty Blow(+1)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
-    // TODO: verify -- BBL scraping artifact (missing space) for "Mighty Blow (+2)".
-    { skill: { system: 'Name', id: 'Mighty Blow(+2)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
-    // TODO: verify -- Typo of "Multiple Block" in BBL's scraped HTML.
-    { skill: { system: 'Name', id: 'Multible Block' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
-    // TODO: verify -- Category recalled as Strength, not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Pile Driver' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     // TODO: verify -- Typo of "Thick Skull" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Think Skull' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Two for One' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Cloud Burster' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Dump-off' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
-    // TODO: verify -- New BB2020 Passing skill (lets the ball-carrier place the ball without a turnover instead of handing it off); category recalled, not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Fumblerooskie' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
@@ -705,9 +686,6 @@
     { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
     // TODO: verify -- CRP-era spelling; BB2020+ renamed this skill "Safe Pass" -- confirm whether BBL truly still writes the old name under a modern rules set or this row is unreachable in practice.
     { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Strong Passing Game' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'passing' },
-    { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Claw' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'mutation' },
@@ -743,15 +721,18 @@
     { skill: { system: 'Name', id: 'Animosity (all Dwarf and Halfling team-mates)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- BBL spelling variant of TP's "Animosity (All)".
     { skill: { system: 'Name', id: 'Animosity (all team-mates)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Baleful Hex' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TP's own composed spelling of BBL's "Animosity (all Dwarf and
+    // Halfling team-mates)" above; only found in TP's BB2020
+    // skillAttributeMaster data (rosters_masters?ruleSet=20.json), not
+    // DB2021 or BB2025.
+    // TODO: verify -- category guessed as trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Animosity (Dwarf, Halfling)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TP's own composed spelling of BBL's "Aminosity (all Dwarf and Human
+    // team-mates)" above; only found in TP's BB2020 skillAttributeMaster
+    // data, not DB2021 or BB2025.
+    // TODO: verify -- category guessed as trait, not sourced from a PDF this session has.
+    { skill: { system: 'Name', id: 'Animosity (Dwarf, Human)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Beer Barrel Bash!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Blast it!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Blind Rage' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bloodlust (2+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bloodlust (3+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
@@ -764,13 +745,7 @@
     { skill: { system: 'Name', id: 'Bone-head' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Breathe Fire' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Brutal Block' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Burst of Speed' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Consummate Professional' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Possibly a star-player skill; not identified from a PDF this session has.
@@ -780,54 +755,44 @@
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Typo of "Hypnotic Gaze" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Hyptnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Ill Be Back!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Indomitable' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- BBL capitalization variant of "Kick Team-mate".
+    // Both spellings are genuinely real, not a scraping variant of each
+    // other: BBL's own HTML spells this skill "Kick Team-Mate" (capital
+    // M); TP's skillMaster data spells it "Kick Team-mate" (lowercase m).
+    // TODO: verify -- category guessed as trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Kick Team-mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact: two skill names ("Leap" and "Right Stuff") apparently concatenated without a separating comma in the source HTML.
+    // Verified real: BBL's typID=207 skills cell literally reads "Leap,
+    // Right Stuff" without a separating comma in the source HTML (a
+    // genuine BBL data-entry error, not a parsing bug), and the real
+    // parser produces this exact concatenated string.
+    // TODO: verify -- category guessed as trait (Leap's own category), ambiguous since this string names two skills.
     { skill: { system: 'Name', id: 'Leap Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    { skill: { system: 'Name', id: 'Loner (2+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner (3+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner (4+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner (5+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact (missing space) for "Loner (3+)".
-    { skill: { system: 'Name', id: 'Loner(3+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- BBL scraping artifact (missing space) for "Loner (4+)".
     { skill: { system: 'Name', id: 'Loner(4+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Likely a truncated/garbled scrape of "Loner"; not identified precisely.
     { skill: { system: 'Name', id: 'Lones' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Lord of Chaos' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
     { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Old Pro' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Pogo Stick' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a garbled scrape of "Animal Savagery"; not identified precisely.
-    { skill: { system: 'Name', id: 'Primal Savegery!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Typo of "Projectile Vomit" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Projctile Vomit' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Projectile Vomit' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Pump Up the Crowd' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Raiding Party' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Ram' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact: two skill names ("Really Stupid" and "Throw Team-Mate") apparently concatenated with a stray period in the source HTML.
+    // Verified real: BBL's typID=238 skills cell literally reads "Really
+    // Stupid.Throw Team-Mate" with a stray period instead of a comma in
+    // the source HTML (a genuine BBL data-entry error, not a parsing
+    // bug), and the real parser produces this exact concatenated string.
+    // TODO: verify -- category guessed as trait (Really Stupid's own category), ambiguous since this string names two skills.
     { skill: { system: 'Name', id: 'Really Stupid.Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Reliable' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- BBL scraping artifact (missing space) for "Right Stuff".
     { skill: { system: 'Name', id: 'Rightstuff' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
@@ -838,14 +803,17 @@
     { skill: { system: 'Name', id: 'Secret Weapon (8+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- BBL scraping artifact (missing opening paren) for "Secret Weapon (6+)".
     { skill: { system: 'Name', id: 'Secret Weapon 6+)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Shot to Nothing' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player or Dwarf-themed skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Slayer' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Typo of "Stunty" in BBL's scraped HTML.
-    { skill: { system: 'Name', id: 'Stynty' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // Verified real: BBL's typID=124 skills cell literally reads "Loner,
+    // Dodge, Right Stuff, Stunty<br>(Note: comes with Brick Far'th,
+    // included in his price)". The real parser strips the <br> and splits
+    // on commas, so this parenthetical note (not a skill at all) is
+    // scraped as two garbage fragments alongside the four genuine skills.
+    // TODO: verify -- category guessed as trait by analogy with "Stunty" immediately preceding it in the source cell; genuinely ambiguous since this fragment is not a skill.
+    { skill: { system: 'Name', id: "Stunty(Note: comes with Brick Far'th" }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // TODO: verify -- see the "Stunty(Note: ..." row above; this is the second garbage fragment of the same parenthetical note, with no connection to any real skill's category.
+    { skill: { system: 'Name', id: 'included in his price)' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Not identified from a PDF this session has.
     { skill: { system: 'Name', id: 'Swarming' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Typo of "Take Root" in BBL's scraped HTML.
@@ -858,19 +826,12 @@
     { skill: { system: 'Name', id: 'Timmm-Ber!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Treacherous' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Typo of "Throw Team-Mate" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Trow Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Believed to be Skitter Stab-Stab's exclusive skill; not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Sneakiest of The Lot' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
-    // TODO: verify -- Believed to be Hakflem Skuttlespike's exclusive skill; not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Whirling Dervish' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
-    { skill: { system: 'Name', id: 'Wisdom of the White Dwarf' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
 
     // --- DB2021: harvested from BBL/TP data dumps ---
     { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
@@ -878,8 +839,6 @@
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player (+1)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player (+2)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
-    // TODO: verify -- BBL scraping artifact (missing space) for "Dirty Player (+2)".
-    { skill: { system: 'Name', id: 'Dirty Player(+2)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
@@ -914,26 +873,19 @@
     { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     // TODO: verify -- Reduces Throw Team-Mate scatter; recalled as a Strength skill (paired with Throw Team-Mate/Right Stuff) but could be Passing -- verify against the BB2020/2025 rulebook.
     { skill: { system: 'Name', id: 'Cannoneer' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
-    // TODO: verify -- Guessed Strength by name; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Crushing Blow' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Mighty Blow (+1)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     // TODO: verify -- BBL scraping artifact (missing space) for "Mighty Blow (+1)".
     { skill: { system: 'Name', id: 'Mighty Blow(+1)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
-    // TODO: verify -- BBL scraping artifact (missing space) for "Mighty Blow (+2)".
-    { skill: { system: 'Name', id: 'Mighty Blow(+2)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
-    // TODO: verify -- Typo of "Multiple Block" in BBL's scraped HTML.
-    { skill: { system: 'Name', id: 'Multible Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     // TODO: verify -- Typo of "Thick Skull" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Think Skull' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Two for One' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Cloud Burster' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
@@ -949,8 +901,6 @@
     { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
     // TODO: verify -- CRP-era spelling; BB2020+ renamed this skill "Safe Pass" -- confirm whether BBL truly still writes the old name under a modern rules set or this row is unreachable in practice.
     { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Strong Passing Game' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Claw' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'mutation' },
@@ -981,15 +931,7 @@
     { skill: { system: 'Name', id: 'Animosity (all Dwarf and Halfling team-mates)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- BBL spelling variant of TP's "Animosity (All)".
     { skill: { system: 'Name', id: 'Animosity (all team-mates)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Baleful Hex' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Beer Barrel Bash!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Blast it!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Blind Rage' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bloodlust (2+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bloodlust (3+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
@@ -1002,13 +944,7 @@
     { skill: { system: 'Name', id: 'Bone-head' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Breathe Fire' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Brutal Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Burst of Speed' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Consummate Professional' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Possibly a star-player skill; not identified from a PDF this session has.
@@ -1018,55 +954,44 @@
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Typo of "Hypnotic Gaze" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Hyptnotic Gaze' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Ill Be Back!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Indomitable' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- BBL capitalization variant of "Kick Team-mate".
+    // Both spellings are genuinely real, not a scraping variant of each
+    // other: BBL's own HTML spells this skill "Kick Team-Mate" (capital
+    // M); TP's skillMaster data spells it "Kick Team-mate" (lowercase m).
+    // TODO: verify -- category guessed as trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Kick Team-mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact: two skill names ("Leap" and "Right Stuff") apparently concatenated without a separating comma in the source HTML.
+    // Verified real: BBL's typID=207 skills cell literally reads "Leap,
+    // Right Stuff" without a separating comma in the source HTML (a
+    // genuine BBL data-entry error, not a parsing bug), and the real
+    // parser produces this exact concatenated string.
+    // TODO: verify -- category guessed as trait (Leap's own category), ambiguous since this string names two skills.
     { skill: { system: 'Name', id: 'Leap Right Stuff' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner (3+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner (4+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner (5+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact (missing space) for "Loner (3+)".
-    { skill: { system: 'Name', id: 'Loner(3+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- BBL scraping artifact (missing space) for "Loner (4+)".
     { skill: { system: 'Name', id: 'Loner(4+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Likely a truncated/garbled scrape of "Loner"; not identified precisely.
     { skill: { system: 'Name', id: 'Lones' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Lord of Chaos' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
     { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Old Pro' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Pogo Stick' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Dungeon Bowl (DB2021)-specific skill; category recalled as Trait, not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Portal Navigator' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a garbled scrape of "Animal Savagery"; not identified precisely.
-    { skill: { system: 'Name', id: 'Primal Savegery!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Typo of "Projectile Vomit" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Projctile Vomit' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Projectile Vomit' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Pump Up the Crowd' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Raiding Party' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Ram' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact: two skill names ("Really Stupid" and "Throw Team-Mate") apparently concatenated with a stray period in the source HTML.
+    // Verified real: BBL's typID=238 skills cell literally reads "Really
+    // Stupid.Throw Team-Mate" with a stray period instead of a comma in
+    // the source HTML (a genuine BBL data-entry error, not a parsing
+    // bug), and the real parser produces this exact concatenated string.
+    // TODO: verify -- category guessed as trait (Really Stupid's own category), ambiguous since this string names two skills.
     { skill: { system: 'Name', id: 'Really Stupid.Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Reliable' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- BBL scraping artifact (missing space) for "Right Stuff".
     { skill: { system: 'Name', id: 'Rightstuff' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
@@ -1077,14 +1002,17 @@
     { skill: { system: 'Name', id: 'Secret Weapon (8+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- BBL scraping artifact (missing opening paren) for "Secret Weapon (6+)".
     { skill: { system: 'Name', id: 'Secret Weapon 6+)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Shot to Nothing' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player or Dwarf-themed skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Slayer' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Typo of "Stunty" in BBL's scraped HTML.
-    { skill: { system: 'Name', id: 'Stynty' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // Verified real: BBL's typID=124 skills cell literally reads "Loner,
+    // Dodge, Right Stuff, Stunty<br>(Note: comes with Brick Far'th,
+    // included in his price)". The real parser strips the <br> and splits
+    // on commas, so this parenthetical note (not a skill at all) is
+    // scraped as two garbage fragments alongside the four genuine skills.
+    // TODO: verify -- category guessed as trait by analogy with "Stunty" immediately preceding it in the source cell; genuinely ambiguous since this fragment is not a skill.
+    { skill: { system: 'Name', id: "Stunty(Note: comes with Brick Far'th" }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    // TODO: verify -- see the "Stunty(Note: ..." row above; this is the second garbage fragment of the same parenthetical note, with no connection to any real skill's category.
+    { skill: { system: 'Name', id: 'included in his price)' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Not identified from a PDF this session has.
     { skill: { system: 'Name', id: 'Swarming' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Typo of "Take Root" in BBL's scraped HTML.
@@ -1097,19 +1025,12 @@
     { skill: { system: 'Name', id: 'Timmm-Ber!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Treacherous' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Typo of "Throw Team-Mate" in BBL's scraped HTML.
     { skill: { system: 'Name', id: 'Trow Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Believed to be Skitter Stab-Stab's exclusive skill; not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Sneakiest of The Lot' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
-    // TODO: verify -- Believed to be Hakflem Skuttlespike's exclusive skill; not sourced from a PDF this session has.
-    { skill: { system: 'Name', id: 'Whirling Dervish' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
-    { skill: { system: 'Name', id: 'Wisdom of the White Dwarf' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
 
     // --- BB2025: harvested from BBL/TP data dumps ---
     { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
