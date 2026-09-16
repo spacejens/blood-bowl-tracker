@@ -92,6 +92,12 @@ real-world entity differently:
   so an uncurated (skill, rules set) pair becomes an import error naming this
   file. `unique` is the only marker a star player's exclusive skill has.
 
+  A `skillRulesSets` entry may also carry `isElite: true`. That is BB2025's
+  orthogonal "elite" restriction on a handful of skills — Block, Dodge, Guard
+  and Mighty Blow — not another category, so it is a separate boolean. The field
+  is optional and defaults to `false`; only the four BB2025 elite rows spell it
+  out, and no rules set older than BB2025 has the concept at all.
+
 ### Position renamed across rules-set generations
 
 TourPlay assigns a **fresh numeric position id for every rules-set generation**
@@ -217,3 +223,14 @@ published star player, a newly observed skill variant — those will surface as
 curation gaps needing a `skills.json5` update when they do. A skill with no
 category there is reported and left out of that position's starting skills
 rather than blocking the rest of the import.
+
+A second, narrower error comes from the same curated rows: the TP importer
+cross-checks each starting skill's `isElite` against the curated value and
+reports an `ImportError` naming this file when the two disagree, once per
+(skill, rules set) pair. It can only ever name `BB2025` — TP publishes the
+marker on BB2025 skill masters only, and BBL supplies `false` unconditionally
+because it has no concept of eliteness and is excluded from writing BB2025
+starting skills anyway. Unlike the missing-category error, the starting skill
+is still recorded: only the curated flag disagrees. Such an error means either
+that BB2025 changed which skills are elite, or that TP started publishing the
+marker on a skill this file has not caught up with — fix the curated row.
