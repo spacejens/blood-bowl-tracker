@@ -137,7 +137,7 @@
     { name: 'Break Tackle', externalIds: [{ system: 'Name', id: 'Break Tackle' }] },
     { name: 'Multiple Block', externalIds: [{ system: 'Name', id: 'Multiple Block' }] },
     { name: 'Grab', externalIds: [{ system: 'Name', id: 'Grab' }] },
-    { name: 'Piling On', externalIds: [{ system: 'Name', id: 'Piling On' }] },
+    { name: 'Piling On', externalIds: [{ system: 'Name', id: 'Piling On' }, { system: 'Name', id: 'Pile On' }] },
     { name: 'Guard', externalIds: [{ system: 'Name', id: 'Guard' }] },
     { name: 'Stand Firm', externalIds: [{ system: 'Name', id: 'Stand Firm' }] },
     { name: 'Juggernaut', externalIds: [{ system: 'Name', id: 'Juggernaut' }] },
@@ -161,7 +161,7 @@
     { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Hyptnotic Gaze' }] },
     { name: 'Stab', externalIds: [{ system: 'Name', id: 'Stab' }] },
     { name: 'Ball & Chain', externalIds: [{ system: 'Name', id: 'Ball & Chain' }] },
-    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }] },
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }] },
     { name: 'No Hands', externalIds: [{ system: 'Name', id: 'No Hands' }] },
     { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Tak root' }] },
     { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }] },
@@ -174,17 +174,6 @@
     { name: 'Decay', externalIds: [{ system: 'Name', id: 'Decay' }] },
     { name: 'Right Stuff', externalIds: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Rightstuff' }] },
     { name: 'Stunty', externalIds: [{ system: 'Name', id: 'Stunty' }] },
-
-    // --- CRP+-only skills: genuinely new, not part of CRP's own 76-skill
-    // catalog (NTBB2015.pdf p.2, "THE CRP+ RULES") ---
-    // NTBB2015's own rule text ("1) 'Pile On (Strength): ...'") gives this a
-    // full quoted skill description and its own (Strength) label, distinct
-    // from CRP's existing "Piling On" (already registered above). Per this
-    // file's own convention (see header comment on literal spellings), a
-    // differently-spelled name is a distinct skill here rather than an
-    // implied rename -- the source itself never says CRP+ removes or renames
-    // "Piling On", only that it adds this new, similarly-themed skill.
-    { name: 'Pile On', externalIds: [{ system: 'Name', id: 'Pile On' }] },
 
     // --- BB2016-only skill: not part of CRP's catalog, and not one of the
     // six skills BB-Teams-of-Legend-Revised-1.pdf itself labels "NEW SKILL"
@@ -219,7 +208,7 @@
     { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }] },
     { name: 'Defensive', externalIds: [{ system: 'Name', id: 'Defensive' }] },
     { name: 'Drunkard', externalIds: [{ system: 'Name', id: 'Drunkard' }] },
-    { name: 'Eye Gunge', externalIds: [{ system: 'Name', id: 'Eye Gunge' }] },
+    { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
     { name: 'Frenzied Rush', externalIds: [{ system: 'Name', id: 'Frenzied Rush' }] },
     { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
     { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
@@ -229,7 +218,6 @@
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
     { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
     { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
-    { name: 'Lones', externalIds: [{ system: 'Name', id: 'Lones' }] },
     { name: 'Mesmerizing Dance', externalIds: [{ system: 'Name', id: 'Mesmerizing Dance' }] },
     { name: 'Monstrous Mouth', externalIds: [{ system: 'Name', id: 'Monstrous Mouth' }] },
     { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }] },
@@ -237,8 +225,7 @@
     { name: 'On the Ball', externalIds: [{ system: 'Name', id: 'On the Ball' }] },
     { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }, { system: 'Name', id: 'Pick-me-up' }] },
     { name: 'Plague Ridden', externalIds: [{ system: 'Name', id: 'Plague Ridden' }] },
-    { name: 'Pogo', externalIds: [{ system: 'Name', id: 'Pogo' }] },
-    { name: 'Pogo Stick', externalIds: [{ system: 'Name', id: 'Pogo Stick' }] },
+    { name: 'Pogo Stick', externalIds: [{ system: 'Name', id: 'Pogo Stick' }, { system: 'Name', id: 'Pogo' }] },
     { name: 'Projectile Vomit', externalIds: [{ system: 'Name', id: 'Projectile Vomit' }, { system: 'Name', id: 'Projctile Vomit' }] },
     { name: 'Put the Boot In', externalIds: [{ system: 'Name', id: 'Put the Boot In' }] },
     { name: 'Quick Foul', externalIds: [{ system: 'Name', id: 'Quick Foul' }] },
@@ -409,9 +396,6 @@
     { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
-    // NTBB2015 p.2, rule 1: a new, distinct skill from "Piling On" above --
-    // see the `skills` entry's comment for why this is a separate name.
-    { skill: { system: 'Name', id: 'Pile On' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
 
     { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
@@ -677,8 +661,6 @@
     // skill, merged under BBL's capitalization (see externalIds).
     { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a truncated/garbled scrape of "Loner"; not identified precisely.
-    { skill: { system: 'Name', id: 'Lones' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
     { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
@@ -794,8 +776,6 @@
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a truncated/garbled scrape of "Loner"; not identified precisely.
-    { skill: { system: 'Name', id: 'Lones' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
     { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
@@ -909,7 +889,7 @@
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
-    { skill: { system: 'Name', id: 'Eye Gunge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Eye Gouge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Insignificant' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
@@ -920,8 +900,7 @@
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'No Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
-    // TODO: verify -- Likely BB2025's renamed "Pogo Stick"; category carried over, not confirmed.
-    { skill: { system: 'Name', id: 'Pogo' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Pogo Stick' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Projectile Vomit' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
