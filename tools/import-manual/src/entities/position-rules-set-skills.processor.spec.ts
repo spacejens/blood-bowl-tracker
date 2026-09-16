@@ -68,8 +68,96 @@ describe('PositionRulesSetSkillsProcessor', () => {
     ).toHaveBeenCalledWith(
       {
         entries: [
-          { positionId: 3, rulesSetId: 4, skillId: 5 },
-          { positionId: 3, rulesSetId: 4, skillId: 6 },
+          {
+            positionId: 3,
+            rulesSetId: 4,
+            skillId: 5,
+            attributeValue: undefined,
+          },
+          {
+            positionId: 3,
+            rulesSetId: 4,
+            skillId: 6,
+            attributeValue: undefined,
+          },
+        ],
+      },
+      ctx.errors,
+    );
+  });
+
+  it('resolves a wrapped skill reference and attaches its attributeValue', async () => {
+    refResolver.resolveRef.mockResolvedValueOnce(3).mockResolvedValueOnce(4);
+    refResolver.resolveRefs.mockResolvedValue([5]);
+    positionRulesSetSkillsImport.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+
+    const wrappedEntry = {
+      position: { system: 'Name', id: 'Dwarf: Troll Slayer' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { skill: { system: 'Name', id: 'Loner' }, attributeValue: '4+' },
+      ],
+    };
+
+    const ctx = makeContext([wrappedEntry]);
+    expect(await processor.process(ctx)).toBe(1);
+    expect(refResolver.resolveRefs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refs: [{ system: 'Name', id: 'Loner' }],
+      }),
+    );
+    expect(
+      positionRulesSetSkillsImport.syncPositionRulesSetSkills,
+    ).toHaveBeenCalledWith(
+      {
+        entries: [
+          { positionId: 3, rulesSetId: 4, skillId: 5, attributeValue: '4+' },
+        ],
+      },
+      ctx.errors,
+    );
+  });
+
+  it('resolves a mix of bare and wrapped skill references in one entry', async () => {
+    refResolver.resolveRef.mockResolvedValueOnce(3).mockResolvedValueOnce(4);
+    refResolver.resolveRefs.mockResolvedValue([5, 6]);
+    positionRulesSetSkillsImport.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1, 2],
+    });
+
+    const mixedEntry = {
+      position: { system: 'Name', id: 'Dwarf: Troll Slayer' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { system: 'Name', id: 'Block' },
+        { skill: { system: 'Name', id: 'Loner' }, attributeValue: '4+' },
+      ],
+    };
+
+    const ctx = makeContext([mixedEntry]);
+    expect(await processor.process(ctx)).toBe(2);
+    expect(refResolver.resolveRefs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refs: [
+          { system: 'Name', id: 'Block' },
+          { system: 'Name', id: 'Loner' },
+        ],
+      }),
+    );
+    expect(
+      positionRulesSetSkillsImport.syncPositionRulesSetSkills,
+    ).toHaveBeenCalledWith(
+      {
+        entries: [
+          {
+            positionId: 3,
+            rulesSetId: 4,
+            skillId: 5,
+            attributeValue: undefined,
+          },
+          { positionId: 3, rulesSetId: 4, skillId: 6, attributeValue: '4+' },
         ],
       },
       ctx.errors,

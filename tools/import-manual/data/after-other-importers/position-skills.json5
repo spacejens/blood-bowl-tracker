@@ -95,7 +95,7 @@
     { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
     { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
     { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
-    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
     // --- CRP: Khemri (CRP p.24) ---
     { position: { system: 'Name', id: 'Tomb Kings: Skeleton Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
@@ -106,7 +106,7 @@
     // --- CRP: Lizardman (CRP p.24) ---
     { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
     // Saurus Blockers: no starting skills.
-    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
 
     // --- CRP: Necromantic (CRP p.24) ---
     { position: { system: 'Name', id: 'Necromantic Horror: Zombie' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
@@ -145,7 +145,7 @@
 
     // --- CRP: Ogre (CRP p.25) ---
     { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Titchy' }] },
-    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
     // --- CRP: Orc (CRP p.25) ---
     // Orc Lineman: no starting skills.
@@ -170,19 +170,19 @@
     { position: { system: 'Name', id: 'SL - Albion Fae: SL - Brownies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
     { position: { system: 'Name', id: 'SL - Albion Fae: SL - Pixies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Very Long Legs' }] },
     { position: { system: 'Name', id: 'SL - Albion Fae: SL - Leprechauns' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Strip Ball' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Right Stuff' }] },
-    { position: { system: 'Name', id: 'SL - Albion Fae: SL - Fenbeast' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'SL - Albion Fae: SL - Fenbeast' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }] },
 
     // --- CRP: Chaos Halfling (Stunty Leeg handbook p.8) ---
     { position: { system: 'Name', id: 'SL - Chaos Halflings: Chaos Halfling' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
     { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Head Carver' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }] },
-    { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Secret Weapon (7+)' }] },
+    { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }] },
     { position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Chaos Spawn' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Wild Animal' }] },
 
     // --- CRP: Goblin Cheaters (Stunty Leeg handbook p.9) ---
     { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Goblin' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
-    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Looney' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Secret Weapon (7+)' }] },
-    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Bombers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Secret Weapon (8+)' }, { system: 'Name', id: 'Stunty' }] },
-    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Fanatic' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Ball & Chain' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Secret Weapon (6+)' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Looney' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Chainsaw' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Bombers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Dodge' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '8+' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Fanatic' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Ball & Chain' }, { system: 'Name', id: 'No Hands' }, { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '6+' }] },
     { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Kickers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dirty Player' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Kick' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
     { position: { system: 'Name', id: 'SL - Goblin Cheaters: SL - Pogo Stick' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Very Long Legs' }] },
 
@@ -196,14 +196,14 @@
     { position: { system: 'Name', id: 'SL - Pygmies: SL - Pygmies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stunty' }] },
     { position: { system: 'Name', id: 'SL - Pygmies: SL - Alligator Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Thick Skull' }] },
     { position: { system: 'Name', id: 'SL - Pygmies: SL - Eagle Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
-    { position: { system: 'Name', id: 'SL - Pygmies: SL - Jaguar Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Claw' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Stunty' }] },
-    { position: { system: 'Name', id: 'SL - Pygmies: SL - Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Jaguar Warriors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Pygmies: SL - Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
 
     // --- CRP: Skink (Stunty Leeg handbook p.10) ---
     { position: { system: 'Name', id: 'SL - Skinks: SL - Skinks' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
     { position: { system: 'Name', id: 'SL - Skinks: SL - Whiptails' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }] },
     { position: { system: 'Name', id: 'SL - Skinks: SL - Adept of Sotek' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stab' }, { system: 'Name', id: 'Stunty' }] },
-    { position: { system: 'Name', id: 'SL - Skinks: SL - Raptors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Sidestep' }, { system: 'Name', id: 'Stunty' }] },
+    { position: { system: 'Name', id: 'SL - Skinks: SL - Raptors' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dauntless' }, { system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }] },
 
     // --- CRP+: Amazon (NTBB2015 p.3) ---
     // Identical to CRP's own Amazon roster.
@@ -283,7 +283,7 @@
     { position: { system: 'Name', id: 'Human: Human Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Catch' }, { system: 'Name', id: 'Dodge' }] },
     { position: { system: 'Name', id: 'Human: Human Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Sure Hands' }, { system: 'Name', id: 'Pass' }] },
     { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
-    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-head' }] },
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Bone-Head' }] },
 
     // --- CRP+: Khemri (NTBB2015 p.5) ---
     // Skeleton Linemen, Anointed Thrower and Anointed Blitzer match CRP's
@@ -298,25 +298,21 @@
     // Saurus Blockers: no starting skills.
     // Identical to CRP's own Lizardman roster.
     { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
-    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Loner' }] },
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }] },
 
     // --- CRP+: Necromantic (NTBB2015 p.6) ---
     // Zombie, Wight Blitzer, Ghoul Runners and Flesh Golem match CRP's own
-    // Necromantic roster. Werewolves print "Claw" (singular) here, not
-    // CRP's "Claws" -- checked against this same document's Norse Yhetee
-    // row below, which does print "Claws" (plural), so this is the source's
-    // own spelling for this specific row, not a document-wide convention;
-    // both "Claw" and "Claws" are separate, already-curated CRP+ skill
-    // identities (skills.json5), so the literal spelling is used verbatim.
+    // Necromantic roster. Werewolves print "Claw" (singular) here; "Claw" and
+    // "Claws" are the same skill (see skills.json5), so this is curated under
+    // the merged "Claws" spelling.
     { position: { system: 'Name', id: 'Necromantic Horror: Zombie' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }] },
-    { position: { system: 'Name', id: 'Necromantic Horror: Werewolf' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Claw' }, { system: 'Name', id: 'Frenzy' }] },
+    { position: { system: 'Name', id: 'Necromantic Horror: Werewolf' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Frenzy' }] },
     { position: { system: 'Name', id: 'Necromantic Horror: Wight Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Block' }] },
     { position: { system: 'Name', id: 'Necromantic Horror: Ghoul Runners' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }] },
     { position: { system: 'Name', id: 'Necromantic Horror: Flesh Golem' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Stand Firm' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Regeneration' }] },
 
     // --- CRP+: Norse (NTBB2015 p.6) ---
-    // Identical to CRP's own Norse roster (Yhetee prints "Claws", plural --
-    // see the Necromantic Werewolf comment above).
+    // Identical to CRP's own Norse roster (Yhetee prints "Claws", plural).
     { position: { system: 'Name', id: 'Norse: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
     { position: { system: 'Name', id: 'Norse: Norse Thrower' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Pass' }] },
     { position: { system: 'Name', id: 'Norse: Norse Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }, { system: 'Name', id: 'Dauntless' }] },
@@ -334,7 +330,7 @@
     // --- CRP+: Ogre (NTBB2015 p.7) ---
     // Identical to CRP's own Ogre roster.
     { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Titchy' }, { system: 'Name', id: 'Side Step' }] },
-    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Bone-head' }] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Throw Team-Mate' }, { system: 'Name', id: 'Bone-Head' }] },
 
     // --- CRP+: Orc (NTBB2015 p.7) ---
     // Orc Lineman and Big Un Blocker: no starting skills.
@@ -359,7 +355,7 @@
     { position: { system: 'Name', id: 'Slann: Lineman' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
     { position: { system: 'Name', id: 'Slann: Catcher' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Very Long Legs' }, { system: 'Name', id: 'Diving Catch' }, { system: 'Name', id: 'Leap' }] },
     { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Very Long Legs' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Diving Tackle' }] },
-    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Loner' }] },
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }] },
 
     // --- CRP+: Undead (NTBB2015 p.8) ---
     // Skeleton Lineman, Zombie, Wight Blitzer and Ghoul Runners match CRP's
@@ -427,7 +423,7 @@
     { position: { system: 'Name', id: 'Chaos Renegade: Renegade Skaven' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }] },
     { position: { system: 'Name', id: 'Chaos Renegade: Renegade Dark Elf' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Animosity' }] },
     { position: { system: 'Name', id: 'Chaos Renegade: Renegade Troll' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Always Hungry' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Really Stupid' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
-    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Chaos Renegade: Renegade Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
     { position: { system: 'Name', id: 'Chaos Renegade: Renegade Minotaur' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Frenzy' }, { system: 'Name', id: 'Horns' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Wild Animal' }] },
 
     // --- BB2016: Chaos Chosen (Teams of Legend p.3) ---
@@ -456,7 +452,7 @@
     // --- BB2016: Lizardmen (Teams of Legend p.6) ---
     { position: { system: 'Name', id: 'Lizardmen: Skink Runner Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Stunty' }] },
     // Saurus Blockers: no starting skills.
-    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Lizardmen: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
 
     // --- BB2016: Norse (Teams of Legend p.6) ---
     { position: { system: 'Name', id: 'Norse: Norse Raider Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
@@ -482,7 +478,7 @@
 
     // --- BB2016: Ogre (Teams of Legend p.8) ---
     { position: { system: 'Name', id: 'Ogre: Gnoblar Linemen' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Titchy' }] },
-    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Ogre: Ogre Blockers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
     // --- BB2016: Underworld Denizens (Teams of Legend p.8) ---
     { position: { system: 'Name', id: 'Underworld Denizens: Underworld Goblin Lineman' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }] },
@@ -510,7 +506,7 @@
     // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Human: Human Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Block' }] },
     // TODO: verify against the physical BB2016 rulebook.
-    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
+    { position: { system: 'Name', id: 'Human: Ogre' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Throw Team-Mate' }] },
 
     // --- BB2016: Orc (public rules reference -- TODO: verify) ---
     // Orc Lineman and Big Un Blocker: no starting skills.
@@ -607,6 +603,6 @@
     // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'Slann: Blitzer' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Diving Tackle' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'Very Long Legs' }] },
     // TODO: verify against the physical BB2016 rulebook.
-    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
+    { position: { system: 'Name', id: 'Slann: Kroxigor' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Thick Skull' }] },
   ],
 }

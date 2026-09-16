@@ -53,8 +53,11 @@ export class PositionRulesSetSkillsProcessor {
       // All-or-nothing on purpose: the API would reject the batch anyway, so
       // an unresolvable skill drops this position's whole entry with its own
       // recorded error rather than sending a half-list that looks complete.
+      const skillRefs = entry.skills.map((skill) =>
+        'skill' in skill ? skill.skill : skill,
+      );
       const skillIds = await this.refResolver.resolveRefs({
-        refs: entry.skills,
+        refs: skillRefs,
         systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
@@ -65,11 +68,20 @@ export class PositionRulesSetSkillsProcessor {
         continue;
       }
 
-      const entries: PositionRulesSetSkillEntry[] = skillIds.map((skillId) => ({
-        positionId,
-        rulesSetId,
-        skillId,
-      }));
+      const entries: PositionRulesSetSkillEntry[] = skillIds.map(
+        (skillId, index) => {
+          const skillRef = entry.skills[index];
+          return {
+            positionId,
+            rulesSetId,
+            skillId,
+            attributeValue:
+              'attributeValue' in skillRef
+                ? skillRef.attributeValue
+                : undefined,
+          };
+        },
+      );
       const result =
         await this.positionRulesSetSkillsImport.syncPositionRulesSetSkills(
           { entries },

@@ -126,6 +126,27 @@ const SkillRulesSetEntrySchema = z.object({
 });
 
 /**
+ * A starting skill whose value (e.g. "4+" for Loner, "+1" for Mighty Blow) is
+ * specific to this position rather than part of the skill's own identity --
+ * the skill itself is one deduplicated row (e.g. "Loner"), and each position
+ * that grants it carries its own attributeValue here.
+ */
+const PositionRulesSetSkillWithAttributeSchema = z.object({
+  skill: ExternalRefSchema,
+  attributeValue: z.string().min(1),
+});
+
+/**
+ * One item in a position's starting-skill list: either a bare skill
+ * reference (the common case, no position-specific value), or the wrapped
+ * form above carrying an attributeValue alongside the reference.
+ */
+const PositionRulesSetSkillRefSchema = z.union([
+  ExternalRefSchema,
+  PositionRulesSetSkillWithAttributeSchema,
+]);
+
+/**
  * One position's full starting-skill list under one rules set. Grouped per
  * (position, rules set) rather than one entry per skill because that is
  * exactly the batch `positionRulesSetSkills.sync` takes, and because the
@@ -134,7 +155,7 @@ const SkillRulesSetEntrySchema = z.object({
 const PositionRulesSetSkillsEntrySchema = z.object({
   position: ExternalRefSchema,
   rulesSet: ExternalRefSchema,
-  skills: z.array(ExternalRefSchema).min(1),
+  skills: z.array(PositionRulesSetSkillRefSchema).min(1),
 });
 
 const CoachEntrySchema = z.object({
@@ -318,4 +339,7 @@ export const ManualDataFileSchema = z
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
+export type PositionRulesSetSkillRef = z.infer<
+  typeof PositionRulesSetSkillRefSchema
+>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;

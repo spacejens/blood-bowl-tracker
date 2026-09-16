@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { readFile } from './curated-data.test-helpers';
+import type {
+  ExternalRef,
+  PositionRulesSetSkillRef,
+} from './manual-data-file.schema';
+
+/** A `positionRulesSetSkills` entry's `skills` items are either a bare
+ * ExternalRef or a `{skill, attributeValue}` wrapper; this extracts the
+ * underlying ref either way. */
+function skillRef(item: PositionRulesSetSkillRef): ExternalRef {
+  return 'skill' in item ? item.skill : item;
+}
 
 describe('curated data files - skills', () => {
   const skillsFile = () => readFile('before-other-importers', 'skills.json5');
@@ -115,7 +126,7 @@ describe('curated data files - skills', () => {
       expect(entry.position.system).toBe('Name');
       expect(entry.rulesSet.system).toBe('Name');
       for (const skill of entry.skills) {
-        expect(skill.system).toBe('Name');
+        expect(skillRef(skill).system).toBe('Name');
       }
     }
   });
@@ -147,7 +158,7 @@ describe('curated data files - skills', () => {
     for (const entry of positionSkillsFile().positionRulesSetSkills) {
       for (const skill of entry.skills) {
         // The API rejects a starting skill the rules set does not have.
-        expect(curated).toContain(`${skill.id}|${entry.rulesSet.id}`);
+        expect(curated).toContain(`${skillRef(skill).id}|${entry.rulesSet.id}`);
       }
     }
   });
@@ -159,7 +170,7 @@ describe('curated data files - skills', () => {
       const key = `${entry.position.id}|${entry.rulesSet.id}`;
       expect(seen.has(key)).toBe(false);
       seen.add(key);
-      const ids = entry.skills.map((skill) => skill.id);
+      const ids = entry.skills.map((skill) => skillRef(skill).id);
       // The API rejects a batch repeating the same triple.
       expect(new Set(ids).size).toBe(ids.length);
     }
