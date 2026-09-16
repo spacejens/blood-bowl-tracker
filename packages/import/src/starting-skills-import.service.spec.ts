@@ -156,14 +156,14 @@ describe('StartingSkillsImportService', () => {
   it('does not add a curation-gap error when the category read itself fails', async () => {
     skills.upsert.mockResolvedValue(upserted(5, 'Dodge'));
     skillRulesSets.listSkillRulesSets.mockImplementation(
-      async (_skillId, listErrors) => {
+      (_skillId, listErrors) => {
         // Mirrors SkillRulesSetsImportService.listSkillRulesSets recording its
         // own error on a failed read before returning undefined.
         listErrors.push({
           item: { skillRulesSets: 5 },
           message: 'Failed to list categories for skill 5: boom',
         });
-        return undefined;
+        return Promise.resolve(undefined);
       },
     );
     const errors: ImportError[] = [];
