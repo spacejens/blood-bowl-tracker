@@ -22,6 +22,7 @@ const blockInBb2020 = {
   skillId: 7,
   rulesSetId: 4,
   category: 'general',
+  isElite: false,
 } as const;
 
 describe('SkillRulesSetsService', () => {
@@ -46,7 +47,7 @@ describe('SkillRulesSetsService', () => {
 
       expect(result).toEqual({ skillRulesSetIds: [31] });
       expect(firstCallArg(db.chains[1].values)).toEqual([
-        { skillId: 7, rulesSetId: 4, category: 'general' },
+        { skillId: 7, rulesSetId: 4, category: 'general', isElite: false },
       ]);
       expect(db.transaction).toHaveBeenCalled();
     });
@@ -61,7 +62,35 @@ describe('SkillRulesSetsService', () => {
       });
 
       expect(result).toEqual({ skillRulesSetIds: [31] });
-      expect(firstCallArg(db.chains[1].set)).toEqual({ category: 'devious' });
+      expect(firstCallArg(db.chains[1].set)).toEqual({
+        category: 'devious',
+        isElite: false,
+      });
+    });
+
+    it('writes isElite on an inserted row', async () => {
+      // Query 0: the existing-rows lookup (nothing there). Query 1: the insert.
+      const db = mockDb([], [{ id: 31 }]);
+      const service = await makeService(db);
+
+      await service.sync({ entries: [{ ...blockInBb2020, isElite: true }] });
+
+      expect(firstCallArg(db.chains[1].values)).toEqual([
+        { skillId: 7, rulesSetId: 4, category: 'general', isElite: true },
+      ]);
+    });
+
+    it("rewrites an existing pair's isElite in place", async () => {
+      // Query 0: the pair already exists. Query 1: the update.
+      const db = mockDb([{ id: 31, skillId: 7, rulesSetId: 4 }], [{ id: 31 }]);
+      const service = await makeService(db);
+
+      await service.sync({ entries: [{ ...blockInBb2020, isElite: true }] });
+
+      expect(firstCallArg(db.chains[1].set)).toEqual({
+        category: 'general',
+        isElite: true,
+      });
     });
 
     it('rejects a batch naming the same skill and rules set twice', async () => {
@@ -94,7 +123,7 @@ describe('SkillRulesSetsService', () => {
       await service.sync({
         entries: [
           blockInBb2020,
-          { skillId: 8, rulesSetId: 5, category: 'agility' },
+          { skillId: 8, rulesSetId: 5, category: 'agility', isElite: false },
         ],
       });
 
@@ -123,6 +152,27 @@ describe('SkillRulesSetsService', () => {
 
       await expect(service.listBySkill(7)).resolves.toEqual([]);
     });
+
+    it('returns isElite alongside the category', async () => {
+      const db = mockDb([
+        {
+          rulesSetId: 9,
+          rulesSetName: 'BB2025',
+          category: 'general',
+          isElite: true,
+        },
+      ]);
+      const service = await makeService(db);
+
+      await expect(service.listBySkill(7)).resolves.toEqual([
+        {
+          rulesSetId: 9,
+          rulesSetName: 'BB2025',
+          category: 'general',
+          isElite: true,
+        },
+      ]);
+    });
   });
 
   describe('listByRulesSet', () => {
@@ -143,6 +193,17 @@ describe('SkillRulesSetsService', () => {
       const service = await makeService(db);
 
       await expect(service.listByRulesSet(4)).resolves.toEqual([]);
+    });
+
+    it('returns isElite alongside the category', async () => {
+      const db = mockDb([
+        { skillId: 7, skillName: 'Block', category: 'general', isElite: true },
+      ]);
+      const service = await makeService(db);
+
+      await expect(service.listByRulesSet(9)).resolves.toEqual([
+        { skillId: 7, skillName: 'Block', category: 'general', isElite: true },
+      ]);
     });
   });
 });

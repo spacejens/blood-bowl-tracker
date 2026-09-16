@@ -14,6 +14,7 @@ describe('skill rules set schemas', () => {
       skillId: 7,
       rulesSetId: 4,
       category: 'general',
+      isElite: false,
     });
     expect(parsed.category).toBe('general');
   });
@@ -24,6 +25,17 @@ describe('skill rules set schemas', () => {
         skillId: 7,
         rulesSetId: 4,
         category: 'sneaky',
+        isElite: false,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an entry missing isElite', () => {
+    expect(
+      SkillRulesSetEntrySchema.safeParse({
+        skillId: 7,
+        rulesSetId: 4,
+        category: 'general',
       }).success,
     ).toBe(false);
   });
