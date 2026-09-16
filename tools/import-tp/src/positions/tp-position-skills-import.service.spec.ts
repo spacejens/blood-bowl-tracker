@@ -1,0 +1,117 @@
+import {
+  ImportResultService,
+  StartingSkillsImportService,
+} from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
+
+import { TpPositionSkillsImportService } from './tp-position-skills-import.service';
+
+describe('TpPositionSkillsImportService', () => {
+  let service: TpPositionSkillsImportService;
+  let startingSkills: MockProxy<StartingSkillsImportService>;
+  let importResults: MockProxy<ImportResultService>;
+
+  beforeEach(async () => {
+    startingSkills = mock<StartingSkillsImportService>();
+    importResults = mock<ImportResultService>();
+    importResults.error.mockImplementation((error) => error);
+    importResults.result.mockImplementation(({ imported, errors }) => ({
+      success: errors.length === 0,
+      imported,
+      errors,
+    }));
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpPositionSkillsImportService,
+        { provide: StartingSkillsImportService, useValue: startingSkills },
+        { provide: ImportResultService, useValue: importResults },
+      ],
+    }).compile();
+    service = moduleRef.get(TpPositionSkillsImportService);
+  });
+
+  it('resolves each id to its name and composes the attribute value into it', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(2);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [
+                { skillMasterId: 87 },
+                { skillMasterId: 154, attributeValue: '4+' },
+              ],
+            ],
+          ]),
+        ],
+      ]),
+      skillNamesByMasterId: new Map([
+        [87, 'Dodge'],
+        [154, 'Loner'],
+      ]),
+    });
+
+    expect(result.imported).toBe(2);
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[7, ['Dodge', 'Loner (4+)']]])]]),
+      [],
+    );
+  });
+
+  it('records an error for an unresolvable id and keeps the rest of the list', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+    const errors: never[] = [];
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 87 }, { skillMasterId: 999 }]]])],
+      ]),
+      skillNamesByMasterId: new Map([[87, 'Dodge']]),
+    });
+
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[7, ['Dodge']]])]]),
+      expect.any(Array),
+    );
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain('999');
+    expect(result.errors[0].message).toContain('3');
+    void errors;
+  });
+
+  it('reports an unresolvable id once, however many positions reference it', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 999 }]]])],
+        [4, new Map([[7, [{ skillMasterId: 999 }]]])],
+      ]),
+      skillNamesByMasterId: new Map(),
+    });
+
+    expect(result.errors).toHaveLength(1);
+  });
+
+  it('sends nothing for a position whose every skill is unresolvable', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 999 }]]])],
+      ]),
+      skillNamesByMasterId: new Map(),
+    });
+
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map(),
+      expect.any(Array),
+    );
+  });
+});
