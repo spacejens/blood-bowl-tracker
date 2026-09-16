@@ -1,0 +1,188 @@
+// Hand-curated skills and their per-rules-set categories (skills,
+// skill_rules_sets).
+//
+// Two sections, kept in one file so a skill's existence and its category can
+// be reviewed against the same source page side by side:
+//
+//   skills         -- only skills no source importer can ever create, i.e.
+//                     skills that exist solely in CRP, CRP+ or BB2016. A
+//                     skill BBL or TP also knows needs no entry: its own
+//                     upsert registers the same "Name" external id this file
+//                     would, so both land on one row.
+//   skillRulesSets -- the category table for EVERY skill, whichever importer
+//                     introduces it. A missing row means "this rules set does
+//                     not have this skill", and the BBL/TP skills imports read
+//                     these rows back before recording a starting skill: an
+//                     uncurated (skill, rules set) pair is reported as an
+//                     import error naming this file.
+//
+// Every id in both sections is the skill's own display name, which is what
+// NameExternalIdService.forSkill produces and what both source importers send.
+// A skill whose display name carries a parenthetical value ("Loner (4+)",
+// "Mighty Blow (+1)") is a DISTINCT skill here, because that is how both
+// sources spell it: BBL prints it in one cell, and TP composes it from the
+// skill's name plus its skillAttributeMaster value.
+//
+// 'unique' is a category like any other: it is the only marker a star
+// player's exclusive skill has -- there is no per-association flag. This
+// file curates no 'unique' rows: CRP's own "SKILL CATEGORIES" table (p.21)
+// has no Extraordinary-vs-unique split, and cross-checking the CRP Star
+// Players list (pp.79-80) found no skill there that is not already one of
+// the 75 skills the categories table itself lists (i.e. no star-player-only
+// skill to mark unique). Every CRP-era Extraordinary skill is curated as
+// 'trait' per the task's mapping instructions.
+//
+// Sources, this file:
+//   CRP -- m750496a_BB_Competition_Rules_Pack.pdf:
+//          - p.21, "SKILL CATEGORIES" table -- the category for every skill.
+//          - pp.19-21, "SKILL DESCRIPTIONS" -- each skill's own heading
+//            confirms its category and exact spelling; used to cross-check
+//            the categories table and to resolve the one "Claw / Claws"
+//            combined table entry into the two literal spellings CRP's own
+//            team rosters actually use (see the Mutation group below).
+//          - pp.22-25, "TEAM ROSTERS" -- the 21 core CRP races' starting
+//            skills, cross-checked against the categories table; introduced
+//            no skill the table did not already list.
+//   CRP -- Stunty_Leeg_Handbook_v1_0.pdf, "STUNTY TEAM ROSTERS" (pp.7-16) and
+//          "STAR PLAYERS" (pp.17+) -- the 15 Stunty Leeg races and their star
+//          players, checked for any skill not already in the CRP categories
+//          table. None found: every skill name on these rosters (allowing for
+//          this handbook's own inconsistent "Claw"/"Claws" and
+//          "Side Step"/"Sidestep" spellings, and a "Regenerate" typo for
+//          "Regeneration") already appears in the CRP core book's list, so
+//          this file adds no Stunty-Leeg-only `skills` entries.
+//
+// (CRP+ and BB2016 sources are out of scope for this file -- see a later
+// curation task/file for those rules sets' category rows.)
+//
+// `skills` entries below were identified by diffing the 76 skill spellings
+// this file curates for CRP against every literal skillMaster/skills-cell
+// string actually present in the downloaded tools/import-bbl and
+// tools/import-tp data dumps (the modern-era source data BBL/TP's own
+// upserts read). Three CRP-table skills never appear in either dump under
+// any spelling and are curated below. A fourth near-miss, "Blood Lust", is
+// curated too: TP's data only ever spells it "Bloodlust" (one word), so an
+// entry under CRP's own two-word spelling is still needed for this file's
+// (skill, CRP) rows to resolve -- flagged below rather than silently
+// resolved, since only the developer can confirm whether these should be
+// treated as the same skill or kept distinct.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  skills: [
+    // --- CRP-only skills: absent from every downloaded BBL/TP roster, match
+    // or skillMaster record under any spelling (checked pp.19-21) ---
+    { name: "Nurgle's Rot", externalIds: [{ system: 'Name', id: "Nurgle's Rot" }] },
+    { name: 'Stakes', externalIds: [{ system: 'Name', id: 'Stakes' }] },
+    // TODO: verify -- TP's downloaded data only ever spells this skill
+    // "Bloodlust" (one word); BBL's downloaded data has neither spelling.
+    // Curated here under CRP's own two-word "Blood Lust" so this file's CRP
+    // row for it resolves; confirm with the developer whether "Blood Lust"
+    // and "Bloodlust" should instead be treated as the same skill (which
+    // would need TP's importer to normalize the spelling, not a curated
+    // second skill row).
+    { name: 'Blood Lust', externalIds: [{ system: 'Name', id: 'Blood Lust' }] },
+  ],
+  skillRulesSets: [
+    // --- CRP: General skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pass Block' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    // TODO: verify -- BBL's downloaded data only ever spells this
+    // "Kick-off Return" (lowercase "off"); CRP's own heading (p.20) and
+    // categories table (p.21) both spell it "Kick-Off Return". Curated here
+    // under CRP's own spelling; confirm whether BBL's importer should
+    // normalize the case instead of this staying a second skill row.
+    { skill: { system: 'Name', id: 'Kick-Off Return' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'general' },
+
+    // --- CRP: Agility skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+
+    // --- CRP: Passing skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'passing' },
+
+    // --- CRP: Strength skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Piling On' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'strength' },
+
+    // --- CRP: Mutation skills (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    // The categories table lists this one entry as "Claw / Claws"; CRP's own
+    // core-book roster (p.23, Necromantic Werewolves) uses the plural
+    // "Claws", while the Stunty Leeg rosters mostly use the singular "Claw"
+    // (e.g. Eshin Adepts' Assassin). Both literal spellings are already
+    // present in the downloaded BBL/TP data, so both get their own row here
+    // rather than a `skills` entry.
+    { skill: { system: 'Name', id: 'Claw' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'mutation' },
+
+    // --- CRP: Extraordinary skills, curated as 'trait' per the task's
+    // category mapping (CRP p.21) ---
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Fan Favourite' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stakes' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-head' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+  ],
+}
