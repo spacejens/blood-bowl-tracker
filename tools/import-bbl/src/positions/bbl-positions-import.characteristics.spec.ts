@@ -171,4 +171,58 @@ describe('BblPositionsImportService characteristics', () => {
       },
     ]);
   });
+
+  it("records each upserted position's scraped skills", async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+            isStarPlayer: false,
+            characteristics: CHARACTERISTICS,
+            skills: ['Block', 'Dodge'],
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 42 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.skillsByPositionId.get(42)).toEqual(['Block', 'Dodge']);
+  });
+
+  it('does not record a skills entry for a position whose page carried none', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+            isStarPlayer: false,
+            characteristics: CHARACTERISTICS,
+            skills: [],
+          }),
+        ],
+      }),
+    );
+    mocks.positionsImport.upsert.mockResolvedValue(
+      makePositionRecord({ id: 100 }),
+    );
+
+    const outcome = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(outcome.skillsByPositionId.size).toBe(0);
+  });
 });

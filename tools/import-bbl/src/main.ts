@@ -16,6 +16,7 @@ import { BblPlayersImportService } from './players/bbl-players-import.service';
 import { BblSppAdjustmentsImportService } from './players/bbl-spp-adjustments-import.service';
 import { BblPositionCharacteristicsImportService } from './positions/bbl-position-characteristics-import.service';
 import { BblPositionRaceErasImportService } from './positions/bbl-position-race-eras-import.service';
+import { BblPositionSkillsImportService } from './positions/bbl-position-skills-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
@@ -87,6 +88,16 @@ async function run(): Promise<ImportResult> {
         characteristicsByPositionId:
           positionOutcome.characteristicsByPositionId,
         rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
+      });
+    // Starting skills run after the characteristics step for a hard reason:
+    // the API rejects a starting skill for a (position, rules set) with no
+    // characteristics row, which that step is what creates.
+    const positionSkillsOutcome = await app
+      .get(BblPositionSkillsImportService)
+      .syncPositionSkills({
+        rulesSetIdsByPositionId:
+          positionRaceErasOutcome.rulesSetIdsByPositionId,
+        skillsByPositionId: positionOutcome.skillsByPositionId,
       });
     const matchEventsOutcome = await app
       .get(BblMatchEventsImportService)
@@ -172,6 +183,7 @@ async function run(): Promise<ImportResult> {
       playerOutcome.result,
       positionRaceErasOutcome.result,
       positionCharacteristicsOutcome.result,
+      positionSkillsOutcome.result,
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       lastingInjuryBackfillOutcome.result,

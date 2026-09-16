@@ -7,6 +7,7 @@ import { CharacteristicNotationConversionService } from '../shared/characteristi
 import { SourceModule } from '../source/source.module';
 import { BblPositionCharacteristicsImportService } from './bbl-position-characteristics-import.service';
 import { BblPositionRaceErasImportService } from './bbl-position-race-eras-import.service';
+import { BblPositionSkillsImportService } from './bbl-position-skills-import.service';
 import { BblPositionsImportService } from './bbl-positions-import.service';
 import { PositionPageParser } from './position-page-parser';
 
@@ -17,12 +18,14 @@ import { PositionPageParser } from './position-page-parser';
     BblPositionsImportService,
     BblPositionRaceErasImportService,
     BblPositionCharacteristicsImportService,
+    BblPositionSkillsImportService,
     CharacteristicNotationConversionService,
   ],
   exports: [
     BblPositionsImportService,
     BblPositionRaceErasImportService,
     BblPositionCharacteristicsImportService,
+    BblPositionSkillsImportService,
   ],
 })
 export class PositionsModule {}
