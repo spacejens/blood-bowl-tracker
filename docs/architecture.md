@@ -410,9 +410,9 @@ handful of restricted skills (Block, Dodge, Guard, Mighty Blow). It is a plain
 boolean rather than another `skill_category` value because it cuts across
 categories, and it is `false` on every row for every rules set older than
 BB2025, none of which has the concept at all. Like the category, it is curated
-in `tools/import-manual` (`data/before-other-importers/skills.json5`); the BBL
-and TP importers only read it back, to cross-check the marker their own source
-data carries.
+in `tools/import-manual` (`data/before-other-importers/skills.json5`); the TP
+importer only reads it back, to cross-check the marker TP's own source data
+carries, while BBL has no such marker at all and always supplies `false`.
 
 `position_rules_set_skills` records a position's _starting_ skills, anchored
 to `position_rules_sets.id` rather than to a duplicated position/rules-set
