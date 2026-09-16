@@ -12,6 +12,8 @@ import { PositionRulesSetsProcessor } from './position-rules-sets.processor';
 import { PositionsProcessor } from './positions.processor';
 import { RacesProcessor } from './races.processor';
 import { RulesSetsProcessor } from './rules-sets.processor';
+import { SkillRulesSetsProcessor } from './skill-rules-sets.processor';
+import { SkillsProcessor } from './skills.processor';
 import { SppAwardValuesProcessor } from './spp-award-values.processor';
 import { TeamsProcessor } from './teams.processor';
 import { TrophiesProcessor } from './trophies.processor';
@@ -20,6 +22,8 @@ import { TrophyAwardsProcessor } from './trophy-awards.processor';
 const processors = [
   ExternalSystemsProcessor,
   RulesSetsProcessor,
+  SkillsProcessor,
+  SkillRulesSetsProcessor,
   LeaguesProcessor,
   ErasProcessor,
   RacesProcessor,

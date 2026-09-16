@@ -13,6 +13,8 @@ import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.proc
 import { PositionsProcessor } from '../entities/positions.processor';
 import { RacesProcessor } from '../entities/races.processor';
 import { RulesSetsProcessor } from '../entities/rules-sets.processor';
+import { SkillRulesSetsProcessor } from '../entities/skill-rules-sets.processor';
+import { SkillsProcessor } from '../entities/skills.processor';
 import { SppAwardValuesProcessor } from '../entities/spp-award-values.processor';
 import { TeamsProcessor } from '../entities/teams.processor';
 import { TrophiesProcessor } from '../entities/trophies.processor';
@@ -25,6 +27,8 @@ export class ManualImportService {
     private readonly reader: ManualDataReader,
     private readonly externalSystems: ExternalSystemsProcessor,
     private readonly rulesSets: RulesSetsProcessor,
+    private readonly skills: SkillsProcessor,
+    private readonly skillRulesSets: SkillRulesSetsProcessor,
     private readonly leagues: LeaguesProcessor,
     private readonly eras: ErasProcessor,
     private readonly races: RacesProcessor,
@@ -43,10 +47,12 @@ export class ManualImportService {
   /**
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
    * it references, then process each entity section in dependency order —
-   * rulesSets, leagues, eras, races, positions, positionRulesSets, coaches,
-   * teams, competitionGroups, competitions, sppAwardValues, trophies,
-   * trophyAwards — with
-   * positionRulesSets running after both rulesSets and positions (which its
+   * rulesSets, skills, skillRulesSets, leagues, eras, races, positions,
+   * positionRulesSets, coaches, teams, competitionGroups, competitions,
+   * sppAwardValues, trophies, trophyAwards — with skills and skillRulesSets
+   * running right after rulesSets, since skills need only the rules sets and
+   * running them early keeps the category table available to everything
+   * after, positionRulesSets running after both rulesSets and positions (which its
    * entries reference), competitionGroups running after leagues (whose
    * external ids its entries reference) and before competitions and trophies
    * (which resolve the groups it upserts, by their "Name"-system external
@@ -74,6 +80,8 @@ export class ManualImportService {
 
     let imported = 0;
     imported += await this.rulesSets.process(ctx);
+    imported += await this.skills.process(ctx);
+    imported += await this.skillRulesSets.process(ctx);
     imported += await this.leagues.process(ctx);
     imported += await this.eras.process(ctx);
     imported += await this.races.process(ctx);
