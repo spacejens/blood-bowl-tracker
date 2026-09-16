@@ -109,10 +109,11 @@ describe('PositionStatLineService', () => {
       ).toBe(`${BB2020_CHARACTERISTICS} ★ Mighty Blow (Grombrindal)`);
     });
 
-    it('renders a bare dash when the rules set has no starting skills recorded', () => {
-      expect(service.formatLine(bb2016, [])).toBe(
-        `${BB2016_CHARACTERISTICS} -`,
-      );
+    it('omits the skills segment entirely when the rules set has no starting skills recorded', () => {
+      // Not a placeholder dash: the line reads as the plain characteristics
+      // line it was before starting skills were shown at all, with no
+      // trailing space.
+      expect(service.formatLine(bb2016, [])).toBe(BB2016_CHARACTERISTICS);
     });
 
     it('combines an ordinary, an attribute-valued and a unique skill on one line, in the order given', () => {
@@ -172,19 +173,19 @@ describe('PositionStatLineService', () => {
       );
 
       expect(lines).toEqual([
-        `${BB2020_CHARACTERISTICS} -`,
+        BB2020_CHARACTERISTICS,
         `${BB2016_CHARACTERISTICS} Block`,
       ]);
     });
 
-    it('dashes a rules set whose skills were never curated while still showing another rules set that has them', () => {
+    it('leaves a rules set whose skills were never curated as a bare characteristics line while still showing another rules set that has them', () => {
       const lines = service.formatLines(
         [bb2016, bb2020],
         [skill({ rulesSetId: 2, skillId: 2, skillName: 'Dodge' })],
       );
 
       expect(lines).toEqual([
-        `${BB2016_CHARACTERISTICS} -`,
+        BB2016_CHARACTERISTICS,
         `${BB2020_CHARACTERISTICS} Dodge`,
       ]);
     });

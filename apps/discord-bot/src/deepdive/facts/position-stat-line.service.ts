@@ -7,14 +7,6 @@ import { Injectable } from '@nestjs/common';
 import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
 
 /**
- * Shown in place of the skill list for a rules set with no starting skills
- * recorded. The schema cannot tell "this position genuinely has none" apart
- * from "nobody has curated this rules set yet", so one neutral placeholder
- * covers both rather than claiming either.
- */
-const NO_SKILLS_PLACEHOLDER = '-';
-
-/**
  * Prefixed to a star player's own exclusive skill. A skill is exclusive
  * purely by virtue of its `unique` category under that rules set -- there is
  * no separate flag, by deliberate schema design.
@@ -75,16 +67,24 @@ export class PositionStatLineService {
    * `BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+ Block, Dodge, ★ Mighty Blow
    * (Grombrindal)`. `skills` must already be narrowed to this row's own
    * rules set.
+   *
+   * A rules set with no starting skills recorded drops the skills segment
+   * (and its leading space) entirely, leaving the characteristics line
+   * exactly as it read before starting skills were shown at all. A
+   * placeholder would have to stand for both "this position genuinely has
+   * none" and "nobody has curated this rules set yet", which the schema
+   * cannot tell apart -- saying nothing claims neither.
    */
   formatLine(
     row: PositionCharacteristics,
     skills: PositionStartingSkill[],
   ): string {
-    const suffix =
-      skills.length === 0
-        ? NO_SKILLS_PLACEHOLDER
-        : skills.map((skill) => this.formatSkill(skill)).join(', ');
-    return `${this.lineFormatter.formatLine(row)} ${suffix}`;
+    const characteristics = this.lineFormatter.formatLine(row);
+    if (skills.length === 0) {
+      return characteristics;
+    }
+    const formatted = skills.map((skill) => this.formatSkill(skill)).join(', ');
+    return `${characteristics} ${formatted}`;
   }
 
   /** `Block`, `Loner (4+)`, or `★ Mighty Blow (Grombrindal)`. */

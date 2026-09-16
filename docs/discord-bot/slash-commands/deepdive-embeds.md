@@ -244,7 +244,8 @@ formatting rules as the position deepdive's stat lines (each value in that
 rules set's own recorded format, the Passing characteristic omitted entirely
 for a rules set with no Passing characteristic, a stored zero rendering as a
 dash, then that rules set's starting skills comma-separated after the
-characteristics, or a single dash when none are recorded). The star's own
+characteristics, with the skills left off entirely when none are recorded).
+The star's own
 exclusive skill under a rules set is marked with a star, which is what
 tells it apart from the skills any position can have.
 A star with no characteristics
@@ -305,9 +306,10 @@ renders as a dash instead of the number. Each stat line then carries that
 rules set's starting skills, comma-separated, after the characteristics:
 a skill whose rules require a die roll or a named target shows that value
 in parentheses after its name, and a star player's own exclusive skill is
-marked with a star. A rules set with no starting skills recorded shows a
-single dash in their place — the archive cannot tell a position that
-genuinely has none apart from a rules set nobody has curated yet. A
+marked with a star. A rules set with no starting skills recorded shows no
+skills at all — just its characteristics — rather than a placeholder: the
+archive cannot tell a position that genuinely has none apart from a rules
+set nobody has curated yet, so it claims neither. A
 position with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list.
