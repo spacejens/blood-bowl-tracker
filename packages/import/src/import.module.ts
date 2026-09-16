@@ -24,6 +24,7 @@ import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
 import { ReferenceLookupService } from './reference-lookup.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
+import { SkillRulesSetsImportService } from './skill-rules-sets-import.service';
 import { SkillsImportService } from './skills-import.service';
 import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
@@ -56,6 +57,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     ExternalIdResolverService,
     ReferenceLookupService,
     RulesSetsImportService,
+    SkillRulesSetsImportService,
     SkillsImportService,
     SppAdjustmentsImportService,
     SppAwardValuesImportService,
@@ -88,6 +90,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     ExternalIdResolverService,
     ReferenceLookupService,
     RulesSetsImportService,
+    SkillRulesSetsImportService,
     SkillsImportService,
     SppAdjustmentsImportService,
     SppAwardValuesImportService,
