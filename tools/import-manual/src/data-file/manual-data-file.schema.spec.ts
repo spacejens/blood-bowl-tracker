@@ -8,11 +8,14 @@ describe('ManualDataFileSchema', () => {
     expect(result).toEqual({
       externalSystems: [],
       rulesSets: [],
+      skills: [],
+      skillRulesSets: [],
       leagues: [],
       eras: [],
       races: [],
       positions: [],
       positionRulesSets: [],
+      positionRulesSetSkills: [],
       coaches: [],
       teams: [],
       competitions: [],
@@ -663,5 +666,70 @@ describe('ManualDataFileSchema', () => {
     expect(parsed.trophies[0].awardProcedure).toBe(
       'Taken from the season standings.',
     );
+  });
+
+  it('parses a skills entry', () => {
+    const data = ManualDataFileSchema.parse({
+      skills: [
+        { name: 'Dodge', externalIds: [{ system: 'Name', id: 'Dodge' }] },
+      ],
+    });
+
+    expect(data.skills).toEqual([
+      { name: 'Dodge', externalIds: [{ system: 'Name', id: 'Dodge' }] },
+    ]);
+  });
+
+  it('parses a skillRulesSets entry', () => {
+    const data = ManualDataFileSchema.parse({
+      skillRulesSets: [
+        {
+          skill: { system: 'Name', id: 'Dodge' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          category: 'agility',
+        },
+      ],
+    });
+
+    expect(data.skillRulesSets[0].category).toBe('agility');
+  });
+
+  it('rejects a skillRulesSets entry with an unknown category', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        skillRulesSets: [
+          {
+            skill: { system: 'Name', id: 'Dodge' },
+            rulesSet: { system: 'Name', id: 'CRP' },
+            category: 'nonsense',
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('parses a positionRulesSetSkills entry with several skills', () => {
+    const data = ManualDataFileSchema.parse({
+      positionRulesSetSkills: [
+        {
+          position: { system: 'Name', id: 'Dwarf: Troll Slayer' },
+          rulesSet: { system: 'Name', id: 'CRP' },
+          skills: [
+            { system: 'Name', id: 'Block' },
+            { system: 'Name', id: 'Dauntless' },
+          ],
+        },
+      ],
+    });
+
+    expect(data.positionRulesSetSkills[0].skills).toHaveLength(2);
+  });
+
+  it('defaults all three new sections to empty arrays', () => {
+    const data = ManualDataFileSchema.parse({});
+
+    expect(data.skills).toEqual([]);
+    expect(data.skillRulesSets).toEqual([]);
+    expect(data.positionRulesSetSkills).toEqual([]);
   });
 });
