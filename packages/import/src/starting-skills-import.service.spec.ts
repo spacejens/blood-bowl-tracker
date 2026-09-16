@@ -58,8 +58,8 @@ describe('StartingSkillsImportService', () => {
   it('upserts each skill once and syncs one batch per position/rules-set pair', async () => {
     skills.upsert.mockResolvedValueOnce(upserted(5, 'Dodge'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 4, category: 'agility' },
-      { rulesSetId: 9, category: 'agility' },
+      { rulesSetId: 4, category: 'agility', isElite: false },
+      { rulesSetId: 9, category: 'agility', isElite: false },
     ]);
     positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
       positionRulesSetSkillIds: [1],
@@ -71,8 +71,8 @@ describe('StartingSkillsImportService', () => {
         [
           3,
           new Map([
-            [4, [{ name: 'Dodge' }]],
-            [9, [{ name: 'Dodge' }]],
+            [4, [{ name: 'Dodge', isElite: false }]],
+            [9, [{ name: 'Dodge', isElite: false }]],
           ]),
         ],
       ]),
@@ -112,7 +112,7 @@ describe('StartingSkillsImportService', () => {
   it('passes the attribute value through to the synced entry and dedupes on the resolved skill id', async () => {
     skills.upsert.mockResolvedValueOnce(upserted(5, 'Loner'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 4, category: 'general' },
+      { rulesSetId: 4, category: 'general', isElite: false },
     ]);
     positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
       positionRulesSetSkillIds: [1],
@@ -127,8 +127,8 @@ describe('StartingSkillsImportService', () => {
             [
               4,
               [
-                { name: 'Loner', attributeValue: '4+' },
-                { name: 'Loner', attributeValue: '4+' },
+                { name: 'Loner', attributeValue: '4+', isElite: false },
+                { name: 'Loner', attributeValue: '4+', isElite: false },
               ],
             ],
           ]),
@@ -156,7 +156,7 @@ describe('StartingSkillsImportService', () => {
     // row, so BBL/TP's own upsert of either raw string matches that row.
     skills.upsert.mockResolvedValue(upserted(5, 'Claws'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 4, category: 'mutation' },
+      { rulesSetId: 4, category: 'mutation', isElite: false },
     ]);
     positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
       positionRulesSetSkillIds: [1],
@@ -164,7 +164,20 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Claw' }, { name: 'Claws' }]]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [
+              4,
+              [
+                { name: 'Claw', isElite: false },
+                { name: 'Claws', isElite: false },
+              ],
+            ],
+          ]),
+        ],
+      ]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -191,7 +204,7 @@ describe('StartingSkillsImportService', () => {
   it('keeps a defined attribute value when a duplicate ref for the same skill has none', async () => {
     skills.upsert.mockResolvedValue(upserted(5, 'Loner'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 4, category: 'general' },
+      { rulesSetId: 4, category: 'general', isElite: false },
     ]);
     positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
       positionRulesSetSkillIds: [1],
@@ -203,7 +216,13 @@ describe('StartingSkillsImportService', () => {
         [
           3,
           new Map([
-            [4, [{ name: 'Loner' }, { name: 'Loner', attributeValue: '4+' }]],
+            [
+              4,
+              [
+                { name: 'Loner', isElite: false },
+                { name: 'Loner', attributeValue: '4+', isElite: false },
+              ],
+            ],
           ]),
         ],
       ]),
@@ -225,7 +244,7 @@ describe('StartingSkillsImportService', () => {
   it('drops a skill and records an error when duplicate refs disagree on its attribute value', async () => {
     skills.upsert.mockResolvedValue(upserted(5, 'Loner'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 4, category: 'general' },
+      { rulesSetId: 4, category: 'general', isElite: false },
     ]);
     const errors: ImportError[] = [];
 
@@ -237,8 +256,8 @@ describe('StartingSkillsImportService', () => {
             [
               4,
               [
-                { name: 'Loner', attributeValue: '4+' },
-                { name: 'Loner', attributeValue: '6+' },
+                { name: 'Loner', attributeValue: '4+', isElite: false },
+                { name: 'Loner', attributeValue: '6+', isElite: false },
               ],
             ],
           ]),
@@ -259,12 +278,12 @@ describe('StartingSkillsImportService', () => {
   it('skips a skill with no curated category for that rules set and records an error', async () => {
     skills.upsert.mockResolvedValue(upserted(5, 'Dodge'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 9, category: 'agility' },
+      { rulesSetId: 9, category: 'agility', isElite: false },
     ]);
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -283,7 +302,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map(),
       errors,
     );
@@ -299,8 +318,8 @@ describe('StartingSkillsImportService', () => {
 
     await service.syncStartingSkills(
       new Map([
-        [3, new Map([[4, [{ name: 'Dodge' }]]])],
-        [7, new Map([[4, [{ name: 'Dodge' }]]])],
+        [3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])],
+        [7, new Map([[4, [{ name: 'Dodge', isElite: false }]]])],
       ]),
       new Map([[4, 'CRP']]),
       errors,
@@ -325,7 +344,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -353,8 +372,8 @@ describe('StartingSkillsImportService', () => {
 
     const synced = await service.syncStartingSkills(
       new Map([
-        [3, new Map([[4, [{ name: 'Dodge' }]]])],
-        [7, new Map([[9, [{ name: 'Dodge' }]]])],
+        [3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])],
+        [7, new Map([[9, [{ name: 'Dodge', isElite: false }]]])],
       ]),
       new Map([
         [4, 'CRP'],
@@ -377,7 +396,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -390,13 +409,13 @@ describe('StartingSkillsImportService', () => {
   it('counts nothing for a rejected sync batch', async () => {
     skills.upsert.mockResolvedValue(upserted(5, 'Dodge'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([
-      { rulesSetId: 4, category: 'agility' },
+      { rulesSetId: 4, category: 'agility', isElite: false },
     ]);
     positionSkills.syncPositionRulesSetSkills.mockResolvedValue(undefined);
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -410,7 +429,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -418,5 +437,93 @@ describe('StartingSkillsImportService', () => {
     expect(synced).toBe(0);
     expect(errors).toEqual([failure]);
     expect(skills.upsert).not.toHaveBeenCalled();
+  });
+
+  it('records the starting skill when the curated and source elite flags agree', async () => {
+    skills.upsert.mockResolvedValueOnce(upserted(5, 'Block'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 9, category: 'general', isElite: true },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([[3, new Map([[9, [{ name: 'Block', isElite: true }]]])]]),
+      new Map([[9, 'BB2025']]),
+      errors,
+    );
+
+    expect(synced).toBe(1);
+    expect(errors).toEqual([]);
+  });
+
+  it('reports a source skill marked elite that is curated as not elite', async () => {
+    skills.upsert.mockResolvedValueOnce(upserted(5, 'Block'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 9, category: 'general', isElite: false },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([[3, new Map([[9, [{ name: 'Block', isElite: true }]]])]]),
+      new Map([[9, 'BB2025']]),
+      errors,
+    );
+
+    // Still recorded: only the curated flag disagrees, the skill itself is
+    // genuinely a starting skill there.
+    expect(synced).toBe(1);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ item: { skill: 'Block', rulesSet: 9 } });
+    expect(errors[0].message).toContain('"Block"');
+    expect(errors[0].message).toContain('"BB2025"');
+    expect(errors[0].message).toContain('skills.json5');
+  });
+
+  it('reports a source skill not marked elite that is curated as elite', async () => {
+    skills.upsert.mockResolvedValueOnce(upserted(5, 'Block'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 9, category: 'general', isElite: true },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    await service.syncStartingSkills(
+      new Map([[3, new Map([[9, [{ name: 'Block', isElite: false }]]])]]),
+      new Map([[9, 'BB2025']]),
+      errors,
+    );
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('"Block"');
+  });
+
+  it('reports an elite mismatch once per skill and rules set, not once per position', async () => {
+    skills.upsert.mockResolvedValueOnce(upserted(5, 'Block'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 9, category: 'general', isElite: false },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    await service.syncStartingSkills(
+      new Map([
+        [3, new Map([[9, [{ name: 'Block', isElite: true }]]])],
+        [4, new Map([[9, [{ name: 'Block', isElite: true }]]])],
+      ]),
+      new Map([[9, 'BB2025']]),
+      errors,
+    );
+
+    expect(errors).toHaveLength(1);
   });
 });

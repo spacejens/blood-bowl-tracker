@@ -20,6 +20,14 @@ import type { ImportError } from './types';
 export interface StartingSkillRef {
   name: string;
   attributeValue?: string;
+  /**
+   * Whether the SOURCE data marks this skill as BB2025-elite. It is never
+   * written anywhere -- `skill_rules_sets.is_elite` is curated, not
+   * source-derived -- it exists only so this service can cross-check the
+   * source against the curated value and report a disagreement. A source with
+   * no concept of eliteness (BBL) supplies `false`.
+   */
+  isElite: boolean;
 }
 
 /** positionId -> rulesSetId -> the position's starting skill refs there. */
@@ -48,6 +56,13 @@ export type StartingSkillNames = Map<number, Map<number, StartingSkillRef[]>>;
  * One sync call per (position, rules set): the server rejects a batch
  * all-or-nothing, so a smaller batch keeps one bad skill from costing a
  * position its other rules sets.
+ *
+ * A skill whose source data disagrees with the curated row's `isElite` is
+ * likewise an ImportError pointing at tools/import-manual, reported once per
+ * (skill, rules set). Unlike the curation gap, the starting skill is still
+ * recorded: the skill genuinely exists under that rules set, `isElite` is not
+ * part of what position_rules_set_skills stores, and dropping a real starting
+ * skill over a curation flag would lose data for no gain.
  */
 @Injectable()
 export class StartingSkillsImportService {
@@ -77,12 +92,19 @@ export class StartingSkillsImportService {
     /** Skill name -> its database id, or undefined when its upsert failed. */
     const skillIdsByName = new Map<string, number | undefined>();
     /**
-     * Skill name -> the rules set ids it has a curated category under, or
-     * undefined when the category read itself failed.
+     * Skill name -> what the curated table says about it, keyed by rules set
+     * id (the value is the curated `isElite`), or undefined when the read
+     * itself failed. A rules set absent from the map has no curated row at
+     * all, which is the curation gap reported below.
      */
-    const rulesSetIdsBySkillName = new Map<string, Set<number> | undefined>();
+    const curatedBySkillName = new Map<
+      string,
+      Map<number, boolean> | undefined
+    >();
     /** `${name}|${rulesSetId}` pairs already reported as uncurated. */
     const reportedGaps = new Set<string>();
+    /** `${name}|${rulesSetId}` pairs already reported as an elite mismatch. */
+    const reportedEliteMismatches = new Set<string>();
 
     let synced = 0;
     for (const [positionId, refsByRulesSetId] of skillNamesByPositionId) {
@@ -149,19 +171,20 @@ export class StartingSkillsImportService {
             existing.attributeValue ??= attributeValue;
             continue;
           }
-          const rulesSetIds = await this.categoryRulesSetIds({
+          const curated = await this.curatedRulesSets({
             name,
             skillId,
-            rulesSetIdsBySkillName,
+            curatedBySkillName,
             errors,
           });
-          if (rulesSetIds === undefined) {
+          if (curated === undefined) {
             // The category read itself failed and already recorded its own
             // error; piling a second "no curated category" error on top
             // would be misleading, so skip the curation-gap check entirely.
             continue;
           }
-          if (!rulesSetIds.has(rulesSetId)) {
+          const curatedIsElite = curated.get(rulesSetId);
+          if (curatedIsElite === undefined) {
             const key = `${name}|${rulesSetId}`;
             if (!reportedGaps.has(key)) {
               reportedGaps.add(key);
@@ -179,6 +202,28 @@ export class StartingSkillsImportService {
               );
             }
             continue;
+          }
+          if (curatedIsElite !== ref.isElite) {
+            const key = `${name}|${rulesSetId}`;
+            if (!reportedEliteMismatches.has(key)) {
+              reportedEliteMismatches.add(key);
+              const rulesSetName =
+                rulesSetNamesById.get(rulesSetId) ?? `id ${rulesSetId}`;
+              errors.push(
+                this.importResults.error({
+                  item: { skill: name, rulesSet: rulesSetId },
+                  message:
+                    `Skill "${name}" is curated as ` +
+                    `${curatedIsElite ? 'elite' : 'not elite'} for rules set ` +
+                    `"${rulesSetName}", but the source data marks it as ` +
+                    `${ref.isElite ? 'elite' : 'not elite'}. Correct the ` +
+                    'curated value in tools/import-manual ' +
+                    '(data/before-other-importers/skills.json5). The starting ' +
+                    'skill itself is still recorded -- only the elite marker ' +
+                    'disagrees.',
+                }),
+              );
+            }
           }
           entriesBySkillId.set(skillId, {
             positionId,
@@ -234,16 +279,16 @@ export class StartingSkillsImportService {
     return id;
   }
 
-  /** The rules set ids one skill has a curated category under, read once. */
-  private async categoryRulesSetIds(options: {
+  /** What the curated table says about one skill, read once per run. */
+  private async curatedRulesSets(options: {
     name: string;
     skillId: number;
-    rulesSetIdsBySkillName: Map<string, Set<number> | undefined>;
+    curatedBySkillName: Map<string, Map<number, boolean> | undefined>;
     errors: ImportError[];
-  }): Promise<Set<number> | undefined> {
-    const { name, skillId, rulesSetIdsBySkillName, errors } = options;
-    if (rulesSetIdsBySkillName.has(name)) {
-      return rulesSetIdsBySkillName.get(name);
+  }): Promise<Map<number, boolean> | undefined> {
+    const { name, skillId, curatedBySkillName, errors } = options;
+    if (curatedBySkillName.has(name)) {
+      return curatedBySkillName.get(name);
     }
     const rows = await this.skillRulesSetsImport.listSkillRulesSets(
       skillId,
@@ -253,11 +298,11 @@ export class StartingSkillsImportService {
     // caller skips the curation-gap check entirely instead of piling a
     // second, misleading "no curated category" error on top of the real
     // read failure.
-    const ids =
+    const curated =
       rows === undefined
         ? undefined
-        : new Set(rows.map((row) => row.rulesSetId));
-    rulesSetIdsBySkillName.set(name, ids);
-    return ids;
+        : new Map(rows.map((row) => [row.rulesSetId, row.isElite]));
+    curatedBySkillName.set(name, curated);
+    return curated;
   }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "game_data"."skill_rules_sets" ADD COLUMN "is_elite" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."skill_rules_sets_history" ADD COLUMN "is_elite" boolean;

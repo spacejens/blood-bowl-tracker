@@ -49,7 +49,12 @@ export class SkillRulesSetsProcessor {
       if (rulesSetId === undefined) {
         continue;
       }
-      entries.push({ skillId, rulesSetId, category: entry.category });
+      entries.push({
+        skillId,
+        rulesSetId,
+        category: entry.category,
+        isElite: entry.isElite,
+      });
     }
 
     if (entries.length === 0) {

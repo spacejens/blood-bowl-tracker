@@ -1,5 +1,5 @@
 import { SKILL_CATEGORIES } from '@blood-bowl-tracker/domain-enums';
-import { integer, serial, unique } from 'drizzle-orm/pg-core';
+import { boolean, integer, serial, unique } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
@@ -38,6 +38,18 @@ const skillRulesSetsTable = historyTrackedTable({
       .references(() => rulesSets.id)
       .notNull(),
     category: skillCategoryEnum('category').notNull(),
+    /**
+     * BB2025's "elite" distinction: an orthogonal marker, not a category, on
+     * a handful of skills (Block, Dodge, Guard, Mighty Blow) that cost more
+     * player value to pick than a non-elite skill — player value itself is
+     * not yet modeled, so this only records which skills the cost applies
+     * to, not the cost. It is not a restriction on which skills can be
+     * picked. No earlier rules set has the concept, so every non-BB2025 row
+     * is simply `false` — which is why the column defaults to false rather
+     * than being nullable: "not elite" and "has no such concept" are the
+     * same thing to every consumer.
+     */
+    isElite: boolean('is_elite').notNull().default(false),
   },
   extraConfig: (t) => ({
     uniqueSkillRulesSet: unique(

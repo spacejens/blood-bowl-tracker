@@ -22,6 +22,7 @@ export interface SkillCategoryByRulesSet {
   rulesSetId: number;
   rulesSetName: string;
   category: SkillCategory;
+  isElite: boolean;
 }
 
 /** One skill's category under a given rules set, named for display. */
@@ -29,6 +30,7 @@ export interface RulesSetSkillCategory {
   skillId: number;
   skillName: string;
   category: SkillCategory;
+  isElite: boolean;
 }
 
 /**
@@ -100,7 +102,11 @@ export class SkillRulesSetsService {
     );
 
     const toInsert: NewSkillRulesSet[] = [];
-    const toUpdate: { id: number; category: SkillCategory }[] = [];
+    const toUpdate: {
+      id: number;
+      category: SkillCategory;
+      isElite: boolean;
+    }[] = [];
     for (const entry of data.entries) {
       const existingId = existingIdByKey.get(this.naturalKey(entry));
       if (existingId === undefined) {
@@ -108,9 +114,14 @@ export class SkillRulesSetsService {
           skillId: entry.skillId,
           rulesSetId: entry.rulesSetId,
           category: entry.category,
+          isElite: entry.isElite,
         });
       } else {
-        toUpdate.push({ id: existingId, category: entry.category });
+        toUpdate.push({
+          id: existingId,
+          category: entry.category,
+          isElite: entry.isElite,
+        });
       }
     }
 
@@ -131,7 +142,7 @@ export class SkillRulesSetsService {
       for (const row of toUpdate) {
         const updated = await tx
           .update(skillRulesSets)
-          .set({ category: row.category })
+          .set({ category: row.category, isElite: row.isElite })
           .where(eq(skillRulesSets.id, row.id))
           .returning({ id: skillRulesSets.id });
         skillRulesSetIds.push(...updated.map((updatedRow) => updatedRow.id));
@@ -151,6 +162,7 @@ export class SkillRulesSetsService {
         rulesSetId: rulesSets.id,
         rulesSetName: rulesSets.name,
         category: skillRulesSets.category,
+        isElite: skillRulesSets.isElite,
       })
       .from(skillRulesSets)
       .innerJoin(rulesSets, eq(rulesSets.id, skillRulesSets.rulesSetId))
@@ -169,6 +181,7 @@ export class SkillRulesSetsService {
         skillId: skills.id,
         skillName: skills.name,
         category: skillRulesSets.category,
+        isElite: skillRulesSets.isElite,
       })
       .from(skillRulesSets)
       .innerJoin(skills, eq(skills.id, skillRulesSets.skillId))

@@ -7,14 +7,19 @@ import {
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
-import type { TpPositionSkillRef } from '@blood-bowl-tracker/parse-tp';
+import type {
+  TpPositionSkillRef,
+  TpSkillMaster,
+} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 export interface SyncTpPositionSkillsOptions {
   /** positionId -> rulesSetId -> the skill references TP published there. */
   skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
-  /** The skillMasterId -> name lookup scanned out of the downloaded mirror. */
-  skillNamesByMasterId: Map<number, string>;
+  /** The skillMasterId -> name + elite marker lookup scanned out of the
+   * downloaded mirror. TP's own template file carries neither, so this scan
+   * is the only source for both. */
+  skillMastersByMasterId: Map<number, TpSkillMaster>;
   /** Every upserted position's DB id -> its name (TpPositionsImportService's
    * positionNamesById), so an unresolvable-skill ImportError can name the
    * position instead of only its bare id. A position missing from this map
@@ -61,7 +66,7 @@ export class TpPositionSkillsImportService {
 
   async syncPositionSkills({
     skillRefsByPositionId,
-    skillNamesByMasterId,
+    skillMastersByMasterId,
     positionNamesById,
     rulesSetNamesById,
   }: SyncTpPositionSkillsOptions): Promise<{ result: ImportResult }> {
@@ -80,7 +85,7 @@ export class TpPositionSkillsImportService {
           positionId,
           rulesSetId,
           refs,
-          skillNamesByMasterId,
+          skillMastersByMasterId,
           positionNamesById,
           rulesSetNamesById,
           reportedIds,
@@ -118,7 +123,7 @@ export class TpPositionSkillsImportService {
     positionId: number;
     rulesSetId: number;
     refs: TpPositionSkillRef[];
-    skillNamesByMasterId: Map<number, string>;
+    skillMastersByMasterId: Map<number, TpSkillMaster>;
     positionNamesById: Map<number, string>;
     rulesSetNamesById: Map<number, string>;
     reportedIds: Set<number>;
@@ -129,7 +134,7 @@ export class TpPositionSkillsImportService {
       positionId,
       rulesSetId,
       refs,
-      skillNamesByMasterId,
+      skillMastersByMasterId,
       positionNamesById,
       rulesSetNamesById,
       reportedIds,
@@ -142,8 +147,8 @@ export class TpPositionSkillsImportService {
       rulesSetNamesById.get(rulesSetId) ?? `id ${rulesSetId}`;
     const names: StartingSkillRef[] = [];
     for (const ref of refs) {
-      const name = skillNamesByMasterId.get(ref.skillMasterId);
-      if (name === undefined) {
+      const master = skillMastersByMasterId.get(ref.skillMasterId);
+      if (master === undefined) {
         if (!reportedIds.has(ref.skillMasterId)) {
           reportedIds.add(ref.skillMasterId);
           errors.push(
@@ -160,6 +165,7 @@ export class TpPositionSkillsImportService {
         }
         continue;
       }
+      const { name } = master;
       if (ref.attributeType === 3) {
         const key = `${ref.skillMasterId}:${ref.attributeValue}`;
         if (!reportedAttributeTypeThreeRefs.has(key)) {
@@ -186,8 +192,12 @@ export class TpPositionSkillsImportService {
       }
       names.push(
         ref.attributeValue === undefined
-          ? { name }
-          : { name, attributeValue: ref.attributeValue },
+          ? { name, isElite: master.isElite }
+          : {
+              name,
+              attributeValue: ref.attributeValue,
+              isElite: master.isElite,
+            },
       );
     }
     return names;

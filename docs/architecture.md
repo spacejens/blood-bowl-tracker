@@ -397,12 +397,25 @@ by `(skill_id, rules_set_id)` and carrying a `skill_category` enum column
 `unique`). `unique` is the category for the one skill a rules set makes
 exclusive to a given star player — used instead of a per-association flag, so
 an ordinary skill row stays shareable between positions and a star player's
-exclusive skill is identified purely by checking its category. This is
-deliberately not enforced as globally unique across star players: if two star
-players are published sharing the same "unique" skill, that is not treated as
-a data error. A missing `skill_rules_sets` row means the skill does not exist
-under that rules set. This is the same split, for the same reason, as
-characteristics living on `position_rules_sets` rather than on `positions`.
+exclusive skill is identified purely by checking its category.
+
+This is deliberately not enforced as globally unique across star players: if
+two star players are published sharing the same "unique" skill, that is not
+treated as a data error. A missing `skill_rules_sets` row means the skill does
+not exist under that rules set. This is the same split, for the same reason,
+as characteristics living on `position_rules_sets` rather than on `positions`.
+
+The same row also carries `is_elite`, BB2025's orthogonal "elite" marker on a
+handful of skills (Block, Dodge, Guard, Mighty Blow) that cost more player
+value to pick than a non-elite skill — not a restriction on which skills can
+be picked, and player value itself is not yet modeled, so this only records
+which skills the cost applies to. It is a plain boolean rather than another
+`skill_category` value because it cuts across categories, and it is `false`
+on every row for every rules set older than BB2025, none of which has the
+concept at all. Like the category, it is curated
+in `tools/import-manual` (`data/before-other-importers/skills.json5`); the TP
+importer only reads it back, to cross-check the marker TP's own source data
+carries, while BBL has no such marker at all and always supplies `false`.
 
 `position_rules_set_skills` records a position's _starting_ skills, anchored
 to `position_rules_sets.id` rather than to a duplicated position/rules-set
