@@ -6,10 +6,12 @@
 // here than it does there: position_rules_set_skills entries are additive per
 // (position, rules set) rather than a single overwritable value, so an
 // importer writing to a rules set this file also curates would merge into a
-// union instead of being correctable by re-running curation afterwards. TP's
-// source data is genuinely per-rules-set already, so it never writes here.
-// BBL is deliberately excluded from writing to CRP, CRP+, and BB2016 for the
-// same reason -- see BblPositionSkillsImportService.
+// union instead of being correctable by re-running curation afterwards. TP
+// never writes here because its configured eras (import-tp-config.json5) are
+// only BB2020, DB2021 and BB2025 -- none of the three rules sets this file
+// curates -- not because its data is per-rules-set (an older TP era, if ever
+// configured, would need the same exclusion BBL has). BBL IS excluded for
+// exactly that reason -- see BblPositionSkillsImportService.
 //
 // Every entry's (position, rules set) pair MUST already be curated in
 // after-other-importers/position-characteristics.json5: a starting skill hangs

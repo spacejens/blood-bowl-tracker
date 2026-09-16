@@ -201,6 +201,27 @@ describe('curated data files - skills', () => {
     expect([...rulesSets].sort()).toEqual(['BB2016', 'CRP', 'CRP+']);
   });
 
+  it('curates exactly the rules sets BblPositionSkillsImportService excludes itself from', () => {
+    const rulesSets = new Set(
+      positionSkillsFile().positionRulesSetSkills.map(
+        (entry) => entry.rulesSet.id,
+      ),
+    );
+
+    // Cross-referenced with CURATION_OWNED_RULES_SET_NAMES in
+    // tools/import-bbl/src/positions/bbl-position-skills-import.service.ts.
+    // Not imported directly: tools/import-manual declares no dependency on
+    // tools/import-bbl, so drift between the two lists is caught here by a
+    // human keeping this hardcoded list in sync, not by the compiler. This
+    // guards against the exact bug class the Critical fix in this branch
+    // resolved -- a rules set curated here without BBL's exclusion list
+    // knowing about it, or vice versa.
+    const CURATION_OWNED_RULES_SET_NAMES = ['CRP', 'CRP+', 'BB2016'];
+    expect([...rulesSets].sort()).toEqual(
+      [...CURATION_OWNED_RULES_SET_NAMES].sort(),
+    );
+  });
+
   it('curates the Stunty Leeg races CRP itself does not list', () => {
     const ids = new Set(
       positionSkillsFile().positionRulesSetSkills.map(
@@ -208,11 +229,18 @@ describe('curated data files - skills', () => {
       ),
     );
 
-    // One position from each Stunty Leeg roster that has starting skills;
-    // replace these with the real curated ids as they are transcribed.
-    expect([...ids].some((id) => id.startsWith('SL - Albion Fae: '))).toBe(
-      true,
-    );
-    expect([...ids].some((id) => id.startsWith('SL - Pygmies: '))).toBe(true);
+    // All six Stunty Leeg rosters need at least one curated starting-skill
+    // position, since none of them appear in CRP itself.
+    const stuntyLeegRaces = [
+      'SL - Albion Fae: ',
+      'SL - Chaos Halflings: ',
+      'SL - Goblin Cheaters: ',
+      'SL - Horrors Of Tzeentch: ',
+      'SL - Pygmies: ',
+      'SL - Skinks: ',
+    ];
+    for (const prefix of stuntyLeegRaces) {
+      expect([...ids].some((id) => id.startsWith(prefix))).toBe(true);
+    }
   });
 });
