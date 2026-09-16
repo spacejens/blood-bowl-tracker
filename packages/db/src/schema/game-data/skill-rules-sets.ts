@@ -40,11 +40,14 @@ const skillRulesSetsTable = historyTrackedTable({
     category: skillCategoryEnum('category').notNull(),
     /**
      * BB2025's "elite" distinction: an orthogonal marker, not a category, on
-     * the skills BB2025 restricts (Block, Dodge, Guard, Mighty Blow). No
-     * earlier rules set has the concept, so every non-BB2025 row is simply
-     * `false` — which is why the column defaults to false rather than being
-     * nullable: "not elite" and "has no such concept" are the same thing to
-     * every consumer.
+     * a handful of skills (Block, Dodge, Guard, Mighty Blow) that cost more
+     * player value to pick than a non-elite skill — player value itself is
+     * not yet modeled, so this only records which skills the cost applies
+     * to, not the cost. It is not a restriction on which skills can be
+     * picked. No earlier rules set has the concept, so every non-BB2025 row
+     * is simply `false` — which is why the column defaults to false rather
+     * than being nullable: "not elite" and "has no such concept" are the
+     * same thing to every consumer.
      */
     isElite: boolean('is_elite').notNull().default(false),
   },
