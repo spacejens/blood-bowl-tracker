@@ -14,6 +14,7 @@ import {
 import type {
   TpOfficialPosition,
   TpPositionCharacteristics,
+  TpPositionSkillRef,
 } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
@@ -193,6 +194,7 @@ export interface OfficialPositionOpts {
   isStarPlayer?: boolean;
   tpPositionId?: number;
   characteristics?: TpPositionCharacteristics;
+  skills?: TpPositionSkillRef[];
 }
 
 export function officialPosition(
@@ -203,12 +205,14 @@ export function officialPosition(
     isStarPlayer = false,
     tpPositionId,
     characteristics = DEFAULT_CHARACTERISTICS,
+    skills = [],
   } = opts;
   return {
     name,
     isStarPlayer,
     ...(tpPositionId === undefined ? {} : { tpPositionId }),
     characteristics,
+    skills,
   };
 }
 

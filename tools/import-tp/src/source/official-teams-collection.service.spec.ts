@@ -34,6 +34,7 @@ const AMAZON = {
         passing: 4,
         armour: 8,
       },
+      skills: [],
     },
   ],
 };

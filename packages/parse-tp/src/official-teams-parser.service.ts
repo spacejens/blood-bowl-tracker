@@ -21,6 +21,17 @@ export interface TpOfficialPosition {
    */
   tpPositionId?: number;
   characteristics: TpPositionCharacteristics;
+  skills: TpPositionSkillRef[];
+}
+
+/**
+ * One skill reference on an official-list entry. TP names the skill only by
+ * `skillMasterId`; `attributeValue` is the parenthetical value it stores
+ * separately (`"4+"` for Loner, `"+1"` for Mighty Blow).
+ */
+export interface TpPositionSkillRef {
+  skillMasterId: number;
+  attributeValue?: string;
 }
 
 /**
@@ -68,10 +79,22 @@ const CharacteristicsFields = {
   av: z.number().int(),
 };
 
+const SkillRefSchema = z.object({
+  skillMasterId: z.number().int(),
+  skillAttributeMaster: z.object({ value: z.string() }).optional(),
+});
+
+const SkillsField = {
+  // Default rather than required: TP omits the array entirely for an entry
+  // with no starting skills.
+  skills: z.array(SkillRefSchema).default([]),
+};
+
 const LineUpMasterSchema = z.object({
   id: z.number().optional(),
   position: z.string(),
   ...CharacteristicsFields,
+  ...SkillsField,
 });
 
 /**
@@ -87,6 +110,7 @@ const StarPlayerMasterSchema = z.object({
   availableLeagues: z.number().int().optional(),
   availableTeamSpecialRules: z.number().int().optional(),
   ...CharacteristicsFields,
+  ...SkillsField,
 });
 
 const RosterMasterSchema = z.object({
@@ -185,6 +209,12 @@ export class OfficialTeamsParserService {
         passing: entry.pa,
         armour: entry.av,
       },
+      skills: entry.skills.map((skill) => ({
+        skillMasterId: skill.skillMasterId,
+        ...(skill.skillAttributeMaster === undefined
+          ? {}
+          : { attributeValue: skill.skillAttributeMaster.value }),
+      })),
     };
   }
 }

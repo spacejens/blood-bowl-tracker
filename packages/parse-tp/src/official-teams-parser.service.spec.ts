@@ -287,6 +287,7 @@ describe('OfficialTeamsParserService', () => {
         passing: 4,
         armour: 9,
       },
+      skills: [],
     });
   });
 
@@ -304,6 +305,7 @@ describe('OfficialTeamsParserService', () => {
         passing: 3,
         armour: 10,
       },
+      skills: [],
     });
   });
 
@@ -416,6 +418,64 @@ describe('OfficialTeamsParserService', () => {
     });
 
     expect(race.positions).toEqual([]);
+  });
+
+  it("reads each entry's skill references, with the attribute value when present", () => {
+    const races = service.parse({
+      rosterMasters: [
+        {
+          name: 'Goblin',
+          teamRace: 'goblin_20',
+          teamRosterType: 0,
+          teamSpecialRules: 1,
+          selectableTeamSpecialRules: 0,
+          lineUpMasters: [
+            {
+              id: 257,
+              position: 'Goblin Bruiser Lineman',
+              ma: 6,
+              st: 2,
+              ag: 3,
+              pa: 4,
+              av: 8,
+              skills: [
+                { skillMasterId: 87 },
+                {
+                  skillMasterId: 154,
+                  skillAttributeMaster: { type: 0, value: '4+', id: 3 },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      starplayerMasters: [],
+    });
+
+    expect(races[0].positions[0].skills).toEqual([
+      { skillMasterId: 87 },
+      { skillMasterId: 154, attributeValue: '4+' },
+    ]);
+  });
+
+  it('reports an empty skill list for an entry with no skills array', () => {
+    const races = service.parse({
+      rosterMasters: [
+        {
+          name: 'Goblin',
+          teamRace: 'goblin_20',
+          teamRosterType: 0,
+          teamSpecialRules: 1,
+          selectableTeamSpecialRules: 0,
+          lineUpMasters: [
+            { position: 'Goblin', ma: 6, st: 2, ag: 3, pa: 4, av: 8 },
+          ],
+        },
+      ],
+      starplayerMasters: [],
+    });
+
+    expect(races[0].positions[0].skills).toEqual([]);
   });
 
   it('throws naming the failing field on a shape mismatch', () => {

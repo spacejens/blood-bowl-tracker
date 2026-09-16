@@ -17,6 +17,7 @@ export { MatchParserService } from './match-parser.service';
 export type {
   TpOfficialPosition,
   TpOfficialRace,
+  TpPositionSkillRef,
 } from './official-teams-parser.service';
 export { OfficialTeamsParserService } from './official-teams-parser.service';
 export { ParseTpModule } from './parse-tp.module';
