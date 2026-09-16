@@ -63,8 +63,11 @@ export class StartingSkillsImportService {
 
     /** Skill name -> its database id, or undefined when its upsert failed. */
     const skillIdsByName = new Map<string, number | undefined>();
-    /** Skill name -> the rules set ids it has a curated category under. */
-    const rulesSetIdsBySkillName = new Map<string, Set<number>>();
+    /**
+     * Skill name -> the rules set ids it has a curated category under, or
+     * undefined when the category read itself failed.
+     */
+    const rulesSetIdsBySkillName = new Map<string, Set<number> | undefined>();
     /** `${name}|${rulesSetId}` pairs already reported as uncurated. */
     const reportedGaps = new Set<string>();
 
@@ -92,6 +95,12 @@ export class StartingSkillsImportService {
             rulesSetIdsBySkillName,
             errors,
           });
+          if (rulesSetIds === undefined) {
+            // The category read itself failed and already recorded its own
+            // error; piling a second "no curated category" error on top
+            // would be misleading, so skip the curation-gap check entirely.
+            continue;
+          }
           if (!rulesSetIds.has(rulesSetId)) {
             const key = `${name}|${rulesSetId}`;
             if (!reportedGaps.has(key)) {
@@ -163,22 +172,25 @@ export class StartingSkillsImportService {
   private async categoryRulesSetIds(options: {
     name: string;
     skillId: number;
-    rulesSetIdsBySkillName: Map<string, Set<number>>;
+    rulesSetIdsBySkillName: Map<string, Set<number> | undefined>;
     errors: ImportError[];
-  }): Promise<Set<number>> {
+  }): Promise<Set<number> | undefined> {
     const { name, skillId, rulesSetIdsBySkillName, errors } = options;
-    const cached = rulesSetIdsBySkillName.get(name);
-    if (cached) {
-      return cached;
+    if (rulesSetIdsBySkillName.has(name)) {
+      return rulesSetIdsBySkillName.get(name);
     }
     const rows = await this.skillRulesSetsImport.listSkillRulesSets(
       skillId,
       errors,
     );
-    // A failed read already recorded its own error; an empty set then makes
-    // every entry for this skill report the curation gap instead, which is the
-    // same conservative outcome as a genuinely uncurated skill.
-    const ids = new Set((rows ?? []).map((row) => row.rulesSetId));
+    // A failed read already recorded its own error; return undefined so the
+    // caller skips the curation-gap check entirely instead of piling a
+    // second, misleading "no curated category" error on top of the real
+    // read failure.
+    const ids =
+      rows === undefined
+        ? undefined
+        : new Set(rows.map((row) => row.rulesSetId));
     rulesSetIdsBySkillName.set(name, ids);
     return ids;
   }
