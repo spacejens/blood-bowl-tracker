@@ -148,6 +148,18 @@ A subtype of [competition](#competition) — a complete round of play within a [
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
+### Skill
+
+A named special ability a [player](#player) can have, such as Block or Dodge. A [position](#position) grants a set of starting skills to every player who holds it, and players can gain more as they accumulate [SPP](#star-player-points-spp). Every skill belongs to a [skill category](#skill-category) under each [rules set](#rules-set) that has it.
+
+See [game-concepts/skills](game-concepts/skills/index.md).
+
+### Skill Category
+
+The group a [skill](#skill) belongs to — General, Agility, Passing, Strength, Mutation, Devious, Trait or Unique — the learnable ones being what an advancing [player](#player) rolls against to decide which skills they may take. A skill's category is recorded per [rules set](#rules-set), not globally, because a rules set can move a skill from one category to another. Trait is intrinsic rather than learnable, and Unique is the category for a [star player](#star-player)'s one skill exclusive to them under a rules set.
+
+See [game-concepts/skills](game-concepts/skills/index.md).
+
 ### Star Player
 
 A [position](#position) playable across several [races](#race), unlike an ordinary race-specific position. Hiring a star creates a new [player](#player) each time, rather than reusing or transferring one.

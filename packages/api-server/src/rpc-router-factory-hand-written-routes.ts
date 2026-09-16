@@ -5,8 +5,10 @@ import {
   MatchOutcomesService,
   MissingTrophyAwardsService,
   PlayerLastingInjuryBackfillService,
+  PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
+  SkillRulesSetsService,
   SppAdjustmentsService,
   SppAwardValuesService,
   TrophyAwardsService,
@@ -208,6 +210,54 @@ export function buildCompetitionGroupsListRoute(
   return {
     list: implement(contract.competitionGroups.list).handler(() =>
       competitionGroupsService.listAllForApi(),
+    ),
+  };
+}
+
+// skillRulesSets: not routed through the upsert handler's `run`/
+// `runWithoutConflict`, for the same reason positionRulesSets.sync is not — a
+// row is keyed by (skillId, rulesSetId) rather than external ids, so there is
+// no CONFLICT to map and no entity+created shape to return. It does go
+// through `runSync`, which maps the one authored-data failure it can raise (a
+// pair named twice in one batch) to BAD_REQUEST.
+//
+// `list` is plainly read-only and declares no errors. It delegates to
+// `listBySkill`, whose rows also carry the rules set's name; the contract's
+// output schema does not, so that never reaches the caller.
+export function buildSkillRulesSetsRoutes(
+  upsertHandler: UpsertHandlerService,
+  skillRulesSetsService: SkillRulesSetsService,
+) {
+  return {
+    sync: implement(contract.skillRulesSets.sync).handler(({ input, errors }) =>
+      upsertHandler.runSync(errors, () => skillRulesSetsService.sync(input)),
+    ),
+    list: implement(contract.skillRulesSets.list).handler(({ input }) =>
+      skillRulesSetsService.listBySkill(input.skillId),
+    ),
+  };
+}
+
+// positionRulesSetSkills: same shape and same reasoning as skillRulesSets
+// above. `runSync` maps the service's authored-data rejections — a skill the
+// rules set does not have, and a position/rules-set pair with no
+// characteristics recorded yet — to BAD_REQUEST.
+//
+// `list` delegates to `listByPosition`, whose rows also carry the rules set's
+// and the skill's names; the contract's output schema carries neither.
+export function buildPositionRulesSetSkillsRoutes(
+  upsertHandler: UpsertHandlerService,
+  positionRulesSetSkillsService: PositionRulesSetSkillsService,
+) {
+  return {
+    sync: implement(contract.positionRulesSetSkills.sync).handler(
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          positionRulesSetSkillsService.sync(input),
+        ),
+    ),
+    list: implement(contract.positionRulesSetSkills.list).handler(({ input }) =>
+      positionRulesSetSkillsService.listByPosition(input.positionId),
     ),
   };
 }

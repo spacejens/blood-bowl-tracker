@@ -70,6 +70,9 @@ export type {
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
+export { PositionRulesSetSkillsModule } from './position-rules-set-skills/position-rules-set-skills.module';
+export type { PositionStartingSkill } from './position-rules-set-skills/position-rules-set-skills.service';
+export { PositionRulesSetSkillsService } from './position-rules-set-skills/position-rules-set-skills.service';
 export { PositionRulesSetsModule } from './position-rules-sets/position-rules-sets.module';
 export type {
   PositionCharacteristics,
@@ -105,8 +108,20 @@ export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
 export type { PlayerContextNames } from './shared/player-context-names.service';
+export { SkillValidationError } from './shared/skill-validation-error';
 export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names.service';
 export type { TeamTopPlayer } from './shared/team-top-player';
+export { SkillRulesSetsModule } from './skill-rules-sets/skill-rules-sets.module';
+export type {
+  RulesSetSkillCategory,
+  SkillCategoryByRulesSet,
+} from './skill-rules-sets/skill-rules-sets.service';
+export { SkillRulesSetsService } from './skill-rules-sets/skill-rules-sets.service';
+export { SkillsModule } from './skills/skills.module';
+export {
+  SkillsService,
+  SkillUpsertConflictError,
+} from './skills/skills.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';

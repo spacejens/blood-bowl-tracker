@@ -2,6 +2,7 @@ import {
   CharacteristicFormatMismatchError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  SkillValidationError,
   TrophyAwardCompetitionGroupMismatchError,
   TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
@@ -111,13 +112,19 @@ export class UpsertHandlerService {
   /**
    * The classification half of {@link runWithoutConflict} for a procedure
    * whose service does not answer with an `{entity, created}` pair —
-   * `positionRulesSets.sync` returns its sync result shape directly, so it
-   * cannot reuse that method's entity-flattening body. It maps only
-   * `CharacteristicFormatMismatchError`: characteristics that disagree with
-   * what their rules set declares are authored-data feedback the importer
-   * reports per entry, so BAD_REQUEST rather than an internal error. The
-   * other domain errors `runWithoutConflict` classifies are deliberately not
-   * mapped here — this procedure's callers have never raised them.
+   * `positionRulesSets.sync`, `skillRulesSets.sync` and
+   * `positionRulesSetSkills.sync` all return their own sync result shape
+   * directly, so they cannot reuse that method's entity-flattening body.
+   *
+   * It maps the two authored-data failures those procedures raise:
+   * characteristics that disagree with what their rules set declares
+   * (`CharacteristicFormatMismatchError`), and a skill association that does
+   * not hold together (`SkillValidationError` — a duplicated natural key, a
+   * skill the rules set does not have, or a position/rules-set pair with no
+   * characteristics recorded yet). Both are feedback the importer reports per
+   * entry, so BAD_REQUEST rather than an internal error. The other domain
+   * errors `runWithoutConflict` classifies are deliberately not mapped here —
+   * these procedures' callers have never raised them.
    */
   async runSync<T>(
     errors: BadRequestErrors,
@@ -126,7 +133,10 @@ export class UpsertHandlerService {
     try {
       return await run();
     } catch (err) {
-      if (err instanceof CharacteristicFormatMismatchError) {
+      if (
+        err instanceof CharacteristicFormatMismatchError ||
+        err instanceof SkillValidationError
+      ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }
       throw err;
