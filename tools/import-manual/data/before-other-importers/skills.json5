@@ -303,6 +303,7 @@
     { name: 'Safe Pair of Hands', externalIds: [{ system: 'Name', id: 'Safe Pair of Hands' }] },
     { name: 'Safe Pass', externalIds: [{ system: 'Name', id: 'Safe Pass' }] },
     { name: 'Savage Mauling', externalIds: [{ system: 'Name', id: 'Savage Mauling' }] },
+    { name: 'Secret Weapon (6+)', externalIds: [{ system: 'Name', id: 'Secret Weapon (6+)' }] },
     { name: 'Secret Weapon (7+)', externalIds: [{ system: 'Name', id: 'Secret Weapon (7+)' }] },
     { name: 'Secret Weapon (8+)', externalIds: [{ system: 'Name', id: 'Secret Weapon (8+)' }] },
     { name: 'Secret Weapon 6+)', externalIds: [{ system: 'Name', id: 'Secret Weapon 6+)' }] },
@@ -426,10 +427,9 @@
     // list, but the Stunty Leeg handbook rosters use, spelled exactly as it
     // spells them (Stunty_Leeg_Handbook_v1_0.pdf pp.6-8) ---
     { skill: { system: 'Name', id: 'Sidestep' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Secret Weapon (6+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Secret Weapon (7+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Secret Weapon (8+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
-    // TODO: verify -- BBL scraping artifact (missing opening paren) for "Secret Weapon (6+)".
-    { skill: { system: 'Name', id: 'Secret Weapon 6+)' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
 
     // --- CRP+ (NTBB2015.pdf): "Narrow-Tier Blood Bowl 2015" describes
     // itself as 10 house-rule changes layered on top of CRP (p.2, "THE CRP+
