@@ -93,6 +93,18 @@ describe('PositionRulesSetSkillsProcessor', () => {
     expect(refResolver.resolveRefs).not.toHaveBeenCalled();
   });
 
+  it('drops the entry when the rules set does not resolve', async () => {
+    refResolver.resolveRef
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(undefined);
+
+    expect(await processor.process(makeContext([entry]))).toBe(0);
+    expect(refResolver.resolveRefs).not.toHaveBeenCalled();
+    expect(
+      positionRulesSetSkillsImport.syncPositionRulesSetSkills,
+    ).not.toHaveBeenCalled();
+  });
+
   it('counts nothing when the sync itself fails', async () => {
     refResolver.resolveRef.mockResolvedValueOnce(3).mockResolvedValueOnce(4);
     refResolver.resolveRefs.mockResolvedValue([5, 6]);

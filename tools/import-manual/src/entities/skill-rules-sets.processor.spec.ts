@@ -83,6 +83,16 @@ describe('SkillRulesSetsProcessor', () => {
     );
   });
 
+  it('drops an entry whose rules set does not resolve and never syncs', async () => {
+    refResolver.resolveRef
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(undefined);
+
+    const ctx = makeContext([entry]);
+    expect(await processor.process(ctx)).toBe(0);
+    expect(skillRulesSetsImport.syncSkillRulesSets).not.toHaveBeenCalled();
+  });
+
   it('counts nothing when the sync itself fails', async () => {
     refResolver.resolveRef.mockResolvedValueOnce(5).mockResolvedValueOnce(9);
     skillRulesSetsImport.syncSkillRulesSets.mockResolvedValue(undefined);
