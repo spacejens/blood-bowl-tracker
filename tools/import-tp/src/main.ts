@@ -121,6 +121,7 @@ async function run(): Promise<ImportResult> {
       result: positionResult,
       characteristicsByPositionId,
       skillRefsByPositionId,
+      positionNamesById,
     } = await app.get(TpPositionsImportService).importPositions(officialTeams, {
       raceNamesById: raceOutcome.raceNamesById,
     });
@@ -156,11 +157,19 @@ async function run(): Promise<ImportResult> {
     // Starting skills run after the characteristics step for a hard reason:
     // the API rejects a starting skill for a (position, rules set) with no
     // characteristics row, which that step is what creates.
+    const rulesSetNamesById = new Map(
+      [...rulesSetsOutcome.rulesSetsByName.values()].map((rulesSet) => [
+        rulesSet.id,
+        rulesSet.name,
+      ]),
+    );
     const positionSkillsOutcome = await app
       .get(TpPositionSkillsImportService)
       .syncPositionSkills({
         skillRefsByPositionId,
         skillNamesByMasterId,
+        positionNamesById,
+        rulesSetNamesById,
       });
 
     // A roster id can appear under more than one era (TpTeamsImportService's

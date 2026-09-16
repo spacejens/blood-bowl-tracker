@@ -46,6 +46,37 @@ describe('TpPositionsImportService', () => {
     expect(upsertPosition).toHaveBeenCalledTimes(1);
   });
 
+  it('returns every upserted position name keyed by its DB id', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
+    const { service } = await makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const { positionNamesById } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2020',
+          positions: [
+            officialPosition({
+              name: 'Dwarf Blocker Lineman',
+              tpPositionId: 280,
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(positionNamesById).toEqual(new Map([[70, 'Dwarf Blocker Lineman']]));
+  });
+
   it('merges the same position name across rules-set variants of one race into one row', async () => {
     const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
     const syncRaceEras = vi

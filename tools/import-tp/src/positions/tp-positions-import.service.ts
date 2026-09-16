@@ -104,6 +104,10 @@ export class TpPositionsImportService {
       Map<number, TpPositionCharacteristics>
     >;
     skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
+    /** Every upserted position's DB id -> its name, for readable ImportError
+     * messages downstream (e.g. TpPositionSkillsImportService), which would
+     * otherwise only have the bare id to report. */
+    positionNamesById: Map<number, string>;
   }> {
     const { raceNamesById } = options;
     let imported = 0;
@@ -116,6 +120,7 @@ export class TpPositionsImportService {
       number,
       Map<number, TpPositionSkillRef[]>
     >();
+    const positionNamesById = new Map<number, string>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -128,6 +133,7 @@ export class TpPositionsImportService {
         result: this.importResults.result({ imported, errors }),
         characteristicsByPositionId,
         skillRefsByPositionId,
+        positionNamesById,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -146,6 +152,7 @@ export class TpPositionsImportService {
         result: this.importResults.result({ imported, errors }),
         characteristicsByPositionId,
         skillRefsByPositionId,
+        positionNamesById,
       };
     }
 
@@ -249,6 +256,7 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
+      positionNamesById.set(upserted.id, group.name);
       this.recordGroupOutputs({
         characteristicsByPositionId,
         skillRefsByPositionId,
@@ -271,6 +279,7 @@ export class TpPositionsImportService {
       result: this.importResults.result({ imported, errors }),
       characteristicsByPositionId,
       skillRefsByPositionId,
+      positionNamesById,
     };
   }
 

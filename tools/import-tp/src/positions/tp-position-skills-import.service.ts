@@ -11,6 +11,15 @@ export interface SyncTpPositionSkillsOptions {
   skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
   /** The skillMasterId -> name lookup scanned out of the downloaded mirror. */
   skillNamesByMasterId: Map<number, string>;
+  /** Every upserted position's DB id -> its name (TpPositionsImportService's
+   * positionNamesById), so an unresolvable-skill ImportError can name the
+   * position instead of only its bare id. A position missing from this map
+   * falls back to `id ${positionId}` rather than throwing. */
+  positionNamesById: Map<number, string>;
+  /** Rules set id -> its name, so the same ImportErrors can name the rules
+   * set instead of only its bare id. A rules set missing from this map falls
+   * back to `id ${rulesSetId}`. */
+  rulesSetNamesById: Map<number, string>;
 }
 
 /**
@@ -22,7 +31,8 @@ export interface SyncTpPositionSkillsOptions {
  * TP names a skill only by `skillMasterId`, with any parenthetical value in a
  * separate `attributeValue`; the two are recomposed into the one display name
  * every source and the curated files share (`Loner (4+)`). An id the lookup
- * cannot explain is a recorded ImportError naming the position and the id --
+ * cannot explain is a recorded ImportError naming the position and rules set
+ * (by name, not bare id, via `positionNamesById`/`rulesSetNamesById`) --
  * reported once per id, not once per position that uses it -- and its skill
  * is left out rather than failing the position's other skills.
  *
@@ -46,6 +56,8 @@ export class TpPositionSkillsImportService {
   async syncPositionSkills({
     skillRefsByPositionId,
     skillNamesByMasterId,
+    positionNamesById,
+    rulesSetNamesById,
   }: SyncTpPositionSkillsOptions): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
     const reportedIds = new Set<number>();
@@ -60,6 +72,8 @@ export class TpPositionSkillsImportService {
           rulesSetId,
           refs,
           skillNamesByMasterId,
+          positionNamesById,
+          rulesSetNamesById,
           reportedIds,
           reportedAttributeTypeThreeRefs,
           errors,
@@ -75,6 +89,7 @@ export class TpPositionSkillsImportService {
 
     const imported = await this.startingSkills.syncStartingSkills(
       skillNamesByPositionId,
+      rulesSetNamesById,
       errors,
     );
     return { result: this.importResults.result({ imported, errors }) };
@@ -94,6 +109,8 @@ export class TpPositionSkillsImportService {
     rulesSetId: number;
     refs: TpPositionSkillRef[];
     skillNamesByMasterId: Map<number, string>;
+    positionNamesById: Map<number, string>;
+    rulesSetNamesById: Map<number, string>;
     reportedIds: Set<number>;
     reportedAttributeTypeThreeRefs: Set<string>;
     errors: ImportError[];
@@ -103,10 +120,16 @@ export class TpPositionSkillsImportService {
       rulesSetId,
       refs,
       skillNamesByMasterId,
+      positionNamesById,
+      rulesSetNamesById,
       reportedIds,
       reportedAttributeTypeThreeRefs,
       errors,
     } = options;
+    const positionName =
+      positionNamesById.get(positionId) ?? `id ${positionId}`;
+    const rulesSetName =
+      rulesSetNamesById.get(rulesSetId) ?? `id ${rulesSetId}`;
     const names: string[] = [];
     for (const ref of refs) {
       const name = skillNamesByMasterId.get(ref.skillMasterId);
@@ -118,9 +141,10 @@ export class TpPositionSkillsImportService {
               item: { position: positionId, skillMasterId: ref.skillMasterId },
               message:
                 `Could not resolve TP skill ${ref.skillMasterId} (first ` +
-                `seen on position ${positionId}, rules set ${rulesSetId}): ` +
-                'no downloaded roster or match file names it, so it is ' +
-                "left out of that position's starting skills.",
+                `seen on position "${positionName}", rules set ` +
+                `"${rulesSetName}"): no downloaded roster or match file ` +
+                "names it, so it is left out of that position's starting " +
+                'skills.',
             }),
           );
         }
@@ -139,7 +163,7 @@ export class TpPositionSkillsImportService {
               },
               message:
                 `TP skill ${ref.skillMasterId} (${name}) on position ` +
-                `${positionId} carries an attribute value of ` +
+                `"${positionName}" carries an attribute value of ` +
                 `"${ref.attributeValue}" as an unresolvable type-3 opaque ` +
                 'code, not a normal composable value: TP resolves that ' +
                 'code via a lookup this package does not have, so it is ' +

@@ -27,6 +27,11 @@ export type StartingSkillNames = Map<number, Map<number, string[]>>;
  * ImportError pointing the developer at tools/import-manual, reported once per
  * (skill, rules set) rather than once per position that lists it -- the same
  * do-not-repeat-a-known-gap policy TpMercenaryCharacteristicsService follows.
+ * That error names the rules set by `rulesSetNamesById`'s NAME, not its bare
+ * database id, so an operator can act on it without hand-querying the
+ * database -- the same precedent TpMercenaryCharacteristicsService's own
+ * error messages follow. A rules set id missing from that map (should not
+ * happen in practice) falls back to `id ${rulesSetId}` rather than throwing.
  * One sync call per (position, rules set): the server rejects a batch
  * all-or-nothing, so a smaller batch keeps one bad skill from costing a
  * position its other rules sets.
@@ -44,6 +49,7 @@ export class StartingSkillsImportService {
 
   async syncStartingSkills(
     skillNamesByPositionId: StartingSkillNames,
+    rulesSetNamesById: Map<number, string>,
     errors: ImportError[],
   ): Promise<number> {
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -90,13 +96,15 @@ export class StartingSkillsImportService {
             const key = `${name}|${rulesSetId}`;
             if (!reportedGaps.has(key)) {
               reportedGaps.add(key);
+              const rulesSetName =
+                rulesSetNamesById.get(rulesSetId) ?? `id ${rulesSetId}`;
               errors.push(
                 this.importResults.error({
                   item: { skill: name, rulesSet: rulesSetId },
                   message:
                     `Skill "${name}" has no curated category for rules set ` +
-                    `${rulesSetId}, so it cannot be recorded as a starting ` +
-                    'skill there. Curate one in tools/import-manual ' +
+                    `"${rulesSetName}", so it cannot be recorded as a ` +
+                    'starting skill there. Curate one in tools/import-manual ' +
                     '(data/before-other-importers/skills.json5).',
                 }),
               );

@@ -65,6 +65,12 @@ export class BblPositionSkillsImportService {
         (name) => rulesSetsByName.get(name)?.id,
       ).filter((id): id is number => id !== undefined),
     );
+    const rulesSetNamesById = new Map(
+      [...rulesSetsByName.values()].map((rulesSet) => [
+        rulesSet.id,
+        rulesSet.name,
+      ]),
+    );
 
     for (const [positionId, rulesSetIds] of rulesSetIdsByPositionId) {
       const skills = skillsByPositionId.get(positionId);
@@ -89,6 +95,7 @@ export class BblPositionSkillsImportService {
 
     const imported = await this.startingSkills.syncStartingSkills(
       skillNamesByPositionId,
+      rulesSetNamesById,
       errors,
     );
     return { result: this.importResults.result({ imported, errors }) };

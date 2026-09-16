@@ -67,6 +67,7 @@ describe('BblPositionSkillsImportService', () => {
           ]),
         ],
       ]),
+      new Map(),
       [],
     );
   });
@@ -82,6 +83,7 @@ describe('BblPositionSkillsImportService', () => {
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map(),
+      new Map(),
       [],
     );
   });
@@ -96,6 +98,7 @@ describe('BblPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map(),
       new Map(),
       [],
     );
@@ -137,6 +140,12 @@ describe('BblPositionSkillsImportService', () => {
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([[3, new Map([[10, ['Block', 'Dodge']]])]]),
+      new Map([
+        [7, 'CRP'],
+        [8, 'CRP+'],
+        [9, 'BB2016'],
+        [10, 'BB2020'],
+      ]),
       [],
     );
   });
@@ -156,6 +165,11 @@ describe('BblPositionSkillsImportService', () => {
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map(),
+      new Map([
+        [7, 'CRP'],
+        [8, 'CRP+'],
+        [9, 'BB2016'],
+      ]),
       [],
     );
   });

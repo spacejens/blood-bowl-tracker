@@ -55,11 +55,14 @@ describe('TpPositionSkillsImportService', () => {
         [87, 'Dodge'],
         [154, 'Loner'],
       ]),
+      positionNamesById: new Map([[3, 'Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
 
     expect(result.imported).toBe(2);
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([[3, new Map([[7, ['Dodge', 'Loner (4+)']]])]]),
+      new Map([[7, 'BB2020']]),
       [],
     );
   });
@@ -72,11 +75,14 @@ describe('TpPositionSkillsImportService', () => {
         [3, new Map([[7, [{ skillMasterId: 42, attributeValue: '+1' }]]])],
       ]),
       skillNamesByMasterId: new Map([[42, 'Mighty Blow']]),
+      positionNamesById: new Map([[3, 'Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
 
     expect(result.imported).toBe(1);
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([[3, new Map([[7, ['Mighty Blow (+1)']]])]]),
+      new Map([[7, 'BB2020']]),
       [],
     );
   });
@@ -89,15 +95,18 @@ describe('TpPositionSkillsImportService', () => {
         [3, new Map([[7, [{ skillMasterId: 87 }, { skillMasterId: 999 }]]])],
       ]),
       skillNamesByMasterId: new Map([[87, 'Dodge']]),
+      positionNamesById: new Map([[3, 'Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([[3, new Map([[7, ['Dodge']]])]]),
+      new Map([[7, 'BB2020']]),
       expect.any(Array),
     );
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('999');
-    expect(result.errors[0].message).toContain('3');
+    expect(result.errors[0].message).toContain('Blocker');
   });
 
   it('records an error naming the rules set alongside the position', async () => {
@@ -108,9 +117,28 @@ describe('TpPositionSkillsImportService', () => {
         [3, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
       skillNamesByMasterId: new Map(),
+      positionNamesById: new Map([[3, 'Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
 
-    expect(result.errors[0].message).toContain('rules set 7');
+    expect(result.errors[0].message).toContain('rules set "BB2020"');
+    expect(result.errors[0].message).toContain('position "Blocker"');
+  });
+
+  it('falls back to bare ids when a position or rules set name is not mapped', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 999 }]]])],
+      ]),
+      skillNamesByMasterId: new Map(),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
+    });
+
+    expect(result.errors[0].message).toContain('rules set "id 7"');
+    expect(result.errors[0].message).toContain('position "id 3"');
   });
 
   it('excludes a type-3 opaque attribute code and reports it, without blocking other skills', async () => {
@@ -139,16 +167,19 @@ describe('TpPositionSkillsImportService', () => {
         [87, 'Dodge'],
         [269, 'Animosity'],
       ]),
+      positionNamesById: new Map([[3, 'Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([[3, new Map([[7, ['Dodge']]])]]),
+      new Map([[7, 'BB2020']]),
       expect.any(Array),
     );
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('269');
     expect(result.errors[0].message).toContain('111');
-    expect(result.errors[0].message).toContain('3');
+    expect(result.errors[0].message).toContain('Blocker');
   });
 
   it('reports a type-3 opaque attribute code once, however many positions reference it', async () => {
@@ -176,6 +207,8 @@ describe('TpPositionSkillsImportService', () => {
         ],
       ]),
       skillNamesByMasterId: new Map([[269, 'Animosity']]),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
     });
 
     expect(result.errors).toHaveLength(1);
@@ -190,6 +223,8 @@ describe('TpPositionSkillsImportService', () => {
         [4, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
       skillNamesByMasterId: new Map(),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
     });
 
     expect(result.errors).toHaveLength(1);
@@ -203,9 +238,12 @@ describe('TpPositionSkillsImportService', () => {
         [3, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
       skillNamesByMasterId: new Map(),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map(),
       new Map(),
       expect.any(Array),
     );

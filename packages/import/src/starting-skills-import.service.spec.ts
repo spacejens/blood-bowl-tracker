@@ -76,6 +76,10 @@ describe('StartingSkillsImportService', () => {
           ]),
         ],
       ]),
+      new Map([
+        [4, 'CRP'],
+        [9, 'BB2020'],
+      ]),
       errors,
     );
 
@@ -105,6 +109,7 @@ describe('StartingSkillsImportService', () => {
 
     const synced = await service.syncStartingSkills(
       new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[4, 'CRP']]),
       errors,
     );
 
@@ -112,7 +117,23 @@ describe('StartingSkillsImportService', () => {
     expect(positionSkills.syncPositionRulesSetSkills).not.toHaveBeenCalled();
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('Dodge');
+    expect(errors[0].message).toContain('"CRP"');
     expect(errors[0].message).toContain('tools/import-manual');
+  });
+
+  it('names an unmapped rules set by its bare id rather than throwing', async () => {
+    skills.upsert.mockResolvedValue(upserted(5, 'Dodge'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([]);
+    const errors: ImportError[] = [];
+
+    await service.syncStartingSkills(
+      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map(),
+      errors,
+    );
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('id 4');
   });
 
   it('records the missing-category error once per (skill, rules set), not once per position', async () => {
@@ -125,6 +146,7 @@ describe('StartingSkillsImportService', () => {
         [3, new Map([[4, ['Dodge']]])],
         [7, new Map([[4, ['Dodge']]])],
       ]),
+      new Map([[4, 'CRP']]),
       errors,
     );
 
@@ -137,6 +159,7 @@ describe('StartingSkillsImportService', () => {
 
     const synced = await service.syncStartingSkills(
       new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[4, 'CRP']]),
       errors,
     );
 
@@ -155,6 +178,7 @@ describe('StartingSkillsImportService', () => {
 
     const synced = await service.syncStartingSkills(
       new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[4, 'CRP']]),
       errors,
     );
 
@@ -168,6 +192,7 @@ describe('StartingSkillsImportService', () => {
 
     const synced = await service.syncStartingSkills(
       new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[4, 'CRP']]),
       errors,
     );
 
