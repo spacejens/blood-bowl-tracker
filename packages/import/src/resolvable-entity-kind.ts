@@ -14,6 +14,9 @@
  * curated `after-other-importers/trophy-awards.json5` names the winner of a
  * `manual`-kind trophy by the player's external id, which the BBL/TP
  * importers created in an earlier phase.
+ *
+ * Skills are on the list because curated starting-skill data references them
+ * by external id.
  */
 export const RESOLVABLE_ENTITY_KINDS = [
   'coach',
@@ -25,6 +28,7 @@ export const RESOLVABLE_ENTITY_KINDS = [
   'position',
   'race',
   'rulesSet',
+  'skill',
   'team',
 ] as const;
 

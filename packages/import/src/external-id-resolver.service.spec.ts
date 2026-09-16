@@ -78,6 +78,7 @@ describe('ExternalIdResolverService', () => {
       ['position', client.positions],
       ['race', client.races],
       ['rulesSet', client.rulesSets],
+      ['skill', client.skills],
       ['team', client.teams],
     ] as const;
 
