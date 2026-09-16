@@ -4,8 +4,12 @@
 // Placed in after-other-importers next to position-characteristics.json5 for
 // consistency and the same safety margin, though the ordering matters less
 // here than it does there: position_rules_set_skills entries are additive per
-// (position, rules set) rather than a single overwritable value, and BBL/TP
-// only ever write to the newer rules sets.
+// (position, rules set) rather than a single overwritable value, so an
+// importer writing to a rules set this file also curates would merge into a
+// union instead of being correctable by re-running curation afterwards. TP's
+// source data is genuinely per-rules-set already, so it never writes here.
+// BBL is deliberately excluded from writing to CRP, CRP+, and BB2016 for the
+// same reason -- see BblPositionSkillsImportService.
 //
 // Every entry's (position, rules set) pair MUST already be curated in
 // after-other-importers/position-characteristics.json5: a starting skill hangs

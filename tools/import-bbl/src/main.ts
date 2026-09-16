@@ -98,6 +98,7 @@ async function run(): Promise<ImportResult> {
         rulesSetIdsByPositionId:
           positionRaceErasOutcome.rulesSetIdsByPositionId,
         skillsByPositionId: positionOutcome.skillsByPositionId,
+        rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
       });
     const matchEventsOutcome = await app
       .get(BblMatchEventsImportService)
