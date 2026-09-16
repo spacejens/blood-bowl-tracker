@@ -208,14 +208,19 @@ describe('curated data files - skills', () => {
       ),
     );
 
-    // Cross-referenced with CURATION_OWNED_RULES_SET_NAMES in
-    // tools/import-bbl/src/positions/bbl-position-skills-import.service.ts.
-    // Not imported directly: tools/import-manual declares no dependency on
-    // tools/import-bbl, so drift between the two lists is caught here by a
-    // human keeping this hardcoded list in sync, not by the compiler. This
+    // Cross-referenced with tools/import-bbl's
+    // "pins CURATION_OWNED_RULES_SET_NAMES to the exact list
+    // curated-data-skills.spec.ts expects" test in
+    // bbl-position-skills-import.service.spec.ts, which imports and asserts
+    // on the real CURATION_OWNED_RULES_SET_NAMES constant. Not imported here
+    // directly: tools/import-manual declares no dependency on
+    // tools/import-bbl, so this side hardcodes the same list and drift is
+    // caught by a human keeping the two in sync, not by the compiler. This
     // guards against the exact bug class the Critical fix in this branch
     // resolved -- a rules set curated here without BBL's exclusion list
-    // knowing about it, or vice versa.
+    // knowing about it, or vice versa. Together, the two tests catch drift in
+    // either direction: this one catches a name removed from the curated
+    // side, the other catches a name added to BBL's exclusion list.
     const CURATION_OWNED_RULES_SET_NAMES = ['CRP', 'CRP+', 'BB2016'];
     expect([...rulesSets].sort()).toEqual(
       [...CURATION_OWNED_RULES_SET_NAMES].sort(),

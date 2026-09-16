@@ -7,8 +7,14 @@ import {
 import { Injectable } from '@nestjs/common';
 
 /** Rules sets fully curated by after-other-importers/position-skills.json5,
- * so BBL's single scraped snapshot must never write to them. */
-const CURATION_OWNED_RULES_SET_NAMES = ['CRP', 'CRP+', 'BB2016'];
+ * so BBL's single scraped snapshot must never write to them. Exported so
+ * bbl-position-skills-import.service.spec.ts can pin this list directly
+ * against curated-data-skills.spec.ts's "curates exactly the rules sets
+ * BblPositionSkillsImportService excludes itself from" test in
+ * tools/import-manual, which cannot import this constant (tools/import-manual
+ * declares no dependency on tools/import-bbl) and instead hardcodes the same
+ * list -- the two specs together catch drift in either direction. */
+export const CURATION_OWNED_RULES_SET_NAMES = ['CRP', 'CRP+', 'BB2016'];
 
 export interface SyncPositionSkillsOptions {
   /** Which rules sets each position was determined available under. */

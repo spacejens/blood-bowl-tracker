@@ -8,7 +8,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { BblPositionSkillsImportService } from './bbl-position-skills-import.service';
+import {
+  BblPositionSkillsImportService,
+  CURATION_OWNED_RULES_SET_NAMES,
+} from './bbl-position-skills-import.service';
 
 /** A minimal RulesSet fixture -- only `id` and `name` matter to this service. */
 function makeRulesSet(id: number, name: string): RulesSet {
@@ -172,5 +175,15 @@ describe('BblPositionSkillsImportService', () => {
       ]),
       [],
     );
+  });
+
+  it('pins CURATION_OWNED_RULES_SET_NAMES to the exact list curated-data-skills.spec.ts expects', () => {
+    // Cross-referenced with tools/import-manual's "curates exactly the rules
+    // sets BblPositionSkillsImportService excludes itself from" test in
+    // curated-data-skills.spec.ts, which hardcodes this same list (it cannot
+    // import this constant: tools/import-manual declares no dependency on
+    // tools/import-bbl). A change to either side without updating the other
+    // fails at least one of the two tests.
+    expect(CURATION_OWNED_RULES_SET_NAMES).toEqual(['CRP', 'CRP+', 'BB2016']);
   });
 });
