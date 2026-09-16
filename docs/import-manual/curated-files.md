@@ -197,12 +197,23 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
 
 ### Expected first-run import errors
 
-A from-empty-database run of the BBL and TP importers reports a substantial
-number of "no curated category for rules set" `ImportError`s as a matter of
-course: `skills.json5` does not yet curate a CRP/CRP+/BB2016 category for
-every skill name BBL and TP's own source data mentions, and a skill with no
+`skills.json5`'s curated category table (`skill_rules_sets`) was fully
+reconciled against every real BBL/TP skill name at the time it was written, so
+a from-empty-database run of the BBL and TP importers against the same
+downloaded data should see few or no "no curated category for rules set"
+`ImportError`s. Any that do occur can only ever name `BB2020`, `DB2021`, or
+`BB2025` — the only rules sets BBL and TP write starting skills to.
+[`skills.json5`](#known-before-other-importers-dedup-files) does not curate a
+CRP/CRP+/BB2016 category for every skill name at all — but BBL is deliberately
+excluded from writing to those three rules sets (see
+[import-bbl/file-format.md](../import-bbl/file-format.md)), and TP's own
+config (`tools/import-tp/import-tp-config.json5`) only defines `BB2020`,
+`DB2021`, and `BB2025` as rules sets, so neither importer can ever produce a
+curation-gap error for CRP, CRP+, or BB2016.
+
+The gap this error guards against is an ongoing one, not a one-time backlog:
+as `download-tp` and BBL scraping pick up new skills over time — a newly
+published star player, a newly observed skill variant — those will surface as
+curation gaps needing a `skills.json5` update when they do. A skill with no
 category there is reported and left out of that position's starting skills
-rather than blocking the rest of the import. This is a known, accepted gap in
-curation coverage, not a bug — a large error count on first import does not by
-itself mean something is broken. Curating the missing category rows in
-`skills.json5` closes the gap over time.
+rather than blocking the rest of the import.
