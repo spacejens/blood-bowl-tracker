@@ -92,13 +92,19 @@ export class PositionDeepdiveService {
       return DEEPDIVE_POSITION_CHARACTERISTICS_TIMEOUT_MESSAGE;
     }
 
-    const skillRows: PositionStartingSkill[] | null =
-      await this.databaseTimeout.run(
-        this.positionRulesSetSkills.listByPosition(positionId),
-        null,
-      );
-    if (skillRows === null) {
-      return DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE;
+    let statLines: string[];
+    if (rulesSetRows.length === 0) {
+      statLines = [DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE];
+    } else {
+      const skillRows: PositionStartingSkill[] | null =
+        await this.databaseTimeout.run(
+          this.positionRulesSetSkills.listByPosition(positionId),
+          null,
+        );
+      if (skillRows === null) {
+        return DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE;
+      }
+      statLines = this.statLine.formatLines(rulesSetRows, skillRows);
     }
 
     const playerCount: number | null = await this.databaseTimeout.run(
@@ -122,11 +128,6 @@ export class PositionDeepdiveService {
       position.races.length > 0
         ? position.races.map((race) => race.name).join(', ')
         : 'None recorded';
-
-    const statLines =
-      rulesSetRows.length === 0
-        ? [DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE]
-        : this.statLine.formatLines(rulesSetRows, skillRows);
 
     // `topRanksWithTies` ranks by a `count` field, so SPP is surfaced under
     // that name for ranking only; the rendered line still reads as SPP.

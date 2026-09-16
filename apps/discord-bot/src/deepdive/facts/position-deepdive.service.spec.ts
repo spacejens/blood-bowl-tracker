@@ -395,6 +395,24 @@ describe('PositionDeepdiveService', () => {
     expect(rendered).toContain(DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE);
   });
 
+  it('skips the starting-skills lookup entirely when there are no characteristics rows', async () => {
+    // With no characteristics rows recorded, there are no rules-set stat
+    // lines for skill rows to attach to, so the query must not run at all —
+    // running it anyway would risk a spurious
+    // DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE in place of the correct
+    // "no characteristics" view if that unnecessary call happened to time
+    // out.
+    const { service, positionRulesSetSkills } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([]),
+    });
+
+    const rendered = JSON.stringify(await service.resolve(1));
+
+    expect(rendered).toContain(DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE);
+    expect(positionRulesSetSkills.listByPosition).not.toHaveBeenCalled();
+  });
+
   it('uses the singular for a position held by exactly one player', async () => {
     const { service } = await makeService({
       positions: makePositions({

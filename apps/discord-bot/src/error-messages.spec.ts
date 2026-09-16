@@ -5,7 +5,7 @@ import * as messages from './error-messages';
 describe('error-messages', () => {
   const values = Object.entries(messages);
 
-  it('exports 126 message constants', () => {
+  it('exports 127 message constants', () => {
     expect(values).toHaveLength(127);
   });
 

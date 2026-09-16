@@ -419,6 +419,26 @@ describe('StarPlayerDeepdiveService', () => {
     );
   });
 
+  it('skips the starting-skills lookup entirely when there are no characteristics rows', async () => {
+    // With no characteristics rows recorded, there are no rules-set stat
+    // lines for skill rows to attach to, so the query must not run at all —
+    // running it anyway would risk a spurious
+    // DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE in place of the correct
+    // "no characteristics" view if that unnecessary call happened to time
+    // out.
+    const { service, positionRulesSetSkills } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSets: makeRulesSets([]),
+    });
+
+    const result = await service.resolve(20);
+
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain(DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE);
+    expect(positionRulesSetSkills.listByPosition).not.toHaveBeenCalled();
+  });
+
   it('puts one stat line per rules set above the hire list', async () => {
     const statLine = mockStatLine();
     statLine.formatLines.mockReturnValue([

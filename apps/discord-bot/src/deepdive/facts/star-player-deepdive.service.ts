@@ -97,19 +97,20 @@ export class StarPlayerDeepdiveService {
       return DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE;
     }
 
-    const skillRows: PositionStartingSkill[] | null =
-      await this.databaseTimeout.run(
-        this.positionRulesSetSkills.listByPosition(positionId),
-        null,
-      );
-    if (skillRows === null) {
-      return DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE;
+    let statLines: string[];
+    if (rulesSetRows.length === 0) {
+      statLines = [DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE];
+    } else {
+      const skillRows: PositionStartingSkill[] | null =
+        await this.databaseTimeout.run(
+          this.positionRulesSetSkills.listByPosition(positionId),
+          null,
+        );
+      if (skillRows === null) {
+        return DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE;
+      }
+      statLines = this.statLine.formatLines(rulesSetRows, skillRows);
     }
-
-    const statLines =
-      rulesSetRows.length === 0
-        ? [DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE]
-        : this.statLine.formatLines(rulesSetRows, skillRows);
 
     const hires: StarPlayerHire[] | null = await this.databaseTimeout.run(
       this.stars.listHiresByTeam(positionId),
