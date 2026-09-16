@@ -227,14 +227,6 @@
     { name: 'Insignificant', externalIds: [{ system: 'Name', id: 'Insignificant' }] },
     { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }] },
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
-    // Genuinely garbled BBL source data (typID=124's skills cell), not a
-    // parsing bug: the raw HTML cell reads "Loner, Dodge, Right Stuff,
-    // Stunty<br>(Note: comes with Brick Far'th, included in his price)". The
-    // real parser strips the <br> and splits on commas, producing "Stunty"
-    // (the genuine skill, already registered above) plus these two literal
-    // garbage fragments of the parenthetical note. Curated as distinct
-    // skills only so this file's pre-registration invariant holds for
-    // whatever BBL's own import actually sends.
     { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
     { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
     { name: 'Lones', externalIds: [{ system: 'Name', id: 'Lones' }] },
@@ -578,12 +570,12 @@
     // run over the same locally downloaded data dumps. That reconciliation
     // corrected a handful of the throwaway scripts' own fabrications
     // (spellings/explanations invented with no HTML or TP data backing
-    // them) and confirmed which apparent "concatenation" artifacts are
-    // instead genuinely garbled strings present in BBL's own source HTML
-    // (see e.g. the "Leap Right Stuff", "Really Stupid.Throw Team-Mate"
-    // and "Stunty(Note: ..." rows below). Every name below is now backed
-    // by one of those two real parsers' actual output over the current
-    // data dumps. Their CATEGORIES are not in that data at all, so every
+    // them). Every name below is now backed by one of those two real
+    // parsers' actual output over the current data dumps -- BBL's own
+    // garbled-concatenation scraping bugs are fixed at the parser level
+    // (PositionPageParser splits them into their real component skills),
+    // so no placeholder entries for those garbled strings are curated
+    // here. Their CATEGORIES are not in that data at all, so every
     // category below is curated from the published BB2020/BB2025 rules
     // (public game-rules knowledge), not from any PDF this project uses
     // -- none of the four PDFs cover the modern rules sets. Every
