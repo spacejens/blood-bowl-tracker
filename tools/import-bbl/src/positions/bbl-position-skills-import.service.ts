@@ -1,5 +1,9 @@
 import type { RulesSet } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  StartingSkillRef,
+} from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   StartingSkillsImportService,
@@ -19,8 +23,8 @@ export const CURATION_OWNED_RULES_SET_NAMES = ['CRP', 'CRP+', 'BB2016'];
 export interface SyncPositionSkillsOptions {
   /** Which rules sets each position was determined available under. */
   rulesSetIdsByPositionId: Map<number, Set<number>>;
-  /** The skill names scraped from each position's page. */
-  skillsByPositionId: Map<number, string[]>;
+  /** The skill refs scraped from each position's page. */
+  skillsByPositionId: Map<number, StartingSkillRef[]>;
   /** Rules set by name, used to resolve the curation-owned rules sets to
    * exclude below. A name missing from this map is simply skipped -- not
    * every environment necessarily has every rules set configured. */
@@ -65,7 +69,10 @@ export class BblPositionSkillsImportService {
     rulesSetsByName,
   }: SyncPositionSkillsOptions): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
-    const skillNamesByPositionId = new Map<number, Map<number, string[]>>();
+    const skillNamesByPositionId = new Map<
+      number,
+      Map<number, StartingSkillRef[]>
+    >();
     const excludedRulesSetIds = new Set(
       CURATION_OWNED_RULES_SET_NAMES.map(
         (name) => rulesSetsByName.get(name)?.id,
@@ -87,7 +94,7 @@ export class BblPositionSkillsImportService {
       if (!skills || skills.length === 0) {
         continue;
       }
-      const byRulesSetId = new Map<number, string[]>();
+      const byRulesSetId = new Map<number, StartingSkillRef[]>();
       for (const rulesSetId of rulesSetIds) {
         if (excludedRulesSetIds.has(rulesSetId)) {
           continue;

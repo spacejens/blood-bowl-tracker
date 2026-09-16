@@ -9,8 +9,21 @@ import { SkillRulesSetsImportService } from './skill-rules-sets-import.service';
 import { SkillsImportService } from './skills-import.service';
 import type { ImportError } from './types';
 
-/** positionId -> rulesSetId -> the position's starting skill names there. */
-export type StartingSkillNames = Map<number, Map<number, string[]>>;
+/**
+ * One starting skill reference: the skill's bare name (its identity, used for
+ * upsert/curation lookup) and, separately, any position-specific attribute
+ * value BB2020-era rules attach to it (e.g. "4+" for "Loner (4+)", "+1" for
+ * "Mighty Blow (+1)"). Keeping these apart is the whole point of this type --
+ * see position-rules-set-skills.ts's attributeValue column and the schema
+ * commit that introduced it.
+ */
+export interface StartingSkillRef {
+  name: string;
+  attributeValue?: string;
+}
+
+/** positionId -> rulesSetId -> the position's starting skill refs there. */
+export type StartingSkillNames = Map<number, Map<number, StartingSkillRef[]>>;
 
 /**
  * Turns "this position starts with these skill names under these rules sets"
@@ -72,14 +85,22 @@ export class StartingSkillsImportService {
     const reportedGaps = new Set<string>();
 
     let synced = 0;
-    for (const [positionId, namesByRulesSetId] of skillNamesByPositionId) {
-      for (const [rulesSetId, names] of namesByRulesSetId) {
+    for (const [positionId, refsByRulesSetId] of skillNamesByPositionId) {
+      for (const [rulesSetId, refs] of refsByRulesSetId) {
         const entries: {
           positionId: number;
           rulesSetId: number;
           skillId: number;
+          attributeValue?: string;
         }[] = [];
-        for (const name of new Set(names)) {
+        const seen = new Set<string>();
+        for (const ref of refs) {
+          const dedupeKey = `${ref.name}|${ref.attributeValue ?? ''}`;
+          if (seen.has(dedupeKey)) {
+            continue;
+          }
+          seen.add(dedupeKey);
+          const { name, attributeValue } = ref;
           const skillId = await this.resolveSkillId({
             name,
             nameSystemId,
@@ -120,7 +141,7 @@ export class StartingSkillsImportService {
             }
             continue;
           }
-          entries.push({ positionId, rulesSetId, skillId });
+          entries.push({ positionId, rulesSetId, skillId, attributeValue });
         }
         if (entries.length === 0) {
           continue;

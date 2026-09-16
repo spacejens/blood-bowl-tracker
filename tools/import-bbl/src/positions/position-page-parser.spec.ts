@@ -306,12 +306,62 @@ describe('PositionPageParser', () => {
       '110',
     );
     expect(parser.extractPosition(page)?.skills).toEqual([
-      'Loner (4+)',
-      'Bone-Head',
-      'Mighty Blow (+1)',
-      'Thick Skull',
-      'Throw Team-Mate',
+      { name: 'Loner', attributeValue: '4+' },
+      { name: 'Bone-Head' },
+      { name: 'Mighty Blow', attributeValue: '+1' },
+      { name: 'Thick Skull' },
+      { name: 'Throw Team-Mate' },
     ]);
+  });
+
+  it('fixes the missing-open-paren "Secret Weapon 6+)" scraping bug', () => {
+    const page = positionPage(
+      '<h1>Ogre</h1>' +
+        '<a href="default.asp?p=tl#16">Human Team</a>' +
+        characteristicsTable('Secret Weapon 6+)'),
+      '110',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([
+      { name: 'Secret Weapon', attributeValue: '6+' },
+    ]);
+  });
+
+  it('splits the missing-comma "Leap Right Stuff" scraping bug into two skills', () => {
+    const page = positionPage(
+      '<h1>Ogre</h1>' +
+        '<a href="default.asp?p=tl#16">Human Team</a>' +
+        characteristicsTable('Leap Right Stuff'),
+      '110',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([
+      { name: 'Leap' },
+      { name: 'Right Stuff' },
+    ]);
+  });
+
+  it('splits the missing-comma "Really Stupid.Throw Team-Mate" scraping bug into two skills', () => {
+    const page = positionPage(
+      '<h1>Ogre</h1>' +
+        '<a href="default.asp?p=tl#16">Human Team</a>' +
+        characteristicsTable('Really Stupid.Throw Team-Mate'),
+      '110',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([
+      { name: 'Really Stupid' },
+      { name: 'Throw Team-Mate' },
+    ]);
+  });
+
+  it('drops both halves of the torn Stunty annotation fragment without emitting a skill', () => {
+    const page = positionPage(
+      '<h1>Ogre</h1>' +
+        '<a href="default.asp?p=tl#16">Human Team</a>' +
+        characteristicsTable(
+          "Stunty, Stunty(Note: comes with Brick Far'th, included in his price)",
+        ),
+      '110',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([{ name: 'Stunty' }]);
   });
 
   it('reports no skills for a blank skills cell', () => {

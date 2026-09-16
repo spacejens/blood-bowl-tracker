@@ -71,8 +71,8 @@ describe('StartingSkillsImportService', () => {
         [
           3,
           new Map([
-            [4, ['Dodge']],
-            [9, ['Dodge']],
+            [4, [{ name: 'Dodge' }]],
+            [9, [{ name: 'Dodge' }]],
           ]),
         ],
       ]),
@@ -95,7 +95,57 @@ describe('StartingSkillsImportService', () => {
     );
     expect(positionSkills.syncPositionRulesSetSkills).toHaveBeenCalledTimes(2);
     expect(positionSkills.syncPositionRulesSetSkills).toHaveBeenCalledWith(
-      { entries: [{ positionId: 3, rulesSetId: 4, skillId: 5 }] },
+      {
+        entries: [
+          {
+            positionId: 3,
+            rulesSetId: 4,
+            skillId: 5,
+            attributeValue: undefined,
+          },
+        ],
+      },
+      errors,
+    );
+  });
+
+  it('passes the attribute value through to the synced entry and dedupes on the (name, attributeValue) pair', async () => {
+    skills.upsert.mockResolvedValueOnce(upserted(5, 'Loner'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 4, category: 'general' },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([
+        [
+          3,
+          new Map([
+            [
+              4,
+              [
+                { name: 'Loner', attributeValue: '4+' },
+                { name: 'Loner', attributeValue: '4+' },
+              ],
+            ],
+          ]),
+        ],
+      ]),
+      new Map([[4, 'CRP']]),
+      errors,
+    );
+
+    expect(synced).toBe(1);
+    expect(positionSkills.syncPositionRulesSetSkills).toHaveBeenCalledTimes(1);
+    expect(positionSkills.syncPositionRulesSetSkills).toHaveBeenCalledWith(
+      {
+        entries: [
+          { positionId: 3, rulesSetId: 4, skillId: 5, attributeValue: '4+' },
+        ],
+      },
       errors,
     );
   });
@@ -108,7 +158,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -127,7 +177,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     await service.syncStartingSkills(
-      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
       new Map(),
       errors,
     );
@@ -143,8 +193,8 @@ describe('StartingSkillsImportService', () => {
 
     await service.syncStartingSkills(
       new Map([
-        [3, new Map([[4, ['Dodge']]])],
-        [7, new Map([[4, ['Dodge']]])],
+        [3, new Map([[4, [{ name: 'Dodge' }]]])],
+        [7, new Map([[4, [{ name: 'Dodge' }]]])],
       ]),
       new Map([[4, 'CRP']]),
       errors,
@@ -169,7 +219,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -197,8 +247,8 @@ describe('StartingSkillsImportService', () => {
 
     const synced = await service.syncStartingSkills(
       new Map([
-        [3, new Map([[4, ['Dodge']]])],
-        [7, new Map([[9, ['Dodge']]])],
+        [3, new Map([[4, [{ name: 'Dodge' }]]])],
+        [7, new Map([[9, [{ name: 'Dodge' }]]])],
       ]),
       new Map([
         [4, 'CRP'],
@@ -221,7 +271,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -240,7 +290,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );
@@ -254,7 +304,7 @@ describe('StartingSkillsImportService', () => {
     const errors: ImportError[] = [];
 
     const synced = await service.syncStartingSkills(
-      new Map([[3, new Map([[4, ['Dodge']]])]]),
+      new Map([[3, new Map([[4, [{ name: 'Dodge' }]]])]]),
       new Map([[4, 'CRP']]),
       errors,
     );

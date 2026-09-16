@@ -16,6 +16,7 @@ import { PageParseErrorService } from '../source/page-parse-error.service';
 import {
   type BblPosition,
   type BblPositionCharacteristics,
+  type BblPositionSkillRef,
   PositionPageParser,
 } from './position-page-parser';
 
@@ -78,7 +79,7 @@ export class BblPositionsImportService {
       { isStarPlayer: boolean; raceDbIds: Set<number> }
     >;
     characteristicsByPositionId: Map<number, BblPositionCharacteristics>;
-    skillsByPositionId: Map<number, string[]>;
+    skillsByPositionId: Map<number, BblPositionSkillRef[]>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -107,7 +108,7 @@ export class BblPositionsImportService {
       number,
       BblPositionCharacteristics
     >();
-    const skillsByPositionId = new Map<number, string[]>();
+    const skillsByPositionId = new Map<number, BblPositionSkillRef[]>();
     /**
      * A position upserted for several races produces several rows, all sharing
      * the one characteristics line and skill list its page showed -- so this

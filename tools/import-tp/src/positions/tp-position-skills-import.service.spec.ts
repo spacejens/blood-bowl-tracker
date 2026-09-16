@@ -33,7 +33,7 @@ describe('TpPositionSkillsImportService', () => {
     service = moduleRef.get(TpPositionSkillsImportService);
   });
 
-  it('resolves each id to its name and composes the attribute value into it', async () => {
+  it('resolves each id to its name and keeps the attribute value separate', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
 
     const { result } = await service.syncPositionSkills({
@@ -61,13 +61,20 @@ describe('TpPositionSkillsImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, ['Dodge', 'Loner (4+)']]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [7, [{ name: 'Dodge' }, { name: 'Loner', attributeValue: '4+' }]],
+          ]),
+        ],
+      ]),
       new Map([[7, 'BB2020']]),
       [],
     );
   });
 
-  it('composes a numeric-bonus attribute value into the name too', async () => {
+  it('keeps a numeric-bonus attribute value separate from the name too', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
 
     const { result } = await service.syncPositionSkills({
@@ -81,7 +88,9 @@ describe('TpPositionSkillsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, ['Mighty Blow (+1)']]])]]),
+      new Map([
+        [3, new Map([[7, [{ name: 'Mighty Blow', attributeValue: '+1' }]]])],
+      ]),
       new Map([[7, 'BB2020']]),
       [],
     );
@@ -100,7 +109,7 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, ['Dodge']]])]]),
+      new Map([[3, new Map([[7, [{ name: 'Dodge' }]]])]]),
       new Map([[7, 'BB2020']]),
       expect.any(Array),
     );
@@ -172,7 +181,7 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, ['Dodge']]])]]),
+      new Map([[3, new Map([[7, [{ name: 'Dodge' }]]])]]),
       new Map([[7, 'BB2020']]),
       expect.any(Array),
     );

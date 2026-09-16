@@ -1,4 +1,8 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  StartingSkillRef,
+} from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   StartingSkillsImportService,
@@ -29,9 +33,11 @@ export interface SyncTpPositionSkillsOptions {
  * duplicated across rules sets here.
  *
  * TP names a skill only by `skillMasterId`, with any parenthetical value in a
- * separate `attributeValue`; the two are recomposed into the one display name
- * every source and the curated files share (`Loner (4+)`). An id the lookup
- * cannot explain is a recorded ImportError naming the position and rules set
+ * separate `attributeValue`; the two are kept apart as a `StartingSkillRef`
+ * (name + optional attributeValue) rather than composed into one display
+ * string, matching how the schema stores them (see
+ * position_rules_set_skills.attributeValue). An id the lookup cannot explain
+ * is a recorded ImportError naming the position and rules set
  * (by name, not bare id, via `positionNamesById`/`rulesSetNamesById`) --
  * reported once per id, not once per position that uses it -- and its skill
  * is left out rather than failing the position's other skills.
@@ -62,10 +68,13 @@ export class TpPositionSkillsImportService {
     const errors: ImportError[] = [];
     const reportedIds = new Set<number>();
     const reportedAttributeTypeThreeRefs = new Set<string>();
-    const skillNamesByPositionId = new Map<number, Map<number, string[]>>();
+    const skillNamesByPositionId = new Map<
+      number,
+      Map<number, StartingSkillRef[]>
+    >();
 
     for (const [positionId, refsByRulesSetId] of skillRefsByPositionId) {
-      const byRulesSetId = new Map<number, string[]>();
+      const byRulesSetId = new Map<number, StartingSkillRef[]>();
       for (const [rulesSetId, refs] of refsByRulesSetId) {
         const names = this.resolveNames({
           positionId,
@@ -96,13 +105,14 @@ export class TpPositionSkillsImportService {
   }
 
   /**
-   * Resolve one (position, rules set)'s raw skill references into display
-   * names, composing any attribute value into the name and recording an
-   * ImportError -- once per skillMasterId across the whole run -- for any id
-   * the lookup cannot explain. A reference whose attribute is TP's type 3 (an
-   * opaque numeric code, not a composable value -- see `TpPositionSkillRef`)
-   * is likewise recorded as an ImportError and left out, once per distinct
-   * (skillMasterId, attributeValue) pair across the whole run.
+   * Resolve one (position, rules set)'s raw skill references into
+   * `StartingSkillRef`s (name kept separate from any attribute value) and
+   * record an ImportError -- once per skillMasterId across the whole run --
+   * for any id the lookup cannot explain. A reference whose attribute is TP's
+   * type 3 (an opaque numeric code, not a composable value -- see
+   * `TpPositionSkillRef`) is likewise recorded as an ImportError and left
+   * out, once per distinct (skillMasterId, attributeValue) pair across the
+   * whole run.
    */
   private resolveNames(options: {
     positionId: number;
@@ -114,7 +124,7 @@ export class TpPositionSkillsImportService {
     reportedIds: Set<number>;
     reportedAttributeTypeThreeRefs: Set<string>;
     errors: ImportError[];
-  }): string[] {
+  }): StartingSkillRef[] {
     const {
       positionId,
       rulesSetId,
@@ -130,7 +140,7 @@ export class TpPositionSkillsImportService {
       positionNamesById.get(positionId) ?? `id ${positionId}`;
     const rulesSetName =
       rulesSetNamesById.get(rulesSetId) ?? `id ${rulesSetId}`;
-    const names: string[] = [];
+    const names: StartingSkillRef[] = [];
     for (const ref of refs) {
       const name = skillNamesByMasterId.get(ref.skillMasterId);
       if (name === undefined) {
@@ -176,8 +186,8 @@ export class TpPositionSkillsImportService {
       }
       names.push(
         ref.attributeValue === undefined
-          ? name
-          : `${name} (${ref.attributeValue})`,
+          ? { name }
+          : { name, attributeValue: ref.attributeValue },
       );
     }
     return names;

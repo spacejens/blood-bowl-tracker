@@ -27,6 +27,41 @@ export interface BblPositionCharacteristics {
 /** The characteristics table's header cells, in column order. */
 const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'];
 
+/** One skill reference parsed out of the Skills cell: its bare name and, when
+ * the entry carried a trailing parenthetical, the position-specific
+ * attribute value that parenthetical held (e.g. "4+" for "Loner (4+)"). */
+export interface BblPositionSkillRef {
+  name: string;
+  attributeValue?: string;
+}
+
+/**
+ * Known garbled Skills-cell entries produced by real BBL scraping bugs (a
+ * missing open paren, a missing comma joining two skills, and two half
+ * fragments of a `<br>`-separated Stunty annotation torn apart by comma
+ * splitting). Matched verbatim, after comma-splitting and normalizing, before
+ * the generic parenthetical-splitting regex runs -- these are exact known
+ * strings, not a pattern to generalize. `undefined` for an entry means "drop
+ * it, emit nothing" (the two Stunty fragments carry no skill information; a
+ * legitimate "Stunty" entry always appears earlier in the same list).
+ */
+const KNOWN_GARBLED_SKILL_ENTRIES: Record<
+  string,
+  BblPositionSkillRef[] | undefined
+> = {
+  'Secret Weapon 6+)': [{ name: 'Secret Weapon', attributeValue: '6+' }],
+  'Leap Right Stuff': [{ name: 'Leap' }, { name: 'Right Stuff' }],
+  'Really Stupid.Throw Team-Mate': [
+    { name: 'Really Stupid' },
+    { name: 'Throw Team-Mate' },
+  ],
+  "Stunty(Note: comes with Brick Far'th": [],
+  'included in his price)': [],
+};
+
+/** A trailing parenthetical value, e.g. `"Loner (4+)"` -> `"4+"`. */
+const PARENTHETICAL_VALUE = /^(.+) \(([^()]*)\)$/;
+
 /**
  * A position ("player type") extracted from a `p=pt` page. `typId` is the
  * position's own numeric BBL id (the page's `typID` param); `name` is the
@@ -42,12 +77,12 @@ export interface BblPosition {
   isStarPlayer: boolean;
   characteristics: BblPositionCharacteristics | null;
   /**
-   * The Skills column's comma-separated list, one entry per skill. A
-   * parenthetical value (`Loner (4+)`, `Mighty Blow (+1)`) is part of the
-   * skill's own display name, so the split is on commas only. Empty when the
-   * cell is blank or the characteristics table is missing.
+   * The Skills column's comma-separated list, one ref per skill. A trailing
+   * parenthetical (`Loner (4+)`, `Mighty Blow (+1)`) is split out into
+   * `attributeValue`, separate from the skill's own bare `name`. Empty when
+   * the cell is blank or the characteristics table is missing.
    */
-  skills: string[];
+  skills: BblPositionSkillRef[];
 }
 
 @Injectable()
@@ -165,13 +200,13 @@ export class PositionPageParser {
 
   /**
    * The Skills cell of the characteristics table: the sixth cell of the row
-   * after the MA/ST/AG/PA/AV header row, split on top-level commas only —
-   * a parenthetical value (`Loner (4+)`, `Mighty Blow (+1)`) is part of the
-   * skill's own display name, not a separate segment. Returns an empty list
-   * when there is no such table, no sixth cell, or the cell is blank — a
-   * position with no starting skills is the common case, not an anomaly.
+   * after the MA/ST/AG/PA/AV header row, split on top-level commas only, then
+   * each comma-split entry resolved into a skill ref (see `resolveSkillRefs`).
+   * Returns an empty list when there is no such table, no sixth cell, or the
+   * cell is blank — a position with no starting skills is the common case,
+   * not an anomaly.
    */
-  private extractSkills($: CheerioAPI): string[] {
+  private extractSkills($: CheerioAPI): BblPositionSkillRef[] {
     for (const row of $('tr').toArray()) {
       const headers = $(row)
         .children('th, td')
@@ -185,13 +220,32 @@ export class PositionPageParser {
       if (skillsCell === undefined) {
         return [];
       }
-      return this.normalizeText
+      const entries = this.normalizeText
         .normalize($(skillsCell).text())
         .split(',')
         .map((skill) => this.normalizeText.normalize(skill))
         .filter((skill) => skill.length > 0);
+      return entries.flatMap((entry) => this.resolveSkillRefs(entry));
     }
     return [];
+  }
+
+  /**
+   * One comma-split Skills-cell entry resolved into zero, one, or two skill
+   * refs. A known garbled BBL entry (see `KNOWN_GARBLED_SKILL_ENTRIES`) is
+   * matched first, verbatim; otherwise a trailing parenthetical splits into
+   * `name`/`attributeValue`, and an entry with no parenthetical passes
+   * through as a bare name.
+   */
+  private resolveSkillRefs(entry: string): BblPositionSkillRef[] {
+    if (entry in KNOWN_GARBLED_SKILL_ENTRIES) {
+      return KNOWN_GARBLED_SKILL_ENTRIES[entry] ?? [];
+    }
+    const match = PARENTHETICAL_VALUE.exec(entry);
+    if (!match) {
+      return [{ name: entry }];
+    }
+    return [{ name: match[1], attributeValue: match[2] }];
   }
 
   /**

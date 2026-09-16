@@ -55,7 +55,9 @@ describe('BblPositionSkillsImportService', () => {
 
     const { result } = await service.syncPositionSkills({
       rulesSetIdsByPositionId: new Map([[3, new Set([7, 8])]]),
-      skillsByPositionId: new Map([[3, ['Block', 'Dodge']]]),
+      skillsByPositionId: new Map([
+        [3, [{ name: 'Block' }, { name: 'Dodge' }]],
+      ]),
       rulesSetsByName: new Map(),
     });
 
@@ -65,8 +67,8 @@ describe('BblPositionSkillsImportService', () => {
         [
           3,
           new Map([
-            [7, ['Block', 'Dodge']],
-            [8, ['Block', 'Dodge']],
+            [7, [{ name: 'Block' }, { name: 'Dodge' }]],
+            [8, [{ name: 'Block' }, { name: 'Dodge' }]],
           ]),
         ],
       ]),
@@ -116,8 +118,8 @@ describe('BblPositionSkillsImportService', () => {
         [4, new Set([7])],
       ]),
       skillsByPositionId: new Map([
-        [3, ['Block', 'Dodge']],
-        [4, ['Guard']],
+        [3, [{ name: 'Block' }, { name: 'Dodge' }]],
+        [4, [{ name: 'Guard' }]],
       ]),
       rulesSetsByName: new Map(),
     });
@@ -132,7 +134,9 @@ describe('BblPositionSkillsImportService', () => {
       // Position 3 is available under BB2020 (rules set 10) as well as all
       // three curation-owned older rules sets.
       rulesSetIdsByPositionId: new Map([[3, new Set([10, 7, 8, 9])]]),
-      skillsByPositionId: new Map([[3, ['Block', 'Dodge']]]),
+      skillsByPositionId: new Map([
+        [3, [{ name: 'Block' }, { name: 'Dodge' }]],
+      ]),
       rulesSetsByName: new Map([
         ['CRP', makeRulesSet(7, 'CRP')],
         ['CRP+', makeRulesSet(8, 'CRP+')],
@@ -142,7 +146,7 @@ describe('BblPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[10, ['Block', 'Dodge']]])]]),
+      new Map([[3, new Map([[10, [{ name: 'Block' }, { name: 'Dodge' }]]])]]),
       new Map([
         [7, 'CRP'],
         [8, 'CRP+'],
@@ -158,7 +162,9 @@ describe('BblPositionSkillsImportService', () => {
 
     await service.syncPositionSkills({
       rulesSetIdsByPositionId: new Map([[3, new Set([7, 8, 9])]]),
-      skillsByPositionId: new Map([[3, ['Block', 'Dodge']]]),
+      skillsByPositionId: new Map([
+        [3, [{ name: 'Block' }, { name: 'Dodge' }]],
+      ]),
       rulesSetsByName: new Map([
         ['CRP', makeRulesSet(7, 'CRP')],
         ['CRP+', makeRulesSet(8, 'CRP+')],

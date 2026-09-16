@@ -182,7 +182,7 @@ describe('BblPositionsImportService characteristics', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
             isStarPlayer: false,
             characteristics: CHARACTERISTICS,
-            skills: ['Block', 'Dodge'],
+            skills: [{ name: 'Block' }, { name: 'Dodge' }],
           }),
         ],
       }),
@@ -196,7 +196,10 @@ describe('BblPositionsImportService characteristics', () => {
       teamRaceIdsByCode,
     );
 
-    expect(outcome.skillsByPositionId.get(42)).toEqual(['Block', 'Dodge']);
+    expect(outcome.skillsByPositionId.get(42)).toEqual([
+      { name: 'Block' },
+      { name: 'Dodge' },
+    ]);
   });
 
   it('does not record a skills entry for a position whose page carried none', async () => {
