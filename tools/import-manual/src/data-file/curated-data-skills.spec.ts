@@ -70,6 +70,24 @@ describe('curated data files - skills', () => {
     expect(byRulesSet.get('BB2016')).toBeGreaterThan(0);
   });
 
+  it('curates categories for the modern rules sets the source importers write', () => {
+    const rulesSets = new Set(
+      skillsFile().skillRulesSets.map((entry) => entry.rulesSet.id),
+    );
+
+    expect(rulesSets).toContain('BB2020');
+    expect(rulesSets).toContain('DB2021');
+    expect(rulesSets).toContain('BB2025');
+  });
+
+  it('classifies at least one skill as unique, for star players', () => {
+    const unique = skillsFile().skillRulesSets.filter(
+      (entry) => entry.category === 'unique',
+    );
+
+    expect(unique.length).toBeGreaterThan(0);
+  });
+
   it('pre-registers every skill referenced by skillRulesSets, not just CRP-only skills', () => {
     const data = skillsFile();
     const skillNames = new Set(data.skills.map((skill) => skill.name));
