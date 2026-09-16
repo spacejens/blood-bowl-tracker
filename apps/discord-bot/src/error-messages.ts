@@ -209,6 +209,8 @@ export const DEEPDIVE_POSITION_CHARACTERISTICS_TIMEOUT_MESSAGE =
   'The clerk is still copying this one out of the rulebooks, edition by edition.';
 export const DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE =
   'No rulebook in the archive says what this one is worth.';
+export const DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE =
+  'The clerk is still working out which skills this one turns up with.';
 export const DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE =
   'The registrar is still counting everyone who ever took this spot.';
 export const DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE =

@@ -1,9 +1,11 @@
 import type {
   PositionCharacteristics,
   PositionHeader,
+  PositionStartingSkill,
   PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
 } from '@blood-bowl-tracker/game-data';
@@ -21,6 +23,7 @@ import {
   DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE,
+  DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -34,7 +37,7 @@ import {
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
+import { PositionStatLineService } from './position-stat-line.service';
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -45,14 +48,14 @@ const TOP_PLAYERS_TOP_ENTRIES = 5;
  * players by career SPP, into a single embed. Shared by
  * `/deepdive position:<id>` and the position drill-down buttons.
  *
- * Each stat line is rendered by the shared
- * `PositionCharacteristicsLineFormatterService`, which uses *that rules
- * set's own* declared formats rather than a single uniform style: how a
- * position's characteristics changed between rules sets is the reason this
- * view exists, so flattening them would hide exactly what it is for. A
- * rules set whose Passing characteristic is `absent` omits the field
- * entirely rather than printing a placeholder. The same formatter renders
- * the star player deepdive's lines, so the two views can never drift apart.
+ * Each stat line is rendered by the shared `PositionStatLineService`, which
+ * pairs a rules set's characteristics -- in *that rules set's own* declared
+ * formats, since how a position changed between rules sets is the reason
+ * this view exists -- with that rules set's starting skills. A rules set
+ * whose Passing characteristic is `absent` omits the field entirely rather
+ * than printing a placeholder, and one with no starting skills recorded
+ * shows a dash in their place. The same service renders the star player
+ * deepdive's lines, so the two views can never drift apart.
  *
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so
  * a timeout stays distinguishable from a genuine "not found" (`undefined`).
@@ -62,7 +65,8 @@ export class PositionDeepdiveService {
   constructor(
     private readonly positions: PositionsService,
     private readonly positionRulesSets: PositionRulesSetsService,
-    private readonly lineFormatter: PositionCharacteristicsLineFormatterService,
+    private readonly positionRulesSetSkills: PositionRulesSetSkillsService,
+    private readonly statLine: PositionStatLineService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -86,6 +90,15 @@ export class PositionDeepdiveService {
       );
     if (rulesSetRows === null) {
       return DEEPDIVE_POSITION_CHARACTERISTICS_TIMEOUT_MESSAGE;
+    }
+
+    const skillRows: PositionStartingSkill[] | null =
+      await this.databaseTimeout.run(
+        this.positionRulesSetSkills.listByPosition(positionId),
+        null,
+      );
+    if (skillRows === null) {
+      return DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE;
     }
 
     const playerCount: number | null = await this.databaseTimeout.run(
@@ -113,7 +126,7 @@ export class PositionDeepdiveService {
     const statLines =
       rulesSetRows.length === 0
         ? [DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE]
-        : rulesSetRows.map((row) => this.lineFormatter.formatLine(row));
+        : this.statLine.formatLines(rulesSetRows, skillRows);
 
     // `topRanksWithTies` ranks by a `count` field, so SPP is surfaced under
     // that name for ranking only; the rendered line still reads as SPP.

@@ -296,7 +296,14 @@ rules set's own recorded format — a bare number, or a number with a
 trailing plus for a target a die roll has to meet — and a rules set with no
 Passing characteristic at all omits that field entirely rather than
 showing a placeholder for it; a stored value of zero (not yet curated)
-renders as a dash instead of the number. A position with no characteristics
+renders as a dash instead of the number. Each stat line then carries that
+rules set's starting skills, comma-separated, after the characteristics:
+a skill whose rules require a die roll or a named target shows that value
+in parentheses after its name, and a star player's own exclusive skill is
+marked with a star. A rules set with no starting skills recorded shows a
+single dash in their place — the archive cannot tell a position that
+genuinely has none apart from a rules set nobody has curated yet. A
+position with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list.
 
