@@ -59,8 +59,13 @@ const KNOWN_GARBLED_SKILL_ENTRIES: Record<
   'included in his price)': [],
 };
 
-/** A trailing parenthetical value, e.g. `"Loner (4+)"` -> `"4+"`. */
-const PARENTHETICAL_VALUE = /^(.+) \(([^()]*)\)$/;
+/**
+ * A trailing parenthetical value, e.g. `"Loner (4+)"` -> `"4+"`. The space
+ * before the paren is optional: real BBL data also drops it entirely
+ * (`"Loner(4+)"`, `"Mighty Blow(+1)"`), a separate scraping inconsistency
+ * from the space-before-paren case.
+ */
+const PARENTHETICAL_VALUE = /^(.+?) ?\(([^()]*)\)$/;
 
 /**
  * A position ("player type") extracted from a `p=pt` page. `typId` is the

@@ -314,6 +314,19 @@ describe('PositionPageParser', () => {
     ]);
   });
 
+  it('splits a trailing parenthetical with no space before it', () => {
+    const page = positionPage(
+      '<h1>Ogre</h1>' +
+        '<a href="default.asp?p=tl#16">Human Team</a>' +
+        characteristicsTable('Loner(4+), Mighty Blow(+1)'),
+      '110',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([
+      { name: 'Loner', attributeValue: '4+' },
+      { name: 'Mighty Blow', attributeValue: '+1' },
+    ]);
+  });
+
   it('fixes the missing-open-paren "Secret Weapon 6+)" scraping bug', () => {
     const page = positionPage(
       '<h1>Ogre</h1>' +
