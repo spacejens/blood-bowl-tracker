@@ -29,7 +29,7 @@ describe('StartingSkillsImportService', () => {
     importResults = mock<ImportResultService>();
     nameExternalId = mock<NameExternalIdService>();
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1] });
-    nameExternalId.forSkill.mockImplementation((name) => name);
+    nameExternalId.forSkill.mockReturnValue('Dodge');
     importResults.error.mockImplementation((error) => error);
     const moduleRef = await Test.createTestingModule({
       providers: [
