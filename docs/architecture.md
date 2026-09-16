@@ -397,8 +397,18 @@ by `(skill_id, rules_set_id)` and carrying a `skill_category` enum column
 `unique`). `unique` is the category for the one skill a rules set makes
 exclusive to a given star player — used instead of a per-association flag, so
 an ordinary skill row stays shareable between positions and a star player's
-exclusive skill is identified purely by checking its category. This is
-deliberately not enforced as globally unique across star players: if two star
+exclusive skill is identified purely by checking its category.
+
+The same row also carries `is_elite`, BB2025's orthogonal "elite" marker on a
+handful of restricted skills (Block, Dodge, Guard, Mighty Blow). It is a plain
+boolean rather than another `skill_category` value because it cuts across
+categories, and it is `false` on every row for every rules set older than
+BB2025, none of which has the concept at all. Like the category, it is curated
+in `tools/import-manual` (`data/before-other-importers/skills.json5`); the BBL
+and TP importers only read it back, to cross-check the marker their own source
+data carries.
+
+This is deliberately not enforced as globally unique across star players: if two star
 players are published sharing the same "unique" skill, that is not treated as
 a data error. A missing `skill_rules_sets` row means the skill does not exist
 under that rules set. This is the same split, for the same reason, as
