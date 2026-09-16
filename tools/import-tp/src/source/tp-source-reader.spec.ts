@@ -180,6 +180,30 @@ describe('TpSourceReader', () => {
     expect(seen).toEqual(['awards_x_awards.json']);
   });
 
+  it('yields files matching any of a list of requested types', async () => {
+    const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
+    await mkdir(compDir, { recursive: true });
+    await writeFile(join(compDir, 'tournament_x.json'), '{}');
+    await writeFile(join(compDir, 'match_1.json'), '{}');
+    await writeFile(join(compDir, 'rosters_1.json'), '{}');
+    await writeFile(join(compDir, 'awards_x_awards.json'), '{}');
+
+    const reader = await makeReader(dir, [
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
+    ]);
+    const seen: string[] = [];
+    for await (const file of reader.filesOfType(['rosters', 'match'])) {
+      seen.push(file.filename);
+    }
+
+    expect(seen.sort()).toEqual(['match_1.json', 'rosters_1.json']);
+  });
+
   it('still yields every file when unfiltered', async () => {
     const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
     await mkdir(compDir, { recursive: true });

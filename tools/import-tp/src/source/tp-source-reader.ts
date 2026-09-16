@@ -54,16 +54,17 @@ export class TpSourceReader {
 
   /**
    * Like {@link files}, but yields only files whose type (the filename text
-   * before the first `_`) is `type`. Non-matching files are skipped before
-   * they are read, so a caller that needs one small file per competition --
-   * the awards import needs 13 -- does not pay to read and JSON-parse every
-   * match file in the mirror a second time.
+   * before the first `_`) is `type`, or is one of `type` when given as a
+   * list. Non-matching files are skipped before they are read, so a caller
+   * that needs a subset of file types -- the awards import needs only
+   * `awards`, the skill-master-name scan needs `rosters` and `match` -- does
+   * not pay to read and JSON-parse every file in the mirror a second time.
    */
-  filesOfType(type: string): AsyncIterable<TpSourceFile> {
-    return this.walk(type);
+  filesOfType(type: string | readonly string[]): AsyncIterable<TpSourceFile> {
+    return this.walk(typeof type === 'string' ? [type] : type);
   }
 
-  private async *walk(type?: string): AsyncIterable<TpSourceFile> {
+  private async *walk(types?: readonly string[]): AsyncIterable<TpSourceFile> {
     const dataDir = this.sourceConfig.getDataDir();
     for (const era of this.eraConfig.getEras()) {
       const eraDir = join(dataDir, era.dataSubdir);
@@ -91,7 +92,7 @@ export class TpSourceReader {
             continue;
           }
           const fileType = this.extractType(entry.name);
-          if (type !== undefined && fileType !== type) {
+          if (types !== undefined && !types.includes(fileType)) {
             continue;
           }
           const raw = await readFile(join(competitionDir, entry.name), 'utf8');

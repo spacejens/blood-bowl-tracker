@@ -26,7 +26,7 @@ describe('SkillMasterNameCollectionService', () => {
   }
 
   function seed(files: ReturnType<typeof file>[]) {
-    sourceReader.files.mockReturnValue(
+    sourceReader.filesOfType.mockReturnValue(
       (async function* () {
         await Promise.resolve();
         yield* files;
@@ -68,6 +68,14 @@ describe('SkillMasterNameCollectionService', () => {
     expect(errors).toEqual([]);
   });
 
+  it('scans only the rosters and match file types', async () => {
+    seed([]);
+
+    await service.collect([]);
+
+    expect(sourceReader.filesOfType).toHaveBeenCalledWith(['rosters', 'match']);
+  });
+
   it('records a per-file failure and keeps scanning', async () => {
     seed([
       file('rosters_1.json', 'rosters'),
@@ -88,7 +96,7 @@ describe('SkillMasterNameCollectionService', () => {
   });
 
   it('records a scan failure and returns what it collected', async () => {
-    sourceReader.files.mockReturnValue(
+    sourceReader.filesOfType.mockReturnValue(
       (async function* () {
         await Promise.resolve();
         yield file('rosters_1.json', 'rosters');

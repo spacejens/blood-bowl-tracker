@@ -5,9 +5,11 @@ import { Injectable } from '@nestjs/common';
 
 import { TpSourceReader } from './tp-source-reader';
 
+const SKILL_MASTER_FILE_TYPES = ['rosters', 'match'] as const;
+
 /**
  * Builds the `skillMasterId -> skill name` lookup the positions' skills import
- * needs, by scanning every downloaded source file once.
+ * needs, by scanning every downloaded `rosters` and `match` source file once.
  *
  * TP's per-rules-set template (`rosters_masters`) carries ids only, but real
  * team rosters and match snapshots embed the skill's full name wherever a
@@ -15,6 +17,12 @@ import { TpSourceReader } from './tp-source-reader';
  * and coverage improves by itself as `download-tp` pulls more history. An id
  * no file explains stays unresolved and is reported by the skills import, not
  * here.
+ *
+ * Uses `TpSourceReader.filesOfType` (not the unfiltered `files()`) so only
+ * `rosters` and `match` files are read and JSON-parsed -- the only two file
+ * types that ever carry a `skillMaster` object -- rather than paying to
+ * re-read every file in the mirror a second time (RosterCollectionService
+ * already makes one full pass for a different purpose).
  *
  * Mirrors RosterCollectionService.collect: one streaming pass, a per-file
  * failure recorded and skipped, a scan failure recorded with whatever was
@@ -31,7 +39,9 @@ export class SkillMasterNameCollectionService {
   async collect(errors: ImportError[]): Promise<Map<number, string>> {
     const names = new Map<number, string>();
     try {
-      for await (const file of this.sourceReader.files()) {
+      for await (const file of this.sourceReader.filesOfType(
+        SKILL_MASTER_FILE_TYPES,
+      )) {
         try {
           for (const [id, name] of this.parser.extract(file.content)) {
             names.set(id, name);
