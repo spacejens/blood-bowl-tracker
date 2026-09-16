@@ -6,7 +6,7 @@ describe('error-messages', () => {
   const values = Object.entries(messages);
 
   it('exports 126 message constants', () => {
-    expect(values).toHaveLength(126);
+    expect(values).toHaveLength(127);
   });
 
   it('gives every constant a non-empty string value', () => {

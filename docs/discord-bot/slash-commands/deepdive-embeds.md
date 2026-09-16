@@ -243,9 +243,14 @@ recorded characteristics for, oldest rules set first — the same shape and
 formatting rules as the position deepdive's stat lines (each value in that
 rules set's own recorded format, the Passing characteristic omitted entirely
 for a rules set with no Passing characteristic, a stored zero rendering as a
-dash). A star with no characteristics
+dash, then that rules set's starting skills comma-separated after the
+characteristics, or a single dash when none are recorded). The star's own
+exclusive skill under a rules set is marked with a star, which is what
+tells it apart from the skills any position can have.
+A star with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
-list. Then a blank line and one line per team that has ever hired them,
+list.
+Then a blank line and one line per team that has ever hired them,
 most-hires-first (ties broken by team name — the query itself supplies this
 order, so the description and the buttons can never disagree), with its race
 and coach and how many times it hired the star. Each hire is a

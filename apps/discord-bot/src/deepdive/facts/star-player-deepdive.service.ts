@@ -1,9 +1,11 @@
 import type {
   PositionCharacteristics,
+  PositionStartingSkill,
   StarPlayerHire,
   StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetSkillsService,
   PositionRulesSetsService,
   StarPlayersService,
 } from '@blood-bowl-tracker/game-data';
@@ -19,13 +21,14 @@ import {
   DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
+import { PositionStatLineService } from './position-stat-line.service';
 
 /**
  * Composes a star player's hire history into a single embed: one line per
@@ -53,21 +56,24 @@ import { PositionCharacteristicsLineFormatterService } from './position-characte
  * minting a fresh hire row per match inducement) makes the per-era split
  * noise rather than information.
  *
- * Because a star *is* a position, its per-rules-set characteristics come
- * from the same `position_rules_sets` rows any other position uses, and are
- * rendered through the same shared
- * `PositionCharacteristicsLineFormatterService` as the position deepdive —
- * so the two views can never disagree about a star's numbers. There is no
- * up/down marker against a baseline the way the regular player deepdive has
- * one: a star has no single current era to compare against, so the full
- * per-rules-set list is shown instead.
+ * Because a star *is* a position, its per-rules-set characteristics and
+ * starting skills come from the same `position_rules_sets` and
+ * `position_rules_set_skills` rows any other position uses, and are
+ * rendered through the same shared `PositionStatLineService` as the
+ * position deepdive -- so the two views can never disagree about a star's
+ * numbers or skills. A star's own exclusive skill needs no special handling
+ * here: it is marked purely by its `unique` category, which that service
+ * renders with a star. There is no up/down marker against a baseline the
+ * way the regular player deepdive has one: a star has no single current era
+ * to compare against, so the full per-rules-set list is shown instead.
  */
 @Injectable()
 export class StarPlayerDeepdiveService {
   constructor(
     private readonly stars: StarPlayersService,
     private readonly positionRulesSets: PositionRulesSetsService,
-    private readonly lineFormatter: PositionCharacteristicsLineFormatterService,
+    private readonly positionRulesSetSkills: PositionRulesSetSkillsService,
+    private readonly statLine: PositionStatLineService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
   ) {}
@@ -91,10 +97,19 @@ export class StarPlayerDeepdiveService {
       return DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE;
     }
 
+    const skillRows: PositionStartingSkill[] | null =
+      await this.databaseTimeout.run(
+        this.positionRulesSetSkills.listByPosition(positionId),
+        null,
+      );
+    if (skillRows === null) {
+      return DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE;
+    }
+
     const statLines =
       rulesSetRows.length === 0
         ? [DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE]
-        : rulesSetRows.map((row) => this.lineFormatter.formatLine(row));
+        : this.statLine.formatLines(rulesSetRows, skillRows);
 
     const hires: StarPlayerHire[] | null = await this.databaseTimeout.run(
       this.stars.listHiresByTeam(positionId),

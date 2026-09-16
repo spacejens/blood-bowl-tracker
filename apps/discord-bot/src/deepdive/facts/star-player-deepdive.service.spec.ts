@@ -1,8 +1,10 @@
 import type {
   PositionCharacteristics,
+  PositionStartingSkill,
   StarPlayerHire,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetSkillsService,
   PositionRulesSetsService,
   StarPlayersService,
 } from '@blood-bowl-tracker/game-data';
@@ -30,19 +32,21 @@ import {
   DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
+import { PositionStatLineService } from './position-stat-line.service';
 import { StarPlayerDeepdiveService } from './star-player-deepdive.service';
 
 interface MakeServiceOptions {
   stars: StarPlayersService;
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
-  lineFormatter?: MockProxy<PositionCharacteristicsLineFormatterService>;
+  positionRulesSetSkills?: MockProxy<PositionRulesSetSkillsService>;
+  statLine?: MockProxy<PositionStatLineService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
 }
@@ -50,13 +54,15 @@ interface MakeServiceOptions {
 async function makeService({
   stars,
   positionRulesSets = makeRulesSets([bb2020]),
-  lineFormatter = mockLineFormatter(),
+  positionRulesSetSkills = makeRulesSetSkills([]),
+  statLine = mockStatLine(),
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = passthroughEntityComponents(),
 }: MakeServiceOptions): Promise<{
   service: StarPlayerDeepdiveService;
   positionRulesSets: MockProxy<PositionRulesSetsService>;
-  lineFormatter: MockProxy<PositionCharacteristicsLineFormatterService>;
+  positionRulesSetSkills: MockProxy<PositionRulesSetSkillsService>;
+  statLine: MockProxy<PositionStatLineService>;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
   entityComponents: MockProxy<EntityComponentsService>;
 }> {
@@ -65,9 +71,10 @@ async function makeService({
       StarPlayerDeepdiveService,
       { provide: StarPlayersService, useValue: stars },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
+      { provide: PositionStatLineService, useValue: statLine },
       {
-        provide: PositionCharacteristicsLineFormatterService,
-        useValue: lineFormatter,
+        provide: PositionRulesSetSkillsService,
+        useValue: positionRulesSetSkills,
       },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -76,7 +83,8 @@ async function makeService({
   return {
     service: moduleRef.get(StarPlayerDeepdiveService),
     positionRulesSets,
-    lineFormatter,
+    positionRulesSetSkills,
+    statLine,
     databaseTimeout,
     entityComponents,
   };
@@ -149,22 +157,32 @@ function makeRulesSets(
   return positionRulesSets;
 }
 
-/**
- * Canned formatter output. The formatter has a dependency of its own, so it
- * is mocked here rather than passed real; the text it actually produces is
- * asserted in position-characteristics-line-formatter.service.spec.ts.
- */
-const STUB_STAT_LINE = 'BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+';
+function makeRulesSetSkills(
+  rows: PositionStartingSkill[],
+): MockProxy<PositionRulesSetSkillsService> {
+  const positionRulesSetSkills = mock<PositionRulesSetSkillsService>();
+  positionRulesSetSkills.listByPosition.mockResolvedValue(rows);
+  return positionRulesSetSkills;
+}
 
-function mockLineFormatter(): MockProxy<PositionCharacteristicsLineFormatterService> {
-  const lineFormatter = mock<PositionCharacteristicsLineFormatterService>();
-  lineFormatter.formatLine.mockReturnValue(STUB_STAT_LINE);
-  return lineFormatter;
+/**
+ * Canned composer output. `PositionStatLineService` has a dependency of its
+ * own, and this spec asserts composition rather than rendered text, so it is
+ * mocked here; the exact strings it produces are asserted in
+ * position-stat-line.service.spec.ts.
+ */
+const STUB_STAT_LINE =
+  'BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+ Block, ★ Consummate Professional';
+
+function mockStatLine(): MockProxy<PositionStatLineService> {
+  const statLine = mock<PositionStatLineService>();
+  statLine.formatLines.mockReturnValue([STUB_STAT_LINE]);
+  return statLine;
 }
 
 /**
  * A `DatabaseTimeoutService` mock that passes the first `skip` calls through
- * and times the next one out, so a test can pin which of the three queries a
+ * and times the next one out, so a test can pin which of the four queries a
  * timeout message belongs to.
  */
 function timeoutOnCall(skip: number): MockProxy<DatabaseTimeoutService> {
@@ -206,10 +224,20 @@ describe('StarPlayerDeepdiveService', () => {
     );
   });
 
-  it('returns the hires timeout message when the hire query times out', async () => {
+  it('returns the skills timeout message when the starting-skills query times out', async () => {
     const { service } = await makeService({
       stars: makeStars({ star: griff, hires }),
       databaseTimeout: timeoutOnCall(2),
+    });
+    expect(await service.resolve(20)).toBe(
+      DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('returns the hires timeout message when the hire query times out', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      databaseTimeout: timeoutOnCall(3),
     });
     expect(await service.resolve(20)).toBe(
       DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
@@ -392,21 +420,20 @@ describe('StarPlayerDeepdiveService', () => {
   });
 
   it('puts one stat line per rules set above the hire list', async () => {
-    const lineFormatter = mockLineFormatter();
-    lineFormatter.formatLine
-      .mockReturnValueOnce('BB2016: MA 7 ST 4 AG 4 AV 8')
-      .mockReturnValueOnce('BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+');
+    const statLine = mockStatLine();
+    statLine.formatLines.mockReturnValue([
+      'BB2016: MA 7 ST 4 AG 4 AV 8',
+      'BB2020: MA 7 ST 4 AG 2+ PA 3+ AV 9+',
+    ]);
     const { service, positionRulesSets } = await makeService({
       stars: makeStars({ star: griff, hires }),
       positionRulesSets: makeRulesSets([bb2016, bb2020]),
-      lineFormatter,
+      statLine,
     });
 
     const result = await service.resolve(20);
 
     expect(positionRulesSets.listByPosition).toHaveBeenCalledWith(20);
-    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(1, bb2016);
-    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(2, bb2020);
     expect(
       (result as { embeds: { description: string }[] }).embeds[0].description,
     ).toBe(
@@ -418,5 +445,31 @@ describe('StarPlayerDeepdiveService', () => {
         'Gouged Eye (Orc, Bob) — 1 hire',
       ].join('\n'),
     );
+  });
+
+  it("passes the star's own exclusive skill through to the stat-line composer alongside its characteristics", async () => {
+    const skills: PositionStartingSkill[] = [
+      {
+        rulesSetId: 2,
+        rulesSetName: 'BB2020',
+        skillId: 5,
+        skillName: 'Consummate Professional',
+        attributeValue: null,
+        category: 'unique',
+      },
+    ];
+    const { service, statLine, positionRulesSetSkills } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSets: makeRulesSets([bb2016, bb2020]),
+      positionRulesSetSkills: makeRulesSetSkills(skills),
+    });
+
+    const result = await service.resolve(20);
+
+    expect(positionRulesSetSkills.listByPosition).toHaveBeenCalledWith(20);
+    expect(statLine.formatLines).toHaveBeenCalledWith([bb2016, bb2020], skills);
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain(STUB_STAT_LINE);
   });
 });
