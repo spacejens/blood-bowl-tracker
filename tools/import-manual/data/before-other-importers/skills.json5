@@ -601,6 +601,42 @@
     // comment). Confirm against the full BB2016 core rulebook.
     { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
 
+    // --- BB2016: additional skills needed only by the ten "physical
+    // rulebook" legacy races (Human, Orc, Dwarf, Skaven, Dark Elf, Elven
+    // Union, High Elf, Wood Elf, Nurgle, Slann), which Teams of Legend does
+    // not cover. Every category below is TODO: verify -- taken from this
+    // same skill's already-curated CRP/CRP+ category above (unchanged across
+    // every edition cross-checked in this file), not from a BB2016-specific
+    // source page, since none of these skills is evidenced anywhere in
+    // BB-Teams-of-Legend-Revised-1.pdf. Confirm against the full BB2016 core
+    // rulebook, which is out of scope for this file. ---
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    // TODO: verify -- category per this skill's CRP entry above.
+    { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+
     // ================================================================
     // BB2020, DB2021, BB2025 -- the modern rules sets BBL and TP import
     // from directly. Their skill NAMES were first harvested via two

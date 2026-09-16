@@ -181,6 +181,26 @@ describe('curated data files - skills', () => {
     expect(crpPlus.length).toBeGreaterThan(0);
   });
 
+  it('curates BB2016 starting skills', () => {
+    const bb2016 = positionSkillsFile().positionRulesSetSkills.filter(
+      (entry) => entry.rulesSet.id === 'BB2016',
+    );
+
+    expect(bb2016.length).toBeGreaterThan(0);
+  });
+
+  it('curates all three older rules sets and nothing newer', () => {
+    const rulesSets = new Set(
+      positionSkillsFile().positionRulesSetSkills.map(
+        (entry) => entry.rulesSet.id,
+      ),
+    );
+
+    // BB2020/DB2021/BB2025 come from BBL and TP; curating them here would
+    // duplicate what those importers already write.
+    expect([...rulesSets].sort()).toEqual(['BB2016', 'CRP', 'CRP+']);
+  });
+
   it('curates the Stunty Leeg races CRP itself does not list', () => {
     const ids = new Set(
       positionSkillsFile().positionRulesSetSkills.map(
