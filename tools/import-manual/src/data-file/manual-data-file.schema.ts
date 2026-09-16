@@ -123,6 +123,14 @@ const SkillRulesSetEntrySchema = z.object({
   skill: ExternalRefSchema,
   rulesSet: ExternalRefSchema,
   category: SkillCategorySchema,
+  /**
+   * BB2025's orthogonal "elite" marker, optional here and defaulted to false:
+   * only the handful of genuinely elite BB2025 rows spell it out, and every
+   * other row -- every pre-BB2025 rules set, plus every non-elite BB2025
+   * skill -- needs no change. The stored column is NOT NULL, so the default
+   * is applied here rather than left undefined.
+   */
+  isElite: z.boolean().default(false),
 });
 
 /**
