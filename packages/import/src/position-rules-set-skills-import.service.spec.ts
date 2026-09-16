@@ -97,5 +97,15 @@ describe('PositionRulesSetSkillsImportService', () => {
       expect(errors[0].message).toContain('42');
       expect(errors[0].message).toContain('boom');
     });
+
+    it('records an error using String(err) for a non-Error rejection', async () => {
+      client.positionRulesSetSkills.list.mockRejectedValue('nope');
+      const errors: ImportError[] = [];
+
+      const result = await service.listPositionRulesSetSkills(42, errors);
+
+      expect(result).toBeUndefined();
+      expect(errors[0].message).toContain('nope');
+    });
   });
 });
