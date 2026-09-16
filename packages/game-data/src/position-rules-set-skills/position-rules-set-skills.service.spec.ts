@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   extractFilterValues,
+  extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SkillValidationError } from '../shared/skill-validation-error';
@@ -297,6 +298,7 @@ describe('PositionRulesSetSkillsService', () => {
           skillId: 7,
           skillName: 'Block',
           attributeValue: null,
+          category: 'general',
         },
       ]);
       const service = await makeService(db);
@@ -308,6 +310,7 @@ describe('PositionRulesSetSkillsService', () => {
           skillId: 7,
           skillName: 'Block',
           attributeValue: null,
+          category: 'general',
         },
       ]);
       expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(3);
@@ -321,6 +324,7 @@ describe('PositionRulesSetSkillsService', () => {
           skillId: 7,
           skillName: 'Loner',
           attributeValue: '4+',
+          category: 'trait',
         },
       ]);
       const service = await makeService(db);
@@ -332,7 +336,52 @@ describe('PositionRulesSetSkillsService', () => {
           skillId: 7,
           skillName: 'Loner',
           attributeValue: '4+',
+          category: 'trait',
         },
+      ]);
+    });
+
+    it("returns a unique-category skill's category, which is what marks a star player's own skill", async () => {
+      const db = mockDb([
+        {
+          rulesSetId: 4,
+          rulesSetName: 'BB2020',
+          skillId: 9,
+          skillName: 'Mighty Blow (Grombrindal)',
+          attributeValue: null,
+          category: 'unique',
+        },
+      ]);
+      const service = await makeService(db);
+
+      await expect(service.listByPosition(3)).resolves.toEqual([
+        {
+          rulesSetId: 4,
+          rulesSetName: 'BB2020',
+          skillId: 9,
+          skillName: 'Mighty Blow (Grombrindal)',
+          attributeValue: null,
+          category: 'unique',
+        },
+      ]);
+    });
+
+    it("joins the skill's category on both the skill and the row's own rules set, since a category is recorded per rules set", async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await service.listByPosition(3);
+
+      // Joins in the order the query issues them: position_rules_sets,
+      // rules_sets, skills, then skill_rules_sets — so the new one is call
+      // index 3, and its condition is the second argument.
+      expect(
+        extractJoinColumns(firstCallArg(db.chains[0].innerJoin, 3, 1)),
+      ).toEqual([
+        'skill_rules_sets.skill_id',
+        'position_rules_set_skills.skill_id',
+        'skill_rules_sets.rules_set_id',
+        'position_rules_sets.rules_set_id',
       ]);
     });
 

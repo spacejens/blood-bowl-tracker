@@ -1,9 +1,11 @@
 import type {
+  SkillCategory,
   SyncPositionRulesSetSkills,
   SyncPositionRulesSetSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, NewPositionRulesSetSkill } from '@blood-bowl-tracker/db';
 import {
+  and,
   asc,
   DB,
   eq,
@@ -25,6 +27,13 @@ export interface PositionStartingSkill {
   skillId: number;
   skillName: string;
   attributeValue: string | null;
+  /**
+   * The skill's category *under this row's own rules set*. A rules set can
+   * move a skill between categories, which is why `skill_rules_sets` is
+   * joined on the pair rather than on the skill alone. `unique` is what
+   * marks a star player's exclusive skill — there is no separate flag.
+   */
+  category: SkillCategory;
 }
 
 /**
@@ -258,27 +267,42 @@ export class PositionRulesSetSkillsService {
 
   /**
    * Every starting skill recorded for this position, across every rules set,
-   * ordered by rules-set name then skill name so the list is stable across
-   * calls. The join reaches the position through `position_rules_sets`, which
-   * is the only place the position id is stored.
+   * each with its category under that rules set, ordered by rules-set name
+   * then skill name so the list is stable across calls. The join reaches the
+   * position through `position_rules_sets`, which is the only place the
+   * position id is stored.
    */
   listByPosition(positionId: number): Promise<PositionStartingSkill[]> {
-    return this.db
-      .select({
-        rulesSetId: rulesSets.id,
-        rulesSetName: rulesSets.name,
-        skillId: skills.id,
-        skillName: skills.name,
-        attributeValue: positionRulesSetSkills.attributeValue,
-      })
-      .from(positionRulesSetSkills)
-      .innerJoin(
-        positionRulesSets,
-        eq(positionRulesSets.id, positionRulesSetSkills.positionRulesSetId),
-      )
-      .innerJoin(rulesSets, eq(rulesSets.id, positionRulesSets.rulesSetId))
-      .innerJoin(skills, eq(skills.id, positionRulesSetSkills.skillId))
-      .where(eq(positionRulesSets.positionId, positionId))
-      .orderBy(asc(rulesSets.name), asc(skills.name));
+    return (
+      this.db
+        .select({
+          rulesSetId: rulesSets.id,
+          rulesSetName: rulesSets.name,
+          skillId: skills.id,
+          skillName: skills.name,
+          attributeValue: positionRulesSetSkills.attributeValue,
+          category: skillRulesSets.category,
+        })
+        .from(positionRulesSetSkills)
+        .innerJoin(
+          positionRulesSets,
+          eq(positionRulesSets.id, positionRulesSetSkills.positionRulesSetId),
+        )
+        .innerJoin(rulesSets, eq(rulesSets.id, positionRulesSets.rulesSetId))
+        .innerJoin(skills, eq(skills.id, positionRulesSetSkills.skillId))
+        // Inner rather than left: `sync` above rejects any starting skill with
+        // no `skill_rules_sets` row under the same rules set, so the row always
+        // exists. Constrained on the pair because a category is recorded per
+        // rules set, not per skill.
+        .innerJoin(
+          skillRulesSets,
+          and(
+            eq(skillRulesSets.skillId, positionRulesSetSkills.skillId),
+            eq(skillRulesSets.rulesSetId, positionRulesSets.rulesSetId),
+          ),
+        )
+        .where(eq(positionRulesSets.positionId, positionId))
+        .orderBy(asc(rulesSets.name), asc(skills.name))
+    );
   }
 }
