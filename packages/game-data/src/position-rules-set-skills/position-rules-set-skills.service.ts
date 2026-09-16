@@ -24,12 +24,14 @@ export interface PositionStartingSkill {
   rulesSetName: string;
   skillId: number;
   skillName: string;
+  attributeValue: string | null;
 }
 
 /** One entry with its `position_rules_sets` row already resolved. */
 interface ResolvedStartingSkill {
   positionRulesSetId: number;
   skillId: number;
+  attributeValue: string | null;
 }
 
 /**
@@ -138,6 +140,7 @@ export class PositionRulesSetSkillsService {
       resolved.push({
         positionRulesSetId: associationId,
         skillId: entry.skillId,
+        attributeValue: entry.attributeValue ?? null,
       });
     }
 
@@ -238,6 +241,7 @@ export class PositionRulesSetSkillsService {
         rulesSetName: rulesSets.name,
         skillId: skills.id,
         skillName: skills.name,
+        attributeValue: positionRulesSetSkills.attributeValue,
       })
       .from(positionRulesSetSkills)
       .innerJoin(

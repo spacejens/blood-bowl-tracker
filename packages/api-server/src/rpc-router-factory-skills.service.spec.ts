@@ -132,6 +132,7 @@ describe('RpcRouterFactoryService skills routers', () => {
           rulesSetName: 'BB2020',
           skillId: 7,
           skillName: 'Block',
+          attributeValue: null,
         },
       ],
     );
