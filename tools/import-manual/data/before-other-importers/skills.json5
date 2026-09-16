@@ -4,11 +4,27 @@
 // Two sections, kept in one file so a skill's existence and its category can
 // be reviewed against the same source page side by side:
 //
-//   skills         -- only skills no source importer can ever create, i.e.
-//                     skills that exist solely in CRP, CRP+ or BB2016. A
-//                     skill BBL or TP also knows needs no entry: its own
-//                     upsert registers the same "Name" external id this file
-//                     would, so both land on one row.
+//   skills         -- EVERY skill this file's skillRulesSets section
+//                     references, not just the ones that are genuinely
+//                     exclusive to CRP, CRP+ or BB2016. This mirrors the
+//                     "pre-register so a later upsert matches" pattern
+//                     races-and-positions.json5 and
+//                     position-characteristics-gap-fill.json5 already use for
+//                     races and positions: this file's `before-other-
+//                     importers` phase runs as its own, EARLIER invocation
+//                     than the BBL/TP import (see docs/import-manual/index.md,
+//                     "Run it"), so on a from-empty-database run, a skill like
+//                     "Block" or "Dodge" does not exist yet when this file's
+//                     skillRulesSets rows are processed --
+//                     ExternalIdResolverService.resolve is a pure lookup with
+//                     no fallback, so an unregistered skill reference would
+//                     silently fail to resolve and drop that category row as
+//                     an ImportError. Pre-registering every skill here means
+//                     (1) BBL/TP's own later upsert matches onto this same
+//                     row via the shared "Name" external id instead of
+//                     creating a duplicate, and (2) BBL/TP's own category
+//                     read-back (during their run) finds the curated category
+//                     row already there.
 //   skillRulesSets -- the category table for EVERY skill, whichever importer
 //                     introduces it. A missing row means "this rules set does
 //                     not have this skill", and the BBL/TP skills imports read
@@ -55,17 +71,20 @@
 // (CRP+ and BB2016 sources are out of scope for this file -- see a later
 // curation task/file for those rules sets' category rows.)
 //
-// `skills` entries below were identified by diffing the 76 skill spellings
-// this file curates for CRP against every literal skillMaster/skills-cell
-// string actually present in the downloaded tools/import-bbl and
-// tools/import-tp data dumps (the modern-era source data BBL/TP's own
-// upserts read). Three CRP-table skills never appear in either dump under
-// any spelling and are curated below. A fourth near-miss, "Blood Lust", is
-// curated too: TP's data only ever spells it "Bloodlust" (one word), so an
-// entry under CRP's own two-word spelling is still needed for this file's
-// (skill, CRP) rows to resolve -- flagged below rather than silently
-// resolved, since only the developer can confirm whether these should be
-// treated as the same skill or kept distinct.
+// The three "CRP-only" entries below (of the 76 total `skills` entries this
+// file curates) were identified by diffing the 76 skill spellings this file
+// curates for CRP against every literal skillMaster/skills-cell string
+// actually present in the downloaded tools/import-bbl and tools/import-tp
+// data dumps (the modern-era source data BBL/TP's own upserts read). Two
+// CRP-table skills never appear in either dump under any spelling and are
+// curated below. A third near-miss, "Blood Lust", is curated too: TP's data
+// only ever spells it "Bloodlust" (one word), so an entry under CRP's own
+// two-word spelling is still needed for this file's (skill, CRP) rows to
+// resolve -- flagged below rather than silently resolved, since only the
+// developer can confirm whether these should be treated as the same skill or
+// kept distinct. The remaining 73 entries are skills BBL/TP can also create;
+// see the section header comment above for why they are pre-registered here
+// too.
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
@@ -83,6 +102,84 @@
     // would need TP's importer to normalize the spelling, not a curated
     // second skill row).
     { name: 'Blood Lust', externalIds: [{ system: 'Name', id: 'Blood Lust' }] },
+
+    // --- Every other skill this file's skillRulesSets section references,
+    // pre-registered even though BBL/TP can also create these -- see the
+    // header comment above for why. Grouped and ordered to match the
+    // skillRulesSets category groups below. ---
+    { name: 'Block', externalIds: [{ system: 'Name', id: 'Block' }] },
+    { name: 'Pass Block', externalIds: [{ system: 'Name', id: 'Pass Block' }] },
+    { name: 'Dauntless', externalIds: [{ system: 'Name', id: 'Dauntless' }] },
+    { name: 'Pro', externalIds: [{ system: 'Name', id: 'Pro' }] },
+    { name: 'Dirty Player', externalIds: [{ system: 'Name', id: 'Dirty Player' }] },
+    { name: 'Shadowing', externalIds: [{ system: 'Name', id: 'Shadowing' }] },
+    { name: 'Fend', externalIds: [{ system: 'Name', id: 'Fend' }] },
+    { name: 'Strip Ball', externalIds: [{ system: 'Name', id: 'Strip Ball' }] },
+    { name: 'Frenzy', externalIds: [{ system: 'Name', id: 'Frenzy' }] },
+    { name: 'Sure Hands', externalIds: [{ system: 'Name', id: 'Sure Hands' }] },
+    { name: 'Kick', externalIds: [{ system: 'Name', id: 'Kick' }] },
+    { name: 'Tackle', externalIds: [{ system: 'Name', id: 'Tackle' }] },
+    { name: 'Kick-Off Return', externalIds: [{ system: 'Name', id: 'Kick-Off Return' }] },
+    { name: 'Wrestle', externalIds: [{ system: 'Name', id: 'Wrestle' }] },
+    { name: 'Catch', externalIds: [{ system: 'Name', id: 'Catch' }] },
+    { name: 'Leap', externalIds: [{ system: 'Name', id: 'Leap' }] },
+    { name: 'Diving Catch', externalIds: [{ system: 'Name', id: 'Diving Catch' }] },
+    { name: 'Side Step', externalIds: [{ system: 'Name', id: 'Side Step' }] },
+    { name: 'Diving Tackle', externalIds: [{ system: 'Name', id: 'Diving Tackle' }] },
+    { name: 'Sneaky Git', externalIds: [{ system: 'Name', id: 'Sneaky Git' }] },
+    { name: 'Dodge', externalIds: [{ system: 'Name', id: 'Dodge' }] },
+    { name: 'Sprint', externalIds: [{ system: 'Name', id: 'Sprint' }] },
+    { name: 'Jump Up', externalIds: [{ system: 'Name', id: 'Jump Up' }] },
+    { name: 'Sure Feet', externalIds: [{ system: 'Name', id: 'Sure Feet' }] },
+    { name: 'Accurate', externalIds: [{ system: 'Name', id: 'Accurate' }] },
+    { name: 'Nerves of Steel', externalIds: [{ system: 'Name', id: 'Nerves of Steel' }] },
+    { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }] },
+    { name: 'Pass', externalIds: [{ system: 'Name', id: 'Pass' }] },
+    { name: 'Hail Mary Pass', externalIds: [{ system: 'Name', id: 'Hail Mary Pass' }] },
+    { name: 'Safe Throw', externalIds: [{ system: 'Name', id: 'Safe Throw' }] },
+    { name: 'Leader', externalIds: [{ system: 'Name', id: 'Leader' }] },
+    { name: 'Break Tackle', externalIds: [{ system: 'Name', id: 'Break Tackle' }] },
+    { name: 'Multiple Block', externalIds: [{ system: 'Name', id: 'Multiple Block' }] },
+    { name: 'Grab', externalIds: [{ system: 'Name', id: 'Grab' }] },
+    { name: 'Piling On', externalIds: [{ system: 'Name', id: 'Piling On' }] },
+    { name: 'Guard', externalIds: [{ system: 'Name', id: 'Guard' }] },
+    { name: 'Stand Firm', externalIds: [{ system: 'Name', id: 'Stand Firm' }] },
+    { name: 'Juggernaut', externalIds: [{ system: 'Name', id: 'Juggernaut' }] },
+    { name: 'Strong Arm', externalIds: [{ system: 'Name', id: 'Strong Arm' }] },
+    { name: 'Mighty Blow', externalIds: [{ system: 'Name', id: 'Mighty Blow' }] },
+    { name: 'Thick Skull', externalIds: [{ system: 'Name', id: 'Thick Skull' }] },
+    { name: 'Big Hand', externalIds: [{ system: 'Name', id: 'Big Hand' }] },
+    { name: 'Foul Appearance', externalIds: [{ system: 'Name', id: 'Foul Appearance' }] },
+    { name: 'Tentacles', externalIds: [{ system: 'Name', id: 'Tentacles' }] },
+    { name: 'Claw', externalIds: [{ system: 'Name', id: 'Claw' }] },
+    { name: 'Claws', externalIds: [{ system: 'Name', id: 'Claws' }] },
+    { name: 'Horns', externalIds: [{ system: 'Name', id: 'Horns' }] },
+    { name: 'Two Heads', externalIds: [{ system: 'Name', id: 'Two Heads' }] },
+    { name: 'Disturbing Presence', externalIds: [{ system: 'Name', id: 'Disturbing Presence' }] },
+    { name: 'Prehensile Tail', externalIds: [{ system: 'Name', id: 'Prehensile Tail' }] },
+    { name: 'Very Long Legs', externalIds: [{ system: 'Name', id: 'Very Long Legs' }] },
+    { name: 'Extra Arms', externalIds: [{ system: 'Name', id: 'Extra Arms' }] },
+    { name: 'Always Hungry', externalIds: [{ system: 'Name', id: 'Always Hungry' }] },
+    { name: 'Fan Favourite', externalIds: [{ system: 'Name', id: 'Fan Favourite' }] },
+    { name: 'Secret Weapon', externalIds: [{ system: 'Name', id: 'Secret Weapon' }] },
+    { name: 'Animosity', externalIds: [{ system: 'Name', id: 'Animosity' }] },
+    { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }] },
+    { name: 'Stab', externalIds: [{ system: 'Name', id: 'Stab' }] },
+    { name: 'Ball & Chain', externalIds: [{ system: 'Name', id: 'Ball & Chain' }] },
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }] },
+    { name: 'No Hands', externalIds: [{ system: 'Name', id: 'No Hands' }] },
+    { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }] },
+    { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }] },
+    { name: 'Throw Team-Mate', externalIds: [{ system: 'Name', id: 'Throw Team-Mate' }] },
+    { name: 'Bone-head', externalIds: [{ system: 'Name', id: 'Bone-head' }] },
+    { name: 'Really Stupid', externalIds: [{ system: 'Name', id: 'Really Stupid' }] },
+    { name: 'Titchy', externalIds: [{ system: 'Name', id: 'Titchy' }] },
+    { name: 'Chainsaw', externalIds: [{ system: 'Name', id: 'Chainsaw' }] },
+    { name: 'Regeneration', externalIds: [{ system: 'Name', id: 'Regeneration' }] },
+    { name: 'Wild Animal', externalIds: [{ system: 'Name', id: 'Wild Animal' }] },
+    { name: 'Decay', externalIds: [{ system: 'Name', id: 'Decay' }] },
+    { name: 'Right Stuff', externalIds: [{ system: 'Name', id: 'Right Stuff' }] },
+    { name: 'Stunty', externalIds: [{ system: 'Name', id: 'Stunty' }] },
   ],
   skillRulesSets: [
     // --- CRP: General skills (CRP p.21) ---

@@ -55,4 +55,20 @@ describe('curated data files - skills', () => {
 
     expect(crp.length).toBeGreaterThan(0);
   });
+
+  it('pre-registers every skill referenced by skillRulesSets, not just CRP-only skills', () => {
+    const data = skillsFile();
+    const skillNames = new Set(data.skills.map((skill) => skill.name));
+
+    // before-other-importers runs as its own, earlier invocation than
+    // BBL/TP import (see docs/import-manual/index.md), and
+    // ExternalIdResolverService.resolve is a pure lookup with no fallback.
+    // A skillRulesSets row referencing a skill this file never registers
+    // (e.g. "Block", normally created by BBL/TP's own upsert) would
+    // silently fail to resolve and drop that category row as an
+    // ImportError on a from-empty-database run.
+    for (const entry of data.skillRulesSets) {
+      expect(skillNames.has(entry.skill.id)).toBe(true);
+    }
+  });
 });
