@@ -71,7 +71,7 @@ describe('PositionRulesSetSkillsImportService', () => {
   });
 
   describe('listPositionRulesSetSkills', () => {
-    const rows = [{ rulesSetId: 900, skillId: 5 }];
+    const rows = [{ rulesSetId: 900, skillId: 5, attributeValue: null }];
 
     it("returns the position's starting skills on success", async () => {
       client.positionRulesSetSkills.list.mockResolvedValue(rows);

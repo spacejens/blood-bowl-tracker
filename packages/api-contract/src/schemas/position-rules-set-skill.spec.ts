@@ -47,6 +47,7 @@ describe('position rules set skill schemas', () => {
       PositionRulesSetSkillRefSchema.parse({
         rulesSetId: 4,
         skillId: 7,
+        attributeValue: null,
       }).skillId,
     ).toBe(7);
   });

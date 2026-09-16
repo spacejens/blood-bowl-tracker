@@ -12,14 +12,15 @@ import { z } from 'zod';
  * `attributeValue` carries a position-specific variant of the skill that is
  * no longer part of the skill's own identity — e.g. "Loner (4+)"'s "4+", or
  * "Animosity (Orc Linemen)"'s "Orc Linemen" — now that skill identity is just
- * the base name. It is optional because most starting skills carry no such
- * detail at all.
+ * the base name. `.nullable().optional()`, matching this contract's own
+ * convention for a DB-nullable field: a caller with no value can omit it
+ * entirely, and the stored column is genuinely `null`, not `undefined`.
  */
 export const PositionRulesSetSkillEntrySchema = z.object({
   positionId: z.number().int(),
   rulesSetId: z.number().int(),
   skillId: z.number().int(),
-  attributeValue: z.string().optional(),
+  attributeValue: z.string().nullable().optional(),
 });
 
 /**
@@ -42,13 +43,13 @@ export const SyncPositionRulesSetSkillsResultSchema = z.object({
  * `attributeValue` carries a position-specific variant of the skill that is
  * no longer part of the skill's own identity — e.g. "Loner (4+)"'s "4+", or
  * "Animosity (Orc Linemen)"'s "Orc Linemen" — now that skill identity is just
- * the base name. It is optional because most starting skills carry no such
- * detail at all.
+ * the base name. `nullable()`, matching the stored column: most starting
+ * skills carry no such detail, so the read-back genuinely returns `null`.
  */
 export const PositionRulesSetSkillRefSchema = z.object({
   rulesSetId: z.number().int(),
   skillId: z.number().int(),
-  attributeValue: z.string().optional(),
+  attributeValue: z.string().nullable(),
 });
 
 /** Input of the read procedure: one position at a time. */

@@ -256,21 +256,8 @@ export function buildPositionRulesSetSkillsRoutes(
           positionRulesSetSkillsService.sync(input),
         ),
     ),
-    list: implement(contract.positionRulesSetSkills.list).handler(
-      async ({ input }) => {
-        const rows = await positionRulesSetSkillsService.listByPosition(
-          input.positionId,
-        );
-        // The contract's `attributeValue` is optional (absent means "no
-        // variant detail"), while the service's column-backed field is
-        // nullable; map the DB's `null` to `undefined` here so the output
-        // satisfies the contract's type without changing what the database
-        // stores.
-        return rows.map((row) => ({
-          ...row,
-          attributeValue: row.attributeValue ?? undefined,
-        }));
-      },
+    list: implement(contract.positionRulesSetSkills.list).handler(({ input }) =>
+      positionRulesSetSkillsService.listByPosition(input.positionId),
     ),
   };
 }
