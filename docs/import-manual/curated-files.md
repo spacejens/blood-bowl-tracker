@@ -203,8 +203,8 @@ a from-empty-database run of the BBL and TP importers against the same
 downloaded data should see few or no "no curated category for rules set"
 `ImportError`s. Any that do occur can only ever name `BB2020`, `DB2021`, or
 `BB2025` — the only rules sets BBL and TP write starting skills to.
-[`skills.json5`](#known-before-other-importers-dedup-files) does not curate a
-CRP/CRP+/BB2016 category for every skill name at all — but BBL is deliberately
+[`skills.json5`](#known-before-other-importers-dedup-files) does not curate
+CRP/CRP+/BB2016 categories for every skill name — but BBL is deliberately
 excluded from writing to those three rules sets (see
 [import-bbl/file-format.md](../import-bbl/file-format.md)), and TP's own
 config (`tools/import-tp/import-tp-config.json5`) only defines `BB2020`,
