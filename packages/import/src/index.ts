@@ -68,6 +68,7 @@ export { ReferenceLookupService } from './reference-lookup.service';
 export type { ResolvableEntityKind } from './resolvable-entity-kind';
 export { RESOLVABLE_ENTITY_KINDS } from './resolvable-entity-kind';
 export { RulesSetsImportService } from './rules-sets-import.service';
+export { SkillsImportService } from './skills-import.service';
 export { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 export { SppAwardValuesImportService } from './spp-award-values-import.service';
 export { TeamsImportService } from './teams-import.service';
