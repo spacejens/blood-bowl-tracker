@@ -438,6 +438,26 @@ race's display name (`raceNamesById`), `team_eras` rows (which have no
 external ids of their own), classification and evidence sets, and matches and
 players (which have no resolve procedure).
 
+### Hatred target codes
+
+TP publishes a starting skill's parenthetical value as a `skillAttributeMaster`
+with a `type`. Types 0–2 are directly displayable; **type 3 is an opaque
+numeric code** into a TP-internal lookup this project does not have, so a
+type-3 reference is normally dropped with a recorded import error rather than
+composed as-is.
+
+One exception is hard-coded: the six codes TP's `Hatred` skill uses for its
+target, which were confirmed against TP's own UI and are mapped by
+`HatredTargetService` (`packages/parse-tp/src/hatred-target.service.ts`) —
+`100` Dwarf, `102` Troll, `108` Vampire, `110` Undead, `134` Big Guy, `1001`
+Daemon. A code in that table composes normally (`Hatred (Undead)`); every
+other type-3 code keeps the unchanged drop-and-report behaviour, so the table
+can only ever narrow the set of unresolvable codes.
+
+This is a deliberate hard-coded, position-keyword-specific mapping, not a
+general decoder. If TP's position-keyword data is ever imported directly, that
+import should **replace** this table rather than sit alongside it.
+
 ## Related documentation
 
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
