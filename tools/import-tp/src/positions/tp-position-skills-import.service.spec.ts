@@ -65,7 +65,13 @@ describe('TpPositionSkillsImportService', () => {
         [
           3,
           new Map([
-            [7, [{ name: 'Dodge' }, { name: 'Loner', attributeValue: '4+' }]],
+            [
+              7,
+              [
+                { name: 'Dodge', isElite: false },
+                { name: 'Loner', attributeValue: '4+', isElite: false },
+              ],
+            ],
           ]),
         ],
       ]),
@@ -89,7 +95,15 @@ describe('TpPositionSkillsImportService', () => {
     expect(result.imported).toBe(1);
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map([
-        [3, new Map([[7, [{ name: 'Mighty Blow', attributeValue: '+1' }]]])],
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ name: 'Mighty Blow', attributeValue: '+1', isElite: false }],
+            ],
+          ]),
+        ],
       ]),
       new Map([[7, 'BB2020']]),
       [],
@@ -109,7 +123,7 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[7, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[7, 'BB2020']]),
       expect.any(Array),
     );
@@ -181,7 +195,7 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, [{ name: 'Dodge' }]]])]]),
+      new Map([[3, new Map([[7, [{ name: 'Dodge', isElite: false }]]])]]),
       new Map([[7, 'BB2020']]),
       expect.any(Array),
     );

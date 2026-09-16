@@ -184,10 +184,12 @@ export class TpPositionSkillsImportService {
         }
         continue;
       }
+      // TODO(next task): supply TP's real isElite marker from the skill-master
+      // scan. Hardcoded false keeps the build green until then.
       names.push(
         ref.attributeValue === undefined
-          ? { name }
-          : { name, attributeValue: ref.attributeValue },
+          ? { name, isElite: false }
+          : { name, attributeValue: ref.attributeValue, isElite: false },
       );
     }
     return names;

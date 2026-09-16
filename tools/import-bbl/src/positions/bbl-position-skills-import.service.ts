@@ -23,8 +23,10 @@ export const CURATION_OWNED_RULES_SET_NAMES = ['CRP', 'CRP+', 'BB2016'];
 export interface SyncPositionSkillsOptions {
   /** Which rules sets each position was determined available under. */
   rulesSetIdsByPositionId: Map<number, Set<number>>;
-  /** The skill refs scraped from each position's page. */
-  skillsByPositionId: Map<number, StartingSkillRef[]>;
+  /** The skill refs scraped from each position's page. BBL has no concept of
+   * BB2025 eliteness -- and is excluded from writing BB2025 starting skills
+   * anyway -- so every ref is marked not elite below. */
+  skillsByPositionId: Map<number, { name: string; attributeValue?: string }[]>;
   /** Rules set by name, used to resolve the curation-owned rules sets to
    * exclude below. A name missing from this map is simply skipped -- not
    * every environment necessarily has every rules set configured. */
@@ -94,12 +96,16 @@ export class BblPositionSkillsImportService {
       if (!skills || skills.length === 0) {
         continue;
       }
+      const eliteless: StartingSkillRef[] = skills.map((skill) => ({
+        ...skill,
+        isElite: false,
+      }));
       const byRulesSetId = new Map<number, StartingSkillRef[]>();
       for (const rulesSetId of rulesSetIds) {
         if (excludedRulesSetIds.has(rulesSetId)) {
           continue;
         }
-        byRulesSetId.set(rulesSetId, skills);
+        byRulesSetId.set(rulesSetId, eliteless);
       }
       if (byRulesSetId.size > 0) {
         skillNamesByPositionId.set(positionId, byRulesSetId);
