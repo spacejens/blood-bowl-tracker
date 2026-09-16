@@ -8,6 +8,7 @@ import { CompetitionsProcessor } from './competitions.processor';
 import { ErasProcessor } from './eras.processor';
 import { ExternalSystemsProcessor } from './external-systems.processor';
 import { LeaguesProcessor } from './leagues.processor';
+import { PositionRulesSetSkillsProcessor } from './position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from './position-rules-sets.processor';
 import { PositionsProcessor } from './positions.processor';
 import { RacesProcessor } from './races.processor';
@@ -29,6 +30,7 @@ const processors = [
   RacesProcessor,
   PositionsProcessor,
   PositionRulesSetsProcessor,
+  PositionRulesSetSkillsProcessor,
   CoachesProcessor,
   TeamsProcessor,
   CompetitionGroupsProcessor,
