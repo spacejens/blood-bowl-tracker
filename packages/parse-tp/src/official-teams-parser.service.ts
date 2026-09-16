@@ -25,8 +25,10 @@ export interface TpOfficialPosition {
 }
 
 /**
- * One skill reference on an official-list entry. TP names the skill only by
- * `skillMasterId`; `attributeValue` is the parenthetical value it stores
+ * One skill reference on an official-list entry, in one of two shapes.
+ *
+ * `TpPositionSkillIdRef` is the ordinary one: TP names the skill only by
+ * `skillMasterId`, and `attributeValue` is the parenthetical value it stores
  * separately (`"4+"` for Loner, `"+1"` for Mighty Blow).
  *
  * `attributeType` is TP's own tag for what kind of value `attributeValue`
@@ -35,19 +37,34 @@ export interface TpOfficialPosition {
  * all safe to compose directly into a display name. Type 3 is a DIFFERENT,
  * opaque numeric code (e.g. `"111"`, `"999"`) that does not resolve to a
  * meaningful display value on its own -- it is an internal reference id TP's
- * frontend must resolve via some other lookup this package does not have.
- * The real downloaded mirror shows the same skillMasterId (269, Animosity)
- * appearing with both a type-2 human-readable value (`"Black Ark Corsair"`)
- * and a type-3 numeric value (`"111"`) on different entries, confirming type
- * 3 is a distinct, unresolved encoding rather than just another composable
- * value. Consumers must treat a type-3 reference as unresolvable rather than
- * composing it as-is.
+ * frontend must resolve via some other lookup. The real downloaded mirror
+ * shows the same skillMasterId (269, Animosity) appearing with both a type-2
+ * human-readable value (`"Black Ark Corsair"`) and a type-3 numeric value
+ * (`"111"`) on different entries, confirming type 3 is a distinct,
+ * unresolved encoding rather than just another composable value. Consumers
+ * must treat a type-3 reference as unresolvable rather than composing it
+ * as-is, except for the codes `HatredTargetService` explains.
  */
-export interface TpPositionSkillRef {
+export interface TpPositionSkillIdRef {
   skillMasterId: number;
   attributeValue?: string;
   attributeType?: number;
 }
+
+/**
+ * The other shape: a skill TP names DIRECTLY, with no id and no lookup. Only
+ * `specialRuleName` -- a star player's own exclusive skill, published as a
+ * sibling of the `skills` array rather than an entry inside it -- arrives
+ * this way. It is merged into the same `skills` list so it is resolved and
+ * category-checked down the existing starting-skill path, with no separate
+ * pipeline; what marks it as exclusive is its curated `unique` category, not
+ * this shape.
+ */
+export interface TpPositionSkillNameRef {
+  name: string;
+}
+
+export type TpPositionSkillRef = TpPositionSkillIdRef | TpPositionSkillNameRef;
 
 /**
  * One race on TP's official team list for one rules set. `teamRaceCode` is
@@ -107,11 +124,18 @@ const SkillsField = {
   skills: z.array(SkillRefSchema).default([]),
 };
 
+const SpecialRuleField = {
+  // A star player's own exclusive skill, published as a plain name beside
+  // the skills array. Optional: only stars carry one.
+  specialRuleName: z.string().optional(),
+};
+
 const LineUpMasterSchema = z.object({
   id: z.number().optional(),
   position: z.string(),
   ...CharacteristicsFields,
   ...SkillsField,
+  ...SpecialRuleField,
 });
 
 /**
@@ -128,6 +152,7 @@ const StarPlayerMasterSchema = z.object({
   availableTeamSpecialRules: z.number().int().optional(),
   ...CharacteristicsFields,
   ...SkillsField,
+  ...SpecialRuleField,
 });
 
 const RosterMasterSchema = z.object({
@@ -226,15 +251,24 @@ export class OfficialTeamsParserService {
         passing: entry.pa,
         armour: entry.av,
       },
-      skills: entry.skills.map((skill) => ({
-        skillMasterId: skill.skillMasterId,
-        ...(skill.skillAttributeMaster === undefined
-          ? {}
-          : {
-              attributeValue: skill.skillAttributeMaster.value,
-              attributeType: skill.skillAttributeMaster.type,
-            }),
-      })),
+      skills: [
+        ...entry.skills.map((skill) => ({
+          skillMasterId: skill.skillMasterId,
+          ...(skill.skillAttributeMaster === undefined
+            ? {}
+            : {
+                attributeValue: skill.skillAttributeMaster.value,
+                attributeType: skill.skillAttributeMaster.type,
+              }),
+        })),
+        // Unconditional rather than gated on isStarPlayer: no roster this
+        // importer reads (teamRosterType 0 or 1) carries the field on a
+        // non-star entry, so a gate would guard a case the data proves
+        // unreachable.
+        ...(entry.specialRuleName === undefined
+          ? []
+          : [{ name: entry.specialRuleName }]),
+      ],
     };
   }
 }

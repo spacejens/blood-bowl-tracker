@@ -118,6 +118,10 @@ export class TpPositionSkillsImportService {
    * (`HatredTargetService`, see docs/import-tp/index.md, "Hatred target
    * codes") is composed normally instead, with the named target as its
    * attribute value.
+   *
+   * A reference TP named directly rather than by id (a star's own
+   * `specialRuleName`) needs no lookup at all and is passed straight
+   * through as its own `StartingSkillRef`.
    */
   private resolveNames(options: {
     positionId: number;
@@ -147,6 +151,13 @@ export class TpPositionSkillsImportService {
       rulesSetNamesById.get(rulesSetId) ?? `id ${rulesSetId}`;
     const names: StartingSkillRef[] = [];
     for (const ref of refs) {
+      if ('name' in ref) {
+        // TP named this skill directly (a star's own specialRuleName), so
+        // there is no id to look up and no attribute value to compose. Its
+        // curated `unique` category is what marks it exclusive downstream.
+        names.push({ name: ref.name });
+        continue;
+      }
       const name = skillNamesByMasterId.get(ref.skillMasterId);
       if (name === undefined) {
         if (!reportedIds.has(ref.skillMasterId)) {

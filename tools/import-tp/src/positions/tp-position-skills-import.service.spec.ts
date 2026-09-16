@@ -318,4 +318,28 @@ describe('TpPositionSkillsImportService', () => {
       expect.any(Array),
     );
   });
+
+  it("merges a star's name-carried exclusive skill in alongside its ordinary skills", async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(2);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 87 }, { name: 'The Ballista' }]]])],
+      ]),
+      skillNamesByMasterId: new Map([[87, 'Dodge']]),
+      positionNamesById: new Map([[3, "Morg 'n' Thorg"]]),
+      rulesSetNamesById: new Map([[7, 'BB2025']]),
+    });
+
+    // A name-carried reference needs no id lookup, so it can never produce
+    // the unresolvable-skillMasterId error the id path reports.
+    expect(result.errors).toEqual([]);
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([
+        [3, new Map([[7, [{ name: 'Dodge' }, { name: 'The Ballista' }]]])],
+      ]),
+      new Map([[7, 'BB2025']]),
+      [],
+    );
+  });
 });

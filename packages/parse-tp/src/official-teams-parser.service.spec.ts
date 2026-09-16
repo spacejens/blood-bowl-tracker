@@ -305,7 +305,7 @@ describe('OfficialTeamsParserService', () => {
         passing: 3,
         armour: 10,
       },
-      skills: [],
+      skills: [{ name: 'Consummate Professional' }],
     });
   });
 
@@ -516,6 +516,43 @@ describe('OfficialTeamsParserService', () => {
     });
 
     expect(races[0].positions[0].skills).toEqual([]);
+  });
+
+  it("carries a star's own specialRuleName through as a name-carrying skill reference", () => {
+    const races = service.parse({
+      rosterMasters: [
+        {
+          name: 'Ogre',
+          teamRace: 'Ogre_BB2025',
+          teamRosterType: 0,
+          teamSpecialRules: 1,
+          selectableTeamSpecialRules: 0,
+          lineUpMasters: [],
+        },
+      ],
+      starplayerMasters: [
+        {
+          id: 901,
+          position: "Morg 'n' Thorg",
+          availableTeamSpecialRules: 1,
+          ma: 6,
+          st: 6,
+          ag: 3,
+          pa: 4,
+          av: 11,
+          specialRuleName: 'The Ballista',
+          skills: [{ skillMasterId: 87 }],
+        },
+      ],
+    });
+
+    // The exclusive skill is a sibling of the skills array in TP's payload,
+    // not an entry inside it; it is merged in here so the importer resolves
+    // it down the same path as any other starting skill.
+    expect(races[0]?.positions[0]?.skills).toEqual([
+      { skillMasterId: 87 },
+      { name: 'The Ballista' },
+    ]);
   });
 
   it('throws naming the failing field on a shape mismatch', () => {
