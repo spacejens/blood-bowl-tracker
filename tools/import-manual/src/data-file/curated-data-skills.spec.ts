@@ -173,6 +173,14 @@ describe('curated data files - skills', () => {
     expect(crp.length).toBeGreaterThan(0);
   });
 
+  it('curates CRP+ starting skills', () => {
+    const crpPlus = positionSkillsFile().positionRulesSetSkills.filter(
+      (entry) => entry.rulesSet.id === 'CRP+',
+    );
+
+    expect(crpPlus.length).toBeGreaterThan(0);
+  });
+
   it('curates the Stunty Leeg races CRP itself does not list', () => {
     const ids = new Set(
       positionSkillsFile().positionRulesSetSkills.map(
