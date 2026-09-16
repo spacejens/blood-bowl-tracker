@@ -182,6 +182,40 @@ describe('StartingSkillsImportService', () => {
     );
   });
 
+  it('caches a category-read failure so a second occurrence of the same skill neither re-reads nor re-reports', async () => {
+    skills.upsert.mockResolvedValue(upserted(5, 'Dodge'));
+    skillRulesSets.listSkillRulesSets.mockImplementation(
+      (_skillId, listErrors) => {
+        listErrors.push({
+          item: { skillRulesSets: 5 },
+          message: 'Failed to list categories for skill 5: boom',
+        });
+        return Promise.resolve(undefined);
+      },
+    );
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([
+        [3, new Map([[4, ['Dodge']]])],
+        [7, new Map([[9, ['Dodge']]])],
+      ]),
+      new Map([
+        [4, 'CRP'],
+        [9, 'BB2020'],
+      ]),
+      errors,
+    );
+
+    expect(synced).toBe(0);
+    expect(skillRulesSets.listSkillRulesSets).toHaveBeenCalledTimes(1);
+    expect(positionSkills.syncPositionRulesSetSkills).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe(
+      'Failed to list categories for skill 5: boom',
+    );
+  });
+
   it('skips a skill whose upsert failed without adding a second error', async () => {
     skills.upsert.mockResolvedValue(undefined);
     const errors: ImportError[] = [];
