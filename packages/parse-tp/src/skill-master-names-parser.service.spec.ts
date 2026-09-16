@@ -29,7 +29,43 @@ describe('SkillMasterNamesParserService', () => {
       },
     });
 
-    expect(names).toEqual(new Map([[87, 'Dodge']]));
+    expect(names).toEqual(new Map([[87, { name: 'Dodge', isElite: false }]]));
+  });
+
+  it("reads BB2025's isElite marker off the skillMaster", () => {
+    const names = service.extract({
+      skills: [
+        {
+          skillMaster: { id: 220, name: 'Block', ruleSet: 25, isElite: true },
+        },
+      ],
+    });
+
+    expect(names).toEqual(new Map([[220, { name: 'Block', isElite: true }]]));
+  });
+
+  it('keeps isElite once any embedding of the same id marks it elite', () => {
+    // TP embeds the same skill master both in full and as a partial record
+    // that omits ruleSet and isElite; the partial one must not clear the flag.
+    const names = service.extract({
+      a: {
+        skillMaster: { id: 220, name: 'Block', ruleSet: 25, isElite: true },
+      },
+      b: { skillMaster: { id: 220, name: 'Block' } },
+    });
+
+    expect(names.get(220)).toEqual({ name: 'Block', isElite: true });
+  });
+
+  it('keeps isElite when the elite embedding comes last', () => {
+    const names = service.extract({
+      a: { skillMaster: { id: 220, name: 'Block' } },
+      b: {
+        skillMaster: { id: 220, name: 'Block', ruleSet: 25, isElite: true },
+      },
+    });
+
+    expect(names.get(220)).toEqual({ name: 'Block', isElite: true });
   });
 
   it('ignores a skillMaster with no usable id or name', () => {

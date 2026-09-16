@@ -53,16 +53,16 @@ describe('SkillMasterNameCollectionService', () => {
   it('merges the names found in every scanned file', async () => {
     seed([file('rosters_1.json', 'rosters'), file('match_2.json', 'match')]);
     parser.extract
-      .mockReturnValueOnce(new Map([[87, 'Dodge']]))
-      .mockReturnValueOnce(new Map([[120, 'Block']]));
+      .mockReturnValueOnce(new Map([[87, { name: 'Dodge', isElite: false }]]))
+      .mockReturnValueOnce(new Map([[120, { name: 'Block', isElite: false }]]));
 
     const errors: ImportError[] = [];
     const names = await service.collect(errors);
 
     expect(names).toEqual(
       new Map([
-        [87, 'Dodge'],
-        [120, 'Block'],
+        [87, { name: 'Dodge', isElite: false }],
+        [120, { name: 'Block', isElite: false }],
       ]),
     );
     expect(errors).toEqual([]);
@@ -85,12 +85,12 @@ describe('SkillMasterNameCollectionService', () => {
       .mockImplementationOnce(() => {
         throw new Error('boom');
       })
-      .mockReturnValueOnce(new Map([[87, 'Dodge']]));
+      .mockReturnValueOnce(new Map([[87, { name: 'Dodge', isElite: false }]]));
 
     const errors: ImportError[] = [];
     const names = await service.collect(errors);
 
-    expect(names).toEqual(new Map([[87, 'Dodge']]));
+    expect(names).toEqual(new Map([[87, { name: 'Dodge', isElite: false }]]));
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('rosters_1.json');
   });
@@ -103,13 +103,28 @@ describe('SkillMasterNameCollectionService', () => {
         throw new Error('scan blew up');
       })(),
     );
-    parser.extract.mockReturnValue(new Map([[87, 'Dodge']]));
+    parser.extract.mockReturnValue(
+      new Map([[87, { name: 'Dodge', isElite: false }]]),
+    );
 
     const errors: ImportError[] = [];
     const names = await service.collect(errors);
 
-    expect(names).toEqual(new Map([[87, 'Dodge']]));
+    expect(names).toEqual(new Map([[87, { name: 'Dodge', isElite: false }]]));
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('scan blew up');
+  });
+
+  it('keeps a skill elite when only one scanned file marks it so', async () => {
+    seed([file('rosters_1.json', 'rosters'), file('match_2.json', 'match')]);
+    parser.extract
+      .mockReturnValueOnce(new Map([[220, { name: 'Block', isElite: true }]]))
+      .mockReturnValueOnce(new Map([[220, { name: 'Block', isElite: false }]]));
+
+    const errors: ImportError[] = [];
+    const masters = await service.collect(errors);
+
+    expect(masters.get(220)).toEqual({ name: 'Block', isElite: true });
+    expect(errors).toEqual([]);
   });
 });

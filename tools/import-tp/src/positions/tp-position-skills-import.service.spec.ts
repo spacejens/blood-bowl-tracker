@@ -51,9 +51,9 @@ describe('TpPositionSkillsImportService', () => {
           ]),
         ],
       ]),
-      skillNamesByMasterId: new Map([
-        [87, 'Dodge'],
-        [154, 'Loner'],
+      skillMastersByMasterId: new Map([
+        [87, { name: 'Dodge', isElite: false }],
+        [154, { name: 'Loner', isElite: false }],
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
@@ -87,7 +87,9 @@ describe('TpPositionSkillsImportService', () => {
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 42, attributeValue: '+1' }]]])],
       ]),
-      skillNamesByMasterId: new Map([[42, 'Mighty Blow']]),
+      skillMastersByMasterId: new Map([
+        [42, { name: 'Mighty Blow', isElite: false }],
+      ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
@@ -117,7 +119,9 @@ describe('TpPositionSkillsImportService', () => {
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 87 }, { skillMasterId: 999 }]]])],
       ]),
-      skillNamesByMasterId: new Map([[87, 'Dodge']]),
+      skillMastersByMasterId: new Map([
+        [87, { name: 'Dodge', isElite: false }],
+      ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
@@ -139,7 +143,7 @@ describe('TpPositionSkillsImportService', () => {
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
-      skillNamesByMasterId: new Map(),
+      skillMastersByMasterId: new Map(),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
     });
@@ -155,7 +159,7 @@ describe('TpPositionSkillsImportService', () => {
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
-      skillNamesByMasterId: new Map(),
+      skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
     });
@@ -186,9 +190,9 @@ describe('TpPositionSkillsImportService', () => {
           ]),
         ],
       ]),
-      skillNamesByMasterId: new Map([
-        [87, 'Dodge'],
-        [269, 'Animosity'],
+      skillMastersByMasterId: new Map([
+        [87, { name: 'Dodge', isElite: false }],
+        [269, { name: 'Animosity', isElite: false }],
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
@@ -229,7 +233,9 @@ describe('TpPositionSkillsImportService', () => {
           ]),
         ],
       ]),
-      skillNamesByMasterId: new Map([[269, 'Animosity']]),
+      skillMastersByMasterId: new Map([
+        [269, { name: 'Animosity', isElite: false }],
+      ]),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
     });
@@ -245,7 +251,7 @@ describe('TpPositionSkillsImportService', () => {
         [3, new Map([[7, [{ skillMasterId: 999 }]]])],
         [4, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
-      skillNamesByMasterId: new Map(),
+      skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
     });
@@ -260,7 +266,7 @@ describe('TpPositionSkillsImportService', () => {
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 999 }]]])],
       ]),
-      skillNamesByMasterId: new Map(),
+      skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
     });
@@ -269,6 +275,27 @@ describe('TpPositionSkillsImportService', () => {
       new Map(),
       new Map(),
       expect.any(Array),
+    );
+  });
+
+  it("threads TP's elite marker into the starting skill ref", async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[9, [{ skillMasterId: 220 }]]])],
+      ]),
+      skillMastersByMasterId: new Map([
+        [220, { name: 'Block', isElite: true }],
+      ]),
+      positionNamesById: new Map([[3, 'Blitzer']]),
+      rulesSetNamesById: new Map([[9, 'BB2025']]),
+    });
+
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[9, [{ name: 'Block', isElite: true }]]])]]),
+      expect.anything(),
+      expect.anything(),
     );
   });
 });
