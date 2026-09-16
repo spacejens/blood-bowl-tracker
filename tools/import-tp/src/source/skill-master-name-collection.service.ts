@@ -20,9 +20,16 @@ const SKILL_MASTER_FILE_TYPES = ['rosters', 'match'] as const;
  *
  * Uses `TpSourceReader.filesOfType` (not the unfiltered `files()`) so only
  * `rosters` and `match` files are read and JSON-parsed -- the only two file
- * types that ever carry a `skillMaster` object -- rather than paying to
- * re-read every file in the mirror a second time (RosterCollectionService
- * already makes one full pass for a different purpose).
+ * types that ever carry a `skillMaster` object. This is a correctness/clarity
+ * filter, not a meaningful performance win: `awards`, `inscriptions`, and
+ * `tournament` files together are only ~3% of a real mirror's bytes, so
+ * excluding them barely reduces the actual work. `rosters` and `match` --
+ * the two types this still reads in full -- are ~97% of the mirror (`match`
+ * alone ~82%), and RosterCollectionService already makes its own full pass
+ * over the same files for a different purpose, so this remains a genuine
+ * second full read-and-parse of nearly the whole mirror. Folding this scan
+ * into RosterCollectionService's existing pass would be the real fix for
+ * that double-scan cost; left as a follow-up, out of scope here.
  *
  * Mirrors RosterCollectionService.collect: one streaming pass, a per-file
  * failure recorded and skipped, a scan failure recorded with whatever was
