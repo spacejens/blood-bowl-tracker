@@ -87,13 +87,25 @@ export class StartingSkillsImportService {
     let synced = 0;
     for (const [positionId, refsByRulesSetId] of skillNamesByPositionId) {
       for (const [rulesSetId, refs] of refsByRulesSetId) {
-        const entries: {
-          positionId: number;
-          rulesSetId: number;
-          skillId: number;
-          attributeValue?: string;
-        }[] = [];
-        const seenSkillIds = new Set<number>();
+        /**
+         * Keyed by the resolved skill id, not the raw name/attributeValue
+         * pair: the stored row is keyed on (positionRulesSetId, skillId), so
+         * two refs that resolve to the same skill -- whether identical names
+         * or two spellings a curated merge folds into one skill, e.g.
+         * "Claw"/"Claws" -- would otherwise both reach the sync call and get
+         * the whole batch rejected as a duplicate pair.
+         */
+        const entriesBySkillId = new Map<
+          number,
+          {
+            positionId: number;
+            rulesSetId: number;
+            skillId: number;
+            attributeValue?: string;
+          }
+        >();
+        /** Skill ids dropped for conflicting attribute values, never re-added. */
+        const excludedSkillIds = new Set<number>();
         for (const ref of refs) {
           const { name, attributeValue } = ref;
           const skillId = await this.resolveSkillId({
@@ -102,19 +114,41 @@ export class StartingSkillsImportService {
             skillIdsByName,
             errors,
           });
-          if (skillId === undefined) {
+          if (skillId === undefined || excludedSkillIds.has(skillId)) {
             continue;
           }
-          // Dedupe on the resolved skill id, not the raw name/attributeValue
-          // pair: the stored row is keyed on (positionRulesSetId, skillId),
-          // so two refs that resolve to the same skill -- whether identical
-          // names or two spellings a curated merge folds into one skill,
-          // e.g. "Claw"/"Claws" -- would otherwise both reach the sync call
-          // and get the whole batch rejected as a duplicate pair.
-          if (seenSkillIds.has(skillId)) {
+          const existing = entriesBySkillId.get(skillId);
+          if (existing !== undefined) {
+            if (
+              existing.attributeValue !== undefined &&
+              attributeValue !== undefined &&
+              existing.attributeValue !== attributeValue
+            ) {
+              // Two refs for the same skill disagree on its attribute value
+              // (e.g. two positions' raw data both list this skill but one
+              // carries a stale or mistranscribed value) -- there is no
+              // correct value to pick, so drop the skill entirely rather
+              // than silently keep whichever ref happened to resolve first.
+              entriesBySkillId.delete(skillId);
+              excludedSkillIds.add(skillId);
+              errors.push(
+                this.importResults.error({
+                  item: { skill: name, positionId, rulesSetId },
+                  message:
+                    `Skill "${name}" was listed with conflicting attribute ` +
+                    `values ("${existing.attributeValue}" and ` +
+                    `"${attributeValue}") for position ${positionId} under ` +
+                    `rules set ${rulesSetId}, so it is left out of that ` +
+                    "position's starting skills there.",
+                }),
+              );
+              continue;
+            }
+            // Keep whichever ref actually carries a value; two undefineds or
+            // two identical values need no change.
+            existing.attributeValue ??= attributeValue;
             continue;
           }
-          seenSkillIds.add(skillId);
           const rulesSetIds = await this.categoryRulesSetIds({
             name,
             skillId,
@@ -146,8 +180,14 @@ export class StartingSkillsImportService {
             }
             continue;
           }
-          entries.push({ positionId, rulesSetId, skillId, attributeValue });
+          entriesBySkillId.set(skillId, {
+            positionId,
+            rulesSetId,
+            skillId,
+            attributeValue,
+          });
         }
+        const entries = [...entriesBySkillId.values()];
         if (entries.length === 0) {
           continue;
         }

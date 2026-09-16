@@ -188,6 +188,74 @@ describe('StartingSkillsImportService', () => {
     );
   });
 
+  it('keeps a defined attribute value when a duplicate ref for the same skill has none', async () => {
+    skills.upsert.mockResolvedValue(upserted(5, 'Loner'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 4, category: 'general' },
+    ]);
+    positionSkills.syncPositionRulesSetSkills.mockResolvedValue({
+      positionRulesSetSkillIds: [1],
+    });
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([
+        [
+          3,
+          new Map([
+            [4, [{ name: 'Loner' }, { name: 'Loner', attributeValue: '4+' }]],
+          ]),
+        ],
+      ]),
+      new Map([[4, 'CRP']]),
+      errors,
+    );
+
+    expect(synced).toBe(1);
+    expect(positionSkills.syncPositionRulesSetSkills).toHaveBeenCalledWith(
+      {
+        entries: [
+          { positionId: 3, rulesSetId: 4, skillId: 5, attributeValue: '4+' },
+        ],
+      },
+      errors,
+    );
+  });
+
+  it('drops a skill and records an error when duplicate refs disagree on its attribute value', async () => {
+    skills.upsert.mockResolvedValue(upserted(5, 'Loner'));
+    skillRulesSets.listSkillRulesSets.mockResolvedValue([
+      { rulesSetId: 4, category: 'general' },
+    ]);
+    const errors: ImportError[] = [];
+
+    const synced = await service.syncStartingSkills(
+      new Map([
+        [
+          3,
+          new Map([
+            [
+              4,
+              [
+                { name: 'Loner', attributeValue: '4+' },
+                { name: 'Loner', attributeValue: '6+' },
+              ],
+            ],
+          ]),
+        ],
+      ]),
+      new Map([[4, 'CRP']]),
+      errors,
+    );
+
+    expect(synced).toBe(0);
+    expect(positionSkills.syncPositionRulesSetSkills).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('Loner');
+    expect(errors[0].message).toContain('4+');
+    expect(errors[0].message).toContain('6+');
+  });
+
   it('skips a skill with no curated category for that rules set and records an error', async () => {
     skills.upsert.mockResolvedValue(upserted(5, 'Dodge'));
     skillRulesSets.listSkillRulesSets.mockResolvedValue([

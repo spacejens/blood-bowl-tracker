@@ -27,11 +27,15 @@ export interface PositionStartingSkill {
   attributeValue: string | null;
 }
 
-/** One entry with its `position_rules_sets` row already resolved. */
+/**
+ * One entry with its `position_rules_sets` row already resolved.
+ * `attributeValue` stays `string | null | undefined` here, matching the
+ * entry's own overlay semantics: `undefined` means the entry said nothing.
+ */
 interface ResolvedStartingSkill {
   positionRulesSetId: number;
   skillId: number;
-  attributeValue: string | null;
+  attributeValue: string | null | undefined;
 }
 
 /**
@@ -137,10 +141,14 @@ export class PositionRulesSetSkillsService {
         );
       }
       seenKeys.add(key);
+      // `undefined` (the entry said nothing about attributeValue) is kept
+      // distinct from `null` (the entry explicitly clears it) all the way
+      // through to the existing-row check below -- overlay semantics, the
+      // same convention every upsert-style write in this codebase follows.
       resolved.push({
         positionRulesSetId: associationId,
         skillId: entry.skillId,
-        attributeValue: entry.attributeValue ?? null,
+        attributeValue: entry.attributeValue,
       });
     }
 
@@ -152,48 +160,68 @@ export class PositionRulesSetSkillsService {
         id: positionRulesSetSkills.id,
         positionRulesSetId: positionRulesSetSkills.positionRulesSetId,
         skillId: positionRulesSetSkills.skillId,
+        attributeValue: positionRulesSetSkills.attributeValue,
       })
       .from(positionRulesSetSkills)
       .where(
         inArray(positionRulesSetSkills.positionRulesSetId, associationIds),
       );
 
-    const existingIdByKey = new Map(
+    const existingRowByKey = new Map(
       existingRows.map((row) => [
         `${row.positionRulesSetId}|${row.skillId}`,
-        row.id,
+        row,
       ]),
     );
 
-    // A row's full identity is its (positionRulesSetId, skillId) key, and
-    // that is also its natural key — there is no other column left to
-    // change, so an entry matching an existing row needs no write at all;
-    // its id is simply carried through. Only entries with no existing row
-    // need an insert. `resultIds` is sized and indexed to `resolved` so the
-    // returned ids line up positionally with `data.entries`, regardless of
-    // which entries were pre-existing and which were newly inserted.
+    // A row's identity is its (positionRulesSetId, skillId) key, but
+    // attributeValue is a real mutable value on top of that identity -- an
+    // entry matching an existing row is updated when it supplies a
+    // different attributeValue, and left alone when it says nothing
+    // (`undefined`). Only entries with no existing row need an insert.
+    // `resultIds` is sized and indexed to `resolved` so the returned ids
+    // line up positionally with `data.entries`, regardless of which entries
+    // were pre-existing, updated, or newly inserted.
     const resultIds: number[] = new Array<number>(resolved.length);
     const toInsert: NewPositionRulesSetSkill[] = [];
     const toInsertIndexes: number[] = [];
+    const toUpdate: { id: number; attributeValue: string | null }[] = [];
     for (const [index, row] of resolved.entries()) {
-      const existingId = existingIdByKey.get(
+      const existing = existingRowByKey.get(
         `${row.positionRulesSetId}|${row.skillId}`,
       );
-      if (existingId === undefined) {
-        toInsert.push(row);
+      if (existing === undefined) {
+        toInsert.push({ ...row, attributeValue: row.attributeValue ?? null });
         toInsertIndexes.push(index);
-      } else {
-        resultIds[index] = existingId;
+        continue;
+      }
+      resultIds[index] = existing.id;
+      if (
+        row.attributeValue !== undefined &&
+        row.attributeValue !== existing.attributeValue
+      ) {
+        toUpdate.push({ id: existing.id, attributeValue: row.attributeValue });
       }
     }
 
-    if (toInsert.length === 0) {
+    if (toInsert.length === 0 && toUpdate.length === 0) {
       return { positionRulesSetSkillIds: resultIds };
     }
 
-    // One transaction around every insert: the caller treats this single
+    // One transaction around every write: the caller treats this single
     // call as one batch that either wholly succeeds or wholly fails.
     return this.db.transaction(async (tx) => {
+      for (const { id, attributeValue } of toUpdate) {
+        await tx
+          .update(positionRulesSetSkills)
+          .set({ attributeValue })
+          .where(eq(positionRulesSetSkills.id, id));
+      }
+
+      if (toInsert.length === 0) {
+        return { positionRulesSetSkillIds: resultIds };
+      }
+
       const inserted = await tx
         .insert(positionRulesSetSkills)
         .values(toInsert)
