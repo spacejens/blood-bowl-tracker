@@ -166,3 +166,74 @@ describe('TpPositionsImportService characteristics', () => {
     expect(characteristicsByPositionId.size).toBe(0);
   });
 });
+
+describe('TpPositionsImportService skills', () => {
+  it("records each position's skill references per rules set", async () => {
+    const { service } = await makeService(upsertAndSyncMocks(70));
+
+    const { skillRefsByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2020',
+          positions: [
+            officialPosition({
+              name: 'Dwarf Runner',
+              tpPositionId: 953,
+              characteristics: BB2020_STATS,
+              skills: [{ skillMasterId: 87 }],
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(skillRefsByPositionId.get(70)).toEqual(
+      new Map([[900, [{ skillMasterId: 87 }]]]),
+    );
+  });
+
+  it("lets an official roster's skills win over a legacy roster's for the same slot", async () => {
+    const { service } = await makeService(upsertAndSyncMocks(70));
+
+    const { skillRefsByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2020',
+          isOfficial: false,
+          positions: [
+            officialPosition({
+              name: 'Dwarf Runner',
+              tpPositionId: 953,
+              characteristics: BB2020_STATS,
+              skills: [{ skillMasterId: 1 }],
+            }),
+          ],
+        }),
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2020',
+          isOfficial: true,
+          positions: [
+            officialPosition({
+              name: 'Dwarf Runner',
+              tpPositionId: 953,
+              characteristics: BB2020_STATS,
+              skills: [{ skillMasterId: 2 }],
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(skillRefsByPositionId.get(70)?.get(900)).toEqual([
+      { skillMasterId: 2 },
+    ]);
+  });
+});

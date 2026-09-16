@@ -8,7 +8,10 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
-import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
+import type {
+  TpPositionCharacteristics,
+  TpPositionSkillRef,
+} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
@@ -30,18 +33,19 @@ interface PositionGroup {
   tpPositionIds: Set<number>;
   eraIds: Set<number>;
   /**
-   * Rules set DB id -> the characteristics on record for that slot, tagged
-   * with whether they came from an official roster. Official and legacy
-   * rosters can both carry the same (race, position, rules set) with
-   * different stats -- `recordCharacteristicsForRulesSet` is what makes
+   * Rules set DB id -> the characteristics and skills on record for that
+   * slot, tagged with whether they came from an official roster. Official
+   * and legacy rosters can both carry the same (race, position, rules set)
+   * with different stats -- `recordCharacteristicsForRulesSet` is what makes
    * official win regardless of processing order.
    */
   characteristics: Map<number, CharacteristicsSource>;
 }
 
-/** One rules set's characteristics, tagged with the roster kind they came from. */
+/** One rules set's characteristics and skills, tagged with the roster kind they came from. */
 interface CharacteristicsSource {
   characteristics: TpPositionCharacteristics;
+  skills: TpPositionSkillRef[];
   isOfficial: boolean;
 }
 
@@ -99,6 +103,7 @@ export class TpPositionsImportService {
       number,
       Map<number, TpPositionCharacteristics>
     >;
+    skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
   }> {
     const { raceNamesById } = options;
     let imported = 0;
@@ -106,6 +111,10 @@ export class TpPositionsImportService {
     const characteristicsByPositionId = new Map<
       number,
       Map<number, TpPositionCharacteristics>
+    >();
+    const skillRefsByPositionId = new Map<
+      number,
+      Map<number, TpPositionSkillRef[]>
     >();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
@@ -118,6 +127,7 @@ export class TpPositionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         characteristicsByPositionId,
+        skillRefsByPositionId,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -135,6 +145,7 @@ export class TpPositionsImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         characteristicsByPositionId,
+        skillRefsByPositionId,
       };
     }
 
@@ -214,6 +225,7 @@ export class TpPositionsImportService {
               group,
               rulesSetId,
               characteristics: position.characteristics,
+              skills: position.skills,
               isOfficial: race.isOfficial,
             });
           }
@@ -237,8 +249,9 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
-      this.recordCharacteristics({
+      this.recordGroupOutputs({
         characteristicsByPositionId,
+        skillRefsByPositionId,
         positionId: upserted.id,
         group,
       });
@@ -257,28 +270,35 @@ export class TpPositionsImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       characteristicsByPositionId,
+      skillRefsByPositionId,
     };
   }
 
   /**
-   * Record one rules set's characteristics onto a group, letting an official
-   * value win over a legacy one regardless of processing order. A legacy
-   * value is dropped when the slot already holds an official one; otherwise
-   * (the slot is empty, or the new value is itself official) the new value
-   * is recorded, so official can still overwrite legacy that arrived first.
+   * Record one rules set's characteristics and skills onto a group, letting
+   * an official value win over a legacy one regardless of processing order.
+   * A legacy value is dropped when the slot already holds an official one;
+   * otherwise (the slot is empty, or the new value is itself official) the
+   * new value is recorded, so official can still overwrite legacy that
+   * arrived first.
    */
   private recordCharacteristicsForRulesSet(options: {
     group: PositionGroup;
     rulesSetId: number;
     characteristics: TpPositionCharacteristics;
+    skills: TpPositionSkillRef[];
     isOfficial: boolean;
   }): void {
-    const { group, rulesSetId, characteristics, isOfficial } = options;
+    const { group, rulesSetId, characteristics, skills, isOfficial } = options;
     const existing = group.characteristics.get(rulesSetId);
     if (existing?.isOfficial === true && !isOfficial) {
       return;
     }
-    group.characteristics.set(rulesSetId, { characteristics, isOfficial });
+    group.characteristics.set(rulesSetId, {
+      characteristics,
+      skills,
+      isOfficial,
+    });
   }
 
   /** The group for one (raceId, position name), created on first use. */
@@ -355,34 +375,46 @@ export class TpPositionsImportService {
   }
 
   /**
-   * Merge one group's per-rules-set characteristics into the map keyed by the
-   * DB position id its upsert resolved to. Two groups can share one row -- a
-   * star available to several races produces one `PositionGroup` per race
-   * (the group key includes `raceId`), each upserting to the SAME row -- so
-   * each contributes its own rules sets; which of an official or legacy
-   * source wins for a given slot was already decided by
+   * Merge one group's per-rules-set characteristics and skills into the maps
+   * keyed by the DB position id its upsert resolved to. Two groups can share
+   * one row -- a star available to several races produces one `PositionGroup`
+   * per race (the group key includes `raceId`), each upserting to the SAME
+   * row -- so each contributes its own rules sets; which of an official or
+   * legacy source wins for a given slot was already decided by
    * `recordCharacteristicsForRulesSet` while the group was built, so this
    * step only unwraps the tagged value.
    */
-  private recordCharacteristics(options: {
+  private recordGroupOutputs(options: {
     characteristicsByPositionId: Map<
       number,
       Map<number, TpPositionCharacteristics>
     >;
+    skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
     positionId: number;
     group: PositionGroup;
   }): void {
-    const { characteristicsByPositionId, positionId, group } = options;
+    const {
+      characteristicsByPositionId,
+      skillRefsByPositionId,
+      positionId,
+      group,
+    } = options;
     if (group.characteristics.size === 0) {
       return;
     }
-    let existing = characteristicsByPositionId.get(positionId);
-    if (existing === undefined) {
-      existing = new Map();
-      characteristicsByPositionId.set(positionId, existing);
+    let existingCharacteristics = characteristicsByPositionId.get(positionId);
+    if (existingCharacteristics === undefined) {
+      existingCharacteristics = new Map();
+      characteristicsByPositionId.set(positionId, existingCharacteristics);
+    }
+    let existingSkills = skillRefsByPositionId.get(positionId);
+    if (existingSkills === undefined) {
+      existingSkills = new Map();
+      skillRefsByPositionId.set(positionId, existingSkills);
     }
     for (const [rulesSetId, source] of group.characteristics) {
-      existing.set(rulesSetId, source.characteristics);
+      existingCharacteristics.set(rulesSetId, source.characteristics);
+      existingSkills.set(rulesSetId, source.skills);
     }
   }
 }
