@@ -180,6 +180,31 @@
     { name: 'Decay', externalIds: [{ system: 'Name', id: 'Decay' }] },
     { name: 'Right Stuff', externalIds: [{ system: 'Name', id: 'Right Stuff' }] },
     { name: 'Stunty', externalIds: [{ system: 'Name', id: 'Stunty' }] },
+
+    // --- CRP+-only skills: genuinely new, not part of CRP's own 76-skill
+    // catalog (NTBB2015.pdf p.2, "THE CRP+ RULES") ---
+    // NTBB2015's own rule text ("1) 'Pile On (Strength): ...'") gives this a
+    // full quoted skill description and its own (Strength) label, distinct
+    // from CRP's existing "Piling On" (already registered above). Per this
+    // file's own convention (see header comment on literal spellings), a
+    // differently-spelled name is a distinct skill here rather than an
+    // implied rename -- the source itself never says CRP+ removes or renames
+    // "Piling On", only that it adds this new, similarly-themed skill.
+    { name: 'Pile On', externalIds: [{ system: 'Name', id: 'Pile On' }] },
+
+    // --- BB2016-only skill: not part of CRP's catalog, and not one of the
+    // six skills BB-Teams-of-Legend-Revised-1.pdf itself labels "NEW SKILL"
+    // with an explicit category (those six -- Bombardier, Ball & Chain,
+    // Chainsaw, Animosity, Titchy, Blood Lust -- are all already registered
+    // above from CRP, under matching spellings). "Timmm-ber!" appears only
+    // in the Treeman's skill list (p.5, Halfling roster) with no skill
+    // description or category heading anywhere in this document.
+    // TODO: verify -- category guessed as 'trait' (Extraordinary) by analogy
+    // with this file's other Treeman/Treeman-adjacent special-ability
+    // skills (Take Root, Throw Team-Mate is Trait too), since nothing in
+    // either source PDF states its category; confirm against the full BB2016
+    // core rulebook, which is out of scope for this file.
+    { name: 'Timmm-ber!', externalIds: [{ system: 'Name', id: 'Timmm-ber!' }] },
   ],
   skillRulesSets: [
     // --- CRP: General skills (CRP p.21) ---
@@ -281,5 +306,175 @@
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'CRP' }, category: 'trait' },
+
+    // --- CRP+ (NTBB2015.pdf): "Narrow-Tier Blood Bowl 2015" describes
+    // itself as 10 house-rule changes layered on top of CRP (p.2, "THE CRP+
+    // RULES"), none of which remove a skill from CRP's own catalog -- the
+    // on-pitch changes only touch Claw, Sneaky Git and Right Stuff's rules
+    // text, all under their existing CRP names/categories (cross-checked
+    // against every team roster, pp.3-8). CRP+'s category table therefore
+    // mirrors CRP's p.21 table row for row (same skill, same category),
+    // plus the one genuinely new skill CRP+ itself adds and labels with its
+    // own category, "Pile On (Strength)" (p.2, rule 1). ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pass Block' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick-Off Return' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'general' },
+
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    // NTBB2015 p.2, rule 4 rewrites Sneaky Git's K.O.-recovery text but
+    // keeps its name and (Agility) category.
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'agility' },
+
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'passing' },
+
+    { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Piling On' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+    // NTBB2015 p.2, rule 1: a new, distinct skill from "Piling On" above --
+    // see the `skills` entry's comment for why this is a separate name.
+    { skill: { system: 'Name', id: 'Pile On' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'strength' },
+
+    { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    // NTBB2015 p.2, rule 2 restates Claw's rules text under its (Mutation)
+    // category, matching CRP's own Claw/Claws entries.
+    { skill: { system: 'Name', id: 'Claw' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'mutation' },
+
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Fan Favourite' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    // NTBB2015 p.2, rule 5 adds text to Right Stuff but keeps its name and
+    // (Extraordinary/trait) category.
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stakes' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-head' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'CRP+' }, category: 'trait' },
+
+    // --- BB2016 (BB-Teams-of-Legend-Revised-1.pdf): unlike CRP+, this is not
+    // a house-rule variant but an official Games Workshop product bringing
+    // legacy CRP-era teams into the then-current (2016) Blood Bowl edition
+    // (p.1, introduction). Rather than assume it shares CRP's entire skill
+    // catalog, this section curates only the skills actually evidenced in
+    // this specific document: every skill named on its team rosters
+    // (pp.1-9), plus the six skills its own "NEW SKILL" sections define with
+    // an explicit category label -- Animosity (p.2, "(EXTRAORDINARY)"),
+    // Bombardier, Ball & Chain and Chainsaw (all p.4, "(EXTRAORDINARY)"),
+    // Titchy (p.8, "(EXTRAORDINARY)") and Blood Lust (p.9,
+    // "(EXTRAORDINARY)"). CRP's Extraordinary category maps to 'trait' per
+    // the task's category mapping; all six are spelled identically to their
+    // already-registered CRP entries. Categories for the remaining,
+    // unlabelled roster skills are taken from CRP's own p.21 table, since
+    // named skills carry the same category across every edition cross-
+    // checked in this file (no in-document category conflict was found). ---
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+
+    { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+
+    { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+
+    { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+
+    { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bone-head' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Take Root' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    // TODO: verify -- the Treeman's "Timmm-ber!" skill (p.5, Halfling
+    // roster) has no skill description or category heading anywhere in
+    // either source PDF; category guessed as 'trait' by analogy with the
+    // Treeman's other special-ability skills (see the `skills` entry's
+    // comment). Confirm against the full BB2016 core rulebook.
+    { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
   ],
 }

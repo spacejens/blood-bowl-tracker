@@ -56,6 +56,20 @@ describe('curated data files - skills', () => {
     expect(crp.length).toBeGreaterThan(0);
   });
 
+  it('curates categories for CRP+ and BB2016 as well as CRP', () => {
+    const byRulesSet = new Map<string, number>();
+    for (const entry of skillsFile().skillRulesSets) {
+      byRulesSet.set(
+        entry.rulesSet.id,
+        (byRulesSet.get(entry.rulesSet.id) ?? 0) + 1,
+      );
+    }
+
+    expect(byRulesSet.get('CRP')).toBeGreaterThan(0);
+    expect(byRulesSet.get('CRP+')).toBeGreaterThan(0);
+    expect(byRulesSet.get('BB2016')).toBeGreaterThan(0);
+  });
+
   it('pre-registers every skill referenced by skillRulesSets, not just CRP-only skills', () => {
     const data = skillsFile();
     const skillNames = new Set(data.skills.map((skill) => skill.name));
