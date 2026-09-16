@@ -103,4 +103,73 @@ describe('curated data files - skills', () => {
       expect(skillNames.has(entry.skill.id)).toBe(true);
     }
   });
+
+  const positionSkillsFile = () =>
+    readFile('after-other-importers', 'position-skills.json5');
+
+  it('references positions, rules sets and skills through the Name system', () => {
+    const data = positionSkillsFile();
+
+    expect(data.positionRulesSetSkills.length).toBeGreaterThan(0);
+    for (const entry of data.positionRulesSetSkills) {
+      expect(entry.position.system).toBe('Name');
+      expect(entry.rulesSet.system).toBe('Name');
+      for (const skill of entry.skills) {
+        expect(skill.system).toBe('Name');
+      }
+    }
+  });
+
+  it('only curates pairs that already have curated characteristics', () => {
+    const pairs = new Set(
+      readFile(
+        'after-other-importers',
+        'position-characteristics.json5',
+      ).positionRulesSets.map(
+        (entry) => `${entry.position.id}|${entry.rulesSet.id}`,
+      ),
+    );
+
+    for (const entry of positionSkillsFile().positionRulesSetSkills) {
+      // position_rules_set_skills hangs off the position_rules_sets row, so
+      // the API rejects any pair with no characteristics recorded.
+      expect(pairs).toContain(`${entry.position.id}|${entry.rulesSet.id}`);
+    }
+  });
+
+  it('names only skills the curated category table gives that rules set', () => {
+    const curated = new Set(
+      readFile('before-other-importers', 'skills.json5').skillRulesSets.map(
+        (entry) => `${entry.skill.id}|${entry.rulesSet.id}`,
+      ),
+    );
+
+    for (const entry of positionSkillsFile().positionRulesSetSkills) {
+      for (const skill of entry.skills) {
+        // The API rejects a starting skill the rules set does not have.
+        expect(curated).toContain(`${skill.id}|${entry.rulesSet.id}`);
+      }
+    }
+  });
+
+  it('lists each (position, rules set) at most once and repeats no skill within one', () => {
+    const seen = new Set<string>();
+
+    for (const entry of positionSkillsFile().positionRulesSetSkills) {
+      const key = `${entry.position.id}|${entry.rulesSet.id}`;
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+      const ids = entry.skills.map((skill) => skill.id);
+      // The API rejects a batch repeating the same triple.
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+
+  it('curates CRP starting skills', () => {
+    const crp = positionSkillsFile().positionRulesSetSkills.filter(
+      (entry) => entry.rulesSet.id === 'CRP',
+    );
+
+    expect(crp.length).toBeGreaterThan(0);
+  });
 });
