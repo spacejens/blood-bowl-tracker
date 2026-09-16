@@ -32,7 +32,11 @@ const UNIQUE_SKILL_MARKER = '★ ';
  *
  * Skills are appended after a single space with no separating punctuation:
  * an em dash was considered and rejected as confusable with the `N+`
- * characteristic notation this same line already uses.
+ * characteristic notation this same line already uses. `skills` is expected
+ * to already be in display order (`listByPosition` orders by skill name), so
+ * a star's `unique`-category skill falls wherever its name sorts rather than
+ * always leading or trailing the list -- only the `★ ` marker distinguishes
+ * it, not its position.
  *
  * Shared by the position deepdive and the star player deepdive -- a star is
  * stored as a `positions` row, so both views render the same shape and must
