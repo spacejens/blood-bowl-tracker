@@ -454,7 +454,47 @@ describe('OfficialTeamsParserService', () => {
 
     expect(races[0].positions[0].skills).toEqual([
       { skillMasterId: 87 },
-      { skillMasterId: 154, attributeValue: '4+' },
+      { skillMasterId: 154, attributeValue: '4+', attributeType: 0 },
+    ]);
+  });
+
+  it("carries the attribute's type through alongside its value, whatever the type", () => {
+    const races = service.parse({
+      rosterMasters: [
+        {
+          name: 'Dark Elf',
+          teamRace: 'darkelf_20',
+          teamRosterType: 0,
+          teamSpecialRules: 1,
+          selectableTeamSpecialRules: 0,
+          lineUpMasters: [
+            {
+              id: 269,
+              position: 'Black Ark Corsair',
+              ma: 6,
+              st: 3,
+              ag: 4,
+              pa: 4,
+              av: 8,
+              skills: [
+                {
+                  skillMasterId: 269,
+                  skillAttributeMaster: {
+                    type: 3,
+                    value: '111',
+                    id: 9,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      starplayerMasters: [],
+    });
+
+    expect(races[0].positions[0].skills).toEqual([
+      { skillMasterId: 269, attributeValue: '111', attributeType: 3 },
     ]);
   });
 

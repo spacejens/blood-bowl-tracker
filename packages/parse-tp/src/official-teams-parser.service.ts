@@ -28,10 +28,25 @@ export interface TpOfficialPosition {
  * One skill reference on an official-list entry. TP names the skill only by
  * `skillMasterId`; `attributeValue` is the parenthetical value it stores
  * separately (`"4+"` for Loner, `"+1"` for Mighty Blow).
+ *
+ * `attributeType` is TP's own tag for what kind of value `attributeValue`
+ * holds. Types 0 (dice-roll thresholds like `"4+"`), 1 (numeric bonuses like
+ * `"+1"`) and 2 (already-human-readable text like `"All"` or `"Goblin"`) are
+ * all safe to compose directly into a display name. Type 3 is a DIFFERENT,
+ * opaque numeric code (e.g. `"111"`, `"999"`) that does not resolve to a
+ * meaningful display value on its own -- it is an internal reference id TP's
+ * frontend must resolve via some other lookup this package does not have.
+ * The real downloaded mirror shows the same skillMasterId (269, Animosity)
+ * appearing with both a type-2 human-readable value (`"Black Ark Corsair"`)
+ * and a type-3 numeric value (`"111"`) on different entries, confirming type
+ * 3 is a distinct, unresolved encoding rather than just another composable
+ * value. Consumers must treat a type-3 reference as unresolvable rather than
+ * composing it as-is.
  */
 export interface TpPositionSkillRef {
   skillMasterId: number;
   attributeValue?: string;
+  attributeType?: number;
 }
 
 /**
@@ -81,7 +96,9 @@ const CharacteristicsFields = {
 
 const SkillRefSchema = z.object({
   skillMasterId: z.number().int(),
-  skillAttributeMaster: z.object({ value: z.string() }).optional(),
+  skillAttributeMaster: z
+    .object({ value: z.string(), type: z.number().int() })
+    .optional(),
 });
 
 const SkillsField = {
@@ -213,7 +230,10 @@ export class OfficialTeamsParserService {
         skillMasterId: skill.skillMasterId,
         ...(skill.skillAttributeMaster === undefined
           ? {}
-          : { attributeValue: skill.skillAttributeMaster.value }),
+          : {
+              attributeValue: skill.skillAttributeMaster.value,
+              attributeType: skill.skillAttributeMaster.type,
+            }),
       })),
     };
   }

@@ -64,9 +64,25 @@ describe('TpPositionSkillsImportService', () => {
     );
   });
 
+  it('composes a numeric-bonus attribute value into the name too', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 42, attributeValue: '+1' }]]])],
+      ]),
+      skillNamesByMasterId: new Map([[42, 'Mighty Blow']]),
+    });
+
+    expect(result.imported).toBe(1);
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[7, ['Mighty Blow (+1)']]])]]),
+      [],
+    );
+  });
+
   it('records an error for an unresolvable id and keeps the rest of the list', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
-    const errors: never[] = [];
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -82,7 +98,87 @@ describe('TpPositionSkillsImportService', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('999');
     expect(result.errors[0].message).toContain('3');
-    void errors;
+  });
+
+  it('records an error naming the rules set alongside the position', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 999 }]]])],
+      ]),
+      skillNamesByMasterId: new Map(),
+    });
+
+    expect(result.errors[0].message).toContain('rules set 7');
+  });
+
+  it('excludes a type-3 opaque attribute code and reports it, without blocking other skills', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [
+                { skillMasterId: 87 },
+                {
+                  skillMasterId: 269,
+                  attributeValue: '111',
+                  attributeType: 3,
+                },
+              ],
+            ],
+          ]),
+        ],
+      ]),
+      skillNamesByMasterId: new Map([
+        [87, 'Dodge'],
+        [269, 'Animosity'],
+      ]),
+    });
+
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[7, ['Dodge']]])]]),
+      expect.any(Array),
+    );
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain('269');
+    expect(result.errors[0].message).toContain('111');
+    expect(result.errors[0].message).toContain('3');
+  });
+
+  it('reports a type-3 opaque attribute code once, however many positions reference it', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+            ],
+          ]),
+        ],
+        [
+          4,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+            ],
+          ]),
+        ],
+      ]),
+      skillNamesByMasterId: new Map([[269, 'Animosity']]),
+    });
+
+    expect(result.errors).toHaveLength(1);
   });
 
   it('reports an unresolvable id once, however many positions reference it', async () => {

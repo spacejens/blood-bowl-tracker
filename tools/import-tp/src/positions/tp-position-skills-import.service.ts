@@ -49,6 +49,7 @@ export class TpPositionSkillsImportService {
   }: SyncTpPositionSkillsOptions): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
     const reportedIds = new Set<number>();
+    const reportedAttributeTypeThreeRefs = new Set<string>();
     const skillNamesByPositionId = new Map<number, Map<number, string[]>>();
 
     for (const [positionId, refsByRulesSetId] of skillRefsByPositionId) {
@@ -56,9 +57,11 @@ export class TpPositionSkillsImportService {
       for (const [rulesSetId, refs] of refsByRulesSetId) {
         const names = this.resolveNames({
           positionId,
+          rulesSetId,
           refs,
           skillNamesByMasterId,
           reportedIds,
+          reportedAttributeTypeThreeRefs,
           errors,
         });
         if (names.length > 0) {
@@ -81,17 +84,29 @@ export class TpPositionSkillsImportService {
    * Resolve one (position, rules set)'s raw skill references into display
    * names, composing any attribute value into the name and recording an
    * ImportError -- once per skillMasterId across the whole run -- for any id
-   * the lookup cannot explain.
+   * the lookup cannot explain. A reference whose attribute is TP's type 3 (an
+   * opaque numeric code, not a composable value -- see `TpPositionSkillRef`)
+   * is likewise recorded as an ImportError and left out, once per distinct
+   * (skillMasterId, attributeValue) pair across the whole run.
    */
   private resolveNames(options: {
     positionId: number;
+    rulesSetId: number;
     refs: TpPositionSkillRef[];
     skillNamesByMasterId: Map<number, string>;
     reportedIds: Set<number>;
+    reportedAttributeTypeThreeRefs: Set<string>;
     errors: ImportError[];
   }): string[] {
-    const { positionId, refs, skillNamesByMasterId, reportedIds, errors } =
-      options;
+    const {
+      positionId,
+      rulesSetId,
+      refs,
+      skillNamesByMasterId,
+      reportedIds,
+      reportedAttributeTypeThreeRefs,
+      errors,
+    } = options;
     const names: string[] = [];
     for (const ref of refs) {
       const name = skillNamesByMasterId.get(ref.skillMasterId);
@@ -103,9 +118,33 @@ export class TpPositionSkillsImportService {
               item: { position: positionId, skillMasterId: ref.skillMasterId },
               message:
                 `Could not resolve TP skill ${ref.skillMasterId} (first ` +
-                `seen on position ${positionId}): no downloaded roster or ` +
-                'match file names it, so it is left out of that ' +
-                "position's starting skills.",
+                `seen on position ${positionId}, rules set ${rulesSetId}): ` +
+                'no downloaded roster or match file names it, so it is ' +
+                "left out of that position's starting skills.",
+            }),
+          );
+        }
+        continue;
+      }
+      if (ref.attributeType === 3) {
+        const key = `${ref.skillMasterId}:${ref.attributeValue}`;
+        if (!reportedAttributeTypeThreeRefs.has(key)) {
+          reportedAttributeTypeThreeRefs.add(key);
+          errors.push(
+            this.importResults.error({
+              item: {
+                position: positionId,
+                skillMasterId: ref.skillMasterId,
+                attributeValue: ref.attributeValue,
+              },
+              message:
+                `TP skill ${ref.skillMasterId} (${name}) on position ` +
+                `${positionId} carries an attribute value of ` +
+                `"${ref.attributeValue}" as an unresolvable type-3 opaque ` +
+                'code, not a normal composable value: TP resolves that ' +
+                'code via a lookup this package does not have, so it is ' +
+                "left out of that position's starting skills rather than " +
+                'composed as-is.',
             }),
           );
         }
