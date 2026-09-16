@@ -324,6 +324,23 @@ describe('PositionPageParser', () => {
     expect(parser.extractPosition(page)?.skills).toEqual([]);
   });
 
+  it('reports no skills when the characteristics row has no sixth (Skills) cell', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<a href="default.asp?p=tl#16">Orc Team</a>' +
+        '<table>' +
+        '<tr class="trlisthead">' +
+        '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr class="trborder">' +
+        '<td>6</td><td>4</td><td>4+</td><td>6+</td><td>10+</td>' +
+        '</tr>' +
+        '</table>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.skills).toEqual([]);
+  });
+
   it('reports no skills when the page has no characteristics table', () => {
     const page = positionPage(
       '<h1>Orc Lineman</h1><a href="default.asp?p=tl#16">Orc Team</a>',
