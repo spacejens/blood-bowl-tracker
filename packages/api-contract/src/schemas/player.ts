@@ -40,6 +40,16 @@ export const PLAYER_LASTING_INJURY_KEYS = [
  * reduction the rules absorbed (the stat was already at its floor, or at the
  * rules' cap on reductions) moved nothing and so counts zero.
  */
+export const PlayerLastingInjuriesSchema = z.object({
+  missNextGame: z.boolean(),
+  nigglingInjuryCount: z.number().int().nonnegative(),
+  moveReductionCount: z.number().int().nonnegative(),
+  strengthReductionCount: z.number().int().nonnegative(),
+  agilityReductionCount: z.number().int().nonnegative(),
+  passingReductionCount: z.number().int().nonnegative(),
+  armourReductionCount: z.number().int().nonnegative(),
+});
+
 /**
  * The five characteristic-increase counts, in the same order as
  * `PLAYER_CHARACTERISTIC_KEYS`. Exported so consumers iterate the group
@@ -68,16 +78,6 @@ export const PlayerCharacteristicIncreasesSchema = z.object({
   agilityIncreaseCount: z.number().int().nonnegative(),
   passingIncreaseCount: z.number().int().nonnegative(),
   armourIncreaseCount: z.number().int().nonnegative(),
-});
-
-export const PlayerLastingInjuriesSchema = z.object({
-  missNextGame: z.boolean(),
-  nigglingInjuryCount: z.number().int().nonnegative(),
-  moveReductionCount: z.number().int().nonnegative(),
-  strengthReductionCount: z.number().int().nonnegative(),
-  agilityReductionCount: z.number().int().nonnegative(),
-  passingReductionCount: z.number().int().nonnegative(),
-  armourReductionCount: z.number().int().nonnegative(),
 });
 
 export const PlayerSchema = z.object({
