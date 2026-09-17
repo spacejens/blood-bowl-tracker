@@ -54,8 +54,9 @@ const TOP_PLAYERS_TOP_ENTRIES = 5;
  * this view exists -- with that rules set's starting skills. A rules set
  * whose Passing characteristic is `absent` omits the field entirely rather
  * than printing a placeholder, and one with no starting skills recorded
- * shows a dash in their place. The same service renders the star player
- * deepdive's lines, so the two views can never drift apart.
+ * shows no skills at all -- just its characteristics -- rather than a
+ * placeholder. The same service renders the star player deepdive's lines,
+ * so the two views can never drift apart.
  *
  * Each DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so
  * a timeout stays distinguishable from a genuine "not found" (`undefined`).
