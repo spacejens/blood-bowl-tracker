@@ -19,6 +19,7 @@
 {
   externalSystems: [
     { name: 'Name', category: 'bookkeeping' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
   ],
   skills: [
     { name: 'Blood Lust', externalIds: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Bloodlust' }] },

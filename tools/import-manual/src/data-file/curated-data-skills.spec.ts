@@ -332,6 +332,14 @@ describe('curated data files - skills', () => {
     });
   });
 
+  it('the after-file also registers the tourplay.net external system it re-asserts', () => {
+    const after = readFile('after-other-importers', 'skills.json5');
+    expect(after.externalSystems).toContainEqual({
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    });
+  });
+
   it('curates a numeric, unique tourplay.net id for every TP skill id no downloaded file names', () => {
     const data = skillsFile();
     const byTpId = new Map<string, string>();
