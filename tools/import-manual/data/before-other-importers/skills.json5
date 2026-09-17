@@ -136,6 +136,9 @@
     { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }] },
     { name: 'Pass', externalIds: [{ system: 'Name', id: 'Pass' }] },
     { name: 'Hail Mary Pass', externalIds: [{ system: 'Name', id: 'Hail Mary Pass' }] },
+    // BB2025-only; TP names it only on a skillMasterId no downloaded file
+    // ever embeds a name for -- see SkillMasterIdAliasService.
+    { name: 'Punt', externalIds: [{ system: 'Name', id: 'Punt' }] },
     { name: 'Safe Throw', externalIds: [{ system: 'Name', id: 'Safe Throw' }] },
     { name: 'Leader', externalIds: [{ system: 'Name', id: 'Leader' }] },
     { name: 'Break Tackle', externalIds: [{ system: 'Name', id: 'Break Tackle' }] },
@@ -247,6 +250,9 @@
     { name: 'Swoop', externalIds: [{ system: 'Name', id: 'Swoop' }] },
     { name: 'Taunt', externalIds: [{ system: 'Name', id: 'Taunt' }] },
     { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }] },
+    // BB2025-only; TP names it only on a skillMasterId no downloaded file
+    // ever embeds a name for -- see SkillMasterIdAliasService.
+    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }] },
     { name: 'Unchannelled Fury', externalIds: [{ system: 'Name', id: 'Unchannelled Fury' }] },
     { name: 'Unsteady', externalIds: [{ system: 'Name', id: 'Unsteady' }] },
 
@@ -1013,12 +1019,14 @@
     { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Bullseye' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Cloud Burster' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'On the Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Punt' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Safe Pair of Hands' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     // TODO: verify -- BB2020+ renamed CRP's "Safe Throw" to this; category carried over from CRP, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
@@ -1027,10 +1035,12 @@
     { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Iron Hard Skin' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Monstrous Mouth' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Fumblerooski' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'devious' },
     { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Animal Savagery' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
@@ -1038,6 +1048,7 @@
     { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Breathe Fire' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
@@ -1051,6 +1062,7 @@
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Lethal Flight' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'No Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
@@ -1070,6 +1082,7 @@
     { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Unsteady' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },

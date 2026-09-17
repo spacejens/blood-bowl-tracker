@@ -2,7 +2,11 @@ import {
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
-import { HatredTargetService } from '@blood-bowl-tracker/parse-tp';
+import {
+  AnimosityTargetService,
+  HatredTargetService,
+  SkillMasterIdAliasService,
+} from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -28,6 +32,8 @@ describe('TpPositionSkillsImportService', () => {
       providers: [
         TpPositionSkillsImportService,
         HatredTargetService,
+        AnimosityTargetService,
+        SkillMasterIdAliasService,
         { provide: StartingSkillsImportService, useValue: startingSkills },
         { provide: ImportResultService, useValue: importResults },
       ],
@@ -184,7 +190,7 @@ describe('TpPositionSkillsImportService', () => {
                 { skillMasterId: 87 },
                 {
                   skillMasterId: 269,
-                  attributeValue: '111',
+                  attributeValue: '54321',
                   attributeType: 3,
                 },
               ],
@@ -207,7 +213,7 @@ describe('TpPositionSkillsImportService', () => {
     );
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('269');
-    expect(result.errors[0].message).toContain('111');
+    expect(result.errors[0].message).toContain('54321');
     expect(result.errors[0].message).toContain('Blocker');
   });
 
@@ -267,7 +273,13 @@ describe('TpPositionSkillsImportService', () => {
           new Map([
             [
               7,
-              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+              [
+                {
+                  skillMasterId: 269,
+                  attributeValue: '54321',
+                  attributeType: 3,
+                },
+              ],
             ],
           ]),
         ],
@@ -298,7 +310,13 @@ describe('TpPositionSkillsImportService', () => {
           new Map([
             [
               7,
-              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+              [
+                {
+                  skillMasterId: 269,
+                  attributeValue: '54321',
+                  attributeType: 3,
+                },
+              ],
             ],
           ]),
         ],
@@ -307,7 +325,13 @@ describe('TpPositionSkillsImportService', () => {
           new Map([
             [
               7,
-              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+              [
+                {
+                  skillMasterId: 269,
+                  attributeValue: '54321',
+                  attributeType: 3,
+                },
+              ],
             ],
           ]),
         ],
@@ -383,7 +407,7 @@ describe('TpPositionSkillsImportService', () => {
               7,
               [
                 { name: 'Dodge', isElite: false },
-                { name: 'The Ballista' },
+                { name: 'The Ballista', isElite: false },
               ],
             ],
           ]),
@@ -413,5 +437,110 @@ describe('TpPositionSkillsImportService', () => {
       expect.anything(),
       expect.anything(),
     );
+  });
+
+  it('composes a type-3 Animosity reference whose opaque code the Animosity table explains', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 269, attributeValue: '111', attributeType: 3 }],
+            ],
+          ]),
+        ],
+      ]),
+      skillMastersByMasterId: new Map([
+        [269, { name: 'Animosity', isElite: false }],
+      ]),
+      positionNamesById: new Map([[3, 'Skaven Clanrat']]),
+      rulesSetNamesById: new Map([[7, 'BB2025']]),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ name: 'Animosity', attributeValue: 'Goblin', isElite: false }],
+            ],
+          ]),
+        ],
+      ]),
+      new Map([[7, 'BB2025']]),
+      [],
+    );
+  });
+
+  it("does not apply Hatred's own type-3 lookup to a different skillMasterId, even when the code coincidentally matches", async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    // 110 is a real Hatred target code (Undead), but this reference is for
+    // Animosity (skillMasterId 269), whose own table has no entry for 110 --
+    // Hatred's table must never be consulted for it.
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 269, attributeValue: '110', attributeType: 3 }],
+            ],
+          ]),
+        ],
+      ]),
+      skillMastersByMasterId: new Map([
+        [269, { name: 'Animosity', isElite: false }],
+      ]),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
+    });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
+  });
+
+  it('resolves a skillMasterId no downloaded file names via the alias table', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 181 }]]])],
+      ]),
+      skillMastersByMasterId: new Map(),
+      positionNamesById: new Map([[3, 'Dwarf Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[7, [{ name: 'Loner', isElite: false }]]])]]),
+      new Map([[7, 'BB2020']]),
+      [],
+    );
+  });
+
+  it('still reports a skillMasterId neither the scan nor the alias table explains', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 999_999 }]]])],
+      ]),
+      skillMastersByMasterId: new Map(),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
+    });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.message).toContain('Could not resolve');
   });
 });

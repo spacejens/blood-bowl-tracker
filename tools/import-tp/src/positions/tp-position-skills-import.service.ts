@@ -11,8 +11,17 @@ import type {
   TpPositionSkillRef,
   TpSkillMaster,
 } from '@blood-bowl-tracker/parse-tp';
-import { HatredTargetService } from '@blood-bowl-tracker/parse-tp';
+import {
+  AnimosityTargetService,
+  HatredTargetService,
+  SkillMasterIdAliasService,
+} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
+
+/** Hatred's own skillMasterId -- see HatredTargetService. */
+const HATRED_SKILL_MASTER_ID = 307;
+/** Animosity's own skillMasterId -- see AnimosityTargetService. */
+const ANIMOSITY_SKILL_MASTER_ID = 269;
 
 export interface SyncTpPositionSkillsOptions {
   /** positionId -> rulesSetId -> the skill references TP published there. */
@@ -64,6 +73,8 @@ export class TpPositionSkillsImportService {
     private readonly startingSkills: StartingSkillsImportService,
     private readonly importResults: ImportResultService,
     private readonly hatredTargets: HatredTargetService,
+    private readonly animosityTargets: AnimosityTargetService,
+    private readonly skillMasterIdAliases: SkillMasterIdAliasService,
   ) {}
 
   async syncPositionSkills({
@@ -119,10 +130,14 @@ export class TpPositionSkillsImportService {
    * type 3 (an opaque numeric code, not a composable value -- see
    * `TpPositionSkillRef`) is likewise recorded as an ImportError and left
    * out, once per distinct (skillMasterId, attributeValue) pair across the
-   * whole run. A type-3 code the Hatred lookup CAN explain
-   * (`HatredTargetService`, see docs/import-tp/index.md, "Hatred target
-   * codes") is composed normally instead, with the named target as its
-   * attribute value.
+   * whole run. A type-3 code Hatred's or Animosity's own lookup CAN explain
+   * (`HatredTargetService`/`AnimosityTargetService`, see
+   * docs/import-tp/index.md, "Hard-coded TP lookups") is composed normally
+   * instead, with the named target as its attribute value.
+   *
+   * An id no downloaded file ever names falls back to
+   * `SkillMasterIdAliasService` (same doc section) before being reported
+   * unresolved.
    *
    * A reference TP named directly rather than by id (a star's own
    * `specialRuleName`) needs no lookup at all and is passed straight
@@ -160,10 +175,15 @@ export class TpPositionSkillsImportService {
         // TP named this skill directly (a star's own specialRuleName), so
         // there is no id to look up and no attribute value to compose. Its
         // curated `unique` category is what marks it exclusive downstream.
-        names.push({ name: ref.name });
+        // specialRuleName carries no elite marker of its own -- `false`
+        // matches the convention a source with no concept of eliteness uses.
+        names.push({ name: ref.name, isElite: false });
         continue;
       }
-      const master = skillMastersByMasterId.get(ref.skillMasterId);
+      const master = this.resolveMaster(
+        ref.skillMasterId,
+        skillMastersByMasterId,
+      );
       if (master === undefined) {
         if (!reportedIds.has(ref.skillMasterId)) {
           reportedIds.add(ref.skillMasterId);
@@ -186,7 +206,7 @@ export class TpPositionSkillsImportService {
         const target =
           ref.attributeValue === undefined
             ? undefined
-            : this.hatredTargets.decode(ref.attributeValue);
+            : this.decodeTypeThreeTarget(ref.skillMasterId, ref.attributeValue);
         if (target !== undefined) {
           names.push({ name, attributeValue: target, isElite: master.isElite });
           continue;
@@ -225,5 +245,43 @@ export class TpPositionSkillsImportService {
       );
     }
     return names;
+  }
+
+  /**
+   * The `TpSkillMaster` a raw id resolves to: the scanned lookup first, then
+   * `SkillMasterIdAliasService` for an id no downloaded file ever names.
+   * An aliased id carries no eliteness signal of its own -- `false` matches
+   * the convention a source with no concept of eliteness uses.
+   */
+  private resolveMaster(
+    skillMasterId: number,
+    skillMastersByMasterId: Map<number, TpSkillMaster>,
+  ): TpSkillMaster | undefined {
+    const master = skillMastersByMasterId.get(skillMasterId);
+    if (master !== undefined) {
+      return master;
+    }
+    const aliasedName = this.skillMasterIdAliases.decode(skillMasterId);
+    return aliasedName === undefined
+      ? undefined
+      : { name: aliasedName, isElite: false };
+  }
+
+  /**
+   * The named target for a type-3 opaque code, scoped to the one
+   * `skillMasterId` its lookup was confirmed for -- Hatred's own codes never
+   * apply to Animosity's table or vice versa.
+   */
+  private decodeTypeThreeTarget(
+    skillMasterId: number,
+    attributeValue: string,
+  ): string | undefined {
+    if (skillMasterId === HATRED_SKILL_MASTER_ID) {
+      return this.hatredTargets.decode(attributeValue);
+    }
+    if (skillMasterId === ANIMOSITY_SKILL_MASTER_ID) {
+      return this.animosityTargets.decode(attributeValue);
+    }
+    return undefined;
   }
 }

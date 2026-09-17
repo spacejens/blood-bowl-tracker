@@ -24,9 +24,9 @@ describe('HatredTargetService', () => {
   );
 
   it('decodes a code that is not in the table to undefined', () => {
-    // 111 and 999 are real type-3 values the downloaded mirror carries on
-    // Animosity; they are deliberately absent from this table, and the
-    // importer must keep reporting them unresolved rather than mislabel them.
+    // 111 and 999 are real type-3 values the downloaded mirror carries, but
+    // on Animosity (skillMasterId 269), not Hatred -- AnimosityTargetService
+    // owns those, not this table.
     expect(service.decode('111')).toBeUndefined();
     expect(service.decode('999')).toBeUndefined();
   });

@@ -438,25 +438,36 @@ race's display name (`raceNamesById`), `team_eras` rows (which have no
 external ids of their own), classification and evidence sets, and matches and
 players (which have no resolve procedure).
 
-### Hatred target codes
+### Hard-coded TP lookups
 
 TP publishes a starting skill's parenthetical value as a `skillAttributeMaster`
 with a `type`. Types 0–2 are directly displayable; **type 3 is an opaque
 numeric code** into a TP-internal lookup this project does not have, so a
 type-3 reference is normally dropped with a recorded import error rather than
-composed as-is.
+composed as-is. Two exceptions are hard-coded, each scoped to its own
+skillMasterId so a code confirmed for one skill can never mislabel another's:
+`Hatred` (skillMasterId 307) via `HatredTargetService`
+(`packages/parse-tp/src/hatred-target.service.ts`) — `100` Dwarf, `102` Troll,
+`108` Vampire, `110` Undead, `134` Big Guy, `1001` Daemon — and `Animosity`
+(skillMasterId 269) via `AnimosityTargetService`
+(`packages/parse-tp/src/animosity-target.service.ts`) — `111` Goblin, `999`
+All. A code in the matching table composes normally (`Hatred (Undead)`);
+every other type-3 code, or one for a different skillMasterId, keeps the
+unchanged drop-and-report behaviour.
 
-One exception is hard-coded: the six codes TP's `Hatred` skill uses for its
-target, which were confirmed against TP's own UI and are mapped by
-`HatredTargetService` (`packages/parse-tp/src/hatred-target.service.ts`) —
-`100` Dwarf, `102` Troll, `108` Vampire, `110` Undead, `134` Big Guy, `1001`
-Daemon. A code in that table composes normally (`Hatred (Undead)`); every
-other type-3 code keeps the unchanged drop-and-report behaviour, so the table
-can only ever narrow the set of unresolvable codes.
+Separately, a handful of `skillMasterId`s carry no name in any downloaded
+mirror file at all, so `SkillMasterNameCollectionService`'s scan can never
+learn them however much history is downloaded. These are hard-coded too, in
+`SkillMasterIdAliasService`
+(`packages/parse-tp/src/skill-master-id-alias.service.ts`), confirmed against
+TP's own UI: most alias to a skill already known under a different id (TP
+assigns a new id to the same skill per rules set), except `Punt` and
+`Fumblerooski`, genuinely new to the curated catalogue.
 
-This is a deliberate hard-coded, position-keyword-specific mapping, not a
-general decoder. If TP's position-keyword data is ever imported directly, that
-import should **replace** this table rather than sit alongside it.
+All three are deliberate, hard-coded, id-specific exceptions, not general
+decoders. If TP's own lookup or position-keyword data is ever imported
+directly, that import should **replace** these tables rather than sit
+alongside them.
 
 ## Related documentation
 
