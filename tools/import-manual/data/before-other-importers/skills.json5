@@ -1049,6 +1049,7 @@
     { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Animal Savagery' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
