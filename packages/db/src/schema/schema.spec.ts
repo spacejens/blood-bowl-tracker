@@ -449,4 +449,22 @@ describe('schema', () => {
     expect(skillExternalIds.externalSystemId).toBeDefined();
     expect(skillExternalIds.externalId).toBeDefined();
   });
+
+  describe('players characteristic increase counts', () => {
+    it('has a notNull, default-0 integer column for each of the five characteristics', () => {
+      const columns = getTableConfig(players).columns;
+      for (const name of [
+        'move_increase_count',
+        'strength_increase_count',
+        'agility_increase_count',
+        'passing_increase_count',
+        'armour_increase_count',
+      ]) {
+        const column = columns.find((c) => c.name === name);
+        expect(column, `players.${name} is missing`).toBeDefined();
+        expect(column!.notNull).toBe(true);
+        expect(column!.hasDefault).toBe(true);
+      }
+    });
+  });
 });
