@@ -508,6 +508,40 @@ describe('TpPositionSkillsImportService', () => {
     expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
   });
 
+  it('reports a type-3 reference for a resolved skill that is neither Hatred nor Animosity', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(0);
+
+    // 87 (Dodge) resolves to a name but has no type-3 lookup of its own --
+    // decodeTypeThreeTarget's fallback branch (neither 307 nor 269) must
+    // still report this as unresolvable, not silently compose it.
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [{ skillMasterId: 87, attributeValue: '110', attributeType: 3 }],
+            ],
+          ]),
+        ],
+      ]),
+      skillMastersByMasterId: new Map([
+        [87, { name: 'Dodge', isElite: false }],
+      ]),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
+    });
+
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map(),
+      new Map(),
+      result.errors,
+    );
+  });
+
   it('resolves a skillMasterId no downloaded file names via the alias table', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
 
