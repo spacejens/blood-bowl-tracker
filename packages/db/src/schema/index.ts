@@ -24,6 +24,7 @@ export * from './game-data/match-events-external-ids';
 export * from './game-data/match-external-ids';
 export * from './game-data/matches';
 export * from './game-data/pg-schema';
+export * from './game-data/player-skills';
 export * from './game-data/players';
 export * from './game-data/players-external-ids';
 export * from './game-data/position-rules-set-skills';
