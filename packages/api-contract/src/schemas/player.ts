@@ -40,6 +40,36 @@ export const PLAYER_LASTING_INJURY_KEYS = [
  * reduction the rules absorbed (the stat was already at its floor, or at the
  * rules' cap on reductions) moved nothing and so counts zero.
  */
+/**
+ * The five characteristic-increase counts, in the same order as
+ * `PLAYER_CHARACTERISTIC_KEYS`. Exported so consumers iterate the group
+ * rather than restating (and drifting from) the list — which is also what
+ * makes the all-or-nothing check below a single loop.
+ */
+export const PLAYER_CHARACTERISTIC_INCREASE_KEYS = [
+  'moveIncreaseCount',
+  'strengthIncreaseCount',
+  'agilityIncreaseCount',
+  'passingIncreaseCount',
+  'armourIncreaseCount',
+] as const;
+
+/**
+ * How many times each of a player's five characteristics has been increased
+ * via advancement. Counts rather than per-event rows: TP never records
+ * characteristic-increase events at all, and BBL's ordering signal would
+ * cover only a minority of the data, so no per-increase sequence is modelled.
+ *
+ * 0 is a permanently legitimate "never increased" value, not a placeholder.
+ */
+export const PlayerCharacteristicIncreasesSchema = z.object({
+  moveIncreaseCount: z.number().int().nonnegative(),
+  strengthIncreaseCount: z.number().int().nonnegative(),
+  agilityIncreaseCount: z.number().int().nonnegative(),
+  passingIncreaseCount: z.number().int().nonnegative(),
+  armourIncreaseCount: z.number().int().nonnegative(),
+});
+
 export const PlayerLastingInjuriesSchema = z.object({
   missNextGame: z.boolean(),
   nigglingInjuryCount: z.number().int().nonnegative(),
@@ -71,6 +101,10 @@ export const PlayerSchema = z.object({
   // legitimate "no injury" values, not placeholders), and both importers ship
   // support for them together.
   ...PlayerLastingInjuriesSchema.shape,
+  // The player's advancement-driven characteristic increases. Required for
+  // the same reason the lasting injuries above are: every stored row has
+  // concrete values, and 0 is a real "never increased", not a placeholder.
+  ...PlayerCharacteristicIncreasesSchema.shape,
   createdAt: z.coerce.date(),
 });
 
@@ -117,6 +151,15 @@ export const UpsertPlayerSchema = z
     agilityReductionCount: z.number().int().nonnegative().optional(),
     passingReductionCount: z.number().int().nonnegative().optional(),
     armourReductionCount: z.number().int().nonnegative().optional(),
+    // The five characteristic increases form their own optional,
+    // all-or-nothing group — deliberately independent of the lasting-injury
+    // group above, since a source could in principle supply one without the
+    // other. An omitted group leaves whatever is stored untouched.
+    moveIncreaseCount: z.number().int().nonnegative().optional(),
+    strengthIncreaseCount: z.number().int().nonnegative().optional(),
+    agilityIncreaseCount: z.number().int().nonnegative().optional(),
+    passingIncreaseCount: z.number().int().nonnegative().optional(),
+    armourIncreaseCount: z.number().int().nonnegative().optional(),
     externalIds: z.array(ExternalIdSchema).min(1),
   })
   .superRefine((data, ctx) => {
@@ -158,6 +201,18 @@ export const UpsertPlayerSchema = z
       ctx.addIssue({
         code: 'custom',
         message: `Lasting injuries are all-or-nothing: supply every one of ${PLAYER_LASTING_INJURY_KEYS.join(', ')} or none`,
+      });
+    }
+    const suppliedIncreases = PLAYER_CHARACTERISTIC_INCREASE_KEYS.filter(
+      (key) => data[key] !== undefined,
+    );
+    if (
+      suppliedIncreases.length > 0 &&
+      suppliedIncreases.length < PLAYER_CHARACTERISTIC_INCREASE_KEYS.length
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Characteristic increases are all-or-nothing: supply every one of ${PLAYER_CHARACTERISTIC_INCREASE_KEYS.join(', ')} or none`,
       });
     }
   });
@@ -298,6 +353,9 @@ export const SPP_CAREER_COUNT_KEYS = [
 export type Player = z.infer<typeof PlayerSchema>;
 export type UpsertPlayer = z.infer<typeof UpsertPlayerSchema>;
 export type PlayerLastingInjuries = z.infer<typeof PlayerLastingInjuriesSchema>;
+export type PlayerCharacteristicIncreases = z.infer<
+  typeof PlayerCharacteristicIncreasesSchema
+>;
 export type SyncLastingInjuryHistory = z.infer<
   typeof SyncLastingInjuryHistorySchema
 >;

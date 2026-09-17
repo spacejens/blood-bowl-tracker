@@ -230,6 +230,11 @@ describe('contract', () => {
       agilityReductionCount: 0,
       passingReductionCount: 0,
       armourReductionCount: 0,
+      moveIncreaseCount: 0,
+      strengthIncreaseCount: 0,
+      agilityIncreaseCount: 0,
+      passingIncreaseCount: 0,
+      armourIncreaseCount: 0,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
