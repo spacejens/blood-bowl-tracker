@@ -162,6 +162,10 @@
     { name: 'Fan Favourite', externalIds: [{ system: 'Name', id: 'Fan Favourite' }] },
     { name: 'Secret Weapon', externalIds: [{ system: 'Name', id: 'Secret Weapon' }] },
     { name: 'Animosity', externalIds: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Aminosity' }] },
+    // BB2025-only, target-keyed like Animosity above; its target (e.g.
+    // "Undead", "Troll") comes from TP's own attribute-type-3 opaque code,
+    // resolved by packages/parse-tp's HatredTargetService.
+    { name: 'Hatred', externalIds: [{ system: 'Name', id: 'Hatred' }] },
     { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Hyptnotic Gaze' }] },
     { name: 'Stab', externalIds: [{ system: 'Name', id: 'Stab' }] },
     { name: 'Ball & Chain', externalIds: [{ system: 'Name', id: 'Ball & Chain' }] },
@@ -1032,6 +1036,7 @@
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Eye Gouge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hatred' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Insignificant' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
