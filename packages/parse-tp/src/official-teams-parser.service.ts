@@ -43,7 +43,8 @@ export interface TpOfficialPosition {
  * (`"111"`) on different entries, confirming type 3 is a distinct,
  * unresolved encoding rather than just another composable value. Consumers
  * must treat a type-3 reference as unresolvable rather than composing it
- * as-is, except for the codes `HatredTargetService` explains.
+ * as-is, except for the codes `HatredTargetService` or `AnimosityTargetService`
+ * explains.
  */
 export interface TpPositionSkillIdRef {
   skillMasterId: number;
