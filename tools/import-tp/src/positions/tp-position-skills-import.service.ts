@@ -194,6 +194,10 @@ export class TpPositionSkillsImportService {
    * (data/before-other-importers/skills.json5). An id with no curated
    * external id is simply absent from the result, which is what makes
    * `resolveNames` report it unresolved exactly as before.
+   *
+   * Depends on that curation phase having already run: a curated id only
+   * resolves once `before-other-importers` has upserted the skill it
+   * belongs to, which is why that phase runs before this importer.
    */
   private async resolveUnnamedMasterIds(options: {
     skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
