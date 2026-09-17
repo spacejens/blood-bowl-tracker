@@ -42,10 +42,6 @@ export type {
 export { RosterParserService } from './roster-parser.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { SecretObjectiveService } from './secret-objective.service';
-export {
-  skillMasterIdAliasById,
-  SkillMasterIdAliasService,
-} from './skill-master-id-alias.service';
 export type { TpSkillMaster } from './skill-master-names-parser.service';
 export { SkillMasterNamesParserService } from './skill-master-names-parser.service';
 export type { TpTournament } from './tournament-parser.service';

@@ -10,7 +10,6 @@ import { MatchParserService } from './match-parser.service';
 import { OfficialTeamsParserService } from './official-teams-parser.service';
 import { RosterParserService } from './roster-parser.service';
 import { SecretObjectiveService } from './secret-objective.service';
-import { SkillMasterIdAliasService } from './skill-master-id-alias.service';
 import { SkillMasterNamesParserService } from './skill-master-names-parser.service';
 import { TournamentParserService } from './tournament-parser.service';
 import { WeatherTypeService } from './weather-type.service';
@@ -28,7 +27,6 @@ import { WeatherTypeService } from './weather-type.service';
     OfficialTeamsParserService,
     RosterParserService,
     SecretObjectiveService,
-    SkillMasterIdAliasService,
     SkillMasterNamesParserService,
     WeatherTypeService,
   ],
@@ -42,7 +40,6 @@ import { WeatherTypeService } from './weather-type.service';
     InscriptionsParserService,
     OfficialTeamsParserService,
     RosterParserService,
-    SkillMasterIdAliasService,
     SkillMasterNamesParserService,
   ],
 })

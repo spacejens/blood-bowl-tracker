@@ -1,45 +1,77 @@
 import {
+  ExternalIdResolverService,
+  ExternalSystemBootstrapService,
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
 import {
   AnimosityTargetService,
   HatredTargetService,
-  SkillMasterIdAliasService,
 } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpPositionSkillsImportService } from './tp-position-skills-import.service';
+
+/** The external system id every test's bootstrap mock answers with. */
+const TP_SYSTEM_ID = 11;
 
 describe('TpPositionSkillsImportService', () => {
   let service: TpPositionSkillsImportService;
   let startingSkills: MockProxy<StartingSkillsImportService>;
   let importResults: MockProxy<ImportResultService>;
+  let bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
+  let resolver: MockProxy<ExternalIdResolverService>;
 
   beforeEach(async () => {
     startingSkills = mock<StartingSkillsImportService>();
     importResults = mock<ImportResultService>();
+    bootstrap = mock<ExternalSystemBootstrapService>();
+    externalSystemName = mock<ExternalSystemNameConfigService>();
+    resolver = mock<ExternalIdResolverService>();
     importResults.error.mockImplementation((error) => error);
     importResults.result.mockImplementation(({ imported, errors }) => ({
       success: errors.length === 0,
       imported,
       errors,
     }));
+    bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [TP_SYSTEM_ID] });
+    externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
+    // No curated tourplay.net id answers, unless a test says otherwise: an
+    // index with no entry reads as undefined, i.e. "not found".
+    resolver.resolveBatch.mockResolvedValue([]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpPositionSkillsImportService,
+        // Both target tables are pure, dependency-free decision services:
+        // passing them real keeps their actual decoding exercised, and they
+        // have no I/O or external state to couple to.
         HatredTargetService,
         AnimosityTargetService,
-        SkillMasterIdAliasService,
         { provide: StartingSkillsImportService, useValue: startingSkills },
         { provide: ImportResultService, useValue: importResults },
+        { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+        {
+          provide: ExternalSystemNameConfigService,
+          useValue: externalSystemName,
+        },
+        { provide: ExternalIdResolverService, useValue: resolver },
       ],
     }).compile();
     service = moduleRef.get(TpPositionSkillsImportService);
   });
+
+  /** The tourplay.net external id a scanned skillMasterId self-registers. */
+  function tpId(skillMasterId: number) {
+    return {
+      externalSystemId: TP_SYSTEM_ID,
+      externalId: String(skillMasterId),
+    };
+  }
 
   it('resolves each id to its name and keeps the attribute value separate', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
@@ -76,8 +108,13 @@ describe('TpPositionSkillsImportService', () => {
             [
               7,
               [
-                { name: 'Dodge', isElite: false },
-                { name: 'Loner', attributeValue: '4+', isElite: false },
+                { name: 'Dodge', isElite: false, externalIds: [tpId(87)] },
+                {
+                  name: 'Loner',
+                  attributeValue: '4+',
+                  isElite: false,
+                  externalIds: [tpId(154)],
+                },
               ],
             ],
           ]),
@@ -110,7 +147,14 @@ describe('TpPositionSkillsImportService', () => {
           new Map([
             [
               7,
-              [{ name: 'Mighty Blow', attributeValue: '+1', isElite: false }],
+              [
+                {
+                  name: 'Mighty Blow',
+                  attributeValue: '+1',
+                  isElite: false,
+                  externalIds: [tpId(42)],
+                },
+              ],
             ],
           ]),
         ],
@@ -135,7 +179,14 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, [{ name: 'Dodge', isElite: false }]]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [7, [{ name: 'Dodge', isElite: false, externalIds: [tpId(87)] }]],
+          ]),
+        ],
+      ]),
       new Map([[7, 'BB2020']]),
       expect.any(Array),
     );
@@ -207,7 +258,14 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, [{ name: 'Dodge', isElite: false }]]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [7, [{ name: 'Dodge', isElite: false, externalIds: [tpId(87)] }]],
+          ]),
+        ],
+      ]),
       new Map([[7, 'BB2020']]),
       expect.any(Array),
     );
@@ -252,6 +310,7 @@ describe('TpPositionSkillsImportService', () => {
                   name: 'Hatred',
                   attributeValue: 'Undead',
                   isElite: false,
+                  externalIds: [tpId(307)],
                 },
               ],
             ],
@@ -406,7 +465,7 @@ describe('TpPositionSkillsImportService', () => {
             [
               7,
               [
-                { name: 'Dodge', isElite: false },
+                { name: 'Dodge', isElite: false, externalIds: [tpId(87)] },
                 { name: 'The Ballista', isElite: false },
               ],
             ],
@@ -433,7 +492,14 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[9, [{ name: 'Block', isElite: true }]]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [9, [{ name: 'Block', isElite: true, externalIds: [tpId(220)] }]],
+          ]),
+        ],
+      ]),
       expect.anything(),
       expect.anything(),
     );
@@ -469,7 +535,14 @@ describe('TpPositionSkillsImportService', () => {
           new Map([
             [
               7,
-              [{ name: 'Animosity', attributeValue: 'Goblin', isElite: false }],
+              [
+                {
+                  name: 'Animosity',
+                  attributeValue: 'Goblin',
+                  isElite: false,
+                  externalIds: [tpId(269)],
+                },
+              ],
             ],
           ]),
         ],
@@ -542,8 +615,50 @@ describe('TpPositionSkillsImportService', () => {
     );
   });
 
-  it('resolves a skillMasterId no downloaded file names via the alias table', async () => {
+  it('registers every TP skillMasterId seen for a name as a tourplay.net external id', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    // TP assigns the same skill a new id per rules set; the scan sees both.
+    // The upserted skill must end up carrying both, on the very first ref --
+    // StartingSkillsImportService upserts a name only once per run.
+    await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 87 }]]])],
+      ]),
+      skillMastersByMasterId: new Map([
+        [87, { name: 'Dodge', isElite: false }],
+        [188, { name: 'Dodge', isElite: false }],
+      ]),
+      positionNamesById: new Map([[3, 'Blocker']]),
+      rulesSetNamesById: new Map([[7, 'BB2020']]),
+    });
+
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([
+        [
+          3,
+          new Map([
+            [
+              7,
+              [
+                {
+                  name: 'Dodge',
+                  isElite: false,
+                  externalIds: [tpId(87), tpId(188)],
+                },
+              ],
+            ],
+          ]),
+        ],
+      ]),
+      new Map([[7, 'BB2020']]),
+      [],
+    );
+  });
+
+  it('resolves a skillMasterId no downloaded file names through its curated tourplay.net external id', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+    resolver.resolveBatch.mockResolvedValue([77]);
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -555,15 +670,28 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(result.errors).toEqual([]);
+    expect(resolver.resolveBatch).toHaveBeenCalledWith('skill', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: '181' },
+    ]);
+    // The resolved id goes through as `skillId`, so the shared pipeline skips
+    // its upsert-by-name step; the name is only a cache key there.
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[7, [{ name: 'Loner', isElite: false }]]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [7, [{ name: 'TP skill 181', isElite: false, skillId: 77 }]],
+          ]),
+        ],
+      ]),
       new Map([[7, 'BB2020']]),
       [],
     );
   });
 
-  it('still reports a skillMasterId neither the scan nor the alias table explains', async () => {
+  it('still reports a skillMasterId no curated tourplay.net id answers for', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
+    resolver.resolveBatch.mockResolvedValue([undefined]);
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -576,5 +704,28 @@ describe('TpPositionSkillsImportService', () => {
 
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('Could not resolve');
+    expect(result.errors[0]?.message).toContain('999999');
+  });
+
+  it('records the bootstrap failure and imports nothing when the TP external system cannot be resolved', async () => {
+    const bootstrapError = { item: {}, message: 'bootstrap failed' };
+    bootstrap.bootstrap.mockResolvedValue({ ok: false, error: bootstrapError });
+
+    const { result } = await service.syncPositionSkills({
+      skillRefsByPositionId: new Map([
+        [3, new Map([[7, [{ skillMasterId: 87 }]]])],
+      ]),
+      skillMastersByMasterId: new Map([
+        [87, { name: 'Dodge', isElite: false }],
+      ]),
+      positionNamesById: new Map(),
+      rulesSetNamesById: new Map(),
+    });
+
+    expect(result.imported).toBe(0);
+    expect(result.errors).toEqual([bootstrapError]);
+    // Without a TP system id there are no external ids to register, so
+    // nothing is sent rather than being written without them.
+    expect(startingSkills.syncStartingSkills).not.toHaveBeenCalled();
   });
 });

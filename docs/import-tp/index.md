@@ -455,19 +455,24 @@ All. A code in the matching table composes normally (`Hatred (Undead)`);
 every other type-3 code, or one for a different skillMasterId, keeps the
 unchanged drop-and-report behaviour.
 
-Separately, a handful of `skillMasterId`s carry no name in any downloaded
-mirror file at all, so `SkillMasterNameCollectionService`'s scan can never
-learn them however much history is downloaded. These are hard-coded too, in
-`SkillMasterIdAliasService`
-(`packages/parse-tp/src/skill-master-id-alias.service.ts`), confirmed against
-TP's own UI: most alias to a skill already known under a different id (TP
+Every `skillMasterId` the scan CAN name is registered as a `tourplay.net`
+external id on the skill it names, at ordinary upsert time — exactly as
+`TpPositionsImportService` registers every TP position id on one position row.
+No curation is needed for those.
+
+A handful of `skillMasterId`s carry no name in any downloaded mirror file at
+all, so the scan can never learn them however much history is downloaded.
+These are **not** hard-coded: each is curated as a `tourplay.net` external id
+on the skill it means, in
+`tools/import-manual/data/before-other-importers/skills.json5`, and
+`TpPositionSkillsImportService` resolves it through the ordinary external-id
+mechanism. Most belong to a skill already known under a different id (TP
 assigns a new id to the same skill per rules set), except `Punt` and
 `Fumblerooski`, genuinely new to the curated catalogue.
 
-All three are deliberate, hard-coded, id-specific exceptions, not general
-decoders. If TP's own lookup or position-keyword data is ever imported
-directly, that import should **replace** these tables rather than sit
-alongside them.
+Both type-3 tables are deliberate, hard-coded, id-specific exceptions, not
+general decoders. If TP's own lookup or position-keyword data is ever imported
+directly, that import should **replace** them rather than sit alongside them.
 
 ## Related documentation
 

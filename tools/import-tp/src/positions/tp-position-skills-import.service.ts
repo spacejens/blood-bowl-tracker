@@ -4,6 +4,8 @@ import type {
   StartingSkillRef,
 } from '@blood-bowl-tracker/import';
 import {
+  ExternalIdResolverService,
+  ExternalSystemBootstrapService,
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
@@ -14,9 +16,10 @@ import type {
 import {
   AnimosityTargetService,
   HatredTargetService,
-  SkillMasterIdAliasService,
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
+
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 /** Hatred's own skillMasterId -- see HatredTargetService. */
 const HATRED_SKILL_MASTER_ID = 307;
@@ -51,7 +54,8 @@ export interface SyncTpPositionSkillsOptions {
  * separate `attributeValue`; the two are kept apart as a `StartingSkillRef`
  * (name + optional attributeValue) rather than composed into one display
  * string, matching how the schema stores them (see
- * position_rules_set_skills.attributeValue). An id the lookup cannot explain
+ * position_rules_set_skills.attributeValue). An id neither the scan nor a
+ * curated `tourplay.net` external id can explain
  * is a recorded ImportError naming the position and rules set
  * (by name, not bare id, via `positionNamesById`/`rulesSetNamesById`) --
  * reported once per id, not once per position that uses it -- and its skill
@@ -66,6 +70,12 @@ export interface SyncTpPositionSkillsOptions {
  * this service accumulates every position's data into one map and calls it
  * exactly once -- never per position or per rules set -- mirroring
  * BblPositionSkillsImportService's precedent.
+ *
+ * Every skillMasterId the scan CAN name is registered as a `tourplay.net`
+ * external id on the upserted skill, exactly as TpPositionsImportService
+ * registers every TP position id on one position row. An id no downloaded
+ * file ever names is resolved instead through the `tourplay.net` external id
+ * curated for it in tools/import-manual -- data, not a hard-coded table.
  */
 @Injectable()
 export class TpPositionSkillsImportService {
@@ -74,7 +84,9 @@ export class TpPositionSkillsImportService {
     private readonly importResults: ImportResultService,
     private readonly hatredTargets: HatredTargetService,
     private readonly animosityTargets: AnimosityTargetService,
-    private readonly skillMasterIdAliases: SkillMasterIdAliasService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
+    private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly externalIdResolver: ExternalIdResolverService,
   ) {}
 
   async syncPositionSkills({
@@ -84,6 +96,28 @@ export class TpPositionSkillsImportService {
     rulesSetNamesById,
   }: SyncTpPositionSkillsOptions): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
+    const tpSystemName = this.externalSystemName.getTpSystemName();
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      { name: tpSystemName, category: 'imported_data_source' },
+    ]);
+    if (!bootstrap.ok) {
+      // Without the TP system id there are no external ids to register and no
+      // way to resolve an unnamed id, so nothing is written rather than
+      // writing skills that silently lose their TP ids.
+      errors.push(bootstrap.error);
+      return { result: this.importResults.result({ imported: 0, errors }) };
+    }
+    const [tpSystemId] = bootstrap.ids;
+
+    const tpSkillMasterIdsByName = this.collectSkillMasterIds(
+      skillMastersByMasterId,
+    );
+    const fallbackSkillIdsByMasterId = await this.resolveUnnamedMasterIds({
+      skillRefsByPositionId,
+      skillMastersByMasterId,
+      tpSystemId,
+    });
+
     const reportedIds = new Set<number>();
     const reportedAttributeTypeThreeRefs = new Set<string>();
     const skillNamesByPositionId = new Map<
@@ -99,6 +133,9 @@ export class TpPositionSkillsImportService {
           rulesSetId,
           refs,
           skillMastersByMasterId,
+          tpSkillMasterIdsByName,
+          fallbackSkillIdsByMasterId,
+          tpSystemId,
           positionNamesById,
           rulesSetNamesById,
           reportedIds,
@@ -123,31 +160,105 @@ export class TpPositionSkillsImportService {
   }
 
   /**
+   * Skill name -> every TP skillMasterId the scan ever saw for it. TP assigns
+   * a skill a new id per rules set, so one name routinely has several; each
+   * becomes a `tourplay.net` external id on the upserted skill, mirroring how
+   * TpPositionsImportService registers every TP position id on one position
+   * row (see its `tpPositionIds`/`externalIdsFor`).
+   *
+   * Built by inverting the whole scanned lookup UP FRONT rather than
+   * accumulated while refs are produced: StartingSkillsImportService upserts
+   * a name at most once per run, using the FIRST ref it sees for that name,
+   * so a set grown ref by ref would register only the ids seen before that
+   * ref happened to be built.
+   */
+  private collectSkillMasterIds(
+    skillMastersByMasterId: Map<number, TpSkillMaster>,
+  ): Map<string, Set<number>> {
+    const byName = new Map<string, Set<number>>();
+    for (const [skillMasterId, master] of skillMastersByMasterId) {
+      let ids = byName.get(master.name);
+      if (ids === undefined) {
+        ids = new Set();
+        byName.set(master.name, ids);
+      }
+      ids.add(skillMasterId);
+    }
+    return byName;
+  }
+
+  /**
+   * Database skill ids for every referenced skillMasterId the scan cannot
+   * name, resolved in ONE batched call through the `tourplay.net` external id
+   * curated for it in tools/import-manual
+   * (data/before-other-importers/skills.json5). An id with no curated
+   * external id is simply absent from the result, which is what makes
+   * `resolveNames` report it unresolved exactly as before.
+   */
+  private async resolveUnnamedMasterIds(options: {
+    skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
+    skillMastersByMasterId: Map<number, TpSkillMaster>;
+    tpSystemId: number;
+  }): Promise<Map<number, number>> {
+    const { skillRefsByPositionId, skillMastersByMasterId, tpSystemId } =
+      options;
+    const unnamed = new Set<number>();
+    for (const refsByRulesSetId of skillRefsByPositionId.values()) {
+      for (const refs of refsByRulesSetId.values()) {
+        for (const ref of refs) {
+          if (
+            !('name' in ref) &&
+            !skillMastersByMasterId.has(ref.skillMasterId)
+          ) {
+            unnamed.add(ref.skillMasterId);
+          }
+        }
+      }
+    }
+    const masterIds = [...unnamed];
+    const resolved = await this.externalIdResolver.resolveBatch(
+      'skill',
+      masterIds.map((masterId) => ({
+        externalSystemId: tpSystemId,
+        externalId: String(masterId),
+      })),
+    );
+    const skillIdsByMasterId = new Map<number, number>();
+    masterIds.forEach((masterId, index) => {
+      const skillId = resolved[index];
+      if (skillId !== undefined) {
+        skillIdsByMasterId.set(masterId, skillId);
+      }
+    });
+    return skillIdsByMasterId;
+  }
+
+  /**
    * Resolve one (position, rules set)'s raw skill references into
    * `StartingSkillRef`s (name kept separate from any attribute value) and
    * record an ImportError -- once per skillMasterId across the whole run --
-   * for any id the lookup cannot explain. A reference whose attribute is TP's
-   * type 3 (an opaque numeric code, not a composable value -- see
-   * `TpPositionSkillRef`) is likewise recorded as an ImportError and left
-   * out, once per distinct (skillMasterId, attributeValue) pair across the
-   * whole run. A type-3 code Hatred's or Animosity's own lookup CAN explain
+   * for any id neither the scan nor a curated `tourplay.net` external id can
+   * explain. A reference whose attribute is TP's type 3 (an opaque numeric
+   * code, not a composable value -- see `TpPositionSkillRef`) is likewise
+   * recorded as an ImportError and left out, once per distinct
+   * (skillMasterId, attributeValue) pair across the whole run. A type-3 code
+   * Hatred's or Animosity's own lookup CAN explain
    * (`HatredTargetService`/`AnimosityTargetService`, see
    * docs/import-tp/index.md, "Hard-coded TP lookups") is composed normally
    * instead, with the named target as its attribute value.
    *
-   * An id no downloaded file ever names falls back to
-   * `SkillMasterIdAliasService` (same doc section) before being reported
-   * unresolved.
-   *
    * A reference TP named directly rather than by id (a star's own
    * `specialRuleName`) needs no lookup at all and is passed straight
-   * through as its own `StartingSkillRef`.
+   * through as its own `StartingSkillRef`, with no TP id to register.
    */
   private resolveNames(options: {
     positionId: number;
     rulesSetId: number;
     refs: TpPositionSkillRef[];
     skillMastersByMasterId: Map<number, TpSkillMaster>;
+    tpSkillMasterIdsByName: Map<string, Set<number>>;
+    fallbackSkillIdsByMasterId: Map<number, number>;
+    tpSystemId: number;
     positionNamesById: Map<number, string>;
     rulesSetNamesById: Map<number, string>;
     reportedIds: Set<number>;
@@ -159,6 +270,9 @@ export class TpPositionSkillsImportService {
       rulesSetId,
       refs,
       skillMastersByMasterId,
+      tpSkillMasterIdsByName,
+      fallbackSkillIdsByMasterId,
+      tpSystemId,
       positionNamesById,
       rulesSetNamesById,
       reportedIds,
@@ -173,18 +287,22 @@ export class TpPositionSkillsImportService {
     for (const ref of refs) {
       if ('name' in ref) {
         // TP named this skill directly (a star's own specialRuleName), so
-        // there is no id to look up and no attribute value to compose. Its
-        // curated `unique` category is what marks it exclusive downstream.
-        // specialRuleName carries no elite marker of its own -- `false`
-        // matches the convention a source with no concept of eliteness uses.
+        // there is no id to look up, no attribute value to compose and no TP
+        // external id to register. Its curated `unique` category is what
+        // marks it exclusive downstream. specialRuleName carries no elite
+        // marker of its own -- `false` matches the convention a source with
+        // no concept of eliteness uses.
         names.push({ name: ref.name, isElite: false });
         continue;
       }
-      const master = this.resolveMaster(
-        ref.skillMasterId,
+      const resolved = this.resolveSkill({
+        skillMasterId: ref.skillMasterId,
         skillMastersByMasterId,
-      );
-      if (master === undefined) {
+        tpSkillMasterIdsByName,
+        fallbackSkillIdsByMasterId,
+        tpSystemId,
+      });
+      if (resolved === undefined) {
         if (!reportedIds.has(ref.skillMasterId)) {
           reportedIds.add(ref.skillMasterId);
           errors.push(
@@ -194,21 +312,23 @@ export class TpPositionSkillsImportService {
                 `Could not resolve TP skill ${ref.skillMasterId} (first ` +
                 `seen on position "${positionName}", rules set ` +
                 `"${rulesSetName}"): no downloaded roster or match file ` +
-                "names it, so it is left out of that position's starting " +
-                'skills.',
+                'names it and no skill is curated with it as a tourplay.net ' +
+                "external id, so it is left out of that position's starting " +
+                'skills. Curate one in tools/import-manual ' +
+                '(data/before-other-importers/skills.json5).',
             }),
           );
         }
         continue;
       }
-      const { name } = master;
+      const { name } = resolved;
       if (ref.attributeType === 3) {
         const target =
           ref.attributeValue === undefined
             ? undefined
             : this.decodeTypeThreeTarget(ref.skillMasterId, ref.attributeValue);
         if (target !== undefined) {
-          names.push({ name, attributeValue: target, isElite: master.isElite });
+          names.push({ ...resolved, attributeValue: target });
           continue;
         }
         const key = `${ref.skillMasterId}:${ref.attributeValue}`;
@@ -236,35 +356,59 @@ export class TpPositionSkillsImportService {
       }
       names.push(
         ref.attributeValue === undefined
-          ? { name, isElite: master.isElite }
-          : {
-              name,
-              attributeValue: ref.attributeValue,
-              isElite: master.isElite,
-            },
+          ? resolved
+          : { ...resolved, attributeValue: ref.attributeValue },
       );
     }
     return names;
   }
 
   /**
-   * The `TpSkillMaster` a raw id resolves to: the scanned lookup first, then
-   * `SkillMasterIdAliasService` for an id no downloaded file ever names.
-   * An aliased id carries no eliteness signal of its own -- `false` matches
-   * the convention a source with no concept of eliteness uses.
+   * The base `StartingSkillRef` a raw skillMasterId resolves to.
+   *
+   * The scanned lookup answers first, and the ref then carries EVERY TP id
+   * ever seen for that name as `tourplay.net` external ids, so the skill
+   * self-registers them at ordinary upsert time -- no curation needed.
+   *
+   * Otherwise the id is one no downloaded file ever names, and a curated
+   * `tourplay.net` external id has already resolved it to a database skill
+   * id; that id goes through as `skillId`, which makes the shared pipeline
+   * skip its upsert-by-name step entirely. The name is synthetic there
+   * BECAUSE the resolve answers with an id and never a name: it is only a
+   * per-run cache key and an error-message token, and (since `skillId` is
+   * set) it never reaches the database. Such an id carries no eliteness
+   * signal of its own -- `false` matches the convention a source with no
+   * concept of eliteness uses.
    */
-  private resolveMaster(
-    skillMasterId: number,
-    skillMastersByMasterId: Map<number, TpSkillMaster>,
-  ): TpSkillMaster | undefined {
+  private resolveSkill(options: {
+    skillMasterId: number;
+    skillMastersByMasterId: Map<number, TpSkillMaster>;
+    tpSkillMasterIdsByName: Map<string, Set<number>>;
+    fallbackSkillIdsByMasterId: Map<number, number>;
+    tpSystemId: number;
+  }): StartingSkillRef | undefined {
+    const {
+      skillMasterId,
+      skillMastersByMasterId,
+      tpSkillMasterIdsByName,
+      fallbackSkillIdsByMasterId,
+      tpSystemId,
+    } = options;
     const master = skillMastersByMasterId.get(skillMasterId);
     if (master !== undefined) {
-      return master;
+      return {
+        name: master.name,
+        isElite: master.isElite,
+        externalIds: [...(tpSkillMasterIdsByName.get(master.name) ?? [])].map(
+          (id) => ({ externalSystemId: tpSystemId, externalId: String(id) }),
+        ),
+      };
     }
-    const aliasedName = this.skillMasterIdAliases.decode(skillMasterId);
-    return aliasedName === undefined
-      ? undefined
-      : { name: aliasedName, isElite: false };
+    const skillId = fallbackSkillIdsByMasterId.get(skillMasterId);
+    if (skillId === undefined) {
+      return undefined;
+    }
+    return { name: `TP skill ${skillMasterId}`, isElite: false, skillId };
   }
 
   /**
