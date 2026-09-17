@@ -144,6 +144,7 @@ describe('RpcRouterFactoryService skills routers', () => {
           skillId: 7,
           skillName: 'Block',
           attributeValue: null,
+          category: 'general',
         },
       ],
     );

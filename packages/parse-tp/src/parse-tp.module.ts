@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 
+import { AnimosityTargetService } from './animosity-target.service';
 import { AwardsParserService } from './awards-parser.service';
+import { HatredTargetService } from './hatred-target.service';
 import { InscriptionsParserService } from './inscriptions-parser.service';
 import { MatchEventDecodersService } from './match-event-decoders.service';
 import { MatchEventParserService } from './match-event-parser.service';
@@ -14,7 +16,9 @@ import { WeatherTypeService } from './weather-type.service';
 
 @Module({
   providers: [
+    AnimosityTargetService,
     AwardsParserService,
+    HatredTargetService,
     TournamentParserService,
     MatchParserService,
     MatchEventParserService,
@@ -27,7 +31,9 @@ import { WeatherTypeService } from './weather-type.service';
     WeatherTypeService,
   ],
   exports: [
+    AnimosityTargetService,
     AwardsParserService,
+    HatredTargetService,
     TournamentParserService,
     MatchParserService,
     MatchEventParserService,

@@ -243,9 +243,15 @@ recorded characteristics for, oldest rules set first — the same shape and
 formatting rules as the position deepdive's stat lines (each value in that
 rules set's own recorded format, the Passing characteristic omitted entirely
 for a rules set with no Passing characteristic, a stored zero rendering as a
-dash). A star with no characteristics
+dash, then that rules set's starting skills comma-separated after the
+characteristics, with the skills left off entirely when none are recorded).
+The star's own
+exclusive skill under a rules set is marked with a star, which is what
+tells it apart from the skills any position can have.
+A star with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
-list. Then a blank line and one line per team that has ever hired them,
+list.
+Then a blank line and one line per team that has ever hired them,
 most-hires-first (ties broken by team name — the query itself supplies this
 order, so the description and the buttons can never disagree), with its race
 and coach and how many times it hired the star. Each hire is a
@@ -296,7 +302,15 @@ rules set's own recorded format — a bare number, or a number with a
 trailing plus for a target a die roll has to meet — and a rules set with no
 Passing characteristic at all omits that field entirely rather than
 showing a placeholder for it; a stored value of zero (not yet curated)
-renders as a dash instead of the number. A position with no characteristics
+renders as a dash instead of the number. Each stat line then carries that
+rules set's starting skills, comma-separated, after the characteristics:
+a skill whose rules require a die roll or a named target shows that value
+in parentheses after its name, and a star player's own exclusive skill is
+marked with a star. A rules set with no starting skills recorded shows no
+skills at all — just its characteristics — rather than a placeholder: the
+archive cannot tell a position that genuinely has none apart from a rules
+set nobody has curated yet, so it claims neither. A
+position with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list.
 

@@ -168,7 +168,13 @@ describe('curated data files - skills', () => {
 
     const afterNames = new Set(after.skills.map((skill) => skill.name));
     for (const skill of before.skills) {
-      if (skill.externalIds.length > 1) {
+      // Only multiple `Name` spellings create the race this file guards
+      // against; a skill can otherwise carry a second external id (e.g. a
+      // tourplay.net id) with no competing spelling to re-assert.
+      const nameIdCount = skill.externalIds.filter(
+        (externalId) => externalId.system === 'Name',
+      ).length;
+      if (nameIdCount > 1) {
         expect(afterNames).toContain(skill.name);
       }
     }
@@ -317,5 +323,52 @@ describe('curated data files - skills', () => {
     for (const prefix of stuntyLeegRaces) {
       expect([...ids].some((id) => id.startsWith(prefix))).toBe(true);
     }
+  });
+
+  it('registers the tourplay.net external system it references', () => {
+    expect(skillsFile().externalSystems).toContainEqual({
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    });
+  });
+
+  it('the after-file also registers the tourplay.net external system it re-asserts', () => {
+    const after = readFile('after-other-importers', 'skills.json5');
+    expect(after.externalSystems).toContainEqual({
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    });
+  });
+
+  it('curates a numeric, unique tourplay.net id for every TP skill id no downloaded file names', () => {
+    const data = skillsFile();
+    const byTpId = new Map<string, string>();
+
+    for (const skill of data.skills) {
+      for (const externalId of skill.externalIds) {
+        if (externalId.system !== 'tourplay.net') {
+          continue;
+        }
+        // TP's skillMasterId is numeric; a non-numeric id here would never
+        // match what the TP importer resolves against.
+        expect(externalId.id).toMatch(/^\d+$/);
+        // Two skills claiming the same TP id would make the importer's
+        // resolve answer arbitrarily.
+        expect(byTpId.has(externalId.id)).toBe(false);
+        byTpId.set(externalId.id, skill.name);
+      }
+    }
+
+    expect(Object.fromEntries(byTpId)).toEqual({
+      '166': 'Swarming',
+      '181': 'Loner',
+      '210': 'Fumblerooski',
+      '238': 'Iron Hard Skin',
+      '246': 'Cloud Burster',
+      '254': 'Punt',
+      '304': 'Trickster',
+      '305': 'My Ball',
+      '306': 'Breathe Fire',
+    });
   });
 });

@@ -28,6 +28,25 @@ export interface StartingSkillRef {
    * no concept of eliteness (BBL) supplies `false`.
    */
   isElite: boolean;
+  /**
+   * Extra external ids to register on this skill at upsert time, alongside
+   * the synthetic Name id -- e.g. every TP skillMasterId ever seen for this
+   * name. Only TP supplies these; BBL has no numeric skill id of its own.
+   * Ignored once the skill has already been upserted this run, since a name
+   * is upserted at most once per run (see `skillIdsByName`), so a ref must
+   * carry the COMPLETE set rather than growing it ref by ref.
+   */
+  externalIds?: { externalSystemId: number; externalId: string }[];
+  /**
+   * A skill id already resolved elsewhere -- TP resolving a skillMasterId no
+   * downloaded file ever names, via its curated tourplay.net external id.
+   * When present, the upsert-by-name step is skipped entirely and this id is
+   * used directly; every other check (curated category, elite mismatch,
+   * dedup, error reporting) runs completely unchanged, because those are
+   * already keyed by skill id rather than by name. `name` is then only a
+   * cache key and an error-message token -- it never reaches the database.
+   */
+  skillId?: number;
 }
 
 /** positionId -> rulesSetId -> the position's starting skill refs there. */
@@ -131,7 +150,7 @@ export class StartingSkillsImportService {
         for (const ref of refs) {
           const { name, attributeValue } = ref;
           const skillId = await this.resolveSkillId({
-            name,
+            ref,
             nameSystemId,
             skillIdsByName,
             errors,
@@ -249,16 +268,29 @@ export class StartingSkillsImportService {
     return synced;
   }
 
-  /** One skill's database id, upserted at most once per run. */
+  /**
+   * One skill's database id, upserted at most once per run.
+   *
+   * A ref that already carries `skillId` (TP resolved it by its curated
+   * tourplay.net external id) needs no upsert at all: it is cached under the
+   * ref's name and returned as-is, so the rest of the pipeline is untouched.
+   * Otherwise the skill is upserted under its Name external id, plus any
+   * extra external ids the ref supplies.
+   */
   private async resolveSkillId(options: {
-    name: string;
+    ref: StartingSkillRef;
     nameSystemId: number;
     skillIdsByName: Map<string, number | undefined>;
     errors: ImportError[];
   }): Promise<number | undefined> {
-    const { name, nameSystemId, skillIdsByName, errors } = options;
+    const { ref, nameSystemId, skillIdsByName, errors } = options;
+    const { name } = ref;
     if (skillIdsByName.has(name)) {
       return skillIdsByName.get(name);
+    }
+    if (ref.skillId !== undefined) {
+      skillIdsByName.set(name, ref.skillId);
+      return ref.skillId;
     }
     const upserted = await this.skillsImport.upsert(
       {
@@ -268,6 +300,7 @@ export class StartingSkillsImportService {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forSkill(name),
           },
+          ...(ref.externalIds ?? []),
         ],
       },
       errors,

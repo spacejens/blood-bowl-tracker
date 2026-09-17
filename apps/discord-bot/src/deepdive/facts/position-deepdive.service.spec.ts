@@ -1,9 +1,11 @@
 import type {
   PositionCharacteristics,
   PositionHeader,
+  PositionStartingSkill,
   PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
 } from '@blood-bowl-tracker/game-data';
@@ -30,6 +32,7 @@ import {
   DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE,
+  DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -42,8 +45,8 @@ import {
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
-import { PositionCharacteristicsLineFormatterService } from './position-characteristics-line-formatter.service';
 import { PositionDeepdiveService } from './position-deepdive.service';
+import { PositionStatLineService } from './position-stat-line.service';
 
 const bb2016: PositionCharacteristics = {
   rulesSetId: 1,
@@ -76,50 +79,54 @@ const bb2020: PositionCharacteristics = {
 };
 
 /**
- * Canned formatter output. The formatter is mocked here (it has a dependency
- * of its own, so it is not one of CLAUDE.md's pass-real carve-outs); the real
- * text it produces is asserted in
- * position-characteristics-line-formatter.service.spec.ts.
+ * Canned composer output. `PositionStatLineService` has a dependency of its
+ * own, and this spec asserts composition rather than rendered text, so it is
+ * mocked here; the exact strings it produces are asserted in
+ * position-stat-line.service.spec.ts.
  */
-const STUB_STAT_LINE = 'BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+';
+const STUB_STAT_LINE = 'BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+ Block, Dodge';
 
-function mockLineFormatter(): MockProxy<PositionCharacteristicsLineFormatterService> {
-  const lineFormatter = mock<PositionCharacteristicsLineFormatterService>();
-  lineFormatter.formatLine.mockReturnValue(STUB_STAT_LINE);
-  return lineFormatter;
+function mockStatLine(): MockProxy<PositionStatLineService> {
+  const statLine = mock<PositionStatLineService>();
+  statLine.formatLines.mockReturnValue([STUB_STAT_LINE]);
+  return statLine;
 }
 
 interface MakeServiceOptions {
   positions: PositionsService;
   positionRulesSets: PositionRulesSetsService;
+  positionRulesSetSkills?: MockProxy<PositionRulesSetSkillsService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   playerContext?: MockProxy<PlayerContextService>;
-  lineFormatter?: MockProxy<PositionCharacteristicsLineFormatterService>;
+  statLine?: MockProxy<PositionStatLineService>;
 }
 
 async function makeService({
   positions,
   positionRulesSets,
+  positionRulesSetSkills = makeRulesSetSkills([]),
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = passthroughLeaderboard(),
   entityComponents = passthroughEntityComponents(),
   playerContext = passthroughPlayerContext(),
-  lineFormatter = mockLineFormatter(),
+  statLine = mockStatLine(),
 }: MakeServiceOptions): Promise<{
   service: PositionDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
   playerContext: MockProxy<PlayerContextService>;
-  lineFormatter: MockProxy<PositionCharacteristicsLineFormatterService>;
+  statLine: MockProxy<PositionStatLineService>;
+  positionRulesSetSkills: MockProxy<PositionRulesSetSkillsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionDeepdiveService,
+      { provide: PositionStatLineService, useValue: statLine },
       {
-        provide: PositionCharacteristicsLineFormatterService,
-        useValue: lineFormatter,
+        provide: PositionRulesSetSkillsService,
+        useValue: positionRulesSetSkills,
       },
       { provide: PositionsService, useValue: positions },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
@@ -134,7 +141,8 @@ async function makeService({
     leaderboard,
     entityComponents,
     playerContext,
-    lineFormatter,
+    statLine,
+    positionRulesSetSkills,
   };
 }
 
@@ -158,9 +166,17 @@ function makeRulesSets(
   return positionRulesSets;
 }
 
+function makeRulesSetSkills(
+  rows: PositionStartingSkill[],
+): MockProxy<PositionRulesSetSkillsService> {
+  const positionRulesSetSkills = mock<PositionRulesSetSkillsService>();
+  positionRulesSetSkills.listByPosition.mockResolvedValue(rows);
+  return positionRulesSetSkills;
+}
+
 /**
  * A `DatabaseTimeoutService` mock that passes the first `skip` calls through
- * and times the next one out, so a test can pin which of the five queries a
+ * and times the next one out, so a test can pin which of the six queries a
  * timeout message belongs to.
  */
 function timeoutOnCall(skip: number): MockProxy<DatabaseTimeoutService> {
@@ -208,11 +224,23 @@ describe('PositionDeepdiveService', () => {
     );
   });
 
-  it('returns the player-count timeout message when that query times out', async () => {
+  it('returns the skills timeout message when the starting-skills query times out', async () => {
     const { service } = await makeService({
       positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
       positionRulesSets: makeRulesSets([bb2020]),
       databaseTimeout: timeoutOnCall(2),
+    });
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('returns the player-count timeout message when that query times out', async () => {
+    const { service } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      databaseTimeout: timeoutOnCall(3),
     });
 
     await expect(service.resolve(1)).resolves.toBe(
@@ -224,7 +252,7 @@ describe('PositionDeepdiveService', () => {
     const { service } = await makeService({
       positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
       positionRulesSets: makeRulesSets([bb2020]),
-      databaseTimeout: timeoutOnCall(3),
+      databaseTimeout: timeoutOnCall(4),
     });
 
     await expect(service.resolve(1)).resolves.toBe(
@@ -239,7 +267,7 @@ describe('PositionDeepdiveService', () => {
         topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
-      databaseTimeout: timeoutOnCall(4),
+      databaseTimeout: timeoutOnCall(5),
     });
 
     await expect(service.resolve(1)).resolves.toBe(
@@ -253,7 +281,7 @@ describe('PositionDeepdiveService', () => {
     // all — running it anyway would risk a spurious
     // DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE in place of the
     // correct "no players" view if that unnecessary call happened to time
-    // out. Pin this by timing out the 5th call: if attachSuffixes were
+    // out. Pin this by timing out the 6th call: if attachSuffixes were
     // still invoked, this would return the timeout message instead of
     // rendering normally.
     const { service, playerContext } = await makeService({
@@ -263,7 +291,7 @@ describe('PositionDeepdiveService', () => {
         topPlayers: [],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
-      databaseTimeout: timeoutOnCall(4),
+      databaseTimeout: timeoutOnCall(5),
     });
 
     const rendered = JSON.stringify(await service.resolve(1));
@@ -273,10 +301,11 @@ describe('PositionDeepdiveService', () => {
   });
 
   it('renders races, one stat line per rules set, the player count and the top players', async () => {
-    const lineFormatter = mockLineFormatter();
-    lineFormatter.formatLine
-      .mockReturnValueOnce('BB2016: MA 7 ST 3 AG 3 AV 8')
-      .mockReturnValueOnce('BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+');
+    const statLine = mockStatLine();
+    statLine.formatLines.mockReturnValue([
+      'BB2016: MA 7 ST 3 AG 3 AV 8',
+      'BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+',
+    ]);
     const { service } = await makeService({
       positions: makePositions({
         position: {
@@ -293,7 +322,7 @@ describe('PositionDeepdiveService', () => {
         ],
       }),
       positionRulesSets: makeRulesSets([bb2016, bb2020]),
-      lineFormatter,
+      statLine,
     });
 
     const result = await service.resolve(1);
@@ -322,26 +351,30 @@ describe('PositionDeepdiveService', () => {
     });
   });
 
-  it('delegates each rules-set row to the shared line formatter, in order', async () => {
-    const lineFormatter = mockLineFormatter();
-    lineFormatter.formatLine
-      .mockReturnValueOnce('first line')
-      .mockReturnValueOnce('second line');
-    const { service } = await makeService({
-      positions: makePositions({
-        position: { name: 'Blitzer', races: [] },
-        playerCount: 1,
-      }),
+  it('builds its stat lines from the characteristics rows and the starting skills together', async () => {
+    const skills: PositionStartingSkill[] = [
+      {
+        rulesSetId: 2,
+        rulesSetName: 'BB2020',
+        skillId: 1,
+        skillName: 'Block',
+        attributeValue: null,
+        category: 'general',
+      },
+    ];
+    const { service, statLine, positionRulesSetSkills } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
       positionRulesSets: makeRulesSets([bb2016, bb2020]),
-      lineFormatter,
+      positionRulesSetSkills: makeRulesSetSkills(skills),
     });
 
-    const rendered = JSON.stringify(await service.resolve(1));
+    const result = await service.resolve(10);
 
-    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(1, bb2016);
-    expect(lineFormatter.formatLine).toHaveBeenNthCalledWith(2, bb2020);
-    expect(rendered).toContain('first line');
-    expect(rendered).toContain('second line');
+    expect(positionRulesSetSkills.listByPosition).toHaveBeenCalledWith(10);
+    expect(statLine.formatLines).toHaveBeenCalledWith([bb2016, bb2020], skills);
+    expect(
+      (result as { embeds: { description: string }[] }).embeds[0].description,
+    ).toContain(STUB_STAT_LINE);
   });
 
   it('reports the empty cases rather than rendering blank sections', async () => {
@@ -360,6 +393,24 @@ describe('PositionDeepdiveService', () => {
     expect(rendered).toContain(DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE);
     expect(rendered).toContain('Held by 0 players');
     expect(rendered).toContain(DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE);
+  });
+
+  it('skips the starting-skills lookup entirely when there are no characteristics rows', async () => {
+    // With no characteristics rows recorded, there are no rules-set stat
+    // lines for skill rows to attach to, so the query must not run at all —
+    // running it anyway would risk a spurious
+    // DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE in place of the correct
+    // "no characteristics" view if that unnecessary call happened to time
+    // out.
+    const { service, positionRulesSetSkills } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([]),
+    });
+
+    const rendered = JSON.stringify(await service.resolve(1));
+
+    expect(rendered).toContain(DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE);
+    expect(positionRulesSetSkills.listByPosition).not.toHaveBeenCalled();
   });
 
   it('uses the singular for a position held by exactly one player', async () => {

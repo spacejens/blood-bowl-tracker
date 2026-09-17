@@ -125,7 +125,12 @@ plus the Secret Bowl `Bretonnian_2020`. This matches what
   (1 of 568 — the Secret Bowl Werewolf roster's `Werewolf` position, a literal
   `0`). Identical on every position of one roster, so it is redundant with
   `rosterMasterId` and carries nothing the import needs.
-- `specialRuleName` — `"Lycanthrope"`. Optional.
+- `specialRuleName` — `"Lycanthrope"`. Optional. The entry's own exclusive
+  skill, published as a plain name beside (not inside) `skills`. The importer
+  merges it into that entry's starting skills as a name-carrying reference,
+  where it resolves against the curated `unique` category in
+  `tools/import-manual/data/before-other-importers/skills.json5` like any
+  other starting skill.
 
 ### `starplayerMasters[]` — star players, a separate top-level array
 
@@ -137,8 +142,8 @@ observed between the two arrays, nor between rules sets), so a star's `id` is
 usable as a TP position external id exactly like a regular position's.
 
 `specialRuleName` (the star's own special rule, e.g. `"Catch of the Day"`) is
-always present. `linkedWith` (another star's `id`, for stars hired as a pair)
-is optional — 6 of 66 BB2025 stars have it.
+always present. It is imported; see above. `linkedWith` (another star's `id`,
+for stars hired as a pair) is optional — 6 of 66 BB2025 stars have it.
 
 #### Which races may hire a star
 

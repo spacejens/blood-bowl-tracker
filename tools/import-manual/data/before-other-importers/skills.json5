@@ -32,8 +32,14 @@
 //                     uncurated (skill, rules set) pair is reported as an
 //                     import error naming this file.
 //
-// Every id in both sections is the skill's own display name, which is what
-// NameExternalIdService.forSkill produces and what both source importers send.
+// Every `Name` id in both sections is the skill's own display name, which is
+// what NameExternalIdService.forSkill produces and what both source importers
+// send. A handful of entries ALSO carry a `tourplay.net` id: TP's own numeric
+// skillMasterId, curated here for the ids no downloaded TP file ever embeds a
+// name for, so tools/import-tp can resolve them through the ordinary
+// external-id mechanism instead of a hard-coded table. Every OTHER TP
+// skillMasterId is self-registered by the TP importer at upsert time and
+// needs no curation here.
 // A skill whose display name once carried a parenthetical value ("Loner
 // (4+)", "Mighty Blow (+1)") is NOT a distinct skill: the value is specific
 // to the position that grants it, not to the skill's identity, so it is
@@ -42,13 +48,17 @@
 // name is registered here.
 //
 // 'unique' is a category like any other: it is the only marker a star
-// player's exclusive skill has -- there is no per-association flag. This
-// file curates no 'unique' rows: CRP's own "SKILL CATEGORIES" table (p.21)
-// has no Extraordinary-vs-unique split, and cross-checking the CRP Star
-// Players list (pp.79-80) found no skill there that is not already one of
-// the 75 skills the categories table itself lists (i.e. no star-player-only
-// skill to mark unique). Every CRP-era Extraordinary skill is curated as
-// 'trait' per the task's mapping instructions.
+// player's exclusive skill has -- there is no per-association flag. The CRP,
+// CRP+ and BB2016 groups below curate no 'unique' rows: CRP's own "SKILL
+// CATEGORIES" table (p.21) has no Extraordinary-vs-unique split, and
+// cross-checking the CRP Star Players list (pp.79-80) found no skill there
+// that is not already one of the 75 skills the categories table itself
+// lists (i.e. no star-player-only skill to mark unique). Every CRP-era
+// Extraordinary skill is curated as 'trait' per the task's mapping
+// instructions. The BB2020, DB2021 and BB2025 groups DO curate 'unique'
+// rows: TP publishes each star's own exclusive skill as a `specialRuleName`
+// string, and every distinct value in the downloaded TP data dumps is
+// curated as 'unique' for the rules set it was found under.
 //
 // Sources, this file:
 //   CRP -- m750496a_BB_Competition_Rules_Pack.pdf:
@@ -87,6 +97,7 @@
 // section header comment above for why they are pre-registered here too.
 {
   externalSystems: [
+    { name: 'tourplay.net', category: 'imported_data_source' },
     { name: 'Name', category: 'bookkeeping' },
   ],
   skills: [
@@ -132,6 +143,10 @@
     { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }] },
     { name: 'Pass', externalIds: [{ system: 'Name', id: 'Pass' }] },
     { name: 'Hail Mary Pass', externalIds: [{ system: 'Name', id: 'Hail Mary Pass' }] },
+    // BB2025-only; TP names it only on a skillMasterId no downloaded file
+    // ever embeds a name for, so the tourplay.net id below is what lets the
+    // TP importer resolve it.
+    { name: 'Punt', externalIds: [{ system: 'Name', id: 'Punt' }, { system: 'tourplay.net', id: '254' }] },
     { name: 'Safe Throw', externalIds: [{ system: 'Name', id: 'Safe Throw' }] },
     { name: 'Leader', externalIds: [{ system: 'Name', id: 'Leader' }] },
     { name: 'Break Tackle', externalIds: [{ system: 'Name', id: 'Break Tackle' }] },
@@ -158,10 +173,17 @@
     { name: 'Fan Favourite', externalIds: [{ system: 'Name', id: 'Fan Favourite' }] },
     { name: 'Secret Weapon', externalIds: [{ system: 'Name', id: 'Secret Weapon' }] },
     { name: 'Animosity', externalIds: [{ system: 'Name', id: 'Animosity' }, { system: 'Name', id: 'Aminosity' }] },
+    // BB2025-only, target-keyed like Animosity above; its target (e.g.
+    // "Undead", "Troll") comes from TP's own attribute-type-3 opaque code,
+    // resolved by packages/parse-tp's HatredTargetService.
+    { name: 'Hatred', externalIds: [{ system: 'Name', id: 'Hatred' }] },
     { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Hyptnotic Gaze' }] },
     { name: 'Stab', externalIds: [{ system: 'Name', id: 'Stab' }] },
     { name: 'Ball & Chain', externalIds: [{ system: 'Name', id: 'Ball & Chain' }] },
-    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }] },
+    // BB2020 gave Loner its own skillMasterId that no downloaded file embeds
+    // a name for; the tourplay.net id below is what lets the TP importer
+    // resolve it onto this row rather than creating a second Loner.
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }, { system: 'tourplay.net', id: '181' }] },
     { name: 'No Hands', externalIds: [{ system: 'Name', id: 'No Hands' }] },
     { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Tak root' }] },
     { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }] },
@@ -202,25 +224,29 @@
     { name: 'Bomber', externalIds: [{ system: 'Name', id: 'Bomber' }] },
     { name: 'Bone-Head', externalIds: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Bone Head' }, { system: 'Name', id: 'Bone-head' }] },
     { name: 'Brawler', externalIds: [{ system: 'Name', id: 'Brawler' }] },
-    { name: 'Breathe Fire', externalIds: [{ system: 'Name', id: 'Breathe Fire' }] },
+    { name: 'Breathe Fire', externalIds: [{ system: 'Name', id: 'Breathe Fire' }, { system: 'tourplay.net', id: '306' }] },
     { name: 'Bullseye', externalIds: [{ system: 'Name', id: 'Bullseye' }] },
     { name: 'Cannoneer', externalIds: [{ system: 'Name', id: 'Cannoneer' }] },
-    { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }] },
+    { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }, { system: 'tourplay.net', id: '246' }] },
     { name: 'Defensive', externalIds: [{ system: 'Name', id: 'Defensive' }] },
     { name: 'Drunkard', externalIds: [{ system: 'Name', id: 'Drunkard' }] },
     { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
     { name: 'Frenzied Rush', externalIds: [{ system: 'Name', id: 'Frenzied Rush' }] },
+    // BB2025-only; TP names it only on a skillMasterId no downloaded file
+    // ever embeds a name for, so the tourplay.net id below is what lets the
+    // TP importer resolve it.
+    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }, { system: 'tourplay.net', id: '210' }] },
     { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
     { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
     { name: 'Hit and Run', externalIds: [{ system: 'Name', id: 'Hit and Run' }] },
     { name: 'Insignificant', externalIds: [{ system: 'Name', id: 'Insignificant' }] },
-    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }] },
+    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }, { system: 'tourplay.net', id: '238' }] },
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
     { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
     { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
     { name: 'Mesmerizing Dance', externalIds: [{ system: 'Name', id: 'Mesmerizing Dance' }] },
     { name: 'Monstrous Mouth', externalIds: [{ system: 'Name', id: 'Monstrous Mouth' }] },
-    { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }] },
+    { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }, { system: 'tourplay.net', id: '305' }] },
     { name: 'No Ball', externalIds: [{ system: 'Name', id: 'No Ball' }] },
     { name: 'On the Ball', externalIds: [{ system: 'Name', id: 'On the Ball' }] },
     { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }, { system: 'Name', id: 'Pick-me-up' }] },
@@ -235,12 +261,87 @@
     { name: 'Safe Pass', externalIds: [{ system: 'Name', id: 'Safe Pass' }] },
     { name: 'Savage Mauling', externalIds: [{ system: 'Name', id: 'Savage Mauling' }] },
     { name: 'Steady Footing', externalIds: [{ system: 'Name', id: 'Steady Footing' }] },
-    { name: 'Swarming', externalIds: [{ system: 'Name', id: 'Swarming' }] },
+    { name: 'Swarming', externalIds: [{ system: 'Name', id: 'Swarming' }, { system: 'tourplay.net', id: '166' }] },
     { name: 'Swoop', externalIds: [{ system: 'Name', id: 'Swoop' }] },
     { name: 'Taunt', externalIds: [{ system: 'Name', id: 'Taunt' }] },
-    { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }] },
+    { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }, { system: 'tourplay.net', id: '304' }] },
     { name: 'Unchannelled Fury', externalIds: [{ system: 'Name', id: 'Unchannelled Fury' }] },
     { name: 'Unsteady', externalIds: [{ system: 'Name', id: 'Unsteady' }] },
+
+    // --- Star-player exclusive skills: TP publishes each star's own
+    // exclusive skill as a `specialRuleName` string beside the skills array
+    // (see docs/import-tp/file-format-official-teams.md), and the TP
+    // importer merges it into that star's starting skills. Every name below
+    // was harvested verbatim from the downloaded TP data dumps
+    // (tools/import-tp/data), never hand-typed, so a star's own
+    // punctuation -- straight and typographic apostrophes alike -- is
+    // preserved exactly as TP writes it. Their categories are curated as
+    // 'unique' per rules set in the skillRulesSets section below. ---
+    { name: 'A Sneaky Pair', externalIds: [{ system: 'Name', id: 'A Sneaky Pair' }] },
+    { name: 'All You Can Eat', externalIds: [{ system: 'Name', id: 'All You Can Eat' }] },
+    { name: 'Baleful Hex', externalIds: [{ system: 'Name', id: 'Baleful Hex' }] },
+    { name: 'Beer Barrel Bash', externalIds: [{ system: 'Name', id: 'Beer Barrel Bash' }] },
+    { name: 'Black Ink', externalIds: [{ system: 'Name', id: 'Black Ink' }] },
+    { name: 'Blast It!', externalIds: [{ system: 'Name', id: 'Blast It!' }] },
+    { name: 'Blastin’ Solves Everything', externalIds: [{ system: 'Name', id: 'Blastin’ Solves Everything' }] },
+    { name: 'Blind Rage', externalIds: [{ system: 'Name', id: 'Blind Rage' }] },
+    { name: 'Bounding Leap', externalIds: [{ system: 'Name', id: 'Bounding Leap' }] },
+    { name: 'Brutal Block', externalIds: [{ system: 'Name', id: 'Brutal Block' }] },
+    { name: 'Burst of Speed', externalIds: [{ system: 'Name', id: 'Burst of Speed' }] },
+    { name: 'Catch of the Day', externalIds: [{ system: 'Name', id: 'Catch of the Day' }] },
+    { name: 'Consummate Professional', externalIds: [{ system: 'Name', id: 'Consummate Professional' }] },
+    { name: 'Crushing Blow', externalIds: [{ system: 'Name', id: 'Crushing Blow' }] },
+    { name: 'Dwarfen Grit', externalIds: [{ system: 'Name', id: 'Dwarfen Grit' }] },
+    { name: 'Dwarfen Scourge', externalIds: [{ system: 'Name', id: 'Dwarfen Scourge' }] },
+    { name: 'Dwarven Scourge', externalIds: [{ system: 'Name', id: 'Dwarven Scourge' }] },
+    { name: 'Excuse Me, Are You a Zoat?', externalIds: [{ system: 'Name', id: 'Excuse Me, Are You a Zoat?' }] },
+    { name: 'Furious Outburst', externalIds: [{ system: 'Name', id: 'Furious Outburst' }] },
+    { name: 'Fury of the Blood God', externalIds: [{ system: 'Name', id: 'Fury of the Blood God' }] },
+    { name: 'Gored by the Bull', externalIds: [{ system: 'Name', id: 'Gored by the Bull' }] },
+    { name: 'Halfling Luck', externalIds: [{ system: 'Name', id: 'Halfling Luck' }] },
+    { name: "I'll Carry You", externalIds: [{ system: 'Name', id: "I'll Carry You" }] },
+    { name: "I'll be Back!", externalIds: [{ system: 'Name', id: "I'll be Back!" }] },
+    { name: 'Incorporeal', externalIds: [{ system: 'Name', id: 'Incorporeal' }] },
+    { name: 'Indomitable', externalIds: [{ system: 'Name', id: 'Indomitable' }] },
+    { name: 'Kaboom!', externalIds: [{ system: 'Name', id: 'Kaboom!' }] },
+    { name: "Kick'em while they're down!", externalIds: [{ system: 'Name', id: "Kick'em while they're down!" }] },
+    { name: 'Krump and Smash', externalIds: [{ system: 'Name', id: 'Krump and Smash' }] },
+    { name: 'Look Into My Eyes', externalIds: [{ system: 'Name', id: 'Look Into My Eyes' }] },
+    { name: 'Lord of Chaos', externalIds: [{ system: 'Name', id: 'Lord of Chaos' }] },
+    { name: 'Master Assassin', externalIds: [{ system: 'Name', id: 'Master Assassin' }] },
+    { name: 'Maximum Carnage', externalIds: [{ system: 'Name', id: 'Maximum Carnage' }] },
+    { name: 'Old Pro', externalIds: [{ system: 'Name', id: 'Old Pro' }] },
+    { name: 'Primal Savagery', externalIds: [{ system: 'Name', id: 'Primal Savagery' }] },
+    { name: 'Pump Up the Crowd', externalIds: [{ system: 'Name', id: 'Pump Up the Crowd' }] },
+    { name: 'Putrid Regurgitation', externalIds: [{ system: 'Name', id: 'Putrid Regurgitation' }] },
+    { name: 'Quick Bite', externalIds: [{ system: 'Name', id: 'Quick Bite' }] },
+    { name: 'Raiding Party', externalIds: [{ system: 'Name', id: 'Raiding Party' }] },
+    { name: 'Ram', externalIds: [{ system: 'Name', id: 'Ram' }] },
+    { name: 'Reliable', externalIds: [{ system: 'Name', id: 'Reliable' }] },
+    { name: 'Savage Blow', externalIds: [{ system: 'Name', id: 'Savage Blow' }] },
+    { name: 'Shot to Nothing', externalIds: [{ system: 'Name', id: 'Shot to Nothing' }] },
+    { name: 'Slashing Nails', externalIds: [{ system: 'Name', id: 'Slashing Nails' }] },
+    { name: 'Slayer', externalIds: [{ system: 'Name', id: 'Slayer' }] },
+    { name: 'Sneakiest of the Lot', externalIds: [{ system: 'Name', id: 'Sneakiest of the Lot' }] },
+    { name: 'Star of the Show', externalIds: [{ system: 'Name', id: 'Star of the Show' }] },
+    { name: 'Strong Passing Game', externalIds: [{ system: 'Name', id: 'Strong Passing Game' }] },
+    { name: 'Swift as the Breeze', externalIds: [{ system: 'Name', id: 'Swift as the Breeze' }] },
+    { name: 'Tasty Morsel', externalIds: [{ system: 'Name', id: 'Tasty Morsel' }] },
+    { name: 'The Ballista', externalIds: [{ system: 'Name', id: 'The Ballista' }] },
+    { name: 'The Flashing Blade', externalIds: [{ system: 'Name', id: 'The Flashing Blade' }] },
+    { name: "Then I Started Blastin'!", externalIds: [{ system: 'Name', id: "Then I Started Blastin'!" }] },
+    { name: "Thinking Man's Troll", externalIds: [{ system: 'Name', id: "Thinking Man's Troll" }] },
+    { name: 'Toxin Connoisseur', externalIds: [{ system: 'Name', id: 'Toxin Connoisseur' }] },
+    { name: 'Treacherous', externalIds: [{ system: 'Name', id: 'Treacherous' }] },
+    { name: 'Two for One', externalIds: [{ system: 'Name', id: 'Two for One' }] },
+    { name: 'Unstoppable Momentum', externalIds: [{ system: 'Name', id: 'Unstoppable Momentum' }] },
+    { name: 'Vicious Vines', externalIds: [{ system: 'Name', id: 'Vicious Vines' }] },
+    { name: 'Watch Out!', externalIds: [{ system: 'Name', id: 'Watch Out!' }] },
+    { name: 'Whirling Dervish', externalIds: [{ system: 'Name', id: 'Whirling Dervish' }] },
+    { name: 'Wisdom of the White Dwarf', externalIds: [{ system: 'Name', id: 'Wisdom of the White Dwarf' }] },
+    { name: 'Woodland Fury', externalIds: [{ system: 'Name', id: 'Woodland Fury' }] },
+    { name: 'Working in Tandem', externalIds: [{ system: 'Name', id: 'Working in Tandem' }] },
+    { name: 'Yoink!', externalIds: [{ system: 'Name', id: 'Yoink!' }] },
   ],
   skillRulesSets: [
     // --- CRP: General skills (CRP p.21) ---
@@ -651,18 +752,12 @@
     { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Possibly a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Ghostly Flames' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // BBL's own HTML spells this skill "Kick Team-Mate" (capital M); TP's
     // skillMaster data spells it "Kick Team-mate" (lowercase m) -- the same
     // skill, merged under BBL's capitalization (see externalIds).
     { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
@@ -672,8 +767,6 @@
     { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
@@ -685,8 +778,78 @@
     { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
+    // Shared by at least seven positions across ordinary team positions
+    // (Minotaur, Yhetee) and star players (Bloodspawn) alike -- confirmed
+    // against tools/import-bbl/data -- so it is an ordinary Trait, not one
+    // star's own exclusive skill.
+    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'trait' },
-    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+
+    // Star-player exclusive skills, harvested from TP's own
+    // `specialRuleName` field (see the skills section above). 'unique' is
+    // what marks a skill as one star's own -- there is no per-association
+    // flag -- and it is what the Discord bot's deepdives render with a star.
+    { skill: { system: 'Name', id: 'A Sneaky Pair' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'All You Can Eat' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Baleful Hex' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Beer Barrel Bash' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Black Ink' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Blast It!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Blind Rage' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Bounding Leap' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Brutal Block' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Burst of Speed' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Catch of the Day' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Consummate Professional' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Crushing Blow' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Dwarfen Scourge' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Excuse Me, Are You a Zoat?' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Furious Outburst' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Fury of the Blood God' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Ghostly Flames' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Gored by the Bull' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Halfling Luck' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: "I'll be Back!" }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Incorporeal' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Indomitable' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Kaboom!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: "Kick'em while they're down!" }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Look Into My Eyes' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Lord of Chaos' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Master Assassin' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Maximum Carnage' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Old Pro' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Primal Savagery' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Pump Up the Crowd' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Putrid Regurgitation' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Quick Bite' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Raiding Party' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Ram' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Reliable' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Savage Blow' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Shot to Nothing' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Slayer' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Sneakiest of the Lot' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Star of the Show' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Strong Passing Game' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Swift as the Breeze' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Tasty Morsel' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'The Ballista' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'The Flashing Blade' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: "Then I Started Blastin'!" }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: "Thinking Man's Troll" }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Toxin Connoisseur' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Treacherous' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Two for One' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Unstoppable Momentum' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Vicious Vines' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Watch Out!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Whirling Dervish' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Wisdom of the White Dwarf' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Yoink!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
 
     // --- DB2021: harvested from BBL/TP data dumps ---
     { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
@@ -769,15 +932,9 @@
     { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Possibly a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Ghostly Flames' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Kick Team-Mate' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Likely a star-player skill; not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'No Hands' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
@@ -787,8 +944,6 @@
     { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    // TODO: verify -- Not identified from a PDF this session has.
-    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
@@ -800,8 +955,17 @@
     { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     // TODO: verify -- Category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
-    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
+
+    // Star-player exclusive skills, harvested from TP's own
+    // `specialRuleName` field (see the skills section above). 'unique' is
+    // what marks a skill as one star's own -- there is no per-association
+    // flag -- and it is what the Discord bot's deepdives render with a star.
+    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Ghostly Flames' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
 
     // --- BB2025: harvested from BBL/TP data dumps ---
     // `isElite: true` marks BB2025's elite skills -- an orthogonal
@@ -867,12 +1031,14 @@
     { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Bullseye' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Cloud Burster' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'On the Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Punt' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     { skill: { system: 'Name', id: 'Safe Pair of Hands' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
     // TODO: verify -- BB2020+ renamed CRP's "Safe Throw" to this; category carried over from CRP, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Safe Pass' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'passing' },
@@ -881,22 +1047,32 @@
     { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Iron Hard Skin' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Monstrous Mouth' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    // TODO: verify -- category guessed as 'devious' by its dirty-trick
+    // flavour, not sourced from a PDF this session has; confirm against the
+    // BB2025 rulebook, and note some other BB2025-only skills already
+    // curated as 'general'/'agility' may belong here too (e.g. Dirty
+    // Player, Sneaky Git) -- out of scope to re-derive in this session.
+    { skill: { system: 'Name', id: 'Fumblerooski' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'devious' },
     { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
     { skill: { system: 'Name', id: 'Animal Savagery' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Ball & Chain' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bombardier' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Bone-Head' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Breathe Fire' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Chainsaw' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Decay' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Drunkard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Eye Gouge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Hatred' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Insignificant' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
@@ -904,6 +1080,7 @@
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Lethal Flight' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'My Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'No Ball' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Plague Ridden' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
@@ -923,9 +1100,78 @@
     { skill: { system: 'Name', id: 'Throw Team-Mate' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Titchy' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Trickster' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Unsteady' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
-    { skill: { system: 'Name', id: 'Unchannelled Fury' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+
+    // Star-player exclusive skills, harvested from TP's own
+    // `specialRuleName` field (see the skills section above). 'unique' is
+    // what marks a skill as one star's own -- there is no per-association
+    // flag -- and it is what the Discord bot's deepdives render with a star.
+    { skill: { system: 'Name', id: 'A Sneaky Pair' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'All You Can Eat' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Baleful Hex' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Beer Barrel Bash' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Black Ink' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Blast It!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Blastin’ Solves Everything' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Blind Rage' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Bounding Leap' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Catch of the Day' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Consummate Professional' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Crushing Blow' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Dwarfen Grit' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Dwarven Scourge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Excuse Me, Are You a Zoat?' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Furious Outburst' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Fury of the Blood God' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Gored by the Bull' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Halfling Luck' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: "I'll Carry You" }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: "I'll be Back!" }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Incorporeal' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Indomitable' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Kaboom!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: "Kick'em while they're down!" }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Krump and Smash' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Look Into My Eyes' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Lord of Chaos' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Master Assassin' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Maximum Carnage' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Mesmerizing Dance' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Old Pro' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Primal Savagery' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Pump Up the Crowd' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Putrid Regurgitation' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Quick Bite' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Raiding Party' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Ram' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Reliable' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Savage Blow' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Shot to Nothing' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Slashing Nails' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Slayer' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Sneakiest of the Lot' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Star of the Show' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Strong Passing Game' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Swift as the Breeze' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Tasty Morsel' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'The Ballista' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'The Flashing Blade' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: "Thinking Man's Troll" }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Toxin Connoisseur' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Treacherous' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Unstoppable Momentum' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Vicious Vines' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Watch Out!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Whirling Dervish' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Wisdom of the White Dwarf' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Woodland Fury' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Working in Tandem' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Yoink!' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'unique' },
 
   ],
 }
