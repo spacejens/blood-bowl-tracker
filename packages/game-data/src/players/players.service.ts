@@ -99,6 +99,11 @@ export class PlayersService {
         agilityReductionCount: number;
         passingReductionCount: number;
         armourReductionCount: number;
+        moveIncreaseCount: number;
+        strengthIncreaseCount: number;
+        agilityIncreaseCount: number;
+        passingIncreaseCount: number;
+        armourIncreaseCount: number;
       }
     | undefined
   > {
@@ -137,6 +142,14 @@ export class PlayersService {
         agilityReductionCount: players.agilityReductionCount,
         passingReductionCount: players.passingReductionCount,
         armourReductionCount: players.armourReductionCount,
+        // The player's advancement-driven characteristic increases. No new
+        // join: like the reduction counts above they live on `players`
+        // itself.
+        moveIncreaseCount: players.moveIncreaseCount,
+        strengthIncreaseCount: players.strengthIncreaseCount,
+        agilityIncreaseCount: players.agilityIncreaseCount,
+        passingIncreaseCount: players.passingIncreaseCount,
+        armourIncreaseCount: players.armourIncreaseCount,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
@@ -268,6 +281,14 @@ export class PlayersService {
       agilityReductionCount: data.agilityReductionCount,
       passingReductionCount: data.passingReductionCount,
       armourReductionCount: data.armourReductionCount,
+      // Undefined keys are stripped by `upsertByExternalIds`, so a payload
+      // that says nothing about characteristic increases leaves the stored
+      // counts alone — the same contract the reduction counts above rely on.
+      moveIncreaseCount: data.moveIncreaseCount,
+      strengthIncreaseCount: data.strengthIncreaseCount,
+      agilityIncreaseCount: data.agilityIncreaseCount,
+      passingIncreaseCount: data.passingIncreaseCount,
+      armourIncreaseCount: data.armourIncreaseCount,
     };
 
     const { row: player, created } = await upsertByExternalIds<

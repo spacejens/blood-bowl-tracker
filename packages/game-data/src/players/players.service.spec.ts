@@ -456,6 +456,38 @@ describe('PlayersService', () => {
       expect(values.nigglingInjuryCount).toBeUndefined();
       expect(values.armourReductionCount).toBeUndefined();
     });
+
+    it('writes the five characteristic increases when the caller supplies them', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({
+        ...base,
+        moveIncreaseCount: 2,
+        strengthIncreaseCount: 1,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 3,
+        externalIds,
+      });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        moveIncreaseCount: 2,
+        strengthIncreaseCount: 1,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 3,
+      });
+    });
+
+    it('leaves the increase columns untouched when the caller omits them', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      const values = firstCallArg(chains[1].values) as Record<string, unknown>;
+      expect(values.moveIncreaseCount).toBeUndefined();
+      expect(values.armourIncreaseCount).toBeUndefined();
+    });
   });
 
   describe('findById', () => {
@@ -641,6 +673,22 @@ describe('PlayersService', () => {
           'armourReductionCount',
         ]),
       );
+    });
+
+    it("selects the player's characteristic increase counts", async () => {
+      const { chains } = await build([
+        { ...fakePlayer, moveIncreaseCount: 2, armourIncreaseCount: 1 },
+      ]);
+
+      const found = await service.findById(1);
+
+      expect(found).toMatchObject({
+        moveIncreaseCount: 2,
+        armourIncreaseCount: 1,
+      });
+      // The selection is built on `players` itself — no extra join was added
+      // for the increase counts.
+      expect(chains).toHaveLength(1);
     });
   });
 
