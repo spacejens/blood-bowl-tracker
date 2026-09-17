@@ -18,6 +18,13 @@ import { Injectable } from '@nestjs/common';
  * Exported for `skill-master-id-alias.service.spec.ts`, so its decode tests
  * are driven directly off this map (every known id gets a test case, with
  * no risk of the two lists drifting apart).
+ *
+ * Unlike `HatredTargetService`/`AnimosityTargetService`, this table is not
+ * scoped to a rules set: in the downloaded mirror each id here belongs to
+ * exactly one rules set (confirmed by the developer per id), so there is no
+ * ambiguity today. If TP ever reused one of these ids for a different skill
+ * under another rules set, this table would need to become rules-set-aware
+ * to avoid mislabeling it.
  */
 export const skillMasterIdAliasById: Record<number, string> = {
   166: 'Swarming',

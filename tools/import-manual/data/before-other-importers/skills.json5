@@ -221,6 +221,9 @@
     { name: 'Drunkard', externalIds: [{ system: 'Name', id: 'Drunkard' }] },
     { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
     { name: 'Frenzied Rush', externalIds: [{ system: 'Name', id: 'Frenzied Rush' }] },
+    // BB2025-only; TP names it only on a skillMasterId no downloaded file
+    // ever embeds a name for -- see SkillMasterIdAliasService.
+    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }] },
     { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
     { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
     { name: 'Hit and Run', externalIds: [{ system: 'Name', id: 'Hit and Run' }] },
@@ -250,9 +253,6 @@
     { name: 'Swoop', externalIds: [{ system: 'Name', id: 'Swoop' }] },
     { name: 'Taunt', externalIds: [{ system: 'Name', id: 'Taunt' }] },
     { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }] },
-    // BB2025-only; TP names it only on a skillMasterId no downloaded file
-    // ever embeds a name for -- see SkillMasterIdAliasService.
-    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }] },
     { name: 'Unchannelled Fury', externalIds: [{ system: 'Name', id: 'Unchannelled Fury' }] },
     { name: 'Unsteady', externalIds: [{ system: 'Name', id: 'Unsteady' }] },
 
@@ -1040,6 +1040,11 @@
     { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'mutation' },
+    // TODO: verify -- category guessed as 'devious' by its dirty-trick
+    // flavour, not sourced from a PDF this session has; confirm against the
+    // BB2025 rulebook, and note some other BB2025-only skills already
+    // curated as 'general'/'agility' may belong here too (e.g. Dirty
+    // Player, Sneaky Git) -- out of scope to re-derive in this session.
     { skill: { system: 'Name', id: 'Fumblerooski' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'devious' },
     { skill: { system: 'Name', id: 'Always Hungry' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'trait' },
     // TODO: verify -- Beastman/Bray-Shamans-flavoured skill; category recalled as Trait, not sourced from a PDF this session has.
