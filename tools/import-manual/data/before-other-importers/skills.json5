@@ -32,8 +32,14 @@
 //                     uncurated (skill, rules set) pair is reported as an
 //                     import error naming this file.
 //
-// Every id in both sections is the skill's own display name, which is what
-// NameExternalIdService.forSkill produces and what both source importers send.
+// Every `Name` id in both sections is the skill's own display name, which is
+// what NameExternalIdService.forSkill produces and what both source importers
+// send. A handful of entries ALSO carry a `tourplay.net` id: TP's own numeric
+// skillMasterId, curated here for the ids no downloaded TP file ever embeds a
+// name for, so tools/import-tp can resolve them through the ordinary
+// external-id mechanism instead of a hard-coded table. Every OTHER TP
+// skillMasterId is self-registered by the TP importer at upsert time and
+// needs no curation here.
 // A skill whose display name once carried a parenthetical value ("Loner
 // (4+)", "Mighty Blow (+1)") is NOT a distinct skill: the value is specific
 // to the position that grants it, not to the skill's identity, so it is
@@ -91,6 +97,7 @@
 // section header comment above for why they are pre-registered here too.
 {
   externalSystems: [
+    { name: 'tourplay.net', category: 'imported_data_source' },
     { name: 'Name', category: 'bookkeeping' },
   ],
   skills: [
@@ -137,8 +144,9 @@
     { name: 'Pass', externalIds: [{ system: 'Name', id: 'Pass' }] },
     { name: 'Hail Mary Pass', externalIds: [{ system: 'Name', id: 'Hail Mary Pass' }] },
     // BB2025-only; TP names it only on a skillMasterId no downloaded file
-    // ever embeds a name for -- see SkillMasterIdAliasService.
-    { name: 'Punt', externalIds: [{ system: 'Name', id: 'Punt' }] },
+    // ever embeds a name for, so the tourplay.net id below is what lets the
+    // TP importer resolve it.
+    { name: 'Punt', externalIds: [{ system: 'Name', id: 'Punt' }, { system: 'tourplay.net', id: '254' }] },
     { name: 'Safe Throw', externalIds: [{ system: 'Name', id: 'Safe Throw' }] },
     { name: 'Leader', externalIds: [{ system: 'Name', id: 'Leader' }] },
     { name: 'Break Tackle', externalIds: [{ system: 'Name', id: 'Break Tackle' }] },
@@ -172,7 +180,10 @@
     { name: 'Hypnotic Gaze', externalIds: [{ system: 'Name', id: 'Hypnotic Gaze' }, { system: 'Name', id: 'Hyptnotic Gaze' }] },
     { name: 'Stab', externalIds: [{ system: 'Name', id: 'Stab' }] },
     { name: 'Ball & Chain', externalIds: [{ system: 'Name', id: 'Ball & Chain' }] },
-    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }] },
+    // BB2020 gave Loner its own skillMasterId that no downloaded file embeds
+    // a name for; the tourplay.net id below is what lets the TP importer
+    // resolve it onto this row rather than creating a second Loner.
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }, { system: 'tourplay.net', id: '181' }] },
     { name: 'No Hands', externalIds: [{ system: 'Name', id: 'No Hands' }] },
     { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Tak root' }] },
     { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }] },
@@ -213,28 +224,29 @@
     { name: 'Bomber', externalIds: [{ system: 'Name', id: 'Bomber' }] },
     { name: 'Bone-Head', externalIds: [{ system: 'Name', id: 'Bone-Head' }, { system: 'Name', id: 'Bone Head' }, { system: 'Name', id: 'Bone-head' }] },
     { name: 'Brawler', externalIds: [{ system: 'Name', id: 'Brawler' }] },
-    { name: 'Breathe Fire', externalIds: [{ system: 'Name', id: 'Breathe Fire' }] },
+    { name: 'Breathe Fire', externalIds: [{ system: 'Name', id: 'Breathe Fire' }, { system: 'tourplay.net', id: '306' }] },
     { name: 'Bullseye', externalIds: [{ system: 'Name', id: 'Bullseye' }] },
     { name: 'Cannoneer', externalIds: [{ system: 'Name', id: 'Cannoneer' }] },
-    { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }] },
+    { name: 'Cloud Burster', externalIds: [{ system: 'Name', id: 'Cloud Burster' }, { system: 'tourplay.net', id: '246' }] },
     { name: 'Defensive', externalIds: [{ system: 'Name', id: 'Defensive' }] },
     { name: 'Drunkard', externalIds: [{ system: 'Name', id: 'Drunkard' }] },
     { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
     { name: 'Frenzied Rush', externalIds: [{ system: 'Name', id: 'Frenzied Rush' }] },
     // BB2025-only; TP names it only on a skillMasterId no downloaded file
-    // ever embeds a name for -- see SkillMasterIdAliasService.
-    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }] },
+    // ever embeds a name for, so the tourplay.net id below is what lets the
+    // TP importer resolve it.
+    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }, { system: 'tourplay.net', id: '210' }] },
     { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
     { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
     { name: 'Hit and Run', externalIds: [{ system: 'Name', id: 'Hit and Run' }] },
     { name: 'Insignificant', externalIds: [{ system: 'Name', id: 'Insignificant' }] },
-    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }] },
+    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }, { system: 'tourplay.net', id: '238' }] },
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
     { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
     { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
     { name: 'Mesmerizing Dance', externalIds: [{ system: 'Name', id: 'Mesmerizing Dance' }] },
     { name: 'Monstrous Mouth', externalIds: [{ system: 'Name', id: 'Monstrous Mouth' }] },
-    { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }] },
+    { name: 'My Ball', externalIds: [{ system: 'Name', id: 'My Ball' }, { system: 'tourplay.net', id: '305' }] },
     { name: 'No Ball', externalIds: [{ system: 'Name', id: 'No Ball' }] },
     { name: 'On the Ball', externalIds: [{ system: 'Name', id: 'On the Ball' }] },
     { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }, { system: 'Name', id: 'Pick-me-up' }] },
@@ -249,10 +261,10 @@
     { name: 'Safe Pass', externalIds: [{ system: 'Name', id: 'Safe Pass' }] },
     { name: 'Savage Mauling', externalIds: [{ system: 'Name', id: 'Savage Mauling' }] },
     { name: 'Steady Footing', externalIds: [{ system: 'Name', id: 'Steady Footing' }] },
-    { name: 'Swarming', externalIds: [{ system: 'Name', id: 'Swarming' }] },
+    { name: 'Swarming', externalIds: [{ system: 'Name', id: 'Swarming' }, { system: 'tourplay.net', id: '166' }] },
     { name: 'Swoop', externalIds: [{ system: 'Name', id: 'Swoop' }] },
     { name: 'Taunt', externalIds: [{ system: 'Name', id: 'Taunt' }] },
-    { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }] },
+    { name: 'Trickster', externalIds: [{ system: 'Name', id: 'Trickster' }, { system: 'tourplay.net', id: '304' }] },
     { name: 'Unchannelled Fury', externalIds: [{ system: 'Name', id: 'Unchannelled Fury' }] },
     { name: 'Unsteady', externalIds: [{ system: 'Name', id: 'Unsteady' }] },
 

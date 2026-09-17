@@ -37,7 +37,7 @@
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
     { name: 'Pick-Me-Up', externalIds: [{ system: 'Name', id: 'Pick-Me-Up' }, { system: 'Name', id: 'Pick-me-up' }] },
     { name: 'Projectile Vomit', externalIds: [{ system: 'Name', id: 'Projectile Vomit' }, { system: 'Name', id: 'Projctile Vomit' }] },
-    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }] },
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }, { system: 'tourplay.net', id: '181' }] },
     { name: 'Piling On', externalIds: [{ system: 'Name', id: 'Piling On' }, { system: 'Name', id: 'Pile On' }] },
     { name: 'Pogo Stick', externalIds: [{ system: 'Name', id: 'Pogo Stick' }, { system: 'Name', id: 'Pogo' }] },
     { name: 'Eye Gouge', externalIds: [{ system: 'Name', id: 'Eye Gouge' }, { system: 'Name', id: 'Eye Gunge' }] },
