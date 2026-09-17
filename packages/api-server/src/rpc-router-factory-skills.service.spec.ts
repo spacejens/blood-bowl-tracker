@@ -61,7 +61,9 @@ describe('RpcRouterFactoryService skills routers', () => {
     });
 
     const result = await call(harness.router.skillRulesSets.sync, {
-      entries: [{ skillId: 7, rulesSetId: 4, category: 'general' }],
+      entries: [
+        { skillId: 7, rulesSetId: 4, category: 'general', isElite: false },
+      ],
     });
 
     expect(result).toEqual({ skillRulesSetIds: [31] });
@@ -74,7 +76,9 @@ describe('RpcRouterFactoryService skills routers', () => {
 
     await expect(
       call(harness.router.skillRulesSets.sync, {
-        entries: [{ skillId: 7, rulesSetId: 4, category: 'general' }],
+        entries: [
+          { skillId: 7, rulesSetId: 4, category: 'general', isElite: false },
+        ],
       }),
     ).rejects.toMatchObject({
       code: 'BAD_REQUEST',
@@ -84,7 +88,12 @@ describe('RpcRouterFactoryService skills routers', () => {
 
   it("lists one skill's categories without the fields the contract does not carry", async () => {
     harness.mocks.skillRulesSetsService.listBySkill.mockResolvedValue([
-      { rulesSetId: 4, rulesSetName: 'BB2020', category: 'general' },
+      {
+        rulesSetId: 4,
+        rulesSetName: 'BB2020',
+        category: 'general',
+        isElite: true,
+      },
     ]);
 
     const result = await call(harness.router.skillRulesSets.list, {
@@ -94,7 +103,9 @@ describe('RpcRouterFactoryService skills routers', () => {
     expect(
       harness.mocks.skillRulesSetsService.listBySkill,
     ).toHaveBeenCalledWith(7);
-    expect(result).toEqual([{ rulesSetId: 4, category: 'general' }]);
+    expect(result).toEqual([
+      { rulesSetId: 4, category: 'general', isElite: true },
+    ]);
   });
 
   it('syncs starting skills straight through to the service', async () => {

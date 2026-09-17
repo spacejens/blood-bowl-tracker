@@ -30,7 +30,14 @@ describe('SkillRulesSetsImportService', () => {
   });
 
   const data = {
-    entries: [{ skillId: 3, rulesSetId: 4, category: 'agility' as const }],
+    entries: [
+      {
+        skillId: 3,
+        rulesSetId: 4,
+        category: 'agility' as const,
+        isElite: false,
+      },
+    ],
   };
 
   it('returns the result and calls the client on success', async () => {
@@ -71,7 +78,9 @@ describe('SkillRulesSetsImportService', () => {
   });
 
   describe('listSkillRulesSets', () => {
-    const rows = [{ rulesSetId: 900, category: 'general' as const }];
+    const rows = [
+      { rulesSetId: 900, category: 'general' as const, isElite: false },
+    ];
 
     it("returns the skill's categories on success", async () => {
       client.skillRulesSets.list.mockResolvedValue(rows);

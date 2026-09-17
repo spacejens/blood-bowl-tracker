@@ -146,7 +146,7 @@ async function run(): Promise<ImportResult> {
     // mirror the rosters/matches were read from: rosters_masters names skills
     // by id only, while every real roster and match embeds the name.
     const skillNameErrors: ImportError[] = [];
-    const skillNamesByMasterId = await app
+    const skillMastersByMasterId = await app
       .get(SkillMasterNameCollectionService)
       .collect(skillNameErrors);
     const skillNameCollectionResult = app.get(ImportResultService).result({
@@ -167,7 +167,7 @@ async function run(): Promise<ImportResult> {
       .get(TpPositionSkillsImportService)
       .syncPositionSkills({
         skillRefsByPositionId,
-        skillNamesByMasterId,
+        skillMastersByMasterId,
         positionNamesById,
         rulesSetNamesById,
       });

@@ -217,6 +217,19 @@ happens to explain is reported by the positions' skills import as an
 `ImportError`, not by this scan — and resolves itself as `download-tp` pulls
 more history.
 
+That same embedded `skillMaster` object is also the only place TP's BB2025
+"elite" marker appears: an elite skill's master carries `"isElite": true`, and
+a non-elite one omits the field entirely rather than writing `false`. It is
+present only on BB2025 (`"ruleSet": 25`) skill masters — the BB2020 and DB2021
+masters never carry it — and skill-master ids are disjoint across rules sets
+(BB2020 Block is id 96, BB2025 Block is id 220), so a single
+`skillMasterId -> isElite` map cannot confuse two rules sets. The template
+file (`rosters_masters`) carries no `skillMaster` object at all, so it carries
+no elite marker either. Beware that TP embeds the same skill master both in
+full and as a partial record omitting `ruleSet` and `isElite`, so
+`SkillMasterNamesParserService` OR-accumulates the flag rather than letting a
+later partial record clear it.
+
 ### `inducementsMasters[]`
 
 Not consumed by the import. Shape:

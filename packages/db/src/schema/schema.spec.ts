@@ -434,6 +434,7 @@ describe('schema', () => {
     expect(skillRulesSets.skillId).toBeDefined();
     expect(skillRulesSets.rulesSetId).toBeDefined();
     expect(skillRulesSets.category).toBeDefined();
+    expect(skillRulesSets.isElite).toBeDefined();
   });
 
   it('exports positionRulesSetSkills association table', () => {

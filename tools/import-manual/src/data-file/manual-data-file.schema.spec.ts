@@ -708,6 +708,35 @@ describe('ManualDataFileSchema', () => {
     ).toThrow();
   });
 
+  it('defaults a skillRulesSets entry isElite to false when omitted', () => {
+    const parsed = ManualDataFileSchema.parse({
+      skillRulesSets: [
+        {
+          skill: { system: 'Name', id: 'Block' },
+          rulesSet: { system: 'Name', id: 'BB2020' },
+          category: 'general',
+        },
+      ],
+    });
+
+    expect(parsed.skillRulesSets[0].isElite).toBe(false);
+  });
+
+  it('keeps an explicitly curated skillRulesSets entry isElite', () => {
+    const parsed = ManualDataFileSchema.parse({
+      skillRulesSets: [
+        {
+          skill: { system: 'Name', id: 'Block' },
+          rulesSet: { system: 'Name', id: 'BB2025' },
+          category: 'general',
+          isElite: true,
+        },
+      ],
+    });
+
+    expect(parsed.skillRulesSets[0].isElite).toBe(true);
+  });
+
   it('parses a positionRulesSetSkills entry with several skills', () => {
     const data = ManualDataFileSchema.parse({
       positionRulesSetSkills: [

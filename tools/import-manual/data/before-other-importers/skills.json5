@@ -950,7 +950,14 @@
     { skill: { system: 'Name', id: 'Savage Mauling' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'unique' },
 
     // --- BB2025: harvested from BBL/TP data dumps ---
-    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
+    // `isElite: true` marks BB2025's elite skills -- an orthogonal
+    // restriction, not a category, that limits which skills a position or
+    // advancing player may pick. Only BB2025 has the concept; every other row
+    // in this file omits the field and defaults to false. Harvested from TP's
+    // downloaded mirror, the only source that publishes the marker, and
+    // cross-checked by the TP importer on every run: a disagreement is
+    // reported as an ImportError naming this file.
+    { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general', isElite: true },
     { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
     { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'general' },
@@ -974,7 +981,7 @@
     { skill: { system: 'Name', id: 'Defensive' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
-    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility', isElite: true },
     // TODO: verify -- BB2025-only skill; category guessed from its name, not sourced.
     { skill: { system: 'Name', id: 'Give and Go' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Hit and Run' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
@@ -996,9 +1003,9 @@
     // TODO: verify -- Reduces Throw Team-Mate scatter; recalled as a Strength skill (paired with Throw Team-Mate/Right Stuff) but could be Passing -- verify against the BB2020/2025 rulebook.
     { skill: { system: 'Name', id: 'Cannoneer' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
-    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength', isElite: true },
     { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
-    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength', isElite: true },
     { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'strength' },

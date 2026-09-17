@@ -115,6 +115,32 @@ describe('curated data files - skills', () => {
     }
   });
 
+  it('marks exactly the four BB2025 elite skills as elite', () => {
+    const elite = skillsFile()
+      .skillRulesSets.filter((entry) => entry.isElite)
+      .map((entry) => `${entry.rulesSet.id}|${entry.skill.id}`)
+      .sort();
+
+    // BB2025's elite skills, harvested from TP's downloaded mirror (the only
+    // source that publishes the marker at all). TP's importer cross-checks
+    // every one of these, so a wrong entry here surfaces as an ImportError.
+    expect(elite).toEqual([
+      'BB2025|Block',
+      'BB2025|Dodge',
+      'BB2025|Guard',
+      'BB2025|Mighty Blow',
+    ]);
+  });
+
+  it('marks no pre-BB2025 rules set as having elite skills', () => {
+    for (const entry of skillsFile().skillRulesSets) {
+      if (entry.rulesSet.id !== 'BB2025') {
+        // No rules set older than BB2025 has the concept at all.
+        expect(entry.isElite).toBe(false);
+      }
+    }
+  });
+
   it('re-asserts only skills already registered before, under the same external ids', () => {
     // SkillsService.upsert overwrites a matched row's name with whatever it's
     // given, so BBL/TP running after this file (each with their own raw

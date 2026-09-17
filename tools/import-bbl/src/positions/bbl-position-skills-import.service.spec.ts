@@ -67,8 +67,20 @@ describe('BblPositionSkillsImportService', () => {
         [
           3,
           new Map([
-            [7, [{ name: 'Block' }, { name: 'Dodge' }]],
-            [8, [{ name: 'Block' }, { name: 'Dodge' }]],
+            [
+              7,
+              [
+                { name: 'Block', isElite: false },
+                { name: 'Dodge', isElite: false },
+              ],
+            ],
+            [
+              8,
+              [
+                { name: 'Block', isElite: false },
+                { name: 'Dodge', isElite: false },
+              ],
+            ],
           ]),
         ],
       ]),
@@ -146,7 +158,20 @@ describe('BblPositionSkillsImportService', () => {
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
-      new Map([[3, new Map([[10, [{ name: 'Block' }, { name: 'Dodge' }]]])]]),
+      new Map([
+        [
+          3,
+          new Map([
+            [
+              10,
+              [
+                { name: 'Block', isElite: false },
+                { name: 'Dodge', isElite: false },
+              ],
+            ],
+          ]),
+        ],
+      ]),
       new Map([
         [7, 'CRP'],
         [8, 'CRP+'],
@@ -191,5 +216,21 @@ describe('BblPositionSkillsImportService', () => {
     // tools/import-bbl). A change to either side without updating the other
     // fails at least one of the two tests.
     expect(CURATION_OWNED_RULES_SET_NAMES).toEqual(['CRP', 'CRP+', 'BB2016']);
+  });
+
+  it('marks every BBL skill as not elite', async () => {
+    startingSkills.syncStartingSkills.mockResolvedValue(1);
+
+    await service.syncPositionSkills({
+      rulesSetIdsByPositionId: new Map([[3, new Set([9])]]),
+      skillsByPositionId: new Map([[3, [{ name: 'Block' }]]]),
+      rulesSetsByName: new Map([['BB2020', makeRulesSet(9, 'BB2020')]]),
+    });
+
+    expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
+      new Map([[3, new Map([[9, [{ name: 'Block', isElite: false }]]])]]),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 });

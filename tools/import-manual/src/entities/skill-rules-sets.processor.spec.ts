@@ -42,6 +42,7 @@ describe('SkillRulesSetsProcessor', () => {
     skill: { system: 'Name', id: 'Dodge' },
     rulesSet: { system: 'Name', id: 'CRP' },
     category: 'agility',
+    isElite: false,
   };
 
   it('syncs nothing and issues no call when the section is empty', async () => {
@@ -58,7 +59,37 @@ describe('SkillRulesSetsProcessor', () => {
     const ctx = makeContext([entry]);
     expect(await processor.process(ctx)).toBe(1);
     expect(skillRulesSetsImport.syncSkillRulesSets).toHaveBeenCalledWith(
-      { entries: [{ skillId: 5, rulesSetId: 9, category: 'agility' }] },
+      {
+        entries: [
+          { skillId: 5, rulesSetId: 9, category: 'agility', isElite: false },
+        ],
+      },
+      ctx.errors,
+    );
+  });
+
+  it('forwards the curated isElite flag to the sync call', async () => {
+    refResolver.resolveRef.mockResolvedValueOnce(5).mockResolvedValueOnce(9);
+    skillRulesSetsImport.syncSkillRulesSets.mockResolvedValue({
+      skillRulesSetIds: [1],
+    });
+    const ctx = makeContext([
+      {
+        skill: { system: 'Name', id: 'Block' },
+        rulesSet: { system: 'Name', id: 'BB2025' },
+        category: 'general',
+        isElite: true,
+      },
+    ]);
+
+    await processor.process(ctx);
+
+    expect(skillRulesSetsImport.syncSkillRulesSets).toHaveBeenCalledWith(
+      {
+        entries: [
+          { skillId: 5, rulesSetId: 9, category: 'general', isElite: true },
+        ],
+      },
       ctx.errors,
     );
   });
@@ -78,7 +109,11 @@ describe('SkillRulesSetsProcessor', () => {
     ]);
     expect(await processor.process(ctx)).toBe(1);
     expect(skillRulesSetsImport.syncSkillRulesSets).toHaveBeenCalledWith(
-      { entries: [{ skillId: 5, rulesSetId: 9, category: 'agility' }] },
+      {
+        entries: [
+          { skillId: 5, rulesSetId: 9, category: 'agility', isElite: false },
+        ],
+      },
       ctx.errors,
     );
   });

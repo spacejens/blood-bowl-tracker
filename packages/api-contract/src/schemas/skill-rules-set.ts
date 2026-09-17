@@ -16,6 +16,13 @@ export const SkillRulesSetEntrySchema = z.object({
   skillId: z.number().int(),
   rulesSetId: z.number().int(),
   category: SkillCategorySchema,
+  /**
+   * BB2025's orthogonal "elite" marker. Required rather than optional so a
+   * caller cannot silently leave a previously-elite row's flag untouched:
+   * `sync` rewrites a matched row wholesale, and every writer (the curated
+   * import) knows the value it means to store.
+   */
+  isElite: z.boolean(),
 });
 
 /**
@@ -39,6 +46,7 @@ export const SyncSkillRulesSetsResultSchema = z.object({
 export const SkillRulesSetCategorySchema = z.object({
   rulesSetId: z.number().int(),
   category: SkillCategorySchema,
+  isElite: z.boolean(),
 });
 
 /**
