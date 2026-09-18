@@ -589,6 +589,7 @@ describe('BblPlayersImportService', () => {
       sppTotal: null,
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
+      skills: [],
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
@@ -719,6 +720,7 @@ describe('BblPlayersImportService', () => {
       sppTotal: null,
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
+      skills: [],
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({

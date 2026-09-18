@@ -265,6 +265,7 @@ export const goodPlayer: BblPlayer = {
     passingReductionCount: 0,
     armourReductionCount: 0,
   },
+  skills: [],
 };
 
 /**

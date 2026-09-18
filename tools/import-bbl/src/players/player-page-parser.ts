@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
+import type { AnyNode } from 'domhandler';
 
+import type { BblSkillRef } from '../shared/skill-entry.service';
+import { SkillEntryService } from '../shared/skill-entry.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import type { BblLastingInjuries } from './sustained-injuries.parser';
@@ -28,6 +31,29 @@ const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'];
 
 /** The label cell that identifies the sustained-injuries row. */
 const SUSTAINED_INJURIES_LABEL = 'Sustained Injuries:';
+
+/** How many cells precede the Skills cell in the characteristics row. */
+const SKILLS_CELL_INDEX = CHARACTERISTIC_HEADERS.length;
+
+/** The inline colour BBL renders a skill GAINED via advancement in. */
+const GAINED_SKILL_COLOUR = '#006020';
+
+/**
+ * One skill from a player's own Skills cell.
+ *
+ * BBL distinguishes only plain text (a starting skill) from a coloured span (a
+ * skill gained via advancement). It records nothing about HOW a gained skill
+ * was gained, which is why every one of them is `advancement` rather than
+ * `chosen` or `random` -- unlike TP, which reports the roll outright.
+ *
+ * `advancementOrder` counts GAINED skills only, 1-based: starting skills
+ * interleaved in the same cell do not consume a position in the sequence. It
+ * is a presentation-order proxy, not a confirmed sequence.
+ */
+export interface BblPlayerSkillRef extends BblSkillRef {
+  source: 'starting' | 'advancement';
+  advancementOrder?: number;
+}
 
 /**
  * A player read off a `p=pl` page. `pid` is the player's page id (from
@@ -65,6 +91,12 @@ export interface BblPlayer {
    * reads as all-clean.
    */
   lastingInjuries: BblLastingInjuries;
+  /**
+   * Every skill the player's Skills cell lists, starting and gained alike, in
+   * the cell's own order. Empty when the cell is blank or absent -- a player
+   * with no skills at all is an ordinary state, not a parse failure.
+   */
+  skills: BblPlayerSkillRef[];
 }
 
 @Injectable()
@@ -72,6 +104,7 @@ export class PlayerPageParser {
   constructor(
     private readonly normalizeText: NormalizeExtractedTextService,
     private readonly sustainedInjuries: SustainedInjuriesParser,
+    private readonly skillEntries: SkillEntryService,
   ) {}
 
   /**
@@ -125,6 +158,7 @@ export class PlayerPageParser {
       sppTotal: this.extractSppTotal($),
       characteristics,
       lastingInjuries: this.extractLastingInjuries($),
+      skills: this.extractSkills($),
     };
   }
 
@@ -247,5 +281,97 @@ export class PlayerPageParser {
       return null;
     }
     return Number.parseInt(text, 10);
+  }
+
+  /**
+   * The Skills cell of the player's characteristics table: the sixth cell of
+   * the row after the MA/ST/AG/PA/AV header row. Returns an empty list when
+   * there is no such table, no sixth cell, or the cell is blank.
+   */
+  private extractSkills($: CheerioAPI): BblPlayerSkillRef[] {
+    for (const row of $('tr').toArray()) {
+      const headers = $(row)
+        .children('th, td')
+        .toArray()
+        .map((cell) => this.normalizeText.normalize($(cell).text()));
+      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+        continue;
+      }
+      const cells = $(row).next('tr').children('td').toArray();
+      const skillsCell = cells[SKILLS_CELL_INDEX];
+      if (skillsCell === undefined) {
+        return [];
+      }
+      return this.readSkillsCell($, skillsCell);
+    }
+    return [];
+  }
+
+  /**
+   * Split one Skills cell into refs, walking its child nodes rather than its
+   * flattened text: the starting-vs-gained distinction is carried ONLY by the
+   * inline colour of a wrapping span, which `.text()` throws away.
+   *
+   * Commas live in the cell's plain text nodes and never inside a coloured
+   * span, so an entry is built by accumulating text until the next comma; a
+   * coloured span encountered while accumulating marks the entry in progress
+   * as gained.
+   *
+   * A coloured span whose only content is the red "?" marker is a pending,
+   * unresolved advancement roll -- an ordinary mid-advancement state with no
+   * skill to record yet -- so it contributes no text and its entry is dropped.
+   */
+  private readSkillsCell($: CheerioAPI, cell: AnyNode): BblPlayerSkillRef[] {
+    const refs: BblPlayerSkillRef[] = [];
+    let gainedCount = 0;
+    let text = '';
+    let gained = false;
+
+    const flush = (): void => {
+      const entry = this.normalizeText.normalize(text);
+      text = '';
+      const wasGained = gained;
+      gained = false;
+      if (entry.length === 0) {
+        return;
+      }
+      for (const ref of this.skillEntries.resolveSkillRefs(entry)) {
+        if (!wasGained) {
+          refs.push({ ...ref, source: 'starting' });
+          continue;
+        }
+        gainedCount += 1;
+        refs.push({
+          ...ref,
+          source: 'advancement',
+          advancementOrder: gainedCount,
+        });
+      }
+    };
+
+    for (const node of $(cell).contents().toArray()) {
+      const element = $(node);
+      const colour = element.attr?.('style') ?? '';
+      if (colour.includes(GAINED_SKILL_COLOUR)) {
+        // A nested red "?" is the pending marker; removing it leaves an empty
+        // span, which flush() then drops as the empty entry it is.
+        const inner = element.clone();
+        inner.find('span').remove();
+        const value = this.normalizeText.normalize(inner.text());
+        if (value.length > 0) {
+          text += value;
+          gained = true;
+        }
+        continue;
+      }
+      const parts = element.text().split(',');
+      text += parts[0];
+      for (const part of parts.slice(1)) {
+        flush();
+        text = part;
+      }
+    }
+    flush();
+    return refs;
   }
 }

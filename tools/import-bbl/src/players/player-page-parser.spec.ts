@@ -3,6 +3,7 @@ import { load } from 'cheerio';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { SkillEntryService } from '../shared/skill-entry.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { PlayerPageParser } from './player-page-parser';
@@ -36,6 +37,7 @@ describe('PlayerPageParser', () => {
       providers: [
         PlayerPageParser,
         SustainedInjuriesParser,
+        SkillEntryService,
         { provide: NormalizeExtractedTextService, useValue: normalizeText },
       ],
     }).compile();
@@ -84,6 +86,7 @@ describe('PlayerPageParser', () => {
         armour: 8,
       },
       lastingInjuries: NO_INJURIES,
+      skills: [{ name: 'Sure Hands', source: 'starting' }],
     });
   });
 
@@ -108,6 +111,7 @@ describe('PlayerPageParser', () => {
         armour: 8,
       },
       lastingInjuries: NO_INJURIES,
+      skills: [{ name: 'Sure Hands', source: 'starting' }],
     });
   });
 
@@ -134,6 +138,7 @@ describe('PlayerPageParser', () => {
         armour: 8,
       },
       lastingInjuries: NO_INJURIES,
+      skills: [{ name: 'Sure Hands', source: 'starting' }],
     });
   });
 
@@ -182,6 +187,7 @@ describe('PlayerPageParser', () => {
         armour: 8,
       },
       lastingInjuries: NO_INJURIES,
+      skills: [{ name: 'Sure Hands', source: 'starting' }],
     });
   });
 
@@ -459,5 +465,130 @@ describe('PlayerPageParser', () => {
     expect(() => parser.extractPlayer(page)).toThrow(
       'Invalid sustained-injuries row: missing value cell',
     );
+  });
+});
+
+describe('PlayerPageParser skills cell', () => {
+  let parser: PlayerPageParser;
+
+  beforeEach(async () => {
+    const normalizeText = mock<NormalizeExtractedTextService>();
+    normalizeText.normalize.mockImplementation((s: string) =>
+      s.replace(/\s+/g, ' ').trim(),
+    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PlayerPageParser,
+        SustainedInjuriesParser,
+        SkillEntryService,
+        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      ],
+    }).compile();
+    parser = moduleRef.get(PlayerPageParser);
+  });
+
+  /** The links every player page needs for extractPlayer to succeed. */
+  const PLAYER_LINKS =
+    '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+    '<a href="default.asp?p=tm&t=knu">Knights</a>';
+
+  /**
+   * A full player page whose characteristics row's sixth (Skills) cell holds
+   * the given markup.
+   */
+  function parsePlayerWithSkillsCell(cellHtml: string) {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        '<table class="tblist">' +
+        '<tr class="trlisthead">' +
+        '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th>' +
+        '</tr>' +
+        '<tr>' +
+        '<td>5</td><td>3</td><td>3+</td><td>4+</td><td>8+</td>' +
+        `<td>${cellHtml}</td>` +
+        '</tr>' +
+        '</table>',
+    );
+    return parser.extractPlayer(page);
+  }
+
+  /**
+   * A full player page whose characteristics row carries only the five
+   * value cells, with no Skills cell at all.
+   */
+  function parsePlayerWithoutSkillsCell() {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        PLAYER_LINKS +
+        '<table class="tblist">' +
+        '<tr class="trlisthead">' +
+        '<th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th>' +
+        '</tr>' +
+        '<tr>' +
+        '<td>5</td><td>3</td><td>3+</td><td>4+</td><td>8+</td>' +
+        '</tr>' +
+        '</table>',
+    );
+    return parser.extractPlayer(page);
+  }
+
+  it('reads plain entries as starting skills with no advancement order', () => {
+    const player = parsePlayerWithSkillsCell('Stunty, Right Stuff, Dodge');
+
+    expect(player?.skills).toEqual([
+      { name: 'Stunty', source: 'starting' },
+      { name: 'Right Stuff', source: 'starting' },
+      { name: 'Dodge', source: 'starting' },
+    ]);
+  });
+
+  it('reads a coloured entry as an advancement, numbered among gained skills only', () => {
+    const player = parsePlayerWithSkillsCell(
+      "Stunty, <span style='color:#006020'>Dauntless</span>, Dodge, " +
+        "<span style='color:#006020'>Block</span>",
+    );
+
+    expect(player?.skills).toEqual([
+      { name: 'Stunty', source: 'starting' },
+      { name: 'Dauntless', source: 'advancement', advancementOrder: 1 },
+      { name: 'Dodge', source: 'starting' },
+      { name: 'Block', source: 'advancement', advancementOrder: 2 },
+    ]);
+  });
+
+  it('splits a parenthetical on a gained skill into its attribute value', () => {
+    const player = parsePlayerWithSkillsCell(
+      "<span style='color:#006020'>Mighty Blow (+1)</span>",
+    );
+
+    expect(player?.skills).toEqual([
+      {
+        name: 'Mighty Blow',
+        attributeValue: '+1',
+        source: 'advancement',
+        advancementOrder: 1,
+      },
+    ]);
+  });
+
+  it('skips a pending advancement slot without numbering it', () => {
+    const player = parsePlayerWithSkillsCell(
+      "Dodge, <span style='color:#006020'>Dauntless</span>, " +
+        "<span style='color:#006020'> <span style='color:#f02020'>?</span></span>",
+    );
+
+    expect(player?.skills).toEqual([
+      { name: 'Dodge', source: 'starting' },
+      { name: 'Dauntless', source: 'advancement', advancementOrder: 1 },
+    ]);
+  });
+
+  it('reads an empty skills cell as no skills', () => {
+    expect(parsePlayerWithSkillsCell('')?.skills).toEqual([]);
+  });
+
+  it('reads a page whose characteristics row has no skills cell as no skills', () => {
+    expect(parsePlayerWithoutSkillsCell()?.skills).toEqual([]);
   });
 });

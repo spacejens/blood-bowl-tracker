@@ -66,6 +66,7 @@ describe('BblPositionsImportService characteristics', () => {
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
+            skills: [],
           }),
         ],
       }),
@@ -106,6 +107,7 @@ describe('BblPositionsImportService characteristics', () => {
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
+            skills: [],
           }),
           plPage({
             pid: '2',
@@ -115,6 +117,7 @@ describe('BblPositionsImportService characteristics', () => {
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
+            skills: [],
           }),
         ],
       }),

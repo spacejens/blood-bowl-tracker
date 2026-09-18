@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { EraConfigModule } from '../eras/era-config.module';
 import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
+import { SkillEntryService } from '../shared/skill-entry.service';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { SourceModule } from '../source/source.module';
 import { BblLastingInjuryBackfillImportService } from './bbl-lasting-injury-backfill-import.service';
@@ -16,6 +17,7 @@ import { SustainedInjuriesParser } from './sustained-injuries.parser';
   providers: [
     PlayerPageParser,
     SustainedInjuriesParser,
+    SkillEntryService,
     BblPlayersImportService,
     BblSppAdjustmentsImportService,
     BblLastingInjuryBackfillImportService,
