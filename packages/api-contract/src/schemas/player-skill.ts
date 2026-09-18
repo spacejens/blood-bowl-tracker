@@ -40,7 +40,7 @@ export const PlayerSkillEntrySchema = z
       ctx.addIssue({
         code: 'custom',
         message:
-          'advancementOrder is only meaningful for chosen/random skills; a starting entry must leave it unset',
+          'advancementOrder is only meaningful for advancement/chosen/random skills; a starting entry must leave it unset',
       });
     }
   });
