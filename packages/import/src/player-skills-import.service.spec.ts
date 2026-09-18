@@ -106,6 +106,85 @@ describe('PlayerSkillsImportService', () => {
     });
   });
 
+  it('drops a starting candidate that arrives after an existing gained entry', async () => {
+    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+
+    await service.syncPlayerSkills(
+      [
+        entry({ source: 'chosen', advancementOrder: 1 }),
+        entry({ source: 'starting' }),
+      ],
+      errors,
+    );
+
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [entry({ source: 'chosen', advancementOrder: 1 })],
+    });
+  });
+
+  it('drops a gained candidate with no advancement order of its own', async () => {
+    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+
+    await service.syncPlayerSkills(
+      [
+        entry({ source: 'chosen', advancementOrder: 1 }),
+        entry({ source: 'random' }),
+      ],
+      errors,
+    );
+
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [entry({ source: 'chosen', advancementOrder: 1 })],
+    });
+  });
+
+  it('keeps a gained candidate that replaces an existing gained entry which also has no advancement order', async () => {
+    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+
+    await service.syncPlayerSkills(
+      [
+        entry({ source: 'random' }),
+        entry({ source: 'chosen', advancementOrder: 5 }),
+      ],
+      errors,
+    );
+
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [entry({ source: 'chosen', advancementOrder: 5 })],
+    });
+  });
+
+  it('drops a gained candidate whose advancement order is equal to or greater than the existing one', async () => {
+    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
+
+    await service.syncPlayerSkills(
+      [
+        entry({ source: 'chosen', advancementOrder: 1 }),
+        entry({ source: 'chosen', advancementOrder: 1 }),
+      ],
+      errors,
+    );
+
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [entry({ source: 'chosen', advancementOrder: 1 })],
+    });
+
+    client.playerSkills.sync.mockClear();
+    client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [52] });
+
+    await service.syncPlayerSkills(
+      [
+        entry({ source: 'chosen', advancementOrder: 1 }),
+        entry({ source: 'chosen', advancementOrder: 2 }),
+      ],
+      errors,
+    );
+
+    expect(client.playerSkills.sync).toHaveBeenCalledWith({
+      entries: [entry({ source: 'chosen', advancementOrder: 1 })],
+    });
+  });
+
   it('treats a missing attributeValue and an explicit null as the same key', async () => {
     client.playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
 
