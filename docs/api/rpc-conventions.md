@@ -179,7 +179,7 @@ shaped this way instead of as an upsert, and its exact result shape.
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
-nothing, and declares no contract errors. There are currently four.
+nothing, and declares no contract errors. There are currently five.
 `competitionGroups.list`: `tools/import-tp` already holds a competition's
 `competitionGroupId` from its own competition upsert's response, but needs that
 group's curated _name_ to build a trophy's TP external id — and `upsert` cannot
@@ -196,6 +196,9 @@ is a related shape for a position: given a position id, it answers the
 position's starting skills per rules set. A star player's exclusive skill is
 not called out separately in this response — a caller identifies it by
 checking `skillRulesSets.list` for the `unique` category instead.
+`playerSkills.list`: given a player id, answers every skill recorded for that
+player — starting and gained alike — which `upsert` cannot answer either,
+since it only ever writes the skills it is given, not the player's full set.
 
 ## Error responses
 

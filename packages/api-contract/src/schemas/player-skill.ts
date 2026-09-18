@@ -55,7 +55,7 @@ export const PlayerSkillRefSchema = z.object({
   skillId: z.number().int(),
   source: PlayerSkillSourceSchema,
   attributeValue: z.string().nullable(),
-  advancementOrder: z.number().int().nullable(),
+  advancementOrder: z.number().int().nonnegative().nullable(),
 });
 
 /** Input of the read procedure: one player at a time. */

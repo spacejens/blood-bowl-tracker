@@ -56,7 +56,7 @@ function naturalKey(
   skillId: number,
   attributeValue: string | null,
 ): string {
-  return `${playerId}|${skillId}|${attributeValue ?? ''}`;
+  return JSON.stringify([playerId, skillId, attributeValue]);
 }
 
 /**
@@ -282,6 +282,10 @@ export class PlayerSkillsService {
       .innerJoin(skills, eq(skills.id, playerSkills.skillId))
       .where(eq(playerSkills.playerId, playerId))
       .orderBy(
+        // Sorts by the Postgres enum's declaration order, which relies on
+        // `PLAYER_SKILL_SOURCES` (packages/domain-enums/src/skills.ts) being
+        // declared as `starting`, `chosen`, `random` — reordering that array
+        // would silently change this API's result order.
         asc(playerSkills.source),
         asc(playerSkills.advancementOrder),
         asc(skills.name),

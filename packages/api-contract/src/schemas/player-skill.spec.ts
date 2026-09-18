@@ -89,6 +89,17 @@ describe('player skill schemas', () => {
     ).toBe(false);
   });
 
+  it('rejects a negative advancement order on a read-back row', () => {
+    expect(
+      PlayerSkillRefSchema.safeParse({
+        skillId: 7,
+        source: 'chosen',
+        attributeValue: null,
+        advancementOrder: -1,
+      }).success,
+    ).toBe(false);
+  });
+
   it('parses the list input', () => {
     expect(ListPlayerSkillsSchema.parse({ playerId: 1 })).toEqual({
       playerId: 1,

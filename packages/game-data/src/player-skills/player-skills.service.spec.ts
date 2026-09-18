@@ -116,6 +116,28 @@ describe('PlayerSkillsService', () => {
       expect(result).toEqual({ playerSkillIds: [51, 52] });
     });
 
+    it('treats a null attribute value and an empty-string one as two distinct rows', async () => {
+      const db = mockDb(
+        [playerRow],
+        [skillRow],
+        [],
+        [
+          { id: 51, playerId: 1, skillId: 7, attributeValue: null },
+          { id: 52, playerId: 1, skillId: 7, attributeValue: '' },
+        ],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [
+          { ...entry, attributeValue: null },
+          { ...entry, attributeValue: '' },
+        ],
+      });
+
+      expect(result).toEqual({ playerSkillIds: [51, 52] });
+    });
+
     it('returns the existing id without writing when the row already matches', async () => {
       const db = mockDb(
         [playerRow],

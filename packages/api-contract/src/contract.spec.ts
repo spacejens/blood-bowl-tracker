@@ -327,6 +327,14 @@ describe('contract', () => {
   it('defines positionRulesSetSkills.list with no declared errors', () => {
     expect(errorCodesOf(contract.positionRulesSetSkills.list)).toEqual([]);
   });
+
+  it('defines playerSkills.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.playerSkills.sync)).toEqual(['BAD_REQUEST']);
+  });
+
+  it('defines playerSkills.list with no declared errors', () => {
+    expect(errorCodesOf(contract.playerSkills.list)).toEqual([]);
+  });
 });
 
 describe('resolve procedures', () => {

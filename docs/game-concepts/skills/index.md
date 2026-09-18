@@ -85,3 +85,7 @@ A gained skill is not checked against its category. Recording a Trait or
 Unique skill as gained looks impossible under the base rules, but house rules
 and competition-specific quirks can genuinely produce one, so what the source
 published is stored as-is.
+
+Syncing player skills only adds or updates rows for what's supplied. A player
+skill that a later sync no longer includes is not automatically removed —
+its row stays in place.
