@@ -1,5 +1,6 @@
 import { PLAYER_SKILL_SOURCES } from '@blood-bowl-tracker/domain-enums';
-import { integer, serial, text, unique } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { check, integer, serial, text, unique } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from '../history';
 import { gameData } from './pg-schema';
@@ -71,6 +72,13 @@ const playerSkillsTable = historyTrackedTable({
     )
       .on(t.playerId, t.skillId, t.attributeValue)
       .nullsNotDistinct(),
+    // A plain single-table check, like `trophies.ts`'s `groupOrLeague`: a
+    // starting row has no sequence at all, so it must always leave
+    // `advancementOrder` unset, regardless of what application code writes.
+    startingHasNoOrder: check(
+      'player_skills_starting_has_no_order',
+      sql`${t.source} != 'starting' OR ${t.advancementOrder} IS NULL`,
+    ),
   }),
 });
 

@@ -1,0 +1,1 @@
+ALTER TABLE "game_data"."player_skills" ADD CONSTRAINT "player_skills_starting_has_no_order" CHECK ("source" != 'starting' OR "advancement_order" IS NULL);

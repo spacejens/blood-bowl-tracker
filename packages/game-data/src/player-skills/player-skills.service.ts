@@ -142,7 +142,12 @@ export class PlayerSkillsService {
           skillId: row.skillId,
           source: row.source,
           attributeValue: row.attributeValue,
-          advancementOrder: row.advancementOrder ?? null,
+          // A starting row never carries a sequence, regardless of what the
+          // entry says: the schema already rejects a numeric order paired
+          // with `starting`, but this stays an explicit, unconditional `null`
+          // here rather than relying on that alone.
+          advancementOrder:
+            row.source === 'starting' ? null : (row.advancementOrder ?? null),
         });
         toInsertIndexes.push(index);
         continue;
@@ -152,7 +157,14 @@ export class PlayerSkillsService {
       if (row.source !== existing.source) {
         values.source = row.source;
       }
-      if (
+      if (row.source === 'starting') {
+        // The resolved source is (or is becoming) `starting`, which has no
+        // sequence at all — clear any previously-stored order even though
+        // the entry itself did not mention `advancementOrder`.
+        if (existing.advancementOrder !== null) {
+          values.advancementOrder = null;
+        }
+      } else if (
         row.advancementOrder !== undefined &&
         row.advancementOrder !== existing.advancementOrder
       ) {

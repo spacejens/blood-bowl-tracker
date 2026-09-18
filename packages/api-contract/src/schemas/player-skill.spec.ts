@@ -63,6 +63,28 @@ describe('player skill schemas', () => {
     ).toBe(false);
   });
 
+  it('rejects a starting entry with a numeric advancement order', () => {
+    expect(
+      PlayerSkillEntrySchema.safeParse({
+        playerId: 1,
+        skillId: 7,
+        source: 'starting',
+        advancementOrder: 2,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a starting entry with an explicit null advancement order', () => {
+    expect(
+      PlayerSkillEntrySchema.safeParse({
+        playerId: 1,
+        skillId: 7,
+        source: 'starting',
+        advancementOrder: null,
+      }).success,
+    ).toBe(true);
+  });
+
   it('parses an empty sync batch and its result', () => {
     expect(SyncPlayerSkillsSchema.parse({ entries: [] })).toEqual({
       entries: [],

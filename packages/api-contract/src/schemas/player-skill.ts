@@ -23,13 +23,26 @@ export const PlayerSkillSourceSchema = z.enum(PLAYER_SKILL_SOURCES);
  * records a confirmed sequence, only a presentation-order proxy — and is only
  * ever meaningful for `chosen`/`random`. A `starting` entry leaves it unset.
  */
-export const PlayerSkillEntrySchema = z.object({
-  playerId: z.number().int(),
-  skillId: z.number().int(),
-  source: PlayerSkillSourceSchema,
-  attributeValue: z.string().nullable().optional(),
-  advancementOrder: z.number().int().nonnegative().nullable().optional(),
-});
+export const PlayerSkillEntrySchema = z
+  .object({
+    playerId: z.number().int(),
+    skillId: z.number().int(),
+    source: PlayerSkillSourceSchema,
+    attributeValue: z.string().nullable().optional(),
+    advancementOrder: z.number().int().nonnegative().nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.source === 'starting' &&
+      typeof data.advancementOrder === 'number'
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'advancementOrder is only meaningful for chosen/random skills; a starting entry must leave it unset',
+      });
+    }
+  });
 
 /**
  * Not an upsert, for the same reason `positionRulesSets.sync` is not: the row

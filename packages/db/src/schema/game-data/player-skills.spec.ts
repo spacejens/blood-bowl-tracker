@@ -45,4 +45,11 @@ describe('player_skills', () => {
     // allow two identical no-variant rows for the same player.
     expect(constraint!.nullsNotDistinct).toBe(true);
   });
+
+  it('enforces that a starting row leaves advancementOrder unset', () => {
+    const check = config.checks.find(
+      (c) => c.name === 'player_skills_starting_has_no_order',
+    );
+    expect(check).toBeDefined();
+  });
 });
