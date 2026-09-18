@@ -18,6 +18,7 @@ import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
 import { NameExternalIdService } from './name-external-id.service';
+import { PlayerSkillsImportService } from './player-skills-import.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
@@ -51,6 +52,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MissingTrophyAwardsImportService,
     NameExternalIdService,
     PlayersImportService,
+    PlayerSkillsImportService,
     PositionRulesSetsImportService,
     PositionRulesSetSkillsImportService,
     PositionsImportService,
@@ -86,6 +88,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MissingTrophyAwardsImportService,
     NameExternalIdService,
     PlayersImportService,
+    PlayerSkillsImportService,
     PositionRulesSetsImportService,
     PositionRulesSetSkillsImportService,
     PositionsImportService,
