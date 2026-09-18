@@ -5,10 +5,7 @@ import {
   PlayerSkillsImportService,
   SkillsImportService,
 } from '@blood-bowl-tracker/import';
-import type {
-  TpPlayerSkills,
-  TpSkillMaster,
-} from '@blood-bowl-tracker/parse-tp';
+import type { TpPlayerSkills } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -61,20 +58,6 @@ describe('TpPlayerSkillsImportService', () => {
     nameExternalId.forSkill.mockImplementation(
       (name: string) => `skill:${name}`,
     );
-    skillResolver.collectSkillMasterIds.mockImplementation(
-      (skillMastersByMasterId: Map<number, TpSkillMaster>) => {
-        const byName = new Map<string, Set<number>>();
-        for (const [skillMasterId, master] of skillMastersByMasterId) {
-          let ids = byName.get(master.name);
-          if (ids === undefined) {
-            ids = new Set();
-            byName.set(master.name, ids);
-          }
-          ids.add(skillMasterId);
-        }
-        return byName;
-      },
-    );
     skillResolver.resolveUnnamedMasterIds.mockResolvedValue(new Map());
     playerSkills.syncPlayerSkills.mockResolvedValue(0);
     const moduleRef = await Test.createTestingModule({
@@ -111,6 +94,9 @@ describe('TpPlayerSkillsImportService', () => {
   it('records a template skill as starting with no advancement order', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Dodge'));
     playerSkills.syncPlayerSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -138,6 +124,9 @@ describe('TpPlayerSkillsImportService', () => {
 
   it("records a player's own skill as chosen when TP says it was not random", async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Block', new Set([220])]]),
+    );
 
     await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -164,6 +153,9 @@ describe('TpPlayerSkillsImportService', () => {
 
   it("records a player's own skill as random when TP says it was", async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Block', new Set([220])]]),
+    );
 
     await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -193,6 +185,12 @@ describe('TpPlayerSkillsImportService', () => {
       const name = data.name ?? '';
       return Promise.resolve(upserted(name === 'Block' ? 100 : 101, name));
     });
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([
+        ['Block', new Set([220])],
+        ['Dodge', new Set([221])],
+      ]),
+    );
 
     await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -223,6 +221,9 @@ describe('TpPlayerSkillsImportService', () => {
 
   it('composes a type 0/1/2 attribute value straight onto the entry', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Mighty Blow'));
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Mighty Blow', new Set([42])]]),
+    );
 
     await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -256,6 +257,9 @@ describe('TpPlayerSkillsImportService', () => {
   it("decodes a type-3 attribute through the resolver's own table", async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Hatred'));
     skillResolver.decodeTypeThreeTarget.mockReturnValue('Undead');
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Hatred', new Set([307])]]),
+    );
 
     await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -293,6 +297,9 @@ describe('TpPlayerSkillsImportService', () => {
   it('drops a skill whose type-3 code cannot be decoded and records one error per code', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Animosity'));
     skillResolver.decodeTypeThreeTarget.mockReturnValue(undefined);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Animosity', new Set([269])]]),
+    );
 
     const { result } = await service.syncPlayerSkills({
       skillsByPlayerId: new Map([
@@ -404,6 +411,9 @@ describe('TpPlayerSkillsImportService', () => {
 
   it('registers every scanned master id for a name as tourplay.net external ids', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Dodge'));
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87, 188])]]),
+    );
 
     await service.syncPlayerSkills({
       skillsByPlayerId: new Map([

@@ -3,10 +3,6 @@ import {
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
-import {
-  animosityTargetByCode,
-  hatredTargetByCode,
-} from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -41,40 +37,12 @@ describe('TpPositionSkillsImportService', () => {
     }));
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [TP_SYSTEM_ID] });
     externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
-    // Inverting the scanned lookup is TpSkillResolverService's own tested
-    // behavior (tp-skill-resolver.service.spec.ts); replicated here only so
-    // this spec's many exact-payload assertions -- about what
-    // TpPositionSkillsImportService itself does with the inverted map --
-    // keep exercising realistic input instead of a canned stub.
-    skillResolver.collectSkillMasterIds.mockImplementation(
-      (skillMastersByMasterId) => {
-        const byName = new Map<string, Set<number>>();
-        for (const [skillMasterId, master] of skillMastersByMasterId) {
-          let ids = byName.get(master.name);
-          if (ids === undefined) {
-            ids = new Set();
-            byName.set(master.name, ids);
-          }
-          ids.add(skillMasterId);
-        }
-        return byName;
-      },
-    );
     // No curated tourplay.net id answers, unless a test says otherwise: an
     // index with no entry reads as undefined, i.e. "not found".
     skillResolver.resolveUnnamedMasterIds.mockResolvedValue(new Map());
-    skillResolver.decodeTypeThreeTarget.mockImplementation(
-      (skillMasterId, attributeValue) => {
-        const code = Number(attributeValue);
-        if (skillMasterId === 307) {
-          return hatredTargetByCode[code];
-        }
-        if (skillMasterId === 269) {
-          return animosityTargetByCode[code];
-        }
-        return undefined;
-      },
-    );
+    // decodeTypeThreeTarget's default mock behavior (undefined) already
+    // matches "the opaque code is not explained"; tests where a code IS
+    // explained set their own canned mockReturnValue.
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpPositionSkillsImportService,
@@ -101,6 +69,12 @@ describe('TpPositionSkillsImportService', () => {
 
   it('resolves each id to its name and keeps the attribute value separate', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([
+        ['Dodge', new Set([87])],
+        ['Loner', new Set([154])],
+      ]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -153,6 +127,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('keeps a numeric-bonus attribute value separate from the name too', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Mighty Blow', new Set([42])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -192,6 +169,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('records an error for an unresolvable id and keeps the rest of the list', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -255,6 +235,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('excludes a type-3 opaque attribute code and reports it, without blocking other skills', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -303,6 +286,10 @@ describe('TpPositionSkillsImportService', () => {
 
   it('composes a type-3 reference whose opaque code the Hatred table explains', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Hatred', new Set([307])]]),
+    );
+    skillResolver.decodeTypeThreeTarget.mockReturnValue('Undead');
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -350,6 +337,7 @@ describe('TpPositionSkillsImportService', () => {
 
   it('still reports a type-3 reference whose opaque code the Hatred table does not explain', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -387,6 +375,7 @@ describe('TpPositionSkillsImportService', () => {
 
   it('reports a type-3 opaque attribute code once, however many positions reference it', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -468,6 +457,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it("merges a star's name-carried exclusive skill in alongside its ordinary skills", async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -505,6 +497,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it("threads TP's elite marker into the starting skill ref", async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Block', new Set([220])]]),
+    );
 
     await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -533,6 +528,10 @@ describe('TpPositionSkillsImportService', () => {
 
   it('composes a type-3 Animosity reference whose opaque code the Animosity table explains', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Animosity', new Set([269])]]),
+    );
+    skillResolver.decodeTypeThreeTarget.mockReturnValue('Goblin');
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -584,6 +583,7 @@ describe('TpPositionSkillsImportService', () => {
     // 110 is a real Hatred target code (Undead), but this reference is for
     // Animosity (skillMasterId 269), whose own table has no entry for 110 --
     // Hatred's table must never be consulted for it.
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
         [
@@ -613,6 +613,7 @@ describe('TpPositionSkillsImportService', () => {
     // 87 (Dodge) resolves to a name but has no type-3 lookup of its own --
     // decodeTypeThreeTarget's fallback branch (neither 307 nor 269) must
     // still report this as unresolvable, not silently compose it.
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
         [
@@ -647,6 +648,9 @@ describe('TpPositionSkillsImportService', () => {
     // TP assigns the same skill a new id per rules set; the scan sees both.
     // The upserted skill must end up carrying both, on the very first ref --
     // StartingSkillsImportService upserts a name only once per run.
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87, 188])]]),
+    );
     await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 87 }]]])],
