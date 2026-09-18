@@ -1,4 +1,8 @@
 import type { RulesSet } from '@blood-bowl-tracker/api-contract';
+import type {
+  PlayerCharacteristicReductionCounts,
+  PlayerCurrentCharacteristics,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it } from 'vitest';
 
 import { type EraConfig } from '../eras/era-config.service';
@@ -231,5 +235,109 @@ describe('BblPlayersImportService characteristics', () => {
       expect.objectContaining({ agility: 3, armour: 8 }),
       expect.any(Array),
     );
+  });
+
+  it('sends the derived characteristic-increase counts with the player', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      eras,
+    );
+    mocks.characteristicIncreases.forPlayer.mockResolvedValue({
+      moveIncreaseCount: 1,
+      strengthIncreaseCount: 0,
+      agilityIncreaseCount: 0,
+      passingIncreaseCount: 0,
+      armourIncreaseCount: 2,
+    });
+
+    await service.importPlayers(importOptions);
+
+    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moveIncreaseCount: 1,
+        strengthIncreaseCount: 0,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 2,
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it('measures the player s CONVERTED characteristics against the baseline', async () => {
+    // A bare-notation rules set (as in the conversion test above) proves the
+    // value reaching forPlayer is the CONVERTED one, not the raw scraped one.
+    const bareAgilityPlayer = {
+      ...goodPlayer,
+      characteristics: { ...goodPlayer.characteristics, agility: 4 },
+    };
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(bareAgilityPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers({
+      ...importOptions,
+      rulesSetsByName: new Map<string, RulesSet>([
+        [
+          'LRB',
+          makeRulesSet({
+            name: 'LRB',
+            passingFormat: 'absent',
+            agilityFormat: 'bare',
+            armourFormat: 'bare',
+          }),
+        ],
+      ]),
+    });
+
+    // The page shows AG 4 / AV 8 in BBL's BB2020 notation, which convert to
+    // AG 2 / AV 7 under a bare-notation rules set.
+    expect(mocks.characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current: expect.objectContaining({
+          agility: 2,
+          armour: 7,
+        }) as PlayerCurrentCharacteristics,
+      }),
+    );
+  });
+
+  it('passes the parsed reduction counts through as the increase baseline offset', async () => {
+    const injuredPlayer = {
+      ...goodPlayer,
+      lastingInjuries: {
+        ...goodPlayer.lastingInjuries,
+        moveReductionCount: 1,
+      },
+    };
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(injuredPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers(importOptions);
+
+    expect(mocks.characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reductions: expect.objectContaining({
+          moveReductionCount: 1,
+        }) as PlayerCharacteristicReductionCounts,
+      }),
+    );
+  });
+
+  it('sends no increase group at all when no baseline could be resolved', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      eras,
+    );
+    mocks.characteristicIncreases.forPlayer.mockResolvedValue(undefined);
+
+    await service.importPlayers(importOptions);
+
+    const [payload] = mocks.playersImport.upsertPlayerResult.mock.calls[0];
+    expect(payload).not.toHaveProperty('moveIncreaseCount');
+    expect(payload).not.toHaveProperty('passingIncreaseCount');
   });
 });

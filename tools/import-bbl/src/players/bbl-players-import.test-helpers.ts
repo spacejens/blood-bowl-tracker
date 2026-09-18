@@ -7,6 +7,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
+  PlayerCharacteristicIncreasesService,
   PlayersImportService,
   ReferenceLookupService,
   TeamsImportService,
@@ -119,6 +120,7 @@ export interface Mocks {
   pageParseError: MockProxy<PageParseErrorService>;
   upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
   lookup: MockProxy<ReferenceLookupService>;
+  characteristicIncreases: MockProxy<PlayerCharacteristicIncreasesService>;
 }
 
 /**
@@ -206,6 +208,17 @@ export async function makeService(
     position: positionIdsByExternalId,
   });
 
+  const characteristicIncreases = mock<PlayerCharacteristicIncreasesService>();
+  // Defaults to all-zero counts so specs that don't care about advancement
+  // still get a full, valid increase group in the upsert payload.
+  characteristicIncreases.forPlayer.mockResolvedValue({
+    moveIncreaseCount: 0,
+    strengthIncreaseCount: 0,
+    agilityIncreaseCount: 0,
+    passingIncreaseCount: 0,
+    armourIncreaseCount: 0,
+  });
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPlayersImportService,
@@ -224,6 +237,10 @@ export async function makeService(
         useValue: upsertFieldNarrowing,
       },
       { provide: ReferenceLookupService, useValue: lookup },
+      {
+        provide: PlayerCharacteristicIncreasesService,
+        useValue: characteristicIncreases,
+      },
     ],
   }).compile();
 
@@ -239,6 +256,7 @@ export async function makeService(
       pageParseError,
       upsertFieldNarrowing,
       lookup,
+      characteristicIncreases,
     },
   };
 }
