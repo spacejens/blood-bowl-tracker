@@ -688,4 +688,14 @@ describe('PlayerPageParser skills cell', () => {
       parsePlayerWithoutSkillsCell()?.characteristicIncreaseCounts,
     ).toEqual(ZERO_COUNTS);
   });
+
+  it('treats a skill literally named "constructor" as an ordinary starting skill, not a characteristic-increase marker', () => {
+    const player = parsePlayerWithSkillsCell('constructor, Dodge');
+
+    expect(player?.skills).toEqual([
+      { name: 'constructor', source: 'starting' },
+      { name: 'Dodge', source: 'starting' },
+    ]);
+    expect(player?.characteristicIncreaseCounts).toEqual(ZERO_COUNTS);
+  });
 });

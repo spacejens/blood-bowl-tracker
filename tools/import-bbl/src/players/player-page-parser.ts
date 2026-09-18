@@ -410,8 +410,8 @@ export class PlayerPageParser {
         return;
       }
       for (const ref of this.skillEntries.resolveSkillRefs(entry)) {
-        const characteristic = CHARACTERISTIC_INCREASE_MARKERS[ref.name];
-        if (characteristic !== undefined) {
+        if (Object.hasOwn(CHARACTERISTIC_INCREASE_MARKERS, ref.name)) {
+          const characteristic = CHARACTERISTIC_INCREASE_MARKERS[ref.name];
           characteristicIncreaseCounts[characteristic] += 1;
           continue;
         }
