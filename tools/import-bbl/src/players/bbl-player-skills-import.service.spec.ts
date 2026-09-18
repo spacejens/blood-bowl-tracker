@@ -27,13 +27,11 @@ describe('BblPlayerSkillsImportService', () => {
   let skillsImport: MockProxy<SkillsImportService>;
   let playerSkills: MockProxy<PlayerSkillsImportService>;
   let bootstrap: MockProxy<ExternalSystemBootstrapService>;
-  let nameExternalId: MockProxy<NameExternalIdService>;
 
   beforeEach(async () => {
     skillsImport = mock<SkillsImportService>();
     playerSkills = mock<PlayerSkillsImportService>();
     bootstrap = mock<ExternalSystemBootstrapService>();
-    nameExternalId = mock<NameExternalIdService>();
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [42] });
     playerSkills.syncPlayerSkills.mockResolvedValue(0);
     const moduleRef = await Test.createTestingModule({
@@ -42,7 +40,14 @@ describe('BblPlayerSkillsImportService', () => {
         { provide: SkillsImportService, useValue: skillsImport },
         { provide: PlayerSkillsImportService, useValue: playerSkills },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
-        { provide: NameExternalIdService, useValue: nameExternalId },
+        // `NameExternalIdService` is pure and dependency-free — no
+        // constructor, no injected collaborators, no I/O, just identity
+        // formatting — so passing the real instance carries none of the
+        // coupling risk the "never pass a real collaborator" rule guards
+        // against, and this spec contains no copy of its formatting logic to
+        // drift from it. Its own behavior is covered in isolation by
+        // `name-external-id.service.spec.ts`.
+        NameExternalIdService,
         ImportResultService,
       ],
     }).compile();
@@ -51,7 +56,6 @@ describe('BblPlayerSkillsImportService', () => {
 
   it('upserts each distinct skill name once under its Name external id', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
-    nameExternalId.forSkill.mockReturnValue('skill:Block');
 
     await service.syncPlayerSkills(
       new Map([
@@ -64,7 +68,7 @@ describe('BblPlayerSkillsImportService', () => {
     expect(skillsImport.upsert).toHaveBeenCalledWith(
       {
         name: 'Block',
-        externalIds: [{ externalSystemId: 42, externalId: 'skill:Block' }],
+        externalIds: [{ externalSystemId: 42, externalId: 'Block' }],
       },
       expect.anything(),
     );
