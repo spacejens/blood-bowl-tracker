@@ -7,6 +7,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
+import { CharacteristicIncreaseValidationError } from '../shared/characteristic-increase-validation-error';
 import { LastingInjuryValidationError } from '../shared/lasting-injury-validation-error';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
@@ -18,6 +19,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
@@ -73,6 +75,7 @@ describe('PlayersService', () => {
         // Pure and dependency-free (CLAUDE.md's decision-service carve-out):
         // no constructor, no I/O — passed real rather than mocked.
         PlayerLastingInjuryValidationService,
+        PlayerCharacteristicIncreaseValidationService,
         { provide: DB, useValue: dbMock.db },
       ],
     }).compile();
@@ -398,6 +401,20 @@ describe('PlayersService', () => {
       await expect(
         service.upsert({ ...base, missNextGame: true, externalIds }),
       ).rejects.toBeInstanceOf(LastingInjuryValidationError);
+      expect(chains).toHaveLength(0);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects a partial characteristic-increase line, writing nothing', async () => {
+      // Exercises the real PlayerCharacteristicIncreaseValidationService
+      // (passed real per the pure-decision-service carve-out): crafted
+      // invalid input triggers its actual validation logic, rather than a
+      // mocked rejection.
+      const { transaction, chains } = await build();
+
+      await expect(
+        service.upsert({ ...base, moveIncreaseCount: 1, externalIds }),
+      ).rejects.toBeInstanceOf(CharacteristicIncreaseValidationError);
       expect(chains).toHaveLength(0);
       expect(transaction).not.toHaveBeenCalled();
     });

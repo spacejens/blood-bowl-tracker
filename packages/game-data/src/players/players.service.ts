@@ -50,6 +50,7 @@ import type { TeamTopPlayer } from '../shared/team-top-player';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
@@ -68,6 +69,7 @@ export class PlayersService {
     private readonly playerContextNames: PlayerContextNamesService,
     private readonly characteristicsValidation: PlayerCharacteristicsValidationService,
     private readonly lastingInjuryValidation: PlayerLastingInjuryValidationService,
+    private readonly characteristicIncreaseValidation: PlayerCharacteristicIncreaseValidationService,
   ) {}
 
   async findById(id: number): Promise<
@@ -251,12 +253,18 @@ export class PlayersService {
    * Any supplied lasting injuries are similarly validated — all-or-nothing,
    * and every count a nonnegative integer — before anything is written; a
    * violation throws `LastingInjuryValidationError` and nothing is stored.
+   *
+   * Any supplied characteristic increases are validated the same way —
+   * all-or-nothing, and every count a nonnegative integer — before anything
+   * is written; a violation throws `CharacteristicIncreaseValidationError`
+   * and nothing is stored.
    */
   async upsert(
     data: UpsertPlayer,
   ): Promise<{ player: Player; created: boolean }> {
     await this.characteristicsValidation.validate(data);
     this.lastingInjuryValidation.validate(data);
+    this.characteristicIncreaseValidation.validate(data);
 
     const columns = {
       name: data.name,

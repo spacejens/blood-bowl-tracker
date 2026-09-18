@@ -8,6 +8,7 @@ import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
 import { PlayerContextNamesService } from '../shared/player-context-names.service';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
@@ -39,6 +40,10 @@ async function makeService(rows: unknown[]) {
       {
         provide: PlayerLastingInjuryValidationService,
         useValue: mock<PlayerLastingInjuryValidationService>(),
+      },
+      {
+        provide: PlayerCharacteristicIncreaseValidationService,
+        useValue: mock<PlayerCharacteristicIncreaseValidationService>(),
       },
       { provide: DB, useValue: db },
     ],

@@ -33,6 +33,7 @@ import {
   sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
 import { PlayerLastingInjuryValidationService } from './player-lasting-injury-validation.service';
@@ -66,6 +67,10 @@ describe('PlayersService toplist queries', () => {
         {
           provide: PlayerLastingInjuryValidationService,
           useValue: mock<PlayerLastingInjuryValidationService>(),
+        },
+        {
+          provide: PlayerCharacteristicIncreaseValidationService,
+          useValue: mock<PlayerCharacteristicIncreaseValidationService>(),
         },
         { provide: DB, useValue: db },
       ],
