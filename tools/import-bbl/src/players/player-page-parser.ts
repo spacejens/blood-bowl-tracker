@@ -45,6 +45,41 @@ const PENDING_MARKER_COLOUR = '#f02020';
 const PENDING_MARKER_TEXT = '?';
 
 /**
+ * How many times each characteristic was increased by advancement, for one
+ * player.
+ */
+export interface BblPlayerCharacteristicIncreaseCounts {
+  move: number;
+  strength: number;
+  agility: number;
+  passing: number;
+  armour: number;
+}
+
+/**
+ * BBL's Skills cell mixes real skill names with these five pseudo-entries,
+ * always rendered in the same "gained" colour as a real advancement skill.
+ * Each marks one characteristic-increase advancement rather than a skill, so
+ * it is excluded from the returned skill list entirely: no `player_skills`
+ * row, and no consumed `advancementOrder` slot. The same marker can appear
+ * more than once for one player (e.g. two Agility increases).
+ */
+const CHARACTERISTIC_INCREASE_MARKERS: Record<
+  string,
+  keyof BblPlayerCharacteristicIncreaseCounts
+> = {
+  '+MA': 'move',
+  '+ST': 'strength',
+  '+AG': 'agility',
+  '+PA': 'passing',
+  '+AV': 'armour',
+};
+
+function zeroCharacteristicIncreaseCounts(): BblPlayerCharacteristicIncreaseCounts {
+  return { move: 0, strength: 0, agility: 0, passing: 0, armour: 0 };
+}
+
+/**
  * One skill from a player's own Skills cell.
  *
  * BBL distinguishes only plain text (a starting skill) from a coloured span (a
@@ -103,6 +138,14 @@ export interface BblPlayer {
    * with no skills at all is an ordinary state, not a parse failure.
    */
   skills: BblPlayerSkillRef[];
+  /**
+   * How many times each characteristic was increased by advancement, read
+   * directly from the `+MA`/`+ST`/`+AG`/`+PA`/`+AV` markers in the Skills
+   * cell. Always present with a 0 default per characteristic — a player who
+   * never increased a given characteristic is a genuine 0, not an absent
+   * value.
+   */
+  characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
 }
 
 @Injectable()
@@ -156,6 +199,7 @@ export class PlayerPageParser {
     if (!characteristics) {
       return null;
     }
+    const { skills, characteristicIncreaseCounts } = this.extractSkills($);
     return {
       pid,
       name,
@@ -164,7 +208,8 @@ export class PlayerPageParser {
       sppTotal: this.extractSppTotal($),
       characteristics,
       lastingInjuries: this.extractLastingInjuries($),
-      skills: this.extractSkills($),
+      skills,
+      characteristicIncreaseCounts,
     };
   }
 
@@ -291,10 +336,14 @@ export class PlayerPageParser {
 
   /**
    * The Skills cell of the player's characteristics table: the sixth cell of
-   * the row after the MA/ST/AG/PA/AV header row. Returns an empty list when
-   * there is no such table, no sixth cell, or the cell is blank.
+   * the row after the MA/ST/AG/PA/AV header row. Returns an empty skill list
+   * and all-zero increase counts when there is no such table, no sixth cell,
+   * or the cell is blank.
    */
-  private extractSkills($: CheerioAPI): BblPlayerSkillRef[] {
+  private extractSkills($: CheerioAPI): {
+    skills: BblPlayerSkillRef[];
+    characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
+  } {
     for (const row of $('tr').toArray()) {
       const headers = $(row)
         .children('th, td')
@@ -306,11 +355,17 @@ export class PlayerPageParser {
       const cells = $(row).next('tr').children('td').toArray();
       const skillsCell = cells[SKILLS_CELL_INDEX];
       if (skillsCell === undefined) {
-        return [];
+        return {
+          skills: [],
+          characteristicIncreaseCounts: zeroCharacteristicIncreaseCounts(),
+        };
       }
       return this.readSkillsCell($, skillsCell);
     }
-    return [];
+    return {
+      skills: [],
+      characteristicIncreaseCounts: zeroCharacteristicIncreaseCounts(),
+    };
   }
 
   /**
@@ -326,9 +381,22 @@ export class PlayerPageParser {
    * A coloured span whose only content is the red "?" marker is a pending,
    * unresolved advancement roll -- an ordinary mid-advancement state with no
    * skill to record yet -- so it contributes no text and its entry is dropped.
+   *
+   * A resolved ref whose name is exactly one of the five characteristic-
+   * increase markers (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`) is not a skill at all: it
+   * is excluded from the returned list and does not consume an
+   * `advancementOrder` slot, and instead increments that characteristic's
+   * count. The same marker can appear more than once for one player.
    */
-  private readSkillsCell($: CheerioAPI, cell: AnyNode): BblPlayerSkillRef[] {
+  private readSkillsCell(
+    $: CheerioAPI,
+    cell: AnyNode,
+  ): {
+    skills: BblPlayerSkillRef[];
+    characteristicIncreaseCounts: BblPlayerCharacteristicIncreaseCounts;
+  } {
     const refs: BblPlayerSkillRef[] = [];
+    const characteristicIncreaseCounts = zeroCharacteristicIncreaseCounts();
     let gainedCount = 0;
     let text = '';
     let gained = false;
@@ -342,6 +410,11 @@ export class PlayerPageParser {
         return;
       }
       for (const ref of this.skillEntries.resolveSkillRefs(entry)) {
+        const characteristic = CHARACTERISTIC_INCREASE_MARKERS[ref.name];
+        if (characteristic !== undefined) {
+          characteristicIncreaseCounts[characteristic] += 1;
+          continue;
+        }
         if (!wasGained) {
           refs.push({ ...ref, source: 'starting' });
           continue;
@@ -392,6 +465,6 @@ export class PlayerPageParser {
       }
     }
     flush();
-    return refs;
+    return { skills: refs, characteristicIncreaseCounts };
   }
 }

@@ -24,6 +24,15 @@ const NO_INJURIES = {
   armourReductionCount: 0,
 };
 
+/** The all-zero counts a player with no characteristic-increase markers parses to. */
+const NO_CHARACTERISTIC_INCREASES = {
+  move: 0,
+  strength: 0,
+  agility: 0,
+  passing: 0,
+  armour: 0,
+};
+
 describe('PlayerPageParser', () => {
   let parser: PlayerPageParser;
   let normalizeText: MockProxy<NormalizeExtractedTextService>;
@@ -87,6 +96,7 @@ describe('PlayerPageParser', () => {
       },
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
+      characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
     });
   });
 
@@ -112,6 +122,7 @@ describe('PlayerPageParser', () => {
       },
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
+      characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
     });
   });
 
@@ -139,6 +150,7 @@ describe('PlayerPageParser', () => {
       },
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
+      characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
     });
   });
 
@@ -188,6 +200,7 @@ describe('PlayerPageParser', () => {
       },
       lastingInjuries: NO_INJURIES,
       skills: [{ name: 'Sure Hands', source: 'starting' }],
+      characteristicIncreaseCounts: NO_CHARACTERISTIC_INCREASES,
     });
   });
 
@@ -600,5 +613,79 @@ describe('PlayerPageParser skills cell', () => {
 
   it('reads a page whose characteristics row has no skills cell as no skills', () => {
     expect(parsePlayerWithoutSkillsCell()?.skills).toEqual([]);
+  });
+
+  const ZERO_COUNTS = {
+    move: 0,
+    strength: 0,
+    agility: 0,
+    passing: 0,
+    armour: 0,
+  };
+
+  it('gives a player with no markers all-zero characteristic-increase counts', () => {
+    const player = parsePlayerWithSkillsCell('Stunty, Dodge');
+
+    expect(player?.characteristicIncreaseCounts).toEqual(ZERO_COUNTS);
+  });
+
+  it('excludes a characteristic-increase marker from the skill list and counts it', () => {
+    const player = parsePlayerWithSkillsCell(
+      "Block, Dauntless, <span style='color:#006020'>Dodge</span>, " +
+        "<span style='color:#006020'> +MA</span>, " +
+        "<span style='color:#006020'> Sprint</span>",
+    );
+
+    expect(player?.skills).toEqual([
+      { name: 'Block', source: 'starting' },
+      { name: 'Dauntless', source: 'starting' },
+      { name: 'Dodge', source: 'advancement', advancementOrder: 1 },
+      { name: 'Sprint', source: 'advancement', advancementOrder: 2 },
+    ]);
+    expect(player?.characteristicIncreaseCounts).toEqual({
+      ...ZERO_COUNTS,
+      move: 1,
+    });
+  });
+
+  it('counts the same marker twice when it appears twice for one player', () => {
+    const player = parsePlayerWithSkillsCell(
+      "<span style='color:#006020'> +AG</span>, " +
+        "<span style='color:#006020'>Dodge</span>, " +
+        "<span style='color:#006020'> +AG</span>",
+    );
+
+    expect(player?.skills).toEqual([
+      { name: 'Dodge', source: 'advancement', advancementOrder: 1 },
+    ]);
+    expect(player?.characteristicIncreaseCounts).toEqual({
+      ...ZERO_COUNTS,
+      agility: 2,
+    });
+  });
+
+  it('counts a mix of different characteristic-increase markers', () => {
+    const player = parsePlayerWithSkillsCell(
+      "<span style='color:#006020'> +MA</span>, " +
+        "<span style='color:#006020'> +ST</span>, " +
+        "<span style='color:#006020'> +AG</span>, " +
+        "<span style='color:#006020'> +PA</span>, " +
+        "<span style='color:#006020'> +AV</span>",
+    );
+
+    expect(player?.skills).toEqual([]);
+    expect(player?.characteristicIncreaseCounts).toEqual({
+      move: 1,
+      strength: 1,
+      agility: 1,
+      passing: 1,
+      armour: 1,
+    });
+  });
+
+  it('reads a page whose characteristics row has no skills cell as all-zero counts', () => {
+    expect(
+      parsePlayerWithoutSkillsCell()?.characteristicIncreaseCounts,
+    ).toEqual(ZERO_COUNTS);
   });
 });

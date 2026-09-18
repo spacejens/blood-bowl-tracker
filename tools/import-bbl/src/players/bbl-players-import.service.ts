@@ -3,7 +3,6 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
-  PlayerCharacteristicIncreasesService,
   PlayersImportService,
   ReferenceLookupService,
   TeamsImportService,
@@ -47,7 +46,6 @@ export class BblPlayersImportService {
     private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
     private readonly notationConversion: CharacteristicNotationConversionService,
     private readonly lookup: ReferenceLookupService,
-    private readonly characteristicIncreases: PlayerCharacteristicIncreasesService,
   ) {}
 
   /**
@@ -343,10 +341,7 @@ export class BblPlayersImportService {
 
         // BBL only ever shows BB2020 notation, so a player whose era
         // predates it needs their Agility/Armour rewritten into the notation
-        // their own rules set declares. Held in locals because the same
-        // converted values are what the characteristic-increase diff must be
-        // measured with — the stored baseline is in the rules set's own
-        // notation too.
+        // their own rules set declares.
         const agility = this.notationConversion.convertAgility(
           player.characteristics.agility,
           rulesSet.agilityFormat,
@@ -364,23 +359,6 @@ export class BblPlayersImportService {
           player.characteristics.armour,
           rulesSet.armourFormat,
         );
-        const increaseCounts = await this.characteristicIncreases.forPlayer({
-          player: {
-            label: `player "${player.name}" (${player.pid})`,
-            positionId,
-          },
-          rulesSet,
-          current: {
-            move: player.characteristics.move,
-            strength: player.characteristics.strength,
-            agility,
-            passing,
-            armour,
-          },
-          reductions: player.lastingInjuries,
-          errors,
-        });
-
         const upserted = await this.playersImport.upsertPlayerResult(
           {
             name: player.name,
@@ -392,7 +370,11 @@ export class BblPlayersImportService {
             passing,
             armour,
             ...player.lastingInjuries,
-            ...increaseCounts,
+            moveIncreaseCount: player.characteristicIncreaseCounts.move,
+            strengthIncreaseCount: player.characteristicIncreaseCounts.strength,
+            agilityIncreaseCount: player.characteristicIncreaseCounts.agility,
+            passingIncreaseCount: player.characteristicIncreaseCounts.passing,
+            armourIncreaseCount: player.characteristicIncreaseCounts.armour,
             rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },

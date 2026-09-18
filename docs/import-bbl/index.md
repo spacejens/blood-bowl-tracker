@@ -222,11 +222,11 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   nothing about how it was gained. A coloured entry holding only the red `?`
   marker is a pending, unresolved advancement roll, and is skipped silently.
   `advancementOrder` counts gained skills only, and is a presentation-order
-  proxy, not a confirmed sequence. Each player's characteristic-increase
-  counts are derived by diffing their converted characteristics against the
-  position's stored values under their era's rules set, adding back
-  outstanding reductions; a player whose position has no such row is imported
-  without the counts and reported as an error.
+  proxy, not a confirmed sequence. The same cell also carries five
+  characteristic-increase pseudo-entries (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`),
+  rendered in the same gained colour as a real skill; each is excluded from
+  the skill list (no `advancementOrder` slot consumed) and instead counted
+  directly, one count per characteristic, sent with every player.
 
   A final step after the match-events step backfills lasting-injury history for
   the players this run inserted. See "Lasting-injury history backfill" in
