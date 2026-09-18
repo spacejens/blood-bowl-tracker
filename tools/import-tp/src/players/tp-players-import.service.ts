@@ -9,6 +9,7 @@ import {
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
+  PlayerCharacteristicIncreasesService,
   PlayersImportService,
   PositionsImportService,
   ReferenceLookupService,
@@ -111,6 +112,7 @@ export class TpPlayersImportService {
     private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
     private readonly lastingInjuryBuilder: TpLastingInjuryBuilderService,
     private readonly inducedStarPlayers: TpInducedStarPlayersImportService,
+    private readonly characteristicIncreases: PlayerCharacteristicIncreasesService,
   ) {}
 
   /**
@@ -456,10 +458,39 @@ export class TpPlayersImportService {
         // resolved to no single rules set, or the rules-sets step did not
         // return one: the builder then still sends the two kinds TP reports
         // directly and no reduction counts.
+        const rulesSet = rulesSetsByName?.get(
+          rulesSetNameByEraName.get(era) ?? '',
+        );
         const lastingInjuries = this.lastingInjuryBuilder.forRosterPlayer({
           player,
-          rulesSet: rulesSetsByName?.get(rulesSetNameByEraName.get(era) ?? ''),
+          rulesSet,
         });
+        // The increase counts need the same three things the reduction counts
+        // do -- the player's own values, the rules set that says which
+        // direction is better, and the position they hold -- plus the stored
+        // baseline the shared service reads for itself. A player with no
+        // characteristics at all (a match-embedded-only entry) or no resolved
+        // rules set sends no increase group: the group is all-or-nothing, and
+        // inventing zeroes from an absence would be worse than saying nothing.
+        const increaseCounts =
+          characteristics === undefined || rulesSet === undefined
+            ? undefined
+            : await this.characteristicIncreases.forPlayer({
+                player: {
+                  label: `player "${player.name}" (${player.id})`,
+                  positionId,
+                },
+                rulesSet,
+                current: {
+                  move: characteristics.move,
+                  strength: characteristics.strength,
+                  agility: characteristics.agility,
+                  passing: characteristics.passing,
+                  armour: characteristics.armour,
+                },
+                reductions: lastingInjuries,
+                errors,
+              });
 
         const upserted = await this.playersImport.upsertPlayerResult(
           {
@@ -478,6 +509,7 @@ export class TpPlayersImportService {
               player.totalStarPlayerPoints,
             ...characteristics,
             ...lastingInjuries,
+            ...increaseCounts,
             externalIds: [
               { externalSystemId: tpSystemId, externalId: String(player.id) },
             ],

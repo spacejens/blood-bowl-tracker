@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  PlayerCharacteristicIncreasesService,
   PlayersImportService,
   PositionsImportService,
   ReferenceLookupService,
@@ -129,6 +130,7 @@ export async function makeService({
   importResults: MockProxy<ImportResultService>;
   lookup: MockProxy<ReferenceLookupService>;
   mercenaryCharacteristics: MockProxy<TpMercenaryCharacteristicsService>;
+  characteristicIncreases: MockProxy<PlayerCharacteristicIncreasesService>;
 }> {
   const playersImport = mock<PlayersImportService>();
   playersImport.upsertPlayerResult.mockImplementation(
@@ -182,6 +184,16 @@ export async function makeService({
     starPlayerIdsByRosterAndMaster: new Map(),
     insertedPlayerIds: [],
   });
+  const characteristicIncreases = mock<PlayerCharacteristicIncreasesService>();
+  // Defaults to all-zero counts so specs that don't care about advancement
+  // still get a full, valid increase group in the upsert payload.
+  characteristicIncreases.forPlayer.mockResolvedValue({
+    moveIncreaseCount: 0,
+    strengthIncreaseCount: 0,
+    agilityIncreaseCount: 0,
+    passingIncreaseCount: 0,
+    armourIncreaseCount: 0,
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -215,6 +227,10 @@ export async function makeService({
         provide: TpInducedStarPlayersImportService,
         useValue: inducedStarPlayers,
       },
+      {
+        provide: PlayerCharacteristicIncreasesService,
+        useValue: characteristicIncreases,
+      },
     ],
   }).compile();
   return {
@@ -222,6 +238,7 @@ export async function makeService({
     importResults,
     lookup,
     mercenaryCharacteristics,
+    characteristicIncreases,
   };
 }
 

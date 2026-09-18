@@ -1,3 +1,5 @@
+import type { RulesSet } from '@blood-bowl-tracker/api-contract';
+import type { PlayerCharacteristicReductionCounts } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { RosterEntry } from '../source/roster-collection.service';
@@ -56,6 +58,46 @@ function rosterWith(characteristics: typeof OWN | undefined): RosterEntry[] {
 }
 
 const teamEras = new Map([[123, [{ id: 5000, eraId: 500 }]]]);
+
+const bb2020: RulesSet = {
+  id: 900,
+  name: 'BB2020',
+  moveFormat: 'bare',
+  strengthFormat: 'bare',
+  agilityFormat: 'plus',
+  passingFormat: 'plus',
+  armourFormat: 'plus',
+  createdAt: new Date('2026-01-01'),
+};
+
+const rulesSetsByName = new Map([['BB2020', bb2020]]);
+
+/**
+ * Same single-player roster as {@link rosterWith}, but also carrying the
+ * `positionTemplate`/`lastingInjuries` fields `TpLastingInjuryBuilderService`
+ * needs to derive a reduction count, which the increase-count wiring must
+ * pass through to `PlayerCharacteristicIncreasesService.forPlayer`.
+ */
+function rosterWithReduction(): RosterEntry[] {
+  const [entry] = rosterWith(OWN);
+  return [
+    {
+      ...entry,
+      roster: {
+        ...entry.roster,
+        players: [
+          {
+            ...entry.roster.players[0],
+            // av 9 against the template's 10 is one active reduction.
+            characteristics: { ...OWN, armour: 9 },
+            positionTemplate: { ...OWN },
+            lastingInjuries: { nigglingInjuries: 0, canPlayNextGame: true },
+          },
+        ],
+      },
+    },
+  ];
+}
 
 describe('TpPlayersImportService characteristics', () => {
   it("sends a roster player's own characteristics with its era rules set", async () => {
@@ -159,5 +201,132 @@ describe('TpPlayersImportService characteristics', () => {
     });
 
     expect(mercenaryCharacteristics.forRosterPlayer).not.toHaveBeenCalled();
+  });
+});
+
+describe('TpPlayersImportService characteristic-increase counts', () => {
+  it('sends the derived characteristic-increase counts with the player', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+    characteristicIncreases.forPlayer.mockResolvedValue({
+      moveIncreaseCount: 1,
+      strengthIncreaseCount: 0,
+      agilityIncreaseCount: 1,
+      passingIncreaseCount: 0,
+      armourIncreaseCount: 0,
+    });
+
+    await service.importPlayers({
+      rosters: rosterWith(OWN),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moveIncreaseCount: 1,
+        agilityIncreaseCount: 1,
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("measures against the player's own resolved rules set", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+
+    await service.importPlayers({
+      rosters: rosterWith(OWN),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    expect(characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rulesSet: expect.objectContaining({
+          name: 'BB2020',
+        }) as RulesSet,
+      }),
+    );
+  });
+
+  it('passes the derived reduction counts through', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+
+    await service.importPlayers({
+      rosters: rosterWithReduction(),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    expect(characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reductions: expect.objectContaining({
+          armourReductionCount: 1,
+        }) as PlayerCharacteristicReductionCounts,
+      }),
+    );
+  });
+
+  it('sends no increase group for a player with no characteristics at all', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+
+    await service.importPlayers({
+      rosters: rosterWith(undefined),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    expect(characteristicIncreases.forPlayer).not.toHaveBeenCalled();
+    const payload = upsertPlayerResult.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty('moveIncreaseCount');
+  });
+
+  it('sends no increase group when the era resolved to no single rules set', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+
+    // rulesSetsByName omitted, so the rules set lookup yields undefined.
+    await service.importPlayers({
+      rosters: rosterWith(OWN),
+      teamErasByRosterId: teamEras,
+    });
+
+    expect(characteristicIncreases.forPlayer).not.toHaveBeenCalled();
+  });
+
+  it('sends no increase group when no baseline could be resolved', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+    characteristicIncreases.forPlayer.mockResolvedValue(undefined);
+
+    await service.importPlayers({
+      rosters: rosterWith(OWN),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    const payload = upsertPlayerResult.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty('moveIncreaseCount');
   });
 });
