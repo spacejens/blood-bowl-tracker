@@ -24,10 +24,9 @@ describe('HatredTargetService', () => {
   );
 
   it('decodes a code that is not in the table to undefined', () => {
-    // 111 and 999 are real type-3 values the downloaded mirror carries, but
-    // on Animosity (skillMasterId 269), not Hatred -- AnimosityTargetService
-    // owns those, not this table.
-    expect(service.decode('111')).toBeUndefined();
+    // 999 is a real type-3 value the downloaded mirror carries, but on
+    // Animosity (skillMasterId 269), not Hatred -- AnimosityTargetService
+    // owns that code, not this table.
     expect(service.decode('999')).toBeUndefined();
   });
 
@@ -36,6 +35,6 @@ describe('HatredTargetService', () => {
   });
 
   it('has a decode test for every known Hatred target code (guards against silent shrinkage of the code map)', () => {
-    expect(Object.keys(hatredTargetByCode)).toHaveLength(6);
+    expect(Object.keys(hatredTargetByCode)).toHaveLength(12);
   });
 });
