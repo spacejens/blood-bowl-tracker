@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 
+import type { BblSkillRef } from '../shared/skill-entry.service';
+import { SkillEntryService } from '../shared/skill-entry.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
@@ -27,45 +29,12 @@ export interface BblPositionCharacteristics {
 /** The characteristics table's header cells, in column order. */
 const CHARACTERISTIC_HEADERS = ['MA', 'ST', 'AG', 'PA', 'AV'];
 
-/** One skill reference parsed out of the Skills cell: its bare name and, when
- * the entry carried a trailing parenthetical, the position-specific
- * attribute value that parenthetical held (e.g. "4+" for "Loner (4+)"). */
-export interface BblPositionSkillRef {
-  name: string;
-  attributeValue?: string;
-}
-
 /**
- * Known garbled Skills-cell entries produced by real BBL scraping bugs (a
- * missing open paren, a missing comma joining two skills, and two half
- * fragments of a `<br>`-separated Stunty annotation torn apart by comma
- * splitting). Matched verbatim, after comma-splitting and normalizing, before
- * the generic parenthetical-splitting regex runs -- these are exact known
- * strings, not a pattern to generalize. `undefined` for an entry means "drop
- * it, emit nothing" (the two Stunty fragments carry no skill information; a
- * legitimate "Stunty" entry always appears earlier in the same list).
+ * One skill reference parsed out of a position's Skills cell. An alias of
+ * the shared `BblSkillRef`, kept under this name because position-side
+ * consumers already import it.
  */
-const KNOWN_GARBLED_SKILL_ENTRIES: Record<
-  string,
-  BblPositionSkillRef[] | undefined
-> = {
-  'Secret Weapon 6+)': [{ name: 'Secret Weapon', attributeValue: '6+' }],
-  'Leap Right Stuff': [{ name: 'Leap' }, { name: 'Right Stuff' }],
-  'Really Stupid.Throw Team-Mate': [
-    { name: 'Really Stupid' },
-    { name: 'Throw Team-Mate' },
-  ],
-  "Stunty(Note: comes with Brick Far'th": [],
-  'included in his price)': [],
-};
-
-/**
- * A trailing parenthetical value, e.g. `"Loner (4+)"` -> `"4+"`. The space
- * before the paren is optional: real BBL data also drops it entirely
- * (`"Loner(4+)"`, `"Mighty Blow(+1)"`), a separate scraping inconsistency
- * from the space-before-paren case.
- */
-const PARENTHETICAL_VALUE = /^(.+?) ?\(([^()]+)\)$/;
+export type BblPositionSkillRef = BblSkillRef;
 
 /**
  * A position ("player type") extracted from a `p=pt` page. `typId` is the
@@ -92,7 +61,10 @@ export interface BblPosition {
 
 @Injectable()
 export class PositionPageParser {
-  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+  constructor(
+    private readonly normalizeText: NormalizeExtractedTextService,
+    private readonly skillEntries: SkillEntryService,
+  ) {}
 
   /**
    * Extract the position from a `p=pt` page. The name is the `<h1>` text; the
@@ -230,27 +202,11 @@ export class PositionPageParser {
         .split(',')
         .map((skill) => this.normalizeText.normalize(skill))
         .filter((skill) => skill.length > 0);
-      return entries.flatMap((entry) => this.resolveSkillRefs(entry));
+      return entries.flatMap((entry) =>
+        this.skillEntries.resolveSkillRefs(entry),
+      );
     }
     return [];
-  }
-
-  /**
-   * One comma-split Skills-cell entry resolved into zero, one, or two skill
-   * refs. A known garbled BBL entry (see `KNOWN_GARBLED_SKILL_ENTRIES`) is
-   * matched first, verbatim; otherwise a trailing parenthetical splits into
-   * `name`/`attributeValue`, and an entry with no parenthetical passes
-   * through as a bare name.
-   */
-  private resolveSkillRefs(entry: string): BblPositionSkillRef[] {
-    if (Object.hasOwn(KNOWN_GARBLED_SKILL_ENTRIES, entry)) {
-      return KNOWN_GARBLED_SKILL_ENTRIES[entry] ?? [];
-    }
-    const match = PARENTHETICAL_VALUE.exec(entry);
-    if (!match) {
-      return [{ name: entry }];
-    }
-    return [{ name: match[1], attributeValue: match[2] }];
   }
 
   /**

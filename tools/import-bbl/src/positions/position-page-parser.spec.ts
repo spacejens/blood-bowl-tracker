@@ -3,6 +3,8 @@ import { load } from 'cheerio';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import type { BblSkillRef } from '../shared/skill-entry.service';
+import { SkillEntryService } from '../shared/skill-entry.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { PositionPageParser } from './position-page-parser';
@@ -27,16 +29,22 @@ function characteristicsTable(skillsCell = '&nbsp;'): string {
 describe('PositionPageParser', () => {
   let parser: PositionPageParser;
   let normalizeText: MockProxy<NormalizeExtractedTextService>;
+  let skillEntries: MockProxy<SkillEntryService>;
 
   beforeEach(async () => {
     normalizeText = mock<NormalizeExtractedTextService>();
     normalizeText.normalize.mockImplementation((s: string) =>
       s.replace(/\s+/g, ' ').trim(),
     );
+    skillEntries = mock<SkillEntryService>();
+    skillEntries.resolveSkillRefs.mockImplementation((entry: string) => [
+      { name: entry },
+    ]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         PositionPageParser,
         { provide: NormalizeExtractedTextService, useValue: normalizeText },
+        { provide: SkillEntryService, useValue: skillEntries },
       ],
     }).compile();
     parser = moduleRef.get(PositionPageParser);
@@ -297,6 +305,16 @@ describe('PositionPageParser', () => {
   });
 
   it('extracts the skills column, splitting only on top-level commas', () => {
+    const refsByEntry: Record<string, BblSkillRef[]> = {
+      'Loner (4+)': [{ name: 'Loner', attributeValue: '4+' }],
+      'Bone-Head': [{ name: 'Bone-Head' }],
+      'Mighty Blow (+1)': [{ name: 'Mighty Blow', attributeValue: '+1' }],
+      'Thick Skull': [{ name: 'Thick Skull' }],
+      'Throw Team-Mate': [{ name: 'Throw Team-Mate' }],
+    };
+    skillEntries.resolveSkillRefs.mockImplementation(
+      (entry: string) => refsByEntry[entry] ?? [],
+    );
     const page = positionPage(
       '<h1>Ogre</h1>' +
         '<a href="default.asp?p=tl#16">Human Team</a>' +
@@ -312,9 +330,19 @@ describe('PositionPageParser', () => {
       { name: 'Thick Skull' },
       { name: 'Throw Team-Mate' },
     ]);
+    expect(skillEntries.resolveSkillRefs.mock.calls.map(([e]) => e)).toEqual([
+      'Loner (4+)',
+      'Bone-Head',
+      'Mighty Blow (+1)',
+      'Thick Skull',
+      'Throw Team-Mate',
+    ]);
   });
 
-  it('splits a trailing parenthetical with no space before it', () => {
+  it('passes each comma-split entry to the skill entry resolver', () => {
+    skillEntries.resolveSkillRefs.mockReturnValue([
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
     const page = positionPage(
       '<h1>Ogre</h1>' +
         '<a href="default.asp?p=tl#16">Human Team</a>' +
@@ -323,23 +351,19 @@ describe('PositionPageParser', () => {
     );
     expect(parser.extractPosition(page)?.skills).toEqual([
       { name: 'Loner', attributeValue: '4+' },
-      { name: 'Mighty Blow', attributeValue: '+1' },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+    expect(skillEntries.resolveSkillRefs.mock.calls.map(([e]) => e)).toEqual([
+      'Loner(4+)',
+      'Mighty Blow(+1)',
     ]);
   });
 
-  it('fixes the missing-open-paren "Secret Weapon 6+)" scraping bug', () => {
-    const page = positionPage(
-      '<h1>Ogre</h1>' +
-        '<a href="default.asp?p=tl#16">Human Team</a>' +
-        characteristicsTable('Secret Weapon 6+)'),
-      '110',
-    );
-    expect(parser.extractPosition(page)?.skills).toEqual([
-      { name: 'Secret Weapon', attributeValue: '6+' },
+  it('flattens the refs the resolver returns for a single entry', () => {
+    skillEntries.resolveSkillRefs.mockReturnValue([
+      { name: 'Leap' },
+      { name: 'Right Stuff' },
     ]);
-  });
-
-  it('splits the missing-comma "Leap Right Stuff" scraping bug into two skills', () => {
     const page = positionPage(
       '<h1>Ogre</h1>' +
         '<a href="default.asp?p=tl#16">Human Team</a>' +
@@ -350,22 +374,15 @@ describe('PositionPageParser', () => {
       { name: 'Leap' },
       { name: 'Right Stuff' },
     ]);
-  });
-
-  it('splits the missing-comma "Really Stupid.Throw Team-Mate" scraping bug into two skills', () => {
-    const page = positionPage(
-      '<h1>Ogre</h1>' +
-        '<a href="default.asp?p=tl#16">Human Team</a>' +
-        characteristicsTable('Really Stupid.Throw Team-Mate'),
-      '110',
-    );
-    expect(parser.extractPosition(page)?.skills).toEqual([
-      { name: 'Really Stupid' },
-      { name: 'Throw Team-Mate' },
+    expect(skillEntries.resolveSkillRefs.mock.calls.map(([e]) => e)).toEqual([
+      'Leap Right Stuff',
     ]);
   });
 
-  it('drops both halves of the torn Stunty annotation fragment without emitting a skill', () => {
+  it('drops an entry the resolver resolves to no skills', () => {
+    skillEntries.resolveSkillRefs.mockImplementation((entry: string) =>
+      entry === 'Stunty' ? [{ name: 'Stunty' }] : [],
+    );
     const page = positionPage(
       '<h1>Ogre</h1>' +
         '<a href="default.asp?p=tl#16">Human Team</a>' +
@@ -375,6 +392,11 @@ describe('PositionPageParser', () => {
       '110',
     );
     expect(parser.extractPosition(page)?.skills).toEqual([{ name: 'Stunty' }]);
+    expect(skillEntries.resolveSkillRefs.mock.calls.map(([e]) => e)).toEqual([
+      'Stunty',
+      "Stunty(Note: comes with Brick Far'th",
+      'included in his price)',
+    ]);
   });
 
   it('reports no skills for a blank skills cell', () => {
