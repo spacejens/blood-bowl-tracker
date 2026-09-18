@@ -230,6 +230,11 @@ describe('contract', () => {
       agilityReductionCount: 0,
       passingReductionCount: 0,
       armourReductionCount: 0,
+      moveIncreaseCount: 0,
+      strengthIncreaseCount: 0,
+      agilityIncreaseCount: 0,
+      passingIncreaseCount: 0,
+      armourIncreaseCount: 0,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -321,6 +326,14 @@ describe('contract', () => {
 
   it('defines positionRulesSetSkills.list with no declared errors', () => {
     expect(errorCodesOf(contract.positionRulesSetSkills.list)).toEqual([]);
+  });
+
+  it('defines playerSkills.sync with a BAD_REQUEST error', () => {
+    expect(errorCodesOf(contract.playerSkills.sync)).toEqual(['BAD_REQUEST']);
+  });
+
+  it('defines playerSkills.list with no declared errors', () => {
+    expect(errorCodesOf(contract.playerSkills.list)).toEqual([]);
   });
 });
 

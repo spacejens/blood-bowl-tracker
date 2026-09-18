@@ -42,6 +42,12 @@ import {
   UpsertPlayerSchema,
 } from './schemas/player';
 import {
+  ListPlayerSkillsSchema,
+  PlayerSkillRefSchema,
+  SyncPlayerSkillsResultSchema,
+  SyncPlayerSkillsSchema,
+} from './schemas/player-skill';
+import {
   PositionSchema,
   SyncPositionRaceErasResultSchema,
   SyncPositionRaceErasSchema,
@@ -242,6 +248,28 @@ export const contract = {
     list: oc
       .input(ListPositionRulesSetSkillsSchema)
       .output(z.array(PositionRulesSetSkillRefSchema)),
+  },
+  playerSkills: {
+    // Not an upsert, for the same reason positionRulesSetSkills.sync is not:
+    // the row is keyed by its natural (player, skill, attribute value) triple
+    // rather than external ids. BAD_REQUEST is declared because the server
+    // rejects an entry naming a player or skill that does not exist, and a
+    // batch repeating the same natural key — authored-data feedback the
+    // caller reports per entry, not a server fault.
+    sync: oc
+      .input(SyncPlayerSkillsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Player skill entries are not valid',
+        },
+      })
+      .output(SyncPlayerSkillsResultSchema),
+    // Read-only, so it declares no errors. The service's rows also carry the
+    // skill's name; the output schema does not, so it never reaches the
+    // caller.
+    list: oc
+      .input(ListPlayerSkillsSchema)
+      .output(z.array(PlayerSkillRefSchema)),
   },
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),

@@ -18,6 +18,7 @@ import {
   MatchUpsertConflictError,
   MissingTrophyAwardsService,
   PlayerLastingInjuryBackfillService,
+  PlayerSkillsService,
   PlayersService,
   PlayerUpsertConflictError,
   PositionRulesSetSkillsService,
@@ -53,6 +54,7 @@ import {
   buildCompetitionGroupsListRoute,
   buildExternalSystemsRoutes,
   buildMatchResolveOutcomesRoute,
+  buildPlayerSkillsRoutes,
   buildPlayerSppAdjustmentRoutes,
   buildPositionRulesSetSkillsRoutes,
   buildPositionRulesSetsRoutes,
@@ -98,6 +100,7 @@ export class RpcRouterFactoryService {
     private readonly matchEventsService: MatchEventsService,
     private readonly positionRulesSetsService: PositionRulesSetsService,
     private readonly positionRulesSetSkillsService: PositionRulesSetSkillsService,
+    private readonly playerSkillsService: PlayerSkillsService,
     private readonly skillsService: SkillsService,
     private readonly skillRulesSetsService: SkillRulesSetsService,
     private readonly trophiesService: TrophiesService,
@@ -378,6 +381,10 @@ export class RpcRouterFactoryService {
       positionRulesSetSkills: buildPositionRulesSetSkillsRoutes(
         this.upsertHandler,
         this.positionRulesSetSkillsService,
+      ),
+      playerSkills: buildPlayerSkillsRoutes(
+        this.upsertHandler,
+        this.playerSkillsService,
       ),
       skills: this.buildStandardEntityRoutes({
         procedures: contract.skills,

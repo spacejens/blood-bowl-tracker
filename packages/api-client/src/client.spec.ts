@@ -114,6 +114,7 @@ describe('createApiClient', () => {
       'leagues',
       'matchEvents',
       'matches',
+      'playerSkills',
       'players',
       'positionRulesSetSkills',
       'positionRulesSets',

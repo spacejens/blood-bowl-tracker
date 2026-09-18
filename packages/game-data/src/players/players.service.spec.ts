@@ -7,6 +7,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { CharacteristicFormatMismatchError } from '../shared/characteristic-format-mismatch-error';
+import { CharacteristicIncreaseValidationError } from '../shared/characteristic-increase-validation-error';
 import { LastingInjuryValidationError } from '../shared/lasting-injury-validation-error';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { MatchEventCountsService } from '../shared/match-event-counts.service';
@@ -18,6 +19,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from '../spp/spp-totals.service';
+import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import type { PlayerDeepdiveCategoryCounts } from './player-deepdive-counts.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
@@ -73,6 +75,7 @@ describe('PlayersService', () => {
         // Pure and dependency-free (CLAUDE.md's decision-service carve-out):
         // no constructor, no I/O — passed real rather than mocked.
         PlayerLastingInjuryValidationService,
+        PlayerCharacteristicIncreaseValidationService,
         { provide: DB, useValue: dbMock.db },
       ],
     }).compile();
@@ -402,6 +405,20 @@ describe('PlayersService', () => {
       expect(transaction).not.toHaveBeenCalled();
     });
 
+    it('rejects a partial characteristic-increase line, writing nothing', async () => {
+      // Exercises the real PlayerCharacteristicIncreaseValidationService
+      // (passed real per the pure-decision-service carve-out): crafted
+      // invalid input triggers its actual validation logic, rather than a
+      // mocked rejection.
+      const { transaction, chains } = await build();
+
+      await expect(
+        service.upsert({ ...base, moveIncreaseCount: 1, externalIds }),
+      ).rejects.toBeInstanceOf(CharacteristicIncreaseValidationError);
+      expect(chains).toHaveLength(0);
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
     it('writes every supplied lasting-injury field', async () => {
       // Query 0: the external-id lookup, finding nothing. Query 1: the
       // insert. Query 2: the external ids. Characteristics validation is
@@ -455,6 +472,38 @@ describe('PlayersService', () => {
       expect(values.missNextGame).toBeUndefined();
       expect(values.nigglingInjuryCount).toBeUndefined();
       expect(values.armourReductionCount).toBeUndefined();
+    });
+
+    it('writes the five characteristic increases when the caller supplies them', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({
+        ...base,
+        moveIncreaseCount: 2,
+        strengthIncreaseCount: 1,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 3,
+        externalIds,
+      });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        moveIncreaseCount: 2,
+        strengthIncreaseCount: 1,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 3,
+      });
+    });
+
+    it('leaves the increase columns untouched when the caller omits them', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      const values = firstCallArg(chains[1].values) as Record<string, unknown>;
+      expect(values.moveIncreaseCount).toBeUndefined();
+      expect(values.armourIncreaseCount).toBeUndefined();
     });
   });
 
@@ -641,6 +690,22 @@ describe('PlayersService', () => {
           'armourReductionCount',
         ]),
       );
+    });
+
+    it("selects the player's characteristic increase counts", async () => {
+      const { chains } = await build([
+        { ...fakePlayer, moveIncreaseCount: 2, armourIncreaseCount: 1 },
+      ]);
+
+      const found = await service.findById(1);
+
+      expect(found).toMatchObject({
+        moveIncreaseCount: 2,
+        armourIncreaseCount: 1,
+      });
+      // The selection is built on `players` itself — no extra join was added
+      // for the increase counts.
+      expect(chains).toHaveLength(1);
     });
   });
 

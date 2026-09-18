@@ -5,6 +5,7 @@ import {
   MatchOutcomesService,
   MissingTrophyAwardsService,
   PlayerLastingInjuryBackfillService,
+  PlayerSkillsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -258,6 +259,27 @@ export function buildPositionRulesSetSkillsRoutes(
     ),
     list: implement(contract.positionRulesSetSkills.list).handler(({ input }) =>
       positionRulesSetSkillsService.listByPosition(input.positionId),
+    ),
+  };
+}
+
+// playerSkills: same shape and same reasoning as positionRulesSetSkills
+// above. `runSync` maps the service's authored-data rejections — a player or
+// skill that does not exist, and a batch repeating one natural key — to
+// BAD_REQUEST.
+//
+// `list` delegates to `listByPlayer`, whose rows also carry the skill's name;
+// the contract's output schema does not.
+export function buildPlayerSkillsRoutes(
+  upsertHandler: UpsertHandlerService,
+  playerSkillsService: PlayerSkillsService,
+) {
+  return {
+    sync: implement(contract.playerSkills.sync).handler(({ input, errors }) =>
+      upsertHandler.runSync(errors, () => playerSkillsService.sync(input)),
+    ),
+    list: implement(contract.playerSkills.list).handler(({ input }) =>
+      playerSkillsService.listByPlayer(input.playerId),
     ),
   };
 }

@@ -43,3 +43,22 @@ export const SKILL_CATEGORIES = [
   'trait',
   'unique',
 ] as const;
+
+/**
+ * How a player came by one of their skills.
+ *
+ * - `starting` — came from the player's position (or star player template),
+ *   i.e. every player holding that position has it.
+ * - `chosen` — gained via advancement, freely picked by the coach.
+ * - `random` — gained via advancement, randomly rolled.
+ *
+ * Recorded as a provenance column on one unified `player_skills` table rather
+ * than as separate starting/gained tables: insight toplists need "any skill a
+ * player has", "only advancement-gained skills" and "only chosen advancement
+ * skills", and a single table makes all three a plain `WHERE` instead of a
+ * `UNION` across two query paths.
+ *
+ * The list is closed and small, so it is a `domain-enums` constant consumed
+ * as a Postgres enum, exactly like SKILL_CATEGORIES above.
+ */
+export const PLAYER_SKILL_SOURCES = ['starting', 'chosen', 'random'] as const;

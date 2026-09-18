@@ -5,6 +5,7 @@ import { LikePatternModule } from '../shared/like-pattern.module';
 import { MatchEventCountsModule } from '../shared/match-event-counts.module';
 import { PlayerContextNamesModule } from '../shared/player-context-names.module';
 import { SppModule } from '../spp/spp.module';
+import { PlayerCharacteristicIncreaseValidationService } from './player-characteristic-increase-validation.service';
 import { PlayerCharacteristicsValidationService } from './player-characteristics-validation.service';
 import { PlayerDeathService } from './player-death.service';
 import { PlayerDeepdiveCountsService } from './player-deepdive-counts.service';
@@ -23,6 +24,7 @@ import { StarPlayersService } from './star-players.service';
   ],
   providers: [
     PlayersService,
+    PlayerCharacteristicIncreaseValidationService,
     PlayerCharacteristicsValidationService,
     PlayerDeathService,
     PlayerDeepdiveCountsService,

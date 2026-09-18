@@ -23,5 +23,18 @@ A [player](../../glossary.md#player) is an individual on a [team era](../team-er
   every reduction ever suffered. A reduction the rules absorbed, because the
   characteristic was already at its floor or at the rules' cap on reductions,
   moved nothing and counts zero.
+- A player also has a set of **characteristic increase counts**: how many
+  times each of their five [characteristics](../positions/index.md) has been
+  increased by an advancement. These are plain counts rather than per-increase
+  records, because neither source publishes a reliable per-increase event: TP
+  never records characteristic increases at all (they are only inferable by
+  diffing a player's current characteristics against their position's
+  baseline), and BBL's ordered advancement list would cover only a minority of
+  the data. Zero is a permanently legitimate "never increased", not a
+  placeholder.
+- A player has a set of **skills**, recorded individually rather than implied
+  by their position — see [skills](../skills/index.md). Every skill a player
+  has is recorded, starting skills included, each tagged with how they came by
+  it.
 - Death is not tracked as a lasting injury. It is recorded as a match event
   and surfaced separately.

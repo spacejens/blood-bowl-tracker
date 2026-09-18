@@ -98,6 +98,30 @@ const playersTable = historyTrackedTable({
     armourReductionCount: integer('armour_reduction_count')
       .notNull()
       .default(0),
+    // How many times each characteristic has been INCREASED via advancement.
+    // Counts, not per-event rows: neither source publishes a reliable
+    // per-increase signal. TP never records characteristic-increase events at
+    // all (its `pendingImprovements` is an unspent-SPP counter, not a
+    // history), so an increase is only ever inferable by diffing a player's
+    // current characteristics against their position's baseline. BBL does
+    // interleave increases with gained skills in its advancement list, but a
+    // best-effort order populated for only that minority of the data would
+    // not be worth its own table.
+    //
+    // Exactly symmetric with the reduction counts above, including the
+    // defaults: 0 is a permanently legitimate "never increased" value, not a
+    // temporary placeholder, so there is no follow-up migration to drop them.
+    moveIncreaseCount: integer('move_increase_count').notNull().default(0),
+    strengthIncreaseCount: integer('strength_increase_count')
+      .notNull()
+      .default(0),
+    agilityIncreaseCount: integer('agility_increase_count')
+      .notNull()
+      .default(0),
+    passingIncreaseCount: integer('passing_increase_count')
+      .notNull()
+      .default(0),
+    armourIncreaseCount: integer('armour_increase_count').notNull().default(0),
   },
 });
 
