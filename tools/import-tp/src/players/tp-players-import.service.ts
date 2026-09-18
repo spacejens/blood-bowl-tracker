@@ -15,6 +15,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import type {
   TpCareerSppCounts,
+  TpPlayerSkills,
   TpPositionCharacteristics,
   TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
@@ -146,6 +147,7 @@ export class TpPlayersImportService {
     careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
     mercenaryPositionUsages: MercenaryPositionUsage[];
     insertedPlayerIds: number[];
+    skillsByPlayerId: Map<number, TpPlayerSkills>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -157,6 +159,10 @@ export class TpPlayersImportService {
     // post-matchEvents lasting-injury history backfill: an existing player
     // already carries whatever history earlier runs built for them.
     const insertedPlayerIds: number[] = [];
+    // Every roster player's own skills, keyed by their DATABASE id. A player
+    // with no group at all -- a match-embedded-only, departed player -- is
+    // simply absent: see TpPlayerSkills for why that data cannot be recorded.
+    const skillsByPlayerId = new Map<number, TpPlayerSkills>();
 
     // Star Player Points is a career total that only ever increases. The
     // same player (lineUp) id can legitimately recur across multiple
@@ -249,6 +255,7 @@ export class TpPlayersImportService {
         careerSppCountsByPlayerId,
         mercenaryPositionUsages,
         insertedPlayerIds,
+        skillsByPlayerId,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -270,6 +277,7 @@ export class TpPlayersImportService {
         careerSppCountsByPlayerId,
         mercenaryPositionUsages,
         insertedPlayerIds,
+        skillsByPlayerId,
       };
     }
     const eraNames = [...new Set(eras.map((era) => era.name))];
@@ -482,6 +490,9 @@ export class TpPlayersImportService {
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
           }
+          if (player.skills !== undefined) {
+            skillsByPlayerId.set(upserted.id, player.skills);
+          }
           const careerCounts = maxCareerCountsByLineUpId.get(player.id);
           if (careerCounts !== undefined) {
             careerSppCountsByPlayerId.set(upserted.id, careerCounts);
@@ -528,6 +539,7 @@ export class TpPlayersImportService {
       careerSppCountsByPlayerId,
       mercenaryPositionUsages,
       insertedPlayerIds,
+      skillsByPlayerId,
     };
   }
 

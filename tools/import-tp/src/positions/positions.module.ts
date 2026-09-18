@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 
 import { EraDataConfigModule } from '../eras/era-data-config.module';
 import { EraRulesSetModule } from '../eras/era-rules-set.module';
+import { SkillsModule } from '../skills/skills.module';
 import { SourceModule } from '../source/source.module';
 import { TpPositionCharacteristicsImportService } from './tp-position-characteristics-import.service';
 import { TpPositionSkillsImportService } from './tp-position-skills-import.service';
@@ -16,6 +17,7 @@ import { TpPositionsImportService } from './tp-positions-import.service';
     EraDataConfigModule,
     EraRulesSetModule,
     ParseTpModule,
+    SkillsModule,
   ],
   providers: [
     TpPositionsImportService,

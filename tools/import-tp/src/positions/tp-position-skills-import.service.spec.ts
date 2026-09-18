@@ -1,18 +1,18 @@
 import {
-  ExternalIdResolverService,
   ExternalSystemBootstrapService,
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
 import {
-  AnimosityTargetService,
-  HatredTargetService,
+  animosityTargetByCode,
+  hatredTargetByCode,
 } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { TpSkillResolverService } from '../skills/tp-skill-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpPositionSkillsImportService } from './tp-position-skills-import.service';
 
@@ -25,14 +25,14 @@ describe('TpPositionSkillsImportService', () => {
   let importResults: MockProxy<ImportResultService>;
   let bootstrap: MockProxy<ExternalSystemBootstrapService>;
   let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
-  let resolver: MockProxy<ExternalIdResolverService>;
+  let skillResolver: MockProxy<TpSkillResolverService>;
 
   beforeEach(async () => {
     startingSkills = mock<StartingSkillsImportService>();
     importResults = mock<ImportResultService>();
     bootstrap = mock<ExternalSystemBootstrapService>();
     externalSystemName = mock<ExternalSystemNameConfigService>();
-    resolver = mock<ExternalIdResolverService>();
+    skillResolver = mock<TpSkillResolverService>();
     importResults.error.mockImplementation((error) => error);
     importResults.result.mockImplementation(({ imported, errors }) => ({
       success: errors.length === 0,
@@ -41,17 +41,43 @@ describe('TpPositionSkillsImportService', () => {
     }));
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [TP_SYSTEM_ID] });
     externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
+    // Inverting the scanned lookup is TpSkillResolverService's own tested
+    // behavior (tp-skill-resolver.service.spec.ts); replicated here only so
+    // this spec's many exact-payload assertions -- about what
+    // TpPositionSkillsImportService itself does with the inverted map --
+    // keep exercising realistic input instead of a canned stub.
+    skillResolver.collectSkillMasterIds.mockImplementation(
+      (skillMastersByMasterId) => {
+        const byName = new Map<string, Set<number>>();
+        for (const [skillMasterId, master] of skillMastersByMasterId) {
+          let ids = byName.get(master.name);
+          if (ids === undefined) {
+            ids = new Set();
+            byName.set(master.name, ids);
+          }
+          ids.add(skillMasterId);
+        }
+        return byName;
+      },
+    );
     // No curated tourplay.net id answers, unless a test says otherwise: an
     // index with no entry reads as undefined, i.e. "not found".
-    resolver.resolveBatch.mockResolvedValue([]);
+    skillResolver.resolveUnnamedMasterIds.mockResolvedValue(new Map());
+    skillResolver.decodeTypeThreeTarget.mockImplementation(
+      (skillMasterId, attributeValue) => {
+        const code = Number(attributeValue);
+        if (skillMasterId === 307) {
+          return hatredTargetByCode[code];
+        }
+        if (skillMasterId === 269) {
+          return animosityTargetByCode[code];
+        }
+        return undefined;
+      },
+    );
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpPositionSkillsImportService,
-        // Both target tables are pure, dependency-free decision services:
-        // passing them real keeps their actual decoding exercised, and they
-        // have no I/O or external state to couple to.
-        HatredTargetService,
-        AnimosityTargetService,
         { provide: StartingSkillsImportService, useValue: startingSkills },
         { provide: ImportResultService, useValue: importResults },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
@@ -59,7 +85,7 @@ describe('TpPositionSkillsImportService', () => {
           provide: ExternalSystemNameConfigService,
           useValue: externalSystemName,
         },
-        { provide: ExternalIdResolverService, useValue: resolver },
+        { provide: TpSkillResolverService, useValue: skillResolver },
       ],
     }).compile();
     service = moduleRef.get(TpPositionSkillsImportService);
@@ -658,7 +684,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('resolves a skillMasterId no downloaded file names through its curated tourplay.net external id', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
-    resolver.resolveBatch.mockResolvedValue([77]);
+    skillResolver.resolveUnnamedMasterIds.mockResolvedValue(
+      new Map([[181, 77]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -670,9 +698,11 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(result.errors).toEqual([]);
-    expect(resolver.resolveBatch).toHaveBeenCalledWith('skill', [
-      { externalSystemId: TP_SYSTEM_ID, externalId: '181' },
-    ]);
+    expect(skillResolver.resolveUnnamedMasterIds).toHaveBeenCalledWith({
+      masterIds: new Set([181]),
+      skillMastersByMasterId: new Map(),
+      tpSystemId: TP_SYSTEM_ID,
+    });
     // The resolved id goes through as `skillId`, so the shared pipeline skips
     // its upsert-by-name step; the name is only a cache key there.
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -691,7 +721,7 @@ describe('TpPositionSkillsImportService', () => {
 
   it('still reports a skillMasterId no curated tourplay.net id answers for', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
-    resolver.resolveBatch.mockResolvedValue([undefined]);
+    skillResolver.resolveUnnamedMasterIds.mockResolvedValue(new Map());
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
