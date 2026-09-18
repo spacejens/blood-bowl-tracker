@@ -24,6 +24,7 @@ import {
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
@@ -171,6 +172,16 @@ export async function makeService({
   mercenaryCharacteristics.forRosterPlayer.mockReturnValue(
     mercenaryPlayerCharacteristics,
   );
+  // The induced-star-hire path itself now lives in
+  // TpInducedStarPlayersImportService (see
+  // tp-induced-star-players-import.service.spec.ts); this spec no longer
+  // exercises star hires, so the mock simply reports "nothing hired".
+  const inducedStarPlayers = mock<TpInducedStarPlayersImportService>();
+  inducedStarPlayers.importHires.mockResolvedValue({
+    imported: 0,
+    starPlayerIdsByRosterAndMaster: new Map(),
+    insertedPlayerIds: [],
+  });
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -199,6 +210,10 @@ export async function makeService({
       {
         provide: TpMercenaryCharacteristicsService,
         useValue: mercenaryCharacteristics,
+      },
+      {
+        provide: TpInducedStarPlayersImportService,
+        useValue: inducedStarPlayers,
       },
     ],
   }).compile();
