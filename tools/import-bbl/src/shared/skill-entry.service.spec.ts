@@ -45,4 +45,17 @@ describe('SkillEntryService', () => {
   it('drops a known garbled fragment that carries no skill', () => {
     expect(service.resolveSkillRefs('included in his price)')).toEqual([]);
   });
+
+  it('splits the missing-comma entry into two skills', () => {
+    expect(service.resolveSkillRefs('Really Stupid.Throw Team-Mate')).toEqual([
+      { name: 'Really Stupid' },
+      { name: 'Throw Team-Mate' },
+    ]);
+  });
+
+  it('drops the other half of the torn Stunty annotation fragment', () => {
+    expect(
+      service.resolveSkillRefs("Stunty(Note: comes with Brick Far'th"),
+    ).toEqual([]);
+  });
 });
