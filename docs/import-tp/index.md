@@ -294,6 +294,16 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   A star player hired mid-season through an `inducements_roll` event has no
   `lineUps[]` entry, so TP publishes no live state for them: no lasting-injury
   values are sent, leaving the row's defaults.
+
+  A roster player's `lineUpMaster.skills` are their starting skills; their own
+  `skills` are the ones gained via advancement, mapped to `random`/`chosen` via
+  TP's `isRandom` flag, with `advancementOrder` set to each skill's 1-based
+  index in that array. A match-embedded-only (departed) player gets no skills
+  at all: their only surviving data is the flat bare-id list described above,
+  with no starting/gained split, no `isRandom`, and no attribute values.
+  Characteristic-increase counts are derived the same way BBL's are: diffing
+  converted characteristics against the position's stored values under the
+  era's rules set, adding back outstanding reductions.
 - **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
   for mercenary Big Guy positions, which no official-list catalog carries, so
   their race/era availability is the one kind still derived from observed
