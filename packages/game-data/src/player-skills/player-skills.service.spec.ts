@@ -167,6 +167,32 @@ describe('PlayerSkillsService', () => {
       expect(firstCallArg(db.chains[3].set)).toEqual({ source: 'chosen' });
     });
 
+    it('updates advancementOrder when the entry gives a different value', async () => {
+      const db = mockDb(
+        [playerRow],
+        [skillRow],
+        [
+          {
+            id: 51,
+            playerId: 1,
+            skillId: 7,
+            source: 'chosen',
+            attributeValue: null,
+            advancementOrder: 3,
+          },
+        ],
+      );
+      const service = await makeService(db);
+
+      const result = await service.sync({
+        entries: [{ ...entry, source: 'chosen', advancementOrder: 5 }],
+      });
+
+      expect(result).toEqual({ playerSkillIds: [51] });
+      expect(db.transaction).toHaveBeenCalled();
+      expect(firstCallArg(db.chains[3].set)).toEqual({ advancementOrder: 5 });
+    });
+
     it('leaves advancementOrder alone when the entry says nothing about it', async () => {
       const db = mockDb(
         [playerRow],
