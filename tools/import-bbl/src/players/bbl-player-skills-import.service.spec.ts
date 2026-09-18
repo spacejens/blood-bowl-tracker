@@ -35,9 +35,6 @@ describe('BblPlayerSkillsImportService', () => {
     bootstrap = mock<ExternalSystemBootstrapService>();
     nameExternalId = mock<NameExternalIdService>();
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [42] });
-    nameExternalId.forSkill.mockImplementation(
-      (name: string) => `skill:${name}`,
-    );
     playerSkills.syncPlayerSkills.mockResolvedValue(0);
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -54,6 +51,7 @@ describe('BblPlayerSkillsImportService', () => {
 
   it('upserts each distinct skill name once under its Name external id', async () => {
     skillsImport.upsert.mockResolvedValue(upserted(100, 'Block'));
+    nameExternalId.forSkill.mockReturnValue('skill:Block');
 
     await service.syncPlayerSkills(
       new Map([

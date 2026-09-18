@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { stubImportRunner } from './import-runner.test-helpers';
 import { PlayerSkillsImportService } from './player-skills-import.service';
@@ -38,7 +37,6 @@ describe('PlayerSkillsImportService', () => {
         PlayerSkillsImportService,
         { provide: API_CLIENT, useValue: client },
         { provide: ImportRunnerService, useValue: runner },
-        ImportResultService,
       ],
     }).compile();
     service = moduleRef.get(PlayerSkillsImportService);
