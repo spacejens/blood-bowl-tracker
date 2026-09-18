@@ -12,6 +12,7 @@ import { BblMatchEventsImportService } from './match-events/bbl-match-events-imp
 import { BblMatchOutcomesImportService } from './matches/bbl-match-outcomes-import.service';
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
 import { BblLastingInjuryBackfillImportService } from './players/bbl-lasting-injury-backfill-import.service';
+import { BblPlayerSkillsImportService } from './players/bbl-player-skills-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
 import { BblSppAdjustmentsImportService } from './players/bbl-spp-adjustments-import.service';
 import { BblPositionCharacteristicsImportService } from './positions/bbl-position-characteristics-import.service';
@@ -100,6 +101,13 @@ async function run(): Promise<ImportResult> {
         skillsByPositionId: positionOutcome.skillsByPositionId,
         rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
       });
+    // Player skills run after the position starting-skills step for the same
+    // reason that one runs after characteristics: both write through skills
+    // upserted under their Name external id, and doing the position pass first
+    // means most names are already resolved by the time players are written.
+    const playerSkillsOutcome = await app
+      .get(BblPlayerSkillsImportService)
+      .syncPlayerSkills(playerOutcome.skillsByPlayerId);
     const matchEventsOutcome = await app
       .get(BblMatchEventsImportService)
       .importMatchEvents({
@@ -185,6 +193,7 @@ async function run(): Promise<ImportResult> {
       positionRaceErasOutcome.result,
       positionCharacteristicsOutcome.result,
       positionSkillsOutcome.result,
+      playerSkillsOutcome.result,
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       lastingInjuryBackfillOutcome.result,
