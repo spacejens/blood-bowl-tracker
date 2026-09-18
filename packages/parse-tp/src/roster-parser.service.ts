@@ -132,6 +132,48 @@ export interface TpRosterPlayer {
    * at all still carries one.
    */
   positionTemplate?: TpPositionCharacteristics;
+  /**
+   * The entry's starting and gained skills, or `undefined` when the entry
+   * cannot support the split -- see `TpPlayerSkills` for what that absence
+   * means.
+   */
+  skills?: TpPlayerSkills;
+}
+
+/**
+ * One skill reference on a TP roster entry -- the position template's starting
+ * skills and the player's own gained ones share this shape. `attributeType` is
+ * TP's tag for what `attributeValue` holds; see `TpPositionSkillIdRef` in
+ * official-teams-parser.service.ts for what each type means and why type 3 is
+ * an opaque code a consumer must not compose as-is.
+ */
+export interface TpPlayerSkillRef {
+  skillMasterId: number;
+  attributeValue?: string;
+  attributeType?: number;
+}
+
+/**
+ * One skill the player gained via advancement. `isRandom` is TP's own record
+ * of whether the advancement was randomly rolled rather than freely chosen --
+ * a distinction BBL's data cannot make at all.
+ */
+export interface TpGainedSkillRef extends TpPlayerSkillRef {
+  isRandom: boolean;
+}
+
+/**
+ * A roster entry's full skill picture, or `undefined` on `TpRosterPlayer` when
+ * the entry carried no position template. Only a standalone `rosters_<id>.json`
+ * entry has one: a match-embedded roster snapshot carries a flat `skills` list
+ * of bare ids with no starting/gained split, no `isRandom` and no attribute
+ * values, which is not enough to record honestly, so the whole group is
+ * reported as absent there -- the same all-or-nothing rule `careerCounts`,
+ * `characteristics` and `lastingInjuries` already follow on this type.
+ */
+export interface TpPlayerSkills {
+  starting: TpPlayerSkillRef[];
+  gained: TpGainedSkillRef[];
 }
 
 /**
@@ -182,6 +224,29 @@ const CharacteristicsFields = {
   pa: z.number().int(),
   av: z.number().int(),
 };
+
+const SkillAttributeField = {
+  skillAttributeMaster: z
+    .object({ value: z.string(), type: z.number().int() })
+    .optional(),
+};
+
+/** A template skill: an id plus an optional attribute, and nothing else. */
+const TemplateSkillSchema = z.object({
+  skillMasterId: z.number().int(),
+  ...SkillAttributeField,
+});
+
+/**
+ * A player's own skill. `isRandom` is optional ONLY because match-embedded
+ * snapshots reuse this schema and carry bare ids; an entry missing it makes
+ * the whole skill group absent rather than being guessed at.
+ */
+const PlayerSkillSchema = z.object({
+  skillMasterId: z.number().int(),
+  isRandom: z.boolean().optional(),
+  ...SkillAttributeField,
+});
 
 const LineUpMasterSchema = z.object({
   id: z.number(),
@@ -241,8 +306,13 @@ export const LineUpSchema = z.object({
       ag: z.number().int().optional(),
       pa: z.number().int().optional(),
       av: z.number().int().optional(),
+      skills: z.array(TemplateSkillSchema).default([]),
     })
     .optional(),
+  // The player's own gained skills. Defaults to [] because a match-embedded
+  // snapshot's flat bare-id list still needs to parse; the missing isRandom
+  // on each of those entries is what makes the whole skills group absent.
+  skills: z.array(PlayerSkillSchema).default([]),
 });
 
 const RosterSchema = z.object({
@@ -309,6 +379,7 @@ export class RosterParserService {
         characteristics: this.playerCharacteristics(entry),
         lastingInjuries: this.lastingInjuries(entry),
         positionTemplate: this.positionTemplate(entry),
+        skills: this.skills(entry),
       })),
     };
   }
@@ -409,6 +480,47 @@ export class RosterParserService {
       return undefined;
     }
     return this.characteristics({ ma, st, ag, pa, av });
+  }
+
+  /**
+   * The entry's starting and gained skills, or `undefined` when it carries no
+   * position template -- see `TpPlayerSkills` for why that absence is the
+   * signal used. A gained entry with no `isRandom` likewise makes the whole
+   * group absent: without it there is no honest source to record.
+   */
+  private skills(
+    entry: z.infer<typeof LineUpSchema>,
+  ): TpPlayerSkills | undefined {
+    const master = entry.lineUpMaster;
+    if (master === undefined) {
+      return undefined;
+    }
+    const gained: TpGainedSkillRef[] = [];
+    for (const skill of entry.skills) {
+      if (skill.isRandom === undefined) {
+        return undefined;
+      }
+      gained.push({ ...this.skillRef(skill), isRandom: skill.isRandom });
+    }
+    return {
+      starting: master.skills.map((skill) => this.skillRef(skill)),
+      gained,
+    };
+  }
+
+  /** One skill reference, with its attribute split out of TP's nested object. */
+  private skillRef(skill: {
+    skillMasterId: number;
+    skillAttributeMaster?: { value: string; type: number };
+  }): TpPlayerSkillRef {
+    if (skill.skillAttributeMaster === undefined) {
+      return { skillMasterId: skill.skillMasterId };
+    }
+    return {
+      skillMasterId: skill.skillMasterId,
+      attributeValue: skill.skillAttributeMaster.value,
+      attributeType: skill.skillAttributeMaster.type,
+    };
   }
 
   /** The five characteristics carried on every lineUp/star master entry. */
