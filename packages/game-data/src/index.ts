@@ -47,6 +47,9 @@ export {
   MatchesService,
   MatchUpsertConflictError,
 } from './matches/matches.service';
+export { PlayerSkillsModule } from './player-skills/player-skills.module';
+export type { PlayerSkillRow } from './player-skills/player-skills.service';
+export { PlayerSkillsService } from './player-skills/player-skills.service';
 export type {
   PlayerKillEntry,
   PlayerKillerInfo,
