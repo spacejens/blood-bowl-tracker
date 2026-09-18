@@ -22,8 +22,13 @@ describe('SKILL_CATEGORIES', () => {
 });
 
 describe('PLAYER_SKILL_SOURCES', () => {
-  it('lists every way a player can come by a skill, in schema order', () => {
-    expect(PLAYER_SKILL_SOURCES).toEqual(['starting', 'chosen', 'random']);
+  it('lists every source a player skill can have, in declared order', () => {
+    expect(PLAYER_SKILL_SOURCES).toEqual([
+      'starting',
+      'advancement',
+      'chosen',
+      'random',
+    ]);
   });
 
   it('has no duplicate values', () => {

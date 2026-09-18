@@ -296,8 +296,10 @@ export class PlayerSkillsService {
       .orderBy(
         // Sorts by the Postgres enum's declaration order, which relies on
         // `PLAYER_SKILL_SOURCES` (packages/domain-enums/src/skills.ts) being
-        // declared as `starting`, `chosen`, `random` — reordering that array
-        // would silently change this API's result order.
+        // declared as `starting`, `advancement`, `chosen`, `random` —
+        // reordering that array would silently change this API's result
+        // order, and so would a migration that appends a new enum value
+        // rather than inserting it at its declared position.
         asc(playerSkills.source),
         asc(playerSkills.advancementOrder),
         asc(skills.name),
