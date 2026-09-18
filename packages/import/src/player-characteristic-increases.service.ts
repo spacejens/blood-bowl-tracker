@@ -92,7 +92,10 @@ const ZERO_REDUCTIONS: PlayerCharacteristicReductionCounts = {
 export class PlayerCharacteristicIncreasesService {
   /**
    * Position id -> its stored baselines by rules set id, or `undefined` when
-   * the read itself failed. One read per position per import run.
+   * the read itself failed. One read per position per import run -- safe only
+   * because both importer tools are one-shot CLI processes that build a fresh
+   * NestJS application context per run; a long-lived process reusing one
+   * instance across import runs would need this cleared between them.
    */
   private readonly baselinesByPositionId = new Map<
     number,
@@ -113,6 +116,14 @@ export class PlayerCharacteristicIncreasesService {
    * positions step always runs before players. A failed read adds no error of
    * its own: `listPositionRulesSets` already recorded one, and piling a second
    * on top would be misleading.
+   *
+   * `baseline`, when supplied, is used INSTEAD of the internal
+   * `listPositionRulesSets` DB read -- for a caller (TP) that already has a
+   * per-player baseline embedded in its own source data and needs its
+   * increase counts measured against exactly that baseline, the same one its
+   * reduction-count computation already uses, rather than a separate DB read
+   * that could disagree with it. A caller with no such embedded baseline (BBL)
+   * simply omits it and keeps using the DB-read path below.
    */
   async forPlayer(options: {
     player: { label: string; positionId: number };
@@ -120,29 +131,36 @@ export class PlayerCharacteristicIncreasesService {
     current: PlayerCurrentCharacteristics;
     reductions: PlayerCharacteristicReductionCounts | undefined;
     errors: ImportError[];
+    baseline?: PlayerCurrentCharacteristics;
   }): Promise<PlayerCharacteristicIncreaseCounts | undefined> {
     const { player, rulesSet, current, reductions, errors } = options;
-    const baselines = await this.baselines(player.positionId, errors);
-    if (baselines === undefined) {
-      return undefined;
-    }
-    const baseline = baselines.get(rulesSet.id);
-    if (baseline === undefined) {
-      const key = `${player.positionId}|${rulesSet.id}`;
-      if (!this.reportedGaps.has(key)) {
-        this.reportedGaps.add(key);
-        errors.push(
-          this.importResults.error({
-            item: { position: player.positionId, rulesSet: rulesSet.id },
-            message:
-              `Imported ${player.label} without characteristic-increase ` +
-              `counts: position ${player.positionId} has no stored ` +
-              `characteristics under rules set "${rulesSet.name}", so there ` +
-              'is no baseline to measure their advancements against.',
-          }),
-        );
+    let baseline: PlayerCurrentCharacteristics;
+    if (options.baseline !== undefined) {
+      baseline = options.baseline;
+    } else {
+      const baselines = await this.baselines(player.positionId, errors);
+      if (baselines === undefined) {
+        return undefined;
       }
-      return undefined;
+      const stored = baselines.get(rulesSet.id);
+      if (stored === undefined) {
+        const key = `${player.positionId}|${rulesSet.id}`;
+        if (!this.reportedGaps.has(key)) {
+          this.reportedGaps.add(key);
+          errors.push(
+            this.importResults.error({
+              item: { position: player.positionId, rulesSet: rulesSet.id },
+              message:
+                `Imported ${player.label} without characteristic-increase ` +
+                `counts: position ${player.positionId} has no stored ` +
+                `characteristics under rules set "${rulesSet.name}", so ` +
+                'there is no baseline to measure their advancements against.',
+            }),
+          );
+        }
+        return undefined;
+      }
+      baseline = stored;
     }
 
     const applied = reductions ?? ZERO_REDUCTIONS;

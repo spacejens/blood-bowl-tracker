@@ -386,7 +386,6 @@ describe('TpPlayerSkillsImportService', () => {
 
     expect(skillResolver.resolveUnnamedMasterIds).toHaveBeenCalledWith({
       masterIds: new Set([181]),
-      skillMastersByMasterId: new Map(),
       tpSystemId: TP_SYSTEM_ID,
     });
     expect(skillsImport.upsert).not.toHaveBeenCalled();

@@ -263,6 +263,35 @@ describe('PlayerCharacteristicIncreasesService', () => {
     expect(errors).toEqual([]);
   });
 
+  it('uses a supplied baseline override instead of reading the DB baseline', async () => {
+    const counts = await service.forPlayer({
+      player: { label: 'Grim (12)', positionId: 3 },
+      rulesSet: BARE_RULES_SET,
+      current: { move: 8, strength: 3, agility: 3, passing: 4, armour: 9 },
+      reductions: NO_REDUCTIONS,
+      errors,
+      baseline: { move: 6, strength: 3, agility: 3, passing: 4, armour: 9 },
+    });
+
+    expect(counts?.moveIncreaseCount).toBe(2);
+    expect(positionRulesSets.listPositionRulesSets).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the DB-read baseline when no override is supplied', async () => {
+    positionRulesSets.listPositionRulesSets.mockResolvedValue([baseline()]);
+
+    const counts = await service.forPlayer({
+      player: { label: 'Grim (12)', positionId: 3 },
+      rulesSet: BARE_RULES_SET,
+      current: { move: 8, strength: 3, agility: 3, passing: 4, armour: 9 },
+      reductions: NO_REDUCTIONS,
+      errors,
+    });
+
+    expect(counts?.moveIncreaseCount).toBe(2);
+    expect(positionRulesSets.listPositionRulesSets).toHaveBeenCalledTimes(1);
+  });
+
   it('reads one position only once across players', async () => {
     positionRulesSets.listPositionRulesSets.mockResolvedValue([baseline()]);
 

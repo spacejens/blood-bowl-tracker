@@ -29,6 +29,7 @@ import { SustainedInjuriesParser } from './sustained-injuries.parser';
   exports: [
     PlayerPageParser,
     SustainedInjuriesParser,
+    SkillEntryService,
     BblPlayersImportService,
     BblPlayerSkillsImportService,
     BblSppAdjustmentsImportService,

@@ -70,7 +70,6 @@ export class TpSkillResolverService {
    */
   async resolveUnnamedMasterIds(options: {
     masterIds: Iterable<number>;
-    skillMastersByMasterId: Map<number, TpSkillMaster>;
     tpSystemId: number;
   }): Promise<Map<number, number>> {
     const { masterIds, tpSystemId } = options;

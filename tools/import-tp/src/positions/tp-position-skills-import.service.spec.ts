@@ -700,7 +700,6 @@ describe('TpPositionSkillsImportService', () => {
     expect(result.errors).toEqual([]);
     expect(skillResolver.resolveUnnamedMasterIds).toHaveBeenCalledWith({
       masterIds: new Set([181]),
-      skillMastersByMasterId: new Map(),
       tpSystemId: TP_SYSTEM_ID,
     });
     // The resolved id goes through as `skillId`, so the shared pipeline skips

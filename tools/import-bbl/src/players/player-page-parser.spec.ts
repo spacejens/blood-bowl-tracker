@@ -584,6 +584,16 @@ describe('PlayerPageParser skills cell', () => {
     ]);
   });
 
+  it('keeps a nested span inside a gained skill when it is not the pending marker', () => {
+    const player = parsePlayerWithSkillsCell(
+      "<span style='color:#006020'>Mighty <span>Blow</span></span>",
+    );
+
+    expect(player?.skills).toEqual([
+      { name: 'Mighty Blow', source: 'advancement', advancementOrder: 1 },
+    ]);
+  });
+
   it('reads an empty skills cell as no skills', () => {
     expect(parsePlayerWithSkillsCell('')?.skills).toEqual([]);
   });

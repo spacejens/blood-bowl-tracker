@@ -38,6 +38,12 @@ const SKILLS_CELL_INDEX = CHARACTERISTIC_HEADERS.length;
 /** The inline colour BBL renders a skill GAINED via advancement in. */
 const GAINED_SKILL_COLOUR = '#006020';
 
+/** The inline colour BBL renders the pending "?" advancement marker in. */
+const PENDING_MARKER_COLOUR = '#f02020';
+
+/** The pending advancement marker's own, normalized text content. */
+const PENDING_MARKER_TEXT = '?';
+
 /**
  * One skill from a player's own Skills cell.
  *
@@ -351,12 +357,26 @@ export class PlayerPageParser {
 
     for (const node of $(cell).contents().toArray()) {
       const element = $(node);
-      const colour = element.attr?.('style') ?? '';
+      const colour = element.attr('style') ?? '';
       if (colour.includes(GAINED_SKILL_COLOUR)) {
-        // A nested red "?" is the pending marker; removing it leaves an empty
-        // span, which flush() then drops as the empty entry it is.
+        // A nested red "?" is the pending marker; removing ONLY that specific
+        // nested span (matched by its own colour or its exact "?" text)
+        // leaves an empty span, which flush() then drops as the empty entry
+        // it is. Scoped this narrowly rather than removing every nested span
+        // unconditionally, so a real skill's text nested inside a gained
+        // span for some other reason is not silently dropped alongside it.
         const inner = element.clone();
-        inner.find('span').remove();
+        inner.find('span').each((_index, span) => {
+          const spanElement = $(span);
+          const spanColour = spanElement.attr('style') ?? '';
+          const spanText = this.normalizeText.normalize(spanElement.text());
+          if (
+            spanColour.includes(PENDING_MARKER_COLOUR) ||
+            spanText === PENDING_MARKER_TEXT
+          ) {
+            spanElement.remove();
+          }
+        });
         const value = this.normalizeText.normalize(inner.text());
         if (value.length > 0) {
           text += value;

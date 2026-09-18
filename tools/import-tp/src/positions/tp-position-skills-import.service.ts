@@ -107,7 +107,6 @@ export class TpPositionSkillsImportService {
           skillRefsByPositionId,
           skillMastersByMasterId,
         ),
-        skillMastersByMasterId,
         tpSystemId,
       });
 

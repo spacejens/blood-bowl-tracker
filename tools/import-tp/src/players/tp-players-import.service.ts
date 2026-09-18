@@ -467,11 +467,41 @@ export class TpPlayersImportService {
         });
         // The increase counts need the same three things the reduction counts
         // do -- the player's own values, the rules set that says which
-        // direction is better, and the position they hold -- plus the stored
-        // baseline the shared service reads for itself. A player with no
-        // characteristics at all (a match-embedded-only entry) or no resolved
-        // rules set sends no increase group: the group is all-or-nothing, and
-        // inventing zeroes from an absence would be worse than saying nothing.
+        // direction is better, and the position they hold -- plus a baseline
+        // to measure against. A player with no characteristics at all (a
+        // match-embedded-only entry) or no resolved rules set sends no
+        // increase group: the group is all-or-nothing, and inventing zeroes
+        // from an absence would be worse than saying nothing.
+        //
+        // `player.positionTemplate` -- the same embedded baseline
+        // `lastingInjuryBuilder` above already uses for the reduction counts
+        // -- is passed through as the increase baseline too, so the two
+        // counts are measured against the same reference rather than letting
+        // the shared service fall back to a separate DB read that could
+        // disagree with it. It is only absent for a mercenary/star hire (no
+        // embedded `lineUpMaster`), for which the shared service falls back to
+        // its own DB-read baseline exactly as before. TP always reports a
+        // literal 0 for a missing Passing characteristic rather than omitting
+        // it, so that field is converted to `null` when the rules set itself
+        // declares no Passing characteristic -- the shape the DB-read baseline
+        // uses and the increase computation's own comparison-skip logic
+        // expects.
+        const baseline =
+          player.positionTemplate === undefined
+            ? undefined
+            : {
+                ...player.positionTemplate,
+                passing:
+                  rulesSet?.passingFormat === 'absent'
+                    ? null
+                    : player.positionTemplate.passing,
+              };
+        // `rulesSet === undefined` records no error of its own here: an era
+        // resolving to no single rules set, or an unresolvable rules-set
+        // name, is already reported upstream by
+        // `TpEraRulesSetResolverService.resolveRulesSetIdByEraName` (see its
+        // doc comment), so a second error at this omission site would be
+        // redundant, not an oversight.
         const increaseCounts =
           characteristics === undefined || rulesSet === undefined
             ? undefined
@@ -490,6 +520,7 @@ export class TpPlayersImportService {
                 },
                 reductions: lastingInjuries,
                 errors,
+                baseline,
               });
 
         const upserted = await this.playersImport.upsertPlayerResult(
@@ -522,6 +553,12 @@ export class TpPlayersImportService {
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
           }
+          // Same last-roster-wins convention as `characteristics` above when a
+          // player id recurs across more than one roster: whichever entry
+          // this loop processes last is what gets sent for sync. The sync
+          // itself is upsert-only and never deletes, so on a warm database an
+          // earlier roster's skills survive regardless; only a fresh import
+          // risks losing a skill listed solely on an earlier roster.
           if (player.skills !== undefined) {
             skillsByPlayerId.set(upserted.id, player.skills);
           }

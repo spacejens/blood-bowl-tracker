@@ -56,7 +56,6 @@ describe('TpSkillResolverService', () => {
 
     const resolved = await service.resolveUnnamedMasterIds({
       masterIds: [181],
-      skillMastersByMasterId: new Map(),
       tpSystemId: TP_SYSTEM_ID,
     });
 
@@ -71,7 +70,6 @@ describe('TpSkillResolverService', () => {
 
     const resolved = await service.resolveUnnamedMasterIds({
       masterIds: [999_999],
-      skillMastersByMasterId: new Map(),
       tpSystemId: TP_SYSTEM_ID,
     });
 
@@ -83,7 +81,6 @@ describe('TpSkillResolverService', () => {
 
     await service.resolveUnnamedMasterIds({
       masterIds: [181, 182],
-      skillMastersByMasterId: new Map(),
       tpSystemId: TP_SYSTEM_ID,
     });
 

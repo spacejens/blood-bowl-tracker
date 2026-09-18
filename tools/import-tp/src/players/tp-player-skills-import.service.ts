@@ -86,7 +86,6 @@ export class TpPlayerSkillsImportService {
           skillsByPlayerId,
           skillMastersByMasterId,
         ),
-        skillMastersByMasterId,
         tpSystemId,
       });
 

@@ -99,6 +99,30 @@ function rosterWithReduction(): RosterEntry[] {
   ];
 }
 
+/**
+ * Same single-player roster as {@link rosterWith}, but also carrying a
+ * `positionTemplate` -- the embedded baseline the increase-count wiring must
+ * pass through as `PlayerCharacteristicIncreasesService.forPlayer`'s baseline
+ * override, in preference to a separate DB read.
+ */
+function rosterWithTemplate(positionTemplate: typeof OWN): RosterEntry[] {
+  const [entry] = rosterWith(OWN);
+  return [
+    {
+      ...entry,
+      roster: {
+        ...entry.roster,
+        players: [
+          {
+            ...entry.roster.players[0],
+            positionTemplate,
+          },
+        ],
+      },
+    },
+  ];
+}
+
 describe('TpPlayersImportService characteristics', () => {
   it("sends a roster player's own characteristics with its era rules set", async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
@@ -328,5 +352,78 @@ describe('TpPlayersImportService characteristic-increase counts', () => {
       unknown
     >;
     expect(payload).not.toHaveProperty('moveIncreaseCount');
+  });
+
+  it("passes the roster player's own embedded position template as the increase baseline, not the DB value", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+    // The template disagrees with whatever `positionRulesSetsImport` would
+    // return -- irrelevant here since it is mocked out entirely -- proving
+    // this specific value is what's threaded through.
+    const positionTemplate = {
+      move: 5,
+      strength: 4,
+      agility: 3,
+      passing: 6,
+      armour: 8,
+    };
+
+    await service.importPlayers({
+      rosters: rosterWithTemplate(positionTemplate),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    expect(characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseline: positionTemplate,
+      }),
+    );
+  });
+
+  it('falls back to no baseline override for a mercenary/star hire with no embedded position template', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+
+    await service.importPlayers({
+      rosters: rosterWith(OWN),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName,
+    });
+
+    expect(characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({ baseline: undefined }),
+    );
+  });
+
+  it("converts the embedded template's literal-0 passing to null when the rules set declares no Passing characteristic", async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const noPassingRulesSet: RulesSet = { ...bb2020, passingFormat: 'absent' };
+    const { service, characteristicIncreases } = await makeService({
+      upsertPlayerResult,
+    });
+    const positionTemplate = {
+      move: 5,
+      strength: 4,
+      agility: 3,
+      passing: 0,
+      armour: 8,
+    };
+
+    await service.importPlayers({
+      rosters: rosterWithTemplate(positionTemplate),
+      teamErasByRosterId: teamEras,
+      rulesSetsByName: new Map([['BB2020', noPassingRulesSet]]),
+    });
+
+    expect(characteristicIncreases.forPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseline: { ...positionTemplate, passing: null },
+      }),
+    );
   });
 });
