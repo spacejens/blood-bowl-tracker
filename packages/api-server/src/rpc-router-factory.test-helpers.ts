@@ -10,6 +10,7 @@ import {
   MatchOutcomesService,
   MissingTrophyAwardsService,
   PlayerLastingInjuryBackfillService,
+  PlayerSkillsService,
   PlayersService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
@@ -50,6 +51,7 @@ export async function createRouterHarness() {
     positionsService: mock<PositionsService>(),
     positionRulesSetsService: mock<PositionRulesSetsService>(),
     positionRulesSetSkillsService: mock<PositionRulesSetSkillsService>(),
+    playerSkillsService: mock<PlayerSkillsService>(),
     skillsService: mock<SkillsService>(),
     skillRulesSetsService: mock<SkillRulesSetsService>(),
     teamsService: mock<TeamsService>(),
@@ -89,6 +91,7 @@ export async function createRouterHarness() {
         provide: PositionRulesSetSkillsService,
         useValue: mocks.positionRulesSetSkillsService,
       },
+      { provide: PlayerSkillsService, useValue: mocks.playerSkillsService },
       { provide: SkillsService, useValue: mocks.skillsService },
       {
         provide: SkillRulesSetsService,
