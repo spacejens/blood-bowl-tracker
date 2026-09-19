@@ -134,8 +134,11 @@ describe('player skill schemas', () => {
   });
 
   it('parses the list input', () => {
-    expect(ListPlayerSkillsSchema.parse({ playerId: 1 })).toEqual({
+    expect(
+      ListPlayerSkillsSchema.parse({ playerId: 1, rulesSetId: 3 }),
+    ).toEqual({
       playerId: 1,
+      rulesSetId: 3,
     });
   });
 });

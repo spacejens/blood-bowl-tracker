@@ -72,9 +72,16 @@ export const PlayerSkillRefSchema = z.object({
   advancementOrder: z.number().int().nonnegative().nullable(),
 });
 
-/** Input of the read procedure: one player at a time. */
+/**
+ * Input of the read procedure: one player at a time, read under one rules set.
+ * The rules set scopes the skill categories and elite flags the service joins
+ * in — which the output schema does not carry, for the same reason it does not
+ * carry the skill's name: they describe `skill_rules_sets`, not the stored
+ * `player_skills` row this procedure reads back.
+ */
 export const ListPlayerSkillsSchema = z.object({
   playerId: z.number().int(),
+  rulesSetId: z.number().int(),
 });
 
 export type PlayerSkillSource = z.infer<typeof PlayerSkillSourceSchema>;
