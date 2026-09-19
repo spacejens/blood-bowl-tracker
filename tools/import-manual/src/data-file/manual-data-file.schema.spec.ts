@@ -10,6 +10,7 @@ describe('ManualDataFileSchema', () => {
       rulesSets: [],
       skills: [],
       skillRulesSets: [],
+      keywords: [],
       leagues: [],
       eras: [],
       races: [],
@@ -760,5 +761,44 @@ describe('ManualDataFileSchema', () => {
     expect(data.skills).toEqual([]);
     expect(data.skillRulesSets).toEqual([]);
     expect(data.positionRulesSetSkills).toEqual([]);
+  });
+
+  it('accepts a keyword entry', () => {
+    expect(
+      ManualDataFileSchema.parse({
+        keywords: [
+          {
+            name: 'Goblin',
+            kind: 'species',
+            externalIds: [
+              { system: 'Name', id: 'Goblin' },
+              { system: 'tourplay.net', id: '111' },
+            ],
+          },
+        ],
+      }).keywords,
+    ).toHaveLength(1);
+  });
+
+  it('rejects a keyword with an unknown kind', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        keywords: [
+          {
+            name: 'Goblin',
+            kind: 'race',
+            externalIds: [{ system: 'Name', id: 'Goblin' }],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a keyword with no external ids', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        keywords: [{ name: 'Goblin', kind: 'species', externalIds: [] }],
+      }),
+    ).toThrow();
   });
 });

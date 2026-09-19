@@ -205,4 +205,22 @@ describe('ManualDataReader', () => {
       'Korpen',
     ]);
   });
+
+  it('pools the keywords section across files', async () => {
+    write(
+      'a.json5',
+      `{ keywords: [{ name: 'Goblin', kind: 'species',
+         externalIds: [{ system: 'Name', id: 'Goblin' }] }] }`,
+    );
+    write(
+      'b.json5',
+      `{ keywords: [{ name: 'Big Guy', kind: 'positional',
+         externalIds: [{ system: 'Name', id: 'Big Guy' }] }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.keywords).toHaveLength(2);
+    expect(data.keywords.map((k) => k.name)).toEqual(['Goblin', 'Big Guy']);
+  });
 });
