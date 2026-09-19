@@ -82,6 +82,21 @@ See [discord-bot/slash-commands/insights.md](discord-bot/slash-commands/insights
 
 A temporary [player](#player) fielded by a [team](#team) that has too few available players for a [match](#match), rather than a permanent member of its [roster](#roster). Unlike a [mercenary](#mercenary), a journeyman is drawn from the team's own basic [positions](#position) rather than hired in.
 
+### Keyword
+
+A BB2025 label attached to a [position](#position) — `Goblin`, `Undead`,
+`Big Guy` — that rules single out instead of naming a [race](#race). A
+position can carry several at once, recorded per [rules set](#rules-set).
+
+See [game-concepts/keywords](game-concepts/keywords/index.md).
+
+### Keyword kind
+
+Whether a [keyword](#keyword) names a creature (`species`), a role
+(`positional`), or is the `special` sentinel meaning "no restriction".
+
+See [game-concepts/keywords](game-concepts/keywords/index.md).
+
 ### League
 
 An organized group of [teams](#team) that play [matches](#match) against each other over multiple [competitions](#competition). A league may be divided into [eras](#era) when the [rules set](#rules-set) changes.

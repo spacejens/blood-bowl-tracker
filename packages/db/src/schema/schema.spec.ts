@@ -11,6 +11,8 @@ import {
   eraRulesSets,
   eras,
   externalSystems,
+  keywordExternalIds,
+  keywords,
   leagues,
   matches,
   matchEventExternalIds,
@@ -18,6 +20,7 @@ import {
   matchTeams,
   players,
   positionExternalIds,
+  positionRulesSetKeywords,
   positionRulesSets,
   positionRulesSetSkills,
   positions,
@@ -427,6 +430,25 @@ describe('schema', () => {
   it('exports skills table', () => {
     expect(skills.id).toBeDefined();
     expect(skills.name).toBeDefined();
+  });
+
+  it('exports keywords table', () => {
+    expect(keywords.id).toBeDefined();
+    expect(keywords.name).toBeDefined();
+    expect(keywords.kind).toBeDefined();
+  });
+
+  it('exports keywordExternalIds table', () => {
+    expect(keywordExternalIds.id).toBeDefined();
+    expect(keywordExternalIds.keywordId).toBeDefined();
+    expect(keywordExternalIds.externalSystemId).toBeDefined();
+    expect(keywordExternalIds.externalId).toBeDefined();
+  });
+
+  it('exports positionRulesSetKeywords table', () => {
+    expect(positionRulesSetKeywords.id).toBeDefined();
+    expect(positionRulesSetKeywords.positionRulesSetId).toBeDefined();
+    expect(positionRulesSetKeywords.keywordId).toBeDefined();
   });
 
   it('exports skillRulesSets association table', () => {
