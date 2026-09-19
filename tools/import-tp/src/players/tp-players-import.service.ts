@@ -9,13 +9,14 @@ import {
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
+  PlayerCharacteristicIncreasesService,
   PlayersImportService,
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type {
   TpCareerSppCounts,
-  TpInducedStarPlayer,
+  TpPlayerSkills,
   TpPositionCharacteristics,
   TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
@@ -27,21 +28,11 @@ import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
+import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
+import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
-
-/**
- * One hired-star-player group: the roster that hired them, the real era the
- * hiring match's competition belongs to (so a roster id spanning multiple
- * eras, per `TpTeamsImportService`'s era-union grouping, resolves its team
- * era unambiguously instead of guessing), and the star players themselves.
- */
-interface InducedStarPlayerHireGroup {
-  rosterId: number;
-  eraId: number;
-  starPlayers: TpInducedStarPlayer[];
-}
 
 /** One mercenary Big Guy hire's position usage: the mercenary Position's DB
  * id and the raw race/era references it was hired into (resolved downstream
@@ -120,6 +111,8 @@ export class TpPlayersImportService {
     private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
     private readonly mercenaryCharacteristics: TpMercenaryCharacteristicsService,
     private readonly lastingInjuryBuilder: TpLastingInjuryBuilderService,
+    private readonly inducedStarPlayers: TpInducedStarPlayersImportService,
+    private readonly characteristicIncreases: PlayerCharacteristicIncreasesService,
   ) {}
 
   /**
@@ -156,6 +149,7 @@ export class TpPlayersImportService {
     careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
     mercenaryPositionUsages: MercenaryPositionUsage[];
     insertedPlayerIds: number[];
+    skillsByPlayerId: Map<number, TpPlayerSkills>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -167,6 +161,10 @@ export class TpPlayersImportService {
     // post-matchEvents lasting-injury history backfill: an existing player
     // already carries whatever history earlier runs built for them.
     const insertedPlayerIds: number[] = [];
+    // Every roster player's own skills, keyed by their DATABASE id. A player
+    // with no group at all -- a match-embedded-only, departed player -- is
+    // simply absent: see TpPlayerSkills for why that data cannot be recorded.
+    const skillsByPlayerId = new Map<number, TpPlayerSkills>();
 
     // Star Player Points is a career total that only ever increases. The
     // same player (lineUp) id can legitimately recur across multiple
@@ -259,6 +257,7 @@ export class TpPlayersImportService {
         careerSppCountsByPlayerId,
         mercenaryPositionUsages,
         insertedPlayerIds,
+        skillsByPlayerId,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -280,6 +279,7 @@ export class TpPlayersImportService {
         careerSppCountsByPlayerId,
         mercenaryPositionUsages,
         insertedPlayerIds,
+        skillsByPlayerId,
       };
     }
     const eraNames = [...new Set(eras.map((era) => era.name))];
@@ -458,10 +458,70 @@ export class TpPlayersImportService {
         // resolved to no single rules set, or the rules-sets step did not
         // return one: the builder then still sends the two kinds TP reports
         // directly and no reduction counts.
+        const rulesSet = rulesSetsByName?.get(
+          rulesSetNameByEraName.get(era) ?? '',
+        );
         const lastingInjuries = this.lastingInjuryBuilder.forRosterPlayer({
           player,
-          rulesSet: rulesSetsByName?.get(rulesSetNameByEraName.get(era) ?? ''),
+          rulesSet,
         });
+        // The increase counts need the same three things the reduction counts
+        // do -- the player's own values, the rules set that says which
+        // direction is better, and the position they hold -- plus a baseline
+        // to measure against. A player with no characteristics at all (a
+        // match-embedded-only entry) or no resolved rules set sends no
+        // increase group: the group is all-or-nothing, and inventing zeroes
+        // from an absence would be worse than saying nothing.
+        //
+        // `player.positionTemplate` -- the same embedded baseline
+        // `lastingInjuryBuilder` above already uses for the reduction counts
+        // -- is passed through as the increase baseline too, so the two
+        // counts are measured against the same reference rather than letting
+        // the shared service fall back to a separate DB read that could
+        // disagree with it. It is only absent for a mercenary/star hire (no
+        // embedded `lineUpMaster`), for which the shared service falls back to
+        // its own DB-read baseline exactly as before. TP always reports a
+        // literal 0 for a missing Passing characteristic rather than omitting
+        // it, so that field is converted to `null` when the rules set itself
+        // declares no Passing characteristic -- the shape the DB-read baseline
+        // uses and the increase computation's own comparison-skip logic
+        // expects.
+        const baseline =
+          player.positionTemplate === undefined
+            ? undefined
+            : {
+                ...player.positionTemplate,
+                passing:
+                  rulesSet?.passingFormat === 'absent'
+                    ? null
+                    : player.positionTemplate.passing,
+              };
+        // `rulesSet === undefined` records no error of its own here: an era
+        // resolving to no single rules set, or an unresolvable rules-set
+        // name, is already reported upstream by
+        // `TpEraRulesSetResolverService.resolveRulesSetIdByEraName` (see its
+        // doc comment), so a second error at this omission site would be
+        // redundant, not an oversight.
+        const increaseCounts =
+          characteristics === undefined || rulesSet === undefined
+            ? undefined
+            : await this.characteristicIncreases.forPlayer({
+                player: {
+                  label: `player "${player.name}" (${player.id})`,
+                  positionId,
+                },
+                rulesSet,
+                current: {
+                  move: characteristics.move,
+                  strength: characteristics.strength,
+                  agility: characteristics.agility,
+                  passing: characteristics.passing,
+                  armour: characteristics.armour,
+                },
+                reductions: lastingInjuries,
+                errors,
+                baseline,
+              });
 
         const upserted = await this.playersImport.upsertPlayerResult(
           {
@@ -480,6 +540,7 @@ export class TpPlayersImportService {
               player.totalStarPlayerPoints,
             ...characteristics,
             ...lastingInjuries,
+            ...increaseCounts,
             externalIds: [
               { externalSystemId: tpSystemId, externalId: String(player.id) },
             ],
@@ -491,6 +552,15 @@ export class TpPlayersImportService {
           playerIdsByLineUpId.set(player.id, upserted.id);
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
+          }
+          // Same last-roster-wins convention as `characteristics` above when a
+          // player id recurs across more than one roster: whichever entry
+          // this loop processes last is what gets sent for sync. The sync
+          // itself is upsert-only and never deletes, so on a warm database an
+          // earlier roster's skills survive regardless; only a fresh import
+          // risks losing a skill listed solely on an earlier roster.
+          if (player.skills !== undefined) {
+            skillsByPlayerId.set(upserted.id, player.skills);
           }
           const careerCounts = maxCareerCountsByLineUpId.get(player.id);
           if (careerCounts !== undefined) {
@@ -512,92 +582,23 @@ export class TpPlayersImportService {
     }
 
     if (inducedStarPlayerHireGroups) {
-      const seenStarPlayerKeys = new Set<string>();
-      for (const {
-        rosterId,
-        eraId,
-        starPlayers,
-      } of inducedStarPlayerHireGroups) {
-        const teamEra = teamErasByRosterId
-          .get(rosterId)
-          ?.find((te) => te.eraId === eraId);
-        if (teamEra === undefined) {
-          errors.push(
-            this.importResults.error({
-              item: { rosterId },
-              message: `Skipped ${starPlayers.length} hired star player(s) for roster ${rosterId}: could not resolve hiring team era`,
-            }),
-          );
-          continue;
-        }
-
-        for (const starPlayer of starPlayers) {
-          const key = `${rosterId}:${starPlayer.lineUpMasterId}`;
-          if (seenStarPlayerKeys.has(key)) {
-            continue;
-          }
-          seenStarPlayerKeys.add(key);
-
-          const position = await this.positionsImport.upsert(
-            {
-              name: starPlayer.name,
-              isStarPlayer: true,
-              externalIds: [
-                { externalSystemId: tpSystemId, externalId: starPlayer.name },
-                {
-                  externalSystemId: nameSystemId,
-                  externalId: this.nameExternalId.forStarPosition(
-                    starPlayer.name,
-                  ),
-                },
-              ],
-            },
-            errors,
-          );
-          if (!position) {
-            continue;
-          }
-
-          // A star hired mid-season has no lineUps[] entry, so no
-          // characteristics of their own: use the star position's template
-          // values for the hiring era's rules set. Missing values are not an
-          // error here -- the positions step that produced this map would
-          // already have recorded one if something were wrong upstream.
-          const starEraName = eraNameByEraId.get(eraId);
-          const starCharacteristics =
-            starEraName === undefined
-              ? undefined
-              : this.characteristicsBuilder.forStarPosition({
-                  positionId: position.id,
-                  eraName: starEraName,
-                  rulesSetIdByEraName,
-                  characteristicsByPositionId,
-                });
-
-          const upserted = await this.playersImport.upsertPlayerResult(
-            {
-              name: starPlayer.name,
-              teamEraId: teamEra.id,
-              positionId: position.id,
-              ...starCharacteristics,
-              externalIds: [
-                {
-                  externalSystemId: tpSystemId,
-                  externalId: `star-${rosterId}-${starPlayer.lineUpMasterId}`,
-                },
-              ],
-            },
-            errors,
-          );
-          if (upserted) {
-            imported += 1;
-            starPlayerIdsByRosterAndMaster.set(key, upserted.id);
-            if (upserted.created) {
-              insertedPlayerIds.push(upserted.id);
-            }
-          }
-        }
+      const hires = await this.inducedStarPlayers.importHires({
+        groups: inducedStarPlayerHireGroups,
+        teamErasByRosterId,
+        context: {
+          tpSystemId,
+          nameSystemId,
+          eraNameByEraId,
+          rulesSetIdByEraName,
+          characteristicsByPositionId,
+        },
+        errors,
+      });
+      imported += hires.imported;
+      for (const [key, id] of hires.starPlayerIdsByRosterAndMaster) {
+        starPlayerIdsByRosterAndMaster.set(key, id);
       }
+      insertedPlayerIds.push(...hires.insertedPlayerIds);
     }
 
     return {
@@ -607,6 +608,7 @@ export class TpPlayersImportService {
       careerSppCountsByPlayerId,
       mercenaryPositionUsages,
       insertedPlayerIds,
+      skillsByPlayerId,
     };
   }
 

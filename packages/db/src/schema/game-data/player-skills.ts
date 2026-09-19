@@ -36,12 +36,13 @@ export const playerSkillSourceEnum = gameData.enum(
  * `advancementOrder` is best-effort and unverified: neither BBL nor TP
  * records a confirmed sequence, only a presentation-order proxy (BBL's
  * ordered advancement list, TP's array position). It is only ever meaningful
- * for `chosen`/`random` rows — a `starting` row always leaves it null, since
- * a starting skill set has no sequence.
+ * for a gained row (`advancement`, `chosen` or `random`) — a `starting` row
+ * always leaves it null, since a starting skill set has no sequence.
  *
  * No cross-table category validation happens here or in PlayerSkillsService:
- * a `chosen`/`random` row is deliberately NOT checked against the skill's
- * `skill_rules_sets` category (e.g. rejecting a `trait` or `unique` skill
+ * a gained row (`advancement`, `chosen` or `random`) is deliberately NOT
+ * checked against the skill's `skill_rules_sets` category (e.g. rejecting a
+ * `trait` or `unique` skill
  * that no advancement can grant under the base rules). Imported data is
  * trusted as the external source's own record, because house rules and
  * competition-specific quirks can legitimately produce a combination that

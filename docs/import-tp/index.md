@@ -294,6 +294,16 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   A star player hired mid-season through an `inducements_roll` event has no
   `lineUps[]` entry, so TP publishes no live state for them: no lasting-injury
   values are sent, leaving the row's defaults.
+
+  A roster player's `lineUpMaster.skills` are their starting skills; their own
+  `skills` are the ones gained via advancement, mapped to `random`/`chosen` via
+  TP's `isRandom` flag, with `advancementOrder` set to each skill's 1-based
+  index in that array. A match-embedded-only (departed) player gets no skills
+  at all: their only surviving data is the flat bare-id list described above,
+  with no starting/gained split, no `isRandom`, and no attribute values.
+  Characteristic-increase counts are derived the same way BBL's are: diffing
+  converted characteristics against the position's stored values under the
+  era's rules set, adding back outstanding reductions.
 - **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
   for mercenary Big Guy positions, which no official-list catalog carries, so
   their race/era availability is the one kind still derived from observed
@@ -448,12 +458,19 @@ composed as-is. Two exceptions are hard-coded, each scoped to its own
 skillMasterId so a code confirmed for one skill can never mislabel another's:
 `Hatred` (skillMasterId 307) via `HatredTargetService`
 (`packages/parse-tp/src/hatred-target.service.ts`) — `100` Dwarf, `102` Troll,
-`108` Vampire, `110` Undead, `134` Big Guy, `1001` Daemon — and `Animosity`
-(skillMasterId 269) via `AnimosityTargetService`
+`104` Skaven, `105` Lizardman, `108` Vampire, `110` Undead, `111` Goblin,
+`112` Human, `113` Ogre, `117` Beastman, `134` Big Guy, `1001` Daemon — and
+`Animosity` (skillMasterId 269) via `AnimosityTargetService`
 (`packages/parse-tp/src/animosity-target.service.ts`) — `111` Goblin, `999`
 All. A code in the matching table composes normally (`Hatred (Undead)`);
 every other type-3 code, or one for a different skillMasterId, keeps the
 unchanged drop-and-report behaviour.
+
+The same two tables also decode type-3 attributes on a **player's own**
+gained skills, not only on position templates: a player's `Hatred` or
+`Animosity` skill is resolved through this identical lookup, and a code
+neither table explains drops that one skill with a recorded import error
+rather than composing the raw code.
 
 Every `skillMasterId` the scan CAN name is registered as a `tourplay.net`
 external id on the skill it names, at ordinary upsert time — exactly as

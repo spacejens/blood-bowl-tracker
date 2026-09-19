@@ -1,0 +1,1 @@
+ALTER TYPE "game_data"."player_skill_source" ADD VALUE 'advancement' BEFORE 'chosen';

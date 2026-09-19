@@ -232,4 +232,54 @@ describe('BblPlayersImportService characteristics', () => {
       expect.any(Array),
     );
   });
+
+  it('sends the characteristic-increase counts parsed off the player page', async () => {
+    const markedPlayer = {
+      ...goodPlayer,
+      characteristicIncreaseCounts: {
+        move: 1,
+        strength: 0,
+        agility: 0,
+        passing: 0,
+        armour: 2,
+      },
+    };
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(markedPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers(importOptions);
+
+    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moveIncreaseCount: 1,
+        strengthIncreaseCount: 0,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 2,
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it('sends an all-zero increase group for a player with no markers', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers(importOptions);
+
+    expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        moveIncreaseCount: 0,
+        strengthIncreaseCount: 0,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 0,
+      }),
+      expect.any(Array),
+    );
+  });
 });

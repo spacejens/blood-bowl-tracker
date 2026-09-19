@@ -33,7 +33,10 @@ export { OfficialTeamsParserService } from './official-teams-parser.service';
 export { ParseTpModule } from './parse-tp.module';
 export type {
   TpCareerSppCounts,
+  TpGainedSkillRef,
   TpPlayerCharacteristics,
+  TpPlayerSkillRef,
+  TpPlayerSkills,
   TpPositionCharacteristics,
   TpRoster,
   TpRosterPlayer,

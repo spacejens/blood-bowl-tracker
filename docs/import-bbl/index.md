@@ -216,6 +216,18 @@ set `IMPORT_CONFIG_ENV=production` for the run. See
   The death marker is ignored: death is not modelled as a lasting injury. A page
   with no such row is read as an uninjured player, not a parse failure.
 
+  The player page's Skills cell is read alongside the characteristics line. A
+  plain entry is a starting skill; a coloured (green) entry is one gained via
+  advancement, recorded under the `advancement` source since BBL records
+  nothing about how it was gained. A coloured entry holding only the red `?`
+  marker is a pending, unresolved advancement roll, and is skipped silently.
+  `advancementOrder` counts gained skills only, and is a presentation-order
+  proxy, not a confirmed sequence. The same cell also carries five
+  characteristic-increase pseudo-entries (`+MA`/`+ST`/`+AG`/`+PA`/`+AV`),
+  rendered in the same gained colour as a real skill; each is excluded from
+  the skill list (no `advancementOrder` slot consumed) and instead counted
+  directly, one count per characteristic, sent with every player.
+
   A final step after the match-events step backfills lasting-injury history for
   the players this run inserted. See "Lasting-injury history backfill" in
   [the TP importer's documentation](../import-tp/index.md), which describes the

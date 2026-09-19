@@ -25,6 +25,7 @@ describe('player_skills', () => {
   it('uses the shared domain-enums source list', () => {
     expect(playerSkillSourceEnum.enumValues).toEqual([
       'starting',
+      'advancement',
       'chosen',
       'random',
     ]);

@@ -668,4 +668,164 @@ describe('RosterParserService', () => {
 
     expect(roster.players[0]?.positionTemplate).toBeUndefined();
   });
+
+  it("reads the position template's skills as the player's starting skills", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [
+                {
+                  skillMasterId: 138,
+                  skillAttributeMaster: { type: 1, value: '+1' },
+                },
+                { skillMasterId: 149 },
+              ],
+            },
+            skills: [],
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0].skills?.starting).toEqual([
+      { skillMasterId: 138, attributeValue: '+1', attributeType: 1 },
+      { skillMasterId: 149 },
+    ]);
+  });
+
+  it("reads the player's own skills as gained, carrying isRandom", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [],
+            },
+            skills: [
+              { skillMasterId: 103, isRandom: true },
+              { skillMasterId: 126, isRandom: false },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0].skills?.gained).toEqual([
+      { skillMasterId: 103, isRandom: true },
+      { skillMasterId: 126, isRandom: false },
+    ]);
+  });
+
+  it("carries a gained skill's type-3 attribute through unresolved", () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [],
+            },
+            skills: [
+              {
+                skillMasterId: 307,
+                isRandom: false,
+                skillAttributeMaster: { type: 3, value: '113' },
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0].skills?.gained).toEqual([
+      {
+        skillMasterId: 307,
+        isRandom: false,
+        attributeValue: '113',
+        attributeType: 3,
+      },
+    ]);
+  });
+
+  it('reports no skill group for an entry with no position template', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [lineUp({ skills: [{ skillMasterId: 261 }] })],
+      }),
+    );
+
+    expect(roster.players[0].skills).toBeUndefined();
+  });
+
+  it('reports an empty gained list for a roster player who has advanced nothing', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [],
+            },
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0].skills).toEqual({ starting: [], gained: [] });
+  });
+
+  it('reports skills as absent when a gained entry carries no isRandom flag', () => {
+    // A match-embedded lineUps entry (LineUpSchema reused by MatchParserService)
+    // carries a flat skills list of bare ids and no lineUpMaster at all, but
+    // this exercises the isRandom-missing branch directly regardless of cause.
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          lineUp({
+            lineUpMaster: {
+              id: 952,
+              position: 'Dwarf Lineman',
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [],
+            },
+            skills: [{ skillMasterId: 261 }],
+          }),
+        ],
+      }),
+    );
+
+    expect(roster.players[0].skills).toBeUndefined();
+  });
 });

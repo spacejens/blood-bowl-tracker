@@ -230,6 +230,21 @@ export const ANY_LASTING_INJURIES: BblPlayer['lastingInjuries'] = {
   armourReductionCount: 0,
 };
 
+/**
+ * An arbitrary all-zero characteristic-increase-counts value. This service
+ * never reads `BblPlayer.characteristicIncreaseCounts` — it only exists
+ * because the field is required — so its exact values are irrelevant; shared
+ * here rather than repeated at every `plPage(...)` fixture in these specs.
+ */
+export const ANY_CHARACTERISTIC_INCREASE_COUNTS: BblPlayer['characteristicIncreaseCounts'] =
+  {
+    move: 0,
+    strength: 0,
+    agility: 0,
+    passing: 0,
+    armour: 0,
+  };
+
 export const racesByBblId = new Map<string, { id: number; name: string }>([
   ['48', { id: 480, name: 'College of Shadow' }],
   ['7', { id: 70, name: 'Goblin Team' }],

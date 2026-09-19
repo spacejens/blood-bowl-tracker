@@ -1,18 +1,14 @@
 import {
-  ExternalIdResolverService,
   ExternalSystemBootstrapService,
   ImportResultService,
   StartingSkillsImportService,
 } from '@blood-bowl-tracker/import';
-import {
-  AnimosityTargetService,
-  HatredTargetService,
-} from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { TpSkillResolverService } from '../skills/tp-skill-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpPositionSkillsImportService } from './tp-position-skills-import.service';
 
@@ -25,14 +21,14 @@ describe('TpPositionSkillsImportService', () => {
   let importResults: MockProxy<ImportResultService>;
   let bootstrap: MockProxy<ExternalSystemBootstrapService>;
   let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
-  let resolver: MockProxy<ExternalIdResolverService>;
+  let skillResolver: MockProxy<TpSkillResolverService>;
 
   beforeEach(async () => {
     startingSkills = mock<StartingSkillsImportService>();
     importResults = mock<ImportResultService>();
     bootstrap = mock<ExternalSystemBootstrapService>();
     externalSystemName = mock<ExternalSystemNameConfigService>();
-    resolver = mock<ExternalIdResolverService>();
+    skillResolver = mock<TpSkillResolverService>();
     importResults.error.mockImplementation((error) => error);
     importResults.result.mockImplementation(({ imported, errors }) => ({
       success: errors.length === 0,
@@ -43,15 +39,13 @@ describe('TpPositionSkillsImportService', () => {
     externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
     // No curated tourplay.net id answers, unless a test says otherwise: an
     // index with no entry reads as undefined, i.e. "not found".
-    resolver.resolveBatch.mockResolvedValue([]);
+    skillResolver.resolveUnnamedMasterIds.mockResolvedValue(new Map());
+    // decodeTypeThreeTarget's default mock behavior (undefined) already
+    // matches "the opaque code is not explained"; tests where a code IS
+    // explained set their own canned mockReturnValue.
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpPositionSkillsImportService,
-        // Both target tables are pure, dependency-free decision services:
-        // passing them real keeps their actual decoding exercised, and they
-        // have no I/O or external state to couple to.
-        HatredTargetService,
-        AnimosityTargetService,
         { provide: StartingSkillsImportService, useValue: startingSkills },
         { provide: ImportResultService, useValue: importResults },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
@@ -59,7 +53,7 @@ describe('TpPositionSkillsImportService', () => {
           provide: ExternalSystemNameConfigService,
           useValue: externalSystemName,
         },
-        { provide: ExternalIdResolverService, useValue: resolver },
+        { provide: TpSkillResolverService, useValue: skillResolver },
       ],
     }).compile();
     service = moduleRef.get(TpPositionSkillsImportService);
@@ -75,6 +69,12 @@ describe('TpPositionSkillsImportService', () => {
 
   it('resolves each id to its name and keeps the attribute value separate', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([
+        ['Dodge', new Set([87])],
+        ['Loner', new Set([154])],
+      ]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -127,6 +127,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('keeps a numeric-bonus attribute value separate from the name too', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Mighty Blow', new Set([42])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -166,6 +169,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('records an error for an unresolvable id and keeps the rest of the list', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -229,6 +235,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('excludes a type-3 opaque attribute code and reports it, without blocking other skills', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -277,6 +286,10 @@ describe('TpPositionSkillsImportService', () => {
 
   it('composes a type-3 reference whose opaque code the Hatred table explains', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Hatred', new Set([307])]]),
+    );
+    skillResolver.decodeTypeThreeTarget.mockReturnValue('Undead');
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -324,6 +337,7 @@ describe('TpPositionSkillsImportService', () => {
 
   it('still reports a type-3 reference whose opaque code the Hatred table does not explain', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -361,6 +375,7 @@ describe('TpPositionSkillsImportService', () => {
 
   it('reports a type-3 opaque attribute code once, however many positions reference it', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -442,6 +457,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it("merges a star's name-carried exclusive skill in alongside its ordinary skills", async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87])]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -479,6 +497,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it("threads TP's elite marker into the starting skill ref", async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Block', new Set([220])]]),
+    );
 
     await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -507,6 +528,10 @@ describe('TpPositionSkillsImportService', () => {
 
   it('composes a type-3 Animosity reference whose opaque code the Animosity table explains', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Animosity', new Set([269])]]),
+    );
+    skillResolver.decodeTypeThreeTarget.mockReturnValue('Goblin');
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -558,6 +583,7 @@ describe('TpPositionSkillsImportService', () => {
     // 110 is a real Hatred target code (Undead), but this reference is for
     // Animosity (skillMasterId 269), whose own table has no entry for 110 --
     // Hatred's table must never be consulted for it.
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
         [
@@ -587,6 +613,7 @@ describe('TpPositionSkillsImportService', () => {
     // 87 (Dodge) resolves to a name but has no type-3 lookup of its own --
     // decodeTypeThreeTarget's fallback branch (neither 307 nor 269) must
     // still report this as unresolvable, not silently compose it.
+    skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
         [
@@ -621,6 +648,9 @@ describe('TpPositionSkillsImportService', () => {
     // TP assigns the same skill a new id per rules set; the scan sees both.
     // The upserted skill must end up carrying both, on the very first ref --
     // StartingSkillsImportService upserts a name only once per run.
+    skillResolver.collectSkillMasterIds.mockReturnValue(
+      new Map([['Dodge', new Set([87, 188])]]),
+    );
     await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
         [3, new Map([[7, [{ skillMasterId: 87 }]]])],
@@ -658,7 +688,9 @@ describe('TpPositionSkillsImportService', () => {
 
   it('resolves a skillMasterId no downloaded file names through its curated tourplay.net external id', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(1);
-    resolver.resolveBatch.mockResolvedValue([77]);
+    skillResolver.resolveUnnamedMasterIds.mockResolvedValue(
+      new Map([[181, 77]]),
+    );
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -670,9 +702,10 @@ describe('TpPositionSkillsImportService', () => {
     });
 
     expect(result.errors).toEqual([]);
-    expect(resolver.resolveBatch).toHaveBeenCalledWith('skill', [
-      { externalSystemId: TP_SYSTEM_ID, externalId: '181' },
-    ]);
+    expect(skillResolver.resolveUnnamedMasterIds).toHaveBeenCalledWith({
+      masterIds: new Set([181]),
+      tpSystemId: TP_SYSTEM_ID,
+    });
     // The resolved id goes through as `skillId`, so the shared pipeline skips
     // its upsert-by-name step; the name is only a cache key there.
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -691,7 +724,7 @@ describe('TpPositionSkillsImportService', () => {
 
   it('still reports a skillMasterId no curated tourplay.net id answers for', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
-    resolver.resolveBatch.mockResolvedValue([undefined]);
+    skillResolver.resolveUnnamedMasterIds.mockResolvedValue(new Map());
 
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([

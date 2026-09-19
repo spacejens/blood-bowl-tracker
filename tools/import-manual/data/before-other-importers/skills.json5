@@ -126,8 +126,8 @@
     { name: 'Sure Hands', externalIds: [{ system: 'Name', id: 'Sure Hands' }] },
     { name: 'Kick', externalIds: [{ system: 'Name', id: 'Kick' }] },
     { name: 'Tackle', externalIds: [{ system: 'Name', id: 'Tackle' }] },
-    { name: 'Kick-Off Return', externalIds: [{ system: 'Name', id: 'Kick-Off Return' }] },
-    { name: 'Wrestle', externalIds: [{ system: 'Name', id: 'Wrestle' }] },
+    { name: 'Kick-Off Return', externalIds: [{ system: 'Name', id: 'Kick-Off Return' }, { system: 'Name', id: 'Kick-off Return' }] },
+    { name: 'Wrestle', externalIds: [{ system: 'Name', id: 'Wrestle' }, { system: 'Name', id: 'Wresle' }] },
     { name: 'Catch', externalIds: [{ system: 'Name', id: 'Catch' }] },
     { name: 'Leap', externalIds: [{ system: 'Name', id: 'Leap' }] },
     { name: 'Diving Catch', externalIds: [{ system: 'Name', id: 'Diving Catch' }] },
@@ -140,7 +140,7 @@
     { name: 'Sure Feet', externalIds: [{ system: 'Name', id: 'Sure Feet' }] },
     { name: 'Accurate', externalIds: [{ system: 'Name', id: 'Accurate' }] },
     { name: 'Nerves of Steel', externalIds: [{ system: 'Name', id: 'Nerves of Steel' }] },
-    { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }] },
+    { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }, { system: 'Name', id: 'Dump Off' }] },
     { name: 'Pass', externalIds: [{ system: 'Name', id: 'Pass' }] },
     { name: 'Hail Mary Pass', externalIds: [{ system: 'Name', id: 'Hail Mary Pass' }] },
     // BB2025-only; TP names it only on a skillMasterId no downloaded file
@@ -157,18 +157,18 @@
     { name: 'Stand Firm', externalIds: [{ system: 'Name', id: 'Stand Firm' }] },
     { name: 'Juggernaut', externalIds: [{ system: 'Name', id: 'Juggernaut' }] },
     { name: 'Strong Arm', externalIds: [{ system: 'Name', id: 'Strong Arm' }] },
-    { name: 'Mighty Blow', externalIds: [{ system: 'Name', id: 'Mighty Blow' }] },
+    { name: 'Mighty Blow', externalIds: [{ system: 'Name', id: 'Mighty Blow' }, { system: 'Name', id: 'Mighty blow' }] },
     { name: 'Thick Skull', externalIds: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Think Skull' }] },
-    { name: 'Big Hand', externalIds: [{ system: 'Name', id: 'Big Hand' }] },
+    { name: 'Big Hand', externalIds: [{ system: 'Name', id: 'Big Hand' }, { system: 'Name', id: 'Big Hands' }] },
     { name: 'Foul Appearance', externalIds: [{ system: 'Name', id: 'Foul Appearance' }] },
     { name: 'Tentacles', externalIds: [{ system: 'Name', id: 'Tentacles' }] },
     { name: 'Claws', externalIds: [{ system: 'Name', id: 'Claws' }, { system: 'Name', id: 'Claw' }] },
     { name: 'Horns', externalIds: [{ system: 'Name', id: 'Horns' }] },
     { name: 'Two Heads', externalIds: [{ system: 'Name', id: 'Two Heads' }] },
-    { name: 'Disturbing Presence', externalIds: [{ system: 'Name', id: 'Disturbing Presence' }] },
+    { name: 'Disturbing Presence', externalIds: [{ system: 'Name', id: 'Disturbing Presence' }, { system: 'Name', id: 'Disturbing Precense' }] },
     { name: 'Prehensile Tail', externalIds: [{ system: 'Name', id: 'Prehensile Tail' }, { system: 'Name', id: 'Prehensive Tail' }] },
     { name: 'Very Long Legs', externalIds: [{ system: 'Name', id: 'Very Long Legs' }] },
-    { name: 'Extra Arms', externalIds: [{ system: 'Name', id: 'Extra Arms' }] },
+    { name: 'Extra Arms', externalIds: [{ system: 'Name', id: 'Extra Arms' }, { system: 'Name', id: 'Extra Arm' }] },
     { name: 'Always Hungry', externalIds: [{ system: 'Name', id: 'Always Hungry' }] },
     { name: 'Fan Favourite', externalIds: [{ system: 'Name', id: 'Fan Favourite' }] },
     { name: 'Secret Weapon', externalIds: [{ system: 'Name', id: 'Secret Weapon' }] },
@@ -183,7 +183,7 @@
     // BB2020 gave Loner its own skillMasterId that no downloaded file embeds
     // a name for; the tourplay.net id below is what lets the TP importer
     // resolve it onto this row rather than creating a second Loner.
-    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }, { system: 'tourplay.net', id: '181' }] },
+    { name: 'Loner', externalIds: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Lones' }, { system: 'Name', id: 'loner' }, { system: 'tourplay.net', id: '181' }] },
     { name: 'No Hands', externalIds: [{ system: 'Name', id: 'No Hands' }] },
     { name: 'Take Root', externalIds: [{ system: 'Name', id: 'Take Root' }, { system: 'Name', id: 'Tak root' }] },
     { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }] },
@@ -235,12 +235,12 @@
     // BB2025-only; TP names it only on a skillMasterId no downloaded file
     // ever embeds a name for, so the tourplay.net id below is what lets the
     // TP importer resolve it.
-    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }, { system: 'tourplay.net', id: '210' }] },
+    { name: 'Fumblerooski', externalIds: [{ system: 'Name', id: 'Fumblerooski' }, { system: 'Name', id: 'Fumblerooskie' }, { system: 'tourplay.net', id: '210' }] },
     { name: 'Ghostly Flames', externalIds: [{ system: 'Name', id: 'Ghostly Flames' }] },
     { name: 'Give and Go', externalIds: [{ system: 'Name', id: 'Give and Go' }] },
     { name: 'Hit and Run', externalIds: [{ system: 'Name', id: 'Hit and Run' }] },
     { name: 'Insignificant', externalIds: [{ system: 'Name', id: 'Insignificant' }] },
-    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }, { system: 'tourplay.net', id: '238' }] },
+    { name: 'Iron Hard Skin', externalIds: [{ system: 'Name', id: 'Iron Hard Skin' }, { system: 'Name', id: 'Iron Hard skin' }, { system: 'tourplay.net', id: '238' }] },
     { name: 'Kick Team-Mate', externalIds: [{ system: 'Name', id: 'Kick Team-Mate' }, { system: 'Name', id: 'Kick Team-mate' }] },
     { name: 'Lethal Flight', externalIds: [{ system: 'Name', id: 'Lethal Flight' }] },
     { name: 'Lone Fouler', externalIds: [{ system: 'Name', id: 'Lone Fouler' }] },
@@ -292,8 +292,10 @@
     { name: 'Consummate Professional', externalIds: [{ system: 'Name', id: 'Consummate Professional' }] },
     { name: 'Crushing Blow', externalIds: [{ system: 'Name', id: 'Crushing Blow' }] },
     { name: 'Dwarfen Grit', externalIds: [{ system: 'Name', id: 'Dwarfen Grit' }] },
-    { name: 'Dwarfen Scourge', externalIds: [{ system: 'Name', id: 'Dwarfen Scourge' }] },
-    { name: 'Dwarven Scourge', externalIds: [{ system: 'Name', id: 'Dwarven Scourge' }] },
+    // Star player Ivan 'The Animal' Deathshroud's unique skill, spelled
+    // "Dwarfen Scourge" under BB2020 and "Dwarven Scourge" under BB2025 --
+    // the same skill, curated under its later spelling.
+    { name: 'Dwarven Scourge', externalIds: [{ system: 'Name', id: 'Dwarven Scourge' }, { system: 'Name', id: 'Dwarfen Scourge' }] },
     { name: 'Excuse Me, Are You a Zoat?', externalIds: [{ system: 'Name', id: 'Excuse Me, Are You a Zoat?' }] },
     { name: 'Furious Outburst', externalIds: [{ system: 'Name', id: 'Furious Outburst' }] },
     { name: 'Fury of the Blood God', externalIds: [{ system: 'Name', id: 'Fury of the Blood God' }] },
@@ -802,7 +804,7 @@
     { skill: { system: 'Name', id: 'Catch of the Day' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Consummate Professional' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Crushing Blow' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
-    { skill: { system: 'Name', id: 'Dwarfen Scourge' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
+    { skill: { system: 'Name', id: 'Dwarven Scourge' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Excuse Me, Are You a Zoat?' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Frenzied Rush' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
     { skill: { system: 'Name', id: 'Furious Outburst' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },

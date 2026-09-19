@@ -15,6 +15,7 @@ import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.se
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
+import type { BblPlayerSkillRef } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
@@ -80,6 +81,14 @@ export class BblPlayersImportService {
     positionsUsedByEra: Set<string>;
     scrapedSppTotalsByPlayerId: Map<number, number | null>;
     insertedPlayerIds: number[];
+    /**
+     * Every imported player's own skills, keyed by their DATABASE id (not pid)
+     * so the sync step needs no second resolution. Accumulated across the
+     * whole page scan and written by one BblPlayerSkillsImportService call
+     * after this step, mirroring how position starting skills accumulate
+     * before their single StartingSkillsImportService call.
+     */
+    skillsByPlayerId: Map<number, BblPlayerSkillRef[]>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -95,6 +104,12 @@ export class BblPlayersImportService {
     // existing player already has whatever history their earlier runs built,
     // and re-manufacturing it would add a spurious version pair every run.
     const insertedPlayerIds: number[] = [];
+    // Every imported player's own skills, keyed by their DATABASE id (not
+    // pid) so the sync step needs no second resolution. Accumulated across
+    // the whole page scan and written by one BblPlayerSkillsImportService
+    // call after this step, mirroring how position starting skills
+    // accumulate before their single StartingSkillsImportService call.
+    const skillsByPlayerId = new Map<number, BblPlayerSkillRef[]>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
@@ -110,6 +125,7 @@ export class BblPlayersImportService {
         positionsUsedByEra,
         scrapedSppTotalsByPlayerId,
         insertedPlayerIds,
+        skillsByPlayerId,
       };
     }
     const [bblSystemId] = bootstrap.ids;
@@ -323,6 +339,26 @@ export class BblPlayersImportService {
           continue;
         }
 
+        // BBL only ever shows BB2020 notation, so a player whose era
+        // predates it needs their Agility/Armour rewritten into the notation
+        // their own rules set declares.
+        const agility = this.notationConversion.convertAgility(
+          player.characteristics.agility,
+          rulesSet.agilityFormat,
+        );
+        // Two distinct states: a rules set with no Passing concept at all
+        // stores null, while a rules set that has Passing stores 0 for a
+        // player who cannot pass (the page's "-"). BBL's BB2020 migration
+        // wrote a Passing value onto most players, so the page's own figure
+        // is never what decides this — the era's rules set is.
+        const passing =
+          rulesSet.passingFormat === 'absent'
+            ? null
+            : (player.characteristics.passing ?? 0);
+        const armour = this.notationConversion.convertArmour(
+          player.characteristics.armour,
+          rulesSet.armourFormat,
+        );
         const upserted = await this.playersImport.upsertPlayerResult(
           {
             name: player.name,
@@ -330,27 +366,15 @@ export class BblPlayersImportService {
             positionId,
             move: player.characteristics.move,
             strength: player.characteristics.strength,
-            // BBL only ever shows BB2020 notation, so a player whose era
-            // predates it needs their Agility/Armour rewritten into the
-            // notation their own rules set declares.
-            agility: this.notationConversion.convertAgility(
-              player.characteristics.agility,
-              rulesSet.agilityFormat,
-            ),
-            // Two distinct states: a rules set with no Passing concept at all
-            // stores null, while a rules set that has Passing stores 0 for a
-            // player who cannot pass (the page's "-"). BBL's BB2020 migration
-            // wrote a Passing value onto most players, so the page's own
-            // figure is never what decides this — the era's rules set is.
-            passing:
-              rulesSet.passingFormat === 'absent'
-                ? null
-                : (player.characteristics.passing ?? 0),
-            armour: this.notationConversion.convertArmour(
-              player.characteristics.armour,
-              rulesSet.armourFormat,
-            ),
+            agility,
+            passing,
+            armour,
             ...player.lastingInjuries,
+            moveIncreaseCount: player.characteristicIncreaseCounts.move,
+            strengthIncreaseCount: player.characteristicIncreaseCounts.strength,
+            agilityIncreaseCount: player.characteristicIncreaseCounts.agility,
+            passingIncreaseCount: player.characteristicIncreaseCounts.passing,
+            armourIncreaseCount: player.characteristicIncreaseCounts.armour,
             rulesSetId: rulesSet.id,
             externalIds: [
               { externalSystemId: bblSystemId, externalId: player.pid },
@@ -367,6 +391,9 @@ export class BblPlayersImportService {
           if (upserted.created) {
             insertedPlayerIds.push(upserted.id);
           }
+          if (player.skills.length > 0) {
+            skillsByPlayerId.set(upserted.id, player.skills);
+          }
         }
       } catch (error) {
         errors.push(this.pageParseError.build(page.params, 'player', error));
@@ -381,6 +408,7 @@ export class BblPlayersImportService {
       positionsUsedByEra,
       scrapedSppTotalsByPlayerId,
       insertedPlayerIds,
+      skillsByPlayerId,
     };
   }
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import {
+  ANY_CHARACTERISTIC_INCREASE_COUNTS,
   ANY_LASTING_INJURIES,
   ANY_PLAYER_CHARACTERISTICS,
   CHARACTERISTICS,
@@ -66,6 +67,8 @@ describe('BblPositionsImportService characteristics', () => {
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
+            skills: [],
+            characteristicIncreaseCounts: ANY_CHARACTERISTIC_INCREASE_COUNTS,
           }),
         ],
       }),
@@ -106,6 +109,8 @@ describe('BblPositionsImportService characteristics', () => {
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
+            skills: [],
+            characteristicIncreaseCounts: ANY_CHARACTERISTIC_INCREASE_COUNTS,
           }),
           plPage({
             pid: '2',
@@ -115,6 +120,8 @@ describe('BblPositionsImportService characteristics', () => {
             sppTotal: null,
             characteristics: ANY_PLAYER_CHARACTERISTICS,
             lastingInjuries: ANY_LASTING_INJURIES,
+            skills: [],
+            characteristicIncreaseCounts: ANY_CHARACTERISTIC_INCREASE_COUNTS,
           }),
         ],
       }),

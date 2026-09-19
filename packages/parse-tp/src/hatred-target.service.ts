@@ -6,11 +6,12 @@ import { Injectable } from '@nestjs/common';
  * TP publishes the target as an "attribute type 3" value -- an opaque numeric
  * code into TP's own position-keyword table, not a composable display value
  * (see `TpPositionSkillRef`). This map is a HARD-CODED, position-keyword
- * specific mapping of the six codes the downloaded mirror actually carries,
- * each confirmed against TP's own UI by the developer; it is documented in
- * docs/import-tp/index.md, "Hard-coded TP lookups". If TP's position-keyword
- * data is ever imported directly, that import should REPLACE this table
- * rather than sit alongside it.
+ * specific mapping of the twelve codes the downloaded mirror actually
+ * carries -- six seen on position templates and six more seen on players'
+ * own gained skills -- each confirmed against TP's own UI by the developer;
+ * it is documented in docs/import-tp/index.md, "Hard-coded TP lookups". If
+ * TP's position-keyword data is ever imported directly, that import should
+ * REPLACE this table rather than sit alongside it.
  *
  * The importer applies this lookup only to skillMasterId 307 -- kept a
  * separate service from `AnimosityTargetService` (skillMasterId 269's own
@@ -24,8 +25,14 @@ import { Injectable } from '@nestjs/common';
 export const hatredTargetByCode: Record<number, string> = {
   100: 'Dwarf',
   102: 'Troll',
+  104: 'Skaven',
+  105: 'Lizardman',
   108: 'Vampire',
   110: 'Undead',
+  111: 'Goblin',
+  112: 'Human',
+  113: 'Ogre',
+  117: 'Beastman',
   134: 'Big Guy',
   1001: 'Daemon',
 };

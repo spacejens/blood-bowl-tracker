@@ -78,6 +78,11 @@ describe('BblPlayersImportService', () => {
         passing: 4,
         armour: 8,
         ...goodPlayer.lastingInjuries,
+        moveIncreaseCount: 0,
+        strengthIncreaseCount: 0,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 0,
         rulesSetId: 800,
         externalIds: [{ externalSystemId: 1, externalId: '42' }],
       },
@@ -589,6 +594,8 @@ describe('BblPlayersImportService', () => {
       sppTotal: null,
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
+      skills: [],
+      characteristicIncreaseCounts: goodPlayer.characteristicIncreaseCounts,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
@@ -609,6 +616,11 @@ describe('BblPlayersImportService', () => {
         passing: 4,
         armour: 8,
         ...goodPlayer.lastingInjuries,
+        moveIncreaseCount: 0,
+        strengthIncreaseCount: 0,
+        agilityIncreaseCount: 0,
+        passingIncreaseCount: 0,
+        armourIncreaseCount: 0,
         rulesSetId: 800,
         externalIds: [{ externalSystemId: 1, externalId: '388' }],
       },
@@ -719,6 +731,8 @@ describe('BblPlayersImportService', () => {
       sppTotal: null,
       characteristics: goodPlayer.characteristics,
       lastingInjuries: goodPlayer.lastingInjuries,
+      skills: [],
+      characteristicIncreaseCounts: goodPlayer.characteristicIncreaseCounts,
     };
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({

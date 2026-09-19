@@ -265,6 +265,14 @@ export const goodPlayer: BblPlayer = {
     passingReductionCount: 0,
     armourReductionCount: 0,
   },
+  skills: [],
+  characteristicIncreaseCounts: {
+    move: 0,
+    strength: 0,
+    agility: 0,
+    passing: 0,
+    armour: 0,
+  },
 };
 
 /**

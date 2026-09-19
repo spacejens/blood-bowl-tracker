@@ -19,6 +19,7 @@ import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
+import { TpPlayerSkillsImportService } from './players/tp-player-skills-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
@@ -289,6 +290,7 @@ async function run(): Promise<ImportResult> {
       careerSppCountsByPlayerId,
       mercenaryPositionUsages,
       insertedPlayerIds,
+      skillsByPlayerId,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
@@ -297,6 +299,15 @@ async function run(): Promise<ImportResult> {
       characteristicsByPositionId,
       rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
     });
+
+    // Player skills reuse the same scanned skillMasterId -> name lookup the
+    // position starting-skills step above used, so no second scan happens.
+    const playerSkillsOutcome = await app
+      .get(TpPlayerSkillsImportService)
+      .syncPlayerSkills({
+        skillsByPlayerId,
+        skillMastersByMasterId,
+      });
 
     // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
     // official-list catalog at all, so -- unlike regular and star positions,
@@ -433,6 +444,7 @@ async function run(): Promise<ImportResult> {
       skillNameCollectionResult,
       positionSkillsOutcome.result,
       playerResult,
+      playerSkillsOutcome.result,
       mercenaryPositionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       trophyAwardsOutcome.result,

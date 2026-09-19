@@ -49,8 +49,17 @@ export const SKILL_CATEGORIES = [
  *
  * - `starting` — came from the player's position (or star player template),
  *   i.e. every player holding that position has it.
+ * - `advancement` — gained via advancement, but whether it was freely chosen
+ *   or randomly rolled is unknown. This is what a source that marks a skill
+ *   as gained without saying how records: BBL's player page colours a gained
+ *   skill and says nothing more, unlike TP, which reports the roll outright.
  * - `chosen` — gained via advancement, freely picked by the coach.
  * - `random` — gained via advancement, randomly rolled.
+ *
+ * Declared with the ambiguous `advancement` bucket directly after `starting`
+ * and before the two sources that DO know chosen vs. random, because the
+ * declared order becomes the Postgres enum's sort order and
+ * `PlayerSkillsService.listByPlayer` sorts on it.
  *
  * Recorded as a provenance column on one unified `player_skills` table rather
  * than as separate starting/gained tables: insight toplists need "any skill a
@@ -61,4 +70,9 @@ export const SKILL_CATEGORIES = [
  * The list is closed and small, so it is a `domain-enums` constant consumed
  * as a Postgres enum, exactly like SKILL_CATEGORIES above.
  */
-export const PLAYER_SKILL_SOURCES = ['starting', 'chosen', 'random'] as const;
+export const PLAYER_SKILL_SOURCES = [
+  'starting',
+  'advancement',
+  'chosen',
+  'random',
+] as const;

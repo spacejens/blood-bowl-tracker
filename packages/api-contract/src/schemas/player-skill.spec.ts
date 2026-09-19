@@ -30,6 +30,17 @@ describe('player skill schemas', () => {
     expect(parsed.advancementOrder).toBe(2);
   });
 
+  it('parses an advancement entry whose chosen/random split is unknown', () => {
+    const parsed = PlayerSkillEntrySchema.parse({
+      playerId: 1,
+      skillId: 2,
+      source: 'advancement',
+      advancementOrder: 1,
+    });
+    expect(parsed.source).toBe('advancement');
+    expect(parsed.advancementOrder).toBe(1);
+  });
+
   it('accepts an explicit null for both nullable fields', () => {
     const parsed = PlayerSkillEntrySchema.parse({
       playerId: 1,

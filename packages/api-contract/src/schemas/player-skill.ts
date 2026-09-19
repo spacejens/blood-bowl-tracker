@@ -21,7 +21,8 @@ export const PlayerSkillSourceSchema = z.enum(PLAYER_SKILL_SOURCES);
  *
  * `advancementOrder` is best-effort and unverified — neither BBL nor TP
  * records a confirmed sequence, only a presentation-order proxy — and is only
- * ever meaningful for `chosen`/`random`. A `starting` entry leaves it unset.
+ * ever meaningful for a gained source (`advancement`, `chosen` or `random`).
+ * A `starting` entry leaves it unset.
  */
 export const PlayerSkillEntrySchema = z
   .object({
@@ -39,7 +40,7 @@ export const PlayerSkillEntrySchema = z
       ctx.addIssue({
         code: 'custom',
         message:
-          'advancementOrder is only meaningful for chosen/random skills; a starting entry must leave it unset',
+          'advancementOrder is only meaningful for advancement/chosen/random skills; a starting entry must leave it unset',
       });
     }
   });
