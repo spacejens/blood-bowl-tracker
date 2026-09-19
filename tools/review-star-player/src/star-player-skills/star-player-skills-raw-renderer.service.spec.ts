@@ -70,6 +70,26 @@ describe('StarPlayerSkillsRawRendererService', () => {
     expect(html).toContain('<td>Block, Loner (4+)</td>');
   });
 
+  it("shows 'none' when the BBL page's Skills cell was empty", async () => {
+    lookup.bblStarFor.mockResolvedValue({
+      star: {
+        typId: '900',
+        name: 'Grombrindal',
+        cost: '250 000 gp',
+        canPlayFor: 'Any team',
+        skills: '',
+        skillRefs: [],
+        characteristics: null,
+      },
+      notFoundNote: '',
+    });
+
+    const html = await service.render(star);
+
+    expect(html).toContain('<h5>BBL</h5>');
+    expect(html).toContain('<tr><td>none</td></tr>');
+  });
+
   it('highlights the BBL sub-panel when no page was found', async () => {
     const html = await service.render(star);
 
@@ -153,6 +173,32 @@ describe('StarPlayerSkillsRawRendererService', () => {
     const html = await service.render(star);
 
     expect(html).toContain('skill master #999');
+  });
+
+  it("shows 'none' for a TP entry with no starting skills recorded", async () => {
+    lookup.tpStarsFor.mockResolvedValue({
+      stars: [
+        {
+          name: 'Grombrindal',
+          entries: [
+            {
+              rulesSet: 'BB2025',
+              cost: 250000,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: [],
+              skills: [],
+            },
+          ],
+        },
+      ],
+      notFoundNote: '',
+    });
+
+    const html = await service.render(star);
+
+    expect(html).toContain('<h5>TP</h5>');
+    expect(html).toContain('<tr><td>BB2025</td><td>none</td></tr>');
   });
 
   it('highlights the TP sub-panel when no entry was found', async () => {
