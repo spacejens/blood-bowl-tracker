@@ -335,6 +335,26 @@ describe('contract', () => {
   it('defines playerSkills.list with no declared errors', () => {
     expect(errorCodesOf(contract.playerSkills.list)).toEqual([]);
   });
+
+  it('defines keywords.upsert with CONFLICT and BAD_REQUEST errors', () => {
+    expect(errorCodesOf(contract.keywords.upsert)).toEqual(
+      expect.arrayContaining(['CONFLICT', 'BAD_REQUEST']),
+    );
+  });
+
+  it('defines keywords.list as read-only', () => {
+    expect(errorCodesOf(contract.keywords.list)).toEqual([]);
+  });
+
+  it('defines positionRulesSetKeywords.sync with BAD_REQUEST', () => {
+    expect(errorCodesOf(contract.positionRulesSetKeywords.sync)).toEqual([
+      'BAD_REQUEST',
+    ]);
+  });
+
+  it('defines positionRulesSetKeywords.list as read-only', () => {
+    expect(errorCodesOf(contract.positionRulesSetKeywords.list)).toEqual([]);
+  });
 });
 
 describe('resolve procedures', () => {
