@@ -60,6 +60,15 @@ export interface PositionCharacteristics {
  * so the values are shown, just without any up/down comparison.
  */
 export interface PositionCharacteristicsContext {
+  /**
+   * The rules set whose formats — and whose baseline, when there is one —
+   * this context describes. Exposed so a caller that needs other per-rules-set
+   * data about the same player (their skills' categories and elite flags)
+   * scopes it to the very rules set that was resolved here, rather than
+   * resolving the era's rules sets a second time and risking a different
+   * answer.
+   */
+  rulesSetId: number;
   moveFormat: CharacteristicFormat;
   strengthFormat: CharacteristicFormat;
   agilityFormat: CharacteristicFormat;
@@ -156,6 +165,7 @@ export class PositionRulesSetsService {
   ): Promise<PositionCharacteristicsContext | undefined> {
     const rows = await this.db
       .select({
+        rulesSetId: rulesSets.id,
         moveFormat: rulesSets.moveFormat,
         strengthFormat: rulesSets.strengthFormat,
         agilityFormat: rulesSets.agilityFormat,
@@ -191,6 +201,7 @@ export class PositionRulesSetsService {
       return undefined;
     }
     return {
+      rulesSetId: row.rulesSetId,
       moveFormat: row.moveFormat,
       strengthFormat: row.strengthFormat,
       agilityFormat: row.agilityFormat,

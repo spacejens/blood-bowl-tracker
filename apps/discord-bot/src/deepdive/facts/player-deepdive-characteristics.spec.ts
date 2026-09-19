@@ -26,6 +26,7 @@ function context(
   overrides: Partial<PositionCharacteristicsContext> = {},
 ): PositionCharacteristicsContext {
   return {
+    rulesSetId: 2,
     ...bb2020Formats,
     baseline: undefined,
     ...overrides,

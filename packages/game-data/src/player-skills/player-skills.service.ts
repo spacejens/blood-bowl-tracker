@@ -1,16 +1,19 @@
 import type {
   PlayerSkillSource,
+  SkillCategory,
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, NewPlayerSkill } from '@blood-bowl-tracker/db';
 import {
+  and,
   asc,
   DB,
   eq,
   inArray,
   players,
   playerSkills,
+  skillRulesSets,
   skills,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
@@ -28,6 +31,20 @@ export interface PlayerSkillRow {
   source: PlayerSkillSource;
   attributeValue: string | null;
   advancementOrder: number | null;
+  /**
+   * The skill's category under the rules set the caller asked about, or null
+   * when no `skill_rules_sets` row curates it there. Unlike a position's
+   * starting skills, a player's skills are not validated against that table,
+   * so the absence is a normal state rather than a data error.
+   */
+  category: SkillCategory | null;
+  /**
+   * Whether the skill is elite under the rules set the caller asked about.
+   * False both when the rules set says it is not and when the rules set has no
+   * such concept at all (everything before BB2025) — the same conflation the
+   * column's own `NOT NULL DEFAULT false` makes.
+   */
+  isElite: boolean;
 }
 
 /**
@@ -277,21 +294,39 @@ export class PlayerSkillsService {
   }
 
   /**
-   * Every skill recorded for this player, joined to `skills` for the name,
-   * ordered by source, then advancement order, then skill name so the list is
-   * stable across calls.
+   * Every skill recorded for this player, joined to `skills` for the name and
+   * to `skill_rules_sets` for how `rulesSetId` categorises it, ordered by
+   * source, then advancement order, then skill name so the list is stable
+   * across calls.
+   *
+   * The `skill_rules_sets` join is a left join, unlike the equivalent join in
+   * PositionRulesSetSkillsService: `sync` above deliberately accepts a player
+   * skill with no curated row for the rules set, so a missed join is a normal
+   * state to report rather than a reason to drop the skill from the list.
    */
-  listByPlayer(playerId: number): Promise<PlayerSkillRow[]> {
-    return this.db
+  async listByPlayer(
+    playerId: number,
+    rulesSetId: number,
+  ): Promise<PlayerSkillRow[]> {
+    const rows = await this.db
       .select({
         skillId: skills.id,
         skillName: skills.name,
         source: playerSkills.source,
         attributeValue: playerSkills.attributeValue,
         advancementOrder: playerSkills.advancementOrder,
+        category: skillRulesSets.category,
+        isElite: skillRulesSets.isElite,
       })
       .from(playerSkills)
       .innerJoin(skills, eq(skills.id, playerSkills.skillId))
+      .leftJoin(
+        skillRulesSets,
+        and(
+          eq(skillRulesSets.skillId, playerSkills.skillId),
+          eq(skillRulesSets.rulesSetId, rulesSetId),
+        ),
+      )
       .where(eq(playerSkills.playerId, playerId))
       .orderBy(
         // Sorts by the Postgres enum's declaration order, which relies on
@@ -304,5 +339,8 @@ export class PlayerSkillsService {
         asc(playerSkills.advancementOrder),
         asc(skills.name),
       );
+    // A missed left join yields a null `isElite`; collapse it to the column's
+    // own default so every consumer sees one plain boolean.
+    return rows.map((row) => ({ ...row, isElite: row.isElite ?? false }));
   }
 }

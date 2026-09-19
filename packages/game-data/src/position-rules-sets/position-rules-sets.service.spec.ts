@@ -324,6 +324,7 @@ describe('PositionRulesSetsService', () => {
      * `position_rules_sets` row for the position.
      */
     const resolvedRow = {
+      rulesSetId: 2,
       moveFormat: 'bare',
       strengthFormat: 'bare',
       agilityFormat: 'plus',
@@ -342,6 +343,7 @@ describe('PositionRulesSetsService', () => {
       const service = await makeService(db);
 
       await expect(service.findCharacteristicsContext(3, 7)).resolves.toEqual({
+        rulesSetId: 2,
         moveFormat: 'bare',
         strengthFormat: 'bare',
         agilityFormat: 'plus',
@@ -401,6 +403,7 @@ describe('PositionRulesSetsService', () => {
       const service = await makeService(db);
 
       await expect(service.findCharacteristicsContext(3, 7)).resolves.toEqual({
+        rulesSetId: 2,
         moveFormat: 'bare',
         strengthFormat: 'bare',
         agilityFormat: 'plus',
@@ -424,6 +427,7 @@ describe('PositionRulesSetsService', () => {
       const service = await makeService(db);
 
       await expect(service.findCharacteristicsContext(3, 7)).resolves.toEqual({
+        rulesSetId: 2,
         moveFormat: 'bare',
         strengthFormat: 'bare',
         agilityFormat: 'bare',

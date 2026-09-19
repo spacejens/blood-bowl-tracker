@@ -4,12 +4,14 @@ import type {
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
+  PlayerSkillRow,
   PositionCharacteristicsContext,
   StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
   PlayerDeathService,
+  PlayerSkillsService,
   PlayersService,
   PositionRulesSetsService,
   StarPlayersService,
@@ -33,6 +35,7 @@ import {
   DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_PLAYER_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -49,6 +52,7 @@ import {
 } from '../button-custom-ids';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { PlayerSkillsSectionService } from './player-skills-section.service';
 
 type Player = {
   id: number;
@@ -146,6 +150,8 @@ export class PlayerDeepdiveService {
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly characteristics: CharacteristicDisplayFormattingService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly playerSkills: PlayerSkillsService,
+    private readonly skillsSection: PlayerSkillsSectionService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -260,6 +266,27 @@ export class PlayerDeepdiveService {
       return DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE;
     }
 
+    // The last supplementary query, appended after the characteristics context
+    // both because it depends on that context's rules set and because the
+    // earlier queries' timeout specs count `run` invocations in order.
+    // Skipped entirely when no rules set applies to the era: there is then no
+    // rules set to read the skills' categories and elite flags under, and the
+    // skill lines are omitted for the same reason the characteristics line is.
+    let skillRows: PlayerSkillRow[] = [];
+    if (characteristicsContext !== undefined) {
+      const rows: PlayerSkillRow[] | null = await this.databaseTimeout.run(
+        this.playerSkills.listByPlayer(
+          playerId,
+          characteristicsContext.rulesSetId,
+        ),
+        null,
+      );
+      if (rows === null) {
+        return DEEPDIVE_PLAYER_SKILLS_TIMEOUT_MESSAGE;
+      }
+      skillRows = rows;
+    }
+
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly
     // formatted stat line would read as fact.
@@ -270,12 +297,17 @@ export class PlayerDeepdiveService {
     const lastingInjuriesLine = this.buildLastingInjuriesLine(player);
     // Both describe the player's current condition rather than their
     // identity, so they share one blank-line separator from the header lines
-    // above — emitted if either is present, since the characteristics line is
+    // above — emitted if any is present, since the characteristics line is
     // absent whenever no rules set resolves for the era while an injury is a
-    // fact regardless.
-    const conditionLines = [characteristicsLine, lastingInjuriesLine].filter(
-      (line): line is string => line !== undefined,
-    );
+    // fact regardless. The skill lines join them: what a player has learned is
+    // current state too, and the two groups are never both empty for a player
+    // whose position grants any starting skill at all.
+    const conditionLines = [
+      ...[characteristicsLine, lastingInjuriesLine].filter(
+        (line): line is string => line !== undefined,
+      ),
+      ...this.skillsSection.build(skillRows),
+    ];
 
     const header = [
       `Team: ${player.teamName}`,
