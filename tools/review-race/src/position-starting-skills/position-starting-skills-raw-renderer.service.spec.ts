@@ -182,6 +182,78 @@ describe('PositionStartingSkillsRawRendererService', () => {
     expect(html).toContain('skill master #999 (4+)');
   });
 
+  it('prefers the official TP entry over a legacy one for the same rules set and position', async () => {
+    raceIds.forRace.mockResolvedValue({
+      bbl: [],
+      tp: ['dwarf-legacy-20', 'dwarf-20'],
+      name: [],
+    });
+    tp.raceFor.mockImplementation((code) => {
+      if (code === 'dwarf-legacy-20') {
+        return Promise.resolve({
+          teamRaceCode: 'dwarf-legacy-20',
+          raceName: 'Dwarf',
+          rulesSets: ['BB2020'],
+          positions: [
+            {
+              name: 'Blitzer',
+              isStar: false,
+              isOfficial: false,
+              rulesSet: 'BB2020',
+              tpPositionId: 1,
+              characteristics: {
+                move: 6,
+                strength: 3,
+                agility: 3,
+                passing: 4,
+                armour: 9,
+              },
+              skills: [{ skillMasterId: 100, attributeValue: null }],
+              specialRuleName: null,
+            },
+          ],
+        });
+      }
+      return Promise.resolve({
+        teamRaceCode: 'dwarf-20',
+        raceName: 'Dwarf',
+        rulesSets: ['BB2020'],
+        positions: [
+          {
+            name: 'Blitzer',
+            isStar: false,
+            isOfficial: true,
+            rulesSet: 'BB2020',
+            tpPositionId: 2,
+            characteristics: {
+              move: 6,
+              strength: 3,
+              agility: 3,
+              passing: 4,
+              armour: 9,
+            },
+            skills: [{ skillMasterId: 200, attributeValue: null }],
+            specialRuleName: null,
+          },
+        ],
+      });
+    });
+    masters.masterFor.mockImplementation((id) =>
+      Promise.resolve(
+        id === 100
+          ? { name: 'Legacy Skill', isElite: false }
+          : { name: 'Official Skill', isElite: false },
+      ),
+    );
+
+    const html = await service.render(race);
+
+    expect(html).toContain(
+      '<td>Blitzer</td><td>BB2020</td><td>Official Skill</td>',
+    );
+    expect(html).not.toContain('Legacy Skill');
+  });
+
   it('lists curated starting skills for a position matched by its Name id', async () => {
     query.positionsFor.mockResolvedValue([
       {
