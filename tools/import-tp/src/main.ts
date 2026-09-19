@@ -197,6 +197,7 @@ async function run(): Promise<ImportResult> {
         skillMastersByMasterId,
         positionNamesById,
         rulesSetNamesById,
+        catalog: keywordCatalog,
       });
 
     // A roster id can appear under more than one era (TpTeamsImportService's
@@ -333,6 +334,7 @@ async function run(): Promise<ImportResult> {
       .syncPlayerSkills({
         skillsByPlayerId,
         skillMastersByMasterId,
+        catalog: keywordCatalog,
       });
 
     // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP

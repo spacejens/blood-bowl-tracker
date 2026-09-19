@@ -67,6 +67,12 @@ describe('TpPositionSkillsImportService', () => {
     };
   }
 
+  // The resolver is fully mocked in this spec, so the catalogue's actual
+  // content never matters here -- only that a catalogue is threaded through
+  // to `decodeTypeThreeTarget`. Real code-to-keyword resolution is covered by
+  // TpSkillResolverService's own spec.
+  const catalog = { byCode: new Map() };
+
   it('resolves each id to its name and keeps the attribute value separate', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(2);
     skillResolver.collectSkillMasterIds.mockReturnValue(
@@ -97,6 +103,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(result.imported).toBe(2);
@@ -140,6 +147,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(result.imported).toBe(1);
@@ -182,6 +190,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -211,6 +220,7 @@ describe('TpPositionSkillsImportService', () => {
       skillMastersByMasterId: new Map(),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(result.errors[0].message).toContain('rules set "BB2020"');
@@ -227,6 +237,7 @@ describe('TpPositionSkillsImportService', () => {
       skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.errors[0].message).toContain('rules set "id 7"');
@@ -264,6 +275,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -308,6 +320,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, "Morg 'n' Thorg"]]),
       rulesSetNamesById: new Map([[7, 'BB2025']]),
+      catalog,
     });
 
     expect(result.errors).toEqual([]);
@@ -362,10 +375,13 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Black Ark Corsair']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
+    expect(result.errors[0]?.message).toContain(
+      'no curated keyword carries that code',
+    );
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map(),
       new Map([[7, 'BB2020']]),
@@ -415,6 +431,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
@@ -431,6 +448,7 @@ describe('TpPositionSkillsImportService', () => {
       skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
@@ -446,6 +464,7 @@ describe('TpPositionSkillsImportService', () => {
       skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -470,6 +489,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, "Morg 'n' Thorg"]]),
       rulesSetNamesById: new Map([[7, 'BB2025']]),
+      catalog,
     });
 
     // A name-carried reference needs no id lookup, so it can never produce
@@ -510,6 +530,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Blitzer']]),
       rulesSetNamesById: new Map([[9, 'BB2025']]),
+      catalog,
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -550,6 +571,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Skaven Clanrat']]),
       rulesSetNamesById: new Map([[7, 'BB2025']]),
+      catalog,
     });
 
     expect(result.errors).toEqual([]);
@@ -577,12 +599,13 @@ describe('TpPositionSkillsImportService', () => {
     );
   });
 
-  it("does not apply Hatred's own type-3 lookup to a different skillMasterId, even when the code coincidentally matches", async () => {
+  it('reports a type-3 code the catalogue does not carry, even for an Animosity reference', async () => {
     startingSkills.syncStartingSkills.mockResolvedValue(0);
 
-    // 110 is a real Hatred target code (Undead), but this reference is for
-    // Animosity (skillMasterId 269), whose own table has no entry for 110 --
-    // Hatred's table must never be consulted for it.
+    // The resolver is fully mocked here (default: undefined), so this only
+    // confirms the service reports whatever the resolver could not explain --
+    // TpSkillResolverService's own spec covers which codes the catalogue
+    // actually carries.
     skillResolver.collectSkillMasterIds.mockReturnValue(new Map());
     const { result } = await service.syncPositionSkills({
       skillRefsByPositionId: new Map([
@@ -601,10 +624,13 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
+    expect(result.errors[0]?.message).toContain(
+      'no curated keyword carries that code',
+    );
   });
 
   it('reports a type-3 reference for a resolved skill that is neither Hatred nor Animosity', async () => {
@@ -631,10 +657,13 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('unresolvable type-3 opaque');
+    expect(result.errors[0]?.message).toContain(
+      'no curated keyword carries that code',
+    );
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
       new Map(),
       new Map(),
@@ -661,6 +690,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map([[3, 'Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(startingSkills.syncStartingSkills).toHaveBeenCalledWith(
@@ -699,6 +729,7 @@ describe('TpPositionSkillsImportService', () => {
       skillMastersByMasterId: new Map(),
       positionNamesById: new Map([[3, 'Dwarf Blocker']]),
       rulesSetNamesById: new Map([[7, 'BB2020']]),
+      catalog,
     });
 
     expect(result.errors).toEqual([]);
@@ -733,6 +764,7 @@ describe('TpPositionSkillsImportService', () => {
       skillMastersByMasterId: new Map(),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
@@ -753,6 +785,7 @@ describe('TpPositionSkillsImportService', () => {
       ]),
       positionNamesById: new Map(),
       rulesSetNamesById: new Map(),
+      catalog,
     });
 
     expect(result.imported).toBe(0);

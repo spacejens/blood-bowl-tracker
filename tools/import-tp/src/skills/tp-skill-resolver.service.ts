@@ -1,15 +1,19 @@
 import { ExternalIdResolverService } from '@blood-bowl-tracker/import';
 import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
-import {
-  AnimosityTargetService,
-  HatredTargetService,
-} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-/** Hatred's own skillMasterId -- see HatredTargetService. */
+import type { TpKeywordCatalog } from '../keywords/tp-keyword-catalog.service';
+
+/** Hatred's own skillMasterId. */
 export const HATRED_SKILL_MASTER_ID = 307;
-/** Animosity's own skillMasterId -- see AnimosityTargetService. */
+/** Animosity's own skillMasterId. */
 export const ANIMOSITY_SKILL_MASTER_ID = 269;
+
+interface DecodeTypeThreeTargetOptions {
+  skillMasterId: number;
+  attributeValue: string;
+  catalog: TpKeywordCatalog;
+}
 
 /**
  * TP's skillMasterId resolution, shared by every TP importer that names a
@@ -22,11 +26,7 @@ export const ANIMOSITY_SKILL_MASTER_ID = 269;
  */
 @Injectable()
 export class TpSkillResolverService {
-  constructor(
-    private readonly hatredTargets: HatredTargetService,
-    private readonly animosityTargets: AnimosityTargetService,
-    private readonly externalIdResolver: ExternalIdResolverService,
-  ) {}
+  constructor(private readonly externalIdResolver: ExternalIdResolverService) {}
 
   /**
    * Skill name -> every TP skillMasterId the scan ever saw for it. TP assigns
@@ -92,20 +92,32 @@ export class TpSkillResolverService {
   }
 
   /**
-   * The named target for a type-3 opaque code, scoped to the one
-   * `skillMasterId` its lookup was confirmed for -- Hatred's own codes never
-   * apply to Animosity's table or vice versa.
+   * The keyword a Hatred or Animosity starting skill names as its target.
+   *
+   * TP writes the target as a type-3 attribute value: an opaque numeric
+   * keyword code, from the same id space as a position's own keywords. The
+   * name comes from the curated catalogue, because TP names these codes
+   * nowhere. A code the catalogue does not carry answers `undefined`, which
+   * the callers report as an uncurated-code ImportError.
+   *
+   * Both skills read one catalogue: a target is a keyword, whichever skill
+   * names it, so there is no per-skill table any more.
    */
-  decodeTypeThreeTarget(
-    skillMasterId: number,
-    attributeValue: string,
-  ): string | undefined {
-    if (skillMasterId === HATRED_SKILL_MASTER_ID) {
-      return this.hatredTargets.decode(attributeValue);
+  decodeTypeThreeTarget({
+    skillMasterId,
+    attributeValue,
+    catalog,
+  }: DecodeTypeThreeTargetOptions): string | undefined {
+    if (
+      skillMasterId !== HATRED_SKILL_MASTER_ID &&
+      skillMasterId !== ANIMOSITY_SKILL_MASTER_ID
+    ) {
+      return undefined;
     }
-    if (skillMasterId === ANIMOSITY_SKILL_MASTER_ID) {
-      return this.animosityTargets.decode(attributeValue);
+    const code = Number(attributeValue);
+    if (!Number.isInteger(code)) {
+      return undefined;
     }
-    return undefined;
+    return catalog.byCode.get(code)?.name;
   }
 }

@@ -460,12 +460,12 @@ and syncs the resulting `(position, rules set, keyword)` rows. A code with no
 curated match is reported once as an import error, naming the position it was
 first seen on and pointing at
 `tools/import-manual/data/before-other-importers/keywords.json5`; the
-position's other keywords are still written. See
-[Hard-coded TP lookups](./hard-coded-lookups.md) for the separate, older
-mechanism that decodes a `Hatred`/`Animosity` skill's own type-3 target code.
+position's other keywords are still written. The same catalogue also decodes a
+`Hatred`/`Animosity` skill's own type-3 target code — see
+[TP skillMasterId lookups](./hard-coded-lookups.md).
 
 ## Related documentation
 
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
-- [hard-coded-lookups.md](./hard-coded-lookups.md) — the type-3
-  `Hatred`/`Animosity` skill-attribute decoding tables.
+- [hard-coded-lookups.md](./hard-coded-lookups.md) — type-3
+  `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.
