@@ -2,12 +2,14 @@
 // older rules sets no importer can supply correctly (CRP, CRP+, BB2016).
 //
 // This file lives in after-other-importers, never before, and that is load
-// bearing: PositionRulesSetsService.sync matches by the natural key
-// (position_id, rules_set_id) and updates in place, and the BBL importer can
-// assign its single BB2020-snapshot stat line to an older rules set whenever
-// it finds real usage evidence there. Curating before the importers would let
-// that snapshot overwrite these values on the very same key; curating after
-// means these values win.
+// bearing, though not because of write order: tools/import-bbl skips every
+// rules set whose agilityFormat is 'bare' -- exactly CRP, CRP+ and BB2016 --
+// when it writes its BB2020-snapshot stat line, so no importer writes these
+// (position, rules set) keys at all and there is nothing to overwrite them.
+// The reason is references: every `position` below is the "Name" external id
+// that only the BBL position importer creates (see the note further down).
+// Curating before the importers would create orphan position rows under
+// those ids, which the importers' own upserts would then collide with.
 // A genuine gap-fill entry -- a (position, rules set) pair no importer can
 // ever write -- belongs in
 // data/before-other-importers/position-characteristics-gap-fill.json5 instead;

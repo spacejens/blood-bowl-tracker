@@ -169,14 +169,14 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   rows under the raw source names.
 - `position-characteristics.json5` — hand-curated Move/Strength/Agility/Armour
   values for the three older rules sets no importer can supply correctly (CRP,
-  CRP+, BB2016). It sits in the **after** phase because the sync matches by the
-  natural key `(position, rules set)` and updates in place, and the BBL
-  importer can write its single BB2020-snapshot stat line under an older rules
-  set on real usage evidence — curating before the importers would let that
-  snapshot overwrite the curated values on the same key. A _gap-fill_ entry —
-  a `(position, rules set)` pair no importer can ever write — goes in
-  `before-other-importers/position-characteristics-gap-fill.json5` instead (see
-  [Position characteristics](index.md#position-characteristics)).
+  CRP+, BB2016); `tools/import-bbl` deliberately writes no row for a rules set
+  whose `agilityFormat` is `'bare'`, which is exactly those three. It sits in
+  the **after** phase because its position references use the
+  "`<raceName>: <positionName>`" `Name` external id that only
+  `tools/import-bbl` creates, so those positions have to exist first. A
+  _gap-fill_ entry — a `(position, rules set)` pair no importer can ever write
+  — goes in `before-other-importers/position-characteristics-gap-fill.json5`
+  instead (see [Position characteristics](index.md#position-characteristics)).
 - `position-availability.json5` — hand-restored `positions_race_eras`
   availability the source data cannot evidence, from the rulebook rosters.
   It sits in the **after** phase for a stricter reason than the file above:
