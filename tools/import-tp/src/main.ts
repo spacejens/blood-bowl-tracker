@@ -146,9 +146,8 @@ async function run(): Promise<ImportResult> {
       .get(TpPositionCharacteristicsImportService)
       .syncPositionCharacteristics(characteristicsByPositionId);
 
-    // The curated keyword catalogue is read once here and shared: both the
-    // position-keyword import below and the Hatred/Animosity target decoding
-    // in the two skills imports address it by TP's numeric code.
+    // The curated keyword catalogue is read once here, avoiding a repeated
+    // read cost, and passed down to the position-keyword import below.
     const keywordCatalogErrors: ImportError[] = [];
     const keywordCatalog = await app
       .get(TpKeywordCatalogService)
