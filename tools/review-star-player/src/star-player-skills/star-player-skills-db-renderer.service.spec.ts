@@ -102,6 +102,9 @@ describe('StarPlayerSkillsDbRendererService', () => {
     const html = await service.render(star);
 
     expect(html).toContain('rules set id 999 (not implied by any era)');
+    expect(html).toContain(
+      '<tr class="mismatch"><td>rules set id 999 (not implied by any era)</td><td>Block</td></tr>',
+    );
   });
 
   it('renders a note when the star has no rules set and no stored skills', async () => {

@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
+  asc,
   DB,
   eq,
   inArray,
@@ -60,10 +61,10 @@ export class PositionStartingSkillsDbRendererService {
 
   async render(race: SampledRace): Promise<string> {
     const positions = await this.query.positionsFor(race.raceId);
-    const unique = new Map(
+    const positionNames = new Map(
       positions.map((position) => [position.positionId, position.positionName]),
     );
-    if (unique.size === 0) {
+    if (positionNames.size === 0) {
       return this.html.note(
         `No positions stored for race "${race.raceName}", so no starting skills to show.`,
       );
@@ -74,24 +75,24 @@ export class PositionStartingSkillsDbRendererService {
         `Race "${race.raceName}" has no era mapped to a rules set.`,
       );
     }
-    const positionIds = [...unique.keys()];
+    const positionIds = [...positionNames.keys()];
     const rowIds = await this.rowIds(positionIds);
     const stored = await this.storedSkills([...rowIds.values()]);
     return rulesSets
       .map((rulesSet) =>
-        this.rulesSetTable({ rulesSet, unique, rowIds, stored }),
+        this.rulesSetTable({ rulesSet, positionNames, rowIds, stored }),
       )
       .join('\n');
   }
 
   private rulesSetTable(input: {
     rulesSet: RaceRulesSetRow;
-    unique: Map<number, string>;
+    positionNames: Map<number, string>;
     rowIds: Map<string, number>;
     stored: Map<number, string[]>;
   }): string {
-    const { rulesSet, unique, rowIds, stored } = input;
-    const rows: TableRow[] = [...unique.entries()].map(
+    const { rulesSet, positionNames, rowIds, stored } = input;
+    const rows: TableRow[] = [...positionNames.entries()].map(
       ([positionId, positionName]) => {
         const rowId = rowIds.get(`${positionId}:${rulesSet.rulesSetId}`);
         if (rowId === undefined) {
@@ -159,7 +160,11 @@ export class PositionStartingSkillsDbRendererService {
           eq(skillRulesSets.rulesSetId, positionRulesSets.rulesSetId),
         ),
       )
-      .where(inArray(positionRulesSetSkills.positionRulesSetId, rowIds));
+      .where(inArray(positionRulesSetSkills.positionRulesSetId, rowIds))
+      .orderBy(
+        asc(positionRulesSetSkills.positionRulesSetId),
+        asc(skills.name),
+      );
     for (const row of rows) {
       const formatted = this.skillFormat.format({
         name: row.skillName,

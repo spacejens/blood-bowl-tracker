@@ -24,39 +24,39 @@ describe('StarPlayerSkillsStratificationService', () => {
 
     expect(service.listStrata()).toEqual([
       {
-        id: 'star-player-missing-skills',
+        id: 'missing-skills',
         label:
           'Star player has a rules set with characteristics but no starting skills',
         sources: ['bbl', 'tp', 'manual'],
       },
       {
-        id: 'star-player-no-unique-skill',
+        id: 'no-unique-skill',
         label: 'Star player has no unique-category skill under any rules set',
         sources: ['bbl', 'tp', 'manual'],
       },
     ]);
   });
 
-  it('returns the sampled stars for star-player-missing-skills', async () => {
+  it('returns the sampled stars for missing-skills', async () => {
     const service = await makeService(
       mockDb([{ positionId: 42, positionName: 'Grombrindal' }]),
     );
 
     expect(
       await service.sampleStratum({
-        stratumId: 'star-player-missing-skills',
+        stratumId: 'missing-skills',
         limit: 3,
         source: 'bbl',
       }),
     ).toEqual([{ positionId: 42, positionName: 'Grombrindal' }]);
   });
 
-  it('issues a left-join is-null query for star-player-missing-skills', async () => {
+  it('issues a left-join is-null query for missing-skills', async () => {
     const dbResult = mockDb([]);
     const service = await makeService(dbResult);
 
     await service.sampleStratum({
-      stratumId: 'star-player-missing-skills',
+      stratumId: 'missing-skills',
       limit: 4,
       source: 'bbl',
     });
@@ -69,12 +69,12 @@ describe('StarPlayerSkillsStratificationService', () => {
     expect(dbResult.chains[0].limit).toHaveBeenCalledWith(4);
   });
 
-  it('filters on the unique category for star-player-no-unique-skill', async () => {
+  it('filters on the unique category for no-unique-skill', async () => {
     const dbResult = mockDb([]);
     const service = await makeService(dbResult);
 
     await service.sampleStratum({
-      stratumId: 'star-player-no-unique-skill',
+      stratumId: 'no-unique-skill',
       limit: 2,
       source: 'tp',
     });

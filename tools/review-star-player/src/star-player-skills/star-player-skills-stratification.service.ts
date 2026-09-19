@@ -18,8 +18,8 @@ import type {
   StratumSampleRequest,
 } from '../shared/star-player-stratifier';
 
-const MISSING = 'star-player-missing-skills';
-const NO_UNIQUE = 'star-player-no-unique-skill';
+const MISSING = 'missing-skills';
+const NO_UNIQUE = 'no-unique-skill';
 
 /**
  * The two DB-visible shapes a star-skills mistake takes. A stratifier only

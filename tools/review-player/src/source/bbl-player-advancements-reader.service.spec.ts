@@ -76,4 +76,23 @@ describe('BblPlayerAdvancementsReaderService', () => {
 
     expect(await service.read('1000')).toBeNull();
   });
+
+  it('caches the result, so a second read for the same id does not reload', async () => {
+    loader.loadPlayerPage.mockResolvedValue(page('Block'));
+
+    const first = await service.read('1000');
+    const second = await service.read('1000');
+
+    expect(second).toEqual(first);
+    expect(loader.loadPlayerPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not share the cache across different ids', async () => {
+    loader.loadPlayerPage.mockResolvedValue(page('Block'));
+
+    await service.read('1000');
+    await service.read('2000');
+
+    expect(loader.loadPlayerPage).toHaveBeenCalledTimes(2);
+  });
 });

@@ -118,6 +118,25 @@ describe('BblPlayerSkillsCellService', () => {
     });
   });
 
+  it('skips a decoy row that does not match the characteristics header', () => {
+    const parsed = service.parse(
+      '<table>' +
+        '<tr><th colspan="6">Player Details</th></tr>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th></tr>' +
+        '<tr><td>6</td><td>3</td><td>3</td><td>4</td><td>9</td><td>Block</td></tr>' +
+        '</table>',
+    );
+
+    expect(parsed?.skills).toEqual([
+      {
+        name: 'Block',
+        attributeValue: null,
+        source: 'starting',
+        advancementOrder: null,
+      },
+    ]);
+  });
+
   it('returns null when the page has no characteristics table', () => {
     expect(service.parse('<p>nothing here</p>')).toBeNull();
   });

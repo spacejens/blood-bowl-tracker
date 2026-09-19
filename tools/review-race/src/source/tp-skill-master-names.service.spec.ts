@@ -12,12 +12,16 @@ import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 async function makeService(
   files: Record<string, unknown>,
+  options?: { rawFiles?: Record<string, string> },
 ): Promise<TpSkillMasterNamesService> {
   const root = await mkdtemp(join(tmpdir(), 'review-race-tp-skills-'));
   const competitionDir = join(root, 'fourth-era', 'a-cup');
   await mkdir(competitionDir, { recursive: true });
   for (const [name, body] of Object.entries(files)) {
     await writeFile(join(competitionDir, name), JSON.stringify(body), 'utf8');
+  }
+  for (const [name, body] of Object.entries(options?.rawFiles ?? {})) {
+    await writeFile(join(competitionDir, name), body, 'utf8');
   }
   const config: MockProxy<RaceReviewConfigService> =
     mock<RaceReviewConfigService>();
@@ -65,6 +69,26 @@ describe('TpSkillMasterNamesService', () => {
     });
   });
 
+  it('or-accumulates the elite marker regardless of embedding order (elite first)', async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            skills: [
+              { skillMaster: { id: 220, name: 'Block', isElite: true } },
+            ],
+          },
+          { skills: [{ skillMaster: { id: 220, name: 'Block' } }] },
+        ],
+      },
+    });
+
+    expect(await service.masterFor(220)).toEqual({
+      name: 'Block',
+      isElite: true,
+    });
+  });
+
   it('ignores files that are not roster files', async () => {
     const service = await makeService({
       'match_1.json': {
@@ -76,23 +100,10 @@ describe('TpSkillMasterNamesService', () => {
   });
 
   it('skips a malformed roster file instead of failing the run', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'review-race-tp-skills-'));
-    const competitionDir = join(root, 'fourth-era', 'a-cup');
-    await mkdir(competitionDir, { recursive: true });
-    await writeFile(
-      join(competitionDir, 'rosters_1.json'),
-      '{ not json',
-      'utf8',
+    const service = await makeService(
+      {},
+      { rawFiles: { 'rosters_1.json': '{ not json' } },
     );
-    const config = mock<RaceReviewConfigService>();
-    config.getDataDir.mockReturnValue(root);
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        TpSkillMasterNamesService,
-        { provide: RaceReviewConfigService, useValue: config },
-      ],
-    }).compile();
-    const service = moduleRef.get(TpSkillMasterNamesService);
 
     expect(await service.masterFor(261)).toBeNull();
   });

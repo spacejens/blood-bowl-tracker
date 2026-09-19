@@ -8,8 +8,8 @@ import { ReviewPlayerConfigService } from '../config/review-player-config.servic
 import type { RawIncreaseCounts } from './bbl-player-skills-cell.service';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
-/** `rosters_<id>.json` — TP's per-team roster file. */
-const ROSTER_FILENAME = /^rosters_\d+\.json$/;
+/** `rosters_<id>.json` — TP's per-team roster file; captures the id. */
+const ROSTER_FILENAME = /^rosters_(\d+)\.json$/;
 
 /** One skill on a TP roster entry or its position template. */
 export interface TpRawPlayerSkill {
@@ -119,7 +119,7 @@ export class TpRawPlayerSkillsIndexService {
           const match = ROSTER_FILENAME.exec(entry.name);
           if (entry.isFile() && match !== null) {
             const body = await this.readJson(join(competitionDir, entry.name));
-            const rosterId = Number(/\d+/.exec(entry.name)?.[0] ?? 0);
+            const rosterId = Number(match[1]);
             await this.absorb(players, body, rosterId);
           }
         }

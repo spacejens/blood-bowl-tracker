@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   and,
+  asc,
   DB,
   desc,
   eq,
@@ -269,7 +270,8 @@ export class PlayerAdvancementsDbRendererService {
           eq(skillRulesSets.rulesSetId, rulesSetId),
         ),
       )
-      .where(eq(playerSkills.playerId, playerId));
+      .where(eq(playerSkills.playerId, playerId))
+      .orderBy(asc(skills.name));
     return rows.map((row) => ({ ...row, isElite: row.isElite === true }));
   }
 }

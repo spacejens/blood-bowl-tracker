@@ -211,8 +211,10 @@ totals, characteristics, current lasting injuries and skill advancements.
      also checked by name against the source the player was sampled through —
      read through the same services the raw panel above uses — and a stored
      skill missing from the raw source, or a raw skill nothing was stored for,
-     is highlighted and says so in words. The five stored increase-count
-     columns are compared against BBL's own counts for a BBL-sourced player
+     is highlighted and says so in words. This comparison is presence-only: it
+     does not check that a skill's source (starting vs. gained) or its order
+     among the source's own list agrees with what was stored. The five stored
+     increase-count columns are compared against BBL's own counts for a BBL-sourced player
      only: TP publishes no comparable counts at all (its raw panel already
      shows a derived template diff instead), and no importer writes these
      columns from TP, so comparing them there would be noise, not a finding.
