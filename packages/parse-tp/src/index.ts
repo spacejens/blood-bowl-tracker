@@ -1,13 +1,5 @@
-export {
-  animosityTargetByCode,
-  AnimosityTargetService,
-} from './animosity-target.service';
 export type { TpAward } from './awards-parser.service';
 export { AwardsParserService } from './awards-parser.service';
-export {
-  hatredTargetByCode,
-  HatredTargetService,
-} from './hatred-target.service';
 export type { TpCoach } from './inscriptions-parser.service';
 export { InscriptionsParserService } from './inscriptions-parser.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.

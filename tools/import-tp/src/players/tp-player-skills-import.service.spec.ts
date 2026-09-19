@@ -86,6 +86,12 @@ describe('TpPlayerSkillsImportService', () => {
     };
   }
 
+  // The resolver is fully mocked in this spec, so the catalogue's actual
+  // content never matters here -- only that a catalogue is threaded through
+  // to `decodeTypeThreeTarget`. Real code-to-keyword resolution is covered by
+  // TpSkillResolverService's own spec.
+  const catalog = { byCode: new Map() };
+
   /** The Name external id every upserted skill also carries. */
   function nameId(name: string) {
     return { externalSystemId: NAME_SYSTEM_ID, externalId: `skill:${name}` };
@@ -105,6 +111,7 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [87, { name: 'Dodge', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
@@ -135,6 +142,7 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [220, { name: 'Block', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
@@ -164,6 +172,7 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [220, { name: 'Block', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
@@ -208,6 +217,7 @@ describe('TpPlayerSkillsImportService', () => {
         [220, { name: 'Block', isElite: false }],
         [221, { name: 'Dodge', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
@@ -239,6 +249,7 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [42, { name: 'Mighty Blow', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
@@ -275,12 +286,14 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [307, { name: 'Hatred', isElite: false }],
       ]),
+      catalog,
     });
 
-    expect(skillResolver.decodeTypeThreeTarget).toHaveBeenCalledWith(
-      307,
-      '110',
-    );
+    expect(skillResolver.decodeTypeThreeTarget).toHaveBeenCalledWith({
+      skillMasterId: 307,
+      attributeValue: '110',
+      catalog,
+    });
     expect(playerSkills.syncPlayerSkills).toHaveBeenCalledWith(
       [
         {
@@ -331,6 +344,7 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [269, { name: 'Animosity', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
@@ -348,6 +362,7 @@ describe('TpPlayerSkillsImportService', () => {
         [6, makeSkills({ starting: [{ skillMasterId: 999_999 }] })],
       ]),
       skillMastersByMasterId: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
@@ -370,6 +385,7 @@ describe('TpPlayerSkillsImportService', () => {
         ],
       ]),
       skillMastersByMasterId: new Map(),
+      catalog,
     });
 
     expect(result.errors).toHaveLength(1);
@@ -389,6 +405,7 @@ describe('TpPlayerSkillsImportService', () => {
         [5, makeSkills({ starting: [{ skillMasterId: 181 }] })],
       ]),
       skillMastersByMasterId: new Map(),
+      catalog,
     });
 
     expect(skillResolver.resolveUnnamedMasterIds).toHaveBeenCalledWith({
@@ -423,6 +440,7 @@ describe('TpPlayerSkillsImportService', () => {
         [87, { name: 'Dodge', isElite: false }],
         [188, { name: 'Dodge', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(skillsImport.upsert).toHaveBeenCalledWith(
@@ -438,6 +456,7 @@ describe('TpPlayerSkillsImportService', () => {
     const { result } = await service.syncPlayerSkills({
       skillsByPlayerId: new Map(),
       skillMastersByMasterId: new Map(),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();
@@ -458,6 +477,7 @@ describe('TpPlayerSkillsImportService', () => {
       skillMastersByMasterId: new Map([
         [87, { name: 'Dodge', isElite: false }],
       ]),
+      catalog,
     });
 
     expect(playerSkills.syncPlayerSkills).not.toHaveBeenCalled();

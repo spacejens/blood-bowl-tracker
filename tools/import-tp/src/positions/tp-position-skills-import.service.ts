@@ -14,6 +14,7 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import type { TpKeywordCatalog } from '../keywords/tp-keyword-catalog.service';
 import { TpSkillResolverService } from '../skills/tp-skill-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
@@ -33,6 +34,9 @@ export interface SyncTpPositionSkillsOptions {
    * set instead of only its bare id. A rules set missing from this map falls
    * back to `id ${rulesSetId}`. */
   rulesSetNamesById: Map<number, string>;
+  /** The curated keyword catalogue, already loaded once for the whole run,
+   * used to decode a Hatred or Animosity type-3 target code. */
+  catalog: TpKeywordCatalog;
 }
 
 /**
@@ -83,6 +87,7 @@ export class TpPositionSkillsImportService {
     skillMastersByMasterId,
     positionNamesById,
     rulesSetNamesById,
+    catalog,
   }: SyncTpPositionSkillsOptions): Promise<{ result: ImportResult }> {
     const errors: ImportError[] = [];
     const tpSystemName = this.externalSystemName.getTpSystemName();
@@ -133,6 +138,7 @@ export class TpPositionSkillsImportService {
           reportedIds,
           reportedAttributeTypeThreeRefs,
           errors,
+          catalog,
         });
         if (names.length > 0) {
           byRulesSetId.set(rulesSetId, names);
@@ -185,9 +191,8 @@ export class TpPositionSkillsImportService {
    * code, not a composable value -- see `TpPositionSkillRef`) is likewise
    * recorded as an ImportError and left out, once per distinct
    * (skillMasterId, attributeValue) pair across the whole run. A type-3 code
-   * Hatred's or Animosity's own lookup CAN explain
-   * (`HatredTargetService`/`AnimosityTargetService`, see
-   * docs/import-tp/index.md, "Hard-coded TP lookups") is composed normally
+   * the curated keyword catalogue CAN explain (a Hatred or Animosity
+   * target -- see docs/import-tp/hard-coded-lookups.md) is composed normally
    * instead, with the named target as its attribute value.
    *
    * A reference TP named directly rather than by id (a star's own
@@ -207,6 +212,7 @@ export class TpPositionSkillsImportService {
     reportedIds: Set<number>;
     reportedAttributeTypeThreeRefs: Set<string>;
     errors: ImportError[];
+    catalog: TpKeywordCatalog;
   }): StartingSkillRef[] {
     const {
       positionId,
@@ -221,6 +227,7 @@ export class TpPositionSkillsImportService {
       reportedIds,
       reportedAttributeTypeThreeRefs,
       errors,
+      catalog,
     } = options;
     const positionName =
       positionNamesById.get(positionId) ?? `id ${positionId}`;
@@ -269,10 +276,11 @@ export class TpPositionSkillsImportService {
         const target =
           ref.attributeValue === undefined
             ? undefined
-            : this.skillResolver.decodeTypeThreeTarget(
-                ref.skillMasterId,
-                ref.attributeValue,
-              );
+            : this.skillResolver.decodeTypeThreeTarget({
+                skillMasterId: ref.skillMasterId,
+                attributeValue: ref.attributeValue,
+                catalog,
+              });
         if (target !== undefined) {
           names.push({ ...resolved, attributeValue: target });
           continue;
@@ -289,12 +297,11 @@ export class TpPositionSkillsImportService {
               },
               message:
                 `TP skill ${ref.skillMasterId} (${name}) on position ` +
-                `"${positionName}" carries an attribute value of ` +
-                `"${ref.attributeValue}" as an unresolvable type-3 opaque ` +
-                'code, not a normal composable value: TP resolves that ' +
-                'code via a lookup this package does not have, so it is ' +
-                "left out of that position's starting skills rather than " +
-                'composed as-is.',
+                `"${positionName}" names keyword code ` +
+                `"${ref.attributeValue}" as its target, and no curated ` +
+                'keyword carries that code, so it is left out of that ' +
+                "position's starting skills. Curate it in " +
+                'tools/import-manual (data/before-other-importers/keywords.json5).',
             }),
           );
         }

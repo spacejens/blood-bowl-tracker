@@ -15,6 +15,7 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import type { TpKeywordCatalog } from '../keywords/tp-keyword-catalog.service';
 import { TpSkillResolverService } from '../skills/tp-skill-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
@@ -53,8 +54,11 @@ export class TpPlayerSkillsImportService {
   async syncPlayerSkills(options: {
     skillsByPlayerId: Map<number, TpPlayerSkills>;
     skillMastersByMasterId: Map<number, TpSkillMaster>;
+    /** The curated keyword catalogue, already loaded once for the whole run,
+     * used to decode a Hatred or Animosity type-3 target code. */
+    catalog: TpKeywordCatalog;
   }): Promise<{ result: ImportResult }> {
-    const { skillsByPlayerId, skillMastersByMasterId } = options;
+    const { skillsByPlayerId, skillMastersByMasterId, catalog } = options;
     const errors: ImportError[] = [];
     if (skillsByPlayerId.size === 0) {
       return { result: this.importResults.result({ imported: 0, errors }) };
@@ -110,6 +114,7 @@ export class TpPlayerSkillsImportService {
           reportedIds,
           reportedAttributeTypeThreeRefs,
           errors,
+          catalog,
         });
         if (entry !== undefined) {
           entries.push(entry);
@@ -130,6 +135,7 @@ export class TpPlayerSkillsImportService {
           reportedIds,
           reportedAttributeTypeThreeRefs,
           errors,
+          catalog,
         });
         if (entry !== undefined) {
           entries.push(entry);
@@ -185,6 +191,7 @@ export class TpPlayerSkillsImportService {
     reportedIds: Set<number>;
     reportedAttributeTypeThreeRefs: Set<string>;
     errors: ImportError[];
+    catalog: TpKeywordCatalog;
   }): Promise<PlayerSkillEntry | undefined> {
     const {
       playerId,
@@ -200,6 +207,7 @@ export class TpPlayerSkillsImportService {
       reportedIds,
       reportedAttributeTypeThreeRefs,
       errors,
+      catalog,
     } = options;
     const master = skillMastersByMasterId.get(ref.skillMasterId);
     const skillId = await this.resolveSkillId({
@@ -237,6 +245,7 @@ export class TpPlayerSkillsImportService {
       ref,
       reportedAttributeTypeThreeRefs,
       errors,
+      catalog,
     });
     if (attribute === undefined) {
       return undefined;
@@ -313,12 +322,12 @@ export class TpPlayerSkillsImportService {
 
   /**
    * The attribute value one reference contributes, or `undefined` for none.
-   * Types 0-2 are directly composable; type 3 is an opaque code into TP's own
-   * position-keyword table, so it is decoded through the resolver's confirmed
-   * per-skill tables and, when that cannot explain it, the whole skill is left
-   * out with one ImportError per distinct (skillMasterId, value) pair across
-   * the run -- the same convention `TpPositionSkillsImportService` follows and
-   * docs/import-tp/index.md's "Hard-coded TP lookups" documents.
+   * Types 0-2 are directly composable; type 3 is a keyword code, decoded
+   * through the curated keyword catalogue and, when the catalogue does not
+   * carry it, the whole skill is left out with one ImportError per distinct
+   * (skillMasterId, value) pair across the run -- the same convention
+   * `TpPositionSkillsImportService` follows (see
+   * docs/import-tp/hard-coded-lookups.md).
    */
   private attributeValue(options: {
     skillMasterId: number;
@@ -326,17 +335,25 @@ export class TpPlayerSkillsImportService {
     ref: TpPlayerSkillRef;
     reportedAttributeTypeThreeRefs: Set<string>;
     errors: ImportError[];
+    catalog: TpKeywordCatalog;
   }): { value: string | null } | undefined {
-    const { skillMasterId, name, ref, reportedAttributeTypeThreeRefs, errors } =
-      options;
+    const {
+      skillMasterId,
+      name,
+      ref,
+      reportedAttributeTypeThreeRefs,
+      errors,
+      catalog,
+    } = options;
     if (ref.attributeValue === undefined) {
       return { value: null };
     }
     if (ref.attributeType === 3) {
-      const target = this.skillResolver.decodeTypeThreeTarget(
+      const target = this.skillResolver.decodeTypeThreeTarget({
         skillMasterId,
-        ref.attributeValue,
-      );
+        attributeValue: ref.attributeValue,
+        catalog,
+      });
       if (target !== undefined) {
         return { value: target };
       }
@@ -347,12 +364,11 @@ export class TpPlayerSkillsImportService {
           this.importResults.error({
             item: { skillMasterId, attributeValue: ref.attributeValue },
             message:
-              `TP skill ${skillMasterId} (${name}) carries an attribute ` +
-              `value of "${ref.attributeValue}" as an unresolvable type-3 ` +
-              'opaque code, not a normal composable value: TP resolves ' +
-              'that code via a lookup this package does not have, so it ' +
-              "is left out of that player's skills rather than composed " +
-              'as-is.',
+              `TP skill ${skillMasterId} (${name}) names keyword code ` +
+              `"${ref.attributeValue}" as its target, and no curated ` +
+              'keyword carries that code, so it is left out of that ' +
+              "player's skills. Curate it in tools/import-manual " +
+              '(data/before-other-importers/keywords.json5).',
           }),
         );
       }
