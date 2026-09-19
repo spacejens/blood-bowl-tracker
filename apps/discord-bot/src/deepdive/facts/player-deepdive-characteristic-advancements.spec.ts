@@ -125,6 +125,11 @@ describe('PlayerDeepdiveService characteristic-advancements line', () => {
 
     const description = descriptionOf(await service.resolve(1));
 
+    // Explicit presence checks first: indexOf returns -1 for an absent line,
+    // which would otherwise let the ordering comparisons below pass
+    // vacuously if a line were removed.
+    expect(description).toContain('Characteristics:');
+    expect(description).toContain('Lasting injuries:');
     expect(description.indexOf('Characteristics:')).toBeLessThan(
       description.indexOf('Characteristic advancements:'),
     );
