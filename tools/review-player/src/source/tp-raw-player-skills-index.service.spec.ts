@@ -146,6 +146,79 @@ describe('TpRawPlayerSkillsIndexService', () => {
     ]);
   });
 
+  it('prefers the roster snapshot with the higher totalStarPlayerPoints, regardless of directory order', async () => {
+    // The reported bug: two roster files can share the exact same filename
+    // number across two unrelated competitions (TP appears to number these
+    // per team, not per upload), so the file number itself carries no
+    // chronological meaning. Here "a-cup" alphabetically precedes "b-cup", so
+    // a filename-based or directory-order-based tie-break would keep the
+    // stale a-cup snapshot even though b-cup is the later, more complete one.
+    const root = await mkdtemp(join(tmpdir(), 'review-player-tp-skills-'));
+    const staleDir = join(root, 'fourth-era', 'a-cup');
+    const freshDir = join(root, 'fourth-era', 'b-cup');
+    await mkdir(staleDir, { recursive: true });
+    await mkdir(freshDir, { recursive: true });
+    const lineUp = (
+      totalStarPlayerPoints: number,
+      skills: unknown[],
+    ): unknown => ({
+      lineUps: [
+        {
+          id: 2463394,
+          ma: 6,
+          st: 3,
+          ag: 3,
+          pa: 4,
+          av: 9,
+          totalStarPlayerPoints,
+          lineUpMaster: { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] },
+          skills,
+        },
+      ],
+    });
+    await writeFile(
+      join(staleDir, 'rosters_164848.json'),
+      JSON.stringify(lineUp(3, [])),
+      'utf8',
+    );
+    await writeFile(
+      join(freshDir, 'rosters_164848.json'),
+      JSON.stringify(
+        lineUp(26, [
+          {
+            skillMasterId: 263,
+            skillMaster: { id: 263, name: 'Mighty Blow' },
+            isRandom: false,
+          },
+        ]),
+      ),
+      'utf8',
+    );
+    const config: MockProxy<ReviewPlayerConfigService> =
+      mock<ReviewPlayerConfigService>();
+    config.getDataDir.mockReturnValue(root);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpRawPlayerSkillsIndexService,
+        { provide: ReviewPlayerConfigService, useValue: config },
+        { provide: TpSkillMasterNamesService, useValue: defaultMasters() },
+      ],
+    }).compile();
+    const service = moduleRef.get(TpRawPlayerSkillsIndexService);
+
+    const advancements = await service.advancementsFor('2463394');
+
+    expect(advancements?.gainedSkills).toEqual([
+      {
+        skillMasterId: 263,
+        name: 'Mighty Blow',
+        attributeValue: null,
+        isElite: false,
+        isRandom: false,
+      },
+    ]);
+  });
+
   it("ignores the entry's own per-pick isElite field", async () => {
     const service = await makeService({
       'rosters_1.json': {

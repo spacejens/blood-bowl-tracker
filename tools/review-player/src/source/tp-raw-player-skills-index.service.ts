@@ -70,9 +70,13 @@ export interface TpRawPlayerAdvancements {
  * not — so this scans those files only, which is also why it is a separate
  * index from `TpRawPlayerIndexService` rather than more fields on it.
  *
- * A line-up id can appear in several roster files with disagreeing values;
- * ties break the same way that service already breaks them, by treating the
- * higher-numbered file id as the more recent source.
+ * A line-up id can appear in several roster files with disagreeing values —
+ * the same team's roster file can carry the identical number across two
+ * unrelated competitions (TP appears to number these per team, not per
+ * upload), so the filename cannot be trusted as a recency signal at all.
+ * Instead, ties are broken by each entry's own `totalStarPlayerPoints`: it
+ * only ever grows over a player's career, so the higher value is always the
+ * more complete, more recent snapshot.
  *
  * Every shape check is defensive: this reads unvalidated JSON straight off
  * disk, and a raw panel that throws is strictly worse for a reviewer than one
@@ -83,7 +87,13 @@ export interface TpRawPlayerAdvancements {
 export class TpRawPlayerSkillsIndexService {
   private index:
     | Promise<
-        Map<number, { rosterId: number; advancements: TpRawPlayerAdvancements }>
+        Map<
+          number,
+          {
+            totalStarPlayerPoints: number;
+            advancements: TpRawPlayerAdvancements;
+          }
+        >
       >
     | undefined;
 
@@ -104,11 +114,14 @@ export class TpRawPlayerSkillsIndexService {
   }
 
   private async buildIndex(): Promise<
-    Map<number, { rosterId: number; advancements: TpRawPlayerAdvancements }>
+    Map<
+      number,
+      { totalStarPlayerPoints: number; advancements: TpRawPlayerAdvancements }
+    >
   > {
     const players = new Map<
       number,
-      { rosterId: number; advancements: TpRawPlayerAdvancements }
+      { totalStarPlayerPoints: number; advancements: TpRawPlayerAdvancements }
     >();
     const dataDir = this.config.getDataDir('tp');
     for (const era of await this.subdirectories(dataDir)) {
@@ -119,8 +132,7 @@ export class TpRawPlayerSkillsIndexService {
           const match = ROSTER_FILENAME.exec(entry.name);
           if (entry.isFile() && match !== null) {
             const body = await this.readJson(join(competitionDir, entry.name));
-            const rosterId = Number(match[1]);
-            await this.absorb(players, body, rosterId);
+            await this.absorb(players, body);
           }
         }
       }
@@ -131,22 +143,26 @@ export class TpRawPlayerSkillsIndexService {
   private async absorb(
     players: Map<
       number,
-      { rosterId: number; advancements: TpRawPlayerAdvancements }
+      { totalStarPlayerPoints: number; advancements: TpRawPlayerAdvancements }
     >,
     file: unknown,
-    rosterId: number,
   ): Promise<void> {
     for (const entry of this.arrayProperty(file, 'lineUps')) {
       const id = this.property(entry, 'id');
       if (typeof id !== 'number') {
         continue;
       }
+      const totalStarPlayerPoints =
+        this.numberProperty(entry, 'totalStarPlayerPoints') ?? 0;
       const existing = players.get(id);
-      if (existing !== undefined && existing.rosterId >= rosterId) {
+      if (
+        existing !== undefined &&
+        existing.totalStarPlayerPoints >= totalStarPlayerPoints
+      ) {
         continue;
       }
       players.set(id, {
-        rosterId,
+        totalStarPlayerPoints,
         advancements: await this.advancements(entry),
       });
     }
