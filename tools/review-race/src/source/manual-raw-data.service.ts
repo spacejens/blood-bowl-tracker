@@ -58,11 +58,22 @@ export interface ManualCharacteristicsEntry {
   armour: number | null;
 }
 
+/**
+ * One skill of a `positionRulesSetSkills[]` entry. The curated file writes
+ * most skills as a plain `{ system, id }` ref (attributeValue: null), and a
+ * skill with a roll target (e.g. Secret Weapon) as `{ skill: { system, id },
+ * attributeValue }` instead.
+ */
+export interface ManualPositionSkillRef {
+  skill: ManualExternalIdRef;
+  attributeValue: string | null;
+}
+
 /** One `positionRulesSetSkills[]` entry of position-skills.json5. */
 export interface ManualPositionSkillsEntry {
   position: ManualExternalIdRef;
   rulesSet: ManualExternalIdRef;
-  skills: ManualExternalIdRef[];
+  skills: ManualPositionSkillRef[];
 }
 
 /**
@@ -140,7 +151,28 @@ export class ManualRawDataService {
       if (position === null || rulesSet === null) {
         return [];
       }
-      return [{ position, rulesSet, skills: this.refs(entry, 'skills') }];
+      return [{ position, rulesSet, skills: this.positionSkillRefs(entry) }];
+    });
+  }
+
+  /**
+   * Curated `skills[]` entries carry either a plain `{ system, id }` ref
+   * (attributeValue: null) or a wrapped `{ skill: { system, id },
+   * attributeValue }` for a skill with a roll target (e.g. Secret Weapon).
+   */
+  private positionSkillRefs(entry: unknown): ManualPositionSkillRef[] {
+    const raw = this.property(entry, 'skills');
+    return (Array.isArray(raw) ? raw : []).flatMap((value) => {
+      const plain = this.ref(value);
+      if (plain !== null) {
+        return [{ skill: plain, attributeValue: null }];
+      }
+      const wrapped = this.ref(this.property(value, 'skill'));
+      if (wrapped === null) {
+        return [];
+      }
+      const attributeValue = this.string(value, 'attributeValue');
+      return [{ skill: wrapped, attributeValue }];
     });
   }
 

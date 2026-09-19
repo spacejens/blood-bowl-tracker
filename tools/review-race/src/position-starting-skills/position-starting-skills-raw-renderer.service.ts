@@ -187,7 +187,10 @@ export class PositionStartingSkillsRawRendererService {
         entry.rulesSet.id,
         this.join(
           entry.skills.map((skill) =>
-            this.skillFormat.format({ name: skill.id }),
+            this.skillFormat.format({
+              name: skill.skill.id,
+              attributeValue: skill.attributeValue,
+            }),
           ),
         ),
       ]);

@@ -478,9 +478,78 @@ describe('ManualRawDataService', () => {
         position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' },
         rulesSet: { system: 'Name', id: 'CRP' },
         skills: [
-          { system: 'Name', id: 'Block' },
-          { system: 'Name', id: 'Thick Skull' },
+          { skill: { system: 'Name', id: 'Block' }, attributeValue: null },
+          {
+            skill: { system: 'Name', id: 'Thick Skull' },
+            attributeValue: null,
+          },
         ],
+      },
+    ]);
+  });
+
+  it('reads a curated skill wrapped with an attribute value', async () => {
+    const json5Content = `
+{
+  positionRulesSetSkills: [
+    {
+      position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { system: 'Name', id: 'Dodge' },
+        { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      json5Content,
+    );
+
+    expect(await service.positionSkills()).toEqual([
+      {
+        position: {
+          system: 'Name',
+          id: 'SL - Chaos Halflings: SL - Carvers',
+        },
+        rulesSet: { system: 'Name', id: 'CRP' },
+        skills: [
+          { skill: { system: 'Name', id: 'Dodge' }, attributeValue: null },
+          {
+            skill: { system: 'Name', id: 'Secret Weapon' },
+            attributeValue: '7+',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('drops a wrapped curated skill whose inner ref is invalid', async () => {
+    const json5Content = `
+{
+  positionRulesSetSkills: [
+    {
+      position: { system: 'Name', id: 'Some Position' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { skill: { id: 'Secret Weapon' }, attributeValue: '7+' }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      json5Content,
+    );
+
+    expect(await service.positionSkills()).toEqual([
+      {
+        position: { system: 'Name', id: 'Some Position' },
+        rulesSet: { system: 'Name', id: 'CRP' },
+        skills: [],
       },
     ]);
   });

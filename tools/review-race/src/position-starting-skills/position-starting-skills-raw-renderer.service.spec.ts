@@ -270,7 +270,9 @@ describe('PositionStartingSkillsRawRendererService', () => {
       {
         position: { system: 'Name', id: 'Dwarf: Blitzer' },
         rulesSet: { system: 'Name', id: 'CRP' },
-        skills: [{ system: 'Name', id: 'Block' }],
+        skills: [
+          { skill: { system: 'Name', id: 'Block' }, attributeValue: null },
+        ],
       },
     ]);
 
@@ -278,6 +280,51 @@ describe('PositionStartingSkillsRawRendererService', () => {
 
     expect(html).toContain('<h5>Manual curation</h5>');
     expect(html).toContain('<td>Blitzer</td><td>CRP</td><td>Block</td>');
+  });
+
+  it('renders a curated skill attribute value in parentheses', async () => {
+    query.positionsFor.mockResolvedValue([
+      {
+        positionId: 1,
+        positionName: 'Carvers',
+        eraId: 10,
+        eraName: 'Second Era',
+      },
+    ]);
+    positionIds.forPositions.mockResolvedValue(
+      new Map([
+        [
+          1,
+          [
+            {
+              systemName: 'Name',
+              externalId: 'SL - Chaos Halflings: SL - Carvers',
+            },
+          ],
+        ],
+      ]),
+    );
+    manual.positionSkills.mockResolvedValue([
+      {
+        position: {
+          system: 'Name',
+          id: 'SL - Chaos Halflings: SL - Carvers',
+        },
+        rulesSet: { system: 'Name', id: 'CRP' },
+        skills: [
+          {
+            skill: { system: 'Name', id: 'Secret Weapon' },
+            attributeValue: '7+',
+          },
+        ],
+      },
+    ]);
+
+    const html = await service.render(race);
+
+    expect(html).toContain(
+      '<td>Carvers</td><td>CRP</td><td>Secret Weapon (7+)</td>',
+    );
   });
 
   it('renders a note when no source has starting skills for the race', async () => {

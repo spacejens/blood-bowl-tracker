@@ -16,6 +16,12 @@ export interface TpRawPlayerSkill {
   /** From the entry's own embedded `skillMaster`; null when it carried none. */
   name: string | null;
   attributeValue: string | null;
+  /**
+   * From `skillMaster.isElite`, matching how `TpSkillMasterNamesService` and
+   * the imported panel (`skill_rules_sets.isElite`) both read TP's elite
+   * marker. NOT the per-pick `isElite` field some skill entries also carry —
+   * that field essentially never agrees with the master's across real data.
+   */
   isElite: boolean;
 }
 
@@ -166,12 +172,13 @@ export class TpRawPlayerSkillsIndexService {
     if (typeof skillMasterId !== 'number') {
       return [];
     }
-    const name = this.property(this.property(skill, 'skillMaster'), 'name');
+    const skillMaster = this.property(skill, 'skillMaster');
+    const name = this.property(skillMaster, 'name');
     const value = this.property(
       this.property(skill, 'skillAttributeMaster'),
       'value',
     );
-    const isElite = this.property(skill, 'isElite');
+    const isElite = this.property(skillMaster, 'isElite');
     return [
       {
         skillMasterId,

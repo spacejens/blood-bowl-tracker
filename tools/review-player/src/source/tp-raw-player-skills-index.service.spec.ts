@@ -56,9 +56,8 @@ describe('TpRawPlayerSkillsIndexService', () => {
             skills: [
               {
                 skillMasterId: 261,
-                skillMaster: { id: 261, name: 'Guard' },
+                skillMaster: { id: 261, name: 'Guard', isElite: true },
                 isRandom: false,
-                isElite: true,
               },
             ],
           },
@@ -82,6 +81,47 @@ describe('TpRawPlayerSkillsIndexService', () => {
         name: 'Guard',
         attributeValue: null,
         isElite: true,
+        isRandom: false,
+      },
+    ]);
+  });
+
+  it("reads isElite from skillMaster.isElite, ignoring the entry's own per-pick isElite field", async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            id: 88,
+            ma: 6,
+            st: 3,
+            ag: 3,
+            pa: 4,
+            av: 9,
+            lineUpMaster: { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] },
+            skills: [
+              {
+                skillMasterId: 30,
+                // The per-pick isElite disagrees with skillMaster.isElite,
+                // as it does across nearly all real TP data. The master's
+                // value must win.
+                skillMaster: { id: 30, name: 'Frenzy', isElite: false },
+                isRandom: false,
+                isElite: true,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const advancements = await service.advancementsFor('88');
+
+    expect(advancements?.gainedSkills).toEqual([
+      {
+        skillMasterId: 30,
+        name: 'Frenzy',
+        attributeValue: null,
+        isElite: false,
         isRandom: false,
       },
     ]);
