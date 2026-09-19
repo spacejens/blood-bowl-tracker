@@ -499,6 +499,52 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         },
       },
     },
+    skill: {
+      toplist: {
+        players: {
+          // `players` names what is counted per skill, matching
+          // race.toplist.teams.* (races ranked by team count).
+          //
+          // Not competition- or category-scopable: a player's skills are a
+          // snapshot property of the player, not match-event data, so neither
+          // narrowing means anything here - the same reasoning as
+          // position.toplist.players and race.toplist.teams.*.
+          any: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            supportsMatchCategory: false,
+            resolve: (scope) => deps.skillToplist.resolveAny(scope),
+          },
+          advancement: {
+            any: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: false,
+              resolve: (scope) =>
+                deps.skillToplist.resolveAdvancementAny(scope),
+            },
+            chosen: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: false,
+              resolve: (scope) =>
+                deps.skillToplist.resolveAdvancementChosen(scope),
+            },
+            random: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              supportsMatchCategory: false,
+              resolve: (scope) =>
+                deps.skillToplist.resolveAdvancementRandom(scope),
+            },
+          },
+        },
+      },
+    },
     eras: {
       list: {
         supportsLeague: true,

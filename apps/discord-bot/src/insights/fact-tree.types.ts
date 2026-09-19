@@ -10,6 +10,7 @@ import type { OnThisDateFactsService } from './facts/on-this-date.service';
 import type { PlayerToplistService } from './facts/player-toplist.service';
 import type { PositionToplistService } from './facts/position-toplist.service';
 import type { RaceToplistService } from './facts/race-toplist.service';
+import type { SkillToplistService } from './facts/skill-toplist.service';
 import type { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import type { StarPlayersListService } from './facts/star-players-list.service';
 import type { StatsSummaryFactsService } from './facts/stats-summary.service';
@@ -25,6 +26,7 @@ export interface FactTreeDeps {
   playerToplist: PlayerToplistService;
   raceToplist: RaceToplistService;
   positionToplist: PositionToplistService;
+  skillToplist: SkillToplistService;
   expensiveMistakes: ExpensiveMistakesToplistService;
   erasList: ErasListService;
   statsSummary: StatsSummaryFactsService;

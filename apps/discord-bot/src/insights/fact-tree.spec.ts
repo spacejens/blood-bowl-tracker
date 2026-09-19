@@ -17,8 +17,8 @@ beforeAll(async () => {
 });
 
 describe('buildFactTree', () => {
-  it('exposes exactly sixty-five leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(65);
+  it('exposes exactly sixty-nine leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(69);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -42,6 +42,22 @@ describe('buildFactTree', () => {
     ['race.toplist.matches.lost', 'raceToplist', 'resolveMatchesLost'],
     ['race.toplist.matches.drawn', 'raceToplist', 'resolveMatchesDrawn'],
     ['position.toplist.players', 'positionToplist', 'resolvePlayers'],
+    ['skill.toplist.players.any', 'skillToplist', 'resolveAny'],
+    [
+      'skill.toplist.players.advancement.any',
+      'skillToplist',
+      'resolveAdvancementAny',
+    ],
+    [
+      'skill.toplist.players.advancement.chosen',
+      'skillToplist',
+      'resolveAdvancementChosen',
+    ],
+    [
+      'skill.toplist.players.advancement.random',
+      'skillToplist',
+      'resolveAdvancementRandom',
+    ],
   ] as const)('wires %s to %s.%s', async (path, dep, method) => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(buildFactTree(d), path);
