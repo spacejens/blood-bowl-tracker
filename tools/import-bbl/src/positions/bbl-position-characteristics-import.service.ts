@@ -40,7 +40,12 @@ export interface SyncPositionCharacteristicsOptions {
  * three: it is curated in tools/import-manual's *before* phase, so it is
  * already stored by the time BBL runs, and it is the same signal
  * CharacteristicNotationConversionService keys its conversion on — no list of
- * "old" rules sets has to be maintained here either.
+ * "old" rules sets has to be maintained here either. `BblPositionSkillsImportService`
+ * excludes the same three rules sets from starting-skills too, but keys its
+ * own exclusion off a hardcoded `CURATION_OWNED_RULES_SET_NAMES` name list
+ * rather than this format signal, since its reason for excluding them is
+ * different (its target table is additive-only, not "nothing trustworthy to
+ * write") — see that class's own doc comment.
  *
  * BBL-local rather than shared: the era -> rules-set resolution feeding it is
  * BBL's own. The shared piece is PositionRulesSetsImportService, which this

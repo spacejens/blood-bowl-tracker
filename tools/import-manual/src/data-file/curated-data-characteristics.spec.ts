@@ -528,6 +528,27 @@ describe('curated data files - characteristics', () => {
     expect(missing).toEqual(exceptions);
   });
 
+  it('declares agilityFormat as bare for exactly CRP, CRP+ and BB2016', () => {
+    const rulesSets = readFile(
+      'before-other-importers',
+      'spp-award-values.json5',
+    ).rulesSets;
+
+    // tools/import-bbl's BblPositionCharacteristicsImportService relies on
+    // agilityFormat === 'bare' as the signal for "one of the three rules
+    // sets it cannot represent correctly" (see that class's doc comment). If
+    // this ever drifted -- a rules set gaining or losing 'bare' without a
+    // matching code change -- BBL would silently start writing (or skipping)
+    // the wrong rules sets with no test failing, which is exactly the bug
+    // class this branch fixes.
+    const bare = rulesSets
+      .filter((rulesSet) => rulesSet.agilityFormat === 'bare')
+      .map((rulesSet) => rulesSet.name)
+      .sort();
+
+    expect(bare).toEqual(['BB2016', 'CRP', 'CRP+']);
+  });
+
   it("resolves the gap-fill file's positionRulesSets references against its own phase", () => {
     const gapFill = readFile(
       'before-other-importers',

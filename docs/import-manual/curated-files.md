@@ -181,9 +181,9 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   availability the source data cannot evidence, from the rulebook rosters.
   It sits in the **after** phase for the same reason as the file above,
   spelled out in more detail: many of its position references use the
-  "`<raceName>: <positionName>`"
-  `Name` external id that only `tools/import-bbl`'s position importer
-  creates. Curating before the importers would create an orphan position row
+  "`<raceName>: <positionName>`" `Name` external id that only
+  `tools/import-bbl`'s position importer creates. Curating before the
+  importers would create an orphan position row
   under that id, and BBL's later upsert of the same real position would then
   see its own external id and that `Name` id point at two different rows,
   throwing `PositionUpsertConflictError`. Curating after ensures BBL has
