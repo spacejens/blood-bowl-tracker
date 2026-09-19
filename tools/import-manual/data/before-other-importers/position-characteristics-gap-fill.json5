@@ -3,12 +3,10 @@
 //
 // The invariant every entry in this file must satisfy: the
 // (position, rules set) pair is one NO source importer can ever produce a row
-// for. That is what makes curating it BEFORE the source importers run safe.
+// for. That is what makes curating it BEFORE the source importers run safe:
 // PositionRulesSetsService.sync matches by the natural key
 // (position_id, rules_set_id) and updates in place, so if an importer could
-// also write that pair, its value would silently overwrite the curated one --
-// which is exactly why data/after-other-importers/position-characteristics.json5
-// exists and why everything curated there stays there.
+// also write that pair, its value would silently overwrite the curated one.
 //
 // Deciding an entry belongs here is a case-by-case judgment call every time,
 // never a rule about the rules set. BBL's snapshot-assignment logic

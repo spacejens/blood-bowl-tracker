@@ -179,8 +179,9 @@ Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
   instead (see [Position characteristics](index.md#position-characteristics)).
 - `position-availability.json5` — hand-restored `positions_race_eras`
   availability the source data cannot evidence, from the rulebook rosters.
-  It sits in the **after** phase for a stricter reason than the file above:
-  many of its position references use the "`<raceName>: <positionName>`"
+  It sits in the **after** phase for the same reason as the file above,
+  spelled out in more detail: many of its position references use the
+  "`<raceName>: <positionName>`"
   `Name` external id that only `tools/import-bbl`'s position importer
   creates. Curating before the importers would create an orphan position row
   under that id, and BBL's later upsert of the same real position would then
