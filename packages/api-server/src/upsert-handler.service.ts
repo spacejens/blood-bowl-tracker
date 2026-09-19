@@ -1,5 +1,6 @@
 import {
   CharacteristicFormatMismatchError,
+  KeywordValidationError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   SkillValidationError,
@@ -122,9 +123,13 @@ export class UpsertHandlerService {
    * not hold together (`SkillValidationError` — a duplicated natural key, a
    * skill the rules set does not have, or a position/rules-set pair with no
    * characteristics recorded yet). Both are feedback the importer reports per
-   * entry, so BAD_REQUEST rather than an internal error. The other domain
-   * errors `runWithoutConflict` classifies are deliberately not mapped here —
-   * these procedures' callers have never raised them.
+   * entry, so BAD_REQUEST rather than an internal error.
+   * `positionRulesSetKeywords.sync` raises the same shape of failure for
+   * keywords (`KeywordValidationError` — a position/rules-set pair with no
+   * characteristics recorded yet, or a batch repeating one natural key), so
+   * it is classified here too. The other domain errors `runWithoutConflict`
+   * classifies are deliberately not mapped here — these procedures' callers
+   * have never raised them.
    */
   async runSync<T>(
     errors: BadRequestErrors,
@@ -135,7 +140,8 @@ export class UpsertHandlerService {
     } catch (err) {
       if (
         err instanceof CharacteristicFormatMismatchError ||
-        err instanceof SkillValidationError
+        err instanceof SkillValidationError ||
+        err instanceof KeywordValidationError
       ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }
