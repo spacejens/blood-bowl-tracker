@@ -134,8 +134,10 @@ All six race toplists (`race.toplist.teams.descending`,
 one button per listed race, opening the same `/deepdive race:<race>` view.
 
 `position.toplist.players` attaches one button per listed position, opening
-the same `/deepdive position:<position>` view. With this, every `/insights`
-toplist has button coverage.
+the same `/deepdive position:<position>` view.
+
+The `skill.toplist.players.*` facts are the exception: skills have no
+`/deepdive` view, so their rows carry no button.
 
 Each of the fourteen `player.toplist.*` facts attaches one button per listed
 player, opening the same `/deepdive player:<player>` view. Note the button set

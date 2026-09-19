@@ -134,6 +134,12 @@ export class SkillsService {
    * player, not match-scoped data. That is also why there is no competition or
    * match-category branch here.
    *
+   * The `teamEras`/`eras` joins are unconditional, unlike
+   * `PositionsService.countPlayersByPosition`'s scope-dependent join: both
+   * `players.teamEraId` and `players.positionId` are NOT NULL foreign keys, so
+   * joining unconditionally never drops a row, and it keeps this query's shape
+   * the same whether or not a scope is supplied.
+   *
    * The name tiebreak keeps the truncation the `LIMIT` performs deterministic
    * when several skills share a count.
    */
