@@ -79,6 +79,9 @@ export type {
   StarPlayerIdentity,
 } from './players/star-players.service';
 export { StarPlayersService } from './players/star-players.service';
+export { PositionRulesSetKeywordsModule } from './position-rules-set-keywords/position-rules-set-keywords.module';
+export type { PositionKeyword } from './position-rules-set-keywords/position-rules-set-keywords.service';
+export { PositionRulesSetKeywordsService } from './position-rules-set-keywords/position-rules-set-keywords.service';
 export { PositionRulesSetSkillsModule } from './position-rules-set-skills/position-rules-set-skills.module';
 export type { PositionStartingSkill } from './position-rules-set-skills/position-rules-set-skills.service';
 export { PositionRulesSetSkillsService } from './position-rules-set-skills/position-rules-set-skills.service';
@@ -115,6 +118,7 @@ export { CharacteristicFormatValidationService } from './shared/characteristic-f
 export type { CompetitionType } from './shared/competition-types';
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
+export { KeywordValidationError } from './shared/keyword-validation-error';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
 export type { PlayerContextNames } from './shared/player-context-names.service';
 export { SkillValidationError } from './shared/skill-validation-error';
