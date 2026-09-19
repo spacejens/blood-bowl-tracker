@@ -29,15 +29,22 @@ const REGULAR_PAGE = `<html><body><h1>Dwarf Blitzer</h1>
 <table><tr><td>primary:</td><td>General, Strength</td></tr></table>
 </body></html>`;
 
+function defaultSkillEntries(): MockProxy<BblSkillEntryService> {
+  const skillEntries = mock<BblSkillEntryService>();
+  skillEntries.parseCell.mockReturnValue([]);
+  return skillEntries;
+}
+
 async function makeService(
   reader: MockProxy<BblMirrorReaderService>,
+  skillEntries: MockProxy<BblSkillEntryService> = defaultSkillEntries(),
 ): Promise<BblRawStarPlayerPageService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblRawStarPlayerPageService,
       { provide: BblMirrorReaderService, useValue: reader },
       StarPlayerNameMatcherService,
-      BblSkillEntryService,
+      { provide: BblSkillEntryService, useValue: skillEntries },
     ],
   }).compile();
   return moduleRef.get(BblRawStarPlayerPageService);
@@ -47,7 +54,13 @@ describe('BblRawStarPlayerPageService', () => {
   it('parses a star page addressed by typID', async () => {
     const reader = mock<BblMirrorReaderService>();
     reader.readPage.mockResolvedValue(starPage('Eldril Sidewinder'));
-    const service = await makeService(reader);
+    const skillEntries = defaultSkillEntries();
+    skillEntries.parseCell.mockReturnValue([
+      { name: 'Loner', attributeValue: '4+' },
+      { name: 'Catch', attributeValue: null },
+      { name: 'Dodge', attributeValue: null },
+    ]);
+    const service = await makeService(reader, skillEntries);
 
     expect(await service.starFor('126')).toEqual({
       typId: '126',
@@ -212,7 +225,7 @@ describe('BblRawStarPlayerPageService', () => {
     expect(star?.skills).toBeNull();
   });
 
-  it('parses the skills cell into refs alongside the verbatim text', async () => {
+  it('parses the sixth cell of the characteristics row as the skills cell', async () => {
     const reader = mock<BblMirrorReaderService>();
     reader.readPage.mockResolvedValue(
       '<h1>Grombrindal</h1><table>' +
@@ -222,10 +235,16 @@ describe('BblRawStarPlayerPageService', () => {
         '<td>Block, Loner (4+)</td></tr>' +
         '</table>',
     );
-    const service = await makeService(reader);
+    const skillEntries = defaultSkillEntries();
+    skillEntries.parseCell.mockReturnValue([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+    const service = await makeService(reader, skillEntries);
 
     const star = await service.starFor('900');
 
+    expect(skillEntries.parseCell).toHaveBeenCalledWith('Block, Loner (4+)');
     expect(star?.skillRefs).toEqual([
       { name: 'Block', attributeValue: null },
       { name: 'Loner', attributeValue: '4+' },
@@ -241,10 +260,15 @@ describe('BblRawStarPlayerPageService', () => {
         '<tr><td>5</td><td>4</td><td>4</td><td>5</td><td>9</td></tr>' +
         '</table>',
     );
-    const service = await makeService(reader);
+    const skillEntries = defaultSkillEntries();
+    const service = await makeService(reader, skillEntries);
 
     const star = await service.starFor('900');
 
+    // The absent verbatim `skills` string falls back to '', so the parser is
+    // still called (with '') rather than skipped — unlike review-race's page
+    // service, which only calls its parser when a skills cell exists at all.
+    expect(skillEntries.parseCell).toHaveBeenCalledWith('');
     expect(star?.skillRefs).toEqual([]);
   });
 });

@@ -7,88 +7,77 @@ import { BblPlayerAdvancementsReaderService } from './bbl-player-advancements-re
 import { BblPlayerSkillsCellService } from './bbl-player-skills-cell.service';
 import { BblRawPlayerPageLoaderService } from './bbl-raw-player-page-loader.service';
 
-function page(skillsCell: string): string {
-  return (
-    '<table>' +
-    '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th></tr>' +
-    `<tr><td>6</td><td>3</td><td>3</td><td>4</td><td>9</td><td>${skillsCell}</td></tr>` +
-    '</table>'
-  );
-}
+const ADVANCEMENTS = {
+  skills: [
+    {
+      name: 'Block',
+      attributeValue: null,
+      source: 'starting' as const,
+      advancementOrder: null,
+    },
+  ],
+  increaseCounts: {
+    move: 0,
+    strength: 0,
+    agility: 0,
+    passing: 0,
+    armour: 0,
+  },
+};
 
 describe('BblPlayerAdvancementsReaderService', () => {
   let service: BblPlayerAdvancementsReaderService;
   let loader: MockProxy<BblRawPlayerPageLoaderService>;
+  let cell: MockProxy<BblPlayerSkillsCellService>;
 
   beforeEach(async () => {
     loader = mock<BblRawPlayerPageLoaderService>();
+    cell = mock<BblPlayerSkillsCellService>();
+    cell.parse.mockReturnValue(ADVANCEMENTS);
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblPlayerAdvancementsReaderService,
-        BblPlayerSkillsCellService,
+        { provide: BblPlayerSkillsCellService, useValue: cell },
         { provide: BblRawPlayerPageLoaderService, useValue: loader },
       ],
     }).compile();
     service = moduleRef.get(BblPlayerAdvancementsReaderService);
   });
 
-  it('returns the parsed advancements for a page the mirror has', async () => {
-    loader.loadPlayerPage.mockResolvedValue(page('Block, Dodge'));
+  it("returns the page parser's result for a page the mirror has", async () => {
+    loader.loadPlayerPage.mockResolvedValue('<html>the page</html>');
 
-    expect(await service.read('1000')).toEqual({
-      skills: [
-        {
-          name: 'Block',
-          attributeValue: null,
-          source: 'starting',
-          advancementOrder: null,
-        },
-        {
-          name: 'Dodge',
-          attributeValue: null,
-          source: 'starting',
-          advancementOrder: null,
-        },
-      ],
-      increaseCounts: {
-        move: 0,
-        strength: 0,
-        agility: 0,
-        passing: 0,
-        armour: 0,
-      },
-    });
+    expect(await service.read('1000')).toEqual(ADVANCEMENTS);
+    expect(cell.parse).toHaveBeenCalledWith('<html>the page</html>');
   });
 
-  it('returns null when loadPlayerPage resolves to null', async () => {
+  it('returns null when loadPlayerPage resolves to null, without parsing anything', async () => {
     loader.loadPlayerPage.mockResolvedValue(null);
 
     expect(await service.read('1000')).toBeNull();
+    expect(cell.parse).not.toHaveBeenCalled();
   });
 
-  it('returns null when the page has no Skills cell', async () => {
-    loader.loadPlayerPage.mockResolvedValue(
-      '<table>' +
-        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th></tr>' +
-        '<tr><td>6</td><td>3</td><td>3</td><td>4</td><td>9</td></tr>' +
-        '</table>',
-    );
+  it('returns null when the page parser finds no Skills cell', async () => {
+    loader.loadPlayerPage.mockResolvedValue('<html>no skills cell</html>');
+    cell.parse.mockReturnValue(null);
 
     expect(await service.read('1000')).toBeNull();
   });
 
   it('caches the result, so a second read for the same id does not reload', async () => {
-    loader.loadPlayerPage.mockResolvedValue(page('Block'));
+    loader.loadPlayerPage.mockResolvedValue('<html>the page</html>');
 
     const first = await service.read('1000');
     const second = await service.read('1000');
 
     expect(second).toEqual(first);
     expect(loader.loadPlayerPage).toHaveBeenCalledTimes(1);
+    expect(cell.parse).toHaveBeenCalledTimes(1);
   });
 
   it('does not share the cache across different ids', async () => {
-    loader.loadPlayerPage.mockResolvedValue(page('Block'));
+    loader.loadPlayerPage.mockResolvedValue('<html>the page</html>');
 
     await service.read('1000');
     await service.read('2000');

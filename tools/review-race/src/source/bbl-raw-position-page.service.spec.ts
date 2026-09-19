@@ -15,14 +15,17 @@ const PAGE = `<h1>Dwarf Blitzer</h1>
 describe('BblRawPositionPageService', () => {
   let service: BblRawPositionPageService;
   let reader: ReturnType<typeof mock<BblMirrorReaderService>>;
+  let skillEntries: ReturnType<typeof mock<BblSkillEntryService>>;
 
   beforeEach(async () => {
     reader = mock<BblMirrorReaderService>();
+    skillEntries = mock<BblSkillEntryService>();
+    skillEntries.parseCell.mockReturnValue([]);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblRawPositionPageService,
-        BblSkillEntryService,
+        { provide: BblSkillEntryService, useValue: skillEntries },
         { provide: BblMirrorReaderService, useValue: reader },
       ],
     }).compile();
@@ -186,7 +189,11 @@ describe('BblRawPositionPageService', () => {
     expect(position).toBeNull();
   });
 
-  it('reads the starting skills from the sixth cell of the characteristics row', async () => {
+  it('parses the sixth cell of the characteristics row as the skills cell', async () => {
+    skillEntries.parseCell.mockReturnValue([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
     reader.readPage.mockResolvedValue(
       '<h1>Dwarf Blitzer</h1><table>' +
         '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th></tr>' +
@@ -197,13 +204,14 @@ describe('BblRawPositionPageService', () => {
 
     const position = await service.positionFor('310');
 
+    expect(skillEntries.parseCell).toHaveBeenCalledWith('Block, Loner (4+)');
     expect(position?.skills).toEqual([
       { name: 'Block', attributeValue: null },
       { name: 'Loner', attributeValue: '4+' },
     ]);
   });
 
-  it('reports no starting skills when the row has no skills cell', async () => {
+  it('reports no starting skills when the row has no skills cell, without parsing anything', async () => {
     reader.readPage.mockResolvedValue(
       '<h1>Dwarf Blitzer</h1><table>' +
         '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th></tr>' +
@@ -213,6 +221,7 @@ describe('BblRawPositionPageService', () => {
 
     const position = await service.positionFor('310');
 
+    expect(skillEntries.parseCell).not.toHaveBeenCalled();
     expect(position?.skills).toEqual([]);
   });
 });
