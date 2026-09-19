@@ -195,6 +195,7 @@ export interface OfficialPositionOpts {
   tpPositionId?: number;
   characteristics?: TpPositionCharacteristics;
   skills?: TpPositionSkillRef[];
+  keywordCodes?: number[];
 }
 
 export function officialPosition(
@@ -206,6 +207,7 @@ export function officialPosition(
     tpPositionId,
     characteristics = DEFAULT_CHARACTERISTICS,
     skills = [],
+    keywordCodes = [],
   } = opts;
   return {
     name,
@@ -213,6 +215,7 @@ export function officialPosition(
     ...(tpPositionId === undefined ? {} : { tpPositionId }),
     characteristics,
     skills,
+    keywordCodes,
   };
 }
 

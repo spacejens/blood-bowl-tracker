@@ -35,6 +35,7 @@ const AMAZON = {
         armour: 8,
       },
       skills: [],
+      keywordCodes: [],
     },
   ],
 };
