@@ -46,6 +46,7 @@ interface PositionGroup {
 interface CharacteristicsSource {
   characteristics: TpPositionCharacteristics;
   skills: TpPositionSkillRef[];
+  keywordCodes: number[];
   isOfficial: boolean;
 }
 
@@ -104,6 +105,12 @@ export class TpPositionsImportService {
       Map<number, TpPositionCharacteristics>
     >;
     skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
+    /**
+     * positionId -> rulesSetId -> the BB2025 keyword codes TP lists for this
+     * position there, in TP's own order. Empty for every pre-BB2025 rules
+     * set, where TP publishes no keywords at all.
+     */
+    keywordCodesByPositionId: Map<number, Map<number, number[]>>;
     /** Every upserted position's DB id -> its name, for readable ImportError
      * messages downstream (e.g. TpPositionSkillsImportService), which would
      * otherwise only have the bare id to report. */
@@ -120,6 +127,7 @@ export class TpPositionsImportService {
       number,
       Map<number, TpPositionSkillRef[]>
     >();
+    const keywordCodesByPositionId = new Map<number, Map<number, number[]>>();
     const positionNamesById = new Map<number, string>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
@@ -133,6 +141,7 @@ export class TpPositionsImportService {
         result: this.importResults.result({ imported, errors }),
         characteristicsByPositionId,
         skillRefsByPositionId,
+        keywordCodesByPositionId,
         positionNamesById,
       };
     }
@@ -152,6 +161,7 @@ export class TpPositionsImportService {
         result: this.importResults.result({ imported, errors }),
         characteristicsByPositionId,
         skillRefsByPositionId,
+        keywordCodesByPositionId,
         positionNamesById,
       };
     }
@@ -233,6 +243,7 @@ export class TpPositionsImportService {
               rulesSetId,
               characteristics: position.characteristics,
               skills: position.skills,
+              keywordCodes: position.keywordCodes,
               isOfficial: race.isOfficial,
             });
           }
@@ -260,6 +271,7 @@ export class TpPositionsImportService {
       this.recordGroupOutputs({
         characteristicsByPositionId,
         skillRefsByPositionId,
+        keywordCodesByPositionId,
         positionId: upserted.id,
         group,
       });
@@ -279,6 +291,7 @@ export class TpPositionsImportService {
       result: this.importResults.result({ imported, errors }),
       characteristicsByPositionId,
       skillRefsByPositionId,
+      keywordCodesByPositionId,
       positionNamesById,
     };
   }
@@ -296,9 +309,17 @@ export class TpPositionsImportService {
     rulesSetId: number;
     characteristics: TpPositionCharacteristics;
     skills: TpPositionSkillRef[];
+    keywordCodes: number[];
     isOfficial: boolean;
   }): void {
-    const { group, rulesSetId, characteristics, skills, isOfficial } = options;
+    const {
+      group,
+      rulesSetId,
+      characteristics,
+      skills,
+      keywordCodes,
+      isOfficial,
+    } = options;
     const existing = group.characteristics.get(rulesSetId);
     if (existing?.isOfficial === true && !isOfficial) {
       return;
@@ -306,6 +327,7 @@ export class TpPositionsImportService {
     group.characteristics.set(rulesSetId, {
       characteristics,
       skills,
+      keywordCodes,
       isOfficial,
     });
   }
@@ -399,12 +421,14 @@ export class TpPositionsImportService {
       Map<number, TpPositionCharacteristics>
     >;
     skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
+    keywordCodesByPositionId: Map<number, Map<number, number[]>>;
     positionId: number;
     group: PositionGroup;
   }): void {
     const {
       characteristicsByPositionId,
       skillRefsByPositionId,
+      keywordCodesByPositionId,
       positionId,
       group,
     } = options;
@@ -421,9 +445,18 @@ export class TpPositionsImportService {
       existingSkills = new Map();
       skillRefsByPositionId.set(positionId, existingSkills);
     }
+    let existingKeywordCodes = keywordCodesByPositionId.get(positionId);
     for (const [rulesSetId, source] of group.characteristics) {
       existingCharacteristics.set(rulesSetId, source.characteristics);
       existingSkills.set(rulesSetId, source.skills);
+      if (source.keywordCodes.length === 0) {
+        continue;
+      }
+      if (existingKeywordCodes === undefined) {
+        existingKeywordCodes = new Map();
+        keywordCodesByPositionId.set(positionId, existingKeywordCodes);
+      }
+      existingKeywordCodes.set(rulesSetId, source.keywordCodes);
     }
   }
 }

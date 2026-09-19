@@ -237,3 +237,54 @@ describe('TpPositionsImportService skills', () => {
     ]);
   });
 });
+
+describe('TpPositionsImportService keywords', () => {
+  it('records the BB2025 keyword codes for a position under its rules set', async () => {
+    const { service } = await makeService(upsertAndSyncMocks(70));
+
+    const { keywordCodesByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2025',
+          positions: [
+            officialPosition({
+              name: 'Dwarf Runner',
+              tpPositionId: 954,
+              keywordCodes: [110, 100],
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(keywordCodesByPositionId).toEqual(
+      new Map([[70, new Map([[901, [110, 100]]])]]),
+    );
+  });
+
+  it('leaves the map empty for a pre-BB2025 rules set, which publishes no keyword codes', async () => {
+    const { service } = await makeService(upsertAndSyncMocks(70));
+
+    const { keywordCodesByPositionId } = await service.importPositions(
+      [
+        officialTeamsEntry({
+          raceName: 'Dwarf',
+          teamRaceCode: 'Dwarf',
+          rulesSet: 'BB2020',
+          positions: [
+            officialPosition({
+              name: 'Dwarf Runner',
+              tpPositionId: 953,
+            }),
+          ],
+        }),
+      ],
+      { raceNamesById: new Map([[50, 'Dwarf']]) },
+    );
+
+    expect(keywordCodesByPositionId.size).toBe(0);
+  });
+});

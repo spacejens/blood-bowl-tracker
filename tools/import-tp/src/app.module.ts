@@ -7,6 +7,7 @@ import { ImportTpConfigModule } from './config/import-tp-config.module';
 import { ImportTpConfigService } from './config/import-tp-config.service';
 import { EraDataConfigModule } from './eras/era-data-config.module';
 import { ErasModule } from './eras/eras.module';
+import { KeywordsModule } from './keywords/keywords.module';
 import { LeaguesModule } from './leagues/leagues.module';
 import { MatchEventsModule } from './match-events/match-events.module';
 import { MatchesModule } from './matches/matches.module';
@@ -45,6 +46,7 @@ export class AppModule {
         TeamsModule,
         TeamParticipationModule,
         PositionsModule,
+        KeywordsModule,
         PlayersModule,
         MatchEventsModule,
         TrophyAwardsModule,
