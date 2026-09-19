@@ -141,4 +141,17 @@ describe('player skill schemas', () => {
       rulesSetId: 3,
     });
   });
+
+  it('rejects a list input with no rulesSetId', () => {
+    expect(
+      ListPlayerSkillsSchema.safeParse({ playerId: 1 }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a list input with a non-integer rulesSetId', () => {
+    expect(
+      ListPlayerSkillsSchema.safeParse({ playerId: 1, rulesSetId: 3.5 })
+        .success,
+    ).toBe(false);
+  });
 });
