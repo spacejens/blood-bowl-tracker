@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import {
+  extractAllFilterValues,
   extractFilterValues,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
@@ -310,20 +311,57 @@ describe('PlayerSkillsService', () => {
   });
 
   describe('listByPlayer', () => {
-    it("returns the player's skills joined to their names", async () => {
-      const row = {
-        skillId: 7,
-        skillName: 'Block',
-        source: 'starting',
-        attributeValue: null,
-        advancementOrder: null,
-      };
-      const db = mockDb([row]);
+    /** One row as the query returns it for a skill curated under the rules set. */
+    const eliteRow = {
+      skillId: 7,
+      skillName: 'Mighty Blow',
+      source: 'random',
+      attributeValue: null,
+      advancementOrder: 1,
+      category: 'strength',
+      isElite: true,
+    };
+
+    it("returns the player's skills with their category and elite flag", async () => {
+      const db = mockDb([eliteRow]);
       const service = await makeService(db);
 
-      await expect(service.listByPlayer(1)).resolves.toEqual([row]);
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([eliteRow]);
       expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(1);
       expect(db.chains[0].orderBy).toHaveBeenCalled();
+    });
+
+    it('keeps a non-elite curated skill non-elite', async () => {
+      const db = mockDb([{ ...eliteRow, isElite: false }]);
+      const service = await makeService(db);
+
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([
+        { ...eliteRow, isElite: false },
+      ]);
+    });
+
+    it('reports a skill with no row for this rules set as uncategorised and not elite', async () => {
+      // The left join misses, so both joined columns come back null. `isElite`
+      // is normalised to false: "not elite" and "this rules set has no such
+      // concept" are the same thing to every consumer, exactly as the column's
+      // own NOT NULL DEFAULT false says.
+      const db = mockDb([{ ...eliteRow, category: null, isElite: null }]);
+      const service = await makeService(db);
+
+      await expect(service.listByPlayer(1, 3)).resolves.toEqual([
+        { ...eliteRow, category: null, isElite: false },
+      ]);
+    });
+
+    it('joins the skill rules set rows on the requested rules set', async () => {
+      const db = mockDb([eliteRow]);
+      const service = await makeService(db);
+
+      await service.listByPlayer(1, 3);
+
+      expect(
+        extractAllFilterValues(firstCallArg(db.chains[0].leftJoin, 0, 1)),
+      ).toContain(3);
     });
   });
 });

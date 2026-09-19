@@ -14,20 +14,10 @@ const bb2020 = {
   moveFormat: 'bare',
   strengthFormat: 'bare',
   agilityFormat: 'plus',
-  passingFormat: 'plus_zero_legal',
+  passingFormat: 'plus',
   armourFormat: 'plus',
   baseline: undefined,
 } as const;
-
-const INJURED = {
-  missNextGame: true,
-  nigglingInjuryCount: 1,
-  moveReductionCount: 0,
-  strengthReductionCount: 1,
-  agilityReductionCount: 0,
-  passingReductionCount: 0,
-  armourReductionCount: 0,
-};
 
 /**
  * The embed description of a resolved reply. Throws for a plain string reply
@@ -44,112 +34,124 @@ function descriptionOf(reply: string | InteractionReplyOptions): string {
   );
 }
 
-describe('PlayerDeepdiveService lasting-injuries line', () => {
-  it('renders every kind of active injury, in a fixed order', async () => {
-    const { service } = await makeService({
-      players: makePlayers({ player: { ...griff, ...INJURED } }),
-      positionRulesSets: makePositionRulesSets({ ...bb2020 }),
-    });
-
-    expect(descriptionOf(await service.resolve(1))).toContain(
-      'Lasting injuries: Miss next game, 1 niggling injury, ST -1',
-    );
-  });
-
-  it('omits the line entirely for a player with no active lasting injury', async () => {
-    // "No injuries" is the overwhelmingly common case; a "none" line on every
-    // healthy player would be noise.
+describe('PlayerDeepdiveService characteristic-advancements line', () => {
+  it('omits the line entirely when no characteristic was ever increased', async () => {
+    // All five counts are 0 on the shared fixture. Zero advancements is the
+    // common case, so a "none" line on every such player would be noise.
     const { service } = await makeService({
       players: makePlayers({ player: griff }),
       positionRulesSets: makePositionRulesSets({ ...bb2020 }),
     });
 
     expect(descriptionOf(await service.resolve(1))).not.toContain(
-      'Lasting injuries:',
+      'Characteristic advancements:',
     );
   });
 
-  it('pluralises the niggling-injury count', async () => {
+  it('renders a single increased characteristic', async () => {
     const { service } = await makeService({
       players: makePlayers({
-        player: { ...griff, nigglingInjuryCount: 3 },
+        player: { ...griff, moveIncreaseCount: 1 },
       }),
       positionRulesSets: makePositionRulesSets({ ...bb2020 }),
     });
 
     expect(descriptionOf(await service.resolve(1))).toContain(
-      'Lasting injuries: 3 niggling injuries',
+      'Characteristic advancements: MA +1',
     );
   });
 
-  it('lists the reductions in MA/ST/AG/PA/AV order, skipping the unreduced', async () => {
+  it('renders a count above one', async () => {
+    const { service } = await makeService({
+      players: makePlayers({
+        player: { ...griff, agilityIncreaseCount: 2 },
+      }),
+      positionRulesSets: makePositionRulesSets({ ...bb2020 }),
+    });
+
+    expect(descriptionOf(await service.resolve(1))).toContain(
+      'Characteristic advancements: AG +2',
+    );
+  });
+
+  it('lists the increases in MA/ST/AG/PA/AV order, skipping the unincreased', async () => {
     const { service } = await makeService({
       players: makePlayers({
         player: {
           ...griff,
-          armourReductionCount: 2,
-          moveReductionCount: 1,
-          agilityReductionCount: 1,
+          armourIncreaseCount: 3,
+          agilityIncreaseCount: 2,
+          moveIncreaseCount: 1,
         },
       }),
       positionRulesSets: makePositionRulesSets({ ...bb2020 }),
     });
 
     expect(descriptionOf(await service.resolve(1))).toContain(
-      'Lasting injuries: MA -1, AG -1, AV -2',
+      'Characteristic advancements: MA +1, AG +2, AV +3',
     );
   });
 
-  it('renders a passing reduction', async () => {
-    // The other reduction fields (MA/ST/AG/AV) each have their own dedicated
-    // coverage above; PA does not, so this exercises it individually.
+  it('renders the strength and passing increases', async () => {
+    // MA/AG/AV each have their own dedicated coverage above; ST and PA do not,
+    // so this exercises both remaining fields.
     const { service } = await makeService({
       players: makePlayers({
-        player: { ...griff, passingReductionCount: 1 },
+        player: {
+          ...griff,
+          strengthIncreaseCount: 1,
+          passingIncreaseCount: 1,
+        },
       }),
       positionRulesSets: makePositionRulesSets({ ...bb2020 }),
     });
 
     expect(descriptionOf(await service.resolve(1))).toContain(
-      'Lasting injuries: PA -1',
+      'Characteristic advancements: ST +1, PA +1',
     );
   });
 
-  it('renders a miss-next-game on its own', async () => {
+  it('sits between the characteristics line and the lasting-injuries line', async () => {
     const { service } = await makeService({
-      players: makePlayers({ player: { ...griff, missNextGame: true } }),
-      positionRulesSets: makePositionRulesSets({ ...bb2020 }),
-    });
-
-    expect(descriptionOf(await service.resolve(1))).toContain(
-      'Lasting injuries: Miss next game',
-    );
-  });
-
-  it('sits below the characteristics line', async () => {
-    const { service } = await makeService({
-      players: makePlayers({ player: { ...griff, ...INJURED } }),
+      players: makePlayers({
+        player: {
+          ...griff,
+          moveIncreaseCount: 1,
+          strengthReductionCount: 1,
+        },
+      }),
       positionRulesSets: makePositionRulesSets({ ...bb2020 }),
     });
 
     const description = descriptionOf(await service.resolve(1));
 
+    // Explicit presence checks first: indexOf returns -1 for an absent line,
+    // which would otherwise let the ordering comparisons below pass
+    // vacuously if a line were removed.
+    expect(description).toContain('Characteristics:');
+    expect(description).toContain('Lasting injuries:');
     expect(description.indexOf('Characteristics:')).toBeLessThan(
+      description.indexOf('Characteristic advancements:'),
+    );
+    expect(description.indexOf('Characteristic advancements:')).toBeLessThan(
       description.indexOf('Lasting injuries:'),
     );
   });
 
   it('still renders when no rules set resolves and the characteristics line is absent', async () => {
-    // The two lines are independent: an injury is a fact regardless of
-    // whether the player's stat line can be written correctly.
+    // The increase counts live directly on the player row and need no rules
+    // set to be meaningful, unlike the raw stat values the characteristics
+    // line writes.
     const { service } = await makeService({
-      players: makePlayers({ player: { ...griff, ...INJURED } }),
+      players: makePlayers({
+        player: { ...griff, moveIncreaseCount: 1 },
+      }),
       positionRulesSets: makePositionRulesSets(undefined),
     });
 
     const description = descriptionOf(await service.resolve(1));
 
-    expect(description).not.toContain('Characteristics:');
-    expect(description).toContain('Lasting injuries: Miss next game');
+    expect(description).not.toContain('Characteristics: ');
+    expect(description).toContain('Characteristic advancements: MA +1');
   });
 });

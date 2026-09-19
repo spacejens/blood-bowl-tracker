@@ -4,12 +4,14 @@ import type {
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
+  PlayerSkillRow,
   PositionCharacteristicsContext,
   StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
   PlayerDeathService,
+  PlayerSkillsService,
   PlayersService,
   PositionRulesSetsService,
   StarPlayersService,
@@ -33,6 +35,7 @@ import {
   DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_PLAYER_SKILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -49,6 +52,7 @@ import {
 } from '../button-custom-ids';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { PlayerSkillsSectionService } from './player-skills-section.service';
 
 type Player = {
   id: number;
@@ -77,6 +81,11 @@ type Player = {
   agilityReductionCount: number;
   passingReductionCount: number;
   armourReductionCount: number;
+  moveIncreaseCount: number;
+  strengthIncreaseCount: number;
+  agilityIncreaseCount: number;
+  passingIncreaseCount: number;
+  armourIncreaseCount: number;
 };
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
@@ -117,6 +126,19 @@ const REDUCTION_FIELDS = [
 ] as const;
 
 /**
+ * Each characteristic's advancement-increase counter and the label the line
+ * writes it under, in the order the line lists them — the same order
+ * `REDUCTION_FIELDS` uses, so the two condition lines read alike.
+ */
+const INCREASE_FIELDS = [
+  ['MA', 'moveIncreaseCount'],
+  ['ST', 'strengthIncreaseCount'],
+  ['AG', 'agilityIncreaseCount'],
+  ['PA', 'passingIncreaseCount'],
+  ['AV', 'armourIncreaseCount'],
+] as const;
+
+/**
  * Composes the player deepdive embed, shared by `/deepdive player:<id>` and
  * the player deepdive buttons.
  *
@@ -146,6 +168,8 @@ export class PlayerDeepdiveService {
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly characteristics: CharacteristicDisplayFormattingService,
     private readonly dateRangeFormatter: DateRangeFormatterService,
+    private readonly playerSkills: PlayerSkillsService,
+    private readonly skillsSection: PlayerSkillsSectionService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -260,6 +284,27 @@ export class PlayerDeepdiveService {
       return DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE;
     }
 
+    // The last supplementary query, appended after the characteristics context
+    // both because it depends on that context's rules set and because the
+    // earlier queries' timeout specs count `run` invocations in order.
+    // Skipped entirely when no rules set applies to the era: there is then no
+    // rules set to read the skills' categories and elite flags under, and the
+    // skill lines are omitted for the same reason the characteristics line is.
+    let skillRows: PlayerSkillRow[] = [];
+    if (characteristicsContext !== undefined) {
+      const rows: PlayerSkillRow[] | null = await this.databaseTimeout.run(
+        this.playerSkills.listByPlayer(
+          playerId,
+          characteristicsContext.rulesSetId,
+        ),
+        null,
+      );
+      if (rows === null) {
+        return DEEPDIVE_PLAYER_SKILLS_TIMEOUT_MESSAGE;
+      }
+      skillRows = rows;
+    }
+
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly
     // formatted stat line would read as fact.
@@ -267,15 +312,21 @@ export class PlayerDeepdiveService {
       characteristicsContext === undefined
         ? undefined
         : this.buildCharacteristicsLine(player, characteristicsContext);
+    const advancementsLine = this.buildCharacteristicAdvancementsLine(player);
     const lastingInjuriesLine = this.buildLastingInjuriesLine(player);
     // Both describe the player's current condition rather than their
     // identity, so they share one blank-line separator from the header lines
-    // above — emitted if either is present, since the characteristics line is
-    // absent whenever no rules set resolves for the era while an injury is a
-    // fact regardless.
-    const conditionLines = [characteristicsLine, lastingInjuriesLine].filter(
-      (line): line is string => line !== undefined,
-    );
+    // above — emitted if any is present, since the characteristics line is
+    // absent whenever no rules set resolves for the era while an injury or an
+    // advancement is a fact regardless. The skill lines join them: what a
+    // player has learned is current state too, and the two groups are never
+    // both empty for a player whose position grants any starting skill at all.
+    const conditionLines = [
+      ...[characteristicsLine, advancementsLine, lastingInjuriesLine].filter(
+        (line): line is string => line !== undefined,
+      ),
+      ...this.skillsSection.build(skillRows),
+    ];
 
     const header = [
       `Team: ${player.teamName}`,
@@ -590,6 +641,37 @@ export class PlayerDeepdiveService {
     return parts.length === 0
       ? undefined
       : `Lasting injuries: ${parts.join(', ')}`;
+  }
+
+  /**
+   * `Characteristic advancements: MA +1, AG +2` — how many times each
+   * characteristic has been raised by an advancement, for the characteristics
+   * that have been raised at all.
+   *
+   * Independent of the `Characteristics:` line above it, in two ways. It is
+   * rendered even when no rules set resolves for the player's era: these
+   * counts are stored on the player directly and need no rules set to be
+   * written correctly. And it is not derived from the baseline comparison
+   * that drives the ▲/▼ markers, so an advancement stays visible even when a
+   * lasting injury has cancelled it back to the position's baseline value.
+   *
+   * `undefined` — the whole line omitted — when nothing has been increased,
+   * matching `buildLastingInjuriesLine`: the zero case is the common one and
+   * a "none" line on every such player would be noise.
+   */
+  private buildCharacteristicAdvancementsLine(
+    player: Player,
+  ): string | undefined {
+    const parts: string[] = [];
+    for (const [label, field] of INCREASE_FIELDS) {
+      const count = player[field];
+      if (count > 0) {
+        parts.push(`${label} +${count}`);
+      }
+    }
+    return parts.length === 0
+      ? undefined
+      : `Characteristic advancements: ${parts.join(', ')}`;
   }
 
   /** One characteristic: its formatted value plus its baseline marker. */

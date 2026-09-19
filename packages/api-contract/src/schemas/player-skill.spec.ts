@@ -134,8 +134,24 @@ describe('player skill schemas', () => {
   });
 
   it('parses the list input', () => {
-    expect(ListPlayerSkillsSchema.parse({ playerId: 1 })).toEqual({
+    expect(
+      ListPlayerSkillsSchema.parse({ playerId: 1, rulesSetId: 3 }),
+    ).toEqual({
       playerId: 1,
+      rulesSetId: 3,
     });
+  });
+
+  it('rejects a list input with no rulesSetId', () => {
+    expect(ListPlayerSkillsSchema.safeParse({ playerId: 1 }).success).toBe(
+      false,
+    );
+  });
+
+  it('rejects a list input with a non-integer rulesSetId', () => {
+    expect(
+      ListPlayerSkillsSchema.safeParse({ playerId: 1, rulesSetId: 3.5 })
+        .success,
+    ).toBe(false);
   });
 });
