@@ -4,8 +4,10 @@ import { Module } from '@nestjs/common';
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 import { BblRawPositionPageService } from './bbl-raw-position-page.service';
 import { BblRawRaceIndexService } from './bbl-raw-race-index.service';
+import { BblSkillEntryService } from './bbl-skill-entry.service';
 import { ManualRawDataService } from './manual-raw-data.service';
 import { TpRawOfficialTeamsIndexService } from './tp-raw-official-teams-index.service';
+import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 /**
  * Reads each source's raw files. Loaders locate, decode and shape — every
@@ -18,8 +20,10 @@ const SOURCES = [
   BblMirrorReaderService,
   BblRawPositionPageService,
   BblRawRaceIndexService,
+  BblSkillEntryService,
   ManualRawDataService,
   TpRawOfficialTeamsIndexService,
+  TpSkillMasterNamesService,
 ];
 
 @Module({

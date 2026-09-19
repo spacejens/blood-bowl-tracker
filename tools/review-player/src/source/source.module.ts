@@ -1,8 +1,12 @@
 import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
 import { Module } from '@nestjs/common';
 
+import { BblPlayerAdvancementsReaderService } from './bbl-player-advancements-reader.service';
+import { BblPlayerSkillsCellService } from './bbl-player-skills-cell.service';
 import { BblRawPlayerPageLoaderService } from './bbl-raw-player-page-loader.service';
 import { TpRawPlayerIndexService } from './tp-raw-player-index.service';
+import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.service';
+import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 /**
  * Reads each source's downloaded raw files. Loaders only locate and decode —
@@ -10,7 +14,21 @@ import { TpRawPlayerIndexService } from './tp-raw-player-index.service';
  */
 @Module({
   imports: [BblMirrorReaderModule],
-  providers: [BblRawPlayerPageLoaderService, TpRawPlayerIndexService],
-  exports: [BblRawPlayerPageLoaderService, TpRawPlayerIndexService],
+  providers: [
+    BblRawPlayerPageLoaderService,
+    BblPlayerSkillsCellService,
+    BblPlayerAdvancementsReaderService,
+    TpRawPlayerIndexService,
+    TpRawPlayerSkillsIndexService,
+    TpSkillMasterNamesService,
+  ],
+  exports: [
+    BblRawPlayerPageLoaderService,
+    BblPlayerSkillsCellService,
+    BblPlayerAdvancementsReaderService,
+    TpRawPlayerIndexService,
+    TpRawPlayerSkillsIndexService,
+    TpSkillMasterNamesService,
+  ],
 })
 export class SourceModule {}

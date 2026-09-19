@@ -67,12 +67,12 @@ interface Accumulator extends TpRawPlayerAggregate {
 }
 
 /**
- * One roster line-up entry's five characteristic values, plus the id of the
- * `rosters_<id>.json` file it was read from — needed to decide which of two
- * disagreeing roster files wins (see `absorbRoster`).
+ * One roster line-up entry's five characteristic values, plus the entry's own
+ * `totalStarPlayerPoints` — needed to decide which of two disagreeing roster
+ * snapshots wins (see `absorbRoster`).
  */
 interface RawCharacteristics {
-  rosterId: number;
+  totalStarPlayerPoints: number;
   move: number | null;
   strength: number | null;
   agility: number | null;
@@ -172,7 +172,7 @@ export class TpRawPlayerIndexService {
     if (matched !== null) {
       this.absorb(players, body, Number(matched[1]));
     } else if (rosterMatch !== null) {
-      this.absorbRoster(characteristics, body, Number(rosterMatch[1]));
+      this.absorbRoster(characteristics, body);
     }
   }
 
@@ -290,15 +290,25 @@ export class TpRawPlayerIndexService {
    * carries no characteristics line at all.
    *
    * A line-up id can appear in more than one downloaded `rosters_<id>.json`
-   * file with disagreeing values. `readdir` order is not a meaningful
-   * ordering, so ties are broken the same way `absorbLineUp` already breaks
-   * them for match data: the higher-numbered file id is treated as the more
-   * recent source and wins.
+   * file with disagreeing values — the same team's roster file can carry the
+   * identical number across two unrelated competitions (TP appears to number
+   * these per team, not per upload), so the filename cannot be trusted as a
+   * recency signal at all. Ties are instead broken the same way
+   * `absorbLineUp` breaks them for match data's `totalStarPlayerPoints`: it
+   * only ever grows over a player's career, so the higher value on the entry
+   * itself is always the more complete, more recent snapshot.
+   *
+   * Two snapshots that disagree while sharing the exact same
+   * `totalStarPlayerPoints` are an anomaly TP gives no further signal to
+   * resolve — `entries()` sorts the scan deterministically so which one wins
+   * is at least reproducible across runs and platforms, but it is still an
+   * arbitrary pick, not a verified "more recent" one. This tool surfaces
+   * disagreements between the raw and imported sides; it does not also try to
+   * arbitrate between two raw sources that disagree with each other.
    */
   private absorbRoster(
     characteristics: Map<number, RawCharacteristics>,
     file: unknown,
-    rosterId: number,
   ): void {
     for (const entry of this.arrayProperty(file, 'lineUps')) {
       const id = this.property(entry, 'id');
@@ -306,12 +316,17 @@ export class TpRawPlayerIndexService {
       if (typeof id !== 'number' || move === null) {
         continue;
       }
+      const totalStarPlayerPoints =
+        this.numberProperty(entry, 'totalStarPlayerPoints') ?? 0;
       const existing = characteristics.get(id);
-      if (existing !== undefined && existing.rosterId >= rosterId) {
+      if (
+        existing !== undefined &&
+        existing.totalStarPlayerPoints >= totalStarPlayerPoints
+      ) {
         continue;
       }
       characteristics.set(id, {
-        rosterId,
+        totalStarPlayerPoints,
         move,
         strength: this.numberProperty(entry, 'st'),
         agility: this.numberProperty(entry, 'ag'),
@@ -376,10 +391,17 @@ export class TpRawPlayerIndexService {
     return (await this.entries(dir)).filter((entry) => entry.isDirectory());
   }
 
-  /** Directory entries, or none when the directory is absent. */
+  /**
+   * Directory entries, or none when the directory is absent — sorted by name
+   * so the scan order (and, with it, which of two equal-`totalStarPlayerPoints`
+   * roster snapshots for the same line-up id wins a tie) is reproducible
+   * across platforms and runs, rather than whatever order the filesystem
+   * happens to return. `readdir` itself makes no ordering guarantee.
+   */
   private async entries(dir: string): Promise<Dirent[]> {
     try {
-      return await readdir(dir, { withFileTypes: true });
+      const entries = await readdir(dir, { withFileTypes: true });
+      return entries.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];

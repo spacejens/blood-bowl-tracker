@@ -453,6 +453,127 @@ describe('ManualRawDataService', () => {
     expect(races[0].name).toEqual('Dwarf');
   });
 
+  it('reads curated position starting skills', async () => {
+    const json5Content = `
+{
+  positionRulesSetSkills: [
+    {
+      position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { system: 'Name', id: 'Block' },
+        { system: 'Name', id: 'Thick Skull' }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      json5Content,
+    );
+
+    expect(await service.positionSkills()).toEqual([
+      {
+        position: { system: 'Name', id: 'Dwarf: Dwarf Blitzer' },
+        rulesSet: { system: 'Name', id: 'CRP' },
+        skills: [
+          { skill: { system: 'Name', id: 'Block' }, attributeValue: null },
+          {
+            skill: { system: 'Name', id: 'Thick Skull' },
+            attributeValue: null,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('reads a curated skill wrapped with an attribute value', async () => {
+    const json5Content = `
+{
+  positionRulesSetSkills: [
+    {
+      position: { system: 'Name', id: 'SL - Chaos Halflings: SL - Carvers' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { system: 'Name', id: 'Dodge' },
+        { skill: { system: 'Name', id: 'Secret Weapon' }, attributeValue: '7+' }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      json5Content,
+    );
+
+    expect(await service.positionSkills()).toEqual([
+      {
+        position: {
+          system: 'Name',
+          id: 'SL - Chaos Halflings: SL - Carvers',
+        },
+        rulesSet: { system: 'Name', id: 'CRP' },
+        skills: [
+          { skill: { system: 'Name', id: 'Dodge' }, attributeValue: null },
+          {
+            skill: { system: 'Name', id: 'Secret Weapon' },
+            attributeValue: '7+',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('drops a wrapped curated skill whose inner ref is invalid', async () => {
+    const json5Content = `
+{
+  positionRulesSetSkills: [
+    {
+      position: { system: 'Name', id: 'Some Position' },
+      rulesSet: { system: 'Name', id: 'CRP' },
+      skills: [
+        { skill: { id: 'Secret Weapon' }, attributeValue: '7+' }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      json5Content,
+    );
+
+    expect(await service.positionSkills()).toEqual([
+      {
+        position: { system: 'Name', id: 'Some Position' },
+        rulesSet: { system: 'Name', id: 'CRP' },
+        skills: [],
+      },
+    ]);
+  });
+
+  it('drops a curated skills entry with no position or rules set ref', async () => {
+    const json5Content = `
+{
+  positionRulesSetSkills: [
+    { rulesSet: { system: 'Name', id: 'CRP' }, skills: [] }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'after-other-importers', 'position-skills.json5'),
+      json5Content,
+    );
+
+    expect(await service.positionSkills()).toEqual([]);
+  });
+
+  it('returns no curated skills when the file is missing', async () => {
+    expect(await service.positionSkills()).toEqual([]);
+  });
+
   it('skips entries whose name is not a string', async () => {
     const json5Content = `
 {

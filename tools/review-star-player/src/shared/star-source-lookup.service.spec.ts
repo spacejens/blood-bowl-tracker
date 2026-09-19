@@ -53,6 +53,7 @@ const BBL_STAR = {
   cost: '230 000 gp',
   canPlayFor: 'Any team with Elven Kingdoms League',
   skills: 'Catch, Dodge',
+  skillRefs: [],
   characteristics: null,
 };
 

@@ -2,9 +2,10 @@
 
 `tools/review-star-player` renders a side-by-side HTML report of everything known
 about a sampled set of star players: each import source's **raw** view of a star's
-identity, its per-rules-set characteristics, and its hire eligibility, next to what
-the importers and hand curation actually stored in `positions`, `position_rules_sets`
-and `positions_race_eras`. Like `tools/review-match`, `tools/review-player` and
+identity, its per-rules-set characteristics, its starting skills, and its hire
+eligibility, next to what the importers and hand curation actually stored in
+`positions`, `position_rules_sets`, `position_rules_set_skills` and
+`positions_race_eras`. Like `tools/review-match`, `tools/review-player` and
 `tools/review-race` it is a review aid for a human — it cannot decide what is
 "correct" on its own, because the interpretation logic it deliberately does not run
 is the thing being reviewed.
@@ -37,8 +38,8 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
 
 ## What it does
 
-1. Samples star players across nine strata (`starsPerStratum` stars, default 3, per
-   stratum — see Configuration; a star player is the sampled unit):
+1. Samples star players across eleven strata (`starsPerStratum` stars, default 3,
+   per stratum — see Configuration; a star player is the sampled unit):
    1. **Star player has no BBL data** — stars with no `position_external_ids` row
       for the BBL external system. A DB-only check — it does not look at the
       downloaded BBL mirror files.
@@ -61,12 +62,22 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
       hireable under** — narrower than stratum 5: only stars with partial,
       inconsistent coverage (at least one rules set with a row and at least one
       without), which is a genuine inconsistency rather than a blanket gap.
-   7. **Star player hireable by more than one race** — the mercenary case, and the
+   7. **Star player has a rules set with characteristics but no starting skills**
+      — stars with a `position_rules_sets` row and no matching
+      `position_rules_set_skills` rows. Not proof of a bug by itself — this is a
+      sampling stratum, not an assertion — but the exact shape a lost import step
+      would take.
+   8. **Star player has no unique-category skill under any rules set** — stars
+      whose stored skills, across every rules set, include no `unique`-category
+      skill. Every star has its own exclusive skill, unlike an ordinary position,
+      so a star missing one under every rules set is a stratum worth sampling
+      even though some stars genuinely carry no exclusive skill.
+   9. **Star player hireable by more than one race** — the mercenary case, and the
       one `tools/import-bbl`'s star-player exception can inflate.
-   8. **Star player hireable by exactly one race** — the rarer, effectively
-      roster-embedded case, where a wrongly narrow eligibility row hides.
-   9. **Random sample** — a plain random sample of star players, with no selection
-      criteria of its own.
+   10. **Star player hireable by exactly one race** — the rarer, effectively
+       roster-embedded case, where a wrongly narrow eligibility row hides.
+   11. **Random sample** — a plain random sample of star players, with no selection
+       criteria of its own.
 
    Each stratum declares one or more `sources`, but the sampler
    (`star-player-sampler.service.ts`) samples every stratum exactly once, using
@@ -94,6 +105,17 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
      implies, each in that rules set's own display format, with a highlighted
      `missing` row for a rules set with no stored row and a highlighted trailing
      row for a stored row no era implies.
+   - **star-player-skills** — left: BBL's single, rules-set-less starting-skills
+     cell; TP's per-rules-set skill list, with `specialRuleName` merged in as the
+     star's own unique skill and any skill TP names by an id no downloaded roster
+     file explains shown as `skill master #<id>`. There is no third, curated
+     sub-section — the curated files carry no star starting skills. Right: one row
+     per rules set the star's eligibility implies, with a highlighted `missing`
+     row for a rules set with no stored skills and a highlighted trailing row for
+     a stored skill under a rules set no era implies. This panel is deliberately
+     not diffed against the raw panel: BBL's skills carry no rules set at all and
+     TP names skills by a per-rules-set id, so matching the two up would mean
+     re-running the importer's own resolution — the thing under review.
    - **star-player-hire-eligibility** — left: BBL's `Can play for:` line verbatim
      (BBL states eligibility as a team special rule, not a race list), the
      `teamRace` codes TP's `availableLeagues`/`availableTeamSpecialRules` masks

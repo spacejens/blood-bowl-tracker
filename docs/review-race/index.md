@@ -2,8 +2,9 @@
 
 `tools/review-race` renders a side-by-side HTML report of everything known about a
 sampled set of races and their positions: each import source's **raw** view of race
-availability, position availability, and position characteristics next to what the
-importers actually stored in `positions_race_eras` and `position_rules_sets`. Like
+availability, position availability, position characteristics and position starting
+skills next to what the importers actually stored in `positions_race_eras`,
+`position_rules_sets` and `position_rules_set_skills`. Like
 `tools/review-match` and `tools/review-player` it is a review aid for a human — it
 cannot decide what is "correct" on its own, because the interpretation logic it
 deliberately does not run is the thing being reviewed.
@@ -40,7 +41,7 @@ tool's own composition.
 
 ## What it does
 
-1. Samples races across nine strata (`racesPerStratum` races, default 3, per stratum —
+1. Samples races across eleven strata (`racesPerStratum` races, default 3, per stratum —
    see Configuration; a race is the sampled unit; "modern rules set" means
    `passing_format` is not `'absent'`):
    1. **Race no longer available under modern rules sets** — races whose eras map to no
@@ -56,28 +57,38 @@ tool's own composition.
    4. **Race has a position missing characteristics for a rules set it should have** —
       races where `position_rules_sets` lacks a row for a (position, rules set) pair its
       era mapping implies, suggesting incomplete data entry.
-   5. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
+   5. **Race has a position whose starting skills changed between rules sets** — races
+      where a position's stored starting-skill set (compared as a sorted id array, via
+      `array_agg`) differs between two rules sets its race's eras both map to. A
+      stratifier only ever sees the database, so this is the closest DB-expressible
+      signal to a raw-vs-imported mismatch — it cannot itself tell a genuine rules
+      change from a curation slip, only surface the pair for a human to check.
+   6. **Race has a position with a starting skill that rules set does not have** — races
+      where a stored `position_rules_set_skills` row names a skill with no
+      `skill_rules_sets` row for the very rules set it is recorded under, which is
+      always wrong. Also DB-only.
+   7. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
       external system. A DB-only check — it does not look at the downloaded BBL mirror
       files.
-   6. **Race has no TP data** — races with no `race_external_ids` row for the TP external
+   8. **Race has no TP data** — races with no `race_external_ids` row for the TP external
       system. Same DB-only check as above, scoped to the TP external system.
-   7. **Race has no manual curation entry** — unlike strata 5 and 6, this reads the
+   9. **Race has no manual curation entry** — unlike strata 7 and 8, this reads the
       curated `races-and-positions.json5` file itself (there is no external-id space for
       manual curation to check in the database): every race is compared by name against
       the file's entries. The three source-coverage strata are therefore not uniform in
       what they check — a race can, for example, have a BBL external-id row in the
       database with no corresponding page in the BBL mirror, or vice versa.
-   8. **BBL and TP names disagree** — races present in both sources but under different
+   10. **BBL and TP names disagree** — races present in both sources but under different
       names, beyond BBL's own `<Race> Team(s)` suffix convention. The race-identity
       panel's own BBL/TP name-agreement sub-table (below) shows this same comparison for
       every sampled race, not only the ones this stratum selects.
-   9. **Random sample** — a plain random sample of races, with no selection criteria of
+   11. **Random sample** — a plain random sample of races, with no selection criteria of
       its own.
 
    Each stratum declares one or more `sources`, but the sampler
    (`race-sampler.service.ts`) samples every stratum exactly once, using only the first
-   source it declares — never once per declared source. This is why strata 1, 2, 3, 4
-   and 9 — whose queries do not vary by source at all — still declare
+   source it declares — never once per declared source. This is why strata 1, 2, 3, 4,
+   5, 6 and 11 — whose queries do not vary by source at all — still declare
    `sources: ['bbl', 'tp', 'manual']`: the list exists to describe which sources the
    result meaningfully speaks to, not to trigger repeated sampling of the same query
    (which would otherwise draw a different random sample per source and could select up
@@ -85,10 +96,11 @@ tool's own composition.
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
-3. For each sampled race, renders three panel pairs. Star players are excluded
-   throughout the position-availability and position-characteristics panels, both raw
-   and imported — they are shared across races rather than owned by one, so a
-   per-race report is the wrong place to review them:
+3. For each sampled race, renders four panel pairs. Star players are excluded
+   throughout the position-availability, position-characteristics and
+   position-starting-skills panels, both raw and imported — they are shared across
+   races rather than owned by one, so a per-race report is the wrong place to review
+   them:
    - **race-identity** — left: BBL, TP and manual curation are all attempted together in
      one panel (unlike other review tools' raw panels, which pick a single source based
      on the sampled entity's own source), each contributing its own sub-table when that
@@ -123,6 +135,27 @@ tool's own composition.
      sets. A (position, rules set) pair with no stored row is rendered as a highlighted
      row carrying an explicit textual label (`missing`), so the report stays readable
      without colour.
+   - **position-starting-skills** — left: raw BBL, TP and manual curation sub-tables,
+     shown together exactly like the other race-scoped panels. BBL's sub-table reads its
+     one rules-set-less Skills cell per position page. TP's sub-table is per rules set
+     — TP names skills by a per-rules-set `skillMasterId`, resolved to a name from the
+     downloaded roster files where possible, shown as `skill master #<id>` when no
+     roster file explains it. Manual curation's sub-table is sourced from
+     `position-skills.json5`, for the rules sets neither source covers. None of the
+     three ever carries the random or elite marker — both are advancement-only concepts
+     a starting skill never has. Right: the stored `position_rules_set_skills` rows, one
+     sub-table per rules set the race's eras map to. A position with a characteristics
+     row but no starting skills renders `none`; a position with no `position_rules_sets`
+     row at all — so no row a starting skill could hang off — is rendered as a
+     highlighted row labelled `missing (no characteristics row)`, mirroring how the
+     characteristics panel highlights the same absence.
+
+     Unlike the other three panels, the raw and imported starting-skills panels are
+     never diffed against each other: BBL's skills carry no rules set, TP's carry
+     per-rules-set ids, and the curated file carries `Name` external ids, so lining
+     them up against the stored rows would mean re-running the importers' own
+     resolution logic — the very thing under review. The two panels are shown side by
+     side purely for a human reviewer to compare by eye.
 
 4. Writes the report under `tools/review-race/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
@@ -131,9 +164,9 @@ Strata that match nothing, and override ids that are not in the database, are re
 gaps in the report (and as console warnings) — never as failures. Each stratum is sampled
 exactly once, using the first source it declares, regardless of how many sources it lists —
 a stratum whose query doesn't vary by source (era availability, characteristics change,
-name mismatch, the random baseline) declares several sources purely to describe which
-sources the result speaks to, not to trigger repeated sampling — so a stratum that finds
-nothing produces exactly one gap, never one per declared source.
+starting-skills change, name mismatch, the random baseline) declares several sources
+purely to describe which sources the result speaks to, not to trigger repeated sampling —
+so a stratum that finds nothing produces exactly one gap, never one per declared source.
 
 ## Configuration
 

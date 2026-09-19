@@ -10,6 +10,9 @@ import { CurrentInjuryStratificationService } from '../lasting-injuries/current-
 import { HealedInjuryStratificationService } from '../lasting-injuries/healed-injury-stratification.service';
 import { LastingInjuriesModule } from '../lasting-injuries/lasting-injuries.module';
 import { LastingInjuriesReviewerService } from '../lasting-injuries/lasting-injuries-reviewer.service';
+import { PlayerAdvancementsModule } from '../player-advancements/player-advancements.module';
+import { PlayerAdvancementsReviewerService } from '../player-advancements/player-advancements-reviewer.service';
+import { PlayerAdvancementsStratificationService } from '../player-advancements/player-advancements-stratification.service';
 import { CharacteristicsChangeStratificationService } from '../player-characteristics/characteristics-change-stratification.service';
 import { PlayerCharacteristicsModule } from '../player-characteristics/player-characteristics.module';
 import { PlayerCharacteristicsReviewerService } from '../player-characteristics/player-characteristics-reviewer.service';
@@ -42,6 +45,7 @@ import { ReviewService } from './review.service';
     SharedModule,
     PlayerInfoModule,
     PlayerCharacteristicsModule,
+    PlayerAdvancementsModule,
     SppTotalsModule,
     LastingInjuriesModule,
   ],
@@ -56,6 +60,7 @@ import { ReviewService } from './review.service';
       PlayerInfoReviewerService,
       PlayerSppTotalsReviewerService,
       PlayerCharacteristicsReviewerService,
+      PlayerAdvancementsReviewerService,
       LastingInjuriesReviewerService,
     ]),
     createRegistryProvider(PLAYER_STRATIFIERS, [
@@ -63,6 +68,7 @@ import { ReviewService } from './review.service';
       SppMagnitudeStratificationService,
       SppNonStandardContributionStratificationService,
       CharacteristicsChangeStratificationService,
+      PlayerAdvancementsStratificationService,
       CurrentInjuryStratificationService,
       HealedInjuryStratificationService,
       RandomPlayerStratificationService,

@@ -20,6 +20,7 @@ import { EligibilityMismatchStratificationService } from './star-player-hire-eli
 import { MercenaryVsEmbeddedStratificationService } from './star-player-hire-eligibility/mercenary-vs-embedded-stratification.service';
 import { RandomStarPlayerStratificationService } from './star-player-identity/random-star-player-stratification.service';
 import { SourceCoverageStratificationService } from './star-player-identity/source-coverage-stratification.service';
+import { StarPlayerSkillsStratificationService } from './star-player-skills/star-player-skills-stratification.service';
 
 describe('AppModule', () => {
   let dir: string;
@@ -54,7 +55,7 @@ describe('AppModule', () => {
     expect(moduleRef.get(ReviewService)).toBeInstanceOf(ReviewService);
   });
 
-  it('registers all six star player stratifiers in STAR_PLAYER_STRATIFIERS', async () => {
+  it('registers all seven star player stratifiers in STAR_PLAYER_STRATIFIERS', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -67,11 +68,12 @@ describe('AppModule', () => {
     const stratifiers = moduleRef.get<StarPlayerStratifier[]>(
       STAR_PLAYER_STRATIFIERS,
     );
-    expect(stratifiers).toHaveLength(6);
+    expect(stratifiers).toHaveLength(7);
     expect(
       [
         CharacteristicsChangeStratificationService,
         MissingRulesSetStratificationService,
+        StarPlayerSkillsStratificationService,
         SourceCoverageStratificationService,
         EligibilityMismatchStratificationService,
         MercenaryVsEmbeddedStratificationService,
@@ -82,7 +84,7 @@ describe('AppModule', () => {
     ).toBe(true);
   });
 
-  it('registers the three star player data type reviewers in report order', async () => {
+  it('registers the four star player data type reviewers in report order', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -95,10 +97,11 @@ describe('AppModule', () => {
     const reviewers = moduleRef.get<StarPlayerDataTypeReviewer[]>(
       STAR_PLAYER_DATA_TYPE_REVIEWERS,
     );
-    expect(reviewers).toHaveLength(3);
+    expect(reviewers).toHaveLength(4);
     expect(reviewers.map((reviewer) => reviewer.id)).toEqual([
       'star-player-identity',
       'star-player-characteristics',
+      'star-player-skills',
       'star-player-hire-eligibility',
     ]);
   });

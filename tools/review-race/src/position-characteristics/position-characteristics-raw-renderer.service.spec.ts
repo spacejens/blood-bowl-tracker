@@ -72,6 +72,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
         passing: null,
         armour: '8',
       },
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -96,6 +97,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
         passing: '4+',
         armour: '9+',
       },
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -114,6 +116,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
       isStarPlayer: false,
       races: [],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -160,6 +163,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
             name: 'Blitzer',
             isStar: false,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 6,
@@ -174,6 +179,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
             name: 'Deathroller',
             isStar: true,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 3,
@@ -209,6 +216,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
           name: 'Blitzer',
           isStar: false,
           isOfficial: true,
+          skills: [],
+          specialRuleName: null,
           rulesSet: 'BB2020',
           characteristics: {
             move: 6,
@@ -223,6 +232,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
           name: 'Blitzer',
           isStar: false,
           isOfficial: true,
+          skills: [],
+          specialRuleName: null,
           rulesSet: 'BB2025',
           characteristics: {
             move: 6,
@@ -264,6 +275,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
               name: 'Yhetee',
               isStar: false,
               isOfficial,
+              skills: [],
+              specialRuleName: null,
               rulesSet: 'BB2020',
               characteristics: {
                 move: 5,

@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 import { BblRawStarPlayerPageService } from './bbl-raw-star-player-page.service';
+import { BblSkillEntryService } from './bbl-skill-entry.service';
 
 function starPage(name: string): string {
   return `<html><body>
@@ -28,14 +29,22 @@ const REGULAR_PAGE = `<html><body><h1>Dwarf Blitzer</h1>
 <table><tr><td>primary:</td><td>General, Strength</td></tr></table>
 </body></html>`;
 
+function defaultSkillEntries(): MockProxy<BblSkillEntryService> {
+  const skillEntries = mock<BblSkillEntryService>();
+  skillEntries.parseCell.mockReturnValue([]);
+  return skillEntries;
+}
+
 async function makeService(
   reader: MockProxy<BblMirrorReaderService>,
+  skillEntries: MockProxy<BblSkillEntryService> = defaultSkillEntries(),
 ): Promise<BblRawStarPlayerPageService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblRawStarPlayerPageService,
       { provide: BblMirrorReaderService, useValue: reader },
       StarPlayerNameMatcherService,
+      { provide: BblSkillEntryService, useValue: skillEntries },
     ],
   }).compile();
   return moduleRef.get(BblRawStarPlayerPageService);
@@ -45,7 +54,13 @@ describe('BblRawStarPlayerPageService', () => {
   it('parses a star page addressed by typID', async () => {
     const reader = mock<BblMirrorReaderService>();
     reader.readPage.mockResolvedValue(starPage('Eldril Sidewinder'));
-    const service = await makeService(reader);
+    const skillEntries = defaultSkillEntries();
+    skillEntries.parseCell.mockReturnValue([
+      { name: 'Loner', attributeValue: '4+' },
+      { name: 'Catch', attributeValue: null },
+      { name: 'Dodge', attributeValue: null },
+    ]);
+    const service = await makeService(reader, skillEntries);
 
     expect(await service.starFor('126')).toEqual({
       typId: '126',
@@ -53,6 +68,11 @@ describe('BblRawStarPlayerPageService', () => {
       cost: '230 000 gp',
       canPlayFor: 'Any team with Elven Kingdoms League',
       skills: 'Loner(4+), Catch, Dodge',
+      skillRefs: [
+        { name: 'Loner', attributeValue: '4+' },
+        { name: 'Catch', attributeValue: null },
+        { name: 'Dodge', attributeValue: null },
+      ],
       characteristics: {
         move: '8',
         strength: '3',
@@ -166,6 +186,7 @@ describe('BblRawStarPlayerPageService', () => {
       cost: null,
       canPlayFor: null,
       skills: null,
+      skillRefs: [],
       characteristics: null,
     });
   });
@@ -202,5 +223,52 @@ describe('BblRawStarPlayerPageService', () => {
 
     expect(star?.characteristics).toBeNull();
     expect(star?.skills).toBeNull();
+  });
+
+  it('parses the sixth cell of the characteristics row as the skills cell', async () => {
+    const reader = mock<BblMirrorReaderService>();
+    reader.readPage.mockResolvedValue(
+      '<h1>Grombrindal</h1><table>' +
+        '<tr><td>None (star player)</td></tr>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th></tr>' +
+        '<tr><td>5</td><td>4</td><td>4</td><td>5</td><td>9</td>' +
+        '<td>Block, Loner (4+)</td></tr>' +
+        '</table>',
+    );
+    const skillEntries = defaultSkillEntries();
+    skillEntries.parseCell.mockReturnValue([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+    const service = await makeService(reader, skillEntries);
+
+    const star = await service.starFor('900');
+
+    expect(skillEntries.parseCell).toHaveBeenCalledWith('Block, Loner (4+)');
+    expect(star?.skillRefs).toEqual([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+  });
+
+  it('reports no skill refs when the page has no skills cell', async () => {
+    const reader = mock<BblMirrorReaderService>();
+    reader.readPage.mockResolvedValue(
+      '<h1>Grombrindal</h1><table>' +
+        '<tr><td>None (star player)</td></tr>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th></tr>' +
+        '<tr><td>5</td><td>4</td><td>4</td><td>5</td><td>9</td></tr>' +
+        '</table>',
+    );
+    const skillEntries = defaultSkillEntries();
+    const service = await makeService(reader, skillEntries);
+
+    const star = await service.starFor('900');
+
+    // The absent verbatim `skills` string falls back to '', so the parser is
+    // still called (with '') rather than skipped — unlike review-race's page
+    // service, which only calls its parser when a skills cell exists at all.
+    expect(skillEntries.parseCell).toHaveBeenCalledWith('');
+    expect(star?.skillRefs).toEqual([]);
   });
 });

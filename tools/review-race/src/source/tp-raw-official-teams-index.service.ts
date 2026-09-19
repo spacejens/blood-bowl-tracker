@@ -29,6 +29,18 @@ interface TpRawPositionCharacteristics {
   armour: number;
 }
 
+/**
+ * One skill reference on an official-list entry. TP names the skill only by
+ * `skillMasterId` here — the display name lives in roster files and is
+ * resolved separately by `TpSkillMasterNamesService`. `attributeValue` is
+ * TP's separately stored parenthetical ("4+" for Loner, "+1" for Mighty
+ * Blow).
+ */
+export interface TpRawSkillRef {
+  skillMasterId: number;
+  attributeValue: string | null;
+}
+
 /** One entry on a race's official list, under one rules set. */
 export interface TpRawOfficialPosition {
   name: string;
@@ -48,6 +60,14 @@ export interface TpRawOfficialPosition {
   /** TP's own numeric id, when the official list carries one. */
   tpPositionId: number | null;
   characteristics: TpRawPositionCharacteristics;
+  /** The entry's starting skills, by TP skill master id. */
+  skills: TpRawSkillRef[];
+  /**
+   * A star entry's own exclusive skill, which TP publishes as a sibling of
+   * the `skills` array rather than an entry inside it. Null for an ordinary
+   * position.
+   */
+  specialRuleName: string | null;
 }
 
 /** What TP's own official team list says about one race code. */
@@ -273,7 +293,32 @@ export class TpRawOfficialTeamsIndexService {
       rulesSet: source.rulesSet,
       tpPositionId: typeof id === 'number' ? id : null,
       characteristics: { move, strength, agility, passing, armour },
+      skills: this.skillRefs(entry),
+      specialRuleName: this.stringProperty(entry, 'specialRuleName'),
     };
+  }
+
+  /** One entry's `skills[]`, defensively shaped. */
+  private skillRefs(entry: unknown): TpRawSkillRef[] {
+    return this.arrayProperty(entry, 'skills').flatMap((skill) => {
+      const skillMasterId = this.property(skill, 'skillMasterId');
+      if (typeof skillMasterId !== 'number') {
+        return [];
+      }
+      const attribute = this.property(skill, 'skillAttributeMaster');
+      const value = this.property(attribute, 'value');
+      return [
+        {
+          skillMasterId,
+          attributeValue: typeof value === 'string' ? value : null,
+        },
+      ];
+    });
+  }
+
+  private stringProperty(value: unknown, key: string): string | null {
+    const property = this.property(value, key);
+    return typeof property === 'string' && property !== '' ? property : null;
   }
 
   private async readJson(path: string): Promise<unknown> {

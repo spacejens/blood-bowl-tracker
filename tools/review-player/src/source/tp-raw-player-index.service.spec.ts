@@ -364,10 +364,30 @@ describe('TpRawPlayerIndexService', () => {
     expect(await service.aggregateFor('999999')).toBeNull();
   });
 
-  it('takes the higher-numbered roster file when it is scanned after the lower one', async () => {
+  it('takes the roster entry with the higher totalStarPlayerPoints when scanned after the lower one', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
-    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
-    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 10,
+        totalStarPlayerPoints: 3,
+      },
+    ]);
+    writeRoster(700, [
+      {
+        id: 2477481,
+        ma: 8,
+        st: 2,
+        ag: 5,
+        pa: 3,
+        av: 9,
+        totalStarPlayerPoints: 26,
+      },
+    ]);
     withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
       'match_1.json',
       'rosters_500.json',
@@ -385,15 +405,93 @@ describe('TpRawPlayerIndexService', () => {
     });
   });
 
-  it('keeps the higher-numbered roster file when it is scanned before the lower one', async () => {
+  it('keeps the roster entry with the higher totalStarPlayerPoints even under a numerically lower filename, scanned first', async () => {
+    // The reported bug this guards against: TP roster filenames are not a
+    // recency signal at all — the same team's file can carry an unrelated (or
+    // even numerically LOWER) number for a later snapshot. Only
+    // totalStarPlayerPoints, never the filename or scan order, decides the
+    // winner: here the numerically lower "rosters_500.json" carries the
+    // higher totalStarPlayerPoints and must still win.
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
-    writeRoster(500, [{ id: 2477481, ma: 6, st: 4, ag: 3, pa: 5, av: 10 }]);
-    writeRoster(700, [{ id: 2477481, ma: 8, st: 2, ag: 5, pa: 3, av: 9 }]);
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 10,
+        totalStarPlayerPoints: 26,
+      },
+    ]);
+    writeRoster(700, [
+      {
+        id: 2477481,
+        ma: 8,
+        st: 2,
+        ag: 5,
+        pa: 3,
+        av: 9,
+        totalStarPlayerPoints: 3,
+      },
+    ]);
     withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
       'match_1.json',
       'rosters_700.json',
       'rosters_500.json',
     ]);
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player).toMatchObject({
+      move: 6,
+      strength: 4,
+      agility: 3,
+      passing: 5,
+      armour: 10,
+    });
+  });
+
+  it('resolves an identical roster filename shared by two unrelated competitions by totalStarPlayerPoints', async () => {
+    // The exact reported bug: TP appears to number roster files per team, not
+    // per upload, so the same team's file can carry the identical number in
+    // two different competition directories with no relation to recency.
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    mkdirSync(join(dir, 'fourth-era', 'chaos-cup-8'), { recursive: true });
+    writeFileSync(
+      join(dir, 'fourth-era', 'chaos-cup-8', 'rosters_164848.json'),
+      JSON.stringify({
+        lineUps: [
+          {
+            id: 2477481,
+            ma: 6,
+            st: 4,
+            ag: 3,
+            pa: 5,
+            av: 10,
+            totalStarPlayerPoints: 3,
+          },
+        ],
+      }),
+      'utf8',
+    );
+    writeFileSync(
+      join(dir, 'fourth-era', 'season-30', 'rosters_164848.json'),
+      JSON.stringify({
+        lineUps: [
+          {
+            id: 2477481,
+            ma: 8,
+            st: 2,
+            ag: 5,
+            pa: 3,
+            av: 9,
+            totalStarPlayerPoints: 26,
+          },
+        ],
+      }),
+      'utf8',
+    );
 
     const player = await service.aggregateFor('2477481');
 
