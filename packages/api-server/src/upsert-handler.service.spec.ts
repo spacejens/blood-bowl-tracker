@@ -1,5 +1,6 @@
 import {
   CharacteristicFormatMismatchError,
+  KeywordValidationError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   SkillValidationError,
@@ -393,6 +394,20 @@ describe('UpsertHandlerService', () => {
       ).rejects.toBeInstanceOf(BadRequestReply);
       expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
         message: 'Skill 7 is not available',
+      });
+    });
+
+    it('maps a keyword validation error to BAD_REQUEST in runSync', async () => {
+      await expect(
+        handler.runSync(errors, () => {
+          throw new KeywordValidationError(
+            'Position 3 has no characteristics recorded under rules set 4, so it cannot carry keywords there',
+          );
+        }),
+      ).rejects.toBeInstanceOf(BadRequestReply);
+      expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+        message:
+          'Position 3 has no characteristics recorded under rules set 4, so it cannot carry keywords there',
       });
     });
   });
