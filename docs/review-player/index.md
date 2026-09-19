@@ -27,12 +27,11 @@ per-entity preparation hook is a pass-through here. `harness.module.ts` stays lo
 because it _is_ this tool's own composition.
 
 Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
-totals, characteristics and current lasting injuries. Skills are deliberately deferred —
-they will plug in as another data-type module without touching the harness services.
+totals, characteristics, current lasting injuries and skill advancements.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across eleven strata:
+1. Samples players per source (BBL and TP) across fifteen strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -95,6 +94,26 @@ they will plug in as another data-type module without touching the harness servi
        history versions a freshly-imported player needs when their injury
        predates the import, so this stratum is what makes that step
        observable.
+   12. **Starting skills differ from position** — a player whose stored
+       `player_skills` rows tagged `starting` do not match, as a skill-id set,
+       the skills their position carries under the era's last-listed rules
+       set. A starting skill set is copied from the position, so a difference
+       is either a mis-parsed player page or a position whose own skills are
+       wrong — either is worth a human's eyes. A stratifier only ever sees the
+       database, so "differs from the raw source" cannot itself be a stratum;
+       this is the closest DB-expressible signal.
+   13. **Gained an elite skill** — a player with at least one gained
+       (non-`starting`) skill flagged elite under the era's last-listed rules
+       set. BB2025's elite distinction is rare, so this guarantees a run
+       exercises it at all rather than only turning up by chance.
+   14. **Gained a randomly rolled skill** — a player with at least one gained
+       skill whose stored source is `random`.
+   15. **Gained a freely chosen skill** — a player with at least one gained
+       skill whose stored source is `chosen`.
+
+       None of the last three strata is a finding on its own: a run simply
+       always contains an elite, a randomly rolled and a freely chosen gained
+       skill, each of which exercises a different importer path.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
@@ -116,7 +135,7 @@ they will plug in as another data-type module without touching the harness servi
    the extremes. A player with no stored total at all — commonly an induced star
    player — is excluded from all three, needing no exclusion of its own to arrange.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders four panel pairs:
+3. For each sampled player, renders five panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
      for name, position, team and its career achievement counters, including the career
      SPP figure BBL publishes in the "Unspent SPP" row; or, for TP (which has no
@@ -162,6 +181,41 @@ they will plug in as another data-type module without touching the harness servi
      deliberately uninterpreted — deciding what the text or the gap means is
      exactly the judgement the importer makes, and a panel that made the same
      judgement could only ever agree with it.
+   - **player-advancements** — left: whichever source the player was sampled
+     through, showing starting skills alongside gained ones because a gained
+     skill only makes sense against the set the player started with.
+     - BBL's player page records only plain text (a starting skill) versus a
+       coloured span (a gained one); it cannot say whether a gained skill was
+       randomly rolled or freely chosen, and it has no elite concept at all,
+       so no skill in this panel ever carries the dice or diamond marker — the
+       panel says so in words rather than showing an "unverifiable" mark per
+       row. It also shows BBL's own `+MA`/`+ST`/`+AG`/`+PA`/`+AV` characteristic
+       increase counts.
+     - TP's roster file gives the position template's skills as starting and
+       the line-up entry's own skills as gained, each gained skill carrying
+       `isRandom` and `isElite` where TP recorded them (a skill with no
+       `isRandom` flag at all shows no dice marker and is called out in a
+       note — absent is not the same as "chosen"). TP publishes no
+       advancement counter, so this panel also shows characteristic
+       improvements derived from the current stat line against the position
+       template, with Agility and Passing counted downwards because a lower
+       roll target is an improvement there; they are shown for orientation
+       only and never compared against anything, since an injury and an
+       advancement on the same characteristic cancel out in the same diff.
+
+     Right: every stored `player_skills` row for the player, resolved against
+     the era's last-listed rules set the same way the stratification service
+     does. A starting row is always plain; a gained row takes the dice marker
+     when its stored source is `random` and the diamond when the skill is
+     elite under that rules set, either or both at once. Each stored row is
+     also checked by name against the source the player was sampled through —
+     read through the same services the raw panel above uses — and a stored
+     skill missing from the raw source, or a raw skill nothing was stored for,
+     is highlighted and says so in words. The five stored increase-count
+     columns are compared against BBL's own counts for a BBL-sourced player
+     only: TP publishes no comparable counts at all (its raw panel already
+     shows a derived template diff instead), and no importer writes these
+     columns from TP, so comparing them there would be noise, not a finding.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
