@@ -33,7 +33,7 @@ CREATE TABLE "game_data"."position_rules_set_keywords" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"history_version" integer DEFAULT 1 NOT NULL,
 	"history_period" tstzrange DEFAULT tstzrange(now(), null) NOT NULL,
-	CONSTRAINT "position_rules_set_keywords_position_rules_set_id_keyword_id_unique" UNIQUE("position_rules_set_id","keyword_id")
+	CONSTRAINT "position_rules_set_keywords_position_rules_set_id_keyword_id" UNIQUE("position_rules_set_id","keyword_id")
 );
 --> statement-breakpoint
 CREATE TABLE "game_data"."position_rules_set_keywords_history" (LIKE "game_data"."position_rules_set_keywords");
