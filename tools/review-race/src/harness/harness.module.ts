@@ -11,6 +11,9 @@ import { PositionAvailabilityReviewerService } from '../position-availability/po
 import { CharacteristicsChangeStratificationService } from '../position-characteristics/characteristics-change-stratification.service';
 import { PositionCharacteristicsModule } from '../position-characteristics/position-characteristics.module';
 import { PositionCharacteristicsReviewerService } from '../position-characteristics/position-characteristics-reviewer.service';
+import { PositionStartingSkillsModule } from '../position-starting-skills/position-starting-skills.module';
+import { PositionStartingSkillsReviewerService } from '../position-starting-skills/position-starting-skills-reviewer.service';
+import { StartingSkillsStratificationService } from '../position-starting-skills/starting-skills-stratification.service';
 import { EraAvailabilityStratificationService } from '../race-identity/era-availability-stratification.service';
 import { NameMismatchStratificationService } from '../race-identity/name-mismatch-stratification.service';
 import { RaceIdentityModule } from '../race-identity/race-identity.module';
@@ -33,8 +36,9 @@ import { ReviewService } from './review.service';
  * service.
  *
  * Reviewer order is report order: identity, then availability, then
- * characteristics — narrowing from what the race is to what its positions are
- * to what those positions' numbers are.
+ * characteristics, then starting skills — narrowing from what the race is to
+ * what its positions are to what those positions' numbers are to what skills
+ * they start with.
  */
 @Module({
   imports: [
@@ -42,6 +46,7 @@ import { ReviewService } from './review.service';
     RaceIdentityModule,
     PositionAvailabilityModule,
     PositionCharacteristicsModule,
+    PositionStartingSkillsModule,
   ],
   providers: [
     RaceLookupService,
@@ -54,10 +59,12 @@ import { ReviewService } from './review.service';
       RaceIdentityReviewerService,
       PositionAvailabilityReviewerService,
       PositionCharacteristicsReviewerService,
+      PositionStartingSkillsReviewerService,
     ]),
     createRegistryProvider(RACE_STRATIFIERS, [
       EraAvailabilityStratificationService,
       CharacteristicsChangeStratificationService,
+      StartingSkillsStratificationService,
       SourceCoverageStratificationService,
       NameMismatchStratificationService,
       RandomRaceStratificationService,
