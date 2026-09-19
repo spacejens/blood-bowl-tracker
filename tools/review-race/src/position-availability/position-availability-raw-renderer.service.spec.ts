@@ -60,6 +60,7 @@ describe('PositionAvailabilityRawRendererService', () => {
       isStarPlayer: false,
       races: [{ bblId: '44', name: 'Dwarf' }],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -80,6 +81,7 @@ describe('PositionAvailabilityRawRendererService', () => {
       isStarPlayer: false,
       races: [{ bblId: '99', name: 'Orc' }],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -99,6 +101,7 @@ describe('PositionAvailabilityRawRendererService', () => {
       isStarPlayer: false,
       races: [{ bblId: '99', name: 'Orc' }],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);

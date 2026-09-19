@@ -72,6 +72,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
         passing: null,
         armour: '8',
       },
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -96,6 +97,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
         passing: '4+',
         armour: '9+',
       },
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -114,6 +116,7 @@ describe('PositionCharacteristicsRawRendererService', () => {
       isStarPlayer: false,
       races: [],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
