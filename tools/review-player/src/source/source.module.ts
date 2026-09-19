@@ -6,6 +6,7 @@ import { BblPlayerSkillsCellService } from './bbl-player-skills-cell.service';
 import { BblRawPlayerPageLoaderService } from './bbl-raw-player-page-loader.service';
 import { TpRawPlayerIndexService } from './tp-raw-player-index.service';
 import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.service';
+import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 /**
  * Reads each source's downloaded raw files. Loaders only locate and decode —
@@ -19,6 +20,7 @@ import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.serv
     BblPlayerAdvancementsReaderService,
     TpRawPlayerIndexService,
     TpRawPlayerSkillsIndexService,
+    TpSkillMasterNamesService,
   ],
   exports: [
     BblRawPlayerPageLoaderService,
@@ -26,6 +28,7 @@ import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.serv
     BblPlayerAdvancementsReaderService,
     TpRawPlayerIndexService,
     TpRawPlayerSkillsIndexService,
+    TpSkillMasterNamesService,
   ],
 })
 export class SourceModule {}

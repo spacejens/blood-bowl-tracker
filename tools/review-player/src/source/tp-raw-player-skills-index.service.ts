@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import type { RawIncreaseCounts } from './bbl-player-skills-cell.service';
+import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 /** `rosters_<id>.json` — TP's per-team roster file. */
 const ROSTER_FILENAME = /^rosters_\d+\.json$/;
@@ -17,10 +18,14 @@ export interface TpRawPlayerSkill {
   name: string | null;
   attributeValue: string | null;
   /**
-   * From `skillMaster.isElite`, matching how `TpSkillMasterNamesService` and
-   * the imported panel (`skill_rules_sets.isElite`) both read TP's elite
-   * marker. NOT the per-pick `isElite` field some skill entries also carry —
-   * that field essentially never agrees with the master's across real data.
+   * OR of the entry's own embedded `skillMaster.isElite` and
+   * `TpSkillMasterNamesService`'s scanned master index. The local embedding
+   * at this path is a partial record that essentially never carries
+   * `isElite: true`, even for skills that genuinely are elite — the master
+   * index, built by scanning every embedding of the same id across every
+   * roster file, is the reliable source. NOT the per-pick `isElite` field
+   * some skill entries also carry — that field essentially never agrees with
+   * the master's across real data.
    */
   isElite: boolean;
 }
@@ -82,7 +87,10 @@ export class TpRawPlayerSkillsIndexService {
       >
     | undefined;
 
-  constructor(private readonly config: ReviewPlayerConfigService) {}
+  constructor(
+    private readonly config: ReviewPlayerConfigService,
+    private readonly skillMasterNames: TpSkillMasterNamesService,
+  ) {}
 
   async advancementsFor(
     externalId: string,
@@ -112,7 +120,7 @@ export class TpRawPlayerSkillsIndexService {
           if (entry.isFile() && match !== null) {
             const body = await this.readJson(join(competitionDir, entry.name));
             const rosterId = Number(/\d+/.exec(entry.name)?.[0] ?? 0);
-            this.absorb(players, body, rosterId);
+            await this.absorb(players, body, rosterId);
           }
         }
       }
@@ -120,14 +128,14 @@ export class TpRawPlayerSkillsIndexService {
     return players;
   }
 
-  private absorb(
+  private async absorb(
     players: Map<
       number,
       { rosterId: number; advancements: TpRawPlayerAdvancements }
     >,
     file: unknown,
     rosterId: number,
-  ): void {
+  ): Promise<void> {
     for (const entry of this.arrayProperty(file, 'lineUps')) {
       const id = this.property(entry, 'id');
       if (typeof id !== 'number') {
@@ -137,37 +145,50 @@ export class TpRawPlayerSkillsIndexService {
       if (existing !== undefined && existing.rosterId >= rosterId) {
         continue;
       }
-      players.set(id, { rosterId, advancements: this.advancements(entry) });
+      players.set(id, {
+        rosterId,
+        advancements: await this.advancements(entry),
+      });
     }
   }
 
-  private advancements(entry: unknown): TpRawPlayerAdvancements {
+  private async advancements(entry: unknown): Promise<TpRawPlayerAdvancements> {
     const template = this.property(entry, 'lineUpMaster');
     const hasTemplate = typeof template === 'object' && template !== null;
+    const startingSkills = (
+      await Promise.all(
+        this.arrayProperty(template, 'skills').map((skill) =>
+          this.skill(skill),
+        ),
+      )
+    ).flat();
+    const gainedSkills = (
+      await Promise.all(
+        this.arrayProperty(entry, 'skills').map(async (skill) => {
+          const [base] = await this.skill(skill);
+          if (base === undefined) {
+            return [];
+          }
+          const isRandom = this.property(skill, 'isRandom');
+          return [
+            {
+              ...base,
+              isRandom: typeof isRandom === 'boolean' ? isRandom : null,
+            },
+          ];
+        }),
+      )
+    ).flat();
     return {
-      startingSkills: this.arrayProperty(template, 'skills').flatMap((skill) =>
-        this.skill(skill),
-      ),
-      gainedSkills: this.arrayProperty(entry, 'skills').flatMap((skill) => {
-        const [base] = this.skill(skill);
-        if (base === undefined) {
-          return [];
-        }
-        const isRandom = this.property(skill, 'isRandom');
-        return [
-          {
-            ...base,
-            isRandom: typeof isRandom === 'boolean' ? isRandom : null,
-          },
-        ];
-      }),
+      startingSkills,
+      gainedSkills,
       characteristicDiffs: this.diffs(entry, template, hasTemplate),
       hasTemplate,
     };
   }
 
   /** One skill ref, or nothing when the entry has no usable id. */
-  private skill(skill: unknown): TpRawPlayerSkill[] {
+  private async skill(skill: unknown): Promise<TpRawPlayerSkill[]> {
     const skillMasterId = this.property(skill, 'skillMasterId');
     if (typeof skillMasterId !== 'number') {
       return [];
@@ -178,13 +199,14 @@ export class TpRawPlayerSkillsIndexService {
       this.property(skill, 'skillAttributeMaster'),
       'value',
     );
-    const isElite = this.property(skillMaster, 'isElite');
+    const localIsElite = this.property(skillMaster, 'isElite') === true;
+    const master = await this.skillMasterNames.masterFor(skillMasterId);
     return [
       {
         skillMasterId,
         name: typeof name === 'string' && name !== '' ? name : null,
         attributeValue: typeof value === 'string' ? value : null,
-        isElite: isElite === true,
+        isElite: localIsElite || (master?.isElite ?? false),
       },
     ];
   }

@@ -9,6 +9,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.service';
+import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 async function makeService(
   files: Record<string, unknown>,
@@ -25,6 +26,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpRawPlayerSkillsIndexService,
+      TpSkillMasterNamesService,
       { provide: ReviewPlayerConfigService, useValue: config },
     ],
   }).compile();
@@ -56,7 +58,9 @@ describe('TpRawPlayerSkillsIndexService', () => {
             skills: [
               {
                 skillMasterId: 261,
-                skillMaster: { id: 261, name: 'Guard', isElite: true },
+                // A real, non-elite skillMaster embedding: local isElite is
+                // absent, as it is for the vast majority of real TP data.
+                skillMaster: { id: 261, name: 'Guard' },
                 isRandom: false,
               },
             ],
@@ -75,6 +79,58 @@ describe('TpRawPlayerSkillsIndexService', () => {
         isElite: false,
       },
     ]);
+    expect(advancements?.gainedSkills).toEqual([
+      {
+        skillMasterId: 261,
+        name: 'Guard',
+        attributeValue: null,
+        isElite: false,
+        isRandom: false,
+      },
+    ]);
+  });
+
+  it('resolves isElite via the scanned master index when the local skillMaster embedding omits it', async () => {
+    // This is the exact bug the master index exists to fix: TP writes a
+    // partial skillMaster record at this embedding path that essentially
+    // never carries isElite: true, even for skills that genuinely are elite.
+    // The real flag only shows up on other embeddings of the same id
+    // elsewhere in the roster files (e.g. rosterMaster/lineUpMasters[]),
+    // which TpSkillMasterNamesService scans and OR-accumulates.
+    const service = await makeService({
+      'rosters_1.json': {
+        rosterMaster: {
+          lineUpMasters: [
+            {
+              skills: [
+                { skillMaster: { id: 261, name: 'Guard', isElite: true } },
+              ],
+            },
+          ],
+        },
+        lineUps: [
+          {
+            id: 2412443,
+            ma: 6,
+            st: 3,
+            ag: 3,
+            pa: 4,
+            av: 9,
+            lineUpMaster: { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] },
+            skills: [
+              {
+                skillMasterId: 261,
+                skillMaster: { id: 261, name: 'Guard' },
+                isRandom: false,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const advancements = await service.advancementsFor('2412443');
+
     expect(advancements?.gainedSkills).toEqual([
       {
         skillMasterId: 261,
@@ -102,8 +158,8 @@ describe('TpRawPlayerSkillsIndexService', () => {
               {
                 skillMasterId: 30,
                 // The per-pick isElite disagrees with skillMaster.isElite,
-                // as it does across nearly all real TP data. The master's
-                // value must win.
+                // as it does across nearly all real TP data. The local
+                // skillMaster's own value must win over the per-pick field.
                 skillMaster: { id: 30, name: 'Frenzy', isElite: false },
                 isRandom: false,
                 isElite: true,
