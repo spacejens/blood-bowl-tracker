@@ -87,8 +87,8 @@ tool's own composition.
 
    Each stratum declares one or more `sources`, but the sampler
    (`race-sampler.service.ts`) samples every stratum exactly once, using only the first
-   source it declares — never once per declared source. This is why strata 1, 2, 3, 4
-   and 9 — whose queries do not vary by source at all — still declare
+   source it declares — never once per declared source. This is why strata 1, 2, 3, 4,
+   5, 6 and 11 — whose queries do not vary by source at all — still declare
    `sources: ['bbl', 'tp', 'manual']`: the list exists to describe which sources the
    result meaningfully speaks to, not to trigger repeated sampling of the same query
    (which would otherwise draw a different random sample per source and could select up
