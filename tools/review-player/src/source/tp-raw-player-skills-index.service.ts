@@ -78,6 +78,14 @@ export interface TpRawPlayerAdvancements {
  * only ever grows over a player's career, so the higher value is always the
  * more complete, more recent snapshot.
  *
+ * Two snapshots that disagree while sharing the exact same
+ * `totalStarPlayerPoints` are an anomaly TP gives no further signal to
+ * resolve — `entries()` sorts the scan deterministically so which one wins is
+ * at least reproducible across runs and platforms, but it is still an
+ * arbitrary pick, not a verified "more recent" one. This tool surfaces
+ * disagreements between the raw and imported sides; it does not also try to
+ * arbitrate between two raw sources that disagree with each other.
+ *
  * Every shape check is defensive: this reads unvalidated JSON straight off
  * disk, and a raw panel that throws is strictly worse for a reviewer than one
  * that shows a gap. Deliberately does not use `packages/parse-tp` — that
@@ -231,6 +239,12 @@ export class TpRawPlayerSkillsIndexService {
    * Current minus template per characteristic, clamped at zero. AG and PA are
    * roll targets under every rules set TP covers, so an improvement LOWERS
    * the number and the subtraction runs the other way.
+   *
+   * A characteristic missing (or non-numeric) on either side is reported as
+   * no improvement rather than coerced to zero: subtracting a fabricated zero
+   * would report a false increase for whichever side actually had a real
+   * value, e.g. a current AV of 10 against a missing template AV would
+   * otherwise look like a 10-point increase.
    */
   private diffs(
     entry: unknown,
@@ -247,24 +261,23 @@ export class TpRawPlayerSkillsIndexService {
     if (!hasTemplate) {
       return zero;
     }
-    const up = (key: string): number =>
-      Math.max(
+    const difference = (key: string, improvesDownward: boolean): number => {
+      const current = this.numberProperty(entry, key);
+      const initial = this.numberProperty(template, key);
+      if (current === null || initial === null) {
+        return 0;
+      }
+      return Math.max(
         0,
-        (this.numberProperty(entry, key) ?? 0) -
-          (this.numberProperty(template, key) ?? 0),
+        improvesDownward ? initial - current : current - initial,
       );
-    const down = (key: string): number =>
-      Math.max(
-        0,
-        (this.numberProperty(template, key) ?? 0) -
-          (this.numberProperty(entry, key) ?? 0),
-      );
+    };
     return {
-      move: up('ma'),
-      strength: up('st'),
-      agility: down('ag'),
-      passing: down('pa'),
-      armour: up('av'),
+      move: difference('ma', false),
+      strength: difference('st', false),
+      agility: difference('ag', true),
+      passing: difference('pa', true),
+      armour: difference('av', false),
     };
   }
 
@@ -296,9 +309,17 @@ export class TpRawPlayerSkillsIndexService {
     return (await this.entries(dir)).filter((entry) => entry.isDirectory());
   }
 
+  /**
+   * Directory entries, or none when the directory is absent — sorted by name
+   * so the scan order (and, with it, which of two equal-`totalStarPlayerPoints`
+   * roster snapshots for the same line-up id wins a tie) is reproducible
+   * across platforms and runs, rather than whatever order the filesystem
+   * happens to return. `readdir` itself makes no ordering guarantee.
+   */
   private async entries(dir: string): Promise<Dirent[]> {
     try {
-      return await readdir(dir, { withFileTypes: true });
+      const entries = await readdir(dir, { withFileTypes: true });
+      return entries.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];

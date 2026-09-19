@@ -328,6 +328,67 @@ describe('TpRawPlayerSkillsIndexService', () => {
     });
   });
 
+  it('reports no improvement for a characteristic missing from the entry, rather than treating it as zero', async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            id: 8,
+            ma: 7,
+            st: 4,
+            ag: 2,
+            // `pa` and `av` are absent on the entry itself.
+            lineUpMaster: { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] },
+            skills: [],
+          },
+        ],
+      },
+    });
+
+    expect((await service.advancementsFor('8'))?.characteristicDiffs).toEqual({
+      move: 1,
+      strength: 1,
+      agility: 1,
+      passing: 0,
+      armour: 0,
+    });
+  });
+
+  it('reports no improvement for a characteristic missing from the template, rather than treating it as zero', async () => {
+    const service = await makeService({
+      'rosters_1.json': {
+        lineUps: [
+          {
+            id: 9,
+            ma: 7,
+            st: 4,
+            ag: 2,
+            pa: 4,
+            av: 10,
+            lineUpMaster: {
+              ma: 6,
+              st: 3,
+              ag: 3,
+              // `pa` and `av` are absent on the template itself. Without the
+              // null-guard, a missing template av (falling back to 0) would
+              // make a current av of 10 look like a 10-point increase.
+              skills: [],
+            },
+            skills: [],
+          },
+        ],
+      },
+    });
+
+    expect((await service.advancementsFor('9'))?.characteristicDiffs).toEqual({
+      move: 1,
+      strength: 1,
+      agility: 1,
+      passing: 0,
+      armour: 0,
+    });
+  });
+
   it('reports no template when the roster entry carries none', async () => {
     const service = await makeService({
       'rosters_1.json': {

@@ -297,6 +297,14 @@ export class TpRawPlayerIndexService {
    * `absorbLineUp` breaks them for match data's `totalStarPlayerPoints`: it
    * only ever grows over a player's career, so the higher value on the entry
    * itself is always the more complete, more recent snapshot.
+   *
+   * Two snapshots that disagree while sharing the exact same
+   * `totalStarPlayerPoints` are an anomaly TP gives no further signal to
+   * resolve — `entries()` sorts the scan deterministically so which one wins
+   * is at least reproducible across runs and platforms, but it is still an
+   * arbitrary pick, not a verified "more recent" one. This tool surfaces
+   * disagreements between the raw and imported sides; it does not also try to
+   * arbitrate between two raw sources that disagree with each other.
    */
   private absorbRoster(
     characteristics: Map<number, RawCharacteristics>,
@@ -383,10 +391,17 @@ export class TpRawPlayerIndexService {
     return (await this.entries(dir)).filter((entry) => entry.isDirectory());
   }
 
-  /** Directory entries, or none when the directory is absent. */
+  /**
+   * Directory entries, or none when the directory is absent — sorted by name
+   * so the scan order (and, with it, which of two equal-`totalStarPlayerPoints`
+   * roster snapshots for the same line-up id wins a tie) is reproducible
+   * across platforms and runs, rather than whatever order the filesystem
+   * happens to return. `readdir` itself makes no ordering guarantee.
+   */
   private async entries(dir: string): Promise<Dirent[]> {
     try {
-      return await readdir(dir, { withFileTypes: true });
+      const entries = await readdir(dir, { withFileTypes: true });
+      return entries.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return [];
