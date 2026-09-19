@@ -295,6 +295,92 @@ describe('PlayerAdvancementsDbRendererService', () => {
     expect(html).toContain('Guard');
   });
 
+  it('flags a BBL starting/gained category mismatch even when the name matches', async () => {
+    const { service, bbl } = await makeService(
+      mockDb(
+        [playerRow],
+        [rulesSetRow],
+        [
+          {
+            skillId: 9,
+            skillName: 'Block',
+            source: 'chosen',
+            attributeValue: null,
+            advancementOrder: 1,
+            isElite: false,
+          },
+        ],
+      ),
+    );
+    bbl.read.mockResolvedValue({
+      skills: [
+        {
+          name: 'Block',
+          attributeValue: null,
+          source: 'starting',
+          advancementOrder: null,
+        },
+      ],
+      increaseCounts: {
+        move: 0,
+        strength: 0,
+        agility: 0,
+        passing: 0,
+        armour: 0,
+      },
+    });
+
+    const html = await service.render(player);
+
+    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('not in the raw source');
+    expect(html).toContain('in the raw source only');
+  });
+
+  it('flags a TP starting/gained category mismatch even when the name matches', async () => {
+    const { service, tp } = await makeService(
+      mockDb(
+        [playerRow],
+        [rulesSetRow],
+        [
+          {
+            skillId: 9,
+            skillName: 'Block',
+            source: 'chosen',
+            attributeValue: null,
+            advancementOrder: 1,
+            isElite: false,
+          },
+        ],
+      ),
+    );
+    tp.advancementsFor.mockResolvedValue({
+      startingSkills: [
+        {
+          skillMasterId: 220,
+          name: 'Block',
+          attributeValue: null,
+          isElite: false,
+        },
+      ],
+      gainedSkills: [],
+      characteristicDiffs: {
+        move: 0,
+        strength: 0,
+        agility: 0,
+        passing: 0,
+        armour: 0,
+      },
+      hasTemplate: true,
+    });
+
+    const html = await service.render({ ...player, source: 'tp' });
+
+    expect(html).toContain('class="mismatch"');
+    expect(html).toContain('not in the raw source');
+    expect(html).toContain('in the raw source only');
+  });
+
   it('highlights a stored increase count that disagrees with the BBL page', async () => {
     const { service, bbl } = await makeService(
       mockDb([{ ...playerRow, agilityIncreaseCount: 0 }], [rulesSetRow], []),

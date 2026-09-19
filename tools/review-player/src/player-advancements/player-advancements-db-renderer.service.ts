@@ -37,6 +37,9 @@ const RAW_ONLY = 'in the raw source only';
  */
 const NAME_SYSTEM = 'Name';
 
+/** Whether a skill was present from the start, or gained through advancement. */
+type SkillCategory = 'starting' | 'gained';
+
 /** One stored `player_skills` row, joined to its skill and rules-set flags. */
 interface StoredSkill {
   skillId: number;
@@ -71,10 +74,15 @@ interface StoredSkill {
  * mismatch. Instead, a raw name is resolved through `skills_external_ids`
  * (the `Name` system) to the skill id it curates onto, and rows are matched by
  * that id — falling back to a plain name match only when a raw name has no
- * curated `Name` external id at all. A stored skill the source does not have
- * is highlighted, and a source skill that was never stored is appended as its
- * own highlighted row. Every highlighted row also says so in words, so the
- * report stays readable without colour.
+ * curated `Name` external id at all. A match also requires the raw entry's own
+ * starting-vs-gained category to agree with the stored row's: a skill the
+ * source lists as starting but the import stored as gained (or vice versa) is
+ * a real import bug, not the kind of spelling curation the id-based match
+ * exists to absorb, so it must still surface as a mismatch even though the
+ * name/id agree. A stored skill the source does not have (by name/id AND
+ * category) is highlighted, and a source skill that was never stored is
+ * appended as its own highlighted row. Every highlighted row also says so in
+ * words, so the report stays readable without colour.
  *
  * Increase counts are compared only for a BBL-sourced player: BBL publishes
  * real per-characteristic markers, TP publishes none at all (its raw panel
@@ -108,15 +116,15 @@ export class PlayerAdvancementsDbRendererService {
       player.playerId,
       rulesSet.rulesSetId,
     );
-    const rawNames = await this.rawSkillNames(player);
+    const rawCategories = await this.rawSkillCategories(player);
     const rawSkillIdByName = await this.resolveRawSkillIds(
-      rawNames === null ? [] : [...rawNames],
+      rawCategories === null ? [] : [...rawCategories.keys()],
     );
     return (
       this.html.subheading(`Skills (${rulesSet.rulesSetName})`) +
       this.html.table(
         ['Skill', 'Source', 'Order', 'Raw source'],
-        this.skillRows(skillRows, rawNames, rawSkillIdByName),
+        this.skillRows(skillRows, rawCategories, rawSkillIdByName),
       ) +
       this.html.subheading('Characteristic increases') +
       (await this.increases(player, stored))
@@ -126,41 +134,38 @@ export class PlayerAdvancementsDbRendererService {
   /** One row per stored skill, then one per raw skill nothing stored. */
   private skillRows(
     skillRows: StoredSkill[],
-    rawNames: Set<string> | null,
+    rawCategories: Map<string, SkillCategory> | null,
     rawSkillIdByName: Map<string, number>,
   ): TableRow[] {
-    const storedNames = new Set(skillRows.map((row) => row.skillName));
-    const storedSkillIds = new Set(skillRows.map((row) => row.skillId));
+    const storedCategory = (row: StoredSkill): SkillCategory =>
+      row.source === 'starting' ? 'starting' : 'gained';
+    const sameSkill = (name: string, row: StoredSkill): boolean =>
+      name === row.skillName || rawSkillIdByName.get(name) === row.skillId;
     const matchesRaw = (row: StoredSkill): boolean => {
-      for (const name of rawNames ?? []) {
-        if (
-          name === row.skillName ||
-          rawSkillIdByName.get(name) === row.skillId
-        ) {
+      for (const [name, category] of rawCategories ?? []) {
+        if (sameSkill(name, row) && category === storedCategory(row)) {
           return true;
         }
       }
       return false;
     };
     const rows: TableRow[] = skillRows.map((row) => {
-      const found = rawNames !== null && matchesRaw(row);
+      const found = rawCategories !== null && matchesRaw(row);
       const cells = [
         this.format(row),
         row.source,
         row.advancementOrder === null ? NONE : String(row.advancementOrder),
-        rawNames === null ? 'not read' : found ? 'yes' : NOT_IN_RAW,
+        rawCategories === null ? 'not read' : found ? 'yes' : NOT_IN_RAW,
       ];
       // Cell 3 is the raw-source column, so that is the differing cell.
-      return rawNames !== null && !found
+      return rawCategories !== null && !found
         ? this.html.highlight(cells, [3])
         : cells;
     });
-    for (const name of rawNames ?? []) {
-      const resolvedId = rawSkillIdByName.get(name);
-      const accountedFor =
-        resolvedId === undefined
-          ? storedNames.has(name)
-          : storedSkillIds.has(resolvedId);
+    for (const [name, category] of rawCategories ?? []) {
+      const accountedFor = skillRows.some(
+        (row) => sameSkill(name, row) && category === storedCategory(row),
+      );
       if (!accountedFor) {
         rows.push(this.html.highlight([name, NONE, NONE, RAW_ONLY], [3]));
       }
@@ -260,25 +265,36 @@ export class PlayerAdvancementsDbRendererService {
     ]);
   }
 
-  /** The raw source's skill names, or null when the source has no data. */
-  private async rawSkillNames(
+  /**
+   * The raw source's skill names, each with the starting-vs-gained category
+   * the source itself recorded it under — or null when the source has no
+   * data at all.
+   */
+  private async rawSkillCategories(
     player: SampledPlayer,
-  ): Promise<Set<string> | null> {
+  ): Promise<Map<string, SkillCategory> | null> {
     if (player.source === 'bbl') {
       const raw = await this.bbl.read(player.externalId);
       return raw === null
         ? null
-        : new Set(raw.skills.map((skill) => skill.name));
+        : new Map(raw.skills.map((skill) => [skill.name, skill.source]));
     }
     const raw = await this.tp.advancementsFor(player.externalId);
     if (raw === null) {
       return null;
     }
-    return new Set(
-      [...raw.startingSkills, ...raw.gainedSkills].flatMap((skill) =>
-        skill.name === null ? [] : [skill.name],
-      ),
-    );
+    const categories = new Map<string, SkillCategory>();
+    for (const skill of raw.startingSkills) {
+      if (skill.name !== null) {
+        categories.set(skill.name, 'starting');
+      }
+    }
+    for (const skill of raw.gainedSkills) {
+      if (skill.name !== null) {
+        categories.set(skill.name, 'gained');
+      }
+    }
+    return categories;
   }
 
   private async storedPlayer(playerId: number) {
