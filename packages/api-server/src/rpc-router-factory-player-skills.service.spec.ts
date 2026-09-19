@@ -41,7 +41,7 @@ describe('RpcRouterFactoryService playerSkills router', () => {
     });
   });
 
-  it("lists one player's skills without the name the contract does not carry", async () => {
+  it("lists one player's skills without the fields the contract does not carry", async () => {
     harness.mocks.playerSkillsService.listByPlayer.mockResolvedValue([
       {
         skillId: 7,
@@ -49,15 +49,19 @@ describe('RpcRouterFactoryService playerSkills router', () => {
         source: 'starting',
         attributeValue: null,
         advancementOrder: null,
+        category: 'general',
+        isElite: false,
       },
     ]);
 
     const result = await call(harness.router.playerSkills.list, {
       playerId: 1,
+      rulesSetId: 3,
     });
 
     expect(harness.mocks.playerSkillsService.listByPlayer).toHaveBeenCalledWith(
       1,
+      3,
     );
     expect(result).toEqual([
       {

@@ -268,8 +268,9 @@ export function buildPositionRulesSetSkillsRoutes(
 // skill that does not exist, and a batch repeating one natural key — to
 // BAD_REQUEST.
 //
-// `list` delegates to `listByPlayer`, whose rows also carry the skill's name;
-// the contract's output schema does not.
+// `list` delegates to `listByPlayer`, whose rows also carry the skill's name
+// and its category and elite flag under the requested rules set; the
+// contract's output schema carries none of those.
 export function buildPlayerSkillsRoutes(
   upsertHandler: UpsertHandlerService,
   playerSkillsService: PlayerSkillsService,
@@ -279,7 +280,7 @@ export function buildPlayerSkillsRoutes(
       upsertHandler.runSync(errors, () => playerSkillsService.sync(input)),
     ),
     list: implement(contract.playerSkills.list).handler(({ input }) =>
-      playerSkillsService.listByPlayer(input.playerId),
+      playerSkillsService.listByPlayer(input.playerId, input.rulesSetId),
     ),
   };
 }

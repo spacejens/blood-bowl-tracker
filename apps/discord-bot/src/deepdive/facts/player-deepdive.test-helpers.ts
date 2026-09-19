@@ -3,11 +3,13 @@ import type {
   PlayerHonor,
   PlayerKillEntry,
   PlayerKillerInfo,
+  PlayerSkillRow,
   PositionCharacteristicsContext,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
   PlayerDeathService,
+  PlayerSkillsService,
   PlayersService,
   PositionRulesSetsService,
   StarPlayersService,
@@ -28,6 +30,7 @@ import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
+import { PlayerSkillsSectionService } from './player-skills-section.service';
 import { makePlayerRowButton } from './team-deepdive.test-helpers';
 
 /**
@@ -143,6 +146,7 @@ export interface MakeServiceOptions {
   playerRowButton?: MockProxy<PlayerRowButtonService>;
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
+  playerSkills?: MockProxy<PlayerSkillsService>;
 }
 
 /**
@@ -172,6 +176,18 @@ export function makePositionRulesSets(
   return positionRulesSets;
 }
 
+/**
+ * A `PlayerSkillsService` mock. Defaults to a player with no recorded skills,
+ * so specs about other parts of the embed never see a skills line.
+ */
+export function makePlayerSkills(
+  rows: PlayerSkillRow[] = [],
+): MockProxy<PlayerSkillsService> {
+  const playerSkills = mock<PlayerSkillsService>();
+  playerSkills.listByPlayer.mockResolvedValue(rows);
+  return playerSkills;
+}
+
 export async function makeService({
   players,
   databaseTimeout = mockDatabaseTimeout(),
@@ -184,6 +200,7 @@ export async function makeService({
   dateRangeFormatter = makeDateRangeFormatter(
     'Season 5 (2020-01-01 – 2023-12-31)',
   ),
+  playerSkills = makePlayerSkills(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -193,6 +210,7 @@ export async function makeService({
   playerRowButton: MockProxy<PlayerRowButtonService>;
   positionRulesSets: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
+  playerSkills: MockProxy<PlayerSkillsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -203,6 +221,7 @@ export async function makeService({
       // Pure and dependency-free (see CLAUDE.md's formatting-service
       // carve-out): passed real so the specs assert the actual rendered text.
       CharacteristicDisplayFormattingService,
+      PlayerSkillsSectionService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -212,6 +231,7 @@ export async function makeService({
       { provide: PlayerRowButtonService, useValue: playerRowButton },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
+      { provide: PlayerSkillsService, useValue: playerSkills },
     ],
   }).compile();
   return {
@@ -223,6 +243,7 @@ export async function makeService({
     playerRowButton,
     positionRulesSets,
     dateRangeFormatter,
+    playerSkills,
   };
 }
 
