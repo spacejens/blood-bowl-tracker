@@ -138,6 +138,50 @@ describe('PlayerAdvancementsDbRendererService', () => {
     expect(html).not.toContain('◆');
   });
 
+  it('matches a stored skill to a differently-spelled raw skill via curated Name external ids', async () => {
+    const { service, bbl } = await makeService(
+      mockDb(
+        [playerRow],
+        [rulesSetRow],
+        [
+          {
+            skillId: 42,
+            skillName: 'Bone-Head',
+            source: 'starting',
+            attributeValue: null,
+            advancementOrder: null,
+            isElite: false,
+          },
+        ],
+        [{ externalId: 'Bone Head', skillId: 42 }],
+      ),
+    );
+    bbl.read.mockResolvedValue({
+      skills: [
+        {
+          name: 'Bone Head',
+          attributeValue: null,
+          source: 'starting',
+          advancementOrder: null,
+        },
+      ],
+      increaseCounts: {
+        move: 0,
+        strength: 0,
+        agility: 0,
+        passing: 0,
+        armour: 0,
+      },
+    });
+
+    const html = await service.render(player);
+
+    expect(html).not.toContain('class="mismatch"');
+    expect(html).toContain(
+      '<td>Bone-Head</td><td>starting</td><td>—</td><td>yes</td>',
+    );
+  });
+
   it('highlights a stored skill the raw source does not have', async () => {
     const { service, bbl } = await makeService(
       mockDb(
@@ -145,6 +189,7 @@ describe('PlayerAdvancementsDbRendererService', () => {
         [rulesSetRow],
         [
           {
+            skillId: 7,
             skillName: 'Guard',
             source: 'advancement',
             attributeValue: null,
@@ -169,6 +214,57 @@ describe('PlayerAdvancementsDbRendererService', () => {
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain('not in the raw source');
+  });
+
+  it('treats two differently-spelled raw entries resolving to the same stored skill as both accounted for', async () => {
+    const { service, bbl } = await makeService(
+      mockDb(
+        [playerRow],
+        [rulesSetRow],
+        [
+          {
+            skillId: 42,
+            skillName: 'Bone-Head',
+            source: 'starting',
+            attributeValue: null,
+            advancementOrder: null,
+            isElite: false,
+          },
+        ],
+        [
+          { externalId: 'Bone Head', skillId: 42 },
+          { externalId: 'Bonehead', skillId: 42 },
+        ],
+      ),
+    );
+    bbl.read.mockResolvedValue({
+      skills: [
+        {
+          name: 'Bone Head',
+          attributeValue: null,
+          source: 'starting',
+          advancementOrder: null,
+        },
+        {
+          name: 'Bonehead',
+          attributeValue: null,
+          source: 'starting',
+          advancementOrder: null,
+        },
+      ],
+      increaseCounts: {
+        move: 0,
+        strength: 0,
+        agility: 0,
+        passing: 0,
+        armour: 0,
+      },
+    });
+
+    const html = await service.render(player);
+
+    expect(html).not.toContain('class="mismatch"');
+    expect(html).not.toContain('in the raw source only');
   });
 
   it('adds a highlighted row for a raw skill that was never stored', async () => {

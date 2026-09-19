@@ -6,9 +6,12 @@ import {
   desc,
   eq,
   eraRulesSets,
+  externalSystems,
+  inArray,
   players,
   playerSkills,
   rulesSets,
+  skillExternalIds,
   skillRulesSets,
   skills,
   teamEras,
@@ -28,8 +31,15 @@ const NONE = '—';
 const NOT_IN_RAW = 'not in the raw source';
 const RAW_ONLY = 'in the raw source only';
 
+/**
+ * The external-id system every entity's curated name-based identity lives
+ * under, including a skill's alternate spellings (see `skillExternalIds`).
+ */
+const NAME_SYSTEM = 'Name';
+
 /** One stored `player_skills` row, joined to its skill and rules-set flags. */
 interface StoredSkill {
+  skillId: number;
   skillName: string;
   source: string;
   attributeValue: string | null;
@@ -53,12 +63,18 @@ interface StoredSkill {
  * `random`) takes the dice marker when its source is `random` and the diamond
  * when the skill is elite under that rules set; both can apply at once.
  *
- * **The raw comparison** is keyed by skill name against the same source the
- * player was sampled through, read through the same services the raw panel
- * uses. A stored skill the source does not have is highlighted, and a source
- * skill that was never stored is appended as its own highlighted row. Every
- * highlighted row also says so in words, so the report stays readable without
- * colour.
+ * **The raw comparison** is against the same source the player was sampled
+ * through, read through the same services the raw panel uses. Import curates
+ * alternate spellings of a skill's name onto one canonical skill (e.g. TP's
+ * "Bone Head" and the stored "Bone-Head" both resolve to the same skill), so
+ * matching by exact name string would flag every such curation as a false
+ * mismatch. Instead, a raw name is resolved through `skills_external_ids`
+ * (the `Name` system) to the skill id it curates onto, and rows are matched by
+ * that id — falling back to a plain name match only when a raw name has no
+ * curated `Name` external id at all. A stored skill the source does not have
+ * is highlighted, and a source skill that was never stored is appended as its
+ * own highlighted row. Every highlighted row also says so in words, so the
+ * report stays readable without colour.
  *
  * Increase counts are compared only for a BBL-sourced player: BBL publishes
  * real per-characteristic markers, TP publishes none at all (its raw panel
@@ -93,11 +109,14 @@ export class PlayerAdvancementsDbRendererService {
       rulesSet.rulesSetId,
     );
     const rawNames = await this.rawSkillNames(player);
+    const rawSkillIdByName = await this.resolveRawSkillIds(
+      rawNames === null ? [] : [...rawNames],
+    );
     return (
       this.html.subheading(`Skills (${rulesSet.rulesSetName})`) +
       this.html.table(
         ['Skill', 'Source', 'Order', 'Raw source'],
-        this.skillRows(skillRows, rawNames),
+        this.skillRows(skillRows, rawNames, rawSkillIdByName),
       ) +
       this.html.subheading('Characteristic increases') +
       (await this.increases(player, stored))
@@ -108,30 +127,76 @@ export class PlayerAdvancementsDbRendererService {
   private skillRows(
     skillRows: StoredSkill[],
     rawNames: Set<string> | null,
+    rawSkillIdByName: Map<string, number>,
   ): TableRow[] {
     const storedNames = new Set(skillRows.map((row) => row.skillName));
+    const storedSkillIds = new Set(skillRows.map((row) => row.skillId));
+    const matchesRaw = (row: StoredSkill): boolean => {
+      for (const name of rawNames ?? []) {
+        if (
+          name === row.skillName ||
+          rawSkillIdByName.get(name) === row.skillId
+        ) {
+          return true;
+        }
+      }
+      return false;
+    };
     const rows: TableRow[] = skillRows.map((row) => {
+      const found = rawNames !== null && matchesRaw(row);
       const cells = [
         this.format(row),
         row.source,
         row.advancementOrder === null ? NONE : String(row.advancementOrder),
-        rawNames === null
-          ? 'not read'
-          : rawNames.has(row.skillName)
-            ? 'yes'
-            : NOT_IN_RAW,
+        rawNames === null ? 'not read' : found ? 'yes' : NOT_IN_RAW,
       ];
       // Cell 3 is the raw-source column, so that is the differing cell.
-      return rawNames !== null && !rawNames.has(row.skillName)
+      return rawNames !== null && !found
         ? this.html.highlight(cells, [3])
         : cells;
     });
     for (const name of rawNames ?? []) {
-      if (!storedNames.has(name)) {
+      const resolvedId = rawSkillIdByName.get(name);
+      const accountedFor =
+        resolvedId === undefined
+          ? storedNames.has(name)
+          : storedSkillIds.has(resolvedId);
+      if (!accountedFor) {
         rows.push(this.html.highlight([name, NONE, NONE, RAW_ONLY], [3]));
       }
     }
     return rows;
+  }
+
+  /**
+   * Resolves a batch of raw skill names to the skill id each curates onto,
+   * via `skills_external_ids`' `Name` system. A raw name with no such row is
+   * simply absent from the returned map — the caller falls back to a plain
+   * name match for it.
+   */
+  private async resolveRawSkillIds(
+    rawNames: readonly string[],
+  ): Promise<Map<string, number>> {
+    if (rawNames.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({
+        externalId: skillExternalIds.externalId,
+        skillId: skillExternalIds.skillId,
+      })
+      .from(skillExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, skillExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(externalSystems.name, NAME_SYSTEM),
+          inArray(skillExternalIds.externalId, [...rawNames]),
+        ),
+      );
+    return new Map(rows.map((row) => [row.externalId, row.skillId]));
   }
 
   private format(row: StoredSkill): string {
@@ -255,6 +320,7 @@ export class PlayerAdvancementsDbRendererService {
   ): Promise<StoredSkill[]> {
     const rows = await this.db
       .select({
+        skillId: playerSkills.skillId,
         skillName: skills.name,
         source: playerSkills.source,
         attributeValue: playerSkills.attributeValue,
