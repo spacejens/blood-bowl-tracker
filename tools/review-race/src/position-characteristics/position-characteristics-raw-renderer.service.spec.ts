@@ -163,6 +163,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
             name: 'Blitzer',
             isStar: false,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 6,
@@ -177,6 +179,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
             name: 'Deathroller',
             isStar: true,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 3,
@@ -212,6 +216,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
           name: 'Blitzer',
           isStar: false,
           isOfficial: true,
+          skills: [],
+          specialRuleName: null,
           rulesSet: 'BB2020',
           characteristics: {
             move: 6,
@@ -226,6 +232,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
           name: 'Blitzer',
           isStar: false,
           isOfficial: true,
+          skills: [],
+          specialRuleName: null,
           rulesSet: 'BB2025',
           characteristics: {
             move: 6,
@@ -267,6 +275,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
               name: 'Yhetee',
               isStar: false,
               isOfficial,
+              skills: [],
+              specialRuleName: null,
               rulesSet: 'BB2020',
               characteristics: {
                 move: 5,

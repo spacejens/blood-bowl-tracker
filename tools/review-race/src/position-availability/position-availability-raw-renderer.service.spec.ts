@@ -145,6 +145,8 @@ describe('PositionAvailabilityRawRendererService', () => {
             name: 'Blitzer',
             isStar: false,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 5,
@@ -159,6 +161,8 @@ describe('PositionAvailabilityRawRendererService', () => {
             name: 'Deathroller',
             isStar: true,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 3,
@@ -191,6 +195,8 @@ describe('PositionAvailabilityRawRendererService', () => {
         name: 'Blitzer',
         isStar: false,
         isOfficial: true,
+        skills: [],
+        specialRuleName: null,
         rulesSet,
         characteristics: {
           move: 5,
@@ -221,6 +227,8 @@ describe('PositionAvailabilityRawRendererService', () => {
           name: 'Deathroller',
           isStar: true,
           isOfficial: true,
+          skills: [],
+          specialRuleName: null,
           rulesSet: 'BB2025',
           characteristics: {
             move: 3,

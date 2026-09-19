@@ -22,6 +22,10 @@ const GAP_FILL_CHARACTERISTICS_FILE = join(
   'before-other-importers',
   'position-characteristics-gap-fill.json5',
 );
+const POSITION_SKILLS_FILE = join(
+  'after-other-importers',
+  'position-skills.json5',
+);
 
 /** A `{ system, id }` reference, as the curated files write them. */
 export interface ManualExternalIdRef {
@@ -52,6 +56,13 @@ export interface ManualCharacteristicsEntry {
   /** null when the entry omits `passing` (a passing-absent rules set). */
   passing: number | null;
   armour: number | null;
+}
+
+/** One `positionRulesSetSkills[]` entry of position-skills.json5. */
+export interface ManualPositionSkillsEntry {
+  position: ManualExternalIdRef;
+  rulesSet: ManualExternalIdRef;
+  skills: ManualExternalIdRef[];
 }
 
 /**
@@ -110,6 +121,27 @@ export class ManualRawDataService {
       this.characteristicsFrom(GAP_FILL_CHARACTERISTICS_FILE),
     ]);
     return [...curated, ...gapFill];
+  }
+
+  /**
+   * Every curated starting-skill entry: the hand-written answer for the rules
+   * sets no importer supplies (CRP, CRP+, BB2016). Read by this tool's own
+   * hardcoded path, running none of tools/import-manual's loader logic — that
+   * logic's reading of this file is part of what the report exists to check.
+   */
+  async positionSkills(): Promise<ManualPositionSkillsEntry[]> {
+    const entries = await this.array(
+      POSITION_SKILLS_FILE,
+      'positionRulesSetSkills',
+    );
+    return entries.flatMap((entry) => {
+      const position = this.ref(this.property(entry, 'position'));
+      const rulesSet = this.ref(this.property(entry, 'rulesSet'));
+      if (position === null || rulesSet === null) {
+        return [];
+      }
+      return [{ position, rulesSet, skills: this.refs(entry, 'skills') }];
+    });
   }
 
   /** One characteristics file's `positionRulesSets` entries. */

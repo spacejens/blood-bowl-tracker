@@ -142,6 +142,8 @@ describe('TpRawOfficialTeamsIndexService', () => {
             passing: 5,
             armour: 10,
           },
+          skills: [],
+          specialRuleName: null,
         },
       ],
     });
@@ -196,6 +198,8 @@ describe('TpRawOfficialTeamsIndexService', () => {
         passing: 5,
         armour: 9,
       },
+      skills: [],
+      specialRuleName: null,
     });
   });
 
@@ -454,5 +458,72 @@ describe('TpRawOfficialTeamsIndexService', () => {
     const second = await service.raceFor('Dwarf_BB2025');
 
     expect(second).toEqual(first);
+  });
+
+  it("reads each position entry's skill refs with their attribute values", async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          teamRace: 'goblin-25',
+          name: 'Goblin',
+          lineUpMasters: [
+            lineman({
+              position: 'Goblin Bruiser',
+              skills: [
+                { skillMasterId: 199 },
+                {
+                  skillMasterId: 278,
+                  skillAttributeMaster: { value: '4+', type: 0 },
+                },
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const race = await service.raceFor('goblin-25');
+
+    expect(race?.positions[0].skills).toEqual([
+      { skillMasterId: 199, attributeValue: null },
+      { skillMasterId: 278, attributeValue: '4+' },
+    ]);
+  });
+
+  it("carries a star entry's own exclusive skill name", async () => {
+    write('BB2025', {
+      rosterMasters: [roster({ teamRace: 'goblin-25', name: 'Goblin' })],
+      starplayerMasters: [
+        star({
+          position: 'Rodney Roachbait',
+          specialRuleName: 'Catch of the Day',
+          skills: [{ skillMasterId: 196 }],
+        }),
+      ],
+    });
+
+    const race = await service.raceFor('goblin-25');
+    const starEntry = race?.positions.find((position) => position.isStar);
+
+    expect(starEntry?.specialRuleName).toBe('Catch of the Day');
+  });
+
+  it('reports no skills for an entry whose skills array is missing', async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          teamRace: 'goblin-25',
+          name: 'Goblin',
+          lineUpMasters: [
+            lineman({ position: 'Goblin Bruiser', skills: undefined }),
+          ],
+        }),
+      ],
+    });
+
+    const race = await service.raceFor('goblin-25');
+
+    expect(race?.positions[0].skills).toEqual([]);
+    expect(race?.positions[0].specialRuleName).toBeNull();
   });
 });
