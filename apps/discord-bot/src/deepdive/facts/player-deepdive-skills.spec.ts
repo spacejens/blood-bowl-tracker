@@ -20,6 +20,17 @@ import {
 /** The rules set the player's era resolves to in these tests. */
 const RULES_SET_ID = 2;
 
+/** An active lasting injury, so the lasting-injuries line renders too. */
+const INJURED = {
+  missNextGame: true,
+  nigglingInjuryCount: 0,
+  moveReductionCount: 0,
+  strengthReductionCount: 1,
+  agilityReductionCount: 0,
+  passingReductionCount: 0,
+  armourReductionCount: 0,
+};
+
 function context(): PositionCharacteristicsContext {
   return {
     rulesSetId: RULES_SET_ID,
@@ -90,6 +101,20 @@ describe('PlayerDeepdiveService skill lines', () => {
       description.indexOf('Trophies:') === -1
         ? description.length
         : description.indexOf('Trophies:'),
+    );
+  });
+
+  it('renders the skill lines after the lasting-injuries line', async () => {
+    const { service } = await makeService({
+      players: makePlayers({ player: { ...griff, ...INJURED } }),
+      positionRulesSets: makePositionRulesSets(context()),
+      playerSkills: makePlayerSkills([skill({ skillName: 'Block' })]),
+    });
+
+    const description = descriptionOf(await service.resolve(1));
+
+    expect(description.indexOf('Lasting injuries:')).toBeLessThan(
+      description.indexOf('Starting skills:'),
     );
   });
 

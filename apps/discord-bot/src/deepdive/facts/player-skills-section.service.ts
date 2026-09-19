@@ -10,8 +10,9 @@ const RANDOM_SKILL_MARKER = '⚄ ';
 
 /**
  * Prefixed to an elite skill, and only ever on a gained skill. Elite status
- * constrains which skills an advancement may pick; a starting skill was never
- * picked under that constraint, so marking one would read as a claim about how
+ * marks a skill that costs more player value to pick during advancement — it
+ * is not a restriction on which skills can be picked. A starting skill was
+ * never picked at that cost, so marking one would read as a claim about how
  * the player came by it. A plain Unicode symbol rather than an emoji, matching
  * every other marker in these embeds.
  */

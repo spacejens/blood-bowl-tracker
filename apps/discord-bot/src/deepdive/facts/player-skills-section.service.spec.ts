@@ -116,10 +116,23 @@ describe('PlayerSkillsSectionService', () => {
     ).toEqual(['Gained skills: ⚄ ♦ Mighty Blow']);
   });
 
+  it('shows a marker and an attribute value together', () => {
+    expect(
+      service.build([
+        skill({
+          skillName: 'Mighty Blow',
+          source: 'random',
+          advancementOrder: 0,
+          attributeValue: '4+',
+        }),
+      ]),
+    ).toEqual(['Gained skills: ⚄ Mighty Blow (4+)']);
+  });
+
   it('never marks a starting skill as elite', () => {
-    // Elite status constrains which skills an advancement may pick. A starting
-    // skill was never picked under that constraint, so the gem would misread as
-    // a claim about how the player got it.
+    // Elite status marks a skill that costs more player value to pick during
+    // advancement. A starting skill was never picked at that cost, so the gem
+    // would misread as a claim about how the player got it.
     expect(
       service.build([skill({ skillName: 'Block', isElite: true })]),
     ).toEqual(['Starting skills: Block']);
