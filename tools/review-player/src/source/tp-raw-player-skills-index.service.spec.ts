@@ -11,8 +11,15 @@ import { ReviewPlayerConfigService } from '../config/review-player-config.servic
 import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.service';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
+function defaultMasters(): MockProxy<TpSkillMasterNamesService> {
+  const masters = mock<TpSkillMasterNamesService>();
+  masters.masterFor.mockResolvedValue(null);
+  return masters;
+}
+
 async function makeService(
   files: Record<string, unknown>,
+  masters: MockProxy<TpSkillMasterNamesService> = defaultMasters(),
 ): Promise<TpRawPlayerSkillsIndexService> {
   const root = await mkdtemp(join(tmpdir(), 'review-player-tp-skills-'));
   const competitionDir = join(root, 'fourth-era', 'a-cup');
@@ -26,8 +33,8 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpRawPlayerSkillsIndexService,
-      TpSkillMasterNamesService,
       { provide: ReviewPlayerConfigService, useValue: config },
+      { provide: TpSkillMasterNamesService, useValue: masters },
     ],
   }).compile();
   return moduleRef.get(TpRawPlayerSkillsIndexService);
@@ -95,39 +102,36 @@ describe('TpRawPlayerSkillsIndexService', () => {
     // partial skillMaster record at this embedding path that essentially
     // never carries isElite: true, even for skills that genuinely are elite.
     // The real flag only shows up on other embeddings of the same id
-    // elsewhere in the roster files (e.g. rosterMaster/lineUpMasters[]),
-    // which TpSkillMasterNamesService scans and OR-accumulates.
-    const service = await makeService({
-      'rosters_1.json': {
-        rosterMaster: {
-          lineUpMasters: [
+    // elsewhere in the roster files, which TpSkillMasterNamesService scans
+    // and OR-accumulates — mocked here to isolate this service's own logic.
+    const masters: MockProxy<TpSkillMasterNamesService> =
+      mock<TpSkillMasterNamesService>();
+    masters.masterFor.mockResolvedValue({ name: 'Guard', isElite: true });
+    const service = await makeService(
+      {
+        'rosters_1.json': {
+          lineUps: [
             {
+              id: 2412443,
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              lineUpMaster: { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] },
               skills: [
-                { skillMaster: { id: 261, name: 'Guard', isElite: true } },
+                {
+                  skillMasterId: 261,
+                  skillMaster: { id: 261, name: 'Guard' },
+                  isRandom: false,
+                },
               ],
             },
           ],
         },
-        lineUps: [
-          {
-            id: 2412443,
-            ma: 6,
-            st: 3,
-            ag: 3,
-            pa: 4,
-            av: 9,
-            lineUpMaster: { ma: 6, st: 3, ag: 3, pa: 4, av: 9, skills: [] },
-            skills: [
-              {
-                skillMasterId: 261,
-                skillMaster: { id: 261, name: 'Guard' },
-                isRandom: false,
-              },
-            ],
-          },
-        ],
       },
-    });
+      masters,
+    );
 
     const advancements = await service.advancementsFor('2412443');
 
@@ -142,7 +146,7 @@ describe('TpRawPlayerSkillsIndexService', () => {
     ]);
   });
 
-  it("reads isElite from skillMaster.isElite, ignoring the entry's own per-pick isElite field", async () => {
+  it("ignores the entry's own per-pick isElite field", async () => {
     const service = await makeService({
       'rosters_1.json': {
         lineUps: [
