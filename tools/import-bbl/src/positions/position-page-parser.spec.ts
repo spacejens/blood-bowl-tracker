@@ -340,9 +340,9 @@ describe('PositionPageParser', () => {
   });
 
   it('passes each comma-split entry to the skill entry resolver', () => {
-    skillEntries.resolveSkillRefs.mockReturnValue([
-      { name: 'Loner', attributeValue: '4+' },
-    ]);
+    skillEntries.resolveSkillRefs
+      .mockReturnValueOnce([{ name: 'Loner', attributeValue: '4+' }])
+      .mockReturnValueOnce([{ name: 'Mighty Blow', attributeValue: '+1' }]);
     const page = positionPage(
       '<h1>Ogre</h1>' +
         '<a href="default.asp?p=tl#16">Human Team</a>' +
@@ -351,7 +351,7 @@ describe('PositionPageParser', () => {
     );
     expect(parser.extractPosition(page)?.skills).toEqual([
       { name: 'Loner', attributeValue: '4+' },
-      { name: 'Loner', attributeValue: '4+' },
+      { name: 'Mighty Blow', attributeValue: '+1' },
     ]);
     expect(skillEntries.resolveSkillRefs.mock.calls.map(([e]) => e)).toEqual([
       'Loner(4+)',

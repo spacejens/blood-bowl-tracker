@@ -53,6 +53,11 @@ describe('SkillEntryService', () => {
     ]);
   });
 
+  // This is not the player's real "Stunty" skill entry -- it's the front
+  // half of a `<br>`-separated annotation ("Note: comes with Brick Far'th,
+  // included in his price)") that BBL's own comma-splitting tore into two
+  // garbled fragments; the real "Stunty" skill always appears earlier in
+  // the same list as its own, well-formed entry.
   it('drops the other half of the torn Stunty annotation fragment', () => {
     expect(
       service.resolveSkillRefs("Stunty(Note: comes with Brick Far'th"),
