@@ -79,6 +79,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
         cost: null,
         canPlayFor: null,
         skills: null,
+        skillRefs: [],
         characteristics: {
           move: '8',
           strength: '3',
@@ -108,6 +109,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
         cost: null,
         canPlayFor: null,
         skills: null,
+        skillRefs: [],
         characteristics: {
           move: '8',
           strength: '3',
@@ -139,6 +141,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
         cost: null,
         canPlayFor: null,
         skills: null,
+        skillRefs: [],
         characteristics: null,
       },
       notFoundNote: '',
@@ -170,6 +173,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
                 armour: 8,
               },
               eligibleTeamRaces: [],
+              skills: [],
             },
             {
               rulesSet: 'BB2025',
@@ -183,6 +187,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
                 armour: 8,
               },
               eligibleTeamRaces: [],
+              skills: [],
             },
           ],
         },
@@ -210,6 +215,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
               specialRuleName: null,
               characteristics: null,
               eligibleTeamRaces: [],
+              skills: [],
             },
           ],
         },

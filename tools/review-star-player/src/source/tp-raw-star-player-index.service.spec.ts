@@ -101,6 +101,7 @@ describe('TpRawStarPlayerIndexService', () => {
             armour: 8,
           },
           eligibleTeamRaces: ['WoodElf_BB2025'],
+          skills: [],
         },
       ],
     });
@@ -287,6 +288,44 @@ describe('TpRawStarPlayerIndexService', () => {
     const service = await makeService();
 
     await expect(service.allNames()).rejects.toThrow();
+  });
+
+  it("reads a star entry's skill refs with their attribute values", async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [
+        {
+          ...ELDRIL,
+          skills: [
+            { skillMasterId: 196 },
+            {
+              skillMasterId: 278,
+              skillAttributeMaster: { value: '4+', type: 0 },
+            },
+          ],
+        },
+      ],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.skills).toEqual([
+      { skillMasterId: 196, attributeValue: null },
+      { skillMasterId: 278, attributeValue: '4+' },
+    ]);
+  });
+
+  it('reports no skills for a star entry with no skills array', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [ELDRIL],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.skills).toEqual([]);
   });
 
   it('scans the mirror only once per process', async () => {

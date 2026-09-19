@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 import { BblRawStarPlayerPageService } from './bbl-raw-star-player-page.service';
+import { BblSkillEntryService } from './bbl-skill-entry.service';
 
 function starPage(name: string): string {
   return `<html><body>
@@ -36,6 +37,7 @@ async function makeService(
       BblRawStarPlayerPageService,
       { provide: BblMirrorReaderService, useValue: reader },
       StarPlayerNameMatcherService,
+      BblSkillEntryService,
     ],
   }).compile();
   return moduleRef.get(BblRawStarPlayerPageService);
@@ -53,6 +55,11 @@ describe('BblRawStarPlayerPageService', () => {
       cost: '230 000 gp',
       canPlayFor: 'Any team with Elven Kingdoms League',
       skills: 'Loner(4+), Catch, Dodge',
+      skillRefs: [
+        { name: 'Loner', attributeValue: '4+' },
+        { name: 'Catch', attributeValue: null },
+        { name: 'Dodge', attributeValue: null },
+      ],
       characteristics: {
         move: '8',
         strength: '3',
@@ -166,6 +173,7 @@ describe('BblRawStarPlayerPageService', () => {
       cost: null,
       canPlayFor: null,
       skills: null,
+      skillRefs: [],
       characteristics: null,
     });
   });
@@ -202,5 +210,41 @@ describe('BblRawStarPlayerPageService', () => {
 
     expect(star?.characteristics).toBeNull();
     expect(star?.skills).toBeNull();
+  });
+
+  it('parses the skills cell into refs alongside the verbatim text', async () => {
+    const reader = mock<BblMirrorReaderService>();
+    reader.readPage.mockResolvedValue(
+      '<h1>Grombrindal</h1><table>' +
+        '<tr><td>None (star player)</td></tr>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th></tr>' +
+        '<tr><td>5</td><td>4</td><td>4</td><td>5</td><td>9</td>' +
+        '<td>Block, Loner (4+)</td></tr>' +
+        '</table>',
+    );
+    const service = await makeService(reader);
+
+    const star = await service.starFor('900');
+
+    expect(star?.skillRefs).toEqual([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+  });
+
+  it('reports no skill refs when the page has no skills cell', async () => {
+    const reader = mock<BblMirrorReaderService>();
+    reader.readPage.mockResolvedValue(
+      '<h1>Grombrindal</h1><table>' +
+        '<tr><td>None (star player)</td></tr>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th></tr>' +
+        '<tr><td>5</td><td>4</td><td>4</td><td>5</td><td>9</td></tr>' +
+        '</table>',
+    );
+    const service = await makeService(reader);
+
+    const star = await service.starFor('900');
+
+    expect(star?.skillRefs).toEqual([]);
   });
 });
