@@ -10,6 +10,7 @@ import {
 
 /** BB2020 formats, so the characteristics line renders alongside. */
 const bb2020 = {
+  rulesSetId: 2,
   moveFormat: 'bare',
   strengthFormat: 'bare',
   agilityFormat: 'plus',
