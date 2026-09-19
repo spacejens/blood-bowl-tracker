@@ -10,6 +10,7 @@ import { ExternalSystemBootstrapService } from './external-system-bootstrap.serv
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { KeywordsImportService } from './keywords-import.service';
 import { LastingInjuriesImportService } from './lasting-injuries-import.service';
 import { LeaguesImportService } from './leagues-import.service';
 import { MatchDateRangeService } from './match-date-range.service';
@@ -21,6 +22,7 @@ import { NameExternalIdService } from './name-external-id.service';
 import { PlayerCharacteristicIncreasesService } from './player-characteristic-increases.service';
 import { PlayerSkillsImportService } from './player-skills-import.service';
 import { PlayersImportService } from './players-import.service';
+import { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 import { PositionsImportService } from './positions-import.service';
@@ -52,9 +54,11 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MatchDateRangeService,
     MissingTrophyAwardsImportService,
     NameExternalIdService,
+    KeywordsImportService,
     PlayerCharacteristicIncreasesService,
     PlayersImportService,
     PlayerSkillsImportService,
+    PositionRulesSetKeywordsImportService,
     PositionRulesSetsImportService,
     PositionRulesSetSkillsImportService,
     PositionsImportService,
@@ -89,9 +93,11 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
     MatchDateRangeService,
     MissingTrophyAwardsImportService,
     NameExternalIdService,
+    KeywordsImportService,
     PlayerCharacteristicIncreasesService,
     PlayersImportService,
     PlayerSkillsImportService,
+    PositionRulesSetKeywordsImportService,
     PositionRulesSetsImportService,
     PositionRulesSetSkillsImportService,
     PositionsImportService,
