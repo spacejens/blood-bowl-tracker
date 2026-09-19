@@ -5,7 +5,13 @@ import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import { firstCallArg } from '../shared/query-assertions.test-helpers';
+import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import {
+  extractAllFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+  sqlText,
+} from '../shared/query-assertions.test-helpers';
 import { SkillsService, SkillUpsertConflictError } from './skills.service';
 
 const fakeSkill = {
@@ -86,5 +92,144 @@ describe('SkillsService', () => {
     ]);
 
     await expect(service.upsert(data)).rejects.toThrow(/skills/);
+  });
+
+  describe('skill popularity toplists', () => {
+    const rows = [
+      { skillId: 1, name: 'Block', count: 120 },
+      { skillId: 2, name: 'Dodge', count: 95 },
+    ];
+
+    it('countPlayersBySkillAny returns the rows the query resolves to', async () => {
+      const { db } = await build(rows);
+
+      await expect(
+        service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countPlayersBySkillAny applies no source filter, only the star-player exclusion', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21);
+
+      // The only literal in the WHERE tree is positions.is_star_player = false:
+      // "any" deliberately spans all four sources, so it adds no source filter.
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        false,
+      ]);
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('counts distinct players per skill, grouped by skill id and name so attribute variants collapse', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21);
+
+      // Grouping deliberately omits playerSkills.attributeValue, and the count
+      // is distinct players, so one player holding Hatred (Elf) and Hatred
+      // (Dwarf) contributes 1 to Hatred rather than 2.
+      expect(chains[0].groupBy).toHaveBeenCalledWith(skills.id, skills.name);
+    });
+
+    it('joins players to positions so star players can be excluded', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['skills.id', 'player_skills.skill_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['players.id', 'player_skills.player_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
+      ).toEqual(['positions.id', 'players.position_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 3, 1)),
+      ).toEqual(['team_eras.id', 'players.team_era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 4, 1)),
+      ).toEqual(['eras.id', 'team_eras.era_id']);
+    });
+
+    it('countPlayersBySkillAdvancement excludes starting skills but keeps the ambiguous advancement source', async () => {
+      const { chains } = await build(rows);
+
+      await expect(
+        service.countPlayersBySkillAdvancement(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'advancement',
+        'chosen',
+        'random',
+        false,
+      ]);
+    });
+
+    it('countPlayersBySkillChosen filters to the chosen source alone', async () => {
+      const { chains } = await build(rows);
+
+      await expect(
+        service.countPlayersBySkillChosen(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'chosen',
+        false,
+      ]);
+    });
+
+    it('countPlayersBySkillRandom filters to the random source alone', async () => {
+      const { chains } = await build(rows);
+
+      await expect(
+        service.countPlayersBySkillRandom(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'random',
+        false,
+      ]);
+    });
+
+    it('filters by league through the eras join', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersBySkillAny({ leagueId: 9 }, 21);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        false,
+        9,
+      ]);
+    });
+
+    it('filters by era through the team era', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersBySkillChosen({ eraId: 20 }, 21);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'chosen',
+        false,
+        20,
+      ]);
+    });
+
+    it('ranks by descending count and breaks ties on the skill name so the list is deterministic', async () => {
+      const { chains } = await build(rows);
+
+      await service.countPlayersBySkillAny(FACT_SCOPE_ALL_TIME, 21);
+
+      const orderBy = (
+        chains[0].orderBy as unknown as { mock: { calls: unknown[][] } }
+      ).mock.calls[0];
+      expect(sqlText(orderBy[0])).toContain(' desc');
+      expect(sqlText(orderBy[1])).toContain(' asc');
+    });
   });
 });
