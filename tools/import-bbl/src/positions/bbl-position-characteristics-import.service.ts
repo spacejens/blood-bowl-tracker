@@ -23,11 +23,24 @@ export interface SyncPositionCharacteristicsOptions {
 
 /**
  * Writes each position's characteristics under every rules set it played
- * under. BBL is a single BB2020-era snapshot, so Agility and Armour are
- * rewritten per rules set into the notation that rules set declares — one
- * scraped line can therefore produce different stored values per rules set.
- * Curated pre-BB2020 values are imported separately afterwards and overwrite
- * these.
+ * under — except the rules sets BBL cannot describe at all.
+ *
+ * BBL is a single BB2020-era snapshot, so Agility and Armour are rewritten
+ * per rules set into the notation that rules set declares. For the rules sets
+ * that state them as bare numbers (CRP, CRP+ and BB2016 — everything before
+ * BB2020) that rewrite is not enough to make the snapshot true: the notation
+ * conversion is lossy, and, worse, no conversion recovers Move and Strength,
+ * which genuinely differed between editions for some positions. So those
+ * rules sets are skipped outright: BBL writes no position_rules_sets row for
+ * them at all, rather than a guess that something reading the table back
+ * mid-pipeline would believe. Their values come only from the hand-curated
+ * after-other-importers/position-characteristics.json5 in tools/import-manual.
+ *
+ * `agilityFormat === 'bare'` is the data-driven signal for exactly those
+ * three: it is curated in tools/import-manual's *before* phase, so it is
+ * already stored by the time BBL runs, and it is the same signal
+ * CharacteristicNotationConversionService keys its conversion on — no list of
+ * "old" rules sets has to be maintained here either.
  *
  * BBL-local rather than shared: the era -> rules-set resolution feeding it is
  * BBL's own. The shared piece is PositionRulesSetsImportService, which this
@@ -67,7 +80,16 @@ export class BblPositionCharacteristicsImportService {
         continue;
       }
 
-      const entries: PositionRulesSetEntry[] = [...rulesSetIds].map(
+      // Rules sets that state Agility and Armour as bare numbers are exactly
+      // the pre-BB2020 ones (CRP, CRP+, BB2016), and BBL has nothing
+      // trustworthy to say about them — see this class's doc comment. An
+      // unresolvable rules set is deliberately kept: nothing here can tell
+      // whether it is one of those three.
+      const writableRulesSetIds = [...rulesSetIds].filter(
+        (rulesSetId) => rulesSetsById.get(rulesSetId)?.agilityFormat !== 'bare',
+      );
+
+      const entries: PositionRulesSetEntry[] = writableRulesSetIds.map(
         (rulesSetId) => {
           const rulesSet = rulesSetsById.get(rulesSetId);
           return {
@@ -75,10 +97,12 @@ export class BblPositionCharacteristicsImportService {
             rulesSetId,
             move: characteristics.move,
             strength: characteristics.strength,
-            // BBL only ever shows BB2020 notation, so a rules set that
-            // writes bare numbers needs these two rewritten. `?? 'plus'`
-            // mirrors the passingFormat check below: an unresolvable rules
-            // set converts nothing, which is the pre-existing behaviour.
+            // Every rules set left here is non-bare, so these two conversions
+            // are no-ops today. They stay because it is the target rules
+            // set's own declared notation — not this call site — that decides
+            // notation. `?? 'plus'` mirrors the passingFormat check below: an
+            // unresolvable rules set converts nothing, which is the
+            // pre-existing behaviour.
             agility: this.notationConversion.convertAgility(
               characteristics.agility,
               rulesSet?.agilityFormat ?? 'plus',
