@@ -4,6 +4,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
 import { BblRawPositionPageService } from './bbl-raw-position-page.service';
+import { BblSkillEntryService } from './bbl-skill-entry.service';
 
 const PAGE = `<h1>Dwarf Blitzer</h1>
 <a href="default.asp?p=tl#5">Dwarf Team</a>
@@ -14,13 +15,17 @@ const PAGE = `<h1>Dwarf Blitzer</h1>
 describe('BblRawPositionPageService', () => {
   let service: BblRawPositionPageService;
   let reader: ReturnType<typeof mock<BblMirrorReaderService>>;
+  let skillEntries: ReturnType<typeof mock<BblSkillEntryService>>;
 
   beforeEach(async () => {
     reader = mock<BblMirrorReaderService>();
+    skillEntries = mock<BblSkillEntryService>();
+    skillEntries.parseCell.mockReturnValue([]);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblRawPositionPageService,
+        { provide: BblSkillEntryService, useValue: skillEntries },
         { provide: BblMirrorReaderService, useValue: reader },
       ],
     }).compile();
@@ -182,5 +187,41 @@ describe('BblRawPositionPageService', () => {
     const position = await service.positionFor('310');
 
     expect(position).toBeNull();
+  });
+
+  it('parses the sixth cell of the characteristics row as the skills cell', async () => {
+    skillEntries.parseCell.mockReturnValue([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+    reader.readPage.mockResolvedValue(
+      '<h1>Dwarf Blitzer</h1><table>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th><th>Skills</th></tr>' +
+        '<tr><td>6</td><td>3</td><td>3</td><td>4</td><td>9</td>' +
+        '<td>Block, Loner (4+)</td></tr>' +
+        '</table>',
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(skillEntries.parseCell).toHaveBeenCalledWith('Block, Loner (4+)');
+    expect(position?.skills).toEqual([
+      { name: 'Block', attributeValue: null },
+      { name: 'Loner', attributeValue: '4+' },
+    ]);
+  });
+
+  it('reports no starting skills when the row has no skills cell, without parsing anything', async () => {
+    reader.readPage.mockResolvedValue(
+      '<h1>Dwarf Blitzer</h1><table>' +
+        '<tr><th>MA</th><th>ST</th><th>AG</th><th>PA</th><th>AV</th></tr>' +
+        '<tr><td>6</td><td>3</td><td>3</td><td>4</td><td>9</td></tr>' +
+        '</table>',
+    );
+
+    const position = await service.positionFor('310');
+
+    expect(skillEntries.parseCell).not.toHaveBeenCalled();
+    expect(position?.skills).toEqual([]);
   });
 });

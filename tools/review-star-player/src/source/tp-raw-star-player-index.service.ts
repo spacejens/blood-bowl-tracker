@@ -19,6 +19,16 @@ const TEAMS_DIR = 'teams';
  */
 const CANONICAL_ROSTER_TYPES = new Set([0, 1]);
 
+/**
+ * One skill reference on a star entry. TP names the skill only by
+ * `skillMasterId` in the official team list; the display name lives in roster
+ * files and is resolved separately by `TpSkillMasterNamesService`.
+ */
+export interface TpRawSkillRef {
+  skillMasterId: number;
+  attributeValue: string | null;
+}
+
 /** TP's five characteristics on a star entry. */
 export interface TpRawStarPlayerCharacteristics {
   move: number;
@@ -38,6 +48,11 @@ export interface TpRawStarPlayerEntry {
   characteristics: TpRawStarPlayerCharacteristics | null;
   /** `teamRace` codes of the canonical rosters that may hire this star. */
   eligibleTeamRaces: string[];
+  /**
+   * The entry's starting skills; the star's own exclusive skill is
+   * `specialRuleName`, not a member of this list.
+   */
+  skills: TpRawSkillRef[];
 }
 
 /** One star as TP carries it, across every rules set. */
@@ -154,9 +169,29 @@ export class TpRawStarPlayerIndexService {
         specialRuleName: this.string(raw, 'specialRuleName'),
         characteristics: this.characteristics(raw),
         eligibleTeamRaces: this.eligibleTeamRaces(raw, canonical),
+        skills: this.skillRefs(raw),
       });
       stars.set(name, star);
     }
+  }
+
+  private skillRefs(entry: unknown): TpRawSkillRef[] {
+    return this.arrayProperty(entry, 'skills').flatMap((skill) => {
+      const skillMasterId = this.property(skill, 'skillMasterId');
+      if (typeof skillMasterId !== 'number') {
+        return [];
+      }
+      const value = this.property(
+        this.property(skill, 'skillAttributeMaster'),
+        'value',
+      );
+      return [
+        {
+          skillMasterId,
+          attributeValue: typeof value === 'string' ? value : null,
+        },
+      ];
+    });
   }
 
   private eligibleTeamRaces(star: unknown, rosters: unknown[]): string[] {

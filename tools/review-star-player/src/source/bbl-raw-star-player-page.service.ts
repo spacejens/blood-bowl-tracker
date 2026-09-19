@@ -3,6 +3,8 @@ import * as cheerio from 'cheerio';
 
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
+import type { BblRawSkillRef } from './bbl-skill-entry.service';
+import { BblSkillEntryService } from './bbl-skill-entry.service';
 
 /** BBL's own position ids are always plain numbers (the `typID` param). */
 const NUMERIC_TYP_ID = /^\d+$/;
@@ -36,6 +38,12 @@ export interface BblRawStarPlayer {
   canPlayFor: string | null;
   /** The skills cell verbatim; shown but never compared. */
   skills: string | null;
+  /**
+   * The same skills cell, split into refs. The verbatim `skills` string above
+   * stays as-is for display; these refs are what the starting-skills panel
+   * formats and compares.
+   */
+  skillRefs: BblRawSkillRef[];
   characteristics: BblRawCharacteristics | null;
 }
 
@@ -66,6 +74,7 @@ export class BblRawStarPlayerPageService {
   constructor(
     private readonly reader: BblMirrorReaderService,
     private readonly names: StarPlayerNameMatcherService,
+    private readonly skillEntries: BblSkillEntryService,
   ) {}
 
   async starFor(typId: string): Promise<BblRawStarPlayer | null> {
@@ -127,13 +136,15 @@ export class BblRawStarPlayerPageService {
     }
     const row = this.characteristicsRow($);
     const characteristics = row === null ? null : this.characteristics($, row);
+    const skills =
+      row === null || characteristics === null ? null : this.skills($, row);
     return {
       typId,
       name,
       cost: this.cost($),
       canPlayFor: this.canPlayFor($),
-      skills:
-        row === null || characteristics === null ? null : this.skills($, row),
+      skills,
+      skillRefs: this.skillEntries.parseCell(skills ?? ''),
       characteristics,
     };
   }

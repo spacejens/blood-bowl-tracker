@@ -22,6 +22,10 @@ const GAP_FILL_CHARACTERISTICS_FILE = join(
   'before-other-importers',
   'position-characteristics-gap-fill.json5',
 );
+const POSITION_SKILLS_FILE = join(
+  'after-other-importers',
+  'position-skills.json5',
+);
 
 /** A `{ system, id }` reference, as the curated files write them. */
 export interface ManualExternalIdRef {
@@ -52,6 +56,24 @@ export interface ManualCharacteristicsEntry {
   /** null when the entry omits `passing` (a passing-absent rules set). */
   passing: number | null;
   armour: number | null;
+}
+
+/**
+ * One skill of a `positionRulesSetSkills[]` entry. The curated file writes
+ * most skills as a plain `{ system, id }` ref (attributeValue: null), and a
+ * skill with a roll target (e.g. Secret Weapon) as `{ skill: { system, id },
+ * attributeValue }` instead.
+ */
+export interface ManualPositionSkillRef {
+  skill: ManualExternalIdRef;
+  attributeValue: string | null;
+}
+
+/** One `positionRulesSetSkills[]` entry of position-skills.json5. */
+export interface ManualPositionSkillsEntry {
+  position: ManualExternalIdRef;
+  rulesSet: ManualExternalIdRef;
+  skills: ManualPositionSkillRef[];
 }
 
 /**
@@ -110,6 +132,48 @@ export class ManualRawDataService {
       this.characteristicsFrom(GAP_FILL_CHARACTERISTICS_FILE),
     ]);
     return [...curated, ...gapFill];
+  }
+
+  /**
+   * Every curated starting-skill entry: the hand-written answer for the rules
+   * sets no importer supplies (CRP, CRP+, BB2016). Read by this tool's own
+   * hardcoded path, running none of tools/import-manual's loader logic — that
+   * logic's reading of this file is part of what the report exists to check.
+   */
+  async positionSkills(): Promise<ManualPositionSkillsEntry[]> {
+    const entries = await this.array(
+      POSITION_SKILLS_FILE,
+      'positionRulesSetSkills',
+    );
+    return entries.flatMap((entry) => {
+      const position = this.ref(this.property(entry, 'position'));
+      const rulesSet = this.ref(this.property(entry, 'rulesSet'));
+      if (position === null || rulesSet === null) {
+        return [];
+      }
+      return [{ position, rulesSet, skills: this.positionSkillRefs(entry) }];
+    });
+  }
+
+  /**
+   * Curated `skills[]` entries carry either a plain `{ system, id }` ref
+   * (attributeValue: null) or a wrapped `{ skill: { system, id },
+   * attributeValue }` for a skill with a roll target (e.g. Secret Weapon).
+   */
+  private positionSkillRefs(entry: unknown): ManualPositionSkillRef[] {
+    const raw = this.property(entry, 'skills');
+    return (Array.isArray(raw) ? raw : []).flatMap((value) => {
+      const plain = this.ref(value);
+      if (plain !== null) {
+        return [{ skill: plain, attributeValue: null }];
+      }
+      const wrapped = this.ref(this.property(value, 'skill'));
+      if (wrapped === null) {
+        return [];
+      }
+      const attributeValue = this.string(value, 'attributeValue');
+      return [{ skill: wrapped, attributeValue }];
+    });
   }
 
   /** One characteristics file's `positionRulesSets` entries. */

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
 import { BblMirrorReaderService } from './bbl-mirror-reader.service';
+import type { BblRawSkillRef } from './bbl-skill-entry.service';
+import { BblSkillEntryService } from './bbl-skill-entry.service';
 
 /** BBL's own position ids are always plain numbers (the `typID` param). */
 const NUMERIC_TYP_ID = /^\d+$/;
@@ -26,6 +28,8 @@ export interface BblRawPosition {
   isStarPlayer: boolean;
   races: { bblId: string; name: string }[];
   characteristics: BblRawCharacteristics | null;
+  /** The Skills cell of the characteristics row, one ref per entry. */
+  skills: BblRawSkillRef[];
 }
 
 /**
@@ -39,7 +43,10 @@ export interface BblRawPosition {
 export class BblRawPositionPageService {
   private readonly cache = new Map<string, BblRawPosition | null>();
 
-  constructor(private readonly reader: BblMirrorReaderService) {}
+  constructor(
+    private readonly reader: BblMirrorReaderService,
+    private readonly skillEntries: BblSkillEntryService,
+  ) {}
 
   async positionFor(typId: string): Promise<BblRawPosition | null> {
     if (!NUMERIC_TYP_ID.test(typId)) {
@@ -70,6 +77,7 @@ export class BblRawPositionPageService {
       isStarPlayer: this.isStarPlayer($),
       races: this.races($),
       characteristics: this.characteristics($),
+      skills: this.skills($),
     };
   }
 
@@ -141,6 +149,30 @@ export class BblRawPositionPageService {
       return null;
     }
     return { move, strength, agility, passing, armour };
+  }
+
+  /**
+   * The Skills cell of the characteristics table: the sixth cell of the row
+   * after the MA/ST/AG/PA/AV header row. Empty when there is no such table,
+   * no sixth cell, or the cell is blank — a position with no starting skills
+   * is the common case, not an anomaly.
+   */
+  private skills($: cheerio.CheerioAPI): BblRawSkillRef[] {
+    for (const row of $('tr').toArray()) {
+      const headers = $(row)
+        .children('th, td')
+        .toArray()
+        .map((cell) => this.text($(cell).text()));
+      if (CHARACTERISTIC_HEADERS.some((header, i) => headers[i] !== header)) {
+        continue;
+      }
+      const cells = $(row).next('tr').children('td').toArray();
+      const skillsCell = cells[CHARACTERISTIC_HEADERS.length];
+      return skillsCell === undefined
+        ? []
+        : this.skillEntries.parseCell($(skillsCell).text());
+    }
+    return [];
   }
 
   /** A plain or `+`-suffixed number as scraped; anything else is unreadable. */

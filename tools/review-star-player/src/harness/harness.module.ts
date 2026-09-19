@@ -21,6 +21,9 @@ import { StarPlayerIdentityModule } from '../star-player-identity/identity.modul
 import { StarPlayerIdentityReviewerService } from '../star-player-identity/identity-reviewer.service';
 import { RandomStarPlayerStratificationService } from '../star-player-identity/random-star-player-stratification.service';
 import { SourceCoverageStratificationService } from '../star-player-identity/source-coverage-stratification.service';
+import { StarPlayerSkillsModule } from '../star-player-skills/star-player-skills.module';
+import { StarPlayerSkillsReviewerService } from '../star-player-skills/star-player-skills-reviewer.service';
+import { StarPlayerSkillsStratificationService } from '../star-player-skills/star-player-skills-stratification.service';
 import { ReportBuilderService } from './report-builder.service';
 import { ReviewService } from './review.service';
 import { StarPlayerLookupService } from './star-player-lookup.service';
@@ -29,18 +32,20 @@ import { StarPlayerSamplerService } from './star-player-sampler.service';
 /**
  * The data-type-agnostic half of the tool, plus the one place data types are
  * registered. NestJS has no multi-provider mechanism, so the two arrays below
- * are the registry: adding a future data type (skills, special rules) means
- * importing its module and adding it here — no change to any harness service.
+ * are the registry: adding a future data type (special rules, advancement)
+ * means importing its module and adding it here — no change to any harness
+ * service.
  *
- * Reviewer order is report order: identity, then characteristics, then hire
- * eligibility — narrowing from who the star is to what its numbers are to who
- * may field it.
+ * Reviewer order is report order: identity, then characteristics, then
+ * skills, then hire eligibility — narrowing from who the star is to what its
+ * numbers are to what it starts with to who may field it.
  */
 @Module({
   imports: [
     SharedModule,
     StarPlayerIdentityModule,
     StarPlayerCharacteristicsModule,
+    StarPlayerSkillsModule,
     StarPlayerHireEligibilityModule,
   ],
   providers: [
@@ -53,11 +58,13 @@ import { StarPlayerSamplerService } from './star-player-sampler.service';
     createRegistryProvider(STAR_PLAYER_DATA_TYPE_REVIEWERS, [
       StarPlayerIdentityReviewerService,
       StarPlayerCharacteristicsReviewerService,
+      StarPlayerSkillsReviewerService,
       HireEligibilityReviewerService,
     ]),
     createRegistryProvider(STAR_PLAYER_STRATIFIERS, [
       CharacteristicsChangeStratificationService,
       MissingRulesSetStratificationService,
+      StarPlayerSkillsStratificationService,
       SourceCoverageStratificationService,
       EligibilityMismatchStratificationService,
       MercenaryVsEmbeddedStratificationService,

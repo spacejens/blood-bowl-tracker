@@ -60,6 +60,7 @@ describe('PositionAvailabilityRawRendererService', () => {
       isStarPlayer: false,
       races: [{ bblId: '44', name: 'Dwarf' }],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -80,6 +81,7 @@ describe('PositionAvailabilityRawRendererService', () => {
       isStarPlayer: false,
       races: [{ bblId: '99', name: 'Orc' }],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -99,6 +101,7 @@ describe('PositionAvailabilityRawRendererService', () => {
       isStarPlayer: false,
       races: [{ bblId: '99', name: 'Orc' }],
       characteristics: null,
+      skills: [],
     });
 
     const html = await service.render(race);
@@ -142,6 +145,8 @@ describe('PositionAvailabilityRawRendererService', () => {
             name: 'Blitzer',
             isStar: false,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 5,
@@ -156,6 +161,8 @@ describe('PositionAvailabilityRawRendererService', () => {
             name: 'Deathroller',
             isStar: true,
             isOfficial: true,
+            skills: [],
+            specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
               move: 3,
@@ -188,6 +195,8 @@ describe('PositionAvailabilityRawRendererService', () => {
         name: 'Blitzer',
         isStar: false,
         isOfficial: true,
+        skills: [],
+        specialRuleName: null,
         rulesSet,
         characteristics: {
           move: 5,
@@ -218,6 +227,8 @@ describe('PositionAvailabilityRawRendererService', () => {
           name: 'Deathroller',
           isStar: true,
           isOfficial: true,
+          skills: [],
+          specialRuleName: null,
           rulesSet: 'BB2025',
           characteristics: {
             move: 3,

@@ -99,4 +99,27 @@ describe('StarPlayerPositionsQueryService', () => {
     expect(rendered.toLowerCase()).toContain('position_id');
     expect(params).toEqual([5]);
   });
+
+  it('returns the stored starting skills with their per-rules-set category', async () => {
+    const dbResult = mockDb([
+      {
+        rulesSetId: 100,
+        skillName: 'Block',
+        attributeValue: null,
+        category: 'general',
+      },
+    ]);
+    const service = await makeService(dbResult);
+
+    expect(await service.skillsFor(42)).toEqual([
+      {
+        rulesSetId: 100,
+        skillName: 'Block',
+        attributeValue: null,
+        category: 'general',
+      },
+    ]);
+    expect(dbResult.chains[0].leftJoin).toHaveBeenCalled();
+    expect(dbResult.chains[0].where).toHaveBeenCalled();
+  });
 });

@@ -1,15 +1,19 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  and,
   asc,
   DB,
   eq,
   eraRulesSets,
   eras,
   positionRulesSets,
+  positionRulesSetSkills,
   positionsRaceEras,
   raceEras,
   races,
   rulesSets,
+  skillRulesSets,
+  skills,
 } from '@blood-bowl-tracker/db';
 import type { CharacteristicFormat } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
@@ -34,6 +38,19 @@ export interface StarPlayerCharacteristicsRow {
   /** null under a rules set whose `passing_format` is 'absent'. */
   passing: number | null;
   armour: number;
+}
+
+/** One stored starting skill of the star, under one rules set. */
+export interface StarPlayerSkillRow {
+  rulesSetId: number;
+  skillName: string;
+  attributeValue: string | null;
+  /**
+   * The skill's category under that rules set, or null when no
+   * `skill_rules_sets` row exists for the pair — itself a curation gap worth
+   * seeing rather than hiding.
+   */
+  category: string | null;
 }
 
 /** One (race, era) pair the star is stored as hireable in. */
@@ -95,6 +112,31 @@ export class StarPlayerPositionsQueryService {
       .from(positionRulesSets)
       .where(eq(positionRulesSets.positionId, positionId))
       .orderBy(asc(positionRulesSets.rulesSetId));
+  }
+
+  async skillsFor(positionId: number): Promise<StarPlayerSkillRow[]> {
+    return await this.db
+      .select({
+        rulesSetId: positionRulesSets.rulesSetId,
+        skillName: skills.name,
+        attributeValue: positionRulesSetSkills.attributeValue,
+        category: skillRulesSets.category,
+      })
+      .from(positionRulesSetSkills)
+      .innerJoin(
+        positionRulesSets,
+        eq(positionRulesSets.id, positionRulesSetSkills.positionRulesSetId),
+      )
+      .innerJoin(skills, eq(skills.id, positionRulesSetSkills.skillId))
+      .leftJoin(
+        skillRulesSets,
+        and(
+          eq(skillRulesSets.skillId, positionRulesSetSkills.skillId),
+          eq(skillRulesSets.rulesSetId, positionRulesSets.rulesSetId),
+        ),
+      )
+      .where(eq(positionRulesSets.positionId, positionId))
+      .orderBy(asc(positionRulesSets.rulesSetId), asc(skills.name));
   }
 
   async hireEligibilityFor(positionId: number): Promise<StarPlayerHireRow[]> {

@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 import { REVIEW_RACE_CONFIG_PATH } from './config/review-race-config.service';
 import { ReviewService } from './harness/review.service';
 import { CharacteristicsChangeStratificationService } from './position-characteristics/characteristics-change-stratification.service';
+import { StartingSkillsStratificationService } from './position-starting-skills/starting-skills-stratification.service';
 import { EraAvailabilityStratificationService } from './race-identity/era-availability-stratification.service';
 import { NameMismatchStratificationService } from './race-identity/name-mismatch-stratification.service';
 import { RandomRaceStratificationService } from './race-identity/random-race-stratification.service';
@@ -53,7 +54,7 @@ describe('AppModule', () => {
     expect(moduleRef.get(ReviewService)).toBeInstanceOf(ReviewService);
   });
 
-  it('registers all five race stratifiers in RACE_STRATIFIERS', async () => {
+  it('registers all six race stratifiers in RACE_STRATIFIERS', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -64,11 +65,12 @@ describe('AppModule', () => {
       .compile();
 
     const stratifiers = moduleRef.get<RaceStratifier[]>(RACE_STRATIFIERS);
-    expect(stratifiers).toHaveLength(5);
+    expect(stratifiers).toHaveLength(6);
     expect(
       [
         EraAvailabilityStratificationService,
         CharacteristicsChangeStratificationService,
+        StartingSkillsStratificationService,
         SourceCoverageStratificationService,
         NameMismatchStratificationService,
         RandomRaceStratificationService,
@@ -78,7 +80,7 @@ describe('AppModule', () => {
     ).toBe(true);
   });
 
-  it('registers the three race data type reviewers in report order', async () => {
+  it('registers the four race data type reviewers in report order', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -91,11 +93,12 @@ describe('AppModule', () => {
     const reviewers = moduleRef.get<RaceDataTypeReviewer[]>(
       RACE_DATA_TYPE_REVIEWERS,
     );
-    expect(reviewers).toHaveLength(3);
+    expect(reviewers).toHaveLength(4);
     expect(reviewers.map((reviewer) => reviewer.id)).toEqual([
       'race-identity',
       'position-availability',
       'position-characteristics',
+      'position-starting-skills',
     ]);
   });
 });

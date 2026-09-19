@@ -45,5 +45,12 @@ export type {
   ReviewConfigServiceConstructor,
 } from './review-config-base.service';
 export { createReviewConfigServiceBase } from './review-config-base.service';
+export type { SkillFormatInput } from './skill-format.service';
+export {
+  ELITE_SKILL_MARKER,
+  RANDOM_SKILL_MARKER,
+  SkillFormatService,
+  UNIQUE_SKILL_MARKER,
+} from './skill-format.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
 export { STRATIFIERS } from './stratifier';
