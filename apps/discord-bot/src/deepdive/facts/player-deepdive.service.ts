@@ -81,6 +81,11 @@ type Player = {
   agilityReductionCount: number;
   passingReductionCount: number;
   armourReductionCount: number;
+  moveIncreaseCount: number;
+  strengthIncreaseCount: number;
+  agilityIncreaseCount: number;
+  passingIncreaseCount: number;
+  armourIncreaseCount: number;
 };
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
@@ -118,6 +123,19 @@ const REDUCTION_FIELDS = [
   ['AG', 'agilityReductionCount'],
   ['PA', 'passingReductionCount'],
   ['AV', 'armourReductionCount'],
+] as const;
+
+/**
+ * Each characteristic's advancement-increase counter and the label the line
+ * writes it under, in the order the line lists them — the same order
+ * `REDUCTION_FIELDS` uses, so the two condition lines read alike.
+ */
+const INCREASE_FIELDS = [
+  ['MA', 'moveIncreaseCount'],
+  ['ST', 'strengthIncreaseCount'],
+  ['AG', 'agilityIncreaseCount'],
+  ['PA', 'passingIncreaseCount'],
+  ['AV', 'armourIncreaseCount'],
 ] as const;
 
 /**
@@ -294,16 +312,17 @@ export class PlayerDeepdiveService {
       characteristicsContext === undefined
         ? undefined
         : this.buildCharacteristicsLine(player, characteristicsContext);
+    const advancementsLine = this.buildCharacteristicAdvancementsLine(player);
     const lastingInjuriesLine = this.buildLastingInjuriesLine(player);
     // Both describe the player's current condition rather than their
     // identity, so they share one blank-line separator from the header lines
     // above — emitted if any is present, since the characteristics line is
-    // absent whenever no rules set resolves for the era while an injury is a
-    // fact regardless. The skill lines join them: what a player has learned is
-    // current state too, and the two groups are never both empty for a player
-    // whose position grants any starting skill at all.
+    // absent whenever no rules set resolves for the era while an injury or an
+    // advancement is a fact regardless. The skill lines join them: what a
+    // player has learned is current state too, and the two groups are never
+    // both empty for a player whose position grants any starting skill at all.
     const conditionLines = [
-      ...[characteristicsLine, lastingInjuriesLine].filter(
+      ...[characteristicsLine, advancementsLine, lastingInjuriesLine].filter(
         (line): line is string => line !== undefined,
       ),
       ...this.skillsSection.build(skillRows),
@@ -622,6 +641,37 @@ export class PlayerDeepdiveService {
     return parts.length === 0
       ? undefined
       : `Lasting injuries: ${parts.join(', ')}`;
+  }
+
+  /**
+   * `Characteristic advancements: MA +1, AG +2` — how many times each
+   * characteristic has been raised by an advancement, for the characteristics
+   * that have been raised at all.
+   *
+   * Independent of the `Characteristics:` line above it, in two ways. It is
+   * rendered even when no rules set resolves for the player's era: these
+   * counts are stored on the player directly and need no rules set to be
+   * written correctly. And it is not derived from the baseline comparison
+   * that drives the ▲/▼ markers, so an advancement stays visible even when a
+   * lasting injury has cancelled it back to the position's baseline value.
+   *
+   * `undefined` — the whole line omitted — when nothing has been increased,
+   * matching `buildLastingInjuriesLine`: the zero case is the common one and
+   * a "none" line on every such player would be noise.
+   */
+  private buildCharacteristicAdvancementsLine(
+    player: Player,
+  ): string | undefined {
+    const parts: string[] = [];
+    for (const [label, field] of INCREASE_FIELDS) {
+      const count = player[field];
+      if (count > 0) {
+        parts.push(`${label} +${count}`);
+      }
+    }
+    return parts.length === 0
+      ? undefined
+      : `Characteristic advancements: ${parts.join(', ')}`;
   }
 
   /** One characteristic: its formatted value plus its baseline marker. */
