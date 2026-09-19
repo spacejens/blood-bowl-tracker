@@ -11,9 +11,14 @@
 // Deciding an entry belongs here is a case-by-case judgment call every time,
 // never a rule about the rules set. BBL's snapshot-assignment logic
 // (BblPositionRaceErasImportService / BblPositionCharacteristicsImportService)
-// can write a row under ANY rules set its era covers, BB2020 included,
-// whenever it finds real scraped usage evidence. So "it is a BB2020 entry" is
-// not a reason to put something here. Before adding an entry, establish that
+// can write a row under any rules set its era covers whose agilityFormat
+// isn't 'bare' -- BB2020 included -- whenever it finds real scraped usage
+// evidence. So "it is a BB2020 entry" is not a reason to put something here.
+// CRP, CRP+ and BB2016 are a separate case: BBL never writes a row for those
+// three at all, but that alone still doesn't make an entry belong HERE --
+// the fully-curated after-other-importers/position-characteristics.json5
+// already owns them; this file is only for a pair no importer, source or
+// curated-after-phase, ever supplies. Before adding an entry, establish that
 // neither BBL nor TP can produce a candidate for that position at all.
 //
 // Giant Mercenary is the one entry that qualifies today. BBL never creates a
