@@ -15,6 +15,7 @@ import { ExternalSystemsImportService } from './external-systems-import.service'
 import { ImportModule } from './import.module';
 import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { KeywordsImportService } from './keywords-import.service';
 import { LeaguesImportService } from './leagues-import.service';
 import { MatchDateRangeService } from './match-date-range.service';
 import { MatchEventsImportService } from './match-events-import.service';
@@ -22,6 +23,7 @@ import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { NameExternalIdService } from './name-external-id.service';
 import { PlayersImportService } from './players-import.service';
+import { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
 import { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 import { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 import { PositionsImportService } from './positions-import.service';
@@ -50,7 +52,9 @@ const providers = [
   MatchesImportService,
   MatchDateRangeService,
   NameExternalIdService,
+  KeywordsImportService,
   PlayersImportService,
+  PositionRulesSetKeywordsImportService,
   PositionRulesSetsImportService,
   PositionRulesSetSkillsImportService,
   PositionsImportService,

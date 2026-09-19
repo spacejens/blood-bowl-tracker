@@ -50,6 +50,7 @@ export { ExternalSystemsImportService } from './external-systems-import.service'
 export { ImportModule } from './import.module';
 export { ImportResultService } from './import-result.service';
 export { ImportRunnerService } from './import-runner.service';
+export { KeywordsImportService } from './keywords-import.service';
 export { LastingInjuriesImportService } from './lasting-injuries-import.service';
 export { LeaguesImportService } from './leagues-import.service';
 export type { MatchDateRange } from './match-date-range.service';
@@ -70,6 +71,7 @@ export {
   PlayerSkillsImportService,
 } from './player-skills-import.service';
 export { PlayersImportService } from './players-import.service';
+export { PositionRulesSetKeywordsImportService } from './position-rules-set-keywords-import.service';
 export { PositionRulesSetSkillsImportService } from './position-rules-set-skills-import.service';
 export { PositionRulesSetsImportService } from './position-rules-sets-import.service';
 export type { SyncPositionRaceErasData } from './positions-import.service';
