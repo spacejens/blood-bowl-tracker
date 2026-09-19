@@ -207,15 +207,19 @@ different reasons.
 
 `data/after-other-importers/position-characteristics.json5` holds the values
 for the three older rules sets no importer can supply correctly (CRP, CRP+,
-BB2016). It sits in the **after** phase deliberately: the sync matches by the
-natural key `(position, rules set)` and updates in place, and the BBL importer
-can write its single BB2020-snapshot stat line under an older rules set
-whenever it finds usage evidence there. Curating before the importers would
-let that snapshot overwrite the curated values on the very same key.
+BB2016). No importer writes those keys at all: `tools/import-bbl` skips any
+rules set whose `agilityFormat` is `'bare'` — exactly those three — rather
+than storing the BB2020 snapshot it cannot convert faithfully, and
+`tools/import-tp`'s sources only ever cover BB2020 and later. It still has to
+sit in the **after** phase, for the same reason `position-availability.json5`
+does: its `position` references use the "`<raceName>: <positionName>`" `Name`
+external id that only `tools/import-bbl`'s position importer creates, so
+curating earlier would create orphan position rows for the importers' own
+upserts to collide with.
 
 `data/before-other-importers/position-characteristics-gap-fill.json5` holds
-**gap-fill** entries, and sits in the **before** phase for the mirror-image
-reason: each of its `(position, rules set)` pairs is one no source importer can
+**gap-fill** entries, and sits in the **before** phase for a different reason:
+each of its `(position, rules set)` pairs is one no source importer can
 ever produce a row for, so there is no snapshot that could overwrite it, and
 curating early means the row already exists when a source importer needs to
 read it. `tools/import-tp`'s mercenary hires do exactly that (via

@@ -36,11 +36,11 @@ export interface SyncPositionSkillsOptions {
 /**
  * Writes each position's starting skills under every rules set it played
  * under, EXCEPT the three older rules sets (CRP, CRP+, BB2016) that
- * after-other-importers/position-skills.json5 curates completely. BBL is a
- * single BB2020-era snapshot with one skill list per position -- fine for
- * `BblPositionCharacteristicsImportService`'s single overwritable value, since
- * curation runs after BBL and always wins by overwriting it. It is NOT fine
- * here: `position_rules_set_skills` is additive per (position, rules set) --
+ * after-other-importers/position-skills.json5 curates completely.
+ * `BblPositionCharacteristicsImportService` excludes the same three rules
+ * sets, but for a different reason: it has nothing trustworthy to write for
+ * a bare-notation rules set at all (see that class's own doc comment). This
+ * service's problem is specifically that its target table is additive-only --
  * it only inserts missing rows, never deletes -- so if BBL wrote its modern
  * skill list into e.g. a CRP position, the curated CRP list imported
  * afterwards would merge into a union instead of replacing it, and BBL's

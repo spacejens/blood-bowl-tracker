@@ -61,7 +61,9 @@ function makeRulesSet({
 }
 
 // CRP predates BB2020: no Passing at all, and Agility/Armour written as bare
-// numbers. BB2020 has Passing and writes both as roll-to-beat targets.
+// numbers. That bare notation is exactly what the service now refuses to
+// write a snapshot for. BB2020 has Passing and writes both as roll-to-beat
+// targets.
 const rulesSetsByName = new Map([
   [
     'CRP',
@@ -74,6 +76,14 @@ const rulesSetsByName = new Map([
     }),
   ],
   ['BB2020', makeRulesSet({ id: 20, name: 'BB2020', passingFormat: 'plus' })],
+  // No real rules set both states Agility/Armour as roll-to-beat targets and
+  // has no Passing characteristic. This one exists so the passingFormat:
+  // 'absent' branch stays covered: the only real rules sets that reach it are
+  // bare-notation, and those are skipped before an entry is ever built.
+  [
+    'NO-PASSING',
+    makeRulesSet({ id: 30, name: 'NO-PASSING', passingFormat: 'absent' }),
+  ],
 ]);
 
 describe('BblPositionCharacteristicsImportService', () => {
@@ -148,7 +158,7 @@ describe('BblPositionCharacteristicsImportService', () => {
 
   it('syncs Passing as null to a rules set that has no Passing, whatever the page showed', async () => {
     await service.syncPositionCharacteristics({
-      rulesSetIdsByPositionId: new Map([[100, new Set([10])]]),
+      rulesSetIdsByPositionId: new Map([[100, new Set([30])]]),
       characteristicsByPositionId: new Map([
         [100, { move: 6, strength: 4, agility: 4, passing: 6, armour: 10 }],
       ]),
@@ -161,7 +171,7 @@ describe('BblPositionCharacteristicsImportService', () => {
     ).toBeNull();
   });
 
-  it('sends one call per position carrying an entry for every rules set', async () => {
+  it('sends an entry only for the rules sets it can represent, skipping bare-notation ones', async () => {
     await service.syncPositionCharacteristics({
       rulesSetIdsByPositionId: new Map([[100, new Set([10, 20])]]),
       characteristicsByPositionId: new Map([
@@ -173,20 +183,12 @@ describe('BblPositionCharacteristicsImportService', () => {
     expect(positionRulesSetsImport.syncPositionRulesSets).toHaveBeenCalledTimes(
       1,
     );
+    // CRP (id 10) states Agility and Armour as bare numbers, which BBL's
+    // single BB2020-notation snapshot cannot describe, so no entry is built
+    // for it at all and only BB2020 (id 20) is written.
     expect(
       positionRulesSetsImport.syncPositionRulesSets.mock.calls[0][0].entries,
     ).toEqual([
-      {
-        positionId: 100,
-        rulesSetId: 10,
-        move: 6,
-        strength: 5,
-        // CRP writes bare numbers: BBL's AG 4 / AV 10 are AG 2 / AV 9 there
-        // (agility = 6 - raw, armour = raw - 1).
-        agility: 2,
-        passing: null,
-        armour: 9,
-      },
       {
         positionId: 100,
         rulesSetId: 20,
@@ -197,7 +199,24 @@ describe('BblPositionCharacteristicsImportService', () => {
         armour: 10,
       },
     ]);
-    expect(resultArgs(importResults).imported).toBe(2);
+    expect(resultArgs(importResults).imported).toBe(1);
+  });
+
+  it('sends nothing for a position whose only usage evidence is bare-notation rules sets', async () => {
+    await service.syncPositionCharacteristics({
+      rulesSetIdsByPositionId: new Map([[100, new Set([10])]]),
+      characteristicsByPositionId: new Map([
+        [100, { move: 6, strength: 4, agility: 4, passing: 6, armour: 10 }],
+      ]),
+      rulesSetsByName,
+    });
+
+    // Nothing at all is sent, and the skipped position is not counted as
+    // imported — the curated after-phase file is the only source for CRP.
+    expect(
+      positionRulesSetsImport.syncPositionRulesSets,
+    ).not.toHaveBeenCalled();
+    expect(resultArgs(importResults)).toEqual({ imported: 0, errors: [] });
   });
 
   it('sends a separate call per position so one rejection cannot sink another', async () => {
@@ -272,37 +291,39 @@ describe('BblPositionCharacteristicsImportService', () => {
     expect(outcome.result).toBe(CANNED_RESULT);
   });
 
-  it('converts Agility and Armour per rules set for a position synced under both notations', async () => {
+  it('stores Agility and Armour exactly as scraped for every rules set it writes', async () => {
     await service.syncPositionCharacteristics({
-      rulesSetIdsByPositionId: new Map([[100, new Set([10, 20])]]),
+      rulesSetIdsByPositionId: new Map([[100, new Set([20, 30])]]),
       characteristicsByPositionId: new Map([
         [100, { move: 6, strength: 3, agility: 3, passing: 4, armour: 8 }],
       ]),
       rulesSetsByName,
     });
 
-    // One scraped BB2020-notation line, two rules sets, two different stored
-    // characteristic sets: CRP writes bare numbers (AG 3 -> 3 — 3 is the
-    // scale's own fixed point, 6 - 3 = 3 — and AV 8 -> 7), BB2020 keeps
-    // BBL's own figures.
+    // Notation conversion only ever rewrites bare-notation values, and those
+    // rules sets no longer get an entry, so BBL's own BB2020 figures are
+    // stored unchanged for every rules set that survives the filter.
     const { entries } =
       positionRulesSetsImport.syncPositionRulesSets.mock.calls[0][0];
     expect(entries[0]).toMatchObject({
-      rulesSetId: 10,
+      rulesSetId: 20,
       agility: 3,
-      armour: 7,
+      armour: 8,
     });
     expect(entries[1]).toMatchObject({
-      rulesSetId: 20,
+      rulesSetId: 30,
       agility: 3,
       armour: 8,
     });
   });
 
-  it('leaves Agility and Armour alone for a rules set with no resolvable entry', async () => {
+  it('writes a rules set with no resolvable entry rather than skipping it', async () => {
     await service.syncPositionCharacteristics({
       // Rules set id 99 is in no rules set map, so nothing tells this service
-      // which notation it uses; the safe fallback is to convert nothing.
+      // which notation it uses. It is deliberately not treated as one of the
+      // skipped bare-notation rules sets: there is no way to tell whether it
+      // is one, and an unresolvable rules set already reports its own error
+      // elsewhere. The safe fallback is to write it and convert nothing.
       rulesSetIdsByPositionId: new Map([[100, new Set([99])]]),
       characteristicsByPositionId: new Map([
         [100, { move: 6, strength: 3, agility: 3, passing: 4, armour: 8 }],
@@ -310,6 +331,9 @@ describe('BblPositionCharacteristicsImportService', () => {
       rulesSetsByName,
     });
 
+    expect(positionRulesSetsImport.syncPositionRulesSets).toHaveBeenCalledTimes(
+      1,
+    );
     expect(
       positionRulesSetsImport.syncPositionRulesSets.mock.calls[0][0].entries[0],
     ).toMatchObject({ agility: 3, armour: 8 });

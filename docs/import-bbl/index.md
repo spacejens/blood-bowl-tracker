@@ -387,24 +387,25 @@ evidence sets, and matches and players (which have no resolve procedure).
   relation. A position that lists no race and has no players in the data is
   skipped with a recorded error. Imported after races and teams (both referenced).
 - **Position characteristics** — from the same `p=pt` page, written to
-  `position_rules_sets`. A position gets one row per rules set it was
-  determined eligible for (positive evidence only — an override, star-player
-  status, or a recorded player use, the same rule race-era availability
-  applies), not one hardcoded to BB2020: an era spanning a rules-set change
-  yields a row per rules set in that span, all carrying the same scraped
-  values, since BBL is a single BB2020-era snapshot with no other source for
-  the older rules sets (curated pre-BB2020 values are imported separately and
-  overwrite these). A position with no positive evidence for a rules set gets
-  no row for it at all — not even a wrong one — including under BB2020
-  itself; gaps like these are filled in by hand in `tools/import-manual`.
-  `Passing` is resolved per target rules set: `null` where the rules
-  set declares no Passing characteristic at all, and otherwise the scraped
-  value, or `0` where the page showed `-` — a position that cannot pass
-  under a rules set that does have Passing. One sync call is
-  made per position, so a rejected position's characteristics do not sink the
-  rest of the run. A position whose characteristics table could not be read
-  records an error and is skipped; its identity still imports. Imported after
-  rules sets, positions, and positions_race_eras (all referenced).
+  `position_rules_sets`. A position gets one row per rules set eligible for
+  it (positive evidence only — an override, star-player status, or recorded
+  player use; the same rule as race-era availability), not hardcoded to
+  BB2020: an era spanning a rules-set change yields a row per rules set in
+  that span, all carrying the same scraped values, since BBL is a single
+  BB2020-era snapshot. The three pre-BB2020 rules sets are the exception:
+  BBL writes no row for a rules set with bare Agility and Armour
+  (`agilityFormat: 'bare'` — CRP, CRP+, BB2016), because one BB2020
+  snapshot cannot describe them; values come only from `tools/import-manual`'s
+  curated after-phase file. A position with no positive evidence for a rules
+  set gets no row at all — not even a wrong one — including under BB2020;
+  gaps are filled by hand in `tools/import-manual`. `Passing` is resolved per
+  target rules set: `null` where the rules set declares no Passing
+  characteristic, and otherwise the scraped value, or `0` where the page
+  showed `-` — a position that cannot pass under a rules set with Passing.
+  One sync call is made per position, so rejected characteristics do not sink
+  the rest of the run. A position whose characteristics table could not be
+  read records an error and is skipped; its identity still imports. Imported
+  after rules sets, positions, and positions_race_eras (all referenced).
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
   id (`t` param) under the configured BBL external system (`BBL` by default),
   and by its `<h1>` name under the `Name` external system. Each team's race and
