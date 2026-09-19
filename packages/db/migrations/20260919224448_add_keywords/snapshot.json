@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "290ffee9-93c6-41fd-984e-6e200e7a8b60",
+  "id": "f0557e52-c602-480d-8571-ff048581c8c9",
   "prevIds": [
     "859e1d27-bc5c-4054-9b93-238973395f2e"
   ],
@@ -17085,7 +17085,7 @@
         "keyword_id"
       ],
       "nullsNotDistinct": false,
-      "name": "position_rules_set_keywords_position_rules_set_id_keyword_id_unique",
+      "name": "position_rules_set_keywords_position_rules_set_id_keyword_id",
       "entityType": "uniques",
       "schema": "game_data",
       "table": "position_rules_set_keywords"

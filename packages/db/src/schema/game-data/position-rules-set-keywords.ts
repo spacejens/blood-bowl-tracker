@@ -36,7 +36,7 @@ const positionRulesSetKeywordsTable = historyTrackedTable({
   },
   extraConfig: (t) => ({
     uniquePositionRulesSetKeyword: unique(
-      'position_rules_set_keywords_position_rules_set_id_keyword_id_unique',
+      'position_rules_set_keywords_position_rules_set_id_keyword_id',
     ).on(t.positionRulesSetId, t.keywordId),
   }),
 });
