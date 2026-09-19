@@ -7,6 +7,7 @@ import { BblRawRaceIndexService } from './bbl-raw-race-index.service';
 import { BblSkillEntryService } from './bbl-skill-entry.service';
 import { ManualRawDataService } from './manual-raw-data.service';
 import { TpRawOfficialTeamsIndexService } from './tp-raw-official-teams-index.service';
+import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
 /**
  * Reads each source's raw files. Loaders locate, decode and shape — every
@@ -22,6 +23,7 @@ const SOURCES = [
   BblSkillEntryService,
   ManualRawDataService,
   TpRawOfficialTeamsIndexService,
+  TpSkillMasterNamesService,
 ];
 
 @Module({
