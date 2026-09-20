@@ -467,6 +467,8 @@ Once part `i+1`'s PR exists, edit part `i`'s body (`cd <worktree-path> && gh pr 
 
 5. **Automated review loop.** An automated review bot reviews every PR in this repo (see `docs/development-workflow.md`). Wait for its review and drive it to completion here rather than leaving it for the developer to notice later. Repeat the wait → handle cycle below for at most **10 iterations total**.
 
+   **Skip this whole step if Phase 5 step 5 recorded an accepted-oversized decision** (the developer chose **Open one oversized PR anyway** for an `unsplittable` or `unsplittableWholeBranch` outcome). CodeRabbit already refused this exact file count once, in the detection check itself — waiting here would just burn the full 10-iteration budget on a review CodeRabbit is going to skip for the same reason, an outcome this whole feature exists to avoid causing. Release the review lock taken in step 3 (`release-review-lock <holder-id>`) — this PR never actually triggers a review, so there is nothing left worth holding it for — then go straight to step 6 below. Note in the Phase 7 report that no automated review ran, and why, so the developer knows this PR needs a closer human read than usual.
+
    **Before the loop**, capture the developer's own login once — it is what distinguishes a reviewer from the PR's author:
    ```bash
    gh api user --jq .login
