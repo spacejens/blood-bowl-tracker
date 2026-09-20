@@ -192,8 +192,8 @@ export class TpPositionSkillsImportService {
    * recorded as an ImportError and left out, once per distinct
    * (skillMasterId, attributeValue) pair across the whole run. A type-3 code
    * the curated keyword catalogue CAN explain (a Hatred or Animosity
-   * target -- see docs/import-tp/hard-coded-lookups.md) is composed normally
-   * instead, with the named target as its attribute value.
+   * target -- see docs/import-tp/keyword-target-decoding.md) is composed
+   * normally instead, with the named target as its attribute value.
    *
    * A reference TP named directly rather than by id (a star's own
    * `specialRuleName`) needs no lookup at all and is passed straight

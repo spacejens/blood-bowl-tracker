@@ -200,8 +200,9 @@ only opaque numeric codes — so this catalogue's `Name` external id (the
 canonical spelling) and `kind` classification exist purely as curated data.
 Its `tourplay.net` external id is the numeric code that source publishes, and
 is what lets `tools/import-tp` resolve a code it reads back to this row. See
-[Curated data files](curated-files.md) for the full catalogue and the
-investigation behind it.
+[Keywords](../game-concepts/keywords/index.md) for the concept, and
+[Curated data files](curated-files.md#known-before-other-importers-dedup-files)
+for what the curated file itself holds.
 
 ### Position characteristics
 

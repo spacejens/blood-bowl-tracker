@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { KeywordValidationError } from '../shared/keyword-validation-error';
 import {
   extractAllFilterValues,
+  extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { PositionRulesSetKeywordsService } from './position-rules-set-keywords.service';
@@ -69,6 +70,10 @@ describe('PositionRulesSetKeywordsService', () => {
       await service.sync({ entries: [entry] });
 
       const anchorWhereCondition = firstCallArg(db.chains[0].where);
+      expect(extractJoinColumns(anchorWhereCondition)).toEqual([
+        'position_rules_sets.rules_set_id',
+        'position_rules_sets.position_id',
+      ]);
       expect(extractAllFilterValues(anchorWhereCondition)).toEqual([2, 1]);
     });
 
