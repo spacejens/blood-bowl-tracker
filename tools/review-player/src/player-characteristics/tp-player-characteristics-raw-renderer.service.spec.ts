@@ -45,6 +45,7 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templateAgility: null,
       templatePassing: null,
       templateArmour: null,
+      templateKeywordCodes: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -79,6 +80,7 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templateAgility: null,
       templatePassing: null,
       templateArmour: null,
+      templateKeywordCodes: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -113,6 +115,7 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templateAgility: null,
       templatePassing: null,
       templateArmour: null,
+      templateKeywordCodes: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -154,6 +157,7 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templateAgility: null,
       templatePassing: null,
       templateArmour: null,
+      templateKeywordCodes: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 

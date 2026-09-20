@@ -27,11 +27,12 @@ per-entity preparation hook is a pass-through here. `harness.module.ts` stays lo
 because it _is_ this tool's own composition.
 
 Scope today is player info, [Star Player Points](../glossary.md#star-player-points-spp)
-totals, characteristics, current lasting injuries and skill advancements.
+totals, characteristics, current lasting injuries, skill advancements and BB2025
+keywords.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across fifteen strata:
+1. Samples players per source (BBL and TP) across sixteen strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -114,6 +115,13 @@ totals, characteristics, current lasting injuries and skill advancements.
        None of the last three strata is a finding on its own: a run simply
        always contains an elite, a randomly rolled and a freely chosen gained
        skill, each of which exercises a different importer path.
+   16. **BB2025 position without keywords** — a player whose position has a
+       BB2025 `position_rules_sets` row with no matching
+       `position_rules_set_keywords` row. A stratifier only ever sees the
+       database, so "differs from TP" cannot itself be a stratum here; this
+       is the closest DB-visible signal that a keyword was dropped.
+       "BB2025" is resolved by the rules set's own name, never a hard-coded
+       id.
 
    The random-sample stratum excludes star players outright: today's data model
    gives a popular star their own `players` row per team that induces them, so
@@ -135,7 +143,7 @@ totals, characteristics, current lasting injuries and skill advancements.
    the extremes. A player with no stored total at all — commonly an induced star
    player — is excluded from all three, needing no exclusion of its own to arrange.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders five panel pairs:
+3. For each sampled player, renders six panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
      for name, position, team and its career achievement counters, including the career
      SPP figure BBL publishes in the "Unspent SPP" row; or, for TP (which has no
@@ -218,6 +226,22 @@ totals, characteristics, current lasting injuries and skill advancements.
      only: TP publishes no comparable counts at all (its raw panel already
      shows a derived template diff instead), and no importer writes these
      columns from TP, so comparing them there would be noise, not a finding.
+   - **player-keywords** — a player carries no keywords of their own; they
+     come from the player's _position_, so this panel pair differs in shape
+     from the others. Left: the BB2025 keyword codes TP publishes on the
+     position template this player was recruited from
+     (`lineUps[].lineUpMaster.race` in the same downloaded roster file the
+     characteristics panel already reads), next to the curated catalogue
+     that names them — a code no curated keyword carries is highlighted, and
+     a player no downloaded TP roster file carries gets a note instead of a
+     table. Only TP publishes keyword codes at all — BBL has no such concept
+     — so there is no BBL sub-section here. Right: what
+     `position_rules_set_keywords` recorded for the player's _position_, one
+     row per rules set that position has a characteristics row under, so a
+     reviewer can see the era's rules set alongside the others rather than
+     this panel deciding which one applies. This panel deliberately does not
+     diff itself against the raw panel — that would mean re-running the
+     importer's own code resolution, the thing under review.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
