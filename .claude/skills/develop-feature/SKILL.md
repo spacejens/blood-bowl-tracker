@@ -636,4 +636,43 @@ Once part `i+1`'s PR exists, edit part `i`'s body (`cd <worktree-path> && gh pr 
      If this prints any file paths, print the following reminder to the developer alongside the `deploy-local` hand-off:
      > This branch changes Discord slash-command registration or definitions. Commands are registered globally, and Discord can take up to ~1 hour to propagate a changed command's name, description, or options — so your slash commands may still show their old definitions in Discord for a while after the deploy. That is expected, not a failed deploy. Changes to how a command answers (handler logic) take effect as soon as the bot restarts.
      If it prints nothing, skip the reminder silently — no status line, no mention.
+
+#### Stacked PR sequencing (only when a split is needed)
+
+When Phase 5 step 5 recorded two or more parts, steps 3-6 above are replaced by the sequence below; steps 1, 2 and 7 are unchanged. Nothing here introduces new machinery — it reuses the same `gh pr create`, review-lock, `wait-for-pr-review` and `handle-pr-reviews` building blocks the single-PR flow already uses, just once per part.
+
+**Run once, before part 1:**
+- **Step 1 (sync with `main`)** and **step 2 (pre-push stray-work check)** — exactly as written, once. Neither `main` nor the worktree's stray state changes between parts of the same sequence, so they are not repeated per part.
+- **Acquire the review lock** — step 3's `acquire-review-lock <holder-id>` procedure verbatim, including its holder-id capture, its backgrounded invocation, and its failure handling. The lock is then held continuously across **every** part's review loop and released once at the very end. The merge-forward between parts is automatic, so there is no developer-facing wait between parts that would justify releasing and reacquiring; the existing timeout/rate-limit/comment-update-failure Pauses **within** a part's loop still release and re-acquire exactly as they already do.
+
+**Then, for each part `i` from 1 to `N`, in order:**
+
+1. **Merge forward** (skipped for part 1). Part `i-1`'s branch may have gained fix commits from its own just-completed review loop, and part `i`'s branch must carry them so its own PR diff shows only its own sections' changes rather than reintroducing a pre-fix version of part `i-1`'s content:
+
+   ```bash
+   cd <worktree-path> && git checkout <part-i-branch>
+   cd <worktree-path> && git merge <part-i-1-branch>
+   ```
+
+   For the last part, `<part-i-branch>` is the original worktree branch. Handle the result with **step 1's existing merge procedure verbatim** — clean merge: run `pnpm verify`, fix any regression the merge introduced, commit, continue; conflict: attempt an automated resolution, run `pnpm verify`, and stop to ask the developer only if the correct resolution is not clear or verification does not come back clean. Then push the merge:
+
+   ```bash
+   cd <worktree-path> && git push origin <part-i-branch>
+   ```
+
+2. **Create this part's branch and PR.** Create and push the branch per "Stacked branches and PR content" above (skipped for the last part, whose branch already exists), then run `gh pr create` with that section's base, head, title, body, labels, and assignee — the mode-appropriate command from step 3 with `--base <base-branch>` and `--head <head-branch>` added. Step 3's `gh pr create` failure handling (report the error, then ask **Retry** or **Stop** via `AskUserQuestion`) applies unchanged. Record the resulting PR number as this part's PR.
+
+3. **Edit the previous part's body** (skipped for part 1) so its stacking note names this part's PR number, per "Stacked branches and PR content" above. A failure here is a one-line warning, never a stop — the stacking note is informational.
+
+4. **Post this part's share of the pending self-review questions** — step 4's procedure, filtered to this part. Route each recorded question to whichever part's diff contains its file (check with `cd <worktree-path> && git diff --name-only <part-base-ref>...<part-commit-sha>`, using `origin/main` as `<part-base-ref>` for part 1 and the previous part's `commitSha` otherwise), and post only those against this part's PR, so a question is never posted before the part whose diff contains its file exists. If the pending-questions list is empty — the common case — skip this step entirely and silently, as step 4 already says. A question whose file appears in no part's diff (it was later reverted, or it is lockfile-excluded) is posted against the last part's PR rather than dropped.
+
+5. **Run the review loop against this part's PR** — step 5 in full and unchanged: the `wait-for-pr-review` wait, its timeout / rate-limit / comment-update-failure handling, `handle-pr-reviews --skip-deploy-local`, the exit checks, and the lock heartbeats, with its own fresh 10-iteration budget for this part. One change only: **do not run step 5's "After the loop" `release-review-lock`** for any part but the last — the lock is held across the whole sequence. Record this part's one-line loop-ending description for the final report.
+
+6. Continue to part `i+1`.
+
+**Run once, after part `N`:**
+- **Release the review lock** — step 5's "After the loop" `release-review-lock <holder-id>` command, with its same best-effort failure handling.
+- **Offer `deploy-local`** — step 6 in full, once, including its Discord slash-command propagation reminder (whose `git diff --name-only origin/main...HEAD` check is run once against the whole branch, not per part). Not once per part: there is one worktree and one final state to look at.
+- **Print the stacked-PR summary** described in "Reporting a stacked PR sequence" below.
+
 7. **Skill ends** — human review and merge happen outside this workflow. The automated review bot's feedback has already been driven to completion in step 5, so what reaches the human is a PR that has been through both Claude's self-review and an independent bot pass. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
