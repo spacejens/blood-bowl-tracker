@@ -104,4 +104,40 @@ export class RacePositionsQueryService {
       .where(eq(raceEras.raceId, raceId))
       .orderBy(asc(rulesSets.name));
   }
+
+  /**
+   * `rulesSetId` -> the era(s) of this race that map to it. A race can span
+   * several eras, each mapping to its own rules set(s), so a renderer needs
+   * this to tell which of the race's positions are reachable under a given
+   * rules set at all.
+   */
+  async rulesSetEraIds(raceId: number): Promise<Map<number, Set<number>>> {
+    const rows = await this.db
+      .select({ eraId: raceEras.eraId, rulesSetId: eraRulesSets.rulesSetId })
+      .from(raceEras)
+      .innerJoin(eraRulesSets, eq(eraRulesSets.eraId, raceEras.eraId))
+      .where(eq(raceEras.raceId, raceId));
+    const byRulesSet = new Map<number, Set<number>>();
+    for (const row of rows) {
+      const set = byRulesSet.get(row.rulesSetId) ?? new Set<number>();
+      set.add(row.eraId);
+      byRulesSet.set(row.rulesSetId, set);
+    }
+    return byRulesSet;
+  }
+
+  /**
+   * `positionId` -> the era(s) it belongs to, folded from the (position, era)
+   * rows `positionsFor` returns. Pure — the caller has already paid for the
+   * query.
+   */
+  positionEraIds(positions: RacePositionRow[]): Map<number, Set<number>> {
+    const byPosition = new Map<number, Set<number>>();
+    for (const position of positions) {
+      const set = byPosition.get(position.positionId) ?? new Set<number>();
+      set.add(position.eraId);
+      byPosition.set(position.positionId, set);
+    }
+    return byPosition;
+  }
 }

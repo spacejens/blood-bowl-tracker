@@ -88,4 +88,64 @@ describe('RacePositionsQueryService', () => {
 
     expect(await service.rulesSetsFor(7)).toEqual(rows);
   });
+
+  it("groups the race's era ids by the rules set they map to", async () => {
+    const service = await makeService(
+      mockDb([
+        { eraId: 10, rulesSetId: 100 },
+        { eraId: 20, rulesSetId: 100 },
+        { eraId: 20, rulesSetId: 200 },
+      ]),
+    );
+
+    expect(await service.rulesSetEraIds(7)).toEqual(
+      new Map([
+        [100, new Set([10, 20])],
+        [200, new Set([20])],
+      ]),
+    );
+  });
+
+  it('binds the race id into the rules-set era query', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.rulesSetEraIds(7);
+
+    const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
+    const { params } = new PgDialect().sqlToQuery(condition);
+    expect(params).toEqual([7]);
+  });
+
+  it('groups era ids by position, including a position spanning two eras', async () => {
+    const service = await makeService(mockDb([]));
+
+    expect(
+      service.positionEraIds([
+        {
+          positionId: 1,
+          positionName: 'Zombie',
+          eraId: 10,
+          eraName: 'Third Era',
+        },
+        {
+          positionId: 1,
+          positionName: 'Zombie',
+          eraId: 20,
+          eraName: 'Fourth Era',
+        },
+        {
+          positionId: 2,
+          positionName: 'Skeleton',
+          eraId: 20,
+          eraName: 'Fourth Era',
+        },
+      ]),
+    ).toEqual(
+      new Map([
+        [1, new Set([10, 20])],
+        [2, new Set([20])],
+      ]),
+    );
+  });
 });
