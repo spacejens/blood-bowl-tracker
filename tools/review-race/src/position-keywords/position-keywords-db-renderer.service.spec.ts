@@ -97,7 +97,7 @@ describe('PositionKeywordsDbRendererService', () => {
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain(
-      '<td>Zombie</td><td class="mismatch-cell">missing (no characteristics row)</td>',
+      '<td>Zombie</td><td class="mismatch-cell">missing</td>',
     );
   });
 

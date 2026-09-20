@@ -22,7 +22,7 @@ import type { SampledRace } from '../shared/review.types';
 const NO_KEYWORDS = 'none';
 
 /** A (position, rules set) pair with no `position_rules_sets` row at all. */
-const MISSING = 'missing (no characteristics row)';
+const MISSING = 'missing';
 
 /**
  * What the importers and curation actually stored in
