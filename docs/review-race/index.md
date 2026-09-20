@@ -42,7 +42,7 @@ tool's own composition.
 
 ## What it does
 
-1. Samples races across eleven strata (`racesPerStratum` races, default 3, per stratum —
+1. Samples races across thirteen strata (`racesPerStratum` races, default 3, per stratum —
    see Configuration; a race is the sampled unit; "modern rules set" means
    `passing_format` is not `'absent'`):
    1. **Race no longer available under modern rules sets** — races whose eras map to no
