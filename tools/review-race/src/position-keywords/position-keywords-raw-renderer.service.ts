@@ -34,13 +34,20 @@ export class PositionKeywordsRawRendererService {
 
   async render(race: SampledRace): Promise<string> {
     const catalogue = await this.catalogueByCode();
-    const sections = [
-      await this.tpSection(race, catalogue),
-      await this.manualSection(),
-    ].filter((section) => section !== null);
-    if (sections.length === 0) {
+    const tpSection = await this.tpSection(race, catalogue);
+    const manualSection = await this.manualSection();
+    if (tpSection === null && manualSection === null) {
       return this.html.note(`No raw keyword data for race "${race.raceName}".`);
     }
+    // The manual catalogue is a fixed, always-present reference (see
+    // manualSection's own doc comment), so it alone can never signal that
+    // this specific race has no TP data -- render an explicit note for that
+    // case rather than silently showing only the catalogue.
+    const sections = [
+      tpSection ??
+        this.html.note(`No raw TP keyword data for race "${race.raceName}".`),
+      manualSection,
+    ].filter((section) => section !== null);
     return sections.join('\n');
   }
 
