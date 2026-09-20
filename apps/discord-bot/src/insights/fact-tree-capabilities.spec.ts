@@ -191,10 +191,25 @@ describe('buildFactTree competition capabilities', () => {
       d.coachToplist.resolveAverageTimeBetweenMatches,
     ).toHaveBeenCalledWith({ leagueId: 9, eraId: 20 });
   });
+
+  it('scopes the skill toplists to league and era but not competition', () => {
+    const tree = buildFactTree(deps());
+    for (const path of [
+      'skill.toplist.players.any',
+      'skill.toplist.players.advancement.any',
+      'skill.toplist.players.advancement.chosen',
+      'skill.toplist.players.advancement.random',
+    ]) {
+      const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsLeague).toBe(true);
+      expect(leaf.supportsEra).toBe(true);
+      expect(leaf.supportsCompetition).toBe(false);
+    }
+  });
 });
 
 describe('buildFactTree match category capabilities', () => {
-  it('excludes exactly the fifteen leaves that are not scoped to matches', () => {
+  it('excludes exactly the nineteen leaves that are not scoped to matches', () => {
     const tree = buildFactTree(deps());
     const unsupported = factTreeUtils
       .collectLeaves(tree)
@@ -209,6 +224,19 @@ describe('buildFactTree match category capabilities', () => {
         factTreeUtils.resolvePath(tree, 'race.toplist.teams.descending'),
         factTreeUtils.resolvePath(tree, 'race.toplist.teams.ascending'),
         factTreeUtils.resolvePath(tree, 'position.toplist.players'),
+        factTreeUtils.resolvePath(tree, 'skill.toplist.players.any'),
+        factTreeUtils.resolvePath(
+          tree,
+          'skill.toplist.players.advancement.any',
+        ),
+        factTreeUtils.resolvePath(
+          tree,
+          'skill.toplist.players.advancement.chosen',
+        ),
+        factTreeUtils.resolvePath(
+          tree,
+          'skill.toplist.players.advancement.random',
+        ),
         factTreeUtils.resolvePath(tree, 'eras.list'),
         factTreeUtils.resolvePath(tree, 'trophies.list'),
         factTreeUtils.resolvePath(tree, 'competitionGroups.list'),
@@ -221,7 +249,7 @@ describe('buildFactTree match category capabilities', () => {
         ),
       ]),
     );
-    expect(unsupported).toHaveLength(15);
+    expect(unsupported).toHaveLength(19);
   });
 
   it('supports the match category on every other leaf', () => {

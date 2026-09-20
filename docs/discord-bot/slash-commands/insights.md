@@ -40,17 +40,20 @@ reply.
 
 Each fact declares which of the four scopes it supports; a fact that supports
 none of them is skipped when that scope is in play, and asking for it by name
-replies with a per-scope refusal message. All but fifteen facts support
+replies with a per-scope refusal message. All but nineteen facts support
 `match-category`. The exceptions are `coach.toplist.teams`,
 `race.toplist.teams.descending`, `race.toplist.teams.ascending`,
-`position.toplist.players`, `coach.toplist.eras.active`,
+`position.toplist.players`, `skill.toplist.players.any`,
+`skill.toplist.players.advancement.any`,
+`skill.toplist.players.advancement.chosen`,
+`skill.toplist.players.advancement.random`, `coach.toplist.eras.active`,
 `team.toplist.eras.active`, `coach.toplist.trophies.won`,
 `team.toplist.trophies.won`, `eras.list`, `trophies.list`,
 `competitionGroups.list`, `starPlayers.list`,
 `starPlayers.toplist.hires.total` and
 `starPlayers.toplist.hires.distinctTeams` — which list or count teams,
-rostered players, eras, trophies, trophy awards, competition groups or star
-player hires rather than matches —
+rostered players, skills, eras, trophies, trophy awards, competition groups
+or star player hires rather than matches —
 and `stats`, which is excluded deliberately: only two of the dozen counts it
 reports (matches and match events) have a category at all, so a
 category-scoped `stats` would show two scoped numbers beside ten all-time
@@ -322,6 +325,33 @@ button, in the same order as the list, that opens that player's
   view. Supports league and era filtering (both scope the count through the
   player's own team era — when they actually played, not when the rules made
   the position available), but not competition or match-category filtering.
+- `skill.toplist.players.any` — skills ranked by how many players have them,
+  most common first (title "Skills by players who have them"). Counts a skill
+  however the player came by it: a starting skill from their position as
+  readily as one gained through advancement. A skill that carries a variable
+  attribute — Hatred's target race, say — is counted by its base skill, so
+  "Hatred (Elf)" and "Hatred (Dwarf)" both count toward "Hatred", and a player
+  holding both counts once. Star players are excluded: their skill sets are
+  fixed and often unique to them, and each hire of a star is a separate player
+  record, so one popular star would otherwise be counted once per hiring team.
+  Skills have no `/deepdive` view, so rows carry no drill-down button.
+  Supports league and era filtering (both scope through the player's own team
+  era), but not competition or match-category filtering.
+- `skill.toplist.players.advancement.any` — the same ranking narrowed to
+  skills gained through advancement (title "Skills by players who gained them
+  as an advancement"), so a position's starting skills are excluded. Includes
+  skills recorded only as gained, without saying whether they were chosen or
+  rolled, which is all some sources report. Same counting rules and same
+  filtering as `skill.toplist.players.any`.
+- `skill.toplist.players.advancement.chosen` — narrowed further to skills the
+  coach freely picked as an advancement (title "Skills by players who chose
+  them as an advancement"). A skill recorded only as gained is not counted
+  here, because it is not known to have been chosen. Same counting rules and
+  same filtering as `skill.toplist.players.any`.
+- `skill.toplist.players.advancement.random` — narrowed to skills randomly
+  rolled as an advancement (title "Skills by players who had them randomly
+  rolled as an advancement"), counted and filtered the same way as the chosen
+  list above.
 - `starPlayers.list` — a single embed listing every star player that has been
   hired at least once (title "Star Players"), name-ascending. A star position
   that has never been hired has nothing to show and is excluded. Each listed

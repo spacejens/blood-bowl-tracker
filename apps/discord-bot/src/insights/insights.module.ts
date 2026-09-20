@@ -16,6 +16,7 @@ import {
   PositionsModule,
   RacesModule,
   RulesSetsModule,
+  SkillsModule,
   TeamsModule,
   TrophiesModule,
 } from '@blood-bowl-tracker/game-data';
@@ -46,6 +47,7 @@ import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { PositionToplistService } from './facts/position-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
+import { SkillToplistService } from './facts/skill-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
@@ -76,6 +78,7 @@ const GAME_DATA_MODULES = [
   PositionRulesSetSkillsModule,
   CharacteristicDisplayFormattingModule,
   RacesModule,
+  SkillsModule,
   ExternalSystemsModule,
   TrophiesModule,
 ];
@@ -106,6 +109,7 @@ const GAME_DATA_MODULES = [
     CoachToplistService,
     RaceToplistService,
     PositionToplistService,
+    SkillToplistService,
     TeamToplistService,
     PlayerToplistService,
     MatchCategoryLabelService,
@@ -148,6 +152,7 @@ const GAME_DATA_MODULES = [
     CoachToplistService,
     RaceToplistService,
     PositionToplistService,
+    SkillToplistService,
     TeamToplistService,
     PlayerToplistService,
     MatchCategoryLabelService,

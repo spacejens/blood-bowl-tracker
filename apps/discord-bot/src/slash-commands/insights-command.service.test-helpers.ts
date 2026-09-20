@@ -31,6 +31,7 @@ import { OnThisDateFactsService } from '../insights/facts/on-this-date.service';
 import { PlayerToplistService } from '../insights/facts/player-toplist.service';
 import { PositionToplistService } from '../insights/facts/position-toplist.service';
 import { RaceToplistService } from '../insights/facts/race-toplist.service';
+import { SkillToplistService } from '../insights/facts/skill-toplist.service';
 import { StarPlayerToplistService } from '../insights/facts/star-player-toplist.service';
 import { StarPlayersListService } from '../insights/facts/star-players-list.service';
 import { StatsSummaryFactsService } from '../insights/facts/stats-summary.service';
@@ -137,6 +138,7 @@ export interface FactTreeMocks {
   playerToplist: MockProxy<PlayerToplistService>;
   raceToplist: MockProxy<RaceToplistService>;
   positionToplist: MockProxy<PositionToplistService>;
+  skillToplist: MockProxy<SkillToplistService>;
   expensiveMistakes: MockProxy<ExpensiveMistakesToplistService>;
   erasList: MockProxy<ErasListService>;
   competitionGroupsList: MockProxy<CompetitionGroupsListService>;
@@ -355,6 +357,29 @@ function makeFactTreeMocks(): FactTreeMocks {
     sampleEmbedReply('Positions by players', '1. Lineman (Orc) — 8'),
   );
 
+  const skillToplist = mock<SkillToplistService>();
+  skillToplist.resolveAny.mockResolvedValue(
+    sampleEmbedReply('Skills by players who have them', '1. Block — 40'),
+  );
+  skillToplist.resolveAdvancementAny.mockResolvedValue(
+    sampleEmbedReply(
+      'Skills by players who gained them as an advancement',
+      '1. Block — 12',
+    ),
+  );
+  skillToplist.resolveAdvancementChosen.mockResolvedValue(
+    sampleEmbedReply(
+      'Skills by players who chose them as an advancement',
+      '1. Block — 9',
+    ),
+  );
+  skillToplist.resolveAdvancementRandom.mockResolvedValue(
+    sampleEmbedReply(
+      'Skills by players who had them randomly rolled as an advancement',
+      '1. Block — 3',
+    ),
+  );
+
   const expensiveMistakes = mock<ExpensiveMistakesToplistService>();
   expensiveMistakes.resolveTotal.mockResolvedValue(
     sampleEmbedReply('Teams by expensive mistakes', '1. 40 grinders — 150000'),
@@ -418,6 +443,7 @@ function makeFactTreeMocks(): FactTreeMocks {
     playerToplist,
     raceToplist,
     positionToplist,
+    skillToplist,
     expensiveMistakes,
     erasList,
     competitionGroupsList,

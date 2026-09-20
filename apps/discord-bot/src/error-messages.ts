@@ -88,6 +88,10 @@ export const POSITION_TOPLIST_TIMEOUT_MESSAGE =
   'The roster clerk is still counting heads position by position.';
 export const POSITION_TOPLIST_NO_DATA_MESSAGE =
   'Every roster in the league is blank.';
+export const SKILL_TOPLIST_TIMEOUT_MESSAGE =
+  'The skill coaches are still leafing through the rulebook.';
+export const SKILL_TOPLIST_NO_DATA_MESSAGE =
+  'Not a single player has learned a thing.';
 
 // --- /insights command (slash-commands/insights-command.service.ts) ---
 export const INSIGHTS_UNMATCHED_CATEGORY_MESSAGE =

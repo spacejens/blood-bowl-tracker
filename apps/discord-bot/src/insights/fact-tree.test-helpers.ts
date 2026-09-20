@@ -10,6 +10,7 @@ import { OnThisDateFactsService } from './facts/on-this-date.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { PositionToplistService } from './facts/position-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
+import { SkillToplistService } from './facts/skill-toplist.service';
 import { StarPlayerToplistService } from './facts/star-player-toplist.service';
 import { StarPlayersListService } from './facts/star-players-list.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
@@ -116,6 +117,18 @@ export function deps(): FactTreeDeps {
   const positionToplist = mock<PositionToplistService>();
   positionToplist.resolvePlayers.mockResolvedValue('position players');
 
+  const skillToplist = mock<SkillToplistService>();
+  skillToplist.resolveAny.mockResolvedValue('skills by players');
+  skillToplist.resolveAdvancementAny.mockResolvedValue(
+    'skills by advancement players',
+  );
+  skillToplist.resolveAdvancementChosen.mockResolvedValue(
+    'skills by chosen advancement players',
+  );
+  skillToplist.resolveAdvancementRandom.mockResolvedValue(
+    'skills by random advancement players',
+  );
+
   const expensiveMistakes = mock<ExpensiveMistakesToplistService>();
   expensiveMistakes.resolveTotal.mockResolvedValue('expensive mistakes total');
   expensiveMistakes.resolveBiggest.mockResolvedValue(
@@ -162,6 +175,7 @@ export function deps(): FactTreeDeps {
     playerToplist,
     raceToplist,
     positionToplist,
+    skillToplist,
     expensiveMistakes,
     erasList,
     competitionGroupsList,
