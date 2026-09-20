@@ -1,7 +1,10 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import { and, DB, eq, playerExternalIds } from '@blood-bowl-tracker/db';
 import type { TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
+import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { ManualRawKeywordsService } from '../source/manual-raw-keywords.service';
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
@@ -25,11 +28,19 @@ export class PlayerKeywordsRawRendererService {
   constructor(
     private readonly index: TpRawPlayerIndexService,
     private readonly manual: ManualRawKeywordsService,
+    private readonly externalSystems: ExternalSystemLookupService,
+    @Inject(DB) private readonly db: Db,
     private readonly html: HtmlService,
   ) {}
 
   async render(player: SampledPlayer): Promise<string> {
-    const aggregate = await this.index.aggregateFor(player.externalId);
+    const tpExternalId = await this.tpExternalIdFor(player);
+    if (tpExternalId === null) {
+      return this.html.note(
+        'No downloaded TP roster file carries this player.',
+      );
+    }
+    const aggregate = await this.index.aggregateFor(tpExternalId);
     const codes = aggregate?.templateKeywordCodes ?? null;
     if (codes === null) {
       return this.html.note(
@@ -46,6 +57,31 @@ export class PlayerKeywordsRawRendererService {
     return manualTable === null
       ? templateTable
       : `${templateTable}\n${manualTable}`;
+  }
+
+  /**
+   * The player's own `tourplay.net` external id, needed regardless of which
+   * source the sample came from: keyword codes are TP-only, so a BBL-sourced
+   * player's own `externalId` (a BBL `pid`) is never a valid TP line-up id.
+   * A player already sampled from `tp` already carries the right id, so only
+   * a non-TP sample needs the extra lookup.
+   */
+  private async tpExternalIdFor(player: SampledPlayer): Promise<string | null> {
+    if (player.source === 'tp') {
+      return player.externalId;
+    }
+    const tpSystemId = await this.externalSystems.getSystemId('tp');
+    const [row] = await this.db
+      .select({ externalId: playerExternalIds.externalId })
+      .from(playerExternalIds)
+      .where(
+        and(
+          eq(playerExternalIds.playerId, player.playerId),
+          eq(playerExternalIds.externalSystemId, tpSystemId),
+        ),
+      )
+      .limit(1);
+    return row?.externalId ?? null;
   }
 
   private templateRow(

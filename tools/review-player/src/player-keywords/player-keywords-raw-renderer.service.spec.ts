@@ -1,9 +1,12 @@
+import { DB } from '@blood-bowl-tracker/db';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { ManualRawKeywordsService } from '../source/manual-raw-keywords.service';
 import type { TpRawPlayerAggregate } from '../source/tp-raw-player-index.service';
@@ -19,6 +22,12 @@ const player: SampledPlayer = {
   positionName: 'Blitzer',
   eraName: 'Fourth Era',
   selectedFor: ['Random sample'],
+};
+
+const bblPlayer: SampledPlayer = {
+  ...player,
+  source: 'bbl',
+  externalId: 'bbl-pid-9001',
 };
 
 function aggregate(
@@ -53,20 +62,30 @@ describe('PlayerKeywordsRawRendererService', () => {
   let service: PlayerKeywordsRawRendererService;
   let index: MockProxy<TpRawPlayerIndexService>;
   let manual: MockProxy<ManualRawKeywordsService>;
+  let externalSystems: MockProxy<ExternalSystemLookupService>;
 
-  beforeEach(async () => {
+  async function makeService(dbRows: unknown[][] = []) {
     index = mock<TpRawPlayerIndexService>();
     manual = mock<ManualRawKeywordsService>();
     manual.all.mockResolvedValue([]);
+    externalSystems = mock<ExternalSystemLookupService>();
+    externalSystems.getSystemId.mockResolvedValue(9);
+    const dbResult = mockDb(...dbRows);
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerKeywordsRawRendererService,
         { provide: TpRawPlayerIndexService, useValue: index },
         { provide: ManualRawKeywordsService, useValue: manual },
+        { provide: ExternalSystemLookupService, useValue: externalSystems },
+        { provide: DB, useValue: dbResult.db },
         HtmlService,
       ],
     }).compile();
     service = moduleRef.get(PlayerKeywordsRawRendererService);
+  }
+
+  beforeEach(async () => {
+    await makeService();
   });
 
   it('renders the template keyword codes with their curated names', async () => {
@@ -139,5 +158,32 @@ describe('PlayerKeywordsRawRendererService', () => {
     const html = await service.render(player);
 
     expect(html).not.toContain('Manual curation');
+  });
+
+  it("resolves a BBL-sourced player's tourplay.net external id before querying TP", async () => {
+    await makeService([[{ externalId: '2477481' }]]);
+    index.aggregateFor.mockResolvedValue(
+      aggregate({ templateKeywordCodes: [111] }),
+    );
+    manual.all.mockResolvedValue([
+      { name: 'Goblin', kind: 'species', code: '111' },
+    ]);
+
+    const html = await service.render(bblPlayer);
+
+    expect(externalSystems.getSystemId).toHaveBeenCalledWith('tp');
+    expect(index.aggregateFor).toHaveBeenCalledWith('2477481');
+    expect(html).toContain('Goblin (111)');
+  });
+
+  it('notes no roster file for a BBL-sourced player with no resolved TP id', async () => {
+    await makeService([[]]);
+
+    const html = await service.render(bblPlayer);
+
+    expect(index.aggregateFor).not.toHaveBeenCalled();
+    expect(html).toBe(
+      '<p class="note">No downloaded TP roster file carries this player.</p>',
+    );
   });
 });
