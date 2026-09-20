@@ -146,6 +146,7 @@ describe('RaceIdentityRawRendererService', () => {
             isStar: false,
             isOfficial: true,
             skills: [],
+            keywordCodes: [],
             specialRuleName: null,
             rulesSet: 'BB2025',
             tpPositionId: 929,

@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 import { REVIEW_RACE_CONFIG_PATH } from './config/review-race-config.service';
 import { ReviewService } from './harness/review.service';
 import { CharacteristicsChangeStratificationService } from './position-characteristics/characteristics-change-stratification.service';
+import { KeywordCoverageStratificationService } from './position-keywords/keyword-coverage-stratification.service';
 import { StartingSkillsStratificationService } from './position-starting-skills/starting-skills-stratification.service';
 import { EraAvailabilityStratificationService } from './race-identity/era-availability-stratification.service';
 import { NameMismatchStratificationService } from './race-identity/name-mismatch-stratification.service';
@@ -54,7 +55,7 @@ describe('AppModule', () => {
     expect(moduleRef.get(ReviewService)).toBeInstanceOf(ReviewService);
   });
 
-  it('registers all six race stratifiers in RACE_STRATIFIERS', async () => {
+  it('registers all seven race stratifiers in RACE_STRATIFIERS', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -65,12 +66,13 @@ describe('AppModule', () => {
       .compile();
 
     const stratifiers = moduleRef.get<RaceStratifier[]>(RACE_STRATIFIERS);
-    expect(stratifiers).toHaveLength(6);
+    expect(stratifiers).toHaveLength(7);
     expect(
       [
         EraAvailabilityStratificationService,
         CharacteristicsChangeStratificationService,
         StartingSkillsStratificationService,
+        KeywordCoverageStratificationService,
         SourceCoverageStratificationService,
         NameMismatchStratificationService,
         RandomRaceStratificationService,
@@ -80,7 +82,7 @@ describe('AppModule', () => {
     ).toBe(true);
   });
 
-  it('registers the four race data type reviewers in report order', async () => {
+  it('registers the five race data type reviewers in report order', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register()],
     })
@@ -93,12 +95,13 @@ describe('AppModule', () => {
     const reviewers = moduleRef.get<RaceDataTypeReviewer[]>(
       RACE_DATA_TYPE_REVIEWERS,
     );
-    expect(reviewers).toHaveLength(4);
+    expect(reviewers).toHaveLength(5);
     expect(reviewers.map((reviewer) => reviewer.id)).toEqual([
       'race-identity',
       'position-availability',
       'position-characteristics',
       'position-starting-skills',
+      'position-keywords',
     ]);
   });
 });

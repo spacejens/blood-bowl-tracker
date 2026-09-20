@@ -146,6 +146,7 @@ describe('PositionAvailabilityRawRendererService', () => {
             isStar: false,
             isOfficial: true,
             skills: [],
+            keywordCodes: [],
             specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
@@ -162,6 +163,7 @@ describe('PositionAvailabilityRawRendererService', () => {
             isStar: true,
             isOfficial: true,
             skills: [],
+            keywordCodes: [],
             specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
@@ -196,6 +198,7 @@ describe('PositionAvailabilityRawRendererService', () => {
         isStar: false,
         isOfficial: true,
         skills: [],
+        keywordCodes: [],
         specialRuleName: null,
         rulesSet,
         characteristics: {
@@ -228,6 +231,7 @@ describe('PositionAvailabilityRawRendererService', () => {
           isStar: true,
           isOfficial: true,
           skills: [],
+          keywordCodes: [],
           specialRuleName: null,
           rulesSet: 'BB2025',
           characteristics: {

@@ -63,6 +63,14 @@ export interface TpRawOfficialPosition {
   /** The entry's starting skills, by TP skill master id. */
   skills: TpRawSkillRef[];
   /**
+   * The numeric keyword codes TP lists for this position, from its `race`
+   * array. TP's name for the field is `race`, but it is not the team's race:
+   * a code is shared across unrelated team races and a position carries up
+   * to three. Empty for every pre-BB2025 rules set, where the field is
+   * absent.
+   */
+  keywordCodes: number[];
+  /**
    * A star entry's own exclusive skill, which TP publishes as a sibling of
    * the `skills` array rather than an entry inside it. Null for an ordinary
    * position.
@@ -294,8 +302,16 @@ export class TpRawOfficialTeamsIndexService {
       tpPositionId: typeof id === 'number' ? id : null,
       characteristics: { move, strength, agility, passing, armour },
       skills: this.skillRefs(entry),
+      keywordCodes: this.keywordCodes(entry),
       specialRuleName: this.stringProperty(entry, 'specialRuleName'),
     };
+  }
+
+  /** One entry's `race[]`, defensively filtered to numeric codes only. */
+  private keywordCodes(entry: unknown): number[] {
+    return this.arrayProperty(entry, 'race').filter(
+      (value): value is number => typeof value === 'number',
+    );
   }
 
   /** One entry's `skills[]`, defensively shaped. */
