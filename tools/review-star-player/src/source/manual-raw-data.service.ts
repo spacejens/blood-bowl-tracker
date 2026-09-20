@@ -7,6 +7,10 @@ import JSON5 from 'json5';
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 
 const STAR_PLAYERS_FILE = join('before-other-importers', 'star-players.json5');
+const KEYWORDS_FILE = join('before-other-importers', 'keywords.json5');
+
+/** The external-id system the curated keyword catalogue keys its TP code by. */
+const TOURPLAY_SYSTEM = 'tourplay.net';
 const AVAILABILITY_FILE = join(
   'after-other-importers',
   'position-availability.json5',
@@ -37,6 +41,14 @@ export interface ManualAvailabilityEntry {
   name: string;
   externalIds: ManualExternalIdRef[];
   raceEras: { race: ManualExternalIdRef; era: ManualExternalIdRef }[];
+}
+
+/** One `keywords[]` entry of keywords.json5. */
+export interface ManualKeywordEntry {
+  name: string;
+  kind: string;
+  /** The entry's `tourplay.net` external id, null when it carries none. */
+  code: string | null;
 }
 
 /** One `positionRulesSets[]` entry of either characteristics file. */
@@ -132,6 +144,34 @@ export class ManualRawDataService {
         },
       ];
     });
+  }
+
+  /**
+   * The curated BB2025 keyword catalogue: every `keywords[]` entry, with its
+   * `tourplay.net` external id (if any) pulled out as `code` -- that id is
+   * what lets the TP raw panel turn a numeric code into a name. Written
+   * again in this tool's own terms, per the independence rule -- read by this
+   * tool's own hardcoded path, running none of tools/import-manual's loader
+   * logic, which is part of what the report exists to check.
+   */
+  async keywords(): Promise<ManualKeywordEntry[]> {
+    const entries = await this.array(KEYWORDS_FILE, 'keywords');
+    return entries.flatMap((entry) => {
+      const name = this.string(entry, 'name');
+      const kind = this.string(entry, 'kind');
+      if (name === null || kind === null) {
+        return [];
+      }
+      return [{ name, kind, code: this.tourplayCode(entry) }];
+    });
+  }
+
+  /** An entry's `tourplay.net` external id, or null when it carries none. */
+  private tourplayCode(entry: unknown): string | null {
+    const tp = this.refs(entry, 'externalIds').find(
+      (ref) => ref.system === TOURPLAY_SYSTEM,
+    );
+    return tp?.id ?? null;
   }
 
   private raceEras(

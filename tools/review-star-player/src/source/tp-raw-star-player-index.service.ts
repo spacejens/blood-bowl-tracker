@@ -53,6 +53,13 @@ export interface TpRawStarPlayerEntry {
    * `specialRuleName`, not a member of this list.
    */
   skills: TpRawSkillRef[];
+  /**
+   * The numeric BB2025 keyword codes TP lists for this star, from its own
+   * `race` array. TP's name for the field is `race`, but it is not the
+   * star's species -- a code is shared across unrelated stars and a star
+   * carries several.
+   */
+  keywordCodes: number[];
 }
 
 /** One star as TP carries it, across every rules set. */
@@ -170,9 +177,17 @@ export class TpRawStarPlayerIndexService {
         characteristics: this.characteristics(raw),
         eligibleTeamRaces: this.eligibleTeamRaces(raw, canonical),
         skills: this.skillRefs(raw),
+        keywordCodes: this.keywordCodes(raw),
       });
       stars.set(name, star);
     }
+  }
+
+  /** One entry's `race[]`, defensively filtered to numeric codes only. */
+  private keywordCodes(entry: unknown): number[] {
+    return this.arrayProperty(entry, 'race').filter(
+      (value): value is number => typeof value === 'number',
+    );
   }
 
   private skillRefs(entry: unknown): TpRawSkillRef[] {

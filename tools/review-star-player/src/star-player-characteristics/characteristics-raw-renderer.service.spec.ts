@@ -174,6 +174,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
               },
               eligibleTeamRaces: [],
               skills: [],
+              keywordCodes: [],
             },
             {
               rulesSet: 'BB2025',
@@ -188,6 +189,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
               },
               eligibleTeamRaces: [],
               skills: [],
+              keywordCodes: [],
             },
           ],
         },
@@ -216,6 +218,7 @@ describe('StarPlayerCharacteristicsRawRendererService', () => {
               characteristics: null,
               eligibleTeamRaces: [],
               skills: [],
+              keywordCodes: [],
             },
           ],
         },

@@ -156,4 +156,43 @@ describe('ManualRawDataService', () => {
 
     expect(await service.characteristics()).toEqual([]);
   });
+
+  it('reads a curated keyword entry with a tourplay.net code', async () => {
+    write(
+      'before-other-importers/keywords.json5',
+      `{ keywords: [
+        { name: 'Goblin', kind: 'species',
+          externalIds: [
+            { system: 'Name', id: 'Goblin' },
+            { system: 'tourplay.net', id: '111' },
+          ] },
+      ] }`,
+    );
+    const service = await makeService();
+
+    expect(await service.keywords()).toEqual([
+      { name: 'Goblin', kind: 'species', code: '111' },
+    ]);
+  });
+
+  it('reads a curated keyword entry with no tourplay.net code as code: null', async () => {
+    write(
+      'before-other-importers/keywords.json5',
+      `{ keywords: [
+        { name: 'Big Guy', kind: 'positional',
+          externalIds: [{ system: 'Name', id: 'Big Guy' }] },
+      ] }`,
+    );
+    const service = await makeService();
+
+    expect(await service.keywords()).toEqual([
+      { name: 'Big Guy', kind: 'positional', code: null },
+    ]);
+  });
+
+  it('degrades a missing keywords file to an empty list', async () => {
+    const service = await makeService();
+
+    expect(await service.keywords()).toEqual([]);
+  });
 });
