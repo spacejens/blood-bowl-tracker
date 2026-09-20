@@ -5,7 +5,10 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { KeywordValidationError } from '../shared/keyword-validation-error';
-import { firstCallArg } from '../shared/query-assertions.test-helpers';
+import {
+  extractAllFilterValues,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { PositionRulesSetKeywordsService } from './position-rules-set-keywords.service';
 
 async function makeService(
@@ -53,6 +56,20 @@ describe('PositionRulesSetKeywordsService', () => {
         { positionRulesSetId: 50, keywordId: 3 },
       ]);
       expect(db.transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('scopes the anchor query to the batch positions, not every position under the rules set', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [],
+        [{ id: 90, positionRulesSetId: 50, keywordId: 3 }],
+      );
+      const service = await makeService(db);
+
+      await service.sync({ entries: [entry] });
+
+      const anchorWhereCondition = firstCallArg(db.chains[0].where);
+      expect(extractAllFilterValues(anchorWhereCondition)).toEqual([2, 1]);
     });
 
     it('returns the existing row id without writing again', async () => {

@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, NewPositionRulesSetKeyword } from '@blood-bowl-tracker/db';
 import {
+  and,
   asc,
   DB,
   eq,
@@ -68,9 +69,16 @@ export class PositionRulesSetKeywordsService {
     const rulesSetIds = [
       ...new Set(data.entries.map((entry) => entry.rulesSetId)),
     ];
+    const positionIds = [
+      ...new Set(data.entries.map((entry) => entry.positionId)),
+    ];
 
-    // Over-fetch the anchor rows by rules set and match in memory: one query
-    // regardless of how many entries the batch carries.
+    // Fetch the anchor rows for just the positions and rules sets named in
+    // this batch and match in memory: one query regardless of how many
+    // entries the batch carries. Unlike PositionRulesSetSkillsService (called
+    // once per import run with the whole batch already), this service is
+    // called once per (position, rules set) pair, so an unscoped rules-set-only
+    // filter would re-fetch every position under the rules set on every call.
     const associationRows = await this.db
       .select({
         id: positionRulesSets.id,
@@ -78,7 +86,12 @@ export class PositionRulesSetKeywordsService {
         rulesSetId: positionRulesSets.rulesSetId,
       })
       .from(positionRulesSets)
-      .where(inArray(positionRulesSets.rulesSetId, rulesSetIds));
+      .where(
+        and(
+          inArray(positionRulesSets.rulesSetId, rulesSetIds),
+          inArray(positionRulesSets.positionId, positionIds),
+        ),
+      );
 
     const associationIdByKey = new Map(
       associationRows.map((row) => [
