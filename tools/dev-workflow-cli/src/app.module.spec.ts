@@ -12,6 +12,11 @@ import { CheckDependencyDashboardService } from './check-dependency-dashboard/ch
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { DriftDiffRedactionService } from './check-drift/drift-diff-redaction.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
+import { ComputePrSplitService } from './compute-pr-split/compute-pr-split.service';
+import { ComputePrSplitArgsService } from './compute-pr-split/compute-pr-split-args.service';
+import { DiffFileCountService } from './compute-pr-split/diff-file-count.service';
+import { PrSplitPackingService } from './compute-pr-split/pr-split-packing.service';
+import { TaskCheckpointGroupingService } from './compute-pr-split/task-checkpoint-grouping.service';
 import { DiffHunkMembershipService } from './post-review-questions/diff-hunk-membership.service';
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import { PostReviewQuestionsArgsService } from './post-review-questions/post-review-questions-args.service';
@@ -81,6 +86,21 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(WaitForPrReviewArgsService)).toBeInstanceOf(
       WaitForPrReviewArgsService,
+    );
+    expect(moduleRef.get(ComputePrSplitService)).toBeInstanceOf(
+      ComputePrSplitService,
+    );
+    expect(moduleRef.get(ComputePrSplitArgsService)).toBeInstanceOf(
+      ComputePrSplitArgsService,
+    );
+    expect(moduleRef.get(PrSplitPackingService)).toBeInstanceOf(
+      PrSplitPackingService,
+    );
+    expect(moduleRef.get(TaskCheckpointGroupingService)).toBeInstanceOf(
+      TaskCheckpointGroupingService,
+    );
+    expect(moduleRef.get(DiffFileCountService)).toBeInstanceOf(
+      DiffFileCountService,
     );
   });
 

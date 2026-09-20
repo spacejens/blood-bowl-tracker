@@ -6,6 +6,11 @@ import { CheckDependencyDashboardService } from './check-dependency-dashboard/ch
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { DriftDiffRedactionService } from './check-drift/drift-diff-redaction.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
+import { ComputePrSplitService } from './compute-pr-split/compute-pr-split.service';
+import { ComputePrSplitArgsService } from './compute-pr-split/compute-pr-split-args.service';
+import { DiffFileCountService } from './compute-pr-split/diff-file-count.service';
+import { PrSplitPackingService } from './compute-pr-split/pr-split-packing.service';
+import { TaskCheckpointGroupingService } from './compute-pr-split/task-checkpoint-grouping.service';
 import { DiffHunkMembershipService } from './post-review-questions/diff-hunk-membership.service';
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import { PostReviewQuestionsArgsService } from './post-review-questions/post-review-questions-args.service';
@@ -27,6 +32,11 @@ import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-
     CheckDependencyDashboardService,
     CheckDriftService,
     DriftDiffRedactionService,
+    ComputePrSplitService,
+    ComputePrSplitArgsService,
+    PrSplitPackingService,
+    TaskCheckpointGroupingService,
+    DiffFileCountService,
     DiffHunkMembershipService,
     ReviewLockStateService,
     ReviewLockService,

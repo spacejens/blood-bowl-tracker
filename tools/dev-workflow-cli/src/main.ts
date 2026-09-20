@@ -14,6 +14,11 @@ import {
 } from './check-dependency-dashboard/check-dependency-dashboard.service';
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
+import { ComputePrSplitService } from './compute-pr-split/compute-pr-split.service';
+import {
+  COMPUTE_PR_SPLIT_USAGE,
+  ComputePrSplitArgsService,
+} from './compute-pr-split/compute-pr-split-args.service';
 import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import {
   POST_REVIEW_QUESTIONS_USAGE,
@@ -31,6 +36,7 @@ const SUBCOMMANDS = [
   'check-drift',
   'check-dependency-dashboard',
   'check-coderabbit-activity',
+  'compute-pr-split',
   'wait-for-pr-review',
   'post-review-questions',
   'acquire-review-lock',
@@ -49,7 +55,8 @@ interface DispatchArgs {
 function readsStdin(subcommand: Subcommand): boolean {
   return (
     subcommand === 'post-review-questions' ||
-    subcommand === 'check-dependency-dashboard'
+    subcommand === 'check-dependency-dashboard' ||
+    subcommand === 'compute-pr-split'
   );
 }
 
@@ -78,6 +85,15 @@ function dispatch(
       // argv[3] is the PR number; the service validates it, so a missing or
       // malformed value surfaces as this CLI's standard JSON error + exit 1.
       return app.get(CheckCoderabbitActivityService).run(process.argv[3]);
+    case 'compute-pr-split': {
+      if (args.stdin === undefined) {
+        throw new Error(COMPUTE_PR_SPLIT_USAGE);
+      }
+      const splitInput = app
+        .get(ComputePrSplitArgsService)
+        .parse(process.argv, args.stdin);
+      return app.get(ComputePrSplitService).run(splitInput);
+    }
     case 'wait-for-pr-review': {
       const waitOptions = app
         .get(WaitForPrReviewArgsService)
