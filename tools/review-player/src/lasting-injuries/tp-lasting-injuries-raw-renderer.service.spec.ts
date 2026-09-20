@@ -31,6 +31,7 @@ function aggregate(
     templateAgility: null,
     templatePassing: null,
     templateArmour: null,
+    templateKeywordCodes: null,
     ...overrides,
   };
 }

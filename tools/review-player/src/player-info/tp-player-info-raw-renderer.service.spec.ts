@@ -32,6 +32,7 @@ const aggregate: TpRawPlayerAggregate = {
   templateAgility: null,
   templatePassing: null,
   templateArmour: null,
+  templateKeywordCodes: null,
 };
 
 async function makeService(found: TpRawPlayerAggregate | null): Promise<{

@@ -26,6 +26,10 @@ const POSITION_SKILLS_FILE = join(
   'after-other-importers',
   'position-skills.json5',
 );
+const KEYWORDS_FILE = join('before-other-importers', 'keywords.json5');
+
+/** The external-id system the curated keyword catalogue keys its TP code by. */
+const TOURPLAY_SYSTEM = 'tourplay.net';
 
 /** A `{ system, id }` reference, as the curated files write them. */
 export interface ManualExternalIdRef {
@@ -76,9 +80,19 @@ export interface ManualPositionSkillsEntry {
   skills: ManualPositionSkillRef[];
 }
 
+/** One `keywords[]` entry of keywords.json5. */
+export interface ManualKeywordEntry {
+  name: string;
+  kind: string;
+  /** The entry's `tourplay.net` external id, null when it carries none. */
+  code: string | null;
+}
+
 /**
- * Reads the four hand-curated JSON5 files the race/position review checks
- * against. Deliberately independent of tools/import-manual: this reads and
+ * Reads the six hand-curated JSON5 files (races-and-positions, availability,
+ * characteristics, gap-fill characteristics, position-skills, keywords) the
+ * race/position review checks against. Deliberately independent of
+ * tools/import-manual: this reads and
  * shapes the files, and runs none of the importer's processor logic — that
  * logic's reading of these files is part of what the report exists to check.
  *
@@ -153,6 +167,34 @@ export class ManualRawDataService {
       }
       return [{ position, rulesSet, skills: this.positionSkillRefs(entry) }];
     });
+  }
+
+  /**
+   * The curated BB2025 keyword catalogue: every `keywords[]` entry, with its
+   * `tourplay.net` external id (if any) pulled out as `code` — that id is
+   * what lets the TP raw panel turn a numeric code into a name. Read by this
+   * tool's own hardcoded path, running none of tools/import-manual's loader
+   * logic — that logic's reading of this file is part of what the report
+   * exists to check.
+   */
+  async keywords(): Promise<ManualKeywordEntry[]> {
+    const entries = await this.array(KEYWORDS_FILE, 'keywords');
+    return entries.flatMap((entry) => {
+      const name = this.string(entry, 'name');
+      const kind = this.string(entry, 'kind');
+      if (name === null || kind === null) {
+        return [];
+      }
+      return [{ name, kind, code: this.tourplayCode(entry) }];
+    });
+  }
+
+  /** An entry's `tourplay.net` external id, or null when it carries none. */
+  private tourplayCode(entry: unknown): string | null {
+    const tp = this.refs(entry, 'externalIds').find(
+      (ref) => ref.system === TOURPLAY_SYSTEM,
+    );
+    return tp?.id ?? null;
   }
 
   /**

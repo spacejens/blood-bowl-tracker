@@ -143,6 +143,7 @@ describe('TpRawOfficialTeamsIndexService', () => {
             armour: 10,
           },
           skills: [],
+          keywordCodes: [],
           specialRuleName: null,
         },
       ],
@@ -199,6 +200,7 @@ describe('TpRawOfficialTeamsIndexService', () => {
         armour: 9,
       },
       skills: [],
+      keywordCodes: [100],
       specialRuleName: null,
     });
   });
@@ -525,5 +527,39 @@ describe('TpRawOfficialTeamsIndexService', () => {
 
     expect(race?.positions[0].skills).toEqual([]);
     expect(race?.positions[0].specialRuleName).toBeNull();
+  });
+
+  it("reads a BB2025 entry's keyword codes from its race array", async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          lineUpMasters: [lineman({ position: 'Zombie', race: [111, 110] })],
+        }),
+      ],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0]?.keywordCodes).toEqual([111, 110]);
+  });
+
+  it('reports no keyword codes for an entry with no race array', async () => {
+    write('BB2025', { rosterMasters: [roster()] });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0]?.keywordCodes).toEqual([]);
+  });
+
+  it('yields no keyword codes rather than throwing for a non-array race value', async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({ lineUpMasters: [lineman({ race: 'not-an-array' })] }),
+      ],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0]?.keywordCodes).toEqual([]);
   });
 });

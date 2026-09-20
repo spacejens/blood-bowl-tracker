@@ -540,6 +540,96 @@ describe('TpRawPlayerIndexService', () => {
     expect(aggregate?.templateArmour).toBe(7);
   });
 
+  it("reads a player's template keyword codes from lineUpMaster.race", async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 7,
+        lineUpMaster: { ma: 6, st: 4, ag: 3, pa: 5, av: 7, race: [111, 110] },
+      },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([111, 110]);
+  });
+
+  it('leaves templateKeywordCodes null when lineUpMaster carries no race key', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 7,
+        lineUpMaster: { ma: 6, st: 4, ag: 3, pa: 5, av: 7 },
+      },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toBeNull();
+  });
+
+  it('treats a malformed lineUpMaster.race value as an empty code list', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 7,
+        lineUpMaster: {
+          ma: 6,
+          st: 4,
+          ag: 3,
+          pa: 5,
+          av: 7,
+          race: 'not-an-array',
+        },
+      },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([]);
+  });
+
+  it('drops non-numeric entries from a malformed lineUpMaster.race array', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 7,
+        lineUpMaster: {
+          ma: 6,
+          st: 4,
+          ag: 3,
+          pa: 5,
+          av: 7,
+          race: [111, 'nope', 110],
+        },
+      },
+    ]);
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([111, 110]);
+  });
+
   it('leaves the lasting-injury fields null for a player with no roster file', async () => {
     writeMatch(1, {
       inscriptionLocal: {
