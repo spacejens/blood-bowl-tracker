@@ -57,19 +57,43 @@ export class PositionCharacteristicsDbRendererService {
       );
     }
     const stored = await this.storedRows([...unique.keys()]);
+    // A position row carries the one era it belongs to; a race can span
+    // several eras, and each era maps to its own rules set(s), so a position
+    // from one era is not automatically available under another era's rules
+    // set. Scope each rules set's table to the positions its own era(s)
+    // actually reach, never a cross-product of every position against every
+    // rules set the race's eras produce.
+    const positionEraIds = this.query.positionEraIds(positions);
+    const rulesSetEraIds = await this.query.rulesSetEraIds(race.raceId);
     return rulesSets
-      .map((rulesSet) => this.rulesSetTable({ rulesSet, unique, stored }))
+      .map((rulesSet) =>
+        this.rulesSetTable({
+          rulesSet,
+          unique,
+          positionEraIds,
+          rulesSetEraIds,
+          stored,
+        }),
+      )
       .join('\n');
   }
 
   private rulesSetTable(input: {
     rulesSet: RaceRulesSetRow;
     unique: Map<number, string>;
+    positionEraIds: Map<number, Set<number>>;
+    rulesSetEraIds: Map<number, Set<number>>;
     stored: StoredRows;
   }): string {
-    const { rulesSet, unique, stored } = input;
-    const rows: TableRow[] = [...unique.entries()].map(
-      ([positionId, positionName]) => {
+    const { rulesSet, unique, positionEraIds, rulesSetEraIds, stored } = input;
+    const validEraIds = rulesSetEraIds.get(rulesSet.rulesSetId) ?? new Set();
+    const rows: TableRow[] = [...unique.entries()]
+      .filter(([positionId]) =>
+        [...(positionEraIds.get(positionId) ?? new Set<number>())].some(
+          (eraId) => validEraIds.has(eraId),
+        ),
+      )
+      .map(([positionId, positionName]) => {
         const row = stored.get(`${positionId}:${rulesSet.rulesSetId}`);
         if (row === undefined) {
           // Cell 0 is the position name, so the five MA/ST/AG/PA/AV columns
@@ -95,8 +119,7 @@ export class PositionCharacteristicsDbRendererService {
           this.formats.format(row.armour, rulesSet.armourFormat),
         ];
         return cells;
-      },
-    );
+      });
     return (
       this.html.subheading(rulesSet.rulesSetName) +
       this.html.table(['Position', 'MA', 'ST', 'AG', 'PA', 'AV'], rows)
