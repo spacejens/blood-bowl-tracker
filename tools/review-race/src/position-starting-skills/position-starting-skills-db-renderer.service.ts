@@ -78,9 +78,24 @@ export class PositionStartingSkillsDbRendererService {
     const positionIds = [...positionNames.keys()];
     const rowIds = await this.rowIds(positionIds);
     const stored = await this.storedSkills([...rowIds.values()]);
+    // A position row carries the one era it belongs to; a race can span
+    // several eras, and each era maps to its own rules set(s), so a position
+    // from one era is not automatically available under another era's rules
+    // set. Scope each rules set's table to the positions its own era(s)
+    // actually reach, never a cross-product of every position against every
+    // rules set the race's eras produce.
+    const positionEraIds = this.query.positionEraIds(positions);
+    const rulesSetEraIds = await this.query.rulesSetEraIds(race.raceId);
     return rulesSets
       .map((rulesSet) =>
-        this.rulesSetTable({ rulesSet, positionNames, rowIds, stored }),
+        this.rulesSetTable({
+          rulesSet,
+          positionNames,
+          positionEraIds,
+          rulesSetEraIds,
+          rowIds,
+          stored,
+        }),
       )
       .join('\n');
   }
@@ -88,12 +103,27 @@ export class PositionStartingSkillsDbRendererService {
   private rulesSetTable(input: {
     rulesSet: RaceRulesSetRow;
     positionNames: Map<number, string>;
+    positionEraIds: Map<number, Set<number>>;
+    rulesSetEraIds: Map<number, Set<number>>;
     rowIds: Map<string, number>;
     stored: Map<number, string[]>;
   }): string {
-    const { rulesSet, positionNames, rowIds, stored } = input;
-    const rows: TableRow[] = [...positionNames.entries()].map(
-      ([positionId, positionName]) => {
+    const {
+      rulesSet,
+      positionNames,
+      positionEraIds,
+      rulesSetEraIds,
+      rowIds,
+      stored,
+    } = input;
+    const validEraIds = rulesSetEraIds.get(rulesSet.rulesSetId) ?? new Set();
+    const rows: TableRow[] = [...positionNames.entries()]
+      .filter(([positionId]) =>
+        [...(positionEraIds.get(positionId) ?? new Set<number>())].some(
+          (eraId) => validEraIds.has(eraId),
+        ),
+      )
+      .map(([positionId, positionName]) => {
         const rowId = rowIds.get(`${positionId}:${rulesSet.rulesSetId}`);
         if (rowId === undefined) {
           // Cell 0 is the position name, so the skills cell is cell 1.
@@ -104,8 +134,7 @@ export class PositionStartingSkillsDbRendererService {
           positionName,
           skillTexts.length === 0 ? NO_SKILLS : skillTexts.join(', '),
         ];
-      },
-    );
+      });
     return (
       this.html.subheading(rulesSet.rulesSetName) +
       this.html.table(['Position', 'Starting skills'], rows)
