@@ -10,6 +10,7 @@ import { CompetitionGroupDeepdiveService } from '../deepdive/facts/competition-g
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { LeagueDeepdiveService } from '../deepdive/facts/league-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
+import { PlayerKeywordsSectionService } from '../deepdive/facts/player-keywords-section.service';
 import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-section.service';
 import { PlayerSkillsSectionService } from '../deepdive/facts/player-skills-section.service';
 import { PositionCharacteristicsLineFormatterService } from '../deepdive/facts/position-characteristics-line-formatter.service';
@@ -69,6 +70,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     StarPlayerDeepdiveService,
     PlayerKillsSectionService,
     PlayerSkillsSectionService,
+    PlayerKeywordsSectionService,
     CompetitionDeepdiveService,
     CompetitionGroupDeepdiveService,
     EraDeepdiveService,
