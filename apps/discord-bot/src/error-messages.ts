@@ -189,12 +189,16 @@ export const DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE =
   'No rulebook in the archive says what this star brings to the pitch.';
 export const DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE =
   'The agent is still reciting everything his client claims he can do.';
+export const DEEPDIVE_STAR_PLAYER_KEYWORDS_TIMEOUT_MESSAGE =
+  'The agent is still arguing about which keywords apply to his client.';
 export const DEEPDIVE_PLAYER_STAR_TIMEOUT_MESSAGE =
   'The scout is still checking whether this one signs autographs.';
 export const DEEPDIVE_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE =
   'The team physician is still measuring this one up against the rulebook.';
 export const DEEPDIVE_PLAYER_SKILLS_TIMEOUT_MESSAGE =
   'The coaching staff are still arguing over what this one has actually learned.';
+export const DEEPDIVE_PLAYER_KEYWORDS_TIMEOUT_MESSAGE =
+  'The team secretary is still checking what this one is written down as.';
 export const DEEPDIVE_RACE_NOT_FOUND_MESSAGE =
   'No such race has ever fielded a team in these parts.';
 export const DEEPDIVE_RACE_TIMEOUT_MESSAGE =
@@ -219,6 +223,8 @@ export const DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE =
   'No rulebook in the archive says what this one is worth.';
 export const DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE =
   'The clerk is still working out which skills this one turns up with.';
+export const DEEPDIVE_POSITION_KEYWORDS_TIMEOUT_MESSAGE =
+  'The clerk is still deciding what to call this lot in the rulebook.';
 export const DEEPDIVE_POSITION_PLAYER_COUNT_TIMEOUT_MESSAGE =
   'The registrar is still counting everyone who ever took this spot.';
 export const DEEPDIVE_POSITION_TOP_PLAYERS_TIMEOUT_MESSAGE =

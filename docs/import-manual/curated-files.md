@@ -99,6 +99,13 @@ real-world entity differently:
   category, so it is a separate boolean. The field is optional and defaults
   to `false`; only the four BB2025 elite rows spell it out, and no rules set
   older than BB2025 has the concept at all.
+- `keywords.json5` — the sole source of every BB2025 keyword's name and
+  `kind` (`species`/`positional`/`special`). No downloaded source names a
+  keyword at all — `tourplay.net` exposes only the opaque numeric codes it
+  assigns each one — so this file's 41 hand-curated rows are the entire
+  catalogue, each carrying its `tourplay.net` numeric code as an external id.
+  That id is what `tools/import-tp` resolves a `race` array code, or a
+  Hatred/Animosity target code, back against.
 
 ### Position renamed across rules-set generations
 

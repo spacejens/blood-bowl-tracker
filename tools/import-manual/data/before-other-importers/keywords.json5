@@ -1,0 +1,86 @@
+// Hand-curated BB2025 keywords (keywords).
+//
+// A keyword is the BB2025 label rules single out instead of naming a race --
+// "Hatred (Goblin)" hates every position carrying the Goblin keyword,
+// whatever team race it plays for. tourplay.net publishes these only as
+// opaque numeric codes: as the `race` array on each BB2025 position and star
+// player, and as the type-3 attribute value of a Hatred or Animosity skill.
+// Nothing in any downloaded source names them, so both the names and the
+// kinds are curated here, and every entry carries its numeric code as a
+// `tourplay.net` external id -- that id is what lets tools/import-tp turn a
+// code into this row.
+//
+// Kinds (see packages/domain-enums/src/keywords.ts):
+//   species     -- a creature keyword. All 39 codes tourplay.net publishes in
+//                  a position's `race` array are of this kind.
+//   positional  -- a role keyword. Only "Big Guy" is curated, because it is a
+//                  confirmed Hatred target; it appears in no position's
+//                  `race` array. How tourplay.net models the other positional
+//                  keywords (Special, Blitzer, Thrower) is not known, so they
+//                  are not curated.
+//   special     -- the sentinel "no restriction", which Animosity's target
+//                  code 999 carries. Not a creature and not a role.
+//
+// Sources: every code below was read out of the downloaded tourplay.net data
+// (tools/import-tp/data/teams/BB2025/) by cross-referencing which positions
+// and star players carry it against their names and team races; the names
+// were confirmed against the BB2025 rulebook.
+{
+  externalSystems: [
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  keywords: [
+    // Species keywords, in tourplay.net code order.
+    { name: 'Dwarf', kind: 'species', externalIds: [{ system: 'Name', id: 'Dwarf' }, { system: 'tourplay.net', id: '100' }] },
+    { name: 'Elf', kind: 'species', externalIds: [{ system: 'Name', id: 'Elf' }, { system: 'tourplay.net', id: '101' }] },
+    { name: 'Troll', kind: 'species', externalIds: [{ system: 'Name', id: 'Troll' }, { system: 'tourplay.net', id: '102' }] },
+    { name: 'Orc', kind: 'species', externalIds: [{ system: 'Name', id: 'Orc' }, { system: 'tourplay.net', id: '103' }] },
+    { name: 'Skaven', kind: 'species', externalIds: [{ system: 'Name', id: 'Skaven' }, { system: 'tourplay.net', id: '104' }] },
+    { name: 'Lizardman', kind: 'species', externalIds: [{ system: 'Name', id: 'Lizardman' }, { system: 'tourplay.net', id: '105' }] },
+    { name: 'Halfling', kind: 'species', externalIds: [{ system: 'Name', id: 'Halfling' }, { system: 'tourplay.net', id: '106' }] },
+    { name: 'Squirrel', kind: 'species', externalIds: [{ system: 'Name', id: 'Squirrel' }, { system: 'tourplay.net', id: '107' }] },
+    { name: 'Vampire', kind: 'species', externalIds: [{ system: 'Name', id: 'Vampire' }, { system: 'tourplay.net', id: '108' }] },
+    { name: 'Gnome', kind: 'species', externalIds: [{ system: 'Name', id: 'Gnome' }, { system: 'tourplay.net', id: '109' }] },
+    { name: 'Undead', kind: 'species', externalIds: [{ system: 'Name', id: 'Undead' }, { system: 'tourplay.net', id: '110' }] },
+    { name: 'Goblin', kind: 'species', externalIds: [{ system: 'Name', id: 'Goblin' }, { system: 'tourplay.net', id: '111' }] },
+    { name: 'Human', kind: 'species', externalIds: [{ system: 'Name', id: 'Human' }, { system: 'tourplay.net', id: '112' }] },
+    { name: 'Ogre', kind: 'species', externalIds: [{ system: 'Name', id: 'Ogre' }, { system: 'tourplay.net', id: '113' }] },
+    { name: 'Minotaur', kind: 'species', externalIds: [{ system: 'Name', id: 'Minotaur' }, { system: 'tourplay.net', id: '114' }] },
+    { name: 'Snotling', kind: 'species', externalIds: [{ system: 'Name', id: 'Snotling' }, { system: 'tourplay.net', id: '115' }] },
+    { name: 'Treeman', kind: 'species', externalIds: [{ system: 'Name', id: 'Treeman' }, { system: 'tourplay.net', id: '116' }] },
+    { name: 'Beastman', kind: 'species', externalIds: [{ system: 'Name', id: 'Beastman' }, { system: 'tourplay.net', id: '117' }] },
+    { name: 'Spawn', kind: 'species', externalIds: [{ system: 'Name', id: 'Spawn' }, { system: 'tourplay.net', id: '118' }] },
+    { name: 'Thrall', kind: 'species', externalIds: [{ system: 'Name', id: 'Thrall' }, { system: 'tourplay.net', id: '119' }] },
+    { name: 'Skeleton', kind: 'species', externalIds: [{ system: 'Name', id: 'Skeleton' }, { system: 'tourplay.net', id: '120' }] },
+    { name: 'Zombie', kind: 'species', externalIds: [{ system: 'Name', id: 'Zombie' }, { system: 'tourplay.net', id: '121' }] },
+    { name: 'Ghoul', kind: 'species', externalIds: [{ system: 'Name', id: 'Ghoul' }, { system: 'tourplay.net', id: '122' }] },
+    { name: 'Animal', kind: 'species', externalIds: [{ system: 'Name', id: 'Animal' }, { system: 'tourplay.net', id: '123' }] },
+    { name: 'Yhetee', kind: 'species', externalIds: [{ system: 'Name', id: 'Yhetee' }, { system: 'tourplay.net', id: '124' }] },
+    { name: 'Wraith', kind: 'species', externalIds: [{ system: 'Name', id: 'Wraith' }, { system: 'tourplay.net', id: '125' }] },
+    { name: 'Construct', kind: 'species', externalIds: [{ system: 'Name', id: 'Construct' }, { system: 'tourplay.net', id: '126' }] },
+    { name: 'Werewolf', kind: 'species', externalIds: [{ system: 'Name', id: 'Werewolf' }, { system: 'tourplay.net', id: '127' }] },
+    { name: 'Gnoblar', kind: 'species', externalIds: [{ system: 'Name', id: 'Gnoblar' }, { system: 'tourplay.net', id: '128' }] },
+    { name: 'Snakeman', kind: 'species', externalIds: [{ system: 'Name', id: 'Snakeman' }, { system: 'tourplay.net', id: '129' }] },
+    // 130 is carried only by Dribl and Drull, the Lizardmen-affiliated Skink
+    // acrobats -- hence Skink, not a wagon or a pair-specific label.
+    { name: 'Skink', kind: 'species', externalIds: [{ system: 'Name', id: 'Skink' }, { system: 'tourplay.net', id: '130' }] },
+    { name: 'Spite', kind: 'species', externalIds: [{ system: 'Name', id: 'Spite' }, { system: 'tourplay.net', id: '131' }] },
+    { name: 'Dryad', kind: 'species', externalIds: [{ system: 'Name', id: 'Dryad' }, { system: 'tourplay.net', id: '132' }] },
+    { name: 'Zoat', kind: 'species', externalIds: [{ system: 'Name', id: 'Zoat' }, { system: 'tourplay.net', id: '133' }] },
+    // tourplay.net's second block of species codes, starting at 1000.
+    { name: 'Squig', kind: 'species', externalIds: [{ system: 'Name', id: 'Squig' }, { system: 'tourplay.net', id: '1000' }] },
+    { name: 'Daemon', kind: 'species', externalIds: [{ system: 'Name', id: 'Daemon' }, { system: 'tourplay.net', id: '1001' }] },
+    { name: 'Giant', kind: 'species', externalIds: [{ system: 'Name', id: 'Giant' }, { system: 'tourplay.net', id: '1002' }] },
+    { name: 'Fae', kind: 'species', externalIds: [{ system: 'Name', id: 'Fae' }, { system: 'tourplay.net', id: '1003' }] },
+    { name: 'Elemental', kind: 'species', externalIds: [{ system: 'Name', id: 'Elemental' }, { system: 'tourplay.net', id: '1004' }] },
+
+    // Positional keyword. Curated here, rather than left to the wider
+    // positional-keyword work, because it is a confirmed Hatred target code
+    // and dropping it would lose a real starting skill's target.
+    { name: 'Big Guy', kind: 'positional', externalIds: [{ system: 'Name', id: 'Big Guy' }, { system: 'tourplay.net', id: '134' }] },
+
+    // Special keyword: Animosity's "no restriction" target.
+    { name: 'All', kind: 'special', externalIds: [{ system: 'Name', id: 'All' }, { system: 'tourplay.net', id: '999' }] },
+  ],
+}

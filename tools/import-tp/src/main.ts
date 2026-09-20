@@ -13,6 +13,8 @@ import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
+import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
+import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
 import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
@@ -122,6 +124,7 @@ async function run(): Promise<ImportResult> {
       result: positionResult,
       characteristicsByPositionId,
       skillRefsByPositionId,
+      keywordCodesByPositionId,
       positionNamesById,
     } = await app.get(TpPositionsImportService).importPositions(officialTeams, {
       raceNamesById: raceOutcome.raceNamesById,
@@ -142,6 +145,29 @@ async function run(): Promise<ImportResult> {
     const positionCharacteristicsOutcome = await app
       .get(TpPositionCharacteristicsImportService)
       .syncPositionCharacteristics(characteristicsByPositionId);
+
+    // The curated keyword catalogue is read once here, avoiding a repeated
+    // read cost, and passed down to the position-keyword import below.
+    const keywordCatalogErrors: ImportError[] = [];
+    const keywordCatalog = await app
+      .get(TpKeywordCatalogService)
+      .load(keywordCatalogErrors);
+    const keywordCatalogResult = app.get(ImportResultService).result({
+      imported: 0,
+      errors: keywordCatalogErrors,
+    });
+
+    // Position keywords run after the characteristics step for the same hard
+    // reason starting skills do: the API rejects a keyword for a (position,
+    // rules set) with no characteristics row, which that step is what
+    // creates.
+    const positionKeywordsOutcome = await app
+      .get(TpPositionKeywordsImportService)
+      .syncPositionKeywords({
+        keywordCodesByPositionId,
+        catalog: keywordCatalog,
+        positionNamesById,
+      });
 
     // The skillMasterId -> name lookup is scanned once here, from the same
     // mirror the rosters/matches were read from: rosters_masters names skills
@@ -171,6 +197,7 @@ async function run(): Promise<ImportResult> {
         skillMastersByMasterId,
         positionNamesById,
         rulesSetNamesById,
+        catalog: keywordCatalog,
       });
 
     // A roster id can appear under more than one era (TpTeamsImportService's
@@ -307,6 +334,7 @@ async function run(): Promise<ImportResult> {
       .syncPlayerSkills({
         skillsByPlayerId,
         skillMastersByMasterId,
+        catalog: keywordCatalog,
       });
 
     // A mercenary Big Guy hire (e.g. "Giant Mercenary") appears on no TP
@@ -441,6 +469,8 @@ async function run(): Promise<ImportResult> {
       teamOutcome.result,
       positionResult,
       positionCharacteristicsOutcome.result,
+      keywordCatalogResult,
+      positionKeywordsOutcome.result,
       skillNameCollectionResult,
       positionSkillsOutcome.result,
       playerResult,

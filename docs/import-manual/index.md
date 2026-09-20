@@ -51,12 +51,16 @@ top-level sections:
 ```text
 externalSystems
 rulesSets
+skills
+skillRulesSets
+keywords
 leagues
 competitionGroups
 eras
 races
 positions
 positionRulesSets
+positionRulesSetSkills
 coaches
 teams
 competitions
@@ -186,6 +190,19 @@ numbers (`'plus'`) starting with BB2020; Passing did too, but as
 `'plus_zero_legal'`, since 0 is a legal Passing value (structurally cannot
 pass), unlike Agility or Armour. The older rules sets (CRP, CRP+, BB2016)
 have no Passing characteristic, so `passingFormat` is `'absent'` there.
+
+### Keywords
+
+`keywords` entries seed the BB2025 keyword catalogue. Each entry is
+`{ name, kind, externalIds }`: `kind` is one of `species`, `positional`, or
+`special`. No downloaded source names a keyword — `tourplay.net` publishes
+only opaque numeric codes — so this catalogue's `Name` external id (the
+canonical spelling) and `kind` classification exist purely as curated data.
+Its `tourplay.net` external id is the numeric code that source publishes, and
+is what lets `tools/import-tp` resolve a code it reads back to this row. See
+[Keywords](../game-concepts/keywords/index.md) for the concept, and
+[Curated data files](curated-files.md#known-before-other-importers-dedup-files)
+for what the curated file itself holds.
 
 ### Position characteristics
 
@@ -412,9 +429,10 @@ See [Running import tools against production](../discord-bot/production-imports.
   recording an `ImportError` per unresolved reference.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
-- **Entity processors** (rules sets, leagues, eras, races, positions, position
-  characteristics, coaches, teams, competition groups, competitions, SPP
-  award values, trophies) — each resolves its references and calls the shared
+- **Entity processors** (rules sets, keywords, leagues, eras, races, positions,
+  position characteristics, coaches, teams, competition groups, competitions,
+  SPP award values, trophies) — each resolves its references and calls the
+  shared
   `*ImportService` from `packages/import`. The positions processor
   additionally calls `syncRaceEras` to set race/era availability. The
   position-characteristics processor runs after both rules sets and

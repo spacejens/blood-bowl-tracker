@@ -288,6 +288,7 @@ describe('OfficialTeamsParserService', () => {
         armour: 9,
       },
       skills: [],
+      keywordCodes: [],
     });
   });
 
@@ -306,6 +307,7 @@ describe('OfficialTeamsParserService', () => {
         armour: 10,
       },
       skills: [{ name: 'Consummate Professional' }],
+      keywordCodes: [],
     });
   });
 
@@ -553,6 +555,98 @@ describe('OfficialTeamsParserService', () => {
       { skillMasterId: 87 },
       { name: 'The Ballista' },
     ]);
+  });
+
+  it('parses a position keyword code array', () => {
+    const [woodElf] = service.parse(BB2025_RESPONSE);
+    const position = woodElf.positions.find(
+      (entry) => entry.name === 'Wood Elf Lineman',
+    );
+    expect(position?.keywordCodes).toEqual([101]);
+  });
+
+  it('parses several keyword codes for one position', () => {
+    const races = service.parse({
+      rosterMasters: [
+        {
+          name: 'Shambling Undead',
+          teamRace: 'Undead',
+          teamRosterType: 0,
+          teamSpecialRules: 0,
+          selectableTeamSpecialRules: 0,
+          lineUpMasters: [
+            {
+              id: 1,
+              position: 'Zombie Lineman',
+              ma: 4,
+              st: 3,
+              ag: 4,
+              pa: 6,
+              av: 9,
+              race: [112, 121, 110],
+            },
+          ],
+        },
+      ],
+      starplayerMasters: [],
+    });
+    expect(races[0].positions[0].keywordCodes).toEqual([112, 121, 110]);
+  });
+
+  it('parses a star player keyword code array', () => {
+    const [woodElf] = service.parse(BB2025_RESPONSE);
+    const star = woodElf.positions.find(
+      (entry) => entry.name === 'Deeproot Strongbranch',
+    );
+    expect(star?.keywordCodes).toEqual([116]);
+  });
+
+  it('parses no keyword codes for an entry that carries none', () => {
+    const races = service.parse({
+      rosterMasters: [
+        {
+          name: 'Human',
+          teamRace: 'Human',
+          teamRosterType: 0,
+          teamSpecialRules: 0,
+          selectableTeamSpecialRules: 0,
+          lineUpMasters: [
+            { id: 1, position: 'Lineman', ma: 6, st: 3, ag: 3, pa: 4, av: 9 },
+          ],
+        },
+      ],
+      starplayerMasters: [],
+    });
+    expect(races[0].positions[0].keywordCodes).toEqual([]);
+  });
+
+  it('rejects a non-numeric keyword code', () => {
+    expect(() =>
+      service.parse({
+        rosterMasters: [
+          {
+            name: 'Human',
+            teamRace: 'Human',
+            teamRosterType: 0,
+            teamSpecialRules: 0,
+            selectableTeamSpecialRules: 0,
+            lineUpMasters: [
+              {
+                id: 1,
+                position: 'Lineman',
+                ma: 6,
+                st: 3,
+                ag: 3,
+                pa: 4,
+                av: 9,
+                race: ['Human'],
+              },
+            ],
+          },
+        ],
+        starplayerMasters: [],
+      }),
+    ).toThrow(/Invalid TP official teams JSON/);
   });
 
   it('throws naming the failing field on a shape mismatch', () => {

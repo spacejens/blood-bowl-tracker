@@ -22,6 +22,7 @@ function emptyData(): ManualDataFile {
     positionRulesSetSkills: [],
     skills: [],
     skillRulesSets: [],
+    keywords: [],
     coaches: [],
     teams: [],
     competitions: [],

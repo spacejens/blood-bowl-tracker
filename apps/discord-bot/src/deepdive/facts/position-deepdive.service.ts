@@ -1,10 +1,12 @@
 import type {
   PositionCharacteristics,
   PositionHeader,
+  PositionKeyword,
   PositionStartingSkill,
   PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -18,6 +20,7 @@ import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_POSITION_CHARACTERISTICS_TIMEOUT_MESSAGE,
+  DEEPDIVE_POSITION_KEYWORDS_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE,
   DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
@@ -37,6 +40,7 @@ import {
   POSITION_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PositionKeywordsSectionService } from './position-keywords-section.service';
 import { PositionStatLineService } from './position-stat-line.service';
 
 /** Position at which the top-players list opens a tie group (5th place). */
@@ -67,7 +71,9 @@ export class PositionDeepdiveService {
     private readonly positions: PositionsService,
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly positionRulesSetSkills: PositionRulesSetSkillsService,
+    private readonly positionRulesSetKeywords: PositionRulesSetKeywordsService,
     private readonly statLine: PositionStatLineService,
+    private readonly keywordsSection: PositionKeywordsSectionService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
@@ -94,6 +100,7 @@ export class PositionDeepdiveService {
     }
 
     let statLines: string[];
+    let keywordLines: string[] = [];
     if (rulesSetRows.length === 0) {
       statLines = [DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE];
     } else {
@@ -106,6 +113,16 @@ export class PositionDeepdiveService {
         return DEEPDIVE_POSITION_SKILLS_TIMEOUT_MESSAGE;
       }
       statLines = this.statLine.formatLines(rulesSetRows, skillRows);
+
+      const keywordRows: PositionKeyword[] | null =
+        await this.databaseTimeout.run(
+          this.positionRulesSetKeywords.listByPosition(positionId),
+          null,
+        );
+      if (keywordRows === null) {
+        return DEEPDIVE_POSITION_KEYWORDS_TIMEOUT_MESSAGE;
+      }
+      keywordLines = this.keywordsSection.build(keywordRows);
     }
 
     const playerCount: number | null = await this.databaseTimeout.run(
@@ -201,6 +218,7 @@ export class PositionDeepdiveService {
       `Race(s): ${raceNames}`,
       '',
       ...statLines,
+      ...keywordLines,
       '',
       `Held by ${playerCount} ${playerCount === 1 ? 'player' : 'players'}`,
       '',

@@ -2,10 +2,12 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   CompetitionGroupsService,
   ExternalSystemsService,
+  KeywordsService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
   PlayerLastingInjuryBackfillService,
   PlayerSkillsService,
+  PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -259,6 +261,42 @@ export function buildPositionRulesSetSkillsRoutes(
     ),
     list: implement(contract.positionRulesSetSkills.list).handler(({ input }) =>
       positionRulesSetSkillsService.listByPosition(input.positionId),
+    ),
+  };
+}
+
+// positionRulesSetKeywords: same shape and same reasoning as
+// positionRulesSetSkills above. `runSync` maps the service's authored-data
+// rejections -- a position/rules-set pair with no characteristics row, and a
+// batch repeating one natural key -- to BAD_REQUEST. `list` delegates to
+// `listByPosition`, whose rows also carry the rules set's and the keyword's
+// names; the contract's output schema carries the keyword's name but not the
+// rules set's.
+export function buildPositionRulesSetKeywordsRoutes(
+  upsertHandler: UpsertHandlerService,
+  positionRulesSetKeywordsService: PositionRulesSetKeywordsService,
+) {
+  return {
+    sync: implement(contract.positionRulesSetKeywords.sync).handler(
+      ({ input, errors }) =>
+        upsertHandler.runSync(errors, () =>
+          positionRulesSetKeywordsService.sync(input),
+        ),
+    ),
+    list: implement(contract.positionRulesSetKeywords.list).handler(
+      ({ input }) =>
+        positionRulesSetKeywordsService.listByPosition(input.positionId),
+    ),
+  };
+}
+
+// keywords.list: read-only, so it does not go through the upsert handler at
+// all. The rest of the keywords router is the standard entity shape and is
+// built by RpcRouterFactoryService.buildStandardEntityRoutes.
+export function buildKeywordsListRoute(keywordsService: KeywordsService) {
+  return {
+    list: implement(contract.keywords.list).handler(({ input }) =>
+      keywordsService.listByExternalSystem(input.externalSystemId),
     ),
   };
 }

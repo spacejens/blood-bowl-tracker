@@ -19,6 +19,7 @@ function emptyData(): ManualDataFile {
     positionRulesSetSkills: [],
     skills: [],
     skillRulesSets: [],
+    keywords: [],
     coaches: [],
     teams: [],
     competitions: [],
@@ -326,5 +327,28 @@ describe('ExternalSystemsProcessor', () => {
     const systemIds = await processor.bootstrap(data);
 
     expect([...systemIds.keys()].sort()).toEqual(['RaceSys', 'RulesSys']);
+  });
+
+  it('bootstraps a system referenced only from keywords', async () => {
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+    const data = emptyData();
+    data.externalSystems = [
+      { name: 'tourplay.net', category: 'imported_data_source' },
+    ];
+    data.keywords = [
+      {
+        name: 'Goblin',
+        kind: 'species',
+        externalIds: [{ system: 'tourplay.net', id: '111' }],
+      },
+    ];
+
+    const systemIds = await processor.bootstrap(data);
+
+    expect([...systemIds.keys()]).toEqual(['tourplay.net']);
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'tourplay.net',
+      'imported_data_source',
+    );
   });
 });

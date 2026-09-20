@@ -22,6 +22,18 @@ export interface TpOfficialPosition {
   tpPositionId?: number;
   characteristics: TpPositionCharacteristics;
   skills: TpPositionSkillRef[];
+  /**
+   * The BB2025 keyword codes TP publishes for this position, in the order it
+   * lists them. TP calls the field `race`, but it is not the team's race: a
+   * code is shared across positions from unrelated team races, and one
+   * position carries up to three at once (a Zombie Lineman is Human, Zombie
+   * and Undead together). Renamed here so it cannot be confused with this
+   * codebase's own `race`.
+   *
+   * Empty for every pre-BB2025 rules set: TP omits the field entirely there,
+   * because the concept does not exist before BB2025.
+   */
+  keywordCodes: number[];
 }
 
 /**
@@ -43,8 +55,8 @@ export interface TpOfficialPosition {
  * (`"111"`) on different entries, confirming type 3 is a distinct,
  * unresolved encoding rather than just another composable value. Consumers
  * must treat a type-3 reference as unresolvable rather than composing it
- * as-is, except for the codes `HatredTargetService` or `AnimosityTargetService`
- * explains.
+ * as-is, except for the codes `TpSkillResolverService.decodeTypeThreeTarget`
+ * (in tools/import-tp) resolves against the curated keyword catalogue.
  */
 export interface TpPositionSkillIdRef {
   skillMasterId: number;
@@ -131,12 +143,23 @@ const SpecialRuleField = {
   specialRuleName: z.string().optional(),
 };
 
+/**
+ * TP's `race` array: the position's BB2025 keyword codes. Defaulted rather
+ * than optional, so the parsed shape is always an array and no consumer has
+ * to distinguish "absent" from "empty" — for every pre-BB2025 rules set the
+ * field is simply absent and the answer is the same either way.
+ */
+const KeywordCodesField = {
+  race: z.array(z.number().int()).default([]),
+};
+
 const LineUpMasterSchema = z.object({
   id: z.number().optional(),
   position: z.string(),
   ...CharacteristicsFields,
   ...SkillsField,
   ...SpecialRuleField,
+  ...KeywordCodesField,
 });
 
 /**
@@ -154,6 +177,7 @@ const StarPlayerMasterSchema = z.object({
   ...CharacteristicsFields,
   ...SkillsField,
   ...SpecialRuleField,
+  ...KeywordCodesField,
 });
 
 const RosterMasterSchema = z.object({
@@ -270,6 +294,7 @@ export class OfficialTeamsParserService {
           ? []
           : [{ name: entry.specialRuleName }]),
       ],
+      keywordCodes: entry.race,
     };
   }
 }

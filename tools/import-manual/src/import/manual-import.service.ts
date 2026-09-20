@@ -8,6 +8,7 @@ import { CompetitionGroupsProcessor } from '../entities/competition-groups.proce
 import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
+import { KeywordsProcessor } from '../entities/keywords.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
 import { PositionRulesSetSkillsProcessor } from '../entities/position-rules-set-skills.processor';
 import { PositionRulesSetsProcessor } from '../entities/position-rules-sets.processor';
@@ -30,6 +31,7 @@ export class ManualImportService {
     private readonly rulesSets: RulesSetsProcessor,
     private readonly skills: SkillsProcessor,
     private readonly skillRulesSets: SkillRulesSetsProcessor,
+    private readonly keywords: KeywordsProcessor,
     private readonly leagues: LeaguesProcessor,
     private readonly eras: ErasProcessor,
     private readonly races: RacesProcessor,
@@ -49,8 +51,8 @@ export class ManualImportService {
   /**
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
    * it references, then process each entity section in dependency order —
-   * rulesSets, skills, skillRulesSets, leagues, eras, races, positions,
-   * positionRulesSets, positionRulesSetSkills, coaches, teams,
+   * rulesSets, skills, skillRulesSets, keywords, leagues, eras, races,
+   * positions, positionRulesSets, positionRulesSetSkills, coaches, teams,
    * competitionGroups, competitions, sppAwardValues, trophies, trophyAwards —
    * with skills and skillRulesSets running right after rulesSets, since
    * skills need only the rules sets and running them early keeps the
@@ -58,8 +60,12 @@ export class ManualImportService {
    * after both rulesSets and positions (which its entries reference),
    * positionRulesSetSkills running right after positionRulesSets and skills
    * (the API rejects a starting skill whose position has no characteristics
-   * under that rules set, or whose skill has no category row there),
-   * competitionGroups running after leagues (whose
+   * under that rules set, or whose skill has no category row there), keywords
+   * seeding the BB2025 keyword catalogue that tools/import-tp resolves its
+   * numeric codes against in a later, separate invocation (so the catalogue
+   * must already exist by then, but nothing in this file itself references a
+   * keyword, so its position relative to the other sections here is
+   * otherwise free), competitionGroups running after leagues (whose
    * external ids its entries reference) and before competitions and trophies
    * (which resolve the groups it upserts, by their "Name"-system external
    * id), sppAwardValues running after rulesSets and races (which it
@@ -88,6 +94,7 @@ export class ManualImportService {
     imported += await this.rulesSets.process(ctx);
     imported += await this.skills.process(ctx);
     imported += await this.skillRulesSets.process(ctx);
+    imported += await this.keywords.process(ctx);
     imported += await this.leagues.process(ctx);
     imported += await this.eras.process(ctx);
     imported += await this.races.process(ctx);

@@ -1,14 +1,14 @@
 import { ExternalIdResolverService } from '@blood-bowl-tracker/import';
-import {
-  AnimosityTargetService,
-  HatredTargetService,
-} from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpSkillResolverService } from './tp-skill-resolver.service';
+import {
+  ANIMOSITY_SKILL_MASTER_ID,
+  HATRED_SKILL_MASTER_ID,
+  TpSkillResolverService,
+} from './tp-skill-resolver.service';
 
 /** The external system id every test's tpSystemId option supplies. */
 const TP_SYSTEM_ID = 11;
@@ -16,19 +16,13 @@ const TP_SYSTEM_ID = 11;
 describe('TpSkillResolverService', () => {
   let service: TpSkillResolverService;
   let resolver: MockProxy<ExternalIdResolverService>;
-  let hatredTargets: MockProxy<HatredTargetService>;
-  let animosityTargets: MockProxy<AnimosityTargetService>;
 
   beforeEach(async () => {
     resolver = mock<ExternalIdResolverService>();
-    hatredTargets = mock<HatredTargetService>();
-    animosityTargets = mock<AnimosityTargetService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpSkillResolverService,
         { provide: ExternalIdResolverService, useValue: resolver },
-        { provide: HatredTargetService, useValue: hatredTargets },
-        { provide: AnimosityTargetService, useValue: animosityTargets },
       ],
     }).compile();
     service = moduleRef.get(TpSkillResolverService);
@@ -91,31 +85,77 @@ describe('TpSkillResolverService', () => {
     ]);
   });
 
-  it("decodes a type-3 code with Hatred's table only for Hatred", () => {
-    hatredTargets.decode.mockReturnValue('Undead');
+  // Hatred and Animosity now read the SAME curated keyword catalogue: a
+  // type-3 target is a keyword, whichever of the two skills names it, so
+  // there is no longer a "belongs to the other skill's table" case to test
+  // -- that behaviour was dropped deliberately, not by accident, when the
+  // two hard-coded per-skill tables were replaced by one shared catalogue.
+  const catalog = {
+    byCode: new Map([
+      [100, { keywordId: 1, name: 'Dwarf' }],
+      [111, { keywordId: 7, name: 'Goblin' }],
+      [134, { keywordId: 8, name: 'Big Guy' }],
+      [999, { keywordId: 9, name: 'All' }],
+    ]),
+  };
 
-    const target = service.decodeTypeThreeTarget(307, '110');
-
-    expect(target).toBe('Undead');
-    expect(hatredTargets.decode).toHaveBeenCalledWith('110');
-    expect(animosityTargets.decode).not.toHaveBeenCalled();
+  it('decodes a Hatred target code to its curated keyword name', () => {
+    expect(
+      service.decodeTypeThreeTarget({
+        skillMasterId: HATRED_SKILL_MASTER_ID,
+        attributeValue: '111',
+        catalog,
+      }),
+    ).toBe('Goblin');
   });
 
-  it("decodes a type-3 code with Animosity's table only for Animosity", () => {
-    animosityTargets.decode.mockReturnValue('Goblin');
-
-    const target = service.decodeTypeThreeTarget(269, '111');
-
-    expect(target).toBe('Goblin');
-    expect(animosityTargets.decode).toHaveBeenCalledWith('111');
-    expect(hatredTargets.decode).not.toHaveBeenCalled();
+  it('decodes a Hatred target that is a positional keyword', () => {
+    expect(
+      service.decodeTypeThreeTarget({
+        skillMasterId: HATRED_SKILL_MASTER_ID,
+        attributeValue: '134',
+        catalog,
+      }),
+    ).toBe('Big Guy');
   });
 
-  it('returns undefined for a type-3 code on any other skill', () => {
-    const target = service.decodeTypeThreeTarget(87, '110');
+  it('decodes an Animosity target code', () => {
+    expect(
+      service.decodeTypeThreeTarget({
+        skillMasterId: ANIMOSITY_SKILL_MASTER_ID,
+        attributeValue: '999',
+        catalog,
+      }),
+    ).toBe('All');
+  });
 
-    expect(target).toBeUndefined();
-    expect(hatredTargets.decode).not.toHaveBeenCalled();
-    expect(animosityTargets.decode).not.toHaveBeenCalled();
+  it('returns undefined for a code the catalogue does not carry', () => {
+    expect(
+      service.decodeTypeThreeTarget({
+        skillMasterId: HATRED_SKILL_MASTER_ID,
+        attributeValue: '777',
+        catalog,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a non-numeric attribute value', () => {
+    expect(
+      service.decodeTypeThreeTarget({
+        skillMasterId: HATRED_SKILL_MASTER_ID,
+        attributeValue: 'Goblin',
+        catalog,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a skill that is neither Hatred nor Animosity', () => {
+    expect(
+      service.decodeTypeThreeTarget({
+        skillMasterId: 1,
+        attributeValue: '111',
+        catalog,
+      }),
+    ).toBeUndefined();
   });
 });

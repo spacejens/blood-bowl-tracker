@@ -21,6 +21,12 @@ import {
   ExternalSystemSchema,
   UpsertExternalSystemSchema,
 } from './schemas/external-system';
+import {
+  KeywordCatalogEntrySchema,
+  KeywordSchema,
+  ListKeywordsSchema,
+  UpsertKeywordSchema,
+} from './schemas/keyword';
 import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
 import {
   MatchSchema,
@@ -59,6 +65,12 @@ import {
   SyncPositionRulesSetsResultSchema,
   SyncPositionRulesSetsSchema,
 } from './schemas/position-rules-set';
+import {
+  ListPositionRulesSetKeywordsSchema,
+  PositionRulesSetKeywordRefSchema,
+  SyncPositionRulesSetKeywordsResultSchema,
+  SyncPositionRulesSetKeywordsSchema,
+} from './schemas/position-rules-set-keyword';
 import {
   ListPositionRulesSetSkillsSchema,
   PositionRulesSetSkillRefSchema,
@@ -248,6 +260,40 @@ export const contract = {
     list: oc
       .input(ListPositionRulesSetSkillsSchema)
       .output(z.array(PositionRulesSetSkillRefSchema)),
+  },
+  keywords: {
+    upsert: upsertProcedure(UpsertKeywordSchema, KeywordSchema),
+    upsertBatch: batchUpsertProcedure(UpsertKeywordSchema, KeywordSchema),
+    // Resolvable like every other entity an import tool references by
+    // external id across files, phases or tools.
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
+    // Read-only, so it declares no errors — like competitionGroups.list and
+    // positionRulesSets.list. The whole catalogue in one call: a caller that
+    // holds only numeric codes cannot name a keyword from its own data, and
+    // the catalogue is small and changes only by curation.
+    list: oc
+      .input(ListKeywordsSchema)
+      .output(z.array(KeywordCatalogEntrySchema)),
+  },
+  positionRulesSetKeywords: {
+    // Not an upsert, for the same reason positionRulesSetSkills.sync is not.
+    // BAD_REQUEST is declared because the server rejects an entry whose
+    // position/rules-set pair has no position_rules_sets row yet, and a batch
+    // naming the same triple twice — both authored-data feedback the importer
+    // reports per entry, not a server fault.
+    sync: oc
+      .input(SyncPositionRulesSetKeywordsSchema)
+      .errors({
+        BAD_REQUEST: {
+          message: 'Position keywords are not valid',
+        },
+      })
+      .output(SyncPositionRulesSetKeywordsResultSchema),
+    // Read-only, so it declares no errors.
+    list: oc
+      .input(ListPositionRulesSetKeywordsSchema)
+      .output(z.array(PositionRulesSetKeywordRefSchema)),
   },
   playerSkills: {
     // Not an upsert, for the same reason positionRulesSetSkills.sync is not:

@@ -2,6 +2,7 @@ import {
   CharacteristicFormatSchema,
   COMPETITION_TYPES,
   ExternalSystemCategorySchema,
+  KeywordKindSchema,
   SkillCategorySchema,
   SppEarningActionTypeSchema,
   TrophyAwardRuleEventTypeSchema,
@@ -166,6 +167,18 @@ const PositionRulesSetSkillsEntrySchema = z.object({
   skills: z.array(PositionRulesSetSkillRefSchema).min(1),
 });
 
+/**
+ * One curated BB2025 keyword. Hand-authored because no imported source
+ * publishes keyword names at all -- tourplay.net exposes only numeric codes,
+ * which is why every entry carries that code as a `tourplay.net` external id
+ * beside its `Name` one.
+ */
+const KeywordEntrySchema = z.object({
+  name: z.string().min(1),
+  kind: KeywordKindSchema,
+  externalIds,
+});
+
 const CoachEntrySchema = z.object({
   name: z.string().min(1),
   externalIds,
@@ -327,6 +340,7 @@ export const ManualDataFileSchema = z
     rulesSets: z.array(RulesSetEntrySchema).default([]),
     skills: z.array(SkillEntrySchema).default([]),
     skillRulesSets: z.array(SkillRulesSetEntrySchema).default([]),
+    keywords: z.array(KeywordEntrySchema).default([]),
     leagues: z.array(LeagueEntrySchema).default([]),
     eras: z.array(EraEntrySchema).default([]),
     races: z.array(RaceEntrySchema).default([]),

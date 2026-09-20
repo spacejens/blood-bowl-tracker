@@ -6,6 +6,7 @@ import type {
   PlayerKillerInfo,
   PlayerSkillRow,
   PositionCharacteristicsContext,
+  PositionKeyword,
   StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
@@ -13,6 +14,7 @@ import {
   PlayerDeathService,
   PlayerSkillsService,
   PlayersService,
+  PositionRulesSetKeywordsService,
   PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
@@ -32,6 +34,7 @@ import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_DEATH_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE,
+  DEEPDIVE_PLAYER_KEYWORDS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_KILLS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
@@ -50,6 +53,7 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PlayerKeywordsSectionService } from './player-keywords-section.service';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
@@ -170,6 +174,8 @@ export class PlayerDeepdiveService {
     private readonly dateRangeFormatter: DateRangeFormatterService,
     private readonly playerSkills: PlayerSkillsService,
     private readonly skillsSection: PlayerSkillsSectionService,
+    private readonly positionRulesSetKeywords: PositionRulesSetKeywordsService,
+    private readonly keywordsSection: PlayerKeywordsSectionService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -305,6 +311,22 @@ export class PlayerDeepdiveService {
       skillRows = rows;
     }
 
+    // Last of the supplementary queries, for the same reason skipped when no
+    // rules set applies: there is then no rules set to scope the keywords to,
+    // and the keyword line is omitted for the same reason the skill lines
+    // are.
+    let keywordRows: PositionKeyword[] = [];
+    if (characteristicsContext !== undefined) {
+      const rows: PositionKeyword[] | null = await this.databaseTimeout.run(
+        this.positionRulesSetKeywords.listByPosition(player.positionId),
+        null,
+      );
+      if (rows === null) {
+        return DEEPDIVE_PLAYER_KEYWORDS_TIMEOUT_MESSAGE;
+      }
+      keywordRows = rows;
+    }
+
     // Omitted entirely when no rules set applies to the player's era: there
     // is then no way to know how to write the values, and a wrongly
     // formatted stat line would read as fact.
@@ -326,6 +348,12 @@ export class PlayerDeepdiveService {
         (line): line is string => line !== undefined,
       ),
       ...this.skillsSection.build(skillRows),
+      ...(characteristicsContext === undefined
+        ? []
+        : this.keywordsSection.build({
+            rows: keywordRows,
+            rulesSetId: characteristicsContext.rulesSetId,
+          })),
     ];
 
     const header = [
