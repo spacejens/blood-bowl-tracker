@@ -278,6 +278,8 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    A Minor finding is never left as-is: every one ends as a Fix, a Drop, or a Question. Apply every Fix first, then re-check each recorded Question's file and line against the post-Fix state — a Fix earlier in the same file can shift the Question's original line number, and Phase 6 posts whatever location is recorded here without re-deriving it. Update any Question whose location moved before continuing. After classifying and re-checking Question locations, run `pnpm verify` **once** for the whole batch of Fix changes made in this step and commit them; if nothing was classified Fix, skip both. If every Fix change touches only files outside `apps/`, `packages/`, and `tools/` (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note why, per Phase 4 step 5's same rule.
 5. **Check whether the branch is too large for one PR.** CodeRabbit refuses to review a PR past a file-count limit, posting a "Review skipped — Too many files!" comment instead of a review. Phase 6's review loop cannot tell that apart from a slow review, so it would wait out its full iteration budget for a review that is never coming. Check here instead — the branch is now in its final, all-findings-resolved state, so what is measured is exactly what would otherwise become one PR.
 
+   **Accepted residual risk:** this check runs before Phase 6 step 1's `git merge origin/main`, so it cannot see files `main` has changed since this branch started. If `main` drifts by more than `CODERABBIT_SAFE_FILE_LIMIT`'s safety margin before Phase 6's merge runs, the PR's real file count could still exceed the limit despite this check passing. This is a deliberate trade-off — checking after the `main` sync would require restructuring Phase 5/6 for a case the safety margin already absorbs in the common case — not an oversight.
+
    Feed the task-checkpoint list from Phase 4 into `compute-pr-split`, in the same heredoc-stdin form this skill already uses for `write-file` and `post-review-questions` (see "Worktree isolation and shell commands" above for why this must be one command, and for the fallback when the heredoc form is refused: write the JSON to a plain file first and pipe that file into the same command):
 
    ```bash
@@ -293,8 +295,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    It prints one JSON object. Branch on it:
    - `"splitNeeded": false` — the common case. Record "one PR" as the split decision and change nothing: Phase 6 runs exactly as written, start to finish, and every "only when a split is needed" instruction there is skipped.
-   - `"splitNeeded": true` with a non-empty `parts` array — record that array as the split decision, in order. Phase 6's "Stacked PR sequencing" applies. Report a one-line status naming the total file count, the limit, and how many parts the branch will be split into.
+   - `"splitNeeded": true` with a `parts` array of **two or more** entries — record that array as the split decision, in order. Phase 6's "Stacked PR sequencing" applies. Report a one-line status naming the total file count, the limit, and how many parts the branch will be split into.
    - `"splitNeeded": true` with an empty `parts` array and an `unsplittable` object — a single task's own commit touches more files than the limit, so no valid split exists. **Pause** — report the offending `taskNumber`, `label`, and `fileCount`, and ask the developer via `AskUserQuestion`, offering two genuine options: **Open one oversized PR anyway** (proceed with Phase 6 unchanged, accepting that CodeRabbit will skip the review) and **Stop here** (halt the skill, leaving the branch unpushed for the developer to split by hand). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - `"splitNeeded": true` with an empty `parts` array and an `unsplittableWholeBranch` object — packing could only produce one usable part (every section folded back together, or there was only one to begin with) and that part is still over the limit, so no valid multi-part split exists either. This is typically self-review fix commits made after the last task's commit pushing the branch tip back over the limit after the packer had nothing left to cut. No single task is to blame, so there is no `taskNumber`/`label` to report — just `fileCount`. **Pause** — report the total file count and the limit, and ask the developer via `AskUserQuestion`, offering the same two genuine options as the `unsplittable` case above: **Open one oversized PR anyway** and **Stop here**. Same `AskUserQuestion` convention applies — no explicit free-text or chat option.
    - **If the command itself fails** — a non-zero exit, unparseable output, or output carrying no `splitNeeded` field — print a one-line warning and **continue as if `"splitNeeded": false`**. This check is an optimization that avoids a wasted review loop, not a correctness gate: failing open costs at most the same wasted loop that exists today, while failing closed would block an otherwise finished branch from ever reaching a PR. If the failure names `compute-pr-split` as an unrecognized subcommand, the built artifact predates it — rebuild with the `pnpm --filter` command above and retry once before falling back.
 6. Print a brief status line — iterations run, that the review is clean by step 3's definition, and how many Minor findings were fixed, dropped, and carried forward as pending questions (the pending-questions list may be empty; that remains the normal case) — then continue immediately into Phase 6, carrying the pending-questions list and the split decision forward.
 
@@ -302,7 +305,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
 ### Phase 6: Integration
 
-**When a split is needed** (Phase 5 step 5 recorded a `parts` array of two or more entries), this phase creates one stacked PR per part instead of a single PR, following "Stacked PR sequencing" later in this phase. Everything below is written for the single-PR case; the sequencing section says exactly which steps run once, which run per part, and which are unchanged. When no split is needed — the common case — ignore every "only when a split is needed" instruction in this phase.
+**When a split is needed** (Phase 5 step 5 recorded a `parts` array of two or more entries), this phase creates one stacked PR per part instead of a single PR, following "Stacked PR sequencing" later in this phase. Everything below is written for the single-PR case; the sequencing section says exactly which steps run once, which run per part, and which are unchanged. When no split is needed — the common case — ignore every "only when a split is needed" instruction in this phase. When Phase 5 step 5 instead recorded an `unsplittable` or `unsplittableWholeBranch` outcome, that Pause is resolved in Phase 5 itself, before this phase begins; if the developer chose **Open one oversized PR anyway**, this phase runs exactly as written for the single-PR case, same as when no split is needed.
 
 #### Stacked branches and PR content (only when a split is needed)
 
@@ -637,7 +640,7 @@ Once part `i+1`'s PR exists, edit part `i`'s body (`cd <worktree-path> && gh pr 
      > This branch changes Discord slash-command registration or definitions. Commands are registered globally, and Discord can take up to ~1 hour to propagate a changed command's name, description, or options — so your slash commands may still show their old definitions in Discord for a while after the deploy. That is expected, not a failed deploy. Changes to how a command answers (handler logic) take effect as soon as the bot restarts.
      If it prints nothing, skip the reminder silently — no status line, no mention.
 
-#### Stacked PR sequencing (only when a split is needed)
+**Stacked PR sequencing (only when a split is needed)**
 
 When Phase 5 step 5 recorded two or more parts, steps 3-6 above are replaced by the sequence below; steps 1, 2 and 7 are unchanged. Nothing here introduces new machinery — it reuses the same `gh pr create`, review-lock, `wait-for-pr-review` and `handle-pr-reviews` building blocks the single-PR flow already uses, just once per part.
 
@@ -647,35 +650,52 @@ When Phase 5 step 5 recorded two or more parts, steps 3-6 above are replaced by 
 
 **Then, for each part `i` from 1 to `N`, in order:**
 
-1. **Merge forward** (skipped for part 1). Part `i-1`'s branch may have gained fix commits from its own just-completed review loop, and part `i`'s branch must carry them so its own PR diff shows only its own sections' changes rather than reintroducing a pre-fix version of part `i-1`'s content:
+1. **Create this part's branch** (skipped for the last part, whose branch already is the original worktree branch). Create and push it per "Stacked branches and PR content" above, at part `i`'s recorded `commitSha`. This must happen **before** step 2 tries to check it out — part `i`'s branch does not exist yet until this step creates it, so step 2 would fail with "no such branch" if it ran first.
+
+   ```bash
+   cd <worktree-path> && git branch <original-branch-name>-part<i> <part-i-commit-sha>
+   cd <worktree-path> && git push -u origin <original-branch-name>-part<i>
+   ```
+
+2. **Merge forward** (skipped for part 1). Part `i-1`'s branch may have gained fix commits from its own just-completed review loop, and part `i`'s branch must carry them so its own PR diff shows only its own sections' changes rather than reintroducing a pre-fix version of part `i-1`'s content:
 
    ```bash
    cd <worktree-path> && git checkout <part-i-branch>
    cd <worktree-path> && git merge <part-i-1-branch>
    ```
 
-   For the last part, `<part-i-branch>` is the original worktree branch. Handle the result with **step 1's existing merge procedure verbatim** — clean merge: run `pnpm verify`, fix any regression the merge introduced, commit, continue; conflict: attempt an automated resolution, run `pnpm verify`, and stop to ask the developer only if the correct resolution is not clear or verification does not come back clean. Then push the merge:
+   For the last part, `<part-i-branch>` is the original worktree branch (already checked out from the previous part's merge-forward, or from Phase 1 for part 1 — this step is skipped for part 1, so nothing here re-checks it out). Handle the result with **step 1's existing merge procedure verbatim** — clean merge: run `pnpm verify`, fix any regression the merge introduced, commit, continue; conflict: attempt an automated resolution, run `pnpm verify`, and stop to ask the developer only if the correct resolution is not clear or verification does not come back clean (see "Abort safety" below before stopping). Then push the merge:
 
    ```bash
    cd <worktree-path> && git push origin <part-i-branch>
    ```
 
-2. **Create this part's branch and PR.** Create and push the branch per "Stacked branches and PR content" above (skipped for the last part, whose branch already exists), then run `gh pr create` with that section's base, head, title, body, labels, and assignee — the mode-appropriate command from step 3 with `--base <base-branch>` and `--head <head-branch>` added. Step 3's `gh pr create` failure handling (report the error, then ask **Retry** or **Stop** via `AskUserQuestion`) applies unchanged. Record the resulting PR number as this part's PR.
+3. **Create the PR.** Run `gh pr create` with this part's base, head, title, body, labels, and assignee — the mode-appropriate command from step 3 with `--base <base-branch>` and `--head <head-branch>` added. Step 3's `gh pr create` failure handling (report the error, then ask **Retry** or **Stop** via `AskUserQuestion`) applies unchanged (see "Abort safety" below before stopping). Record the resulting PR number as this part's PR.
 
-3. **Edit the previous part's body** (skipped for part 1) so its stacking note names this part's PR number, per "Stacked branches and PR content" above. A failure here is a one-line warning, never a stop — the stacking note is informational.
+4. **Edit the previous part's body** (skipped for part 1) so its stacking note names this part's PR number, per "Stacked branches and PR content" above. A failure here is a one-line warning, never a stop — the stacking note is informational.
 
-4. **Post this part's share of the pending self-review questions** — step 4's procedure, filtered to this part. Route each recorded question to whichever part's diff contains its file (check with `cd <worktree-path> && git diff --name-only <part-base-ref>...<part-commit-sha>`, using `origin/main` as `<part-base-ref>` for part 1 and the previous part's `commitSha` otherwise), and post only those against this part's PR, so a question is never posted before the part whose diff contains its file exists. If the pending-questions list is empty — the common case — skip this step entirely and silently, as step 4 already says. A question whose file appears in no part's diff (it was later reverted, or it is lockfile-excluded) is posted against the last part's PR rather than dropped.
+5. **Post this part's share of the pending self-review questions** — step 4's procedure, filtered to this part. Route each recorded question to whichever part's diff contains its file (check with `cd <worktree-path> && git diff --name-only <part-base-ref>...<part-commit-sha>`, using `origin/main` as `<part-base-ref>` for part 1 and the previous part's `commitSha` otherwise), and post only those against this part's PR, so a question is never posted before the part whose diff contains its file exists. If the pending-questions list is empty — the common case — skip this step entirely and silently, as step 4 already says. A question whose file appears in no part's diff (it was later reverted, or it is lockfile-excluded) is posted against the last part's PR rather than dropped.
 
-5. **Run the review loop against this part's PR** — step 5 in full and unchanged: the `wait-for-pr-review` wait, its timeout / rate-limit / comment-update-failure handling, `handle-pr-reviews --skip-deploy-local`, the exit checks, and the lock heartbeats, with its own fresh 10-iteration budget for this part. One change only: **do not run step 5's "After the loop" `release-review-lock`** for any part but the last — the lock is held across the whole sequence. Record this part's one-line loop-ending description for the final report. Wherever reused step 5's text says "continue to step 6" — both its login-lookup-failure early exit and its own closing "Then continue into step 6 unchanged" line — read that here as "continue to part `i+1` below, or, for the last part, to the once-only post-loop block below," not Phase 6's own step 6, which does not run per part.
+6. **Run the review loop against this part's PR** — step 5 in full and unchanged: the `wait-for-pr-review` wait, its timeout / rate-limit / comment-update-failure handling, `handle-pr-reviews --skip-deploy-local`, the exit checks, and the lock heartbeats, with its own fresh 10-iteration budget for this part. Two changes only, both because the lock is held across the whole sequence rather than per part: **do not run step 5's login-lookup-failure early-exit `release-review-lock` call**, and **do not run step 5's "After the loop" `release-review-lock` call**, for any part but the last. If the login lookup fails for part `i` (`i < N`), skip that part's review loop exactly as step 5 already says, but leave the lock held and go straight to step 7 below (continue to part `i+1`) instead of releasing it. Record this part's one-line loop-ending description for the final report. Wherever reused step 5's text says "continue to step 6" — both its login-lookup-failure early exit and its own closing "Then continue into step 6 unchanged" line — read that here as "continue to part `i+1` below (step 7), or, for the last part, to the once-only post-loop block below," not Phase 6's own step 6, which does not run per part.
 
-6. Continue to part `i+1`.
+7. Continue to part `i+1`.
+
+**Abort safety.** Steps 1-6 above check the worktree out onto `<part-i-branch>` for every part, and it stays there when the sequence cannot proceed automatically to the next step — step 2's merge-conflict stop, step 3's `gh pr create` **Stop** choice, or any other point within this per-part sequence where execution halts rather than continuing straight on. Per this repo's `CLAUDE.md` worktree discipline, the worktree must stay on its `EnterWorktree`-created branch whenever work is not actively in progress on it. So immediately before reporting any such stop — and before waiting on the developer to resolve a merge conflict by hand — check the worktree back onto the original branch:
+
+```bash
+cd <worktree-path> && git checkout <original-branch-name>
+```
+
+This only changes what the worktree has checked out; the part branch and its commits are untouched, and pushed part branches remain on `origin` exactly as they were. Once the developer resolves the stop (or answers **Retry**), check the worktree back onto `<part-i-branch>` before resuming where it left off. This is never needed for the last part, whose branch already is `<original-branch-name>` — nor for a normal per-part loop ending (a clean review, the ambiguous-item exit, no-fix-commits exit, or the 10-iteration cap), which always continues straight on to step 7 and, eventually, to the "Run once, after part `N`" block below without pausing.
 
 **Run once, after part `N`:**
 - **Release the review lock** — step 5's "After the loop" `release-review-lock <holder-id>` command, with its same best-effort failure handling.
 - **Offer `deploy-local`** — step 6 in full, once, including its Discord slash-command propagation reminder (whose `git diff --name-only origin/main...HEAD` check is run once against the whole branch, not per part). Not once per part: there is one worktree and one final state to look at.
 - **Print the stacked-PR summary** described in "Reporting a stacked PR sequence" below.
 
-#### Reporting a stacked PR sequence (only when a split is needed)
+This block runs with the worktree already on the original branch — part `N`'s branch **is** the original branch, so nothing to restore.
+
+**Reporting a stacked PR sequence (only when a split is needed)**
 
 After part `N`'s loop ends, print a summary table — one row per part, in order:
 

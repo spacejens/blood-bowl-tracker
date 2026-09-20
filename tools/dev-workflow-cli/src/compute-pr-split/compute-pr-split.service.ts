@@ -15,15 +15,33 @@ export interface PrSplitPart extends PrSplitPartBoundary {
   readonly partNumber: number;
 }
 
+/**
+ * The packed, re-measured result still only yields one usable part, and that
+ * part is still over the limit. This happens when the last task's commit
+ * fit but self-review fix commits made after it pushed the branch tip back
+ * over the limit — `pack` has nothing left to cut, since there is only one
+ * group to begin with. Distinct from `UnsplittableTask`: no single task is
+ * to blame, the whole branch just never had a second cut point.
+ */
+export interface UnsplittableWholeBranch {
+  readonly fileCount: number;
+}
+
 export interface ComputePrSplitResult {
   /** Echoed so callers never restate the threshold themselves. */
   readonly limit: number;
   readonly totalFileCount: number;
   readonly splitNeeded: boolean;
-  /** Empty only when `unsplittable` is present. */
+  /** Empty when `unsplittable` or `unsplittableWholeBranch` is present. */
   readonly parts: readonly PrSplitPart[];
-  /** Present only when no valid split exists. */
+  /** Present only when a single task's own commit exceeds the limit. */
   readonly unsplittable?: UnsplittableTask;
+  /**
+   * Present only when packing produced fewer than two usable parts while
+   * still over the limit — a real split was needed but none could be
+   * produced. Never present at the same time as `unsplittable`.
+   */
+  readonly unsplittableWholeBranch?: UnsplittableWholeBranch;
 }
 
 /**
@@ -78,11 +96,26 @@ export class ComputePrSplitService {
       };
     }
 
+    const numberedParts = await this.numberParts(packing.packed, input);
+    if (numberedParts.length < 2) {
+      // Only one group existed to begin with (or every other group folded
+      // back into it), so `pack` had no second boundary to cut at. We are
+      // past the `totalFileCount <= limit` early return above, so this lone
+      // part is guaranteed to still be over the limit.
+      return {
+        limit: CODERABBIT_SAFE_FILE_LIMIT,
+        totalFileCount,
+        splitNeeded: true,
+        parts: [],
+        unsplittableWholeBranch: { fileCount: totalFileCount },
+      };
+    }
+
     return {
       limit: CODERABBIT_SAFE_FILE_LIMIT,
       totalFileCount,
       splitNeeded: true,
-      parts: await this.numberParts(packing.packed, input),
+      parts: numberedParts,
     };
   }
 
@@ -91,6 +124,14 @@ export class ComputePrSplitService {
     boundaries: readonly PrSplitPartBoundary[],
     input: ComputePrSplitInput,
   ): Promise<readonly PrSplitPart[]> {
+    if (boundaries.length === 0) {
+      // `pack` always emits at least one part for a non-empty checkpoint
+      // list, and the checkpoints schema requires at least one entry — this
+      // is an internal-invariant violation, not a reachable user-facing case.
+      throw new Error(
+        'compute-pr-split: pack() returned no boundaries for a non-empty checkpoint list',
+      );
+    }
     const lastIndex = boundaries.length - 1;
     const previousSha =
       lastIndex === 0 ? input.baseRef : boundaries[lastIndex - 1].commitSha;

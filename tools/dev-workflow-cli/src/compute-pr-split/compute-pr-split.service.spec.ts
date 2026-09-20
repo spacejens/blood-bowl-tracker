@@ -98,7 +98,7 @@ describe('ComputePrSplitService', () => {
     expect(fileCount.count).toHaveBeenCalledWith('sha1', 'HEAD');
   });
 
-  it('measures a lone packed part against the base ref when re-measuring the tip', async () => {
+  it('reports unsplittableWholeBranch when packing yields only one part still over the limit', async () => {
     grouping.byTopLevelSection.mockReturnValue(sections);
     fileCount.count.mockResolvedValue(140);
     packing.pack.mockResolvedValue({
@@ -107,17 +107,24 @@ describe('ComputePrSplitService', () => {
       ],
     });
 
-    const result = await service.run(input);
-
-    expect(result.parts).toEqual([
-      {
-        partNumber: 1,
-        sectionsCovered: ['A', 'B'],
-        commitSha: 'HEAD',
-        fileCount: 140,
-      },
-    ]);
+    await expect(service.run(input)).resolves.toEqual({
+      limit: 130,
+      totalFileCount: 140,
+      splitNeeded: true,
+      parts: [],
+      unsplittableWholeBranch: { fileCount: 140 },
+    });
     expect(fileCount.count).toHaveBeenCalledWith('origin/main', 'HEAD');
+  });
+
+  it('throws an internal-invariant error if packing ever returns zero boundaries', async () => {
+    grouping.byTopLevelSection.mockReturnValue(sections);
+    fileCount.count.mockResolvedValue(140);
+    packing.pack.mockResolvedValue({ packed: [] });
+
+    await expect(service.run(input)).rejects.toThrow(
+      'pack() returned no boundaries',
+    );
   });
 
   it('returns no parts and the offending task when the split is impossible', async () => {

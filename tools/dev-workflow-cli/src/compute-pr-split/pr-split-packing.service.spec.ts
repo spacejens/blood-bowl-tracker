@@ -130,6 +130,59 @@ describe('PrSplitPackingService', () => {
     });
   });
 
+  it('falls back to per-task boundaries when an oversized subsection is still over the limit', async () => {
+    // A section 'A' with 3 tasks. `bySubsection` splits it into 'A > one'
+    // (task 1 alone) and 'A > two' (tasks 2-3), but 'A > two' is itself
+    // still over the limit and has no subsections of its own — so it must
+    // fall back a second level, to per-task boundaries within just that
+    // subsection.
+    const big = group(
+      'A',
+      checkpoint(1, 'A'),
+      checkpoint(2, 'A'),
+      checkpoint(3, 'A'),
+    );
+    const subsectionOne = group('A > one', checkpoint(1, 'A'));
+    const subsectionTwo = group(
+      'A > two',
+      checkpoint(2, 'A'),
+      checkpoint(3, 'A'),
+    );
+    const taskTwo = group('A > two (task 2)', checkpoint(2, 'A'));
+    const taskThree = group('A > two (task 3)', checkpoint(3, 'A'));
+
+    grouping.bySubsection.mockImplementation((g: CheckpointGroup) =>
+      g.label === 'A' ? [subsectionOne, subsectionTwo] : [g],
+    );
+    grouping.byTask.mockImplementation((g: CheckpointGroup) =>
+      g.label === 'A > two' ? [taskTwo, taskThree] : [g],
+    );
+    counts({
+      'origin/main...sha3': 300,
+      'origin/main...sha1': 50,
+      'sha1...sha3': 250,
+      'sha1...sha2': 100,
+      'sha2...sha3': 90,
+    });
+
+    await expect(service.pack([big], 'origin/main')).resolves.toEqual({
+      packed: [
+        { sectionsCovered: ['A > one'], commitSha: 'sha1', fileCount: 50 },
+        {
+          sectionsCovered: ['A > two (task 2)'],
+          commitSha: 'sha2',
+          fileCount: 100,
+        },
+        {
+          sectionsCovered: ['A > two (task 3)'],
+          commitSha: 'sha3',
+          fileCount: 90,
+        },
+      ],
+    });
+    expect(grouping.byTask).toHaveBeenCalledWith(subsectionTwo);
+  });
+
   it('reports the offending task when a single task exceeds the limit on its own', async () => {
     const only = group('A', checkpoint(1, 'A'));
     grouping.bySubsection.mockReturnValue([only]);
