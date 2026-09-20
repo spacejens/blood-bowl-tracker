@@ -14,6 +14,7 @@ import { PlayerKillsSectionService } from '../deepdive/facts/player-kills-sectio
 import { PlayerSkillsSectionService } from '../deepdive/facts/player-skills-section.service';
 import { PositionCharacteristicsLineFormatterService } from '../deepdive/facts/position-characteristics-line-formatter.service';
 import { PositionDeepdiveService } from '../deepdive/facts/position-deepdive.service';
+import { PositionKeywordsSectionService } from '../deepdive/facts/position-keywords-section.service';
 import { PositionStatLineService } from '../deepdive/facts/position-stat-line.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdive.service';
@@ -62,6 +63,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     RaceDeepdiveService,
     PositionCharacteristicsLineFormatterService,
     PositionStatLineService,
+    PositionKeywordsSectionService,
     PositionDeepdiveService,
     PlayerDeepdiveService,
     StarPlayerDeepdiveService,

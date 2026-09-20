@@ -1,9 +1,11 @@
 import type {
   PositionCharacteristics,
+  PositionKeyword,
   PositionStartingSkill,
   StarPlayerHire,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   StarPlayersService,
@@ -29,6 +31,7 @@ import {
 import {
   DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_KEYWORDS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
@@ -39,6 +42,7 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PositionKeywordsSectionService } from './position-keywords-section.service';
 import { PositionStatLineService } from './position-stat-line.service';
 import { StarPlayerDeepdiveService } from './star-player-deepdive.service';
 
@@ -46,6 +50,7 @@ interface MakeServiceOptions {
   stars: StarPlayersService;
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
   positionRulesSetSkills?: MockProxy<PositionRulesSetSkillsService>;
+  positionRulesSetKeywords?: MockProxy<PositionRulesSetKeywordsService>;
   statLine?: MockProxy<PositionStatLineService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -55,6 +60,7 @@ async function makeService({
   stars,
   positionRulesSets = makeRulesSets([bb2020]),
   positionRulesSetSkills = makeRulesSetSkills([]),
+  positionRulesSetKeywords = makeRulesSetKeywords([]),
   statLine = mockStatLine(),
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = passthroughEntityComponents(),
@@ -62,6 +68,7 @@ async function makeService({
   service: StarPlayerDeepdiveService;
   positionRulesSets: MockProxy<PositionRulesSetsService>;
   positionRulesSetSkills: MockProxy<PositionRulesSetSkillsService>;
+  positionRulesSetKeywords: MockProxy<PositionRulesSetKeywordsService>;
   statLine: MockProxy<PositionStatLineService>;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -69,12 +76,17 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       StarPlayerDeepdiveService,
+      PositionKeywordsSectionService,
       { provide: StarPlayersService, useValue: stars },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: PositionStatLineService, useValue: statLine },
       {
         provide: PositionRulesSetSkillsService,
         useValue: positionRulesSetSkills,
+      },
+      {
+        provide: PositionRulesSetKeywordsService,
+        useValue: positionRulesSetKeywords,
       },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -84,6 +96,7 @@ async function makeService({
     service: moduleRef.get(StarPlayerDeepdiveService),
     positionRulesSets,
     positionRulesSetSkills,
+    positionRulesSetKeywords,
     statLine,
     databaseTimeout,
     entityComponents,
@@ -165,6 +178,14 @@ function makeRulesSetSkills(
   return positionRulesSetSkills;
 }
 
+function makeRulesSetKeywords(
+  rows: PositionKeyword[],
+): MockProxy<PositionRulesSetKeywordsService> {
+  const positionRulesSetKeywords = mock<PositionRulesSetKeywordsService>();
+  positionRulesSetKeywords.listByPosition.mockResolvedValue(rows);
+  return positionRulesSetKeywords;
+}
+
 /**
  * Canned composer output. `PositionStatLineService` has a dependency of its
  * own, and this spec asserts composition rather than rendered text, so it is
@@ -182,7 +203,7 @@ function mockStatLine(): MockProxy<PositionStatLineService> {
 
 /**
  * A `DatabaseTimeoutService` mock that passes the first `skip` calls through
- * and times the next one out, so a test can pin which of the four queries a
+ * and times the next one out, so a test can pin which of the five queries a
  * timeout message belongs to.
  */
 function timeoutOnCall(skip: number): MockProxy<DatabaseTimeoutService> {
@@ -234,10 +255,20 @@ describe('StarPlayerDeepdiveService', () => {
     );
   });
 
-  it('returns the hires timeout message when the hire query times out', async () => {
+  it('returns the keywords timeout message when that query times out', async () => {
     const { service } = await makeService({
       stars: makeStars({ star: griff, hires }),
       databaseTimeout: timeoutOnCall(3),
+    });
+    expect(await service.resolve(20)).toBe(
+      DEEPDIVE_STAR_PLAYER_KEYWORDS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('returns the hires timeout message when the hire query times out', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      databaseTimeout: timeoutOnCall(4),
     });
     expect(await service.resolve(20)).toBe(
       DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
@@ -437,6 +468,52 @@ describe('StarPlayerDeepdiveService', () => {
       (result as { embeds: { description: string }[] }).embeds[0].description,
     ).toContain(DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE);
     expect(positionRulesSetSkills.listByPosition).not.toHaveBeenCalled();
+  });
+
+  it('shows the star keywords after the stat lines', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSetKeywords: makeRulesSetKeywords([
+        {
+          rulesSetId: 25,
+          rulesSetName: 'BB2025',
+          keywordId: 1,
+          keywordName: 'Goblin',
+          kind: 'species',
+        },
+      ]),
+    });
+
+    const description = (
+      (await service.resolve(20)) as { embeds: { description: string }[] }
+    ).embeds[0].description;
+
+    expect(description).toContain('BB2025 keywords: Goblin');
+    expect(description.indexOf(STUB_STAT_LINE)).toBeLessThan(
+      description.indexOf('BB2025 keywords: Goblin'),
+    );
+  });
+
+  it('shows no keyword line for a star with none', async () => {
+    const { service } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSetKeywords: makeRulesSetKeywords([]),
+    });
+
+    const rendered = JSON.stringify(await service.resolve(20));
+
+    expect(rendered).not.toContain('keywords:');
+  });
+
+  it('runs no keyword query for a star with no characteristics', async () => {
+    const { service, positionRulesSetKeywords } = await makeService({
+      stars: makeStars({ star: griff, hires }),
+      positionRulesSets: makeRulesSets([]),
+    });
+
+    await service.resolve(20);
+
+    expect(positionRulesSetKeywords.listByPosition).not.toHaveBeenCalled();
   });
 
   it('puts one stat line per rules set above the hire list', async () => {

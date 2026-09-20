@@ -251,6 +251,17 @@ tells it apart from the skills any position can have.
 A star with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list.
+
+### Keywords
+
+Right after the stat lines, one line per rules set that has BB2025-style
+keywords recorded for this star, naming the rules set and its keywords
+comma-separated: `BB2025 keywords: Goblin, Undead`. A rules set with none
+recorded contributes no line, and the whole group is left out entirely for a
+star with no keywords recorded under any rules set — there is no placeholder
+line for "none". A star is stored as a `positions` row, so this reads
+identically to the position deepdive's own keywords section below.
+
 Then a blank line and one line per team that has ever hired them,
 most-hires-first (ties broken by team name — the query itself supplies this
 order, so the description and the buttons can never disagree), with its race
@@ -313,6 +324,17 @@ set nobody has curated yet, so it claims neither. A
 position with no characteristics
 recorded for any rules set shows a short message instead of a stat-line
 list.
+
+### Keywords
+
+Right after the stat lines, one line per rules set that has BB2025-style
+keywords recorded for this position, naming the rules set and its keywords
+comma-separated: `BB2025 keywords: Goblin, Undead`. A rules set with none
+recorded contributes no line, and the whole group is left out entirely for a
+position with no keywords recorded under any rules set — there is no
+placeholder line for "none", since the data cannot tell apart "this position
+has none" from "this rules set has no keyword concept at all". The
+keyword's kind (species, positional, special) is not marked in the line.
 
 ### Top players by SPP
 

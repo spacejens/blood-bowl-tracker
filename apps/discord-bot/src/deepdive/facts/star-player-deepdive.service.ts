@@ -1,10 +1,12 @@
 import type {
   PositionCharacteristics,
+  PositionKeyword,
   PositionStartingSkill,
   StarPlayerHire,
   StarPlayerIdentity,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   StarPlayersService,
@@ -18,6 +20,7 @@ import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_STAR_PLAYER_CHARACTERISTICS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_HIRES_TIMEOUT_MESSAGE,
+  DEEPDIVE_STAR_PLAYER_KEYWORDS_TIMEOUT_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE,
   DEEPDIVE_STAR_PLAYER_NOT_FOUND_MESSAGE,
@@ -28,6 +31,7 @@ import {
   STAR_PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
+import { PositionKeywordsSectionService } from './position-keywords-section.service';
 import { PositionStatLineService } from './position-stat-line.service';
 
 /**
@@ -73,7 +77,9 @@ export class StarPlayerDeepdiveService {
     private readonly stars: StarPlayersService,
     private readonly positionRulesSets: PositionRulesSetsService,
     private readonly positionRulesSetSkills: PositionRulesSetSkillsService,
+    private readonly positionRulesSetKeywords: PositionRulesSetKeywordsService,
     private readonly statLine: PositionStatLineService,
+    private readonly keywordsSection: PositionKeywordsSectionService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
   ) {}
@@ -98,6 +104,7 @@ export class StarPlayerDeepdiveService {
     }
 
     let statLines: string[];
+    let keywordLines: string[] = [];
     if (rulesSetRows.length === 0) {
       statLines = [DEEPDIVE_STAR_PLAYER_NO_CHARACTERISTICS_MESSAGE];
     } else {
@@ -110,6 +117,16 @@ export class StarPlayerDeepdiveService {
         return DEEPDIVE_STAR_PLAYER_SKILLS_TIMEOUT_MESSAGE;
       }
       statLines = this.statLine.formatLines(rulesSetRows, skillRows);
+
+      const keywordRows: PositionKeyword[] | null =
+        await this.databaseTimeout.run(
+          this.positionRulesSetKeywords.listByPosition(positionId),
+          null,
+        );
+      if (keywordRows === null) {
+        return DEEPDIVE_STAR_PLAYER_KEYWORDS_TIMEOUT_MESSAGE;
+      }
+      keywordLines = this.keywordsSection.build(keywordRows);
     }
 
     const hires: StarPlayerHire[] | null = await this.databaseTimeout.run(
@@ -136,6 +153,7 @@ export class StarPlayerDeepdiveService {
 
     const description = [
       ...statLines,
+      ...keywordLines,
       '',
       ...(hires.length === 0
         ? [DEEPDIVE_STAR_PLAYER_NO_HIRES_MESSAGE]
