@@ -16,12 +16,16 @@ export interface PrSplitPart extends PrSplitPartBoundary {
 }
 
 /**
- * The packed, re-measured result still only yields one usable part, and that
- * part is still over the limit. This happens when the last task's commit
- * fit but self-review fix commits made after it pushed the branch tip back
- * over the limit — `pack` has nothing left to cut, since there is only one
- * group to begin with. Distinct from `UnsplittableTask`: no single task is
- * to blame, the whole branch just never had a second cut point.
+ * After remeasuring the last part against the branch tip, it is still over
+ * the limit and there is no further checkpoint to cut it at — either because
+ * `pack` only ever produced one usable part to begin with, or because
+ * self-review fix commits made after the final task's checkpoint pushed
+ * just the last part's content back over the limit even though the earlier
+ * parts (if any) were fine on their own. Either way, `pack` has nothing left
+ * to cut: the excess lives entirely in commits after every recorded
+ * checkpoint, which have no cut point of their own. Distinct from
+ * `UnsplittableTask`: no single task is to blame, the branch just ran out of
+ * places to cut.
  */
 export interface UnsplittableWholeBranch {
   readonly fileCount: number;
@@ -96,18 +100,14 @@ export class ComputePrSplitService {
       };
     }
 
-    const numberedParts = await this.numberParts(packing.packed, input);
-    if (numberedParts.length < 2) {
-      // Only one group existed to begin with (or every other group folded
-      // back into it), so `pack` had no second boundary to cut at. We are
-      // past the `totalFileCount <= limit` early return above, so this lone
-      // part is guaranteed to still be over the limit.
+    const numbered = await this.numberParts(packing.packed, input);
+    if ('unsplittableWholeBranch' in numbered) {
       return {
         limit: CODERABBIT_SAFE_FILE_LIMIT,
         totalFileCount,
         splitNeeded: true,
         parts: [],
-        unsplittableWholeBranch: { fileCount: totalFileCount },
+        unsplittableWholeBranch: numbered.unsplittableWholeBranch,
       };
     }
 
@@ -115,15 +115,26 @@ export class ComputePrSplitService {
       limit: CODERABBIT_SAFE_FILE_LIMIT,
       totalFileCount,
       splitNeeded: true,
-      parts: numberedParts,
+      parts: numbered.parts,
     };
   }
 
-  /** Numbers the parts and extends the last one to the branch tip. */
+  /**
+   * Numbers the parts and extends the last one to the branch tip. Reports
+   * `unsplittableWholeBranch` instead of a parts array whenever the last
+   * part, once remeasured to the branch tip, is still over the limit — this
+   * covers both the "only one group existed to begin with" case and the
+   * "two or more parts packed fine, but fix commits after the last task
+   * pushed just the final part over" case; neither has a further checkpoint
+   * to cut at.
+   */
   private async numberParts(
     boundaries: readonly PrSplitPartBoundary[],
     input: ComputePrSplitInput,
-  ): Promise<readonly PrSplitPart[]> {
+  ): Promise<
+    | { readonly parts: readonly PrSplitPart[] }
+    | { readonly unsplittableWholeBranch: UnsplittableWholeBranch }
+  > {
     if (boundaries.length === 0) {
       // `pack` always emits at least one part for a non-empty checkpoint
       // list, and the checkpoints schema requires at least one entry — this
@@ -139,11 +150,18 @@ export class ComputePrSplitService {
       previousSha,
       input.headRef,
     );
-    return boundaries.map((boundary, index) => ({
-      partNumber: index + 1,
-      sectionsCovered: boundary.sectionsCovered,
-      commitSha: index === lastIndex ? input.headRef : boundary.commitSha,
-      fileCount: index === lastIndex ? lastFileCount : boundary.fileCount,
-    }));
+
+    if (lastFileCount > CODERABBIT_SAFE_FILE_LIMIT) {
+      return { unsplittableWholeBranch: { fileCount: lastFileCount } };
+    }
+
+    return {
+      parts: boundaries.map((boundary, index) => ({
+        partNumber: index + 1,
+        sectionsCovered: boundary.sectionsCovered,
+        commitSha: index === lastIndex ? input.headRef : boundary.commitSha,
+        fileCount: index === lastIndex ? lastFileCount : boundary.fileCount,
+      })),
+    };
   }
 }

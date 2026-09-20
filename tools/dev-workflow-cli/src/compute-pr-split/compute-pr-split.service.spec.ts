@@ -98,6 +98,28 @@ describe('ComputePrSplitService', () => {
     expect(fileCount.count).toHaveBeenCalledWith('sha1', 'HEAD');
   });
 
+  it('reports unsplittableWholeBranch when the last of two-or-more packed parts is still over the limit after remeasurement', async () => {
+    grouping.byTopLevelSection.mockReturnValue(sections);
+    fileCount.count.mockImplementation((from: string, to: string) =>
+      Promise.resolve(from === 'origin/main' && to === 'HEAD' ? 250 : 150),
+    );
+    packing.pack.mockResolvedValue({
+      packed: [
+        { sectionsCovered: ['A'], commitSha: 'sha1', fileCount: 100 },
+        { sectionsCovered: ['B'], commitSha: 'sha2', fileCount: 70 },
+      ],
+    });
+
+    await expect(service.run(input)).resolves.toEqual({
+      limit: 130,
+      totalFileCount: 250,
+      splitNeeded: true,
+      parts: [],
+      unsplittableWholeBranch: { fileCount: 150 },
+    });
+    expect(fileCount.count).toHaveBeenCalledWith('sha1', 'HEAD');
+  });
+
   it('reports unsplittableWholeBranch when packing yields only one part still over the limit', async () => {
     grouping.byTopLevelSection.mockReturnValue(sections);
     fileCount.count.mockResolvedValue(140);
