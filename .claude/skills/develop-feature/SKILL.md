@@ -224,6 +224,14 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      ...full plan markdown...
      PLANEOF
      ```
+   - Organize the plan's tasks under named logical section headings, using exactly this form:
+
+     ```markdown
+     ## Section: <name>
+     ### Subsection: <name>
+     ```
+
+     A section groups the tasks a human would recognize as one natural PR-sized boundary (e.g. "Data model & import" vs. "Display"); a subsection is used only inside a large or complex section. Ask for this on **every** plan, including a trivial one- or two-task plan — which then simply has a single, one-line section. It costs nothing on a small plan, and it is what makes Phase 6's oversized-PR split possible without Phase 3 having to guess in advance whether the feature will grow that large.
    - Skip its "Execution Handoff" question — this workflow always uses `subagent-driven-development` (see Phase 4) — and report back only the saved plan's filename
    Planning is delegated to Opus (rather than Phase 2's brainstorming, which stays inline) because it's a bounded, non-interactive task — turning an already-approved spec into a plan file — while brainstorming needs live back-and-forth with the developer that a dispatched subagent handles poorly. This targets the extra reasoning power at one focused step without spending it on the token-heavy implementation phase.
 2. After the agent reports its saved plan filename, verify the file exists at that path in the worktree and is non-empty before continuing (`test -s "<worktree-path>/docs/plans/<filename>.md"`) — do not trust the report alone. A `git status` check would not work here: `docs/plans` is gitignored and symlinked to the main checkout, so git reports nothing for it either way.
