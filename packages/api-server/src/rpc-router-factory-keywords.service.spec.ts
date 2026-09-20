@@ -63,6 +63,66 @@ describe('RpcRouterFactoryService keywords routers', () => {
     });
   });
 
+  it('upsertBatch reports a conflicting item without failing its siblings', async () => {
+    harness.mocks.keywordsService.upsert
+      .mockRejectedValueOnce(new KeywordUpsertConflictError('clash'))
+      .mockResolvedValueOnce({ keyword: keywordRow, created: true });
+
+    const result = await call(harness.router.keywords.upsertBatch, [
+      {
+        name: 'Goblin',
+        kind: 'species',
+        externalIds: [{ externalSystemId: 1, externalId: '111' }],
+      },
+      {
+        name: 'Goblin',
+        kind: 'species',
+        externalIds: [{ externalSystemId: 1, externalId: '112' }],
+      },
+    ]);
+
+    expect(result).toEqual([
+      { success: false, error: 'clash' },
+      { ...keyword, success: true, created: true },
+    ]);
+  });
+
+  it('answers a resolve with what the service found', async () => {
+    harness.mocks.keywordsService.resolve.mockResolvedValue({
+      found: true,
+      id: 7,
+    });
+
+    await expect(
+      call(harness.router.keywords.resolve, {
+        externalSystemId: 1,
+        externalId: '111',
+      }),
+    ).resolves.toEqual({ found: true, id: 7 });
+    expect(harness.mocks.keywordsService.resolve).toHaveBeenCalledWith({
+      externalSystemId: 1,
+      externalId: '111',
+    });
+  });
+
+  it('answers a resolveBatch index-aligned with the request', async () => {
+    const input = [
+      { externalSystemId: 1, externalId: '111' },
+      { externalSystemId: 1, externalId: '999' },
+    ];
+    harness.mocks.keywordsService.resolveBatch.mockResolvedValue([
+      { found: true, id: 7 },
+      { found: false },
+    ]);
+
+    await expect(
+      call(harness.router.keywords.resolveBatch, input),
+    ).resolves.toEqual([{ found: true, id: 7 }, { found: false }]);
+    expect(harness.mocks.keywordsService.resolveBatch).toHaveBeenCalledWith(
+      input,
+    );
+  });
+
   it('lists the catalogue for one external system', async () => {
     harness.mocks.keywordsService.listByExternalSystem.mockResolvedValue([
       { keywordId: 7, name: 'Goblin', kind: 'species', externalId: '111' },
