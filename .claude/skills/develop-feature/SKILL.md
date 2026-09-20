@@ -302,6 +302,46 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
 ### Phase 6: Integration
 
+**When a split is needed** (Phase 5 step 5 recorded a `parts` array of two or more entries), this phase creates one stacked PR per part instead of a single PR, following "Stacked PR sequencing" later in this phase. Everything below is written for the single-PR case; the sequencing section says exactly which steps run once, which run per part, and which are unchanged. When no split is needed — the common case — ignore every "only when a split is needed" instruction in this phase.
+
+#### Stacked branches and PR content (only when a split is needed)
+
+**Branches.** Every part except the last gets its own branch, created at that part's `commitSha` and pushed to `origin`:
+
+```bash
+cd <worktree-path> && git branch <original-branch-name>-part<i> <part-i-commit-sha>
+cd <worktree-path> && git push -u origin <original-branch-name>-part<i>
+```
+
+`<original-branch-name>` is the worktree's own branch (`cd <worktree-path> && git branch --show-current`, e.g. `worktree-issue-906-...`), and `<i>` runs from `1` to `N-1`. The **last** part gets no new branch: it reuses the worktree's own original `EnterWorktree`-created branch, which already points at the tip containing every commit. Never rename that branch — `EnterWorktree`/`ExitWorktree`/`wrap-up` track it by its creation-time name, exactly as Phase 1 already warns.
+
+**Base and head.** Part `i`'s PR has:
+- head `<original-branch-name>-part<i>`, or the original branch for the last part
+- base `<original-branch-name>-part<i-1>`, or `main` for part 1
+
+**Title.** The usual issue-mode or ad-hoc-mode title, with a part suffix naming what the part covers — its `sectionsCovered` entries, joined with `, `:
+
+```text
+<usual title> (Part <i>/<N>): <sections covered>
+```
+
+**Body.** The same `## Summary` structure as the single-PR body, describing just this part's own changes, with one difference per part:
+- **Issue mode, last part only:** `Closes #<N>` — the one PR that closes the issue.
+- **Issue mode, every earlier part:** `Part of #<N>` (a non-closing reference), plus the stacking note below.
+- **Ad-hoc mode:** no issue reference either way; earlier parts still carry the stacking note.
+
+The stacking note, on every part except the last, reads:
+
+```text
+This is part <i> of <N> stacked PRs for this work. It must be merged before part <i+1> can merge cleanly.
+```
+
+Once part `i+1`'s PR exists, edit part `i`'s body (`cd <worktree-path> && gh pr edit <part-i-PR> --body "<updated body>"`) so the note names it, e.g. "...before #<part-i+1-PR> can merge cleanly." Part `i+1` does not exist yet when part `i` is opened, which is why this is a later edit rather than part of the original body.
+
+**Labels.** Every part's PR carries the same kind label(s) determined once in Phase 1 (issue mode step 7, or ad-hoc mode step 2) — one `--label` flag per label, exactly as the single-PR command does. They all belong to the same feature.
+
+**Assignee.** `--assignee @me` on every part, unchanged from the single-PR command.
+
 1. **Sync with `main`.** Bring the branch up to date with `main` before pushing (merge, never rebase — see `CLAUDE.md` "Keeping a branch in sync with main"). This runs once here, right before the push — not per-commit, and not gated on first checking whether `main` moved (merging an up-to-date `main` is a harmless no-op).
    ```bash
    git fetch origin main
