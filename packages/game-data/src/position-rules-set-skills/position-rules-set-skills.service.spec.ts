@@ -306,6 +306,13 @@ describe('PositionRulesSetSkillsService', () => {
       // rules set 4, then position 3.
       const anchorWhereCondition = firstCallArg(db.chains[0].where);
       expect(extractAllFilterValues(anchorWhereCondition)).toEqual([4, 3]);
+      // Pin the values to their columns too, so a clause transposed onto the
+      // wrong column (e.g. rulesSetId filtered by positionIds) can't hide
+      // behind a same-valued fixture producing the same value list above.
+      expect(extractJoinColumns(anchorWhereCondition)).toEqual([
+        'position_rules_sets.rules_set_id',
+        'position_rules_sets.position_id',
+      ]);
     });
   });
 
