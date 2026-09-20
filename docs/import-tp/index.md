@@ -451,10 +451,11 @@ players (which have no resolve procedure).
 ### Position keywords
 
 Each BB2025 position and star player in TP's official team list carries a
-`race` array of numeric keyword codes (parsed as `TpOfficialPosition.
-keywordCodes`); earlier rules sets carry none. `TpKeywordCatalogService`
-reads the curated keyword catalogue once per run (via `KeywordsImportService.
-listKeywords`), keyed by each keyword's `tourplay.net` external id, and
+`race` array of numeric keyword codes (parsed as
+`TpOfficialPosition.keywordCodes`); earlier rules sets carry none.
+`TpKeywordCatalogService` reads the curated keyword catalogue once per run
+(via `KeywordsImportService.listKeywords`), keyed by each keyword's
+`tourplay.net` external id, and
 `TpPositionKeywordsImportService` resolves every position's codes against it
 and syncs the resulting `(position, rules set, keyword)` rows. A code with no
 curated match is reported once as an import error, naming the position it was
