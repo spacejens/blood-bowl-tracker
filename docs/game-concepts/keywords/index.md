@@ -32,6 +32,13 @@ and one keyword is shared by positions from unrelated team races.
 A [star player](../star-players/index.md) is a position in this tracker, so
 its keywords are recorded the same way.
 
+`PositionRulesSetKeywordsService.sync` is insert-only: it adds a keyword
+association missing from a later batch, but never removes one that batch no
+longer lists, so the join is not authoritative-by-replacement. This matches
+how this tracker's other `sync` procedures behave, and is not currently a
+practical problem since databases are dropped and re-imported rather than
+incrementally synced against stale rows.
+
 ## Where the catalogue comes from
 
 The names are hand-curated in `tools/import-manual`: the imported source

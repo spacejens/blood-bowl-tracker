@@ -327,7 +327,7 @@ export class TpPlayerSkillsImportService {
    * carry it, the whole skill is left out with one ImportError per distinct
    * (skillMasterId, value) pair across the run -- the same convention
    * `TpPositionSkillsImportService` follows (see
-   * docs/import-tp/hard-coded-lookups.md).
+   * docs/import-tp/keyword-target-decoding.md).
    */
   private attributeValue(options: {
     skillMasterId: number;

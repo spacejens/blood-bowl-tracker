@@ -1,4 +1,4 @@
-# TP skillMasterId lookups
+# Keyword target decoding
 
 TP publishes a starting skill's parenthetical value as a `skillAttributeMaster`
 with a `type`. Types 0–2 are directly displayable; **type 3 is an opaque

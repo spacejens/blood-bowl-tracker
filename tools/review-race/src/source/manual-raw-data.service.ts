@@ -89,8 +89,10 @@ export interface ManualKeywordEntry {
 }
 
 /**
- * Reads the four hand-curated JSON5 files the race/position review checks
- * against. Deliberately independent of tools/import-manual: this reads and
+ * Reads the six hand-curated JSON5 files (races-and-positions, availability,
+ * characteristics, gap-fill characteristics, position-skills, keywords) the
+ * race/position review checks against. Deliberately independent of
+ * tools/import-manual: this reads and
  * shapes the files, and runs none of the importer's processor logic — that
  * logic's reading of these files is part of what the report exists to check.
  *

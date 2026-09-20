@@ -462,10 +462,10 @@ first seen on and pointing at
 `tools/import-manual/data/before-other-importers/keywords.json5`; the
 position's other keywords are still written. The same catalogue also decodes a
 `Hatred`/`Animosity` skill's own type-3 target code — see
-[TP skillMasterId lookups](./hard-coded-lookups.md).
+[Keyword target decoding](./keyword-target-decoding.md).
 
 ## Related documentation
 
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
-- [hard-coded-lookups.md](./hard-coded-lookups.md) — type-3
+- [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.

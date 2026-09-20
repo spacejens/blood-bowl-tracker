@@ -107,7 +107,7 @@ tool's own composition.
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
-3. For each sampled race, renders four panel pairs. Star players are excluded
+3. For each sampled race, renders five panel pairs. Star players are excluded
    throughout the position-availability, position-characteristics and
    position-starting-skills panels, both raw and imported — they are shared across
    races rather than owned by one, so a per-race report is the wrong place to review

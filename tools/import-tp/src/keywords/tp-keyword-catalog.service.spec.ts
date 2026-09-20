@@ -1,6 +1,5 @@
 import {
   ExternalSystemBootstrapService,
-  ImportResultService,
   KeywordsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
@@ -16,13 +15,11 @@ describe('TpKeywordCatalogService', () => {
   let keywordsImport: MockProxy<KeywordsImportService>;
   let bootstrap: MockProxy<ExternalSystemBootstrapService>;
   let externalSystemName: MockProxy<ExternalSystemNameConfigService>;
-  let importResults: MockProxy<ImportResultService>;
 
   beforeEach(async () => {
     keywordsImport = mock<KeywordsImportService>();
     bootstrap = mock<ExternalSystemBootstrapService>();
     externalSystemName = mock<ExternalSystemNameConfigService>();
-    importResults = mock<ImportResultService>();
     externalSystemName.getTpSystemName.mockReturnValue('tourplay.net');
     bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [5] } as never);
     const moduleRef = await Test.createTestingModule({
@@ -34,7 +31,6 @@ describe('TpKeywordCatalogService', () => {
           provide: ExternalSystemNameConfigService,
           useValue: externalSystemName,
         },
-        { provide: ImportResultService, useValue: importResults },
       ],
     }).compile();
     service = moduleRef.get(TpKeywordCatalogService);

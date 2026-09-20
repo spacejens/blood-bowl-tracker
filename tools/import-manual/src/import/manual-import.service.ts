@@ -60,15 +60,12 @@ export class ManualImportService {
    * after both rulesSets and positions (which its entries reference),
    * positionRulesSetSkills running right after positionRulesSets and skills
    * (the API rejects a starting skill whose position has no characteristics
-   * under that rules set, or whose skill has no category row there),
-   * keywords        -- the BB2025 keyword catalogue. Position keywords are
-   *                      written by tools/import-tp, which resolves each of
-   *                      TP's numeric codes against the tourplay.net external
-   *                      id curated here, so the catalogue must exist before
-   *                      that later, separate invocation runs. Nothing in this
-   *                      file references a keyword, so its position relative to
-   *                      the other sections is otherwise free.
-   * competitionGroups running after leagues (whose
+   * under that rules set, or whose skill has no category row there), keywords
+   * seeding the BB2025 keyword catalogue that tools/import-tp resolves its
+   * numeric codes against in a later, separate invocation (so the catalogue
+   * must already exist by then, but nothing in this file itself references a
+   * keyword, so its position relative to the other sections here is
+   * otherwise free), competitionGroups running after leagues (whose
    * external ids its entries reference) and before competitions and trophies
    * (which resolve the groups it upserts, by their "Name"-system external
    * id), sppAwardValues running after rulesSets and races (which it

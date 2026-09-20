@@ -33,10 +33,12 @@ export interface ManualRawKeywordEntry {
  */
 @Injectable()
 export class ManualRawKeywordsService {
+  private file: Promise<Record<string, unknown>> | undefined;
+
   constructor(private readonly config: ReviewPlayerConfigService) {}
 
   async all(): Promise<ManualRawKeywordEntry[]> {
-    const contents = await this.file();
+    const contents = await this.contents();
     const raw = contents.keywords;
     const entries = Array.isArray(raw) ? raw : [];
     return entries.flatMap((entry) => {
@@ -77,7 +79,13 @@ export class ManualRawKeywordsService {
       : undefined;
   }
 
-  private async file(): Promise<Record<string, unknown>> {
+  /** Read and JSON5-parse the curated file, once per process. */
+  private contents(): Promise<Record<string, unknown>> {
+    this.file ??= this.load();
+    return this.file;
+  }
+
+  private async load(): Promise<Record<string, unknown>> {
     const path = join(this.config.getDataDir('manual'), KEYWORDS_FILE);
     let raw: string;
     try {

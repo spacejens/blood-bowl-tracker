@@ -35,6 +35,11 @@ const positionRulesSetKeywordsTable = historyTrackedTable({
       .notNull(),
   },
   extraConfig: (t) => ({
+    // Deliberately no `_unique` suffix, unlike
+    // `position_rules_set_skills_position_rules_set_id_skill_id_unique`:
+    // appending it here would push the identifier past PostgreSQL's 63-byte
+    // `NAMEDATALEN` limit, silently truncating it at apply time. Do not add
+    // the suffix back to "fix" the inconsistency.
     uniquePositionRulesSetKeyword: unique(
       'position_rules_set_keywords_position_rules_set_id_keyword_id',
     ).on(t.positionRulesSetId, t.keywordId),
