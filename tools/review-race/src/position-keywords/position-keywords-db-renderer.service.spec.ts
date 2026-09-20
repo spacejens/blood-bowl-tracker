@@ -41,6 +41,8 @@ async function makeService(dbResult: MockDbResult): Promise<{
     },
   ]);
   query.rulesSetsFor.mockResolvedValue([{ ...rulesSet }]);
+  query.rulesSetEraIds.mockResolvedValue(new Map([[100, new Set([10])]]));
+  query.positionEraIds.mockReturnValue(new Map([[1, new Set([10])]]));
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionKeywordsDbRendererService,
@@ -59,7 +61,6 @@ describe('PositionKeywordsDbRendererService', () => {
   it('renders the imported keywords per rules set', async () => {
     const { service } = await makeService(
       mockDb(
-        [{ eraId: 10, rulesSetId: 100 }],
         [{ id: 500, positionId: 1, rulesSetId: 100 }],
         [
           { positionRulesSetId: 500, keywordName: 'Human' },
@@ -76,11 +77,7 @@ describe('PositionKeywordsDbRendererService', () => {
 
   it('shows "none" for a position with no keywords recorded', async () => {
     const { service } = await makeService(
-      mockDb(
-        [{ eraId: 10, rulesSetId: 100 }],
-        [{ id: 500, positionId: 1, rulesSetId: 100 }],
-        [],
-      ),
+      mockDb([{ id: 500, positionId: 1, rulesSetId: 100 }], []),
     );
 
     expect(await service.render(race)).toContain(
@@ -89,9 +86,7 @@ describe('PositionKeywordsDbRendererService', () => {
   });
 
   it('highlights a position with no characteristics row at all', async () => {
-    const { service } = await makeService(
-      mockDb([{ eraId: 10, rulesSetId: 100 }], [], []),
-    );
+    const { service } = await makeService(mockDb([], []));
 
     const html = await service.render(race);
 
@@ -122,11 +117,6 @@ describe('PositionKeywordsDbRendererService', () => {
   it("excludes a position from a rules set's table when its own era does not map to that rules set", async () => {
     const { service, query } = await makeService(
       mockDb(
-        // eraRulesSetPairs: era 10 -> rulesSet 100, era 20 -> rulesSet 200
-        [
-          { eraId: 10, rulesSetId: 100 },
-          { eraId: 20, rulesSetId: 200 },
-        ],
         // rowIds
         [
           { id: 500, positionId: 1, rulesSetId: 100 },
@@ -150,6 +140,18 @@ describe('PositionKeywordsDbRendererService', () => {
         eraName: 'Fourth Era',
       },
     ]);
+    query.positionEraIds.mockReturnValue(
+      new Map([
+        [1, new Set([10])],
+        [2, new Set([20])],
+      ]),
+    );
+    query.rulesSetEraIds.mockResolvedValue(
+      new Map([
+        [100, new Set([10])],
+        [200, new Set([20])],
+      ]),
+    );
     query.rulesSetsFor.mockResolvedValue([
       { ...rulesSet, rulesSetId: 100, rulesSetName: 'BB2020' },
       { ...rulesSet, rulesSetId: 200, rulesSetName: 'BB2025' },
