@@ -59,6 +59,7 @@ describe('PositionKeywordsDbRendererService', () => {
   it('renders the imported keywords per rules set', async () => {
     const { service } = await makeService(
       mockDb(
+        [{ eraId: 10, rulesSetId: 100 }],
         [{ id: 500, positionId: 1, rulesSetId: 100 }],
         [
           { positionRulesSetId: 500, keywordName: 'Human' },
@@ -75,7 +76,11 @@ describe('PositionKeywordsDbRendererService', () => {
 
   it('shows "none" for a position with no keywords recorded', async () => {
     const { service } = await makeService(
-      mockDb([{ id: 500, positionId: 1, rulesSetId: 100 }], []),
+      mockDb(
+        [{ eraId: 10, rulesSetId: 100 }],
+        [{ id: 500, positionId: 1, rulesSetId: 100 }],
+        [],
+      ),
     );
 
     expect(await service.render(race)).toContain(
@@ -84,7 +89,9 @@ describe('PositionKeywordsDbRendererService', () => {
   });
 
   it('highlights a position with no characteristics row at all', async () => {
-    const { service } = await makeService(mockDb([], []));
+    const { service } = await makeService(
+      mockDb([{ eraId: 10, rulesSetId: 100 }], [], []),
+    );
 
     const html = await service.render(race);
 
@@ -110,5 +117,53 @@ describe('PositionKeywordsDbRendererService', () => {
     expect(await service.render(race)).toBe(
       '<p class="note">Race &quot;Dwarf&quot; has no era mapped to a rules set.</p>',
     );
+  });
+
+  it("excludes a position from a rules set's table when its own era does not map to that rules set", async () => {
+    const { service, query } = await makeService(
+      mockDb(
+        // eraRulesSetPairs: era 10 -> rulesSet 100, era 20 -> rulesSet 200
+        [
+          { eraId: 10, rulesSetId: 100 },
+          { eraId: 20, rulesSetId: 200 },
+        ],
+        // rowIds
+        [
+          { id: 500, positionId: 1, rulesSetId: 100 },
+          { id: 501, positionId: 2, rulesSetId: 200 },
+        ],
+        // stored keywords
+        [],
+      ),
+    );
+    query.positionsFor.mockResolvedValue([
+      {
+        positionId: 1,
+        positionName: 'Zombie',
+        eraId: 10,
+        eraName: 'Third Era',
+      },
+      {
+        positionId: 2,
+        positionName: 'Skeleton',
+        eraId: 20,
+        eraName: 'Fourth Era',
+      },
+    ]);
+    query.rulesSetsFor.mockResolvedValue([
+      { ...rulesSet, rulesSetId: 100, rulesSetName: 'BB2020' },
+      { ...rulesSet, rulesSetId: 200, rulesSetName: 'BB2025' },
+    ]);
+
+    const html = await service.render(race);
+
+    // Zombie (era 10) belongs only under BB2020's table; Skeleton (era 20)
+    // belongs only under BB2025's -- neither should cross into the other's.
+    const bb2020Table = html.split('<h5>BB2025</h5>')[0];
+    const bb2025Table = html.split('<h5>BB2025</h5>')[1];
+    expect(bb2020Table).toContain('Zombie');
+    expect(bb2020Table).not.toContain('Skeleton');
+    expect(bb2025Table).toContain('Skeleton');
+    expect(bb2025Table).not.toContain('Zombie');
   });
 });
