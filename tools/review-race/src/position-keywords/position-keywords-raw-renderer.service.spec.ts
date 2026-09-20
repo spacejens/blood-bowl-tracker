@@ -144,7 +144,7 @@ describe('PositionKeywordsRawRendererService', () => {
     expect(html).toContain('<td>Blocker</td><td>CRP</td><td>none</td>');
   });
 
-  it('shows "none" for a catalogue entry with no tourplay.net code, and excludes it from lookup', async () => {
+  it('excludes a null-code catalogue entry from TP code lookup', async () => {
     raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf-25'], name: [] });
     tp.raceFor.mockResolvedValue({
       teamRaceCode: 'dwarf-25',
@@ -176,24 +176,9 @@ describe('PositionKeywordsRawRendererService', () => {
 
     const html = await service.render(race);
 
-    expect(html).toContain('<h5>Manual curation</h5>');
-    expect(html).toContain('<td>Big Guy</td><td>positional</td><td>none</td>');
     // The null-code entry must not be reachable by TP code lookup, so an
     // unrelated code still shows as not curated rather than matching it.
     expect(html).toContain('999 — not curated');
-  });
-
-  it('notes missing TP data even when the manual catalogue renders', async () => {
-    manual.keywords.mockResolvedValue([
-      { name: 'Goblin', kind: 'species', code: '111' },
-    ]);
-
-    const html = await service.render(race);
-
-    expect(html).toContain(
-      '<p class="note">No raw TP keyword data for race &quot;Dwarf&quot;.</p>',
-    );
-    expect(html).toContain('<h5>Manual curation</h5>');
   });
 
   it('notes that no raw keyword data exists for the race', async () => {

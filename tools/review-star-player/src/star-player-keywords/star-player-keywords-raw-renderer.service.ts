@@ -15,9 +15,9 @@ const NO_KEYWORDS = 'none';
  * next to the curated catalogue that names them.
  *
  * Only TP publishes keywords -- BBL has no such concept, so unlike the other
- * raw panels there is no BBL sub-section here. The curated catalogue is
- * rendered once, as its own sub-table, rather than per rules set: it is a
- * fixed reference a reviewer checks codes against, not a per-star fact.
+ * raw panels there is no BBL sub-section here. Each row already names the
+ * curated keyword alongside its numeric TP code, so the curated catalogue
+ * itself is not rendered separately here.
  *
  * Written independently of `tools/review-race`'s equivalent panel, per this
  * tool's independence rule: the TP reader and the curated catalogue reader
@@ -33,9 +33,7 @@ export class StarPlayerKeywordsRawRendererService {
 
   async render(star: SampledStarPlayer): Promise<string> {
     const catalogue = await this.catalogueByCode();
-    return [await this.tpSection(star, catalogue), await this.manualSection()]
-      .filter((section) => section !== null)
-      .join('\n');
+    return this.tpSection(star, catalogue);
   }
 
   private async tpSection(
@@ -84,23 +82,6 @@ export class StarPlayerKeywordsRawRendererService {
     return hasUncurated
       ? this.html.highlight([entry.rulesSet, cell], [1])
       : [entry.rulesSet, cell];
-  }
-
-  /** The whole curated catalogue, rendered once rather than per rules set. */
-  private async manualSection(): Promise<string | null> {
-    const entries = await this.manual.keywords();
-    if (entries.length === 0) {
-      return null;
-    }
-    const rows: TableRow[] = entries.map((entry) => [
-      entry.name,
-      entry.kind,
-      entry.code ?? NO_KEYWORDS,
-    ]);
-    return (
-      this.html.subheading('Manual curation') +
-      this.html.table(['Keyword', 'Kind', 'TP code'], rows)
-    );
   }
 
   /** The curated catalogue, keyed by its `tourplay.net` code. */

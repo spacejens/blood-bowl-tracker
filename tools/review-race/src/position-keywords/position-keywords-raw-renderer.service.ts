@@ -16,9 +16,9 @@ const NO_KEYWORDS = 'none';
  * the curated catalogue that names them.
  *
  * Only TP publishes keywords -- BBL has no such concept, so unlike the other
- * raw panels there is no BBL sub-section here. The curated catalogue is
- * rendered once, as its own sub-table, rather than per position: it is a
- * fixed reference a reviewer checks codes against, not a per-race fact.
+ * raw panels there is no BBL sub-section here. Each row already names the
+ * curated keyword alongside its numeric TP code, so the curated catalogue
+ * itself is not rendered separately here.
  *
  * Structured exactly like `PositionStartingSkillsRawRendererService`: private
  * `*Section(...)` methods returning `string | null`, joined by `render`.
@@ -35,20 +35,10 @@ export class PositionKeywordsRawRendererService {
   async render(race: SampledRace): Promise<string> {
     const catalogue = await this.catalogueByCode();
     const tpSection = await this.tpSection(race, catalogue);
-    const manualSection = await this.manualSection();
-    if (tpSection === null && manualSection === null) {
+    if (tpSection === null) {
       return this.html.note(`No raw keyword data for race "${race.raceName}".`);
     }
-    // The manual catalogue is a fixed, always-present reference (see
-    // manualSection's own doc comment), so it alone can never signal that
-    // this specific race has no TP data -- render an explicit note for that
-    // case rather than silently showing only the catalogue.
-    const sections = [
-      tpSection ??
-        this.html.note(`No raw TP keyword data for race "${race.raceName}".`),
-      manualSection,
-    ].filter((section) => section !== null);
-    return sections.join('\n');
+    return tpSection;
   }
 
   /**
@@ -112,23 +102,6 @@ export class PositionKeywordsRawRendererService {
     return hasUncurated
       ? this.html.highlight([position.name, position.rulesSet, cell], [2])
       : [position.name, position.rulesSet, cell];
-  }
-
-  /** The whole curated catalogue, rendered once rather than per position. */
-  private async manualSection(): Promise<string | null> {
-    const entries = await this.manual.keywords();
-    if (entries.length === 0) {
-      return null;
-    }
-    const rows: TableRow[] = entries.map((entry) => [
-      entry.name,
-      entry.kind,
-      entry.code ?? NO_KEYWORDS,
-    ]);
-    return (
-      this.html.subheading('Manual curation') +
-      this.html.table(['Keyword', 'Kind', 'TP code'], rows)
-    );
   }
 
   /** The curated catalogue, keyed by its `tourplay.net` code. */
