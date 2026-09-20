@@ -21,6 +21,7 @@ needs it.
 | `check-drift` | Find gitignored config that differs between a worktree and the main checkout |
 | `check-dependency-dashboard` | Answer whether gh-shaped issue JSON on stdin is Renovate's standing Dependency Dashboard issue, so skills refuse to treat it as work |
 | `check-coderabbit-activity` | Answer whether CodeRabbit has ever posted any comment or review on a PR, so a skill can tell a silently-ignored PR from one it has already engaged with |
+| `compute-pr-split` | Decide whether a feature branch has too many changed files for CodeRabbit to review as one PR, and if so where to cut it into stacked PRs |
 | `wait-for-pr-review` | Poll `gh` internally for a submitted PR review until one appears or a timeout elapses, printing one JSON result — one command a worktree-isolated session can run, rather than a multi-line shell poll loop inline |
 | `post-review-questions` | Post drafted review questions as PR comments (inline or top-level) from JSON on stdin |
 | `acquire-review-lock` | Take the machine-wide review lock, waiting in a FIFO queue until it is free — serializes review-triggering activity across parallel sessions in different worktrees |
@@ -73,6 +74,30 @@ Prints one of four JSON outcomes:
 - **A rate-limit block found inside the rolling comment is exclusively owned by the rolling-comment check** — the standalone rate-limit comment match never reports it — so a `rateLimitComment.id` for that case is always the composite `<id>@<fingerprint>` form, never a raw comment id.
 
 **False-positive safeguards.** Matching ignores failure phrases quoted inside Markdown code spans. The top-level detectors (the standalone rate-limit, comment-update-failure, and star-gate checks) never match CodeRabbit's own rolling walkthrough comment — its prose (a summary, a changes table) can incidentally contain a failure phrase, which would otherwise abort the wait on a false positive before any real review or genuine failure notice exists. This exclusion is deliberately scoped to those top-level checks only: the dedicated rolling-comment detector still intentionally matches the bounded rate-limit-edit and completion sections inside that same comment — see "Detection precedence" above.
+
+### `compute-pr-split` usage
+
+```bash
+node tools/dev-workflow-cli/dist/main.js compute-pr-split [--base-ref=origin/main] [--head-ref=HEAD] <<'CHECKPOINTSEOF'
+[
+  { "taskNumber": 1, "sectionPath": ["Data model"], "commitSha": "abc1234" },
+  { "taskNumber": 2, "sectionPath": ["Data model", "Import"], "commitSha": "def5678" },
+  { "taskNumber": 3, "sectionPath": ["Display"], "commitSha": "9876543" }
+]
+CHECKPOINTSEOF
+```
+
+Stdin is the ordered list of implementation-plan task checkpoints `develop-feature`'s Phase 4 records: the plan section (and optional subsection) each task sat under, and the commit its work landed in. `--base-ref` is what part 1 would be based on; `--head-ref` is the branch tip, deliberately distinct from the last task's commit so self-review fix commits are counted (they are always attributed to the last part).
+
+File counts exclude `pnpm-lock.yaml`, which CodeRabbit ignores by default and does not count towards its own limit. The threshold is `CODERABBIT_SAFE_FILE_LIMIT` in `tools/dev-workflow-cli/src/compute-pr-split/pr-split-limit.ts` — a deliberate margin below CodeRabbit's real limit, defined there once and echoed as `limit` in the output so no caller restates it.
+
+Prints one JSON object:
+
+- `{"splitNeeded": false, "limit": 130, "totalFileCount": 42, "parts": [...]}` — the branch fits in one PR. `parts` holds a single part covering every section, so a caller's normal single-PR flow needs no change.
+- `{"splitNeeded": true, "limit": 130, "totalFileCount": 210, "parts": [{"partNumber": 1, "sectionsCovered": ["Data model"], "commitSha": "def5678", "fileCount": 120}, ...]}` — cut the branch at each part's `commitSha`, in order. Part `i`'s PR is based on part `i-1`'s branch.
+- `{"splitNeeded": true, "parts": [], "unsplittable": {"taskNumber": 7, "label": "Data model (task 7)", "fileCount": 180}}` — one task's own commit is over the limit on its own, so no valid split exists. The caller reports this and asks the developer how to proceed rather than opening a PR that will still be refused.
+
+Parts are cut greedily at the plan's top-level section boundaries; only a section that is over the limit on its own is broken down further, first by its subsections and then, if it has none or they are still too large, by its individual tasks.
 
 ### Review lock usage
 
