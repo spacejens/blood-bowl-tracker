@@ -41,9 +41,12 @@ export interface ComputePrSplitResult {
   /** Present only when a single task's own commit exceeds the limit. */
   readonly unsplittable?: UnsplittableTask;
   /**
-   * Present only when packing produced fewer than two usable parts while
-   * still over the limit — a real split was needed but none could be
-   * produced. Never present at the same time as `unsplittable`.
+   * Present only when the last part, once remeasured to the branch tip, is
+   * still over the limit and there is no further checkpoint left to cut it
+   * at — whether packing produced only one usable part to begin with, or
+   * produced two or more that were all fine except the last. `fileCount` is
+   * that unsplittable last part's own size, not `totalFileCount`. Never
+   * present at the same time as `unsplittable`.
    */
   readonly unsplittableWholeBranch?: UnsplittableWholeBranch;
 }
