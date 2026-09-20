@@ -15,10 +15,16 @@ export const CODERABBIT_SAFE_FILE_LIMIT = 130;
  * default and does not count it towards its own file limit, so counting it
  * here would split PRs that never needed splitting.
  *
- * `:(top)` scopes the diff to the repository root regardless of the
- * process's current working directory — unlike a bare `.`, which is
- * cwd-relative and would silently undercount files (failing in the unsafe
- * direction: no split when one is actually needed) if this were ever run
- * from a subdirectory instead of the repo root.
+ * Both entries are anchored to the repository root with the `top` magic
+ * word regardless of the process's current working directory — unlike a
+ * bare `.` or `pnpm-lock.yaml`, either of which is cwd-relative and would
+ * silently miscount files if this were ever run from a subdirectory instead
+ * of the repo root: the inclusion side would undercount (failing in the
+ * unsafe direction: no split when one is actually needed), and the
+ * exclusion side would fail to exclude the real root lockfile, counting it
+ * in (failing in the safe direction: an unnecessary split).
  */
-export const PR_SPLIT_DIFF_PATHSPECS = [':(top)', ':!pnpm-lock.yaml'] as const;
+export const PR_SPLIT_DIFF_PATHSPECS = [
+  ':(top)',
+  ':(top,exclude)pnpm-lock.yaml',
+] as const;

@@ -34,7 +34,7 @@ describe('DiffFileCountService', () => {
       'origin/main...abc1234',
       '--',
       ':(top)',
-      ':!pnpm-lock.yaml',
+      ':(top,exclude)pnpm-lock.yaml',
     ]);
   });
 
