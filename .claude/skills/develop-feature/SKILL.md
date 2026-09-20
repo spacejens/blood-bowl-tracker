@@ -642,7 +642,7 @@ Once part `i+1`'s PR exists, edit part `i`'s body (`cd <worktree-path> && gh pr 
 
 **Stacked PR sequencing (only when a split is needed)**
 
-When Phase 5 step 5 recorded two or more parts, Phase 6 steps 3-6 above are replaced by the sequence below; Phase 6 steps 1, 2 and 7 are unchanged. Nothing here introduces new machinery — it reuses the same `gh pr create`, review-lock, `wait-for-pr-review` and `handle-pr-reviews` building blocks the single-PR flow already uses, just once per part. The steps in this sequence are lettered (a, b, c, ...) rather than numbered, so they stay visually and referentially distinct from Phase 6's own numbered steps 1-7; every reference below to an outer Phase 6 step says so explicitly ("Phase 6 step N").
+When Phase 5 step 5 recorded two or more parts, Phase 6 steps 1 and 3-6 above are replaced by the sequence below (step 1's `main` sync is skipped here and deferred entirely to part 1's step a — see "Run once, before part 1" above); Phase 6 steps 2 and 7 are unchanged. Nothing here introduces new machinery — it reuses the same `gh pr create`, review-lock, `wait-for-pr-review` and `handle-pr-reviews` building blocks the single-PR flow already uses, just once per part. The steps in this sequence are lettered (a, b, c, ...) rather than numbered, so they stay visually and referentially distinct from Phase 6's own numbered steps 1-7; every reference below to an outer Phase 6 step says so explicitly ("Phase 6 step N").
 
 **Run once, before part 1:**
 - **Phase 6 step 2 (pre-push stray-work check)** — exactly as written, once, against the worktree's own original branch, before any part branch exists. The worktree's stray state does not change between parts of the same sequence, so it is not repeated per part.
