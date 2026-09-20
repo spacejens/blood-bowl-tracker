@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -286,6 +287,25 @@ describe('PositionRulesSetSkillsService', () => {
       expect(extractFilterValues(firstCallArg(db.chains[1].where))).toEqual([
         4,
       ]);
+    });
+
+    it('scopes the anchor query to the batch positions, not every position under the rules set', async () => {
+      const db = mockDb(
+        [positionRulesSetRow],
+        [skillRulesSetRow],
+        [],
+        [{ id: 51, positionRulesSetId: 21, skillId: 7 }],
+      );
+      const service = await makeService(db);
+
+      await service.sync({ entries: [entry] });
+
+      // The anchor `where` is
+      // `and(inArray(rulesSetId, [4]), inArray(positionId, [3]))`, so walking
+      // the whole condition tree yields both filter values in clause order:
+      // rules set 4, then position 3.
+      const anchorWhereCondition = firstCallArg(db.chains[0].where);
+      expect(extractAllFilterValues(anchorWhereCondition)).toEqual([4, 3]);
     });
   });
 

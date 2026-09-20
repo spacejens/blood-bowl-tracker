@@ -92,9 +92,19 @@ export class PositionRulesSetSkillsService {
     const rulesSetIds = [
       ...new Set(data.entries.map((entry) => entry.rulesSetId)),
     ];
+    const positionIds = [
+      ...new Set(data.entries.map((entry) => entry.positionId)),
+    ];
 
-    // Over-fetch both preconditions by rules set and match in memory: two
-    // queries regardless of how many entries the batch carries.
+    // Fetch the anchor rows for just the positions and rules sets this batch
+    // names, and match in memory: still two queries regardless of how many
+    // entries the batch carries. Every real caller invokes `sync` once per
+    // (position, rules set) pair, so filtering the anchor rows by rules set
+    // alone would re-fetch every position under that rules set on each of
+    // those hundreds of calls. The `skill_rules_sets` query below stays
+    // scoped by rules set only: that table has no position column, so there
+    // is nothing narrower to filter it by — it is over-fetched by design and
+    // matched in memory.
     const associationRows = await this.db
       .select({
         id: positionRulesSets.id,
@@ -102,7 +112,12 @@ export class PositionRulesSetSkillsService {
         rulesSetId: positionRulesSets.rulesSetId,
       })
       .from(positionRulesSets)
-      .where(inArray(positionRulesSets.rulesSetId, rulesSetIds));
+      .where(
+        and(
+          inArray(positionRulesSets.rulesSetId, rulesSetIds),
+          inArray(positionRulesSets.positionId, positionIds),
+        ),
+      );
 
     const availableSkillRows = await this.db
       .select({
