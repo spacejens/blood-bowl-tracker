@@ -102,6 +102,7 @@ describe('TpRawStarPlayerIndexService', () => {
           },
           eligibleTeamRaces: ['WoodElf_BB2025'],
           skills: [],
+          keywordCodes: [],
         },
       ],
     });
@@ -326,6 +327,42 @@ describe('TpRawStarPlayerIndexService', () => {
     const star = await service.starFor('Eldril Sidewinder');
 
     expect(star?.entries[0]?.skills).toEqual([]);
+  });
+
+  it("reads a star entry's keyword codes from its race array", async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [{ ...ELDRIL, race: [111, 110] }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([111, 110]);
+  });
+
+  it('reports no keyword codes for an entry with no race array', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [ELDRIL],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([]);
+  });
+
+  it('yields no keyword codes rather than throwing for a non-array race value', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [{ ...ELDRIL, race: 'not-an-array' }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([]);
   });
 
   it('scans the mirror only once per process', async () => {
