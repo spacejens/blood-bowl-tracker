@@ -116,6 +116,24 @@ no recorded baseline under the resolved rules set — the values are shown
 unmarked rather than guessing — and the whole line is omitted when no rules
 set can be resolved for the player's era at all.
 
+### Keywords
+
+Last of this group of condition lines — after the
+characteristic advancements, lasting injuries, and skill lines described
+below — one unprefixed line naming the player's position's BB2025-style
+keywords under the one [rules set](../../glossary.md#rules-set) their era
+resolves to: `Keywords: Goblin, Undead`. A player has no keywords of their
+own — these are the [position](../../glossary.md#position)'s, the same
+relationship this embed already has to the position's characteristic
+baseline. The rules set is not named on this line, unlike the position and
+star player deepdives' own keywords sections: the characteristics line above
+has already established which rules set applies to this player, and
+repeating it here would be noise. The line is omitted entirely when that
+rules set records no keywords for the position, and also when no rules set
+resolves for the player's era at all — there is then nothing to scope the
+keywords to, the same reason the characteristics line itself is omitted in
+that case.
+
 ### Lasting injuries
 
 Then, on the next line, the player's currently outstanding lasting injuries:

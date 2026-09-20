@@ -5,12 +5,14 @@ import type {
   PlayerKillerInfo,
   PlayerSkillRow,
   PositionCharacteristicsContext,
+  PositionKeyword,
 } from '@blood-bowl-tracker/game-data';
 import {
   CharacteristicDisplayFormattingService,
   PlayerDeathService,
   PlayerSkillsService,
   PlayersService,
+  PositionRulesSetKeywordsService,
   PositionRulesSetsService,
   StarPlayersService,
   TrophyAwardsService,
@@ -28,6 +30,7 @@ import { makeDateRangeFormatter } from '../../shared/date-range-formatter-mock.t
 import { EventCountLinesService } from '../../shared/event-count-lines.service';
 import { PlayerRowButtonService } from '../player-row-button.service';
 import { PlayerDeepdiveService } from './player-deepdive.service';
+import { PlayerKeywordsSectionService } from './player-keywords-section.service';
 import { PlayerKillerInfoFormatterService } from './player-killer-info-formatter.service';
 import { PlayerKillsSectionService } from './player-kills-section.service';
 import { PlayerSkillsSectionService } from './player-skills-section.service';
@@ -147,6 +150,7 @@ export interface MakeServiceOptions {
   positionRulesSets?: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
   playerSkills?: MockProxy<PlayerSkillsService>;
+  positionRulesSetKeywords?: MockProxy<PositionRulesSetKeywordsService>;
 }
 
 /**
@@ -188,6 +192,19 @@ export function makePlayerSkills(
   return playerSkills;
 }
 
+/**
+ * A `PositionRulesSetKeywordsService` mock. Defaults to a position with no
+ * recorded keywords, so specs about other parts of the embed never see a
+ * keywords line.
+ */
+export function makePositionRulesSetKeywords(
+  rows: PositionKeyword[] = [],
+): MockProxy<PositionRulesSetKeywordsService> {
+  const positionRulesSetKeywords = mock<PositionRulesSetKeywordsService>();
+  positionRulesSetKeywords.listByPosition.mockResolvedValue(rows);
+  return positionRulesSetKeywords;
+}
+
 export async function makeService({
   players,
   databaseTimeout = mockDatabaseTimeout(),
@@ -201,6 +218,7 @@ export async function makeService({
     'Season 5 (2020-01-01 – 2023-12-31)',
   ),
   playerSkills = makePlayerSkills(),
+  positionRulesSetKeywords = makePositionRulesSetKeywords(),
 }: MakeServiceOptions): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
@@ -211,6 +229,7 @@ export async function makeService({
   positionRulesSets: MockProxy<PositionRulesSetsService>;
   dateRangeFormatter: MockProxy<DateRangeFormatterService>;
   playerSkills: MockProxy<PlayerSkillsService>;
+  positionRulesSetKeywords: MockProxy<PositionRulesSetKeywordsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -222,6 +241,7 @@ export async function makeService({
       // carve-out): passed real so the specs assert the actual rendered text.
       CharacteristicDisplayFormattingService,
       PlayerSkillsSectionService,
+      PlayerKeywordsSectionService,
       { provide: PlayersService, useValue: players },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
@@ -232,6 +252,10 @@ export async function makeService({
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
       { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
       { provide: PlayerSkillsService, useValue: playerSkills },
+      {
+        provide: PositionRulesSetKeywordsService,
+        useValue: positionRulesSetKeywords,
+      },
     ],
   }).compile();
   return {
@@ -244,6 +268,7 @@ export async function makeService({
     positionRulesSets,
     dateRangeFormatter,
     playerSkills,
+    positionRulesSetKeywords,
   };
 }
 
