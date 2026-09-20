@@ -99,6 +99,16 @@ A machine-wide FIFO lock serializes that, so one session at a time drives a revi
 
 The lock is three `tools/dev-workflow-cli` subcommands over one gitignored JSON file in the main checkout — see [dev-workflow-cli's "Review lock usage"](dev-workflow-cli/index.md#review-lock-usage). It coordinates sessions on one machine only; nothing about it is shared through GitHub.
 
+### Splitting an oversized PR into stacked PRs
+
+CodeRabbit refuses to review a PR past a file-count limit, answering with a "Review skipped — Too many files!" comment instead of a review. A large plan-driven feature can exceed it, and `develop-feature`'s review loop cannot tell that apart from a slow review — it would wait out its whole iteration budget for a review that never arrives.
+
+So `develop-feature` checks first. After its self-review ends clean, and before it creates any PR, it measures the branch's changed-file count (excluding `pnpm-lock.yaml`, which CodeRabbit ignores) against a safe threshold below CodeRabbit's real limit. Under it — the common case — nothing changes and one PR is opened as usual.
+
+Over it, the branch is split into a sequence of **stacked PRs**, cut at the implementation plan's own section boundaries (which is why planning asks every plan for named sections, however small it is). Part 1 is based on `main`; each later part is based on the part before it, so every part's PR shows only its own changes and each stays small enough to be reviewed. The parts are created and reviewed one at a time, in order, holding the review lock across the whole sequence, and each part is merged forward into the next so a fix made during one part's review is carried into the parts that follow.
+
+The cut points are computed by [dev-workflow-cli's `compute-pr-split`](dev-workflow-cli/index.md#compute-pr-split-usage), which also owns the threshold. Merge the resulting PRs in order, part 1 first: `delete_branch_on_merge` and merge-commit-only merging mean GitHub retargets each dependent PR to `main` automatically as its base merges, so no rebasing is needed.
+
 ### Installing the CodeRabbit app (one-time, manual)
 
 Like branch protection, this can't be configured by code in this repo — a GitHub App has to be installed through the browser. Do this once:

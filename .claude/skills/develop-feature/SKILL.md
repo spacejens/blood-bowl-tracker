@@ -675,4 +675,21 @@ When Phase 5 step 5 recorded two or more parts, steps 3-6 above are replaced by 
 - **Offer `deploy-local`** — step 6 in full, once, including its Discord slash-command propagation reminder (whose `git diff --name-only origin/main...HEAD` check is run once against the whole branch, not per part). Not once per part: there is one worktree and one final state to look at.
 - **Print the stacked-PR summary** described in "Reporting a stacked PR sequence" below.
 
+#### Reporting a stacked PR sequence (only when a split is needed)
+
+After part `N`'s loop ends, print a summary table — one row per part, in order:
+
+```text
+| Part | PR | Sections covered | Files | Review loop |
+| --- | --- | --- | --- | --- |
+| 1/2 | #907 | Detection and split algorithm | 118 | clean |
+| 2/2 | #908 | Skill integration | 46 | iteration cap reached |
+```
+
+The "Review loop" column reuses the same one-line ending descriptions step 5 already produces per PR (clean, ambiguous item surfaced, no fix commits pushed, iteration cap reached, timed out and skipped, or skipped because the login lookup failed).
+
+Follow it with this note:
+
+> Merge these on GitHub **in order**, part 1 first. This repo enables `delete_branch_on_merge` and merge-commit-only merging, so GitHub retargets each dependent PR to `main` automatically once its base branch merges and is deleted — no manual rebasing is needed.
+
 7. **Skill ends** — human review and merge happen outside this workflow. The automated review bot's feedback has already been driven to completion in step 5, so what reaches the human is a PR that has been through both Claude's self-review and an independent bot pass. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
