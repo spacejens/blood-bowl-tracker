@@ -251,7 +251,17 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
 5. After each task: check whether the task's diff touches any file under `apps/`, `packages/`, or `tools/` (`git diff --name-only <task-base-sha>..HEAD`, where `<task-base-sha>` is the commit recorded before dispatching that task's implementer). If it does, run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, format, test) — when lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve. If the diff touches only files outside those three directories (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note in the task's status line that it was skipped and why — none of `pnpm verify`'s scripts (`build`, `lint`, `typecheck`, `format`, `test`) run against paths outside `apps/`, `packages/`, `tools/`, so there is nothing for them to check.
-6. Print a brief status line confirming all tasks are complete and that `pnpm verify` is green for every task that ran it (noting any tasks that skipped it per step 5), then continue immediately into Phase 5.
+6. **Record the task's checkpoint.** Phase 4 already records a `<task-base-sha>` before dispatching each task's implementer (step 5 uses it for the `pnpm verify` diff check). After that task's commit lands and has been verified to be on the expected branch, also record:
+   - `taskNumber` — the plan's own task number.
+   - `sectionPath` — the plan section the task sits under, as `["<section name>"]`, or `["<section name>", "<subsection name>"]` when the task sits under a subsection. Read both off the plan's `## Section:` / `### Subsection:` headings (Phase 3 step 1 asks for them on every plan), stripping the `Section: ` / `Subsection: ` prefix and using the heading text verbatim.
+   - `commitSha` — the sha of the commit that task's work landed in:
+
+     ```bash
+     cd <worktree-path> && git rev-parse HEAD
+     ```
+
+   Keep these as one ordered list, in plan order, for the whole run — the **task-checkpoint list**. It is carried into Phase 5, where it is the input to the oversized-PR check. A task that produced more than one commit records only its final commit; a task that produced none (nothing to change) is left out of the list entirely. Nothing else in Phase 4 changes, and on a branch that turns out to fit in one PR the list is simply never used.
+7. Print a brief status line confirming all tasks are complete and that `pnpm verify` is green for every task that ran it (noting any tasks that skipped it per step 5), then continue immediately into Phase 5, carrying the task-checkpoint list forward.
 
 ---
 
