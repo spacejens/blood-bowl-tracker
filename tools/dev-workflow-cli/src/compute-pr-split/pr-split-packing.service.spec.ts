@@ -151,10 +151,10 @@ describe('PrSplitPackingService', () => {
       'sha1...sha2': 200,
     });
 
-    await expect(
-      service.pack([sectionA, big], 'origin/main'),
-    ).resolves.toEqual({
-      unsplittable: { taskNumber: 2, label: 'B', fileCount: 200 },
-    });
+    await expect(service.pack([sectionA, big], 'origin/main')).resolves.toEqual(
+      {
+        unsplittable: { taskNumber: 2, label: 'B', fileCount: 200 },
+      },
+    );
   });
 });
