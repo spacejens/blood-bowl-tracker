@@ -59,6 +59,14 @@ export interface TpRawPlayerAggregate {
   templateAgility: number | null;
   templatePassing: number | null;
   templateArmour: number | null;
+  /**
+   * The BB2025 keyword codes of the position template this player was
+   * recruited from, out of `lineUps[].lineUpMaster.race`. Null when no
+   * downloaded roster file carries the player's line-up id -- the same
+   * absence the template characteristics beside it already report. Empty for
+   * a pre-BB2025 roster, where TP publishes no codes.
+   */
+  templateKeywordCodes: number[] | null;
 }
 
 /** Mutable accumulator, plus the match id the reported total came from. */
@@ -85,6 +93,7 @@ interface RawCharacteristics {
   templateAgility: number | null;
   templatePassing: number | null;
   templateArmour: number | null;
+  templateKeywordCodes: number[] | null;
 }
 
 /**
@@ -200,6 +209,7 @@ export class TpRawPlayerIndexService {
         player.templateAgility = line.templateAgility;
         player.templatePassing = line.templatePassing;
         player.templateArmour = line.templateArmour;
+        player.templateKeywordCodes = line.templateKeywordCodes;
       }
     }
   }
@@ -259,6 +269,7 @@ export class TpRawPlayerIndexService {
       templateAgility: null,
       templatePassing: null,
       templateArmour: null,
+      templateKeywordCodes: null,
     };
     player.matchCount += 1;
     // TP's match ids increase over time, so the highest one a player appears
@@ -357,6 +368,10 @@ export class TpRawPlayerIndexService {
           this.property(entry, 'lineUpMaster'),
           'av',
         ),
+        templateKeywordCodes: this.numberArrayProperty(
+          this.property(entry, 'lineUpMaster'),
+          'race',
+        ),
       });
     }
   }
@@ -364,6 +379,25 @@ export class TpRawPlayerIndexService {
   private numberProperty(value: unknown, key: string): number | null {
     const property = this.property(value, key);
     return typeof property === 'number' ? property : null;
+  }
+
+  /**
+   * A key's array-of-numbers value: `null` when the key is absent, `[]` when
+   * present but not an array of numbers (a malformed value degrades to
+   * "no codes" rather than failing the run), and otherwise the numbers
+   * themselves, non-numeric entries dropped.
+   */
+  private numberArrayProperty(value: unknown, key: string): number[] | null {
+    const property = this.property(value, key);
+    if (property === undefined) {
+      return null;
+    }
+    if (!Array.isArray(property)) {
+      return [];
+    }
+    return property.filter(
+      (entry): entry is number => typeof entry === 'number',
+    );
   }
 
   private booleanProperty(value: unknown, key: string): boolean | null {

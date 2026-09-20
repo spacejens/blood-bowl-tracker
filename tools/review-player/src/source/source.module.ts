@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { BblPlayerAdvancementsReaderService } from './bbl-player-advancements-reader.service';
 import { BblPlayerSkillsCellService } from './bbl-player-skills-cell.service';
 import { BblRawPlayerPageLoaderService } from './bbl-raw-player-page-loader.service';
+import { ManualRawKeywordsService } from './manual-raw-keywords.service';
 import { TpRawPlayerIndexService } from './tp-raw-player-index.service';
 import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.service';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
@@ -18,6 +19,7 @@ import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
     BblRawPlayerPageLoaderService,
     BblPlayerSkillsCellService,
     BblPlayerAdvancementsReaderService,
+    ManualRawKeywordsService,
     TpRawPlayerIndexService,
     TpRawPlayerSkillsIndexService,
     TpSkillMasterNamesService,
@@ -26,6 +28,7 @@ import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
     BblRawPlayerPageLoaderService,
     BblPlayerSkillsCellService,
     BblPlayerAdvancementsReaderService,
+    ManualRawKeywordsService,
     TpRawPlayerIndexService,
     TpRawPlayerSkillsIndexService,
     TpSkillMasterNamesService,

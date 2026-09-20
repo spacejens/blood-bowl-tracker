@@ -16,6 +16,7 @@ import { PlayerAdvancementsStratificationService } from './player-advancements/p
 import { CharacteristicsChangeStratificationService } from './player-characteristics/characteristics-change-stratification.service';
 import { RandomPlayerStratificationService } from './player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from './player-info/star-player-stratification.service';
+import { PlayerKeywordsStratificationService } from './player-keywords/player-keywords-stratification.service';
 import type { PlayerStratifier } from './shared/player-stratifier';
 import { PLAYER_STRATIFIERS } from './shared/player-stratifier';
 import { SppDiscrepancyStratificationService } from './spp-totals/spp-discrepancy-stratification.service';
@@ -55,7 +56,7 @@ describe('AppModule', () => {
     expect(moduleRef.get(ReviewService)).toBeInstanceOf(ReviewService);
   });
 
-  it('registers all nine player stratifiers in PLAYER_STRATIFIERS', async () => {
+  it('registers all ten player stratifiers in PLAYER_STRATIFIERS', async () => {
     const configPath = join(dir, 'review-player-config.json5');
     writeFileSync(
       configPath,
@@ -73,7 +74,7 @@ describe('AppModule', () => {
       .compile();
 
     const stratifiers = moduleRef.get<PlayerStratifier[]>(PLAYER_STRATIFIERS);
-    expect(stratifiers).toHaveLength(9);
+    expect(stratifiers).toHaveLength(10);
     expect(
       [
         RandomPlayerStratificationService,
@@ -85,6 +86,7 @@ describe('AppModule', () => {
         PlayerAdvancementsStratificationService,
         CurrentInjuryStratificationService,
         HealedInjuryStratificationService,
+        PlayerKeywordsStratificationService,
       ].every((serviceClass) =>
         stratifiers.some((stratifier) => stratifier instanceof serviceClass),
       ),
