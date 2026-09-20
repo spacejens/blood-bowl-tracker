@@ -595,4 +595,51 @@ describe('ManualRawDataService', () => {
     expect(races).toHaveLength(1);
     expect(races[0].name).toEqual('Dwarf');
   });
+
+  it('reads a curated keyword entry with a tourplay.net code', async () => {
+    const json5Content = `
+{
+  keywords: [
+    {
+      name: 'Goblin',
+      kind: 'species',
+      externalIds: [
+        { system: 'Name', id: 'Goblin' },
+        { system: 'tourplay.net', id: '111' }
+      ]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      json5Content,
+    );
+
+    expect(await service.keywords()).toEqual([
+      { name: 'Goblin', kind: 'species', code: '111' },
+    ]);
+  });
+
+  it('reads a curated keyword entry with no tourplay.net code as code: null', async () => {
+    const json5Content = `
+{
+  keywords: [
+    {
+      name: 'Big Guy',
+      kind: 'positional',
+      externalIds: [{ system: 'Name', id: 'Big Guy' }]
+    }
+  ]
+}
+`;
+    writeFileSync(
+      join(tempDir, 'before-other-importers', 'keywords.json5'),
+      json5Content,
+    );
+
+    expect(await service.keywords()).toEqual([
+      { name: 'Big Guy', kind: 'positional', code: null },
+    ]);
+  });
 });

@@ -2,9 +2,10 @@
 
 `tools/review-race` renders a side-by-side HTML report of everything known about a
 sampled set of races and their positions: each import source's **raw** view of race
-availability, position availability, position characteristics and position starting
-skills next to what the importers actually stored in `positions_race_eras`,
-`position_rules_sets` and `position_rules_set_skills`. Like
+availability, position availability, position characteristics, position starting
+skills and position keywords next to what the importers actually stored in
+`positions_race_eras`, `position_rules_sets`, `position_rules_set_skills` and
+`position_rules_set_keywords`. Like
 `tools/review-match` and `tools/review-player` it is a review aid for a human — it
 cannot decide what is "correct" on its own, because the interpretation logic it
 deliberately does not run is the thing being reviewed.
@@ -67,32 +68,42 @@ tool's own composition.
       where a stored `position_rules_set_skills` row names a skill with no
       `skill_rules_sets` row for the very rules set it is recorded under, which is
       always wrong. Also DB-only.
-   7. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
+   7. **Race has a BB2025 position with no keyword recorded** — races where a BB2025
+      `position_rules_sets` row (BB2025 resolved by the rules set's own name, not a
+      hard-coded id) has no matching `position_rules_set_keywords` row. A stratifier only
+      ever sees the database, so this is the closest DB-expressible signal that a keyword
+      TP published was dropped during import. Also DB-only.
+   8. **Race has a position carrying three or more keywords** — races where a
+      `position_rules_sets` row has three or more `position_rules_set_keywords` rows,
+      which is where a wrong keyword code is most likely and least obvious. Also DB-only.
+   9. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
       external system. A DB-only check — it does not look at the downloaded BBL mirror
       files.
-   8. **Race has no TP data** — races with no `race_external_ids` row for the TP external
+   10. **Race has no TP data** — races with no `race_external_ids` row for the TP external
       system. Same DB-only check as above, scoped to the TP external system.
-   9. **Race has no manual curation entry** — unlike strata 7 and 8, this reads the
+   11. **Race has no manual curation entry** — unlike strata 9 and 10, this reads the
       curated `races-and-positions.json5` file itself (there is no external-id space for
       manual curation to check in the database): every race is compared by name against
       the file's entries. The three source-coverage strata are therefore not uniform in
       what they check — a race can, for example, have a BBL external-id row in the
       database with no corresponding page in the BBL mirror, or vice versa.
-   10. **BBL and TP names disagree** — races present in both sources but under different
+   12. **BBL and TP names disagree** — races present in both sources but under different
       names, beyond BBL's own `<Race> Team(s)` suffix convention. The race-identity
       panel's own BBL/TP name-agreement sub-table (below) shows this same comparison for
       every sampled race, not only the ones this stratum selects.
-   11. **Random sample** — a plain random sample of races, with no selection criteria of
+   13. **Random sample** — a plain random sample of races, with no selection criteria of
       its own.
 
    Each stratum declares one or more `sources`, but the sampler
    (`race-sampler.service.ts`) samples every stratum exactly once, using only the first
    source it declares — never once per declared source. This is why strata 1, 2, 3, 4,
-   5, 6 and 11 — whose queries do not vary by source at all — still declare
-   `sources: ['bbl', 'tp', 'manual']`: the list exists to describe which sources the
-   result meaningfully speaks to, not to trigger repeated sampling of the same query
-   (which would otherwise draw a different random sample per source and could select up
-   to three times the configured `racesPerStratum`).
+   5, 6 and 13 — whose queries do not vary by source at all — still declare
+   `sources: ['bbl', 'tp', 'manual']` (strata 7 and 8 declare `sources: ['tp', 'manual']`
+   for the same reason, scoped to the two sources keywords meaningfully speak to): the
+   list exists to describe which sources the result meaningfully speaks to, not to
+   trigger repeated sampling of the same query (which would otherwise draw a different
+   random sample per source and could select up to three times the configured
+   `racesPerStratum`).
 
 2. Adds every override entry listed in `overrides`, whatever the strata picked.
 
@@ -156,6 +167,19 @@ tool's own composition.
      them up against the stored rows would mean re-running the importers' own
      resolution logic — the very thing under review. The two panels are shown side by
      side purely for a human reviewer to compare by eye.
+   - **position-keywords** — left: a TP sub-table, one row per (position, rules set) TP
+     publishes, showing its numeric `race`-array keyword codes resolved against the
+     curated catalogue (`Goblin (111)`), with a code the catalogue does not name rendered
+     as a highlighted row (`777 — not curated`); plus a manual-curation sub-table listing
+     the whole curated catalogue once, not per position, so a reviewer can see the names
+     codes are read against without leaving the report. Unlike the other raw panels there
+     is no BBL sub-section — BBL has no keyword concept. Right: the stored
+     `position_rules_set_keywords` rows, one sub-table per rules set the race's eras map
+     to, with the same `none` / highlighted `missing (no characteristics row)` rendering
+     as the starting-skills panel. As with starting skills, the raw and imported panels
+     are never diffed against each other — TP's codes are resolved through this tool's
+     own independent catalogue reader, not the importer's, so the two panels are shown
+     side by side purely for a human reviewer to compare by eye.
 
 4. Writes the report under `tools/review-race/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
