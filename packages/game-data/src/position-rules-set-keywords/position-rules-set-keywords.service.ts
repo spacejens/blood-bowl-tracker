@@ -75,10 +75,9 @@ export class PositionRulesSetKeywordsService {
 
     // Fetch the anchor rows for just the positions and rules sets named in
     // this batch and match in memory: one query regardless of how many
-    // entries the batch carries. Unlike PositionRulesSetSkillsService (called
-    // once per import run with the whole batch already), this service is
-    // called once per (position, rules set) pair, so an unscoped rules-set-only
-    // filter would re-fetch every position under the rules set on every call.
+    // entries the batch carries. This service is called once per (position,
+    // rules set) pair, so a rules-set-only filter would re-fetch every
+    // position under the rules set on every call.
     const associationRows = await this.db
       .select({
         id: positionRulesSets.id,
