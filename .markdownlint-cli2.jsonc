@@ -32,7 +32,14 @@
     // default "consistent" mode only checks consistency within one file, not
     // across files.
     "MD049": { "style": "underscore" },
-    "MD050": { "style": "asterisk" }
+    "MD050": { "style": "asterisk" },
+    // Allow the same subsection title to recur under different parent
+    // headings in one file (e.g. a "Keywords" subsection under both the
+    // `position` and `star-player` headings in deepdive-embeds.md) — default
+    // MD024 flags any duplicate heading text document-wide, which would
+    // otherwise force artificially distinct titles for sections that are
+    // genuinely the same kind of content repeated per command.
+    "MD024": { "siblings_only": true }
   },
   "customRules": ["./tools/markdownlint-rules/dist/index.js"]
 }

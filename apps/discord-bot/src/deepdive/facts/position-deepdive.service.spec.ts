@@ -1,10 +1,12 @@
 import type {
   PositionCharacteristics,
   PositionHeader,
+  PositionKeyword,
   PositionStartingSkill,
   PositionTopPlayer,
 } from '@blood-bowl-tracker/game-data';
 import {
+  PositionRulesSetKeywordsService,
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
@@ -27,6 +29,7 @@ import {
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_POSITION_CHARACTERISTICS_TIMEOUT_MESSAGE,
+  DEEPDIVE_POSITION_KEYWORDS_TIMEOUT_MESSAGE,
   DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE,
   DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE,
   DEEPDIVE_POSITION_NOT_FOUND_MESSAGE,
@@ -46,6 +49,7 @@ import {
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { PositionDeepdiveService } from './position-deepdive.service';
+import { PositionKeywordsSectionService } from './position-keywords-section.service';
 import { PositionStatLineService } from './position-stat-line.service';
 
 const bb2016: PositionCharacteristics = {
@@ -96,6 +100,7 @@ interface MakeServiceOptions {
   positions: PositionsService;
   positionRulesSets: PositionRulesSetsService;
   positionRulesSetSkills?: MockProxy<PositionRulesSetSkillsService>;
+  positionRulesSetKeywords?: MockProxy<PositionRulesSetKeywordsService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
@@ -107,6 +112,7 @@ async function makeService({
   positions,
   positionRulesSets,
   positionRulesSetSkills = makeRulesSetSkills([]),
+  positionRulesSetKeywords = makeRulesSetKeywords([]),
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = passthroughLeaderboard(),
   entityComponents = passthroughEntityComponents(),
@@ -119,14 +125,20 @@ async function makeService({
   playerContext: MockProxy<PlayerContextService>;
   statLine: MockProxy<PositionStatLineService>;
   positionRulesSetSkills: MockProxy<PositionRulesSetSkillsService>;
+  positionRulesSetKeywords: MockProxy<PositionRulesSetKeywordsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionDeepdiveService,
+      PositionKeywordsSectionService,
       { provide: PositionStatLineService, useValue: statLine },
       {
         provide: PositionRulesSetSkillsService,
         useValue: positionRulesSetSkills,
+      },
+      {
+        provide: PositionRulesSetKeywordsService,
+        useValue: positionRulesSetKeywords,
       },
       { provide: PositionsService, useValue: positions },
       { provide: PositionRulesSetsService, useValue: positionRulesSets },
@@ -143,6 +155,7 @@ async function makeService({
     playerContext,
     statLine,
     positionRulesSetSkills,
+    positionRulesSetKeywords,
   };
 }
 
@@ -174,9 +187,17 @@ function makeRulesSetSkills(
   return positionRulesSetSkills;
 }
 
+function makeRulesSetKeywords(
+  rows: PositionKeyword[],
+): MockProxy<PositionRulesSetKeywordsService> {
+  const positionRulesSetKeywords = mock<PositionRulesSetKeywordsService>();
+  positionRulesSetKeywords.listByPosition.mockResolvedValue(rows);
+  return positionRulesSetKeywords;
+}
+
 /**
  * A `DatabaseTimeoutService` mock that passes the first `skip` calls through
- * and times the next one out, so a test can pin which of the six queries a
+ * and times the next one out, so a test can pin which of the seven queries a
  * timeout message belongs to.
  */
 function timeoutOnCall(skip: number): MockProxy<DatabaseTimeoutService> {
@@ -236,11 +257,23 @@ describe('PositionDeepdiveService', () => {
     );
   });
 
-  it('returns the player-count timeout message when that query times out', async () => {
+  it('returns the keywords timeout message when that query times out', async () => {
     const { service } = await makeService({
       positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
       positionRulesSets: makeRulesSets([bb2020]),
       databaseTimeout: timeoutOnCall(3),
+    });
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_POSITION_KEYWORDS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('returns the player-count timeout message when that query times out', async () => {
+    const { service } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      databaseTimeout: timeoutOnCall(4),
     });
 
     await expect(service.resolve(1)).resolves.toBe(
@@ -252,7 +285,7 @@ describe('PositionDeepdiveService', () => {
     const { service } = await makeService({
       positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
       positionRulesSets: makeRulesSets([bb2020]),
-      databaseTimeout: timeoutOnCall(4),
+      databaseTimeout: timeoutOnCall(5),
     });
 
     await expect(service.resolve(1)).resolves.toBe(
@@ -267,7 +300,7 @@ describe('PositionDeepdiveService', () => {
         topPlayers: [{ id: 9, name: 'Griff', sppTotal: 130 }],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
-      databaseTimeout: timeoutOnCall(5),
+      databaseTimeout: timeoutOnCall(6),
     });
 
     await expect(service.resolve(1)).resolves.toBe(
@@ -281,7 +314,7 @@ describe('PositionDeepdiveService', () => {
     // all — running it anyway would risk a spurious
     // DEEPDIVE_POSITION_PLAYER_CONTEXT_TIMEOUT_MESSAGE in place of the
     // correct "no players" view if that unnecessary call happened to time
-    // out. Pin this by timing out the 6th call: if attachSuffixes were
+    // out. Pin this by timing out the 7th call: if attachSuffixes were
     // still invoked, this would return the timeout message instead of
     // rendering normally.
     const { service, playerContext } = await makeService({
@@ -291,7 +324,7 @@ describe('PositionDeepdiveService', () => {
         topPlayers: [],
       }),
       positionRulesSets: makeRulesSets([bb2020]),
-      databaseTimeout: timeoutOnCall(5),
+      databaseTimeout: timeoutOnCall(6),
     });
 
     const rendered = JSON.stringify(await service.resolve(1));
@@ -411,6 +444,54 @@ describe('PositionDeepdiveService', () => {
 
     expect(rendered).toContain(DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE);
     expect(positionRulesSetSkills.listByPosition).not.toHaveBeenCalled();
+  });
+
+  it('shows the position keywords after the stat lines', async () => {
+    const { service } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      positionRulesSetKeywords: makeRulesSetKeywords([
+        {
+          rulesSetId: 25,
+          rulesSetName: 'BB2025',
+          keywordId: 1,
+          keywordName: 'Goblin',
+          kind: 'species',
+        },
+      ]),
+    });
+
+    const description = (
+      (await service.resolve(1)) as { embeds: { description: string }[] }
+    ).embeds[0].description;
+
+    expect(description).toContain('BB2025 keywords: Goblin');
+    expect(description.indexOf(STUB_STAT_LINE)).toBeLessThan(
+      description.indexOf('BB2025 keywords: Goblin'),
+    );
+  });
+
+  it('shows no keyword line for a position with none', async () => {
+    const { service } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([bb2020]),
+      positionRulesSetKeywords: makeRulesSetKeywords([]),
+    });
+
+    const rendered = JSON.stringify(await service.resolve(1));
+
+    expect(rendered).not.toContain('keywords:');
+  });
+
+  it('runs no keyword query for a position with no characteristics', async () => {
+    const { service, positionRulesSetKeywords } = await makeService({
+      positions: makePositions({ position: { name: 'Blitzer', races: [] } }),
+      positionRulesSets: makeRulesSets([]),
+    });
+
+    await service.resolve(1);
+
+    expect(positionRulesSetKeywords.listByPosition).not.toHaveBeenCalled();
   });
 
   it('uses the singular for a position held by exactly one player', async () => {
