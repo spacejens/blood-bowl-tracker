@@ -33,10 +33,9 @@ export class StarPlayerKeywordsRawRendererService {
 
   async render(star: SampledStarPlayer): Promise<string> {
     const catalogue = await this.catalogueByCode();
-    return [
-      await this.tpSection(star, catalogue),
-      await this.manualSection(),
-    ].join('\n');
+    return [await this.tpSection(star, catalogue), await this.manualSection()]
+      .filter((section) => section !== null)
+      .join('\n');
   }
 
   private async tpSection(
@@ -88,10 +87,10 @@ export class StarPlayerKeywordsRawRendererService {
   }
 
   /** The whole curated catalogue, rendered once rather than per rules set. */
-  private async manualSection(): Promise<string> {
+  private async manualSection(): Promise<string | null> {
     const entries = await this.manual.keywords();
     if (entries.length === 0) {
-      return '';
+      return null;
     }
     const rows: TableRow[] = entries.map((entry) => [
       entry.name,
