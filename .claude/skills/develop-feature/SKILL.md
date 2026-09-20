@@ -276,7 +276,27 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - **Question** — there is genuinely more than one reasonable fix and you cannot determine which the developer would prefer. Record it in the **pending-questions list** carried forward to Phase 6. Each entry keeps the repo-relative file path and the line number; its body is a question you draft that names the actual options under consideration — not the raw finding text restated as an unaddressed issue.
 
    A Minor finding is never left as-is: every one ends as a Fix, a Drop, or a Question. Apply every Fix first, then re-check each recorded Question's file and line against the post-Fix state — a Fix earlier in the same file can shift the Question's original line number, and Phase 6 posts whatever location is recorded here without re-deriving it. Update any Question whose location moved before continuing. After classifying and re-checking Question locations, run `pnpm verify` **once** for the whole batch of Fix changes made in this step and commit them; if nothing was classified Fix, skip both. If every Fix change touches only files outside `apps/`, `packages/`, and `tools/` (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note why, per Phase 4 step 5's same rule.
-5. Print a brief status line — iterations run, that the review is clean by step 3's definition, and how many Minor findings were fixed, dropped, and carried forward as pending questions (the pending-questions list may be empty; that remains the normal case) — then continue immediately into Phase 6, carrying the pending-questions list forward.
+5. **Check whether the branch is too large for one PR.** CodeRabbit refuses to review a PR past a file-count limit, posting a "Review skipped — Too many files!" comment instead of a review. Phase 6's review loop cannot tell that apart from a slow review, so it would wait out its full iteration budget for a review that is never coming. Check here instead — the branch is now in its final, all-findings-resolved state, so what is measured is exactly what would otherwise become one PR.
+
+   Feed the task-checkpoint list from Phase 4 into `compute-pr-split`, in the same heredoc-stdin form this skill already uses for `write-file` and `post-review-questions` (see "Worktree isolation and shell commands" above for why this must be one command, and for the fallback when the heredoc form is refused: write the JSON to a plain file first and pipe that file into the same command):
+
+   ```bash
+   cd <worktree-path> && node tools/dev-workflow-cli/dist/main.js compute-pr-split <<'CHECKPOINTSEOF'
+   [
+     { "taskNumber": 1, "sectionPath": ["Data model"], "commitSha": "abc1234" },
+     { "taskNumber": 2, "sectionPath": ["Data model", "Import"], "commitSha": "def5678" }
+   ]
+   CHECKPOINTSEOF
+   ```
+
+   If `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/dev-workflow-cli run build`. Do not restate the file limit anywhere in this skill — the command owns it and echoes it back as `limit`.
+
+   It prints one JSON object. Branch on it:
+   - `"splitNeeded": false` — the common case. Record "one PR" as the split decision and change nothing: Phase 6 runs exactly as written, start to finish, and every "only when a split is needed" instruction there is skipped.
+   - `"splitNeeded": true` with a non-empty `parts` array — record that array as the split decision, in order. Phase 6's "Stacked PR sequencing" applies. Report a one-line status naming the total file count, the limit, and how many parts the branch will be split into.
+   - `"splitNeeded": true` with an empty `parts` array and an `unsplittable` object — a single task's own commit touches more files than the limit, so no valid split exists. **Pause** — report the offending `taskNumber`, `label`, and `fileCount`, and ask the developer via `AskUserQuestion`, offering two genuine options: **Open one oversized PR anyway** (proceed with Phase 6 unchanged, accepting that CodeRabbit will skip the review) and **Stop here** (halt the skill, leaving the branch unpushed for the developer to split by hand). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - **If the command itself fails** — a non-zero exit, unparseable output, or output carrying no `splitNeeded` field — print a one-line warning and **continue as if `"splitNeeded": false`**. This check is an optimization that avoids a wasted review loop, not a correctness gate: failing open costs at most the same wasted loop that exists today, while failing closed would block an otherwise finished branch from ever reaching a PR. If the failure names `compute-pr-split` as an unrecognized subcommand, the built artifact predates it — rebuild with the `pnpm --filter` command above and retry once before falling back.
+6. Print a brief status line — iterations run, that the review is clean by step 3's definition, and how many Minor findings were fixed, dropped, and carried forward as pending questions (the pending-questions list may be empty; that remains the normal case) — then continue immediately into Phase 6, carrying the pending-questions list and the split decision forward.
 
 ---
 
