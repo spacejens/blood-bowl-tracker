@@ -628,6 +628,20 @@ describe('TpRawOfficialTeamsIndexService', () => {
     expect(race?.positions[0].keywordCodes).toEqual([]);
   });
 
+  it('gives no Big Guy keyword code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', async () => {
+    // Real shape from BB2020/DB2021 data (e.g. "Trained Troll", "Minotaur"):
+    // isBigGuy true, no race array, no positionTypes.
+    write('BB2020', {
+      rosterMasters: [roster({ lineUpMasters: [lineman({ isBigGuy: true })] })],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].isBigGuy).toBe(true);
+    expect(race?.positions[0].keywordCodes).toEqual([]);
+  });
+
   it('yields no positional codes rather than throwing for a non-numeric positionTypes', async () => {
     write('BB2025', {
       rosterMasters: [

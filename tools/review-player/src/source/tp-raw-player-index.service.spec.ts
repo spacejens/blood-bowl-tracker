@@ -666,6 +666,17 @@ describe('TpRawPlayerIndexService', () => {
     expect(aggregate?.templateIsBigGuy).toBe(true);
   });
 
+  it('gives no Big Guy keyword code for a BB2020-shaped template with isBigGuy but no race or positionTypes', async () => {
+    // Real shape from BB2020/DB2021 data (e.g. "Trained Troll", "Minotaur"):
+    // isBigGuy true, no race array, no positionTypes.
+    writeRosterWithTemplate({ isBigGuy: true });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([]);
+    expect(aggregate?.templateIsBigGuy).toBe(true);
+  });
+
   it('reports null template keyword data when the template carries none of the three fields', async () => {
     writeRosterWithTemplate({});
 

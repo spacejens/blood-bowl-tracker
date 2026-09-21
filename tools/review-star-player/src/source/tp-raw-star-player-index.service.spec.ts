@@ -399,6 +399,21 @@ describe('TpRawStarPlayerIndexService', () => {
     expect(star?.entries[0]?.isBigGuy).toBe(true);
   });
 
+  it('gives no Big Guy keyword code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', async () => {
+    // Real shape from BB2020/DB2021 data: isBigGuy true, no race array, no
+    // positionTypes.
+    writeRulesSet('BB2020', {
+      rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
+      starplayerMasters: [{ ...ELDRIL, isBigGuy: true }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.isBigGuy).toBe(true);
+    expect(star?.entries[0]?.keywordCodes).toEqual([]);
+  });
+
   it('reports no positional data for a star entry carrying neither field', async () => {
     writeRulesSet('BB2025', {
       rosterMasters: [WOOD_ELF],

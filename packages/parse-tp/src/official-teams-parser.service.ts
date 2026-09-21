@@ -31,8 +31,9 @@ export interface TpOfficialPosition {
    * codes such as Blitzer or Special) and the `isBigGuy` flag. Renamed here so
    * it cannot be confused with this codebase's own `race`.
    *
-   * Empty for every pre-BB2025 rules set: TP omits all three fields there,
-   * because the concept does not exist before BB2025.
+   * Empty for a pre-BB2025 rules set: even though `isBigGuy` can appear
+   * there, it never contributes a keyword code without an accompanying
+   * `race` or `positionTypes` value, which pre-BB2025 data never has.
    */
   keywordCodes: number[];
 }
@@ -127,8 +128,9 @@ const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
 
 /**
  * The curated code of the "Big Guy" positional keyword. TP does not give it a
- * `positionTypes` bit — it is the separate `isBigGuy` boolean, and every entry
- * carrying that flag has a null `positionTypes`.
+ * `positionTypes` bit — it is the separate `isBigGuy` boolean. Some BB2025
+ * entries carry both a `positionTypes` bit and `isBigGuy` at once (e.g.
+ * "Deathroller", "Ogre Blocker", "Mummy").
  */
 const BIG_GUY_KEYWORD_CODE = 134;
 
@@ -170,11 +172,12 @@ const KeywordCodesField = {
 };
 
 /**
- * TP's other two sources of keyword codes, both BB2025-only: the
+ * TP's other two sources of keyword codes, both BB2025-only in practice: the
  * `positionTypes` bitmask (see `POSITION_TYPE_CODES`) and the `isBigGuy`
- * boolean. Nullish rather than optional on both counts — TP writes a literal
- * `null` `positionTypes` on every Big Guy entry, and omits both fields
- * entirely for every pre-BB2025 rules set.
+ * boolean. Nullish rather than optional on both counts, defensively — TP
+ * simply omits both fields for every pre-BB2025 rules set, except that
+ * `isBigGuy` can still appear there (see `BIG_GUY_KEYWORD_CODE`'s gating in
+ * `keywordCodes`).
  */
 const PositionalKeywordFields = {
   positionTypes: z.number().int().nullish(),
@@ -335,6 +338,16 @@ export class OfficialTeamsParserService {
    * `isBigGuy` flag (`BIG_GUY_KEYWORD_CODE`). Species codes keep TP's own
    * order and come first, then the bits ascending, then Big Guy.
    *
+   * `isBigGuy` alone does not contribute Big Guy: it is gated on the entry
+   * also carrying BB2025's keyword space (a non-empty `race` or at least one
+   * `positionTypes` bit). `isBigGuy` is not actually BB2025-only — BB2020 and
+   * DB2021 data carry it on dozens of entries (e.g. "Trained Troll",
+   * "Minotaur") with neither `race` nor `positionTypes` — and keywords are a
+   * BB2025-only concept, so an ungated Big Guy would wrongly write a keyword
+   * row under an earlier rules set. Every real BB2025 Big Guy entry carries a
+   * non-empty `race` (species is still recorded even for Big Guys), so this
+   * gate never drops a genuine BB2025 Big Guy keyword.
+   *
    * Deduplicated with the first occurrence winning, so a code TP happens to
    * publish twice — in `race` and as a bit — is recorded once; the join table
    * downstream treats `(position, rules set, keyword)` as a natural key and a
@@ -342,11 +355,18 @@ export class OfficialTeamsParserService {
    */
   private keywordCodes(entry: z.infer<typeof LineUpMasterSchema>): number[] {
     const mask = entry.positionTypes ?? 0;
+    const positionalCodes = POSITION_TYPE_CODES.filter(
+      (code) => (mask & code) !== 0,
+    );
+    const hasBb2025KeywordSpace =
+      entry.race.length > 0 || positionalCodes.length > 0;
     return [
       ...new Set([
         ...entry.race,
-        ...POSITION_TYPE_CODES.filter((code) => (mask & code) !== 0),
-        ...(entry.isBigGuy === true ? [BIG_GUY_KEYWORD_CODE] : []),
+        ...positionalCodes,
+        ...(entry.isBigGuy === true && hasBb2025KeywordSpace
+          ? [BIG_GUY_KEYWORD_CODE]
+          : []),
       ]),
     ];
   }

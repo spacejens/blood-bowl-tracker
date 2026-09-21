@@ -719,6 +719,12 @@ describe('OfficialTeamsParserService', () => {
     expect(codesOf(responseWithEntry({}))).toEqual([]);
   });
 
+  it('yields no Big Guy code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', () => {
+    // Real shape from BB2020/DB2021 data (e.g. "Trained Troll", "Minotaur"):
+    // isBigGuy true, no race array, no positionTypes.
+    expect(codesOf(responseWithEntry({ isBigGuy: true }))).toEqual([]);
+  });
+
   it('rejects a non-numeric keyword code', () => {
     expect(() =>
       service.parse({

@@ -77,9 +77,11 @@ export interface TpRawStarPlayerEntry {
   keywordCodes: number[];
   /**
    * TP's raw `positionTypes` value, shown beside the decoded codes so a
-   * reviewer can check the decode without reading the JSON by hand. Null when
-   * TP carries no numeric value -- which includes every Big Guy entry, where
-   * TP writes a literal `null`, and every pre-BB2025 entry.
+   * reviewer can check the decode without reading the JSON by hand. Null
+   * when TP carries no numeric value -- TP simply omits the field rather
+   * than writing a literal `null`, both for a Big Guy entry (though some
+   * BB2025 entries carry both a `positionTypes` bit and `isBigGuy` at once)
+   * and for every pre-BB2025 entry.
    */
   positionTypes: number | null;
   /** TP's raw `isBigGuy` flag; false when TP carries no boolean value. */
@@ -213,7 +215,12 @@ export class TpRawStarPlayerIndexService {
    * One entry's keyword codes: its `race` array (species codes) in TP's own
    * order, then the set bits of `positionTypes` ascending (positional codes,
    * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE` when
-   * `isBigGuy` is set. Deduplicated, first occurrence winning.
+   * `isBigGuy` is set AND the entry also carries a non-empty `race` or at
+   * least one `positionTypes` bit. `isBigGuy` is not actually BB2025-only —
+   * BB2020/DB2021 data carries it with neither `race` nor `positionTypes` —
+   * and keywords are a BB2025-only concept, so an ungated Big Guy would
+   * wrongly decode a keyword for an earlier rules set. Deduplicated, first
+   * occurrence winning.
    *
    * Decoded here rather than reused from packages/parse-tp: that parser's
    * reading of these files is the code under review, and a bug in it must not
@@ -224,11 +231,16 @@ export class TpRawStarPlayerIndexService {
       (value): value is number => typeof value === 'number',
     );
     const mask = this.number(entry, 'positionTypes') ?? 0;
+    const positionalCodes = POSITION_TYPE_CODES.filter(
+      (code) => (mask & code) !== 0,
+    );
+    const hasBb2025KeywordSpace =
+      species.length > 0 || positionalCodes.length > 0;
     return [
       ...new Set([
         ...species,
-        ...POSITION_TYPE_CODES.filter((code) => (mask & code) !== 0),
-        ...(this.property(entry, 'isBigGuy') === true
+        ...positionalCodes,
+        ...(this.property(entry, 'isBigGuy') === true && hasBb2025KeywordSpace
           ? [BIG_GUY_KEYWORD_CODE]
           : []),
       ]),
