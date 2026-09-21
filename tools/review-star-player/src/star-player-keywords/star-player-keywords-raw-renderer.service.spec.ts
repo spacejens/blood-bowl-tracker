@@ -177,6 +177,38 @@ describe('StarPlayerKeywordsRawRendererService', () => {
     expect(html).toContain('<td>no</td>');
   });
 
+  it("shows 'yes' for a star entry TP flags isBigGuy true", async () => {
+    lookup.tpStarsFor.mockResolvedValue({
+      notFoundNote: 'not found',
+      stars: [
+        {
+          name: 'Morg ‘n’ Thorg',
+          entries: [
+            {
+              rulesSet: 'BB2025',
+              cost: 350000,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: [],
+              skills: [],
+              keywordCodes: [113, 134],
+              positionTypes: null,
+              isBigGuy: true,
+            },
+          ],
+        },
+      ],
+    });
+    manual.keywords.mockResolvedValue([
+      { name: 'Ogre', kind: 'species', code: '113' },
+      { name: 'Big Guy', kind: 'positional', code: '134' },
+    ]);
+
+    const html = await service.render(star);
+
+    expect(html).toContain('<td>yes</td>');
+  });
+
   it('shows no raw positional values for a star TP carries none for', async () => {
     lookup.tpStarsFor.mockResolvedValue({
       notFoundNote: 'not found',
