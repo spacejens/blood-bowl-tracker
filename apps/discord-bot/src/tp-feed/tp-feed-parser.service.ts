@@ -7,8 +7,15 @@ import type { TeamInfo, TpFeedEvent } from './tp-feed-event';
 const PLAYER_FIELD_PATTERN =
   /^`#(?<number>[^`]+)`\s+(?<name>.+?)\s+\*\((?<position>[^)]+)\)\*$/u;
 
-/** "Winner Calavera Selvática FC in 3 hours and 30 minutes." */
-const WINNER_DESCRIPTION_PATTERN = /^Winner\s+(?<winner>.+?)\s+in\s+.+$/u;
+/**
+ * "Winner Calavera Selvática FC in 3 hours and 30 minutes." A greedy winner
+ * capture, not lazy: a lazy `.+?` would stop at the first " in " and truncate
+ * a team name that itself contains " in " (e.g. "Pain in Spain"). Greedy
+ * backtracking instead matches as much as possible for `winner`, then gives
+ * back only what the trailing `\s+in\s+.+$` needs — so it always lands on the
+ * *last* " in ", where the real duration separator actually is.
+ */
+const WINNER_DESCRIPTION_PATTERN = /^Winner\s+(?<winner>.+)\s+in\s+.+$/u;
 
 /** "Draw in 2 hours and 46 minutes." */
 const DRAW_DESCRIPTION_PATTERN = /^Draw\s+in\s+.+$/u;

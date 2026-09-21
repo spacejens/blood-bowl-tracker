@@ -83,6 +83,31 @@ describe('TpFeedParserService', () => {
     });
   });
 
+  it('parses a winner name that itself contains " in "', () => {
+    const message = sampleMessage({
+      title: ':checkered_flag:  End of the match',
+      description: 'Winner Pain in Spain in 2 hours.',
+      fields: [
+        {
+          name: '**PAIN IN SPAIN**\n`1290` High Elf\n:flag_se: Patrick M',
+          value: '`      2      `',
+          inline: true,
+        },
+        {
+          name: '**ROCKET FROM THE TOMBS**\n`1650` Tomb Kings\n:flag_se: Andreas Gunnarsson',
+          value: '`      1      `',
+          inline: true,
+        },
+      ],
+      author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
+    });
+
+    expect(service.parse(message)).toMatchObject({
+      outcome: 'win',
+      winnerName: 'Pain in Spain',
+    });
+  });
+
   it('parses a new skill/characteristic notification', () => {
     expect(service.parse(newSkillMessage())).toEqual({
       kind: 'new-skill-or-characteristic',
