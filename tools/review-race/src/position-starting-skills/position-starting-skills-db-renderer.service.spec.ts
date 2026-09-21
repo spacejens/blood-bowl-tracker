@@ -44,6 +44,8 @@ async function makeService(dbResult: MockDbResult): Promise<{
     },
   ]);
   query.rulesSetsFor.mockResolvedValue([{ ...rulesSet }]);
+  query.rulesSetEraIds.mockResolvedValue(new Map([[100, new Set([10])]]));
+  query.positionEraIds.mockReturnValue(new Map([[1, new Set([10])]]));
   const moduleRef = await Test.createTestingModule({
     providers: [
       PositionStartingSkillsDbRendererService,
@@ -149,5 +151,51 @@ describe('PositionStartingSkillsDbRendererService', () => {
     expect(await service.render(race)).toBe(
       '<p class="note">Race &quot;Dwarf&quot; has no era mapped to a rules set.</p>',
     );
+  });
+
+  it("excludes a position from a rules set's table when its own era does not map to that rules set", async () => {
+    const { service, query } = await makeService(mockDb([], []));
+    query.positionsFor.mockResolvedValue([
+      {
+        positionId: 1,
+        positionName: 'Blitzer',
+        eraId: 10,
+        eraName: 'Second Era',
+      },
+      {
+        positionId: 2,
+        positionName: 'Runner',
+        eraId: 20,
+        eraName: 'Third Era',
+      },
+    ]);
+    query.positionEraIds.mockReturnValue(
+      new Map([
+        [1, new Set([10])],
+        [2, new Set([20])],
+      ]),
+    );
+    query.rulesSetEraIds.mockResolvedValue(
+      new Map([
+        [100, new Set([10])],
+        [200, new Set([20])],
+      ]),
+    );
+    query.rulesSetsFor.mockResolvedValue([
+      { ...rulesSet, rulesSetId: 100, rulesSetName: 'BB2020' },
+      { ...rulesSet, rulesSetId: 200, rulesSetName: 'BB2025' },
+    ]);
+
+    const html = await service.render(race);
+
+    // Blitzer (era 10) is only reachable under BB2020, Runner (era 20) only
+    // under BB2025 -- neither may appear in the other's table, not even as a
+    // highlighted "missing (no characteristics row)" row.
+    const bb2020Table = html.split('<h5>BB2025</h5>')[0];
+    const bb2025Table = html.split('<h5>BB2025</h5>')[1];
+    expect(bb2020Table).toContain('Blitzer');
+    expect(bb2020Table).not.toContain('Runner');
+    expect(bb2025Table).toContain('Runner');
+    expect(bb2025Table).not.toContain('Blitzer');
   });
 });

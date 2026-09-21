@@ -3,12 +3,10 @@ import {
   asc,
   DB,
   eq,
-  eraRulesSets,
   inArray,
   keywords,
   positionRulesSetKeywords,
   positionRulesSets,
-  raceEras,
 } from '@blood-bowl-tracker/db';
 import type { TableRow } from '@blood-bowl-tracker/review-harness';
 import { HtmlService } from '@blood-bowl-tracker/review-harness';
@@ -76,13 +74,8 @@ export class PositionKeywordsDbRendererService {
     // rules set is reachable from, so a rules set's table only ever lists
     // the positions actually available under it -- never a cross-product of
     // every position against every rules set the race's eras produce.
-    const positionEraIds = new Map<number, Set<number>>();
-    for (const position of positions) {
-      const set = positionEraIds.get(position.positionId) ?? new Set<number>();
-      set.add(position.eraId);
-      positionEraIds.set(position.positionId, set);
-    }
-    const rulesSetEraIds = await this.rulesSetEraIds(race.raceId);
+    const positionEraIds = this.query.positionEraIds(positions);
+    const rulesSetEraIds = await this.query.rulesSetEraIds(race.raceId);
     const positionIds = [...positionNames.keys()];
     const rowIds = await this.rowIds(positionIds);
     const stored = await this.storedKeywords([...rowIds.values()]);
@@ -116,10 +109,14 @@ export class PositionKeywordsDbRendererService {
       rowIds,
       stored,
     } = input;
-    const validEraIds = rulesSetEraIds.get(rulesSet.rulesSetId) ?? new Set();
+    // Every rules set here came from the same raceEras <-> eraRulesSets join
+    // that produced rulesSetEraIds, so this fallback can't actually be hit --
+    // kept only as a defensive default for the Map lookup.
+    const validEraIds =
+      rulesSetEraIds.get(rulesSet.rulesSetId) ?? new Set<number>();
     const rows: TableRow[] = [];
     for (const [positionId, positionName] of positionNames.entries()) {
-      const eraIds = positionEraIds.get(positionId) ?? new Set();
+      const eraIds = positionEraIds.get(positionId) ?? new Set<number>();
       const availableUnderThisRulesSet = [...eraIds].some((eraId) =>
         validEraIds.has(eraId),
       );
@@ -142,24 +139,6 @@ export class PositionKeywordsDbRendererService {
       this.html.subheading(rulesSet.rulesSetName) +
       this.html.table(['Position', 'Keywords'], rows)
     );
-  }
-
-  /** `rulesSetId` -> the era(s) of this race that map to it. */
-  private async rulesSetEraIds(
-    raceId: number,
-  ): Promise<Map<number, Set<number>>> {
-    const rows = await this.db
-      .select({ eraId: raceEras.eraId, rulesSetId: eraRulesSets.rulesSetId })
-      .from(raceEras)
-      .innerJoin(eraRulesSets, eq(eraRulesSets.eraId, raceEras.eraId))
-      .where(eq(raceEras.raceId, raceId));
-    const byRulesSet = new Map<number, Set<number>>();
-    for (const row of rows) {
-      const set = byRulesSet.get(row.rulesSetId) ?? new Set<number>();
-      set.add(row.eraId);
-      byRulesSet.set(row.rulesSetId, set);
-    }
-    return byRulesSet;
   }
 
   /** `${positionId}:${rulesSetId}` -> `position_rules_sets.id`. */

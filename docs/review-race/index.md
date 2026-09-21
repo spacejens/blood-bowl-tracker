@@ -143,9 +143,12 @@ tool's own composition.
      read, or that carries no characteristics table, is rendered as a highlighted row
      naming the problem instead of being silently dropped from the table. Right: the
      stored characteristics from `position_rules_sets` for the same positions and rules
-     sets. A (position, rules set) pair with no stored row is rendered as a highlighted
-     row carrying an explicit textual label (`missing`), so the report stays readable
-     without colour.
+     sets, one sub-table per rules set the race's eras map to, scoped to only the
+     positions whose own era(s) actually reach that rules set — a race spanning several
+     eras never cross-products every position against every rules set. A (position,
+     rules set) pair with no stored row, for a position that IS reachable under that
+     rules set, is rendered as a highlighted row carrying an explicit textual label
+     (`missing`), so the report stays readable without colour.
    - **position-starting-skills** — left: raw BBL, TP and manual curation sub-tables,
      shown together exactly like the other race-scoped panels. BBL's sub-table reads its
      one rules-set-less Skills cell per position page. TP's sub-table is per rules set
@@ -155,11 +158,14 @@ tool's own composition.
      `position-skills.json5`, for the rules sets neither source covers. None of the
      three ever carries the random or elite marker — both are advancement-only concepts
      a starting skill never has. Right: the stored `position_rules_set_skills` rows, one
-     sub-table per rules set the race's eras map to. A position with a characteristics
-     row but no starting skills renders `none`; a position with no `position_rules_sets`
-     row at all — so no row a starting skill could hang off — is rendered as a
-     highlighted row labelled `missing (no characteristics row)`, mirroring how the
-     characteristics panel highlights the same absence.
+     sub-table per rules set the race's eras map to, scoped to only the positions whose
+     own era(s) actually reach that rules set — a race spanning several eras never
+     cross-products every position against every rules set. A position with a
+     characteristics row but no starting skills renders `none`; a position that IS
+     reachable under that rules set but has no `position_rules_sets` row at all — so no
+     row a starting skill could hang off — is rendered as a highlighted row labelled
+     `missing (no characteristics row)`, mirroring how the characteristics panel
+     highlights the same absence.
 
      Unlike the other three panels, the raw and imported starting-skills panels are
      never diffed against each other: BBL's skills carry no rules set, TP's carry
@@ -175,8 +181,11 @@ tool's own composition.
      codes are read against without leaving the report. Unlike the other raw panels there
      is no BBL sub-section — BBL has no keyword concept. Right: the stored
      `position_rules_set_keywords` rows, one sub-table per rules set the race's eras map
-     to, with the same `none` / highlighted `missing (no characteristics row)` rendering
-     as the starting-skills panel. As with starting skills, the raw and imported panels
+     to, scoped to only the positions whose own era(s) actually reach that rules set — a
+     race spanning several eras never cross-products every position against every rules
+     set — with the same `none` rendering as the starting-skills panel and a highlighted
+     `missing` row (not `missing (no characteristics row)`) for a position reachable
+     under the rules set but with no stored row at all. As with starting skills, the raw and imported panels
      are never diffed against each other — TP's codes are resolved through this tool's
      own independent catalogue reader, not the importer's, so the two panels are shown
      side by side purely for a human reviewer to compare by eye.
