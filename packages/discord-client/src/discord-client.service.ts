@@ -163,7 +163,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     // privileged intent that ungates the content and embeds of messages the
     // bot did not author. Both are needed to read another integration's
     // webhook posts, and MessageContent must additionally be enabled on the
-    // application in the Discord Developer Portal.
+    // application in the Discord Developer Portal — declaring it here
+    // without that toggle enabled makes Discord reject the gateway
+    // connection outright (a `DisallowedIntents` error), so the bot fails to
+    // connect at all, not just receive stripped-down messages.
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
@@ -191,7 +194,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     });
     this.client.on('messageCreate', (message) => {
       this.handleMessage(message).catch((error) => {
-        this.logger.error('Unhandled message handler error', error);
+        this.logger.error(
+          'Unexpected error dispatching message handlers',
+          error,
+        );
       });
     });
   }

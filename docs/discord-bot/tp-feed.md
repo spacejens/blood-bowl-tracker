@@ -47,7 +47,10 @@ Both variables are optional and are documented in
 Copy both ids with Developer Mode enabled (User Settings > Advanced >
 Developer Mode), by right-clicking the channel and choosing **Copy Channel
 ID**. The bot needs **View Channel** on the source channel, and **View
-Channel** plus **Send Messages** on the debug channel.
+Channel** plus **Send Messages** on the debug channel. The bot must also be a
+member of the guild where TP posts its notifications, which may not be the
+same guild as the one its other features (startup/insights messages) operate
+in.
 
 ## Discord application prerequisite
 
@@ -59,10 +62,11 @@ Content Intent**, which cannot be enabled from this repository:
 2. Open the **Bot** tab and scroll to **Privileged Gateway Intents**.
 3. Enable **Message Content Intent** and save.
 
-Without it the bot still receives the messages, but their embeds arrive empty,
-so nothing parses and nothing is posted. The bot declares the matching gateway
-intents (`GuildMessages` and `MessageContent`) itself; the portal toggle is
-what makes Discord honour them.
+Without it, the bot fails to connect to Discord entirely — Discord rejects
+the gateway connection with a disallowed-intent error — until this is
+enabled, since the bot declares the matching gateway intents (`GuildMessages`
+and `MessageContent`) itself, unconditionally, and the portal toggle is what
+makes Discord allow them.
 
 Discord requires verification for this intent once a bot reaches 100 servers.
 Below that it can simply be switched on.

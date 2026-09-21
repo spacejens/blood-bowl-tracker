@@ -15,11 +15,12 @@ application.
 4. Under **Token**, click **Reset Token** and copy the value. This is your
    `DISCORD_BOT_TOKEN`. Treat it like a password — anyone with it can control
    your bot. If it leaks, reset it here to invalidate the old one.
-5. Under **Privileged Gateway Intents**, enable **Message Content Intent** if
-   you intend to use the [TP notification feed](tp-feed.md). It is what lets
-   the bot read the embeds of messages it did not post itself; without it
-   those messages arrive with their contents stripped. Nothing else the bot
-   does needs it.
+5. Under **Privileged Gateway Intents**, enable **Message Content Intent**.
+   The bot declares this intent unconditionally, so Discord refuses the
+   connection outright — the bot fails to start — unless it is enabled here,
+   regardless of whether you use the [TP notification feed](tp-feed.md). It
+   is what lets the bot read the embeds of messages it did not post itself,
+   which that feed needs; nothing else the bot does uses it.
 
 ## 2. Invite the bot to your server
 

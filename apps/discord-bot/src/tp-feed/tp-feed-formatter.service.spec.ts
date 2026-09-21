@@ -106,6 +106,23 @@ describe('TpFeedFormatterService', () => {
     );
   });
 
+  it('breaks a tied score by the named winner rather than mislabelling a side as the loser', () => {
+    expect(
+      service.format({
+        kind: 'match-end',
+        home,
+        away,
+        homeScore: 0,
+        awayScore: 0,
+        outcome: 'win',
+        winnerName: 'Rocket From The Tombs',
+        link: 'https://tp/m/1',
+      }),
+    ).toBe(
+      'Match ended: Rocket From The Tombs won 0-0 vs EVERVAIN EGRETS — https://tp/m/1',
+    );
+  });
+
   it('formats a new skill/characteristic', () => {
     expect(
       service.format({

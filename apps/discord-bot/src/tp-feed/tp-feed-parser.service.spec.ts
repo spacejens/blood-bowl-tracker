@@ -328,7 +328,7 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  it('warns and returns null when a skill notification has an empty description', () => {
+  it('warns and returns null when a skill description is only backticks and whitespace', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
@@ -348,7 +348,6 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('field value'));
   });
 
-  // Gap 1: parseMatchEnd home team field failure
   it('warns and returns null when an end of match has a malformed home team field', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
@@ -371,7 +370,6 @@ describe('TpFeedParserService', () => {
     );
   });
 
-  // Gap 1: parseMatchEnd away team field failure
   it('warns and returns null when an end of match has a malformed away team field', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
@@ -394,7 +392,6 @@ describe('TpFeedParserService', () => {
     );
   });
 
-  // Gap 2: parseMatchEnd missing author.url
   it('warns and returns null when an end of match has no link', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
@@ -418,7 +415,6 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  // Gap 3: parseNewSkillOrCharacteristic malformed player field
   it('warns and returns null when a skill notification has a malformed player field', () => {
     const message = sampleMessage({
       author: {
@@ -440,7 +436,6 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('player field'));
   });
 
-  // Gap 3: parseNewSkillOrCharacteristic missing footer
   it('warns and returns null when a skill notification has no team footer', () => {
     const message = sampleMessage({
       author: {
@@ -461,7 +456,6 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('footer.text'));
   });
 
-  // Gap 3: parseNewSkillOrCharacteristic missing link
   it('warns and returns null when a skill notification has no link', () => {
     const message = sampleMessage({
       author: { name: 'New skill/characteristic' },
@@ -480,7 +474,6 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  // Gap 4: parseTeamField with empty race line
   it('warns and returns null when a team field has an empty race line', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
@@ -506,7 +499,6 @@ describe('TpFeedParserService', () => {
     );
   });
 
-  // Gap 4: parseTeamField with empty coach line
   it('warns and returns null when a team field has an empty coach line', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
@@ -532,28 +524,6 @@ describe('TpFeedParserService', () => {
     );
   });
 
-  // Gap 5: parseSkillDescription with undefined value (via parseNewSkillOrCharacteristic)
-  it('returns empty string from parseSkillDescription when field value is undefined', () => {
-    const message = sampleMessage({
-      author: {
-        name: 'New skill/characteristic',
-        url: 'https://tourplay.net/en/blood-bowl/roster/1',
-      },
-      fields: [
-        {
-          name: '`#8` Phothara The Crimson *(Tomb Guardian)*',
-          value: '',
-          inline: false,
-        },
-      ],
-      footer: { text: 'Some Team' },
-    });
-
-    expect(service.parse(message)).toBeNull();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('field value'));
-  });
-
-  // Gap 5: describe() with undefined embed fields
   it('includes "(none)" placeholders in describe() for undefined fields', () => {
     const message = sampleMessage({
       fields: [],
@@ -570,7 +540,6 @@ describe('TpFeedParserService', () => {
     );
   });
 
-  // Line 105: parseMatchEnd description ?? '' fallback
   it('uses default empty string when match end description is undefined', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
@@ -593,7 +562,6 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('description'));
   });
 
-  // Line 163: parsePlayerField name ? ... : undefined fallback (when name is undefined)
   it('returns null when player field is missing entirely', () => {
     const message = sampleMessage({
       author: {
@@ -608,8 +576,7 @@ describe('TpFeedParserService', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('player field'));
   });
 
-  // Line 185: parseSkillDescription value ?? '' fallback (when value is undefined)
-  it('handles skill notification with missing field value', () => {
+  it('warns and returns null when a skill notification field value is missing entirely (no value key)', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
