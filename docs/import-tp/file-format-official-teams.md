@@ -76,6 +76,7 @@ inducements; BB2020 — 39 / 192 / 67 / 49; DB2021 — 8 / 96 / 0 / 10.
   `HighElf_BB2025` + `HighElf_BB2025_Legacy`), the importer's grouping by
   display name merges each such pair into one race carrying both codes — the
   same mechanism it already uses for a race's per-rules-set code variants.
+
 - `ruleSet` — `25`, the same value on every entry in one response.
 - `tier` — `3`. Always present.
 - `prizeReRoll` — `60000`, the re-roll cost. Always present.
@@ -119,7 +120,11 @@ plus the Secret Bowl `Bretonnian_2020`. This matches what
   player's **species** (100 Dwarf, 101 Elf, 102 Orc, 106 Halfling, 112 Human,
   113 Ogre, 116 Treeman, …), not the team races the entry belongs to.
 - `positionTypes` — `1`. Bitmask, optional under BB2025 and absent throughout
-  BB2020.
+  BB2020. DB2021 carries it on all 96 positions, with a distinct bit scheme:
+  bits 1/2/4/8/16/32/64 mean the same curated positional role as under
+  BB2025, but DB2021 also sets an additional bit 128 not used by BB2025 —
+  understood as DB2021's own Big Guy signal (11 of its 12 `128` entries also
+  carry `isBigGuy: true`), not an 8th positional role.
 - `availableRaces` — `32`. A one-bit-per-team-race bitmask, present on every
   BB2020 (192/192) and DB2021 (96/96) position and all but absent under BB2025
   (1 of 568 — the Secret Bowl Werewolf roster's `Werewolf` position, a literal
@@ -153,7 +158,7 @@ may hire the star when **either** overlaps:
 - `star.availableLeagues & (roster.leagues | roster.selectableLeagues)` —
   BB2025's mechanism (60 of its 66 stars).
 - `star.availableTeamSpecialRules &
-  (roster.teamSpecialRules | roster.selectableTeamSpecialRules)` — BB2020's
+(roster.teamSpecialRules | roster.selectableTeamSpecialRules)` — BB2020's
   mechanism (all 67 stars), and still BB2025's for the 7 chaos/Chaos-Dwarf
   stars whose availability stayed a team special rule.
 

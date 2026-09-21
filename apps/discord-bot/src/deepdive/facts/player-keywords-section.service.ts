@@ -19,9 +19,11 @@ interface BuildPlayerKeywordsOptions {
  * it again here would repeat what the characteristics line above already
  * implies.
  *
- * Zero lines when that rules set records none, with no placeholder -- for
- * every pre-BB2025 player that is simply always the case, and a "none" line
- * on every one of them would be noise.
+ * Zero lines when that rules set records none, with no placeholder -- a
+ * pre-BB2025 player commonly has no keywords recorded (species keywords are
+ * BB2025-only), but not always: a BB2020 or DB2021 player recruited from a
+ * Big Guy position still gets a "Keywords: Big Guy" line, so this cannot be
+ * gated on the rules set itself, only on the resolved row set being empty.
  */
 @Injectable()
 export class PlayerKeywordsSectionService {
