@@ -183,8 +183,9 @@ tool's own composition.
      `position_rules_set_keywords` rows, one sub-table per rules set the race's eras map
      to, scoped to only the positions whose own era(s) actually reach that rules set — a
      race spanning several eras never cross-products every position against every rules
-     set — with the same `none` / highlighted `missing (no characteristics row)`
-     rendering as the starting-skills panel. As with starting skills, the raw and imported panels
+     set — with the same `none` rendering as the starting-skills panel and a highlighted
+     `missing` row (not `missing (no characteristics row)`) for a position reachable
+     under the rules set but with no stored row at all. As with starting skills, the raw and imported panels
      are never diffed against each other — TP's codes are resolved through this tool's
      own independent catalogue reader, not the importer's, so the two panels are shown
      side by side purely for a human reviewer to compare by eye.
