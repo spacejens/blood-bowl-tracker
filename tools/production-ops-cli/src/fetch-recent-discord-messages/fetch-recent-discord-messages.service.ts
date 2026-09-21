@@ -6,8 +6,8 @@ import { DiscordBotTokenService } from '../discord-bot-token/discord-bot-token.s
 const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 
 /** Discord's own bounds on the `limit` query parameter for this endpoint. */
-const MIN_COUNT = 1;
-const MAX_COUNT = 100;
+export const MIN_COUNT = 1;
+export const MAX_COUNT = 100;
 
 /**
  * Fetches the most recent messages of one Discord channel and returns

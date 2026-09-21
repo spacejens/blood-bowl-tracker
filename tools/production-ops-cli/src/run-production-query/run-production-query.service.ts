@@ -1,12 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import {
-  GitRootsService,
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
+
+import { ProductionEnvFileService } from '../production-env-file/production-env-file.service';
 
 const ENV_PRODUCTION_PATH = 'apps/discord-bot/.env.production';
 
@@ -51,7 +49,7 @@ export interface RunProductionQueryResult {
 @Injectable()
 export class RunProductionQueryService {
   constructor(
-    private readonly gitRoots: GitRootsService,
+    private readonly productionEnvFile: ProductionEnvFileService,
     private readonly processRunner: ProcessRunnerService,
   ) {}
 
@@ -108,22 +106,7 @@ export class RunProductionQueryService {
   }
 
   private async readDatabaseUrl(): Promise<string> {
-    const roots = await this.gitRoots.resolve();
-    const envPath = join(roots.worktreeRoot, ENV_PRODUCTION_PATH);
-    if (!existsSync(envPath)) {
-      throw new Error(
-        `${ENV_PRODUCTION_PATH} not found. Sync it from the main checkout ` +
-          'first (see deploy-production/SKILL.md).',
-      );
-    }
-    const contents = readFileSync(envPath, 'utf8');
-    const match = /^DATABASE_URL=(.*)$/m.exec(contents);
-    if (match === null) {
-      throw new Error(`${ENV_PRODUCTION_PATH} does not set DATABASE_URL.`);
-    }
-    // A dotenv-style value may carry a surrounding quote pair and/or a
-    // trailing CRLF that a naive read would pass straight through to psql.
-    const value = match[1].replace(/^"|"$/g, '').replace(/\r$/, '');
+    const value = await this.productionEnvFile.readValue('DATABASE_URL');
     if (!/^postgres(ql)?:\/\//.test(value)) {
       throw new Error(
         'DATABASE_URL is empty or malformed after extraction from ' +

@@ -84,6 +84,23 @@ describe('FetchRecentDiscordMessagesService', () => {
     expect((error as Error).message).not.toContain('secret-bot-token');
   });
 
+  it('accepts a count of 100, the top of Discord’s allowed range', async () => {
+    const body = [{ id: '1' }];
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(body),
+    });
+
+    const result = await service.run('123456789', 100);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/123456789/messages?limit=100',
+      { headers: { Authorization: 'Bot secret-bot-token' } },
+    );
+    expect(result).toEqual(body);
+  });
+
   it('rejects a count above Discord’s limit before reading the token or calling Discord', async () => {
     await expect(service.run('123456789', 101)).rejects.toThrow(
       /between 1 and 100/,

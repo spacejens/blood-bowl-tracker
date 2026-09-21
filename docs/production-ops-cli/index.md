@@ -31,7 +31,7 @@ pnpm build
 node tools/production-ops-cli/dist/main.js <subcommand>
 ```
 
-Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1.
+Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `fetch-recent-discord-messages` and `fetch-discord-message` additionally require `apps/discord-bot/.env.production` to be present in the worktree, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)).
 
 ## Development
 

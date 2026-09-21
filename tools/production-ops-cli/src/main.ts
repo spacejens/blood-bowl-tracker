@@ -8,7 +8,11 @@ import { INestApplicationContext } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
-import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
+import {
+  FetchRecentDiscordMessagesService,
+  MAX_COUNT,
+  MIN_COUNT,
+} from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
@@ -37,7 +41,7 @@ const RUN_PRODUCTION_QUERY_USAGE =
 
 const FETCH_RECENT_DISCORD_MESSAGES_USAGE =
   'Usage: node dist/main.js fetch-recent-discord-messages ' +
-  '<channel-id> <count> (count is 1-100)';
+  `<channel-id> <count> (count is ${MIN_COUNT}-${MAX_COUNT})`;
 
 const FETCH_DISCORD_MESSAGE_USAGE =
   'Usage: node dist/main.js fetch-discord-message ' +
@@ -99,7 +103,7 @@ function isValidMessageCount(value: string | undefined): value is string {
     return false;
   }
   const count = Number(value);
-  return Number.isInteger(count) && count >= 1 && count <= 100;
+  return Number.isInteger(count) && count >= MIN_COUNT && count <= MAX_COUNT;
 }
 
 function readFetchRecentDiscordMessagesInput(): FetchRecentDiscordMessagesInput {

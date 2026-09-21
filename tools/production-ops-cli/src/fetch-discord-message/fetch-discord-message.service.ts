@@ -7,10 +7,13 @@ const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 
 /**
  * The guild id is captured only to pin the link's shape — the REST call
- * addresses a message by channel and message id alone.
+ * addresses a message by channel and message id alone. Accepts the stable
+ * domain plus the `canary.`/`ptb.` pre-release clients and the legacy
+ * `discordapp.com` domain, since a message link copied from any of those
+ * clients points at the same message.
  */
 const MESSAGE_LINK_PATTERN =
-  /^https:\/\/discord\.com\/channels\/(\d+)\/(\d+)\/(\d+)$/;
+  /^https:\/\/(?:canary\.|ptb\.)?discord(?:app)?\.com\/channels\/(\d+)\/(\d+)\/(\d+)$/;
 
 const MESSAGE_LINK_USAGE =
   'Message link must look like ' +

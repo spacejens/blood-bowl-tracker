@@ -59,6 +59,25 @@ describe('FetchDiscordMessageService', () => {
     expect(result).toEqual(body);
   });
 
+  it('accepts a canary.discord.com message link, the same as a plain discord.com one', async () => {
+    const body = { id: '333' };
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(body),
+    });
+
+    const result = await service.run(
+      'https://canary.discord.com/channels/111/222/333',
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/222/messages/333',
+      { headers: { Authorization: 'Bot secret-bot-token' } },
+    );
+    expect(result).toEqual(body);
+  });
+
   it('throws with the status and Discord error body on a non-2xx response', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
