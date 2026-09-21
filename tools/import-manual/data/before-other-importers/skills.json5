@@ -633,8 +633,9 @@
     // --- BB2016: additional skills needed only by the ten "physical
     // rulebook" legacy races (Human, Orc, Dwarf, Skaven, Dark Elf, Elven
     // Union, High Elf, Wood Elf, Nurgle, Slann), which Teams of Legend does
-    // not cover. Categories below are confirmed against the printed BB2016
-    // core rulebook. ---
+    // not cover. Categories below are confirmed against the developer's
+    // physical copy of the Inaugural Blood Bowl Almanac, BB2016's most
+    // up-to-date printed skill list, rather than the core rulebook. ---
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
     { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
     { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
