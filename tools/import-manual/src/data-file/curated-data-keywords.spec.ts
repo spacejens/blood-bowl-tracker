@@ -19,8 +19,8 @@ describe('curated keywords', () => {
 
   it('curates every confirmed keyword exactly once', () => {
     const { keywords } = keywordsFile();
-    expect(keywords).toHaveLength(41);
-    expect(new Set(keywords.map((k) => k.name)).size).toBe(41);
+    expect(keywords).toHaveLength(48);
+    expect(new Set(keywords.map((k) => k.name)).size).toBe(48);
   });
 
   it('gives every keyword a Name id equal to its name', () => {
@@ -45,11 +45,39 @@ describe('curated keywords', () => {
     expect(new Set(codes).size).toBe(codes.length);
   });
 
-  it('curates 39 species, 1 positional and 1 special keyword', () => {
+  it('curates 39 species, 8 positional and 1 special keyword', () => {
     const kinds = keywordsFile().keywords.map((k) => k.kind);
     expect(kinds.filter((k) => k === 'species')).toHaveLength(39);
-    expect(kinds.filter((k) => k === 'positional')).toHaveLength(1);
+    expect(kinds.filter((k) => k === 'positional')).toHaveLength(8);
     expect(kinds.filter((k) => k === 'special')).toHaveLength(1);
+  });
+
+  it('keys each positional keyword by its TP positionTypes bit value', () => {
+    const byCode = new Map(
+      keywordsFile().keywords.flatMap((keyword) =>
+        keyword.externalIds
+          .filter((id) => id.system === 'tourplay.net')
+          .map((id) => [id.id, keyword] as const),
+      ),
+    );
+    // TP's `positionTypes` bitmask on every BB2025 lineUpMaster and
+    // starplayerMaster; the bit value itself is the keyword's code.
+    const expected = [
+      ['1', 'Lineman'],
+      ['2', 'Runner'],
+      ['4', 'Blitzer'],
+      ['8', 'Thrower'],
+      ['16', 'Catcher'],
+      ['32', 'Blocker'],
+      ['64', 'Special'],
+    ] as const;
+    for (const [code, name] of expected) {
+      expect(byCode.get(code)?.name).toBe(name);
+      expect(byCode.get(code)?.kind).toBe('positional');
+    }
+    // Big Guy is contributed by TP's separate `isBigGuy` flag, not a bit.
+    expect(byCode.get('134')?.name).toBe('Big Guy');
+    expect(byCode.get('134')?.kind).toBe('positional');
   });
 
   it('curates every Hatred and Animosity target code TP actually uses', () => {

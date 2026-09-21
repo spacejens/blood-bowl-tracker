@@ -13,11 +13,12 @@
 // Kinds (see packages/domain-enums/src/keywords.ts):
 //   species     -- a creature keyword. All 39 codes tourplay.net publishes in
 //                  a position's `race` array are of this kind.
-//   positional  -- a role keyword. Only "Big Guy" is curated, because it is a
-//                  confirmed Hatred target; it appears in no position's
-//                  `race` array. How tourplay.net models the other positional
-//                  keywords (Special, Blitzer, Thrower) is not known, so they
-//                  are not curated.
+//   positional  -- a role keyword. tourplay.net publishes these NOT in the
+//                  `race` array but as the integer `positionTypes` bitmask on
+//                  each position and star player, one bit per keyword; the
+//                  bit value itself is the code curated below. "Big Guy" is
+//                  the exception: it is the separate `isBigGuy` boolean, and
+//                  keeps its own code 134.
 //   special     -- the sentinel "no restriction", which Animosity's target
 //                  code 999 carries. Not a creature and not a role.
 //
@@ -75,9 +76,19 @@
     { name: 'Fae', kind: 'species', externalIds: [{ system: 'Name', id: 'Fae' }, { system: 'tourplay.net', id: '1003' }] },
     { name: 'Elemental', kind: 'species', externalIds: [{ system: 'Name', id: 'Elemental' }, { system: 'tourplay.net', id: '1004' }] },
 
-    // Positional keyword. Curated here, rather than left to the wider
-    // positional-keyword work, because it is a confirmed Hatred target code
-    // and dropping it would lose a real starting skill's target.
+    // Positional keywords. Their codes are tourplay.net's own `positionTypes`
+    // bit values, not entries in the `race` code space above, so they cannot
+    // collide with a species code.
+    { name: 'Lineman', kind: 'positional', externalIds: [{ system: 'Name', id: 'Lineman' }, { system: 'tourplay.net', id: '1' }] },
+    { name: 'Runner', kind: 'positional', externalIds: [{ system: 'Name', id: 'Runner' }, { system: 'tourplay.net', id: '2' }] },
+    { name: 'Blitzer', kind: 'positional', externalIds: [{ system: 'Name', id: 'Blitzer' }, { system: 'tourplay.net', id: '4' }] },
+    { name: 'Thrower', kind: 'positional', externalIds: [{ system: 'Name', id: 'Thrower' }, { system: 'tourplay.net', id: '8' }] },
+    { name: 'Catcher', kind: 'positional', externalIds: [{ system: 'Name', id: 'Catcher' }, { system: 'tourplay.net', id: '16' }] },
+    { name: 'Blocker', kind: 'positional', externalIds: [{ system: 'Name', id: 'Blocker' }, { system: 'tourplay.net', id: '32' }] },
+    { name: 'Special', kind: 'positional', externalIds: [{ system: 'Name', id: 'Special' }, { system: 'tourplay.net', id: '64' }] },
+    // Big Guy is not a `positionTypes` bit: tourplay.net carries it as the
+    // separate `isBigGuy` boolean, and every entry with that flag set has a
+    // null `positionTypes`.
     { name: 'Big Guy', kind: 'positional', externalIds: [{ system: 'Name', id: 'Big Guy' }, { system: 'tourplay.net', id: '134' }] },
 
     // Special keyword: Animosity's "no restriction" target.
