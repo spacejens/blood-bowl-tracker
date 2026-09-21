@@ -123,6 +123,23 @@ describe('TpFeedFormatterService', () => {
     );
   });
 
+  it('prefers the score-selected team over a winnerName that conflicts with the score', () => {
+    expect(
+      service.format({
+        kind: 'match-end',
+        home,
+        away,
+        homeScore: 2,
+        awayScore: 1,
+        outcome: 'win',
+        winnerName: 'Rocket From The Tombs',
+        link: 'https://tp/m/1',
+      }),
+    ).toBe(
+      'Match ended: EVERVAIN EGRETS won 2-1 vs ROCKET FROM THE TOMBS — https://tp/m/1',
+    );
+  });
+
   it('formats a new skill/characteristic', () => {
     expect(
       service.format({

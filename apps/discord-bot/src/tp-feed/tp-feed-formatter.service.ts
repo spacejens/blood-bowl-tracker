@@ -31,9 +31,12 @@ export class TpFeedFormatterService {
    * Which side won is decided by the scores rather than by `winnerName`:
    * TP's prose names the winner in title case ("Calavera Selvática FC") while
    * the team fields are upper-cased ("CALAVERA SELVÁTICA FC"), so the two
-   * cannot usually be matched by comparison. `winnerName` is still what gets
-   * printed, falling back to the higher-scoring team's own name if TP ever
-   * omits it.
+   * cannot usually be matched by comparison. `winnerName` is printed only
+   * when it agrees (case-insensitively) with the score-selected side — a
+   * conflicting `winnerName` (TP data inconsistency, or a tie broken by name
+   * instead — see `homeWon`) would otherwise name one side as both winner and
+   * loser. The score-selected team's own name is used whenever it doesn't
+   * agree, or when TP omits `winnerName` entirely.
    */
   private formatMatchEnd(event: MatchEndEvent): string {
     if (event.outcome === 'draw') {
@@ -44,7 +47,10 @@ export class TpFeedFormatterService {
     const loser = homeWon ? event.away : event.home;
     const winnerScore = homeWon ? event.homeScore : event.awayScore;
     const loserScore = homeWon ? event.awayScore : event.homeScore;
-    const winnerName = event.winnerName ?? winner.name;
+    const winnerName =
+      event.winnerName?.toLowerCase() === winner.name.toLowerCase()
+        ? event.winnerName
+        : winner.name;
     return `Match ended: ${winnerName} won ${winnerScore}-${loserScore} vs ${loser.name} — ${event.link}`;
   }
 
