@@ -21,6 +21,8 @@ time a skill needs it.
 | `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
 | `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
 | `reset-production-schema` | Drop and recreate the production database schemas |
+| `fetch-recent-discord-messages` | Fetch the N (1-100) most recent raw messages of a Discord channel, embeds included |
+| `fetch-discord-message` | Fetch one raw Discord message, embeds included, by its message link |
 
 ## Running it
 
@@ -29,7 +31,7 @@ pnpm build
 node tools/production-ops-cli/dist/main.js <subcommand>
 ```
 
-Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1.
+Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `fetch-recent-discord-messages` and `fetch-discord-message` additionally require `apps/discord-bot/.env.production` to be present in the worktree, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)).
 
 ## Development
 
