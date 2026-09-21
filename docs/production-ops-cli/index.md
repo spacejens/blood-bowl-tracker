@@ -21,6 +21,8 @@ time a skill needs it.
 | `stop-production-tunnel` | Stop the tunnel started by `start-production-tunnel`, using its persisted pid |
 | `run-production-query` | Run a read-only, timeout-enforced SQL query against production, reading it from stdin |
 | `reset-production-schema` | Drop and recreate the production database schemas |
+| `fetch-recent-discord-messages` | Fetch the N (1-100) most recent raw messages of a Discord channel, embeds included |
+| `fetch-discord-message` | Fetch one raw Discord message, embeds included, by its message link |
 
 ## Running it
 
