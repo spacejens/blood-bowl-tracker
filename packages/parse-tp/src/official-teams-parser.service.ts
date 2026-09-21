@@ -23,14 +23,15 @@ export interface TpOfficialPosition {
   characteristics: TpPositionCharacteristics;
   skills: TpPositionSkillRef[];
   /**
-   * The BB2025 keyword codes TP publishes for this position, in the order it
-   * lists them. TP calls the field `race`, but it is not the team's race: a
-   * code is shared across positions from unrelated team races, and one
-   * position carries up to three at once (a Zombie Lineman is Human, Zombie
-   * and Undead together). Renamed here so it cannot be confused with this
-   * codebase's own `race`.
+   * The BB2025 keyword codes TP publishes for this position, merged from the
+   * three fields it spreads them over: the `race` array (species codes — TP's
+   * name for the field is not the team's race: a code is shared across
+   * positions from unrelated team races, and a Zombie Lineman is Human,
+   * Zombie and Undead together), the `positionTypes` bitmask (positional
+   * codes such as Blitzer or Special) and the `isBigGuy` flag. Renamed here so
+   * it cannot be confused with this codebase's own `race`.
    *
-   * Empty for every pre-BB2025 rules set: TP omits the field entirely there,
+   * Empty for every pre-BB2025 rules set: TP omits all three fields there,
    * because the concept does not exist before BB2025.
    */
   keywordCodes: number[];
@@ -116,6 +117,21 @@ export interface TpOfficialRace {
  */
 const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
 
+/**
+ * TP's `positionTypes` bitmask, bit value -> the curated keyword that value
+ * IS the code of: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher,
+ * 32 Blocker, 64 Special. A position can carry several at once ("Night
+ * Runner" is 3, Lineman + Runner). Confirmed against the BB2025 rulebook.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword. TP does not give it a
+ * `positionTypes` bit — it is the separate `isBigGuy` boolean, and every entry
+ * carrying that flag has a null `positionTypes`.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
 const CharacteristicsFields = {
   ma: z.number().int(),
   st: z.number().int(),
@@ -153,6 +169,18 @@ const KeywordCodesField = {
   race: z.array(z.number().int()).default([]),
 };
 
+/**
+ * TP's other two sources of keyword codes, both BB2025-only: the
+ * `positionTypes` bitmask (see `POSITION_TYPE_CODES`) and the `isBigGuy`
+ * boolean. Nullish rather than optional on both counts — TP writes a literal
+ * `null` `positionTypes` on every Big Guy entry, and omits both fields
+ * entirely for every pre-BB2025 rules set.
+ */
+const PositionalKeywordFields = {
+  positionTypes: z.number().int().nullish(),
+  isBigGuy: z.boolean().nullish(),
+};
+
 const LineUpMasterSchema = z.object({
   id: z.number().optional(),
   position: z.string(),
@@ -160,6 +188,7 @@ const LineUpMasterSchema = z.object({
   ...SkillsField,
   ...SpecialRuleField,
   ...KeywordCodesField,
+  ...PositionalKeywordFields,
 });
 
 /**
@@ -178,6 +207,7 @@ const StarPlayerMasterSchema = z.object({
   ...SkillsField,
   ...SpecialRuleField,
   ...KeywordCodesField,
+  ...PositionalKeywordFields,
 });
 
 const RosterMasterSchema = z.object({
@@ -294,7 +324,30 @@ export class OfficialTeamsParserService {
           ? []
           : [{ name: entry.specialRuleName }]),
       ],
-      keywordCodes: entry.race,
+      keywordCodes: this.keywordCodes(entry),
     };
+  }
+
+  /**
+   * One entry's keyword codes, merging the three places TP publishes them:
+   * the `race` array (species codes), the set bits of `positionTypes`
+   * (positional codes, where the bit value IS the curated code) and the
+   * `isBigGuy` flag (`BIG_GUY_KEYWORD_CODE`). Species codes keep TP's own
+   * order and come first, then the bits ascending, then Big Guy.
+   *
+   * Deduplicated with the first occurrence winning, so a code TP happens to
+   * publish twice — in `race` and as a bit — is recorded once; the join table
+   * downstream treats `(position, rules set, keyword)` as a natural key and a
+   * repeat would otherwise be rejected as a duplicate in the same batch.
+   */
+  private keywordCodes(entry: z.infer<typeof LineUpMasterSchema>): number[] {
+    const mask = entry.positionTypes ?? 0;
+    return [
+      ...new Set([
+        ...entry.race,
+        ...POSITION_TYPE_CODES.filter((code) => (mask & code) !== 0),
+        ...(entry.isBigGuy === true ? [BIG_GUY_KEYWORD_CODE] : []),
+      ]),
+    ];
   }
 }

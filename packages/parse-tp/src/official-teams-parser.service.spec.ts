@@ -620,6 +620,105 @@ describe('OfficialTeamsParserService', () => {
     expect(races[0].positions[0].keywordCodes).toEqual([]);
   });
 
+  /**
+   * The smallest official-teams payload carrying one regular position: one
+   * BB2025 roster whose `leagues` mask matches no star, so `positions` holds
+   * exactly the one `lineUpMasters` entry.
+   */
+  const responseWithEntry = (entry: Record<string, unknown>): unknown => ({
+    rosterMasters: [
+      {
+        name: 'Dwarf',
+        teamRace: 'Dwarf_BB2025',
+        teamRosterType: 0,
+        teamSpecialRules: 256,
+        selectableTeamSpecialRules: 0,
+        leagues: 1,
+        selectableLeagues: 0,
+        lineUpMasters: [
+          {
+            id: 929,
+            position: 'Dwarf Blocker',
+            ma: 4,
+            st: 3,
+            ag: 4,
+            pa: 5,
+            av: 10,
+            ...entry,
+          },
+        ],
+      },
+    ],
+    starplayerMasters: [],
+  });
+
+  const codesOf = (response: unknown): number[] =>
+    service.parse(response)[0].positions[0].keywordCodes;
+
+  it('decodes a single positionTypes bit into its keyword code', () => {
+    expect(codesOf(responseWithEntry({ race: [], positionTypes: 32 }))).toEqual(
+      [32],
+    );
+  });
+
+  it('decodes every set positionTypes bit, in ascending bit order', () => {
+    // 6 = Runner (2) + Blitzer (4), as TP's "Dragon Prince" carries it.
+    expect(codesOf(responseWithEntry({ race: [], positionTypes: 6 }))).toEqual([
+      2, 4,
+    ]);
+  });
+
+  it('decodes the highest positionTypes bit, Special', () => {
+    expect(codesOf(responseWithEntry({ race: [], positionTypes: 64 }))).toEqual(
+      [64],
+    );
+  });
+
+  it('merges positional codes after the species codes TP lists', () => {
+    expect(
+      codesOf(responseWithEntry({ race: [112, 121], positionTypes: 3 })),
+    ).toEqual([112, 121, 1, 2]);
+  });
+
+  it('adds the Big Guy code for an entry flagged isBigGuy', () => {
+    expect(codesOf(responseWithEntry({ race: [113], isBigGuy: true }))).toEqual(
+      [113, 134],
+    );
+  });
+
+  it('adds the Big Guy code alongside a positional bit when TP carries both', () => {
+    // "Ogre Blocker"/"Mummy": isBigGuy true AND positionTypes 32.
+    expect(
+      codesOf(
+        responseWithEntry({ race: [113], positionTypes: 32, isBigGuy: true }),
+      ),
+    ).toEqual([113, 32, 134]);
+  });
+
+  it('treats a null positionTypes as no positional codes', () => {
+    expect(
+      codesOf(
+        responseWithEntry({ race: [113], positionTypes: null, isBigGuy: true }),
+      ),
+    ).toEqual([113, 134]);
+  });
+
+  it('adds no positional code for an entry flagged isBigGuy false', () => {
+    expect(
+      codesOf(responseWithEntry({ race: [112], isBigGuy: false })),
+    ).toEqual([112]);
+  });
+
+  it('records a code once when TP lists it in race and as a bit', () => {
+    expect(codesOf(responseWithEntry({ race: [134], isBigGuy: true }))).toEqual(
+      [134],
+    );
+  });
+
+  it('yields no keyword codes for a pre-BB2025 entry carrying neither field', () => {
+    expect(codesOf(responseWithEntry({}))).toEqual([]);
+  });
+
   it('rejects a non-numeric keyword code', () => {
     expect(() =>
       service.parse({
