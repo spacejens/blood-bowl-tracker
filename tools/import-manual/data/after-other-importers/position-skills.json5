@@ -86,7 +86,7 @@
 
     // --- CRP: High Elf (CRP p.24) ---
     // High Elf Linemen: no starting skills.
-    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Throw' }] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Pass' }] },
     { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Catch' }] },
     { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Block' }] },
 
@@ -189,8 +189,8 @@
     // --- CRP: Horrors of Tzeentch (Stunty Leeg handbook p.9) ---
     { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Horror' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Jump Up' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Stunty' }, { system: 'Name', id: 'Throw Team-Mate' }] },
     { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Greater Horror' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Throw Team-Mate' }] },
-    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Flamers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Safe Throw' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Very Long Legs' }] },
-    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Fire Wyrms' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Wild Animal' }, { system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Safe Throw' }] },
+    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Flamers' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Leap' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Safe Pass' }, { system: 'Name', id: 'Sprint' }, { system: 'Name', id: 'Very Long Legs' }] },
+    { position: { system: 'Name', id: 'SL - Horrors Of Tzeentch: SL - Fire Wyrms' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Loner' }, { system: 'Name', id: 'Wild Animal' }, { system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Foul Appearance' }, { system: 'Name', id: 'No Hands' }, { system: 'Name', id: 'Regeneration' }, { system: 'Name', id: 'Safe Pass' }] },
 
     // --- CRP: Pygmy (Stunty Leeg handbook p.10) ---
     { position: { system: 'Name', id: 'SL - Pygmies: SL - Pygmies' }, rulesSet: { system: 'Name', id: 'CRP' }, skills: [{ system: 'Name', id: 'Dodge' }, { system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Shadowing' }, { system: 'Name', id: 'Stunty' }] },
@@ -272,8 +272,8 @@
     // --- CRP+: High Elf (NTBB2015 p.5) ---
     // High Elf Linemen: no starting skills.
     // NTBB2015 prints "Accurate" in red on the Throwers row, on top of CRP's
-    // own Pass/Safe Throw list -- a genuine CRP+ addition.
-    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Throw' }, { system: 'Name', id: 'Accurate' }] },
+    // own Pass/Safe Pass list -- a genuine CRP+ addition.
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Pass' }, { system: 'Name', id: 'Accurate' }] },
     { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Catch' }] },
     { position: { system: 'Name', id: 'High Elf: High Elf Blitzers' }, rulesSet: { system: 'Name', id: 'CRP+' }, skills: [{ system: 'Name', id: 'Block' }] },
 
@@ -565,7 +565,7 @@
     // --- BB2016: High Elf (public rules reference -- TODO: verify) ---
     // High Elf Linemen: no starting skills.
     // TODO: verify against the physical BB2016 rulebook.
-    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Throw' }] },
+    { position: { system: 'Name', id: 'High Elf: High Elf Throwers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Pass' }, { system: 'Name', id: 'Safe Pass' }] },
     // TODO: verify against the physical BB2016 rulebook.
     { position: { system: 'Name', id: 'High Elf: High Elf Catchers' }, rulesSet: { system: 'Name', id: 'BB2016' }, skills: [{ system: 'Name', id: 'Catch' }] },
     // TODO: verify against the physical BB2016 rulebook.
