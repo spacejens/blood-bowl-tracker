@@ -19,17 +19,30 @@ const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
  * TP's `positionTypes` bitmask on a position template, bit value -> the
  * curated positional keyword whose code that bit value IS: 1 Lineman,
  * 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher, 32 Blocker, 64 Special.
- * DB2021 also carries an additional bit (128) outside this table,
- * correlating loosely with `isBigGuy`; it does not correspond to any curated
- * positional keyword and is deliberately left undecoded.
+ * DB2021 also carries an additional bit (128) outside this table, which is
+ * NOT an 8th positional role — see `DB2021_BIG_GUY_BIT` below, decoded
+ * separately as its own source of the Big Guy keyword.
  */
 const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
 
 /**
- * The curated code of the "Big Guy" positional keyword, which TP carries as
- * the separate `isBigGuy` boolean rather than as a `positionTypes` bit.
+ * The curated code of the "Big Guy" positional keyword, which TP normally
+ * carries as the separate `isBigGuy` boolean rather than as a
+ * `positionTypes` bit in the curated 1-64 table above.
  */
 const BIG_GUY_KEYWORD_CODE = 134;
+
+/**
+ * DB2021's own Big Guy signal, distinct from the curated `POSITION_TYPE_CODES`
+ * table: of DB2021's 12 `positionTypes: 128` entries, 11 also carry
+ * `isBigGuy: true` (e.g. DB2021 uses bit 128 where BB2025 uses bit 32 for the
+ * same position type, "Ogre Blocker"). The one exception ("College of
+ * Death / Mummy") also lacks `isBigGuy` on its BB2020 twin entry, suggesting
+ * TP simply omits the boolean there rather than a real rules distinction.
+ * Treated as an independent, additional source of `BIG_GUY_KEYWORD_CODE`
+ * alongside `isBigGuy`, not as an 8th positional role.
+ */
+const DB2021_BIG_GUY_BIT = 128;
 
 /** Everything the raw side knows about one TP player, from the files alone. */
 export interface TpRawPlayerAggregate {
@@ -429,12 +442,15 @@ export class TpRawPlayerIndexService {
    * One template's keyword codes: its `race` array (species codes) in TP's own
    * order, then the set bits of `positionTypes` ascending (positional codes,
    * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE`
-   * whenever `isBigGuy` is set. `isBigGuy` is not BB2025-only — BB2020 and
-   * DB2021 templates carry it with neither `race` nor `positionTypes` — and
-   * Big Guy is a genuine positional keyword under those rules sets too, so it
-   * is decoded unconditionally. Deduplicated, first occurrence winning. Null
-   * when the template carries none of the three fields at all, which is how
-   * "TP publishes nothing here" is reported to the panel (distinct from
+   * whenever `isBigGuy` is set or `positionTypes` carries
+   * `DB2021_BIG_GUY_BIT`. `isBigGuy` is not BB2025-only — BB2020 carries it
+   * with neither `race` nor `positionTypes` (39 entries); DB2021 carries it
+   * alongside `positionTypes` but never `race` (12 entries) — and Big Guy is
+   * a genuine positional keyword under those rules sets too, so it is
+   * decoded unconditionally. Deduplicated, first occurrence winning, so a
+   * template with both `isBigGuy` and bit 128 still only gets the code once.
+   * Null when the template carries none of the three fields at all, which is
+   * how "TP publishes nothing here" is reported to the panel (distinct from
    * carrying `isBigGuy` alone, which reports as `[134]`).
    *
    * Decoded here rather than reused from packages/parse-tp: that parser's
@@ -444,7 +460,9 @@ export class TpRawPlayerIndexService {
   private templateKeywordCodes(master: unknown): number[] | null {
     const species = this.numberArrayProperty(master, 'race');
     const mask = this.numberProperty(master, 'positionTypes');
-    const isBigGuy = this.booleanProperty(master, 'isBigGuy') === true;
+    const isBigGuy =
+      this.booleanProperty(master, 'isBigGuy') === true ||
+      ((mask ?? 0) & DB2021_BIG_GUY_BIT) !== 0;
     if (species === null && mask === null && !isBigGuy) {
       return null;
     }

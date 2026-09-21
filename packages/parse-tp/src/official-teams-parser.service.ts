@@ -125,19 +125,32 @@ const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
  * IS the code of: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher,
  * 32 Blocker, 64 Special. A position can carry several at once ("Night
  * Runner" is 3, Lineman + Runner). Confirmed against the BB2025 rulebook.
- * DB2021 also carries an additional bit (128) outside this table,
- * correlating loosely with `isBigGuy`; it does not correspond to any curated
- * positional keyword and is deliberately left undecoded.
+ * DB2021 also carries an additional bit (128) outside this table, which is
+ * NOT an 8th positional role — see `DB2021_BIG_GUY_BIT` below, decoded
+ * separately as its own source of the Big Guy keyword.
  */
 const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
 
 /**
  * The curated code of the "Big Guy" positional keyword. TP does not give it a
- * `positionTypes` bit — it is the separate `isBigGuy` boolean. Some BB2025
- * entries carry both a `positionTypes` bit and `isBigGuy` at once (e.g.
- * "Deathroller", "Ogre Blocker", "Mummy").
+ * `positionTypes` bit in the curated 1-64 table above — it is normally the
+ * separate `isBigGuy` boolean. Some BB2025 entries carry both a
+ * `positionTypes` bit and `isBigGuy` at once (e.g. "Deathroller", "Ogre
+ * Blocker", "Mummy").
  */
 const BIG_GUY_KEYWORD_CODE = 134;
+
+/**
+ * DB2021's own Big Guy signal, distinct from the curated `POSITION_TYPE_CODES`
+ * table: of DB2021's 12 `positionTypes: 128` entries, 11 also carry
+ * `isBigGuy: true` (e.g. DB2021 uses bit 128 where BB2025 uses bit 32 for the
+ * same position type, "Ogre Blocker"). The one exception ("College of
+ * Death / Mummy") also lacks `isBigGuy` on its BB2020 twin entry, suggesting
+ * TP simply omits the boolean there rather than a real rules distinction.
+ * Treated as an independent, additional source of `BIG_GUY_KEYWORD_CODE`
+ * alongside `isBigGuy`, not as an 8th positional role.
+ */
+const DB2021_BIG_GUY_BIT = 128;
 
 const CharacteristicsFields = {
   ma: z.number().int(),
@@ -345,26 +358,31 @@ export class OfficialTeamsParserService {
    * order and come first, then the bits ascending, then Big Guy.
    *
    * `isBigGuy` contributes Big Guy unconditionally whenever it is `true` — it
-   * is not gated on `race` or `positionTypes`. BB2020 and DB2021 data carry
-   * it on dozens of entries (e.g. "Trained Troll", "Minotaur") with neither
-   * `race` nor `positionTypes`, and Big Guy is a genuine positional keyword
-   * under those rules sets too, not just BB2025.
+   * is not gated on `race` or `positionTypes`. BB2020 carries `isBigGuy` with
+   * neither `race` nor `positionTypes` (39 entries); DB2021 carries it
+   * alongside `positionTypes` but never `race` (12 entries). Big Guy is a
+   * genuine positional keyword under those rules sets too, not just BB2025.
+   * DB2021's `positionTypes` bit 128 (`DB2021_BIG_GUY_BIT`) is a second,
+   * independent source of the same code — see that constant's comment.
    *
    * Deduplicated with the first occurrence winning, so a code TP happens to
-   * publish twice — in `race` and as a bit — is recorded once; the join table
-   * downstream treats `(position, rules set, keyword)` as a natural key and a
-   * repeat would otherwise be rejected as a duplicate in the same batch.
+   * publish twice — in `race` and as a bit, or via both `isBigGuy` and bit
+   * 128 — is recorded once; the join table downstream treats
+   * `(position, rules set, keyword)` as a natural key and a repeat would
+   * otherwise be rejected as a duplicate in the same batch.
    */
   private keywordCodes(entry: z.infer<typeof LineUpMasterSchema>): number[] {
     const mask = entry.positionTypes ?? 0;
     const positionalCodes = POSITION_TYPE_CODES.filter(
       (code) => (mask & code) !== 0,
     );
+    const isBigGuy =
+      entry.isBigGuy === true || (mask & DB2021_BIG_GUY_BIT) !== 0;
     return [
       ...new Set([
         ...entry.race,
         ...positionalCodes,
-        ...(entry.isBigGuy === true ? [BIG_GUY_KEYWORD_CODE] : []),
+        ...(isBigGuy ? [BIG_GUY_KEYWORD_CODE] : []),
       ]),
     ];
   }

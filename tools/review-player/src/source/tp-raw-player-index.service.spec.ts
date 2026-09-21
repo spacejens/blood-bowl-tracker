@@ -687,15 +687,22 @@ describe('TpRawPlayerIndexService', () => {
     expect(aggregate?.templateKeywordCodes).toEqual([32]);
   });
 
-  it('gives no keyword code for a DB2021-shaped template carrying only the unrecognized positionTypes bit 128', async () => {
-    // Real shape from DB2021 data: 128 is not one of the 7 recognized bits
-    // and correlates loosely (not exactly) with isBigGuy, so it is
-    // deliberately left undecoded.
+  it('adds the Big Guy code for a DB2021-shaped template with positionTypes bit 128 alone', async () => {
+    // Real shape from DB2021 data: bit 128 is DB2021's own Big Guy signal, no
+    // isBigGuy set.
     writeRosterWithTemplate({ positionTypes: 128 });
 
     const aggregate = await service.aggregateFor('2477481');
 
-    expect(aggregate?.templateKeywordCodes).toEqual([]);
+    expect(aggregate?.templateKeywordCodes).toEqual([134]);
+  });
+
+  it('adds the Big Guy code once for a DB2021-shaped template with both positionTypes bit 128 and isBigGuy', async () => {
+    writeRosterWithTemplate({ positionTypes: 128, isBigGuy: true });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([134]);
   });
 
   it('reports null template keyword data when the template carries none of the three fields', async () => {

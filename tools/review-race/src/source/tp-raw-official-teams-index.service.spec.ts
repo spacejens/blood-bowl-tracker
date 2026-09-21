@@ -657,10 +657,9 @@ describe('TpRawOfficialTeamsIndexService', () => {
     expect(race?.positions[0].keywordCodes).toEqual([32]);
   });
 
-  it('gives no keyword code for a DB2021-shaped entry carrying only the unrecognized positionTypes bit 128', async () => {
-    // Real shape from DB2021 data: 128 is not one of the 7 recognized bits
-    // and correlates loosely (not exactly) with isBigGuy, so it is
-    // deliberately left undecoded.
+  it('adds the Big Guy code for a DB2021-shaped entry with positionTypes bit 128 alone', async () => {
+    // Real shape from DB2021 data: bit 128 is DB2021's own Big Guy signal, no
+    // isBigGuy set.
     write('DB2021', {
       rosterMasters: [
         roster({ lineUpMasters: [lineman({ positionTypes: 128 })] }),
@@ -670,7 +669,22 @@ describe('TpRawOfficialTeamsIndexService', () => {
 
     const race = await service.raceFor('Dwarf_BB2025');
 
-    expect(race?.positions[0].keywordCodes).toEqual([]);
+    expect(race?.positions[0].keywordCodes).toEqual([134]);
+  });
+
+  it('adds the Big Guy code once for a DB2021-shaped entry with both positionTypes bit 128 and isBigGuy', async () => {
+    write('DB2021', {
+      rosterMasters: [
+        roster({
+          lineUpMasters: [lineman({ positionTypes: 128, isBigGuy: true })],
+        }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].keywordCodes).toEqual([134]);
   });
 
   it('yields no positional codes rather than throwing for a non-numeric positionTypes', async () => {

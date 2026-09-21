@@ -428,10 +428,9 @@ describe('TpRawStarPlayerIndexService', () => {
     expect(star?.entries[0]?.keywordCodes).toEqual([32]);
   });
 
-  it('gives no keyword code for a DB2021-shaped entry carrying only the unrecognized positionTypes bit 128', async () => {
-    // Real shape from DB2021 data: 128 is not one of the 7 recognized bits
-    // and correlates loosely (not exactly) with isBigGuy, so it is
-    // deliberately left undecoded.
+  it('adds the Big Guy code for a DB2021-shaped entry with positionTypes bit 128 alone', async () => {
+    // Real shape from DB2021 data: bit 128 is DB2021's own Big Guy signal, no
+    // isBigGuy set.
     writeRulesSet('DB2021', {
       rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
       starplayerMasters: [{ ...ELDRIL, positionTypes: 128 }],
@@ -440,7 +439,19 @@ describe('TpRawStarPlayerIndexService', () => {
 
     const star = await service.starFor('Eldril Sidewinder');
 
-    expect(star?.entries[0]?.keywordCodes).toEqual([]);
+    expect(star?.entries[0]?.keywordCodes).toEqual([134]);
+  });
+
+  it('adds the Big Guy code once for a DB2021-shaped entry with both positionTypes bit 128 and isBigGuy', async () => {
+    writeRulesSet('DB2021', {
+      rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
+      starplayerMasters: [{ ...ELDRIL, positionTypes: 128, isBigGuy: true }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([134]);
   });
 
   it('reports no positional data for a star entry carrying neither field', async () => {
