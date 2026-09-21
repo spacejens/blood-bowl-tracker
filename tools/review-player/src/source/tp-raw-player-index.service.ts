@@ -15,6 +15,19 @@ const ROSTERS_FILENAME = /^rosters_(\d+)\.json$/;
 /** The two rosters a TP `match_<id>.json` embeds its line-ups under. */
 const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
 
+/**
+ * TP's `positionTypes` bitmask on a position template, bit value -> the
+ * curated positional keyword whose code that bit value IS: 1 Lineman,
+ * 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher, 32 Blocker, 64 Special.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword, which TP carries as
+ * the separate `isBigGuy` boolean rather than as a `positionTypes` bit.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
 /** Everything the raw side knows about one TP player, from the files alone. */
 export interface TpRawPlayerAggregate {
   lineUpId: number;
@@ -61,12 +74,26 @@ export interface TpRawPlayerAggregate {
   templateArmour: number | null;
   /**
    * The BB2025 keyword codes of the position template this player was
-   * recruited from, out of `lineUps[].lineUpMaster.race`. Null when no
-   * downloaded roster file carries the player's line-up id -- the same
-   * absence the template characteristics beside it already report. Empty for
-   * a pre-BB2025 roster, where TP publishes no codes.
+   * recruited from, merged from all three fields TP spreads them over on
+   * `lineUps[].lineUpMaster`: `race` (species codes), the set bits of
+   * `positionTypes` (positional codes) and `isBigGuy`. Null when no downloaded
+   * roster file carries the player's line-up id, or when the template that
+   * does carries none of the three -- the same absence the template
+   * characteristics beside it already report.
    */
   templateKeywordCodes: number[] | null;
+  /**
+   * The template's raw `positionTypes` and `isBigGuy` values, shown beside the
+   * decoded codes so a reviewer can check the decode without reading the
+   * downloaded JSON by hand. `positionTypes` is null whenever TP carries no
+   * numeric value (it writes a literal null on every Big Guy template);
+   * `templateIsBigGuy` is null when the template carries none of the three
+   * keyword fields -- the same overall absence `templateKeywordCodes`
+   * reports -- and otherwise the raw flag, false when the template carries no
+   * flag of its own.
+   */
+  templatePositionTypes: number | null;
+  templateIsBigGuy: boolean | null;
 }
 
 /** Mutable accumulator, plus the match id the reported total came from. */
@@ -94,6 +121,8 @@ interface RawCharacteristics {
   templatePassing: number | null;
   templateArmour: number | null;
   templateKeywordCodes: number[] | null;
+  templatePositionTypes: number | null;
+  templateIsBigGuy: boolean | null;
 }
 
 /**
@@ -210,6 +239,8 @@ export class TpRawPlayerIndexService {
         player.templatePassing = line.templatePassing;
         player.templateArmour = line.templateArmour;
         player.templateKeywordCodes = line.templateKeywordCodes;
+        player.templatePositionTypes = line.templatePositionTypes;
+        player.templateIsBigGuy = line.templateIsBigGuy;
       }
     }
   }
@@ -270,6 +301,8 @@ export class TpRawPlayerIndexService {
       templatePassing: null,
       templateArmour: null,
       templateKeywordCodes: null,
+      templatePositionTypes: null,
+      templateIsBigGuy: null,
     };
     player.matchCount += 1;
     // TP's match ids increase over time, so the highest one a player appears
@@ -368,12 +401,62 @@ export class TpRawPlayerIndexService {
           this.property(entry, 'lineUpMaster'),
           'av',
         ),
-        templateKeywordCodes: this.numberArrayProperty(
+        templateKeywordCodes: this.templateKeywordCodes(
           this.property(entry, 'lineUpMaster'),
-          'race',
+        ),
+        templatePositionTypes: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'positionTypes',
+        ),
+        templateIsBigGuy: this.templateIsBigGuy(
+          this.property(entry, 'lineUpMaster'),
         ),
       });
     }
+  }
+
+  /**
+   * One template's keyword codes: its `race` array (species codes) in TP's own
+   * order, then the set bits of `positionTypes` ascending (positional codes,
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE` when
+   * `isBigGuy` is set. Deduplicated, first occurrence winning. Null when the
+   * template carries none of the three, which is how "TP publishes nothing
+   * here" is reported to the panel.
+   *
+   * Decoded here rather than reused from packages/parse-tp: that parser's
+   * reading of these files is the code under review, and a bug in it must not
+   * agree with itself against the raw display.
+   */
+  private templateKeywordCodes(master: unknown): number[] | null {
+    const species = this.numberArrayProperty(master, 'race');
+    const mask = this.numberProperty(master, 'positionTypes');
+    const isBigGuy = this.booleanProperty(master, 'isBigGuy') === true;
+    if (species === null && mask === null && !isBigGuy) {
+      return null;
+    }
+    return [
+      ...new Set([
+        ...(species ?? []),
+        ...POSITION_TYPE_CODES.filter((code) => ((mask ?? 0) & code) !== 0),
+        ...(isBigGuy ? [BIG_GUY_KEYWORD_CODE] : []),
+      ]),
+    ];
+  }
+
+  /**
+   * The template's raw `isBigGuy` flag: false for a template that carries at
+   * least one of the other two keyword fields but no flag of its own, and
+   * null when the template carries none of the three -- the same overall
+   * absence `templateKeywordCodes` reports.
+   */
+  private templateIsBigGuy(master: unknown): boolean | null {
+    const species = this.numberArrayProperty(master, 'race');
+    const mask = this.numberProperty(master, 'positionTypes');
+    const isBigGuy = this.booleanProperty(master, 'isBigGuy') === true;
+    if (species === null && mask === null && !isBigGuy) {
+      return null;
+    }
+    return isBigGuy;
   }
 
   private numberProperty(value: unknown, key: string): number | null {

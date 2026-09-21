@@ -32,6 +32,8 @@ function aggregate(
     templatePassing: null,
     templateArmour: null,
     templateKeywordCodes: null,
+    templatePositionTypes: null,
+    templateIsBigGuy: null,
     ...overrides,
   };
 }
