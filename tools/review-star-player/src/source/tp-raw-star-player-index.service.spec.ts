@@ -399,8 +399,8 @@ describe('TpRawStarPlayerIndexService', () => {
     expect(star?.entries[0]?.isBigGuy).toBe(true);
   });
 
-  it('gives no Big Guy keyword code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', async () => {
-    // Real shape from BB2020/DB2021 data: isBigGuy true, no race array, no
+  it('gives the Big Guy keyword code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', async () => {
+    // Real shape from BB2020 data: isBigGuy true, no race array, no
     // positionTypes.
     writeRulesSet('BB2020', {
       rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
@@ -411,6 +411,35 @@ describe('TpRawStarPlayerIndexService', () => {
     const star = await service.starFor('Eldril Sidewinder');
 
     expect(star?.entries[0]?.isBigGuy).toBe(true);
+    expect(star?.entries[0]?.keywordCodes).toEqual([134]);
+  });
+
+  it('decodes a recognized positionTypes bit for a DB2021-shaped entry with no race or isBigGuy', async () => {
+    // Real shape from DB2021 data: positionTypes carries a recognized bit,
+    // no race array, no isBigGuy.
+    writeRulesSet('DB2021', {
+      rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
+      starplayerMasters: [{ ...ELDRIL, positionTypes: 32 }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([32]);
+  });
+
+  it('gives no keyword code for a DB2021-shaped entry carrying only the unrecognized positionTypes bit 128', async () => {
+    // Real shape from DB2021 data: 128 is not one of the 7 recognized bits
+    // and correlates loosely (not exactly) with isBigGuy, so it is
+    // deliberately left undecoded.
+    writeRulesSet('DB2021', {
+      rosterMasters: [{ ...DWARF, teamRace: 'Dwarf' }],
+      starplayerMasters: [{ ...ELDRIL, positionTypes: 128 }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
     expect(star?.entries[0]?.keywordCodes).toEqual([]);
   });
 

@@ -23,6 +23,9 @@ const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
  * TP's `positionTypes` bitmask, bit value -> the curated positional keyword
  * whose code that bit value IS: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower,
  * 16 Catcher, 32 Blocker, 64 Special. One entry can carry several bits.
+ * DB2021 also carries an additional bit (128) outside this table,
+ * correlating loosely with `isBigGuy`; it does not correspond to any curated
+ * positional keyword and is deliberately left undecoded.
  */
 const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
 
@@ -80,10 +83,11 @@ export interface TpRawOfficialPosition {
    * three fields it spreads them over: `race` (species codes), the set bits
    * of `positionTypes` (positional codes) and `isBigGuy`. TP's name for the
    * `race` field is not the team's race — a code is shared across unrelated
-   * team races. Empty for a pre-BB2025 rules set: even though `isBigGuy` can
-   * appear there, it never contributes a keyword code without an
-   * accompanying `race` or `positionTypes` value, which pre-BB2025 data never
-   * has.
+   * team races. Species codes are BB2025-only in practice (no other rules
+   * set's data carries a non-empty `race`), but positional codes and Big Guy
+   * are not BB2025-exclusive: DB2021 publishes the full positional set and
+   * BB2020 and DB2021 both publish `isBigGuy`, so this can be non-empty for
+   * those rules sets too.
    */
   keywordCodes: number[];
   /**
@@ -339,13 +343,12 @@ export class TpRawOfficialTeamsIndexService {
   /**
    * One entry's keyword codes: its `race` array (species codes) in TP's own
    * order, then the set bits of `positionTypes` ascending (positional codes,
-   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE` when
-   * `isBigGuy` is set AND the entry also carries a non-empty `race` or at
-   * least one `positionTypes` bit. `isBigGuy` is not actually BB2025-only —
-   * BB2020/DB2021 data carries it on dozens of entries with neither `race`
-   * nor `positionTypes` — and keywords are a BB2025-only concept, so an
-   * ungated Big Guy would wrongly decode a keyword for an earlier rules set.
-   * Deduplicated, first occurrence winning.
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE`
+   * whenever `isBigGuy` is set. `isBigGuy` is not BB2025-only — BB2020 and
+   * DB2021 data carries it on dozens of entries with neither `race` nor
+   * `positionTypes` — and Big Guy is a genuine positional keyword under those
+   * rules sets too, so it is decoded unconditionally. Deduplicated, first
+   * occurrence winning.
    *
    * Decoded here rather than reused from packages/parse-tp: that parser's
    * reading of these files is the code under review, and a bug in it must not
@@ -359,13 +362,11 @@ export class TpRawOfficialTeamsIndexService {
     const positionalCodes = POSITION_TYPE_CODES.filter(
       (code) => (mask & code) !== 0,
     );
-    const hasBb2025KeywordSpace =
-      species.length > 0 || positionalCodes.length > 0;
     return [
       ...new Set([
         ...species,
         ...positionalCodes,
-        ...(this.property(entry, 'isBigGuy') === true && hasBb2025KeywordSpace
+        ...(this.property(entry, 'isBigGuy') === true
           ? [BIG_GUY_KEYWORD_CODE]
           : []),
       ]),

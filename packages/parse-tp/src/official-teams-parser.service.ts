@@ -23,17 +23,19 @@ export interface TpOfficialPosition {
   characteristics: TpPositionCharacteristics;
   skills: TpPositionSkillRef[];
   /**
-   * The BB2025 keyword codes TP publishes for this position, merged from the
-   * three fields it spreads them over: the `race` array (species codes — TP's
-   * name for the field is not the team's race: a code is shared across
-   * positions from unrelated team races, and a Zombie Lineman is Human,
-   * Zombie and Undead together), the `positionTypes` bitmask (positional
-   * codes such as Blitzer or Special) and the `isBigGuy` flag. Renamed here so
-   * it cannot be confused with this codebase's own `race`.
+   * The keyword codes TP publishes for this position, merged from the three
+   * fields it spreads them over: the `race` array (species codes — TP's name
+   * for the field is not the team's race: a code is shared across positions
+   * from unrelated team races, and a Zombie Lineman is Human, Zombie and
+   * Undead together), the `positionTypes` bitmask (positional codes such as
+   * Blitzer or Special) and the `isBigGuy` flag. Renamed here so it cannot be
+   * confused with this codebase's own `race`.
    *
-   * Empty for a pre-BB2025 rules set: even though `isBigGuy` can appear
-   * there, it never contributes a keyword code without an accompanying
-   * `race` or `positionTypes` value, which pre-BB2025 data never has.
+   * Species codes are BB2025-only in practice: no other rules set's
+   * downloaded data carries a non-empty `race` array. Positional codes and
+   * Big Guy are not BB2025-exclusive — DB2021 publishes the full positional
+   * set (via `positionTypes`) and BB2020 and DB2021 both publish `isBigGuy` —
+   * so this field can be non-empty for those rules sets too.
    */
   keywordCodes: number[];
 }
@@ -123,6 +125,9 @@ const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
  * IS the code of: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher,
  * 32 Blocker, 64 Special. A position can carry several at once ("Night
  * Runner" is 3, Lineman + Runner). Confirmed against the BB2025 rulebook.
+ * DB2021 also carries an additional bit (128) outside this table,
+ * correlating loosely with `isBigGuy`; it does not correspond to any curated
+ * positional keyword and is deliberately left undecoded.
  */
 const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
 
@@ -162,22 +167,23 @@ const SpecialRuleField = {
 };
 
 /**
- * TP's `race` array: the position's BB2025 keyword codes. Defaulted rather
- * than optional, so the parsed shape is always an array and no consumer has
- * to distinguish "absent" from "empty" — for every pre-BB2025 rules set the
- * field is simply absent and the answer is the same either way.
+ * TP's `race` array: the position's species keyword codes, BB2025-only in
+ * practice. Defaulted rather than optional, so the parsed shape is always an
+ * array and no consumer has to distinguish "absent" from "empty" — for every
+ * other rules set the field is simply absent and the answer is the same
+ * either way.
  */
 const KeywordCodesField = {
   race: z.array(z.number().int()).default([]),
 };
 
 /**
- * TP's other two sources of keyword codes, both BB2025-only in practice: the
- * `positionTypes` bitmask (see `POSITION_TYPE_CODES`) and the `isBigGuy`
- * boolean. Nullish rather than optional on both counts, defensively — TP
- * simply omits both fields for every pre-BB2025 rules set, except that
- * `isBigGuy` can still appear there (see `BIG_GUY_KEYWORD_CODE`'s gating in
- * `keywordCodes`).
+ * TP's other two sources of keyword codes: the `positionTypes` bitmask (see
+ * `POSITION_TYPE_CODES`) and the `isBigGuy` boolean. Neither is BB2025-only —
+ * DB2021 publishes `positionTypes` (the full positional set) and both
+ * BB2020 and DB2021 publish `isBigGuy` — so both are decoded unconditionally
+ * wherever present. Nullish rather than optional on both counts,
+ * defensively: BB2020 omits `positionTypes` entirely.
  */
 const PositionalKeywordFields = {
   positionTypes: z.number().int().nullish(),
@@ -338,15 +344,11 @@ export class OfficialTeamsParserService {
    * `isBigGuy` flag (`BIG_GUY_KEYWORD_CODE`). Species codes keep TP's own
    * order and come first, then the bits ascending, then Big Guy.
    *
-   * `isBigGuy` alone does not contribute Big Guy: it is gated on the entry
-   * also carrying BB2025's keyword space (a non-empty `race` or at least one
-   * `positionTypes` bit). `isBigGuy` is not actually BB2025-only — BB2020 and
-   * DB2021 data carry it on dozens of entries (e.g. "Trained Troll",
-   * "Minotaur") with neither `race` nor `positionTypes` — and keywords are a
-   * BB2025-only concept, so an ungated Big Guy would wrongly write a keyword
-   * row under an earlier rules set. Every real BB2025 Big Guy entry carries a
-   * non-empty `race` (species is still recorded even for Big Guys), so this
-   * gate never drops a genuine BB2025 Big Guy keyword.
+   * `isBigGuy` contributes Big Guy unconditionally whenever it is `true` — it
+   * is not gated on `race` or `positionTypes`. BB2020 and DB2021 data carry
+   * it on dozens of entries (e.g. "Trained Troll", "Minotaur") with neither
+   * `race` nor `positionTypes`, and Big Guy is a genuine positional keyword
+   * under those rules sets too, not just BB2025.
    *
    * Deduplicated with the first occurrence winning, so a code TP happens to
    * publish twice — in `race` and as a bit — is recorded once; the join table
@@ -358,15 +360,11 @@ export class OfficialTeamsParserService {
     const positionalCodes = POSITION_TYPE_CODES.filter(
       (code) => (mask & code) !== 0,
     );
-    const hasBb2025KeywordSpace =
-      entry.race.length > 0 || positionalCodes.length > 0;
     return [
       ...new Set([
         ...entry.race,
         ...positionalCodes,
-        ...(entry.isBigGuy === true && hasBb2025KeywordSpace
-          ? [BIG_GUY_KEYWORD_CODE]
-          : []),
+        ...(entry.isBigGuy === true ? [BIG_GUY_KEYWORD_CODE] : []),
       ]),
     ];
   }

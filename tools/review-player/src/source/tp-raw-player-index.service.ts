@@ -19,6 +19,9 @@ const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
  * TP's `positionTypes` bitmask on a position template, bit value -> the
  * curated positional keyword whose code that bit value IS: 1 Lineman,
  * 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher, 32 Blocker, 64 Special.
+ * DB2021 also carries an additional bit (128) outside this table,
+ * correlating loosely with `isBigGuy`; it does not correspond to any curated
+ * positional keyword and is deliberately left undecoded.
  */
 const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
 
@@ -60,7 +63,7 @@ export interface TpRawPlayerAggregate {
    * that carries their line-up id. Null when no downloaded roster file does —
    * TP publishes all of this only in `rosters_<id>.json`.
    *
-   * (See `templateKeywordCodes` below for how `isBigGuy` there is gated.)
+   * (See `templateKeywordCodes` below for how `isBigGuy` there is decoded.)
    *
    * The template is what makes a stat reduction visible at all: TP has no
    * explicit flag for one, and the review panel shows the current value next
@@ -75,15 +78,15 @@ export interface TpRawPlayerAggregate {
   templatePassing: number | null;
   templateArmour: number | null;
   /**
-   * The BB2025 keyword codes of the position template this player was
-   * recruited from, merged from all three fields TP spreads them over on
-   * `lineUps[].lineUpMaster`: `race` (species codes), the set bits of
-   * `positionTypes` (positional codes) and `isBigGuy`, the last gated on the
-   * template also carrying a non-empty `race` or at least one `positionTypes`
-   * bit (see `templateKeywordCodes` below). Null when no downloaded roster
-   * file carries the player's line-up id, or when the template that does
-   * carries none of the three -- the same absence the template
-   * characteristics beside it already report.
+   * The keyword codes of the position template this player was recruited
+   * from, merged from all three fields TP spreads them over on
+   * `lineUps[].lineUpMaster`: `race` (species codes, BB2025-only in
+   * practice), the set bits of `positionTypes` (positional codes -- also
+   * published by DB2021) and `isBigGuy` (also published by BB2020 and
+   * DB2021), decoded unconditionally (see `templateKeywordCodes` below).
+   * Null when no downloaded roster file carries the player's line-up id, or
+   * when the template that does carries none of the three -- the same
+   * absence the template characteristics beside it already report.
    */
   templateKeywordCodes: number[] | null;
   /**
@@ -92,12 +95,12 @@ export interface TpRawPlayerAggregate {
    * downloaded JSON by hand. `positionTypes` is null whenever TP carries no
    * numeric value -- TP simply omits the field rather than writing a literal
    * null, both for a Big Guy template (though some BB2025 templates carry
-   * both a `positionTypes` bit and `isBigGuy` at once) and for a pre-BB2025
-   * one; `templateIsBigGuy` is null when the template carries none of the
-   * three keyword fields -- the same overall absence `templateKeywordCodes`
+   * both a `positionTypes` bit and `isBigGuy` at once) and for a template
+   * from a rules set that does not publish the field at all (e.g. BB2020);
+   * `templateIsBigGuy` is null when the template carries none of the three
+   * keyword fields -- the same overall absence `templateKeywordCodes`
    * reports -- and otherwise the RAW unfiltered flag, false when the template
-   * carries no flag of its own. Unlike `templateKeywordCodes`, this raw field
-   * is never gated: showing TP's true unfiltered value is its whole purpose.
+   * carries no flag of its own.
    */
   templatePositionTypes: number | null;
   templateIsBigGuy: boolean | null;
@@ -425,16 +428,14 @@ export class TpRawPlayerIndexService {
   /**
    * One template's keyword codes: its `race` array (species codes) in TP's own
    * order, then the set bits of `positionTypes` ascending (positional codes,
-   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE` when
-   * `isBigGuy` is set AND the template also carries a non-empty `race` or at
-   * least one `positionTypes` bit. `isBigGuy` is not actually BB2025-only —
-   * BB2020/DB2021 templates carry it with neither `race` nor `positionTypes`
-   * — and keywords are a BB2025-only concept, so an ungated Big Guy would
-   * wrongly decode a keyword for an earlier rules set. Deduplicated, first
-   * occurrence winning. Null when the template carries none of the three
-   * fields at all, which is how "TP publishes nothing here" is reported to
-   * the panel (distinct from carrying `isBigGuy` alone, ungated, which
-   * reports as `[]`).
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE`
+   * whenever `isBigGuy` is set. `isBigGuy` is not BB2025-only — BB2020 and
+   * DB2021 templates carry it with neither `race` nor `positionTypes` — and
+   * Big Guy is a genuine positional keyword under those rules sets too, so it
+   * is decoded unconditionally. Deduplicated, first occurrence winning. Null
+   * when the template carries none of the three fields at all, which is how
+   * "TP publishes nothing here" is reported to the panel (distinct from
+   * carrying `isBigGuy` alone, which reports as `[134]`).
    *
    * Decoded here rather than reused from packages/parse-tp: that parser's
    * reading of these files is the code under review, and a bug in it must not
@@ -450,13 +451,11 @@ export class TpRawPlayerIndexService {
     const positionalCodes = POSITION_TYPE_CODES.filter(
       (code) => ((mask ?? 0) & code) !== 0,
     );
-    const hasBb2025KeywordSpace =
-      (species?.length ?? 0) > 0 || positionalCodes.length > 0;
     return [
       ...new Set([
         ...(species ?? []),
         ...positionalCodes,
-        ...(isBigGuy && hasBb2025KeywordSpace ? [BIG_GUY_KEYWORD_CODE] : []),
+        ...(isBigGuy ? [BIG_GUY_KEYWORD_CODE] : []),
       ]),
     ];
   }

@@ -628,8 +628,8 @@ describe('TpRawOfficialTeamsIndexService', () => {
     expect(race?.positions[0].keywordCodes).toEqual([]);
   });
 
-  it('gives no Big Guy keyword code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', async () => {
-    // Real shape from BB2020/DB2021 data (e.g. "Trained Troll", "Minotaur"):
+  it('gives the Big Guy keyword code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', async () => {
+    // Real shape from BB2020 data (e.g. "Trained Troll", "Minotaur"):
     // isBigGuy true, no race array, no positionTypes.
     write('BB2020', {
       rosterMasters: [roster({ lineUpMasters: [lineman({ isBigGuy: true })] })],
@@ -639,6 +639,37 @@ describe('TpRawOfficialTeamsIndexService', () => {
     const race = await service.raceFor('Dwarf_BB2025');
 
     expect(race?.positions[0].isBigGuy).toBe(true);
+    expect(race?.positions[0].keywordCodes).toEqual([134]);
+  });
+
+  it('decodes a recognized positionTypes bit for a DB2021-shaped entry with no race or isBigGuy', async () => {
+    // Real shape from DB2021 data: positionTypes carries a recognized bit,
+    // no race array, no isBigGuy.
+    write('DB2021', {
+      rosterMasters: [
+        roster({ lineUpMasters: [lineman({ positionTypes: 32 })] }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].keywordCodes).toEqual([32]);
+  });
+
+  it('gives no keyword code for a DB2021-shaped entry carrying only the unrecognized positionTypes bit 128', async () => {
+    // Real shape from DB2021 data: 128 is not one of the 7 recognized bits
+    // and correlates loosely (not exactly) with isBigGuy, so it is
+    // deliberately left undecoded.
+    write('DB2021', {
+      rosterMasters: [
+        roster({ lineUpMasters: [lineman({ positionTypes: 128 })] }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
     expect(race?.positions[0].keywordCodes).toEqual([]);
   });
 

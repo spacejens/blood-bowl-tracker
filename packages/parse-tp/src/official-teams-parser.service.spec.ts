@@ -719,10 +719,23 @@ describe('OfficialTeamsParserService', () => {
     expect(codesOf(responseWithEntry({}))).toEqual([]);
   });
 
-  it('yields no Big Guy code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', () => {
-    // Real shape from BB2020/DB2021 data (e.g. "Trained Troll", "Minotaur"):
+  it('adds the Big Guy code for a BB2020-shaped entry with isBigGuy but no race or positionTypes', () => {
+    // Real shape from BB2020 data (e.g. "Trained Troll", "Minotaur"):
     // isBigGuy true, no race array, no positionTypes.
-    expect(codesOf(responseWithEntry({ isBigGuy: true }))).toEqual([]);
+    expect(codesOf(responseWithEntry({ isBigGuy: true }))).toEqual([134]);
+  });
+
+  it('decodes a recognized positionTypes bit for a DB2021-shaped entry with no race or isBigGuy', () => {
+    // Real shape from DB2021 data: positionTypes carries a recognized bit,
+    // no race array, no isBigGuy.
+    expect(codesOf(responseWithEntry({ positionTypes: 32 }))).toEqual([32]);
+  });
+
+  it('yields no code for a DB2021-shaped entry carrying only the unrecognized positionTypes bit 128', () => {
+    // Real shape from DB2021 data: 128 is not one of the 7 recognized bits
+    // and correlates loosely (not exactly) with isBigGuy, so it is
+    // deliberately left undecoded.
+    expect(codesOf(responseWithEntry({ positionTypes: 128 }))).toEqual([]);
   });
 
   it('rejects a non-numeric keyword code', () => {
