@@ -58,15 +58,21 @@ for changes to an existing application, not something specific to a new one.
 
 ## Configuration
 
-No new environment variables are involved. Switching identities is only a
-matter of which values your local `apps/discord-bot/.env` holds, so configure
-it exactly as
+No environment variable this identity split depends on is new. Switching
+identities is only a matter of which values your local `apps/discord-bot/.env`
+holds, so configure it exactly as
 [Configure the application](index.md#4-configure-the-application) describes,
 but with the dev application's and dev server's values:
 
 - `DISCORD_BOT_TOKEN` — the second application's token, from step 1 above.
 - `STARTUP_MESSAGE_DISCORD_CHANNEL` and `RANDOM_INSIGHTS_DISCORD_CHANNEL` —
   channel ids from the dev server, from step 4 above.
+- `TP_FEED_SOURCE_DISCORD_CHANNEL` and `TP_FEED_DEBUG_DISCORD_CHANNEL`, if set
+  at all — same reasoning, channel ids from the dev server rather than
+  production. Both are optional (see [TP notification feed](tp-feed.md)), and
+  in practice TP itself only posts into the real production server, so
+  setting these locally is only useful for testing the parser against
+  messages you post yourself, not real TP notifications.
 
 The remaining variables (`RANDOM_INSIGHTS_CRON`, the
 `RANDOM_INSIGHTS_*_PROBABILITY` tunables, and the `API_TOKEN_IMPORT_*`
