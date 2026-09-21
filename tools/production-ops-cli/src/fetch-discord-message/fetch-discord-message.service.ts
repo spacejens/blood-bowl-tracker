@@ -20,6 +20,14 @@ const MESSAGE_LINK_USAGE =
   'https://discord.com/channels/<guild-id>/<channel-id>/<message-id>';
 
 /**
+ * Bounds the whole request, including reading the response body. Node's
+ * global `fetch` (Undici) only times out on inactivity between chunks, not
+ * total elapsed time, so a response that trickles data indefinitely would
+ * otherwise never resolve.
+ */
+const REQUEST_TIMEOUT_MS = 30_000;
+
+/**
  * Fetches one Discord message by its message link and returns Discord's
  * response verbatim, so embeds, attachments and every other field survive
  * intact for a human to inspect. `runCli` pretty-prints whatever this
@@ -40,7 +48,10 @@ export class FetchDiscordMessageService {
     const token = await this.botToken.read();
     const response = await fetch(
       `${DISCORD_API_BASE_URL}/channels/${channelId}/messages/${messageId}`,
-      { headers: { Authorization: `Bot ${token}` } },
+      {
+        headers: { Authorization: `Bot ${token}` },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      },
     );
     if (!response.ok) {
       // Discord's own error body is JSON text; pass it through as-is. It

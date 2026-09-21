@@ -52,9 +52,28 @@ describe('FetchRecentDiscordMessagesService', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://discord.com/api/v10/channels/123456789/messages?limit=5',
-      { headers: { Authorization: 'Bot secret-bot-token' } },
+      {
+        headers: { Authorization: 'Bot secret-bot-token' },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real AbortSignal
+        signal: expect.any(AbortSignal),
+      },
     );
     expect(result).toEqual(body);
+  });
+
+  it('bounds the request with an AbortSignal timeout, so a stalled response cannot hang forever', async () => {
+    const body = [{ id: '1' }];
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(body),
+    });
+
+    await service.run('123456789', 5);
+
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect(options.signal?.aborted).toBe(false);
   });
 
   it('throws with the status and Discord error body on a non-2xx response', async () => {
@@ -96,7 +115,11 @@ describe('FetchRecentDiscordMessagesService', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://discord.com/api/v10/channels/123456789/messages?limit=100',
-      { headers: { Authorization: 'Bot secret-bot-token' } },
+      {
+        headers: { Authorization: 'Bot secret-bot-token' },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real AbortSignal
+        signal: expect.any(AbortSignal),
+      },
     );
     expect(result).toEqual(body);
   });
