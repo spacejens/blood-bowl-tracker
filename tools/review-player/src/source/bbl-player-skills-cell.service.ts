@@ -46,7 +46,7 @@ const INCREASE_MARKERS: Record<string, keyof RawIncreaseCounts> = {
  * starting skill) from a coloured span (a gained one) — it records nothing
  * about HOW a gained skill was gained, so nothing here says random or chosen.
  */
-export interface BblRawPlayerSkill {
+interface BblRawPlayerSkill {
   name: string;
   attributeValue: string | null;
   source: 'starting' | 'gained';

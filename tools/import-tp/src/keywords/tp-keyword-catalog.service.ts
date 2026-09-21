@@ -8,7 +8,7 @@ import { Injectable } from '@nestjs/common';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 
 /** One curated keyword, addressed by the numeric code TP publishes. */
-export interface TpKeywordCatalogEntry {
+interface TpKeywordCatalogEntry {
   keywordId: number;
   name: string;
 }

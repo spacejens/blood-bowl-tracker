@@ -10,7 +10,7 @@ export interface FilterUsageReportOptions {
 }
 
 /** A user who has supplied at least one optional option. */
-export interface FilterUsingUser {
+interface FilterUsingUser {
   username: string;
 }
 
