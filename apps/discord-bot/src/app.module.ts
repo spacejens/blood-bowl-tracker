@@ -17,6 +17,7 @@ import { ProcessExitService } from './leader-election/process-exit.service';
 import { SleepService } from './leader-election/sleep.service';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 import { StartupNotifierService } from './startup-notifier.service';
+import { TpFeedModule } from './tp-feed/tp-feed.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { StartupNotifierService } from './startup-notifier.service';
     }),
     InsightsModule,
     SlashCommandsModule,
+    TpFeedModule,
   ],
   controllers: [AppController],
   providers: [
