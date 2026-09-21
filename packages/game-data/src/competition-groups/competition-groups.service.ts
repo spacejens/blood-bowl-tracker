@@ -9,6 +9,7 @@ import {
   competitionGroups,
   competitions,
   count,
+  countDistinct,
   DB,
   eq,
   ilike,
@@ -16,6 +17,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
@@ -207,5 +209,36 @@ export class CompetitionGroupsService {
       externalIdColumn: competitionGroupExternalIds.externalId,
       externalIds,
     });
+  }
+
+  /**
+   * The counts behind the stats summary's `Competition groups:` line. There
+   * is deliberately no competition-scoped variant: a competition belongs to
+   * exactly one group (`competitions.competitionGroupId` is NOT NULL), so
+   * that view renders the literal 1, the same way it renders `Leagues: 1`.
+   */
+  countAll(): Promise<number> {
+    return countRows(this.db, competitionGroups);
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(competitionGroups)
+      .where(eq(competitionGroups.leagueId, leagueId));
+    return row.count;
+  }
+
+  /**
+   * A group has no era of its own — it reaches one only through the
+   * competitions it runs — so this counts the distinct groups that have at
+   * least one competition in the era.
+   */
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(competitions.competitionGroupId) })
+      .from(competitions)
+      .where(eq(competitions.eraId, eraId));
+    return row.count;
   }
 }
