@@ -460,10 +460,10 @@ export class TpRawPlayerIndexService {
   private templateKeywordCodes(master: unknown): number[] | null {
     const species = this.numberArrayProperty(master, 'race');
     const mask = this.numberProperty(master, 'positionTypes');
+    const rawIsBigGuy = this.booleanProperty(master, 'isBigGuy');
     const isBigGuy =
-      this.booleanProperty(master, 'isBigGuy') === true ||
-      ((mask ?? 0) & DB2021_BIG_GUY_BIT) !== 0;
-    if (species === null && mask === null && !isBigGuy) {
+      rawIsBigGuy === true || ((mask ?? 0) & DB2021_BIG_GUY_BIT) !== 0;
+    if (species === null && mask === null && rawIsBigGuy === null) {
       return null;
     }
     const positionalCodes = POSITION_TYPE_CODES.filter(
@@ -479,19 +479,22 @@ export class TpRawPlayerIndexService {
   }
 
   /**
-   * The template's raw `isBigGuy` flag: false for a template that carries at
-   * least one of the other two keyword fields but no flag of its own, and
-   * null when the template carries none of the three -- the same overall
-   * absence `templateKeywordCodes` reports.
+   * The template's raw `isBigGuy` flag: whatever value TP carries -- true or
+   * an explicit false -- for a template that carries at least one of the
+   * three keyword fields, and null only when the template carries none of
+   * them at all -- the same overall absence `templateKeywordCodes` reports.
+   * The presence check uses the raw flag's own null-ness, not its truthiness,
+   * so an explicit `isBigGuy: false` with no other field is reported as
+   * `false` rather than folded into the "nothing here" null case.
    */
   private templateIsBigGuy(master: unknown): boolean | null {
     const species = this.numberArrayProperty(master, 'race');
     const mask = this.numberProperty(master, 'positionTypes');
-    const isBigGuy = this.booleanProperty(master, 'isBigGuy') === true;
-    if (species === null && mask === null && !isBigGuy) {
+    const isBigGuy = this.booleanProperty(master, 'isBigGuy');
+    if (species === null && mask === null && isBigGuy === null) {
       return null;
     }
-    return isBigGuy;
+    return isBigGuy === true;
   }
 
   private numberProperty(value: unknown, key: string): number | null {

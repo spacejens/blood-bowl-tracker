@@ -715,6 +715,16 @@ describe('TpRawPlayerIndexService', () => {
     expect(aggregate?.templateIsBigGuy).toBeNull();
   });
 
+  it('reports an explicit isBigGuy: false rather than null when it is the only field present', async () => {
+    writeRosterWithTemplate({ isBigGuy: false });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([]);
+    expect(aggregate?.templatePositionTypes).toBeNull();
+    expect(aggregate?.templateIsBigGuy).toBe(false);
+  });
+
   it('yields no positional codes rather than throwing for a non-numeric positionTypes', async () => {
     writeRosterWithTemplate({ race: [104], positionTypes: 'runner' });
 
