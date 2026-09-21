@@ -119,6 +119,12 @@ export class KeywordsService {
    * reaches a rules set only through the positions that carry it, hence the
    * `position_rules_sets` hop.
    *
+   * `countAll` counts every keyword in the catalogue, including one attached
+   * to no position. The three scoped methods below only reach keywords
+   * attached to a position under a rules set in scope, so a
+   * defined-but-unattached keyword shows up in the all-time count but not in
+   * any scoped one.
+   *
    * `position_rules_sets` and `era_rules_sets` are joined directly on
    * `rules_set_id`: both are NOT NULL foreign keys to the same `rules_sets`
    * row, so hopping through `rules_sets` itself would drop no rows.
@@ -146,6 +152,11 @@ export class KeywordsService {
   /**
    * A competition has no narrower rules-set scope than the era it runs in, so
    * this is the era count reached through the competition's own `eraId`.
+   * Unlike `RacesService.countByCompetition` / `PositionsService.
+   * countByCompetition`, which count what actually took part
+   * (competition_teams -> team_eras), this stays a catalogue count: every
+   * keyword the era's rules set(s) define, not only ones held by a
+   * participant.
    */
   async countByCompetition(competitionId: number): Promise<number> {
     const [row] = await this.db

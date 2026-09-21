@@ -218,6 +218,11 @@ export class SkillsService {
    * scope, matching Rules sets / Races / Positions — not how many skills
    * players actually hold, which is what the toplists above rank.
    *
+   * `countAll` counts every skill in the catalogue, including one attached to
+   * no rules set. The three scoped methods below only reach skills that are
+   * attached to a rules set in scope, so a defined-but-unattached skill shows
+   * up in the all-time count but not in any scoped one.
+   *
    * `skill_rules_sets` and `era_rules_sets` are joined directly on
    * `rules_set_id`: both are NOT NULL foreign keys to the same `rules_sets`
    * row, so hopping through `rules_sets` itself would drop no rows and select
@@ -242,6 +247,10 @@ export class SkillsService {
   /**
    * A competition has no narrower rules-set scope than the era it runs in, so
    * this is the era count reached through the competition's own `eraId`.
+   * Unlike `RacesService.countByCompetition` / `PositionsService.
+   * countByCompetition`, which count what actually took part
+   * (competition_teams -> team_eras), this stays a catalogue count: every
+   * skill the era's rules set(s) define, not only ones held by a participant.
    */
   async countByCompetition(competitionId: number): Promise<number> {
     const [row] = await this.db
