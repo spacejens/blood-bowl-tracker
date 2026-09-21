@@ -30,7 +30,7 @@ export const UpsertKeywordSchema = z.object({
 /**
  * Read the whole catalogue as one external system names it. An import tool
  * holds only that system's numeric codes and has no way to name a keyword
- * from its own data, so it reads the 41-row catalogue once per run rather
+ * from its own data, so it reads the 48-row catalogue once per run rather
  * than resolving code by code.
  */
 export const ListKeywordsSchema = z.object({

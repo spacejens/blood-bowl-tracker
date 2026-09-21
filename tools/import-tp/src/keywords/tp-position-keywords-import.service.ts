@@ -17,9 +17,12 @@ interface SyncTpPositionKeywordsOptions {
 /**
  * Writes which keywords each position carries under each rules set.
  *
- * Only BB2025 produces any rows: TP publishes no keyword codes at all for
- * earlier rules sets, so their maps are empty and nothing is written -- no
- * special-casing by rules set is needed or wanted.
+ * Species keywords are BB2025-only in practice: TP's `race` array is empty
+ * for every other rules set. Positional keywords (including Big Guy) are
+ * not BB2025-exclusive -- DB2021 publishes the full positional set and
+ * BB2020 and DB2021 both publish Big Guy -- so DB2021 and BB2020 rows can
+ * write real positional-keyword rows too; no special-casing by rules set is
+ * needed or wanted either way.
  *
  * An unrecognised code is an ImportError pointing the developer at
  * tools/import-manual, reported once per code rather than once per position

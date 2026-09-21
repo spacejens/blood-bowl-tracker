@@ -1,10 +1,13 @@
-// Hand-curated BB2025 keywords (keywords).
+// Hand-curated keywords (keywords).
 //
-// A keyword is the BB2025 label rules single out instead of naming a race --
+// A keyword is the label rules single out instead of naming a race --
 // "Hatred (Goblin)" hates every position carrying the Goblin keyword,
-// whatever team race it plays for. tourplay.net publishes these only as
-// opaque numeric codes: as the `race` array on each BB2025 position and star
-// player, and as the type-3 attribute value of a Hatred or Animosity skill.
+// whatever team race it plays for. Species keywords (this file's `species`
+// kind) are BB2025-only; positional keywords, including Big Guy, also
+// appear under DB2021, and Big Guy alone also appears under BB2020.
+// tourplay.net publishes these only as opaque numeric codes: as the `race`
+// array on each BB2025 position and star player, and as the type-3
+// attribute value of a Hatred or Animosity skill.
 // Nothing in any downloaded source names them, so both the names and the
 // kinds are curated here, and every entry carries its numeric code as a
 // `tourplay.net` external id -- that id is what lets tools/import-tp turn a

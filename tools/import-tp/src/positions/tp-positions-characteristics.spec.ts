@@ -265,7 +265,7 @@ describe('TpPositionsImportService keywords', () => {
     );
   });
 
-  it('leaves the map empty for a pre-BB2025 rules set, which publishes no keyword codes', async () => {
+  it('leaves the map empty when an entry carries no keyword codes at all', async () => {
     const { service } = await makeService(upsertAndSyncMocks(70));
 
     const { keywordCodesByPositionId } = await service.importPositions(

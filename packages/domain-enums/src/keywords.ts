@@ -7,10 +7,11 @@
  * - `positional` — a keyword describing a role rather than a creature
  *   (Lineman, Runner, Blitzer, Thrower, Catcher, Blocker, Special, Big Guy).
  *   The rulebook groups these with the species keywords, but they behave
- *   differently: Hatred can never target a positional keyword, while
- *   Animosity's target codes include "Big Guy". TP publishes these as the
- *   `positionTypes` bitmask and the `isBigGuy` flag rather than in the `race`
- *   array the species keywords come from.
+ *   differently: Hatred's confirmed targets include the positional keyword
+ *   "Big Guy", while Animosity's observed targets are species keywords and
+ *   the "All" sentinel. TP publishes these as the `positionTypes` bitmask
+ *   and the `isBigGuy` flag rather than in the `race` array the species
+ *   keywords come from.
  * - `special` — the single sentinel used for "no restriction", which
  *   Animosity's target code 999 ("All") carries. Neither a creature nor a
  *   role.

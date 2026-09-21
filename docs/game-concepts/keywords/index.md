@@ -1,14 +1,18 @@
 # Keywords
 
-A **keyword** is a BB2025 label attached to a
+A **keyword** is a label attached to a
 [position](../positions/index.md) — `Goblin`, `Undead`, `Big Guy` and so on.
 Rules that single out a kind of player name a keyword rather than a
 [race](../races/index.md): a skill like Hatred names the keyword it hates,
 and every position carrying that keyword is a target.
 
 - A keyword has a name and a **kind**, and nothing else.
-- Keywords are a BB2025 concept. No earlier [rules set](../rules-sets/index.md)
-  has them, and none of the tracker's earlier-era data records any.
+- `species` keywords (Elf, Skaven, Undead, and so on) are a BB2025-only
+  concept: no earlier [rules set](../rules-sets/index.md) has them, and none
+  of the tracker's earlier-era data records any. `positional` keywords
+  (including `Big Guy`) are not BB2025-exclusive: DB2021 formally has the
+  full positional set too, and BB2020 formally has the `Big Guy` concept —
+  a long-standing Blood Bowl rule, not new to BB2025.
 
 ## Keyword kinds
 

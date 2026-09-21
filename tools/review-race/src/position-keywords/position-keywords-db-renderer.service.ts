@@ -27,9 +27,11 @@ const MISSING = 'missing';
  * `position_rules_set_keywords`, one sub-table per rules set the race's eras
  * map to.
  *
- * A position with a characteristics row but no keywords shows "none": that is
- * the whole truth for every pre-BB2025 rules set, where the concept does not
- * exist. A position with no `position_rules_sets` row at all is shown as an
+ * A position with a characteristics row but no keywords shows "none": that
+ * covers a species keyword under any pre-BB2025 rules set (species keywords
+ * are BB2025-only) as well as a genuine absence of positional keywords
+ * (including Big Guy) under any rules set. A position with no
+ * `position_rules_sets` row at all is shown as an
  * explicit, highlighted "missing" row instead, because a keyword can only
  * hang off such a row — exactly as `PositionStartingSkillsDbRendererService`
  * highlights the same absence.
