@@ -21,8 +21,9 @@ import { positionRulesSets } from './position-rules-sets';
  * Coverage is not uniformly BB2025-only: species keywords (e.g. Human,
  * Zombie, Undead) are BB2025-only in practice, but positional keywords are
  * also recorded under DB2021 (96 positions), and the Big Guy keyword also
- * under BB2020 (39 positions) and DB2021 (12 positions, both directly via
- * `isBigGuy` and via DB2021's own `positionTypes` bit 128). A missing row
+ * under BB2020 (39 positions) and DB2021 (13 positions: 12 via `isBigGuy`
+ * and 12 via DB2021's own `positionTypes` bit 128, overlapping on 11 — the
+ * two signals are not subsets of each other). A missing row
  * means the position has no keyword recorded under that rules set — for a
  * rules set/keyword-kind combination TP's data never carries (e.g. species
  * keywords under BB2020), that absence is the whole truth: the concept does
