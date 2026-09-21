@@ -116,7 +116,11 @@ export class PositionStartingSkillsDbRendererService {
       rowIds,
       stored,
     } = input;
-    const validEraIds = rulesSetEraIds.get(rulesSet.rulesSetId) ?? new Set();
+    // Every rules set here came from the same raceEras <-> eraRulesSets join
+    // that produced rulesSetEraIds, so this fallback can't actually be hit --
+    // kept only as a defensive default for the Map lookup.
+    const validEraIds =
+      rulesSetEraIds.get(rulesSet.rulesSetId) ?? new Set<number>();
     const rows: TableRow[] = [...positionNames.entries()]
       .filter(([positionId]) =>
         [...(positionEraIds.get(positionId) ?? new Set<number>())].some(
