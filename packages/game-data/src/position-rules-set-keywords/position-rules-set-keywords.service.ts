@@ -14,6 +14,7 @@ import {
   positionRulesSetKeywords,
   positionRulesSets,
   rulesSets,
+  sql,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -206,10 +207,16 @@ export class PositionRulesSetKeywordsService {
   }
 
   /**
-   * Every keyword recorded for this position, across every rules set, ordered
-   * by rules-set name then keyword name so the list is stable across calls.
-   * The join reaches the position through `position_rules_sets`, which is the
-   * only place the position id is stored.
+   * Every keyword recorded for this position, across every rules set. Ordered
+   * by rules-set name, then positional keywords (Blitzer, Special, Big Guy …)
+   * ahead of every other kind, then keyword name within each group — which is
+   * the order TP's own UI and the BB2025 rulebook list them in. Stable across
+   * calls either way. The join reaches the position through
+   * `position_rules_sets`, which is the only place the position id is stored.
+   *
+   * Callers render the rows in the order they arrive, so this is the single
+   * place the displayed order is decided, for the position, star-player and
+   * player deepdives alike.
    */
   listByPosition(positionId: number): Promise<PositionKeyword[]> {
     return this.db
@@ -228,6 +235,10 @@ export class PositionRulesSetKeywordsService {
       .innerJoin(rulesSets, eq(rulesSets.id, positionRulesSets.rulesSetId))
       .innerJoin(keywords, eq(keywords.id, positionRulesSetKeywords.keywordId))
       .where(eq(positionRulesSets.positionId, positionId))
-      .orderBy(asc(rulesSets.name), asc(keywords.name));
+      .orderBy(
+        asc(rulesSets.name),
+        sql`case when ${keywords.kind} = 'positional' then 0 else 1 end`,
+        asc(keywords.name),
+      );
   }
 }

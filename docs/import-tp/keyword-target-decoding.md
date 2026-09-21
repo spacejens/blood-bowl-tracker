@@ -3,7 +3,8 @@
 TP publishes a starting skill's parenthetical value as a `skillAttributeMaster`
 with a `type`. Types 0–2 are directly displayable; **type 3 is an opaque
 numeric code** — a keyword code, from the same id space as a position's own
-`race` array of keywords. `TpSkillResolverService.decodeTypeThreeTarget`
+keyword codes (see [Position keywords](./index.md#position-keywords)).
+`TpSkillResolverService.decodeTypeThreeTarget`
 resolves it against the curated keyword catalogue
 (`TpKeywordCatalogService`, see [Position keywords](./index.md#position-keywords))
 for `Hatred` (skillMasterId 307) and `Animosity` (skillMasterId 269) only —
@@ -17,6 +18,15 @@ Hatred target is always a `species` keyword, but confirmed real target codes
 include `134` ("Big Guy", a `positional` keyword) and `999` ("All", a
 `special` keyword). Any keyword kind is a valid Hatred/Animosity target in
 practice.
+
+The positional keywords' own codes — `1`, `2`, `4`, `8`, `16`, `32`, `64`
+(TP's `positionTypes` bit values) — now share this same id space, alongside
+the species codes (`100`+) and the `999` sentinel. All observed target codes
+are `100` or above, so no collision has occurred in practice, but a future
+target value matching one of those seven curated bit values would resolve
+to a positional keyword rather than raise an uncurated-code import error;
+any other value in that range (e.g. `3`) is not itself curated and would
+still raise one.
 
 The same lookup also decodes type-3 attributes on a **player's own** gained
 skills, not only on position templates: a player's `Hatred` or `Animosity`

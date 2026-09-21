@@ -106,9 +106,12 @@ export class TpPositionsImportService {
     >;
     skillRefsByPositionId: Map<number, Map<number, TpPositionSkillRef[]>>;
     /**
-     * positionId -> rulesSetId -> the BB2025 keyword codes TP lists for this
-     * position there, in TP's own order. Empty for every pre-BB2025 rules
-     * set, where TP publishes no keywords at all.
+     * positionId -> rulesSetId -> the keyword codes TP lists for this
+     * position there, in TP's own order. Species codes are BB2025-only in
+     * practice; positional codes (including Big Guy) also appear under
+     * DB2021, and Big Guy alone also appears under BB2020 — so this is not
+     * empty for every pre-BB2025 rules set, only for a position that
+     * genuinely carries none of the three source fields.
      */
     keywordCodesByPositionId: Map<number, Map<number, number[]>>;
     /** Every upserted position's DB id -> its name, for readable ImportError

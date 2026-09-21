@@ -54,6 +54,8 @@ function aggregate(
     templatePassing: null,
     templateArmour: null,
     templateKeywordCodes: null,
+    templatePositionTypes: null,
+    templateIsBigGuy: null,
     ...overrides,
   };
 }
@@ -148,6 +150,64 @@ describe('PlayerKeywordsRawRendererService', () => {
     const html = await service.render(player);
 
     expect(html).toContain('<td>Template</td><td>none</td>');
+  });
+
+  it("shows the template's raw positionTypes value and isBigGuy flag", async () => {
+    index.aggregateFor.mockResolvedValue(
+      aggregate({
+        templateKeywordCodes: [104, 1, 2],
+        templatePositionTypes: 3,
+        templateIsBigGuy: false,
+      }),
+    );
+    manual.all.mockResolvedValue([
+      { name: 'Skaven', kind: 'species', code: '104' },
+      { name: 'Lineman', kind: 'positional', code: '1' },
+      { name: 'Runner', kind: 'positional', code: '2' },
+    ]);
+
+    const html = await service.render(player);
+
+    expect(html).toContain('positionTypes');
+    expect(html).toContain('isBigGuy');
+    expect(html).toContain('Skaven (104)');
+    expect(html).toContain('Lineman (1)');
+    expect(html).toContain('Runner (2)');
+    expect(html).toContain('<td>3</td>');
+    expect(html).toContain('<td>no</td>');
+  });
+
+  it("shows 'yes' for a template TP flags isBigGuy true", async () => {
+    index.aggregateFor.mockResolvedValue(
+      aggregate({
+        templateKeywordCodes: [113, 134],
+        templatePositionTypes: null,
+        templateIsBigGuy: true,
+      }),
+    );
+    manual.all.mockResolvedValue([
+      { name: 'Ogre', kind: 'species', code: '113' },
+      { name: 'Big Guy', kind: 'positional', code: '134' },
+    ]);
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td>yes</td>');
+  });
+
+  it('shows no raw positional values for a template TP carries none for', async () => {
+    index.aggregateFor.mockResolvedValue(
+      aggregate({
+        templateKeywordCodes: [],
+        templatePositionTypes: null,
+        templateIsBigGuy: null,
+      }),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td>none</td>');
+    expect(html).toContain('<td>no</td>');
   });
 
   it('renders no manual-curation section when the catalogue is empty', async () => {

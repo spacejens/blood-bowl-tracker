@@ -84,9 +84,12 @@ A temporary [player](#player) fielded by a [team](#team) that has too few availa
 
 ### Keyword
 
-A BB2025 label attached to a [position](#position) — `Goblin`, `Undead`,
+A label attached to a [position](#position) — `Goblin`, `Undead`,
 `Big Guy` — that rules single out instead of naming a [race](#race). A
 position can carry several at once, recorded per [rules set](#rules-set).
+Species keywords (`Goblin`, `Undead`) are BB2025-only; positional keywords
+including `Big Guy` also appear under DB2021, and `Big Guy` alone also
+appears under BB2020.
 
 See [game-concepts/keywords](game-concepts/keywords/index.md).
 

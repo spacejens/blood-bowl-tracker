@@ -17,7 +17,8 @@ import { Injectable } from '@nestjs/common';
  * lines already carry.
  *
  * `rows` are expected to already be in display order (`listByPosition`
- * orders by rules-set name then keyword name). Shared by the position
+ * orders by rules-set name, then positional-kind keywords before species
+ * ones, then keyword name). Shared by the position
  * deepdive and the star player deepdive -- a star is stored as a `positions`
  * row, so both views must read identically. Pure text assembly, with no I/O
  * and no external state.

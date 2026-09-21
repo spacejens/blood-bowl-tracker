@@ -38,7 +38,7 @@ export interface KeywordCatalogRow {
  *
  * `listByExternalSystem` exists because keyword names cannot be derived from
  * imported data: an import tool holds only numeric codes, and needs the whole
- * 41-row catalogue keyed by those codes in one read rather than a resolve
+ * 48-row catalogue keyed by those codes in one read rather than a resolve
  * call per code.
  */
 @Injectable()

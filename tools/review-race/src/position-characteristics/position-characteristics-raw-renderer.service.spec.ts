@@ -165,6 +165,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
             isOfficial: true,
             skills: [],
             keywordCodes: [],
+            positionTypes: null,
+            isBigGuy: false,
             specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
@@ -182,6 +184,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
             isOfficial: true,
             skills: [],
             keywordCodes: [],
+            positionTypes: null,
+            isBigGuy: false,
             specialRuleName: null,
             rulesSet: 'BB2025',
             characteristics: {
@@ -220,6 +224,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
           isOfficial: true,
           skills: [],
           keywordCodes: [],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
           rulesSet: 'BB2020',
           characteristics: {
@@ -237,6 +243,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
           isOfficial: true,
           skills: [],
           keywordCodes: [],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
           rulesSet: 'BB2025',
           characteristics: {
@@ -281,6 +289,8 @@ describe('PositionCharacteristicsRawRendererService', () => {
               isOfficial,
               skills: [],
               keywordCodes: [],
+              positionTypes: null,
+              isBigGuy: false,
               specialRuleName: null,
               rulesSet: 'BB2020',
               characteristics: {

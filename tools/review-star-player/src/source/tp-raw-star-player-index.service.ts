@@ -20,6 +20,36 @@ const TEAMS_DIR = 'teams';
 const CANONICAL_ROSTER_TYPES = new Set([0, 1]);
 
 /**
+ * TP's `positionTypes` bitmask, bit value -> the curated positional keyword
+ * whose code that bit value IS: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower,
+ * 16 Catcher, 32 Blocker, 64 Special. This is where a star's "Special"
+ * keyword comes from -- TP never puts it in the `race` array. DB2021 also
+ * carries an additional bit (128) outside this table, which is NOT an 8th
+ * positional role — see `DB2021_BIG_GUY_BIT` below, decoded separately as
+ * its own source of the Big Guy keyword.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword, which TP normally
+ * carries as the separate `isBigGuy` boolean rather than as a
+ * `positionTypes` bit in the curated 1-64 table above.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
+/**
+ * DB2021's own Big Guy signal, distinct from the curated `POSITION_TYPE_CODES`
+ * table: of DB2021's 12 `positionTypes: 128` entries, 11 also carry
+ * `isBigGuy: true` (e.g. DB2021 uses bit 128 where BB2025 uses bit 32 for the
+ * same position type, "Ogre Blocker"). The one exception ("College of
+ * Death / Mummy") also lacks `isBigGuy` on its BB2020 twin entry, suggesting
+ * TP simply omits the boolean there rather than a real rules distinction.
+ * Treated as an independent, additional source of `BIG_GUY_KEYWORD_CODE`
+ * alongside `isBigGuy`, not as an 8th positional role.
+ */
+const DB2021_BIG_GUY_BIT = 128;
+
+/**
  * One skill reference on a star entry. TP names the skill only by
  * `skillMasterId` in the official team list; the display name lives in roster
  * files and is resolved separately by `TpSkillMasterNamesService`.
@@ -54,12 +84,25 @@ export interface TpRawStarPlayerEntry {
    */
   skills: TpRawSkillRef[];
   /**
-   * The numeric BB2025 keyword codes TP lists for this star, from its own
-   * `race` array. TP's name for the field is `race`, but it is not the
-   * star's species -- a code is shared across unrelated stars and a star
-   * carries several.
+   * The numeric keyword codes TP lists for this star, merged from all three
+   * fields it spreads them over: `race` (species codes -- TP's name for the
+   * field is not the star's species alone, and a code is shared across
+   * unrelated stars -- and BB2025-only in practice), the set bits of
+   * `positionTypes` (positional codes -- also published by DB2021) and
+   * `isBigGuy` (also published by BB2020 and DB2021).
    */
   keywordCodes: number[];
+  /**
+   * TP's raw `positionTypes` value, shown beside the decoded codes so a
+   * reviewer can check the decode without reading the JSON by hand. Null
+   * when TP carries no numeric value -- TP simply omits the field rather
+   * than writing a literal `null`, both for a Big Guy entry (though some
+   * BB2025 entries carry both a `positionTypes` bit and `isBigGuy` at once)
+   * and for every pre-BB2025 entry.
+   */
+  positionTypes: number | null;
+  /** TP's raw `isBigGuy` flag; false when TP carries no boolean value. */
+  isBigGuy: boolean;
 }
 
 /** One star as TP carries it, across every rules set. */
@@ -178,16 +221,47 @@ export class TpRawStarPlayerIndexService {
         eligibleTeamRaces: this.eligibleTeamRaces(raw, canonical),
         skills: this.skillRefs(raw),
         keywordCodes: this.keywordCodes(raw),
+        positionTypes: this.number(raw, 'positionTypes'),
+        isBigGuy: this.property(raw, 'isBigGuy') === true,
       });
       stars.set(name, star);
     }
   }
 
-  /** One entry's `race[]`, defensively filtered to numeric codes only. */
+  /**
+   * One entry's keyword codes: its `race` array (species codes) in TP's own
+   * order, then the set bits of `positionTypes` ascending (positional codes,
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE`
+   * whenever `isBigGuy` is set or `positionTypes` carries `DB2021_BIG_GUY_BIT`.
+   * `isBigGuy` is not BB2025-only — BB2020 carries it with neither `race` nor
+   * `positionTypes` (39 entries); DB2021 carries it alongside `positionTypes`
+   * but never `race` (12 entries) — and Big Guy is a genuine positional
+   * keyword under those rules sets too, so it is decoded unconditionally.
+   * Deduplicated, first occurrence winning, so an entry with both `isBigGuy`
+   * and bit 128 still only gets the code once.
+   *
+   * Decoded here rather than reused from packages/parse-tp: that parser's
+   * reading of these files is the code under review, and a bug in it must not
+   * agree with itself against the raw display.
+   */
   private keywordCodes(entry: unknown): number[] {
-    return this.arrayProperty(entry, 'race').filter(
+    const species = this.arrayProperty(entry, 'race').filter(
       (value): value is number => typeof value === 'number',
     );
+    const mask = this.number(entry, 'positionTypes') ?? 0;
+    const positionalCodes = POSITION_TYPE_CODES.filter(
+      (code) => (mask & code) !== 0,
+    );
+    const isBigGuy =
+      this.property(entry, 'isBigGuy') === true ||
+      (mask & DB2021_BIG_GUY_BIT) !== 0;
+    return [
+      ...new Set([
+        ...species,
+        ...positionalCodes,
+        ...(isBigGuy ? [BIG_GUY_KEYWORD_CODE] : []),
+      ]),
+    ];
   }
 
   private skillRefs(entry: unknown): TpRawSkillRef[] {
