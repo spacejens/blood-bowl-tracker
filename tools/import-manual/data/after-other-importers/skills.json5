@@ -23,6 +23,8 @@
   ],
   skills: [
     { name: 'Blood Lust', externalIds: [{ system: 'Name', id: 'Blood Lust' }, { system: 'Name', id: 'Bloodlust' }] },
+    { name: 'Safe Pass', externalIds: [{ system: 'Name', id: 'Safe Pass' }, { system: 'Name', id: 'Safe Throw' }] },
+    { name: 'Bombardier', externalIds: [{ system: 'Name', id: 'Bombardier' }, { system: 'Name', id: 'Bomber' }] },
     { name: 'Side Step', externalIds: [{ system: 'Name', id: 'Side Step' }, { system: 'Name', id: 'Sidestep' }] },
     { name: 'Dump-Off', externalIds: [{ system: 'Name', id: 'Dump-Off' }, { system: 'Name', id: 'Dump-off' }, { system: 'Name', id: 'Dump Off' }] },
     { name: 'Thick Skull', externalIds: [{ system: 'Name', id: 'Thick Skull' }, { system: 'Name', id: 'Think Skull' }] },
