@@ -84,10 +84,10 @@ describe('TpFeedListenerService', () => {
 
     expect(parser.parse).toHaveBeenCalled();
     expect(formatter.format).toHaveBeenCalled();
-    expect(discordClient.sendMessage).toHaveBeenCalledWith(
-      DEBUG_CHANNEL,
-      'Hired: #3 Ragnfred Brownlock',
-    );
+    expect(discordClient.sendMessage).toHaveBeenCalledWith(DEBUG_CHANNEL, {
+      content: 'Hired: #3 Ragnfred Brownlock',
+      allowedMentions: { parse: [] },
+    });
   });
 
   it('ignores a message from any other channel without parsing it', async () => {

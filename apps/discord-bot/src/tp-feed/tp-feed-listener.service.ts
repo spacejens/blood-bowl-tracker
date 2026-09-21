@@ -72,10 +72,13 @@ export class TpFeedListenerService implements OnModuleInit {
       return;
     }
     try {
-      await this.discordClient.sendMessage(
-        debugChannelId,
-        this.formatter.format(event),
-      );
+      await this.discordClient.sendMessage(debugChannelId, {
+        content: this.formatter.format(event),
+        // TP notification text is free-form and could contain something
+        // that reads as a mention (e.g. a player or coach name starting
+        // with @); nothing in this feed should ever ping anyone.
+        allowedMentions: { parse: [] },
+      });
     } catch (error) {
       this.logger.error(
         'Failed to post TP feed interpretation',
