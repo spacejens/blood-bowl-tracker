@@ -256,4 +256,38 @@ describe('DiscordBotConfigService', () => {
     vi.mocked(configService.get).mockReturnValue('');
     expect(service.getDebugCommandRoleId()).toBeUndefined();
   });
+
+  it('returns the configured TP feed source channel', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_FEED_SOURCE_DISCORD_CHANNEL'
+        ? '910000000000000000'
+        : undefined,
+    );
+    expect(service.getTpFeedSourceDiscordChannel()).toBe('910000000000000000');
+    expect(configService.get).toHaveBeenCalledWith(
+      'TP_FEED_SOURCE_DISCORD_CHANNEL',
+    );
+  });
+
+  it('returns undefined when the TP feed source channel is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(service.getTpFeedSourceDiscordChannel()).toBeUndefined();
+  });
+
+  it('returns the configured TP feed debug channel', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_FEED_DEBUG_DISCORD_CHANNEL'
+        ? '920000000000000000'
+        : undefined,
+    );
+    expect(service.getTpFeedDebugDiscordChannel()).toBe('920000000000000000');
+    expect(configService.get).toHaveBeenCalledWith(
+      'TP_FEED_DEBUG_DISCORD_CHANNEL',
+    );
+  });
+
+  it('returns undefined when the TP feed debug channel is set to an empty string', () => {
+    vi.mocked(configService.get).mockReturnValue('');
+    expect(service.getTpFeedDebugDiscordChannel()).toBeUndefined();
+  });
 });

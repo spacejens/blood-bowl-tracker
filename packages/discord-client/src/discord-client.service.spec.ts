@@ -67,7 +67,7 @@ vi.mock('discord.js', () => ({
   Routes: {
     channelMessages: vi.fn((id: string) => `/fake/channels/${id}/messages`),
   },
-  GatewayIntentBits: { Guilds: 1 },
+  GatewayIntentBits: { Guilds: 1, GuildMessages: 512, MessageContent: 32768 },
   // Real discord-api-types values, so assertions can compare against the
   // genuine enum members the service passes to Discord.
   InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
@@ -77,6 +77,8 @@ vi.mock('discord.js', () => ({
 
 import {
   ApplicationIntegrationType,
+  Client,
+  GatewayIntentBits,
   InteractionContextType,
   REST,
   Routes,
@@ -101,6 +103,14 @@ describe('DiscordClientService', () => {
     );
     if (!call) throw new Error('interactionCreate handler not registered');
     return call[1] as (interaction: unknown) => void;
+  }
+
+  function messageHandler(): (message: unknown) => void {
+    const call = mockClient.on.mock.calls.find(
+      ([event]) => event === 'messageCreate',
+    );
+    if (!call) throw new Error('messageCreate handler not registered');
+    return call[1] as (message: unknown) => void;
   }
 
   beforeEach(async () => {
@@ -940,5 +950,60 @@ describe('DiscordClientService', () => {
 
       expect(service.findSelectMenuHandler('coach:42')).toBeUndefined();
     });
+  });
+
+  it('declares the gateway intents needed to read message embeds', () => {
+    expect(Client).toHaveBeenCalledWith({
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+      ],
+    });
+  });
+
+  it('registers a messageCreate listener on module init', () => {
+    service.onModuleInit();
+
+    expect(mockClient.on).toHaveBeenCalledWith(
+      'messageCreate',
+      expect.any(Function),
+    );
+  });
+
+  it('dispatches a created message to every registered handler', async () => {
+    const first = vi.fn().mockResolvedValue(undefined);
+    const second = vi.fn().mockResolvedValue(undefined);
+    service.registerMessageHandler(first);
+    service.registerMessageHandler(second);
+    service.onModuleInit();
+    const message = { id: 'm1' };
+
+    messageHandler()(message);
+    await flush();
+
+    expect(first).toHaveBeenCalledWith(message);
+    expect(second).toHaveBeenCalledWith(message);
+  });
+
+  it('logs and keeps dispatching when a message handler rejects', async () => {
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const failing = vi.fn().mockRejectedValue(new Error('boom'));
+    const healthy = vi.fn().mockResolvedValue(undefined);
+    service.registerMessageHandler(failing);
+    service.registerMessageHandler(healthy);
+    service.onModuleInit();
+
+    messageHandler()({ id: 'm2' });
+    await flush();
+
+    expect(healthy).toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledWith(
+      'Unhandled message handler error',
+      expect.any(Error),
+    );
+    errorLog.mockRestore();
   });
 });

@@ -19,6 +19,7 @@ import type {
   ChatInputCommandInteraction,
   Interaction,
   InteractionReplyOptions,
+  Message,
   MessageCreateOptions,
   RESTPostAPIChannelMessageJSONBody,
   StringSelectMenuInteraction,
@@ -103,6 +104,16 @@ export type SelectMenuHandler = (
   interaction: StringSelectMenuInteraction,
 ) => Promise<string | InteractionReplyOptions>;
 
+/**
+ * Receives every message created in a channel the bot can see. Handlers are
+ * dispatched in registration order and are independent: one that rejects is
+ * logged and does not stop the others. Unlike the interaction handlers there
+ * is no prefix routing — a message carries nothing to route on, so each
+ * handler filters for the messages it cares about itself (by channel id, by
+ * `webhookId`, and so on).
+ */
+export type MessageHandler = (message: Message) => Promise<void>;
+
 interface UsageInputOptions {
   interaction:
     | ChatInputCommandInteraction
@@ -138,6 +149,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   >();
   private readonly buttonHandlers = new Map<string, ButtonHandler>();
   private readonly selectMenuHandlers = new Map<string, SelectMenuHandler>();
+  private readonly messageHandlers: MessageHandler[] = [];
 
   constructor(
     @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
@@ -147,7 +159,21 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     private readonly memberRoleAccess: MemberRoleAccessService,
     private readonly usageTracking: UsageTrackingService,
   ) {
-    this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
+    // GuildMessages delivers messageCreate at all; MessageContent is the
+    // privileged intent that ungates the content and embeds of messages the
+    // bot did not author. Both are needed to read another integration's
+    // webhook posts, and MessageContent must additionally be enabled on the
+    // application in the Discord Developer Portal — declaring it here
+    // without that toggle enabled makes Discord reject the gateway
+    // connection outright (a `DisallowedIntents` error), so the bot fails to
+    // connect at all, not just receive stripped-down messages.
+    this.client = new Client({
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+      ],
+    });
   }
 
   /**
@@ -164,6 +190,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.client.on('interactionCreate', (interaction) => {
       this.handleInteraction(interaction).catch((error) => {
         this.logger.error('Unhandled interaction error', error);
+      });
+    });
+    this.client.on('messageCreate', (message) => {
+      this.handleMessage(message).catch((error) => {
+        this.logger.error(
+          'Unexpected error dispatching message handlers',
+          error,
+        );
       });
     });
   }
@@ -322,6 +356,15 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Registers a handler invoked for every message the bot can see. Deliberately
+   * unfiltered: filtering is the handler's own job, because different features
+   * care about different channels and message sources.
+   */
+  registerMessageHandler(handler: MessageHandler): void {
+    this.messageHandlers.push(handler);
+  }
+
+  /**
    * The button handler a given `customId` would route to, matched by the same
    * first-registered-prefix-wins rule the live dispatcher uses. Exposed so a
    * caller can invoke a component's handler without a real Discord event —
@@ -434,6 +477,22 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         outcome: 'failure',
         errorMessage: this.errorMessage(error),
       });
+    }
+  }
+
+  /**
+   * Runs every registered handler for one message. A handler that rejects is
+   * logged and skipped rather than aborting the rest: the handlers are
+   * unrelated features that happen to share the event, so one failing must not
+   * silence the others.
+   */
+  private async handleMessage(message: Message): Promise<void> {
+    for (const handler of this.messageHandlers) {
+      try {
+        await handler(message);
+      } catch (error) {
+        this.logger.error('Unhandled message handler error', error);
+      }
     }
   }
 
