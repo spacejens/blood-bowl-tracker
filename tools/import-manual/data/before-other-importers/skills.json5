@@ -848,8 +848,10 @@
     // Categories are confirmed against the printed DB2021 rulebook. Several
     // skills present under other rules sets are confirmed absent from
     // DB2021 specifically and so have no row here: Kick, Cannoneer, Cloud
-    // Burster, Hail Mary Pass, Ball & Chain, Chainsaw, Secret Weapon, and
-    // Swarming.
+    // Burster, Hail Mary Pass, Ball & Chain, Chainsaw, and Swarming.
+    // Secret Weapon is curated here despite not being confirmed in the
+    // printed rulebook pass: TP's own roster data shows the DB2021 star
+    // player Fungus Flinga with it as a starting skill.
     { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
@@ -932,6 +934,7 @@
     { skill: { system: 'Name', id: 'Really Stupid' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Regeneration' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Right Stuff' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Secret Weapon' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Stunty' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Swoop' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'trait' },
