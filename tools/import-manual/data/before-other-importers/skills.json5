@@ -196,6 +196,7 @@
     { name: 'Decay', externalIds: [{ system: 'Name', id: 'Decay' }] },
     { name: 'Right Stuff', externalIds: [{ system: 'Name', id: 'Right Stuff' }, { system: 'Name', id: 'Rightstuff' }] },
     { name: 'Stunty', externalIds: [{ system: 'Name', id: 'Stunty' }] },
+    { name: 'Weeping Dagger', externalIds: [{ system: 'Name', id: 'Weeping Dagger' }] },
 
     // --- BB2016-only skill: not part of CRP's catalog, and not one of the
     // six skills BB-Teams-of-Legend-Revised-1.pdf itself labels "NEW SKILL"
@@ -564,6 +565,13 @@
     { skill: { system: 'Name', id: 'Frenzy' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
     { skill: { system: 'Name', id: 'Sure Hands' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Fend' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Kick-Off Return' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pass Block' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Pro' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Strip Ball' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
+    { skill: { system: 'Name', id: 'Wrestle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
 
     { skill: { system: 'Name', id: 'Dodge' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
@@ -572,19 +580,30 @@
     { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
+    { skill: { system: 'Name', id: 'Sneaky Git' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
 
     { skill: { system: 'Name', id: 'Pass' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Accurate' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Hail Mary Pass' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
+    { skill: { system: 'Name', id: 'Leader' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
 
     { skill: { system: 'Name', id: 'Thick Skull' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Mighty Blow' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Stand Firm' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
     { skill: { system: 'Name', id: 'Strong Arm' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Grab' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Guard' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Multiple Block' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
+    { skill: { system: 'Name', id: 'Piling On' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
 
     { skill: { system: 'Name', id: 'Horns' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Very Long Legs' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Claws' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Disturbing Presence' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
     { skill: { system: 'Name', id: 'Prehensile Tail' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Big Hand' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Extra Arms' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
+    { skill: { system: 'Name', id: 'Two Heads' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
 
     { skill: { system: 'Name', id: 'Loner' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Animosity' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
@@ -606,47 +625,29 @@
     { skill: { system: 'Name', id: 'Hypnotic Gaze' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Blood Lust' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Wild Animal' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
-    // TODO: verify -- the Treeman's "Timmm-ber!" skill (p.5, Halfling
-    // roster) has no skill description or category heading anywhere in
-    // either source PDF; category guessed as 'trait' by analogy with the
-    // Treeman's other special-ability skills (see the `skills` entry's
-    // comment). Confirm against the full BB2016 core rulebook.
+    { skill: { system: 'Name', id: 'Fan Favourite' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Monstrous Mouth' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Swoop' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
+    { skill: { system: 'Name', id: 'Weeping Dagger' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
     { skill: { system: 'Name', id: 'Timmm-ber!' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
 
     // --- BB2016: additional skills needed only by the ten "physical
     // rulebook" legacy races (Human, Orc, Dwarf, Skaven, Dark Elf, Elven
     // Union, High Elf, Wood Elf, Nurgle, Slann), which Teams of Legend does
-    // not cover. Every category below is TODO: verify -- taken from this
-    // same skill's already-curated CRP/CRP+ category above (unchanged across
-    // every edition cross-checked in this file), not from a BB2016-specific
-    // source page, since none of these skills is evidenced anywhere in
-    // BB-Teams-of-Legend-Revised-1.pdf. Confirm against the full BB2016 core
-    // rulebook, which is out of scope for this file. ---
-    // TODO: verify -- category per this skill's CRP entry above.
+    // not cover. Categories below are confirmed against the printed BB2016
+    // core rulebook. ---
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Shadowing' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'general' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Diving Catch' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Diving Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'agility' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Nerves of Steel' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Dump-Off' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Safe Throw' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'passing' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Break Tackle' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Juggernaut' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'strength' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Foul Appearance' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Tentacles' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'mutation' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: 'Stab' }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
-    // TODO: verify -- category per this skill's CRP entry above.
     { skill: { system: 'Name', id: "Nurgle's Rot" }, rulesSet: { system: 'Name', id: 'BB2016' }, category: 'trait' },
 
     // ================================================================
