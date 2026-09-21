@@ -15,7 +15,7 @@ and every position carrying that keyword is a target.
 | Kind | Meaning |
 | --- | --- |
 | `species` | A creature keyword — Elf, Skaven, Undead, Ogre, Squig. |
-| `positional` | A role keyword — Big Guy, and (not yet recorded) Special, Blitzer, Thrower. |
+| `positional` | A role keyword — Lineman, Runner, Blitzer, Thrower, Catcher, Blocker, Special, Big Guy. |
 | `special` | The sentinel "no restriction", used by Animosity's "All" target. |
 
 ## Which positions carry which keywords
@@ -25,9 +25,14 @@ that carries the position's characteristics — so a keyword can only be
 recorded once that position's characteristics under that rules set already
 are, exactly like a starting skill.
 
-The relationship is many-to-many in both directions. A position can carry up
-to three keywords at once (a Zombie Lineman is Human, Zombie _and_ Undead),
-and one keyword is shared by positions from unrelated team races.
+The relationship is many-to-many in both directions. A position carries one
+or more species keywords (a Zombie Lineman is Human, Zombie _and_ Undead) plus
+any positional keywords its role gives it, so more than three at once is
+ordinary; and one keyword is shared by positions from unrelated team races.
+
+A position's keywords are listed positional-first, then alphabetically within
+each group, matching how the rulebook and tourplay.net's own interface present
+them.
 
 A [star player](../star-players/index.md) is a position in this tracker, so
 its keywords are recorded the same way.
@@ -46,3 +51,9 @@ The names are hand-curated in `tools/import-manual`: the imported source
 names them, so each keyword carries the numeric code as a `tourplay.net`
 external id alongside the usual `Name` one. Which positions carry which
 keyword is imported from tourplay.net; the names are not.
+
+tourplay.net spreads those codes over three separate fields on each position
+and star player, and the importer merges all three into one list: the `race`
+array holds the species codes, the integer `positionTypes` bitmask holds the
+positional ones (one bit per keyword, and the bit value is the curated code),
+and the `isBigGuy` boolean contributes `Big Guy`.
