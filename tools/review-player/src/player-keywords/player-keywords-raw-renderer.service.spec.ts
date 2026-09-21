@@ -177,6 +177,24 @@ describe('PlayerKeywordsRawRendererService', () => {
     expect(html).toContain('<td>no</td>');
   });
 
+  it("shows 'yes' for a template TP flags isBigGuy true", async () => {
+    index.aggregateFor.mockResolvedValue(
+      aggregate({
+        templateKeywordCodes: [113, 134],
+        templatePositionTypes: null,
+        templateIsBigGuy: true,
+      }),
+    );
+    manual.all.mockResolvedValue([
+      { name: 'Ogre', kind: 'species', code: '113' },
+      { name: 'Big Guy', kind: 'positional', code: '134' },
+    ]);
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td>yes</td>');
+  });
+
   it('shows no raw positional values for a template TP carries none for', async () => {
     index.aggregateFor.mockResolvedValue(
       aggregate({
