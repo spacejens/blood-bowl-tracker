@@ -29,10 +29,14 @@ that carries the position's characteristics — so a keyword can only be
 recorded once that position's characteristics under that rules set already
 are, exactly like a starting skill.
 
-The relationship is many-to-many in both directions. A position carries one
-or more species keywords (a Zombie Lineman is Human, Zombie _and_ Undead) plus
-any positional keywords its role gives it, so more than three at once is
-ordinary; and one keyword is shared by positions from unrelated team races.
+The relationship is many-to-many in both directions. A BB2025 position
+carries one or more species keywords (a Zombie Lineman is Human, Zombie
+_and_ Undead) plus any positional keywords its role gives it, so more than
+three at once is ordinary there; a DB2021 or BB2020 position carries
+positional keywords only — DB2021's data has no species codes at all, and
+BB2020's has neither species codes nor positional-role bits, only the Big
+Guy signal where it applies. One keyword is shared by positions from
+unrelated team races.
 
 A position's keywords are listed positional-first, then alphabetically within
 each group, matching how the rulebook and tourplay.net's own interface present
