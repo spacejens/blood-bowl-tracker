@@ -548,21 +548,36 @@ export class TrophiesService {
 
   /**
    * The trophies of every competition group that runs at least one
-   * competition in this era. League-direct trophies have a null
-   * `competitionGroupId`, so `inArray` excludes them — correctly: such a
-   * trophy belongs to the whole league, not to one era of it.
+   * competition in this era, plus any trophy scoped directly to one of those
+   * groups' leagues. A league-direct trophy can be awarded at any
+   * competition in its league (see `TrophyAwardsService`'s award
+   * validation), so it belongs to every era that league has a competition
+   * in, not only trophies whose own catalog entry names a group.
    */
   async countByEra(eraId: number): Promise<number> {
     const [row] = await this.db
       .select({ count: countDistinct(trophies.id) })
       .from(trophies)
       .where(
-        inArray(
-          trophies.competitionGroupId,
-          this.db
-            .select({ competitionGroupId: competitions.competitionGroupId })
-            .from(competitions)
-            .where(eq(competitions.eraId, eraId)),
+        or(
+          inArray(
+            trophies.competitionGroupId,
+            this.db
+              .select({ competitionGroupId: competitions.competitionGroupId })
+              .from(competitions)
+              .where(eq(competitions.eraId, eraId)),
+          ),
+          inArray(
+            trophies.leagueId,
+            this.db
+              .select({ leagueId: competitionGroups.leagueId })
+              .from(competitions)
+              .innerJoin(
+                competitionGroups,
+                eq(competitionGroups.id, competitions.competitionGroupId),
+              )
+              .where(eq(competitions.eraId, eraId)),
+          ),
         ),
       );
     return row.count;
@@ -570,18 +585,36 @@ export class TrophiesService {
 
   /**
    * The trophies of the one competition group this competition belongs to
-   * (`competitions.competitionGroupId` is NOT NULL). League-direct trophies
-   * are excluded for the same reason as in `countByEra`.
+   * (`competitions.competitionGroupId` is NOT NULL), plus any trophy scoped
+   * directly to that group's league — for the same awarding reason as
+   * `countByEra`.
    */
   async countByCompetition(competitionId: number): Promise<number> {
     const [row] = await this.db
       .select({ count: countDistinct(trophies.id) })
       .from(trophies)
-      .innerJoin(
-        competitions,
-        eq(competitions.competitionGroupId, trophies.competitionGroupId),
-      )
-      .where(eq(competitions.id, competitionId));
+      .where(
+        or(
+          inArray(
+            trophies.competitionGroupId,
+            this.db
+              .select({ competitionGroupId: competitions.competitionGroupId })
+              .from(competitions)
+              .where(eq(competitions.id, competitionId)),
+          ),
+          inArray(
+            trophies.leagueId,
+            this.db
+              .select({ leagueId: competitionGroups.leagueId })
+              .from(competitions)
+              .innerJoin(
+                competitionGroups,
+                eq(competitionGroups.id, competitions.competitionGroupId),
+              )
+              .where(eq(competitions.id, competitionId)),
+          ),
+        ),
+      );
     return row.count;
   }
 }
