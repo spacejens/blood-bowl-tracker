@@ -46,6 +46,33 @@ export class DiscordBotConfigService {
     return this.configService.get<string>('DEBUG_COMMAND_ROLE_ID') || undefined;
   }
 
+  /**
+   * Discord channel id the TP notification feed listens to. Optional: unset or
+   * empty turns the whole feature off — the listener never registers a message
+   * handler at all, so nothing is parsed and nothing is logged. Like the
+   * getters above it never throws, because there is nothing to fail fast about
+   * when the variable is genuinely optional.
+   */
+  getTpFeedSourceDiscordChannel(): string | undefined {
+    return (
+      this.configService.get<string>('TP_FEED_SOURCE_DISCORD_CHANNEL') ||
+      undefined
+    );
+  }
+
+  /**
+   * Discord channel id the parsed TP notifications are echoed to as one line
+   * of plain text each. Optional, and independent of the source channel: unset
+   * leaves the listener running — messages are still parsed and drift warnings
+   * are still logged — but nothing is posted anywhere.
+   */
+  getTpFeedDebugDiscordChannel(): string | undefined {
+    return (
+      this.configService.get<string>('TP_FEED_DEBUG_DISCORD_CHANNEL') ||
+      undefined
+    );
+  }
+
   getRandomInsightsCron(): string {
     return this.getRequired('RANDOM_INSIGHTS_CRON');
   }
