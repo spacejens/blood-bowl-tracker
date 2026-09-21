@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
   extractAllFilterValues,
+  extractFilterValues,
   extractJoinColumns,
   firstCallArg,
   sqlText,
@@ -230,6 +231,52 @@ describe('SkillsService', () => {
       ).mock.calls[0];
       expect(sqlText(orderBy[0])).toContain(' desc');
       expect(sqlText(orderBy[1])).toContain(' asc');
+    });
+  });
+
+  describe('countAll', () => {
+    it('counts every skill in the catalogue', async () => {
+      await build([{ count: 412 }]);
+
+      await expect(service.countAll()).resolves.toBe(412);
+    });
+  });
+
+  describe('scoped catalogue counts', () => {
+    it('counts distinct skills defined under the rules sets an era uses', async () => {
+      const { chains } = await build([{ count: 37 }]);
+
+      await expect(service.countByEra(5)).resolves.toBe(37);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(5);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual([
+        'era_rules_sets.rules_set_id',
+        'skill_rules_sets.rules_set_id',
+      ]);
+    });
+
+    it('counts distinct skills across every era of a league', async () => {
+      const { chains } = await build([{ count: 61 }]);
+
+      await expect(service.countByLeague(9)).resolves.toBe(61);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['eras.id', 'era_rules_sets.era_id']);
+    });
+
+    it("counts skills through the competition's own era, filtered by competition id", async () => {
+      const { chains } = await build([{ count: 37 }]);
+
+      await expect(service.countByCompetition(7)).resolves.toBe(37);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['competitions.era_id', 'era_rules_sets.era_id']);
     });
   });
 });

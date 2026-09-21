@@ -1,16 +1,20 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CoachesService,
+  CompetitionGroupsService,
   CompetitionsService,
   ErasService,
   ExternalSystemsService,
+  KeywordsService,
   LeaguesService,
   MatchesService,
   PlayersService,
   PositionsService,
   RacesService,
   RulesSetsService,
+  SkillsService,
   TeamsService,
+  TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
@@ -37,8 +41,17 @@ interface StatsSummaryValues {
   rulesSets: number;
   races: number;
   positions: number;
+  skills: number;
+  keywords: number;
   coaches: number;
   competitions: string;
+  /**
+   * A plain number in every view: the competition view has exactly one group
+   * (`competitions.competitionGroupId` is NOT NULL), so it passes the literal
+   * 1 rather than querying for it.
+   */
+  competitionGroups: number;
+  trophies: number;
   teams: number;
   players: number;
   matches: number;
@@ -47,10 +60,15 @@ interface StatsSummaryValues {
 
 /**
  * Result of the era view's `Promise.all` count query. Element order must match
- * that array exactly: externalSystems, races, positions, coaches, competitions,
- * seasons, cups, teams, players, matches, matchEvents, rulesSetNames.
+ * that array exactly: externalSystems, races, positions, skills, keywords,
+ * coaches, competitions, seasons, cups, competitionGroups, trophies, teams,
+ * players, matches, matchEvents, rulesSetNames.
  */
 type EraCounts = [
+  number,
+  number,
+  number,
+  number,
   number,
   number,
   number,
@@ -67,10 +85,14 @@ type EraCounts = [
 
 /**
  * Result of the competition view's `Promise.all` count query. Element order
- * must match that array exactly: externalSystems, races, positions, coaches,
- * teams, players, matches, matchEvents, rulesSetNames.
+ * must match that array exactly: externalSystems, races, positions, skills,
+ * keywords, coaches, trophies, teams, players, matches, matchEvents,
+ * rulesSetNames.
  */
 type CompetitionCounts = [
+  number,
+  number,
+  number,
   number,
   number,
   number,
@@ -85,10 +107,14 @@ type CompetitionCounts = [
 /**
  * Result of the league view's `Promise.all` count query. Element order must
  * match that array exactly: eraCount, externalSystems, races, positions,
- * coaches, competitions, seasons, cups, teams, players, matches, matchEvents,
- * rulesSetNames.
+ * skills, keywords, coaches, competitions, seasons, cups, competitionGroups,
+ * trophies, teams, players, matches, matchEvents, rulesSetNames.
  */
 type LeagueCounts = [
+  number,
+  number,
+  number,
+  number,
   number,
   number,
   number,
@@ -112,9 +138,13 @@ export class StatsSummaryFactsService {
     private readonly rulesSets: RulesSetsService,
     private readonly races: RacesService,
     private readonly positions: PositionsService,
+    private readonly skills: SkillsService,
+    private readonly keywords: KeywordsService,
     private readonly coaches: CoachesService,
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
+    private readonly competitionGroups: CompetitionGroupsService,
+    private readonly trophies: TrophiesService,
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
     private readonly matches: MatchesService,
@@ -147,8 +177,12 @@ export class StatsSummaryFactsService {
       `Rules sets: ${this.fmt(values.rulesSets)}`,
       `Races: ${this.fmt(values.races)}`,
       `Positions: ${this.fmt(values.positions)}`,
+      `Skills: ${this.fmt(values.skills)}`,
+      `Keywords: ${this.fmt(values.keywords)}`,
       `Coaches: ${this.fmt(values.coaches)}`,
       `Competitions: ${values.competitions}`,
+      `Competition groups: ${this.fmt(values.competitionGroups)}`,
+      `Trophies: ${this.fmt(values.trophies)}`,
       `Teams: ${this.fmt(values.teams)}`,
       `Players: ${this.fmt(values.players)}`,
       `Matches: ${this.fmt(values.matches)}`,
@@ -168,11 +202,15 @@ export class StatsSummaryFactsService {
         this.rulesSets.countAll(),
         this.races.countAll(),
         this.positions.countAll(),
+        this.skills.countAll(),
+        this.keywords.countAll(),
         this.coaches.countAll(),
         this.eras.countAll(),
         this.competitions.countAll(),
         this.competitions.countByType('season'),
         this.competitions.countByType('cup'),
+        this.competitionGroups.countAll(),
+        this.trophies.countAll(),
         this.teams.countAll(),
         this.players.countAll(),
         this.matches.countAll(),
@@ -189,11 +227,15 @@ export class StatsSummaryFactsService {
       rulesSets,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       eras,
       competitions,
       seasons,
       cups,
+      competitionGroups,
+      trophies,
       teams,
       players,
       matches,
@@ -207,8 +249,12 @@ export class StatsSummaryFactsService {
       rulesSets,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
+      competitionGroups,
+      trophies,
       teams,
       players,
       matches,
@@ -224,10 +270,14 @@ export class StatsSummaryFactsService {
         this.externalSystems.countByEra(eraId),
         this.races.countByEra(eraId),
         this.positions.countByEra(eraId),
+        this.skills.countByEra(eraId),
+        this.keywords.countByEra(eraId),
         this.coaches.countByEra(eraId),
         this.competitions.countByEra(eraId),
         this.competitions.countByType('season', eraId),
         this.competitions.countByType('cup', eraId),
+        this.competitionGroups.countByEra(eraId),
+        this.trophies.countByEra(eraId),
         this.teams.countByEra(eraId),
         this.players.countByEra(eraId),
         this.matches.countByEra(eraId),
@@ -243,10 +293,14 @@ export class StatsSummaryFactsService {
       externalSystems,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       competitions,
       seasons,
       cups,
+      competitionGroups,
+      trophies,
       teams,
       players,
       matches,
@@ -261,8 +315,12 @@ export class StatsSummaryFactsService {
       rulesSets: rulesSetNames.length,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
+      competitionGroups,
+      trophies,
       teams,
       players,
       matches,
@@ -282,7 +340,10 @@ export class StatsSummaryFactsService {
         this.externalSystems.countByCompetition(competitionId),
         this.races.countByCompetition(competitionId),
         this.positions.countByCompetition(competitionId),
+        this.skills.countByCompetition(competitionId),
+        this.keywords.countByCompetition(competitionId),
         this.coaches.countByCompetition(competitionId),
+        this.trophies.countByCompetition(competitionId),
         this.teams.countByCompetition(competitionId),
         this.players.countByCompetition(competitionId),
         this.matches.countByCompetition(competitionId),
@@ -298,7 +359,10 @@ export class StatsSummaryFactsService {
       externalSystems,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
+      trophies,
       teams,
       players,
       matches,
@@ -316,8 +380,14 @@ export class StatsSummaryFactsService {
       rulesSets: rulesSetNames.length,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       competitions: `1 (${seasons} seasons, ${cups} cups)`,
+      // A competition belongs to exactly one group, so this is a literal for
+      // the same reason `leagues` and `eras` are above.
+      competitionGroups: 1,
+      trophies,
       teams,
       players,
       matches,
@@ -334,10 +404,14 @@ export class StatsSummaryFactsService {
         this.externalSystems.countByLeague(leagueId),
         this.races.countByLeague(leagueId),
         this.positions.countByLeague(leagueId),
+        this.skills.countByLeague(leagueId),
+        this.keywords.countByLeague(leagueId),
         this.coaches.countByLeague(leagueId),
         this.competitions.countByLeague(leagueId),
         this.competitions.countByType('season', undefined, leagueId),
         this.competitions.countByType('cup', undefined, leagueId),
+        this.competitionGroups.countByLeague(leagueId),
+        this.trophies.countByLeague(leagueId),
         this.teams.countByLeague(leagueId),
         this.players.countByLeague(leagueId),
         this.matches.countByLeague(leagueId),
@@ -354,10 +428,14 @@ export class StatsSummaryFactsService {
       externalSystems,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       competitions,
       seasons,
       cups,
+      competitionGroups,
+      trophies,
       teams,
       players,
       matches,
@@ -372,8 +450,12 @@ export class StatsSummaryFactsService {
       rulesSets: rulesSetNames.length,
       races,
       positions,
+      skills,
+      keywords,
       coaches,
       competitions: `${this.fmt(competitions)} (${this.fmt(seasons)} seasons, ${this.fmt(cups)} cups)`,
+      competitionGroups,
+      trophies,
       teams,
       players,
       matches,

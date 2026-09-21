@@ -8,21 +8,25 @@ import type { Db, Skill } from '@blood-bowl-tracker/db';
 import {
   and,
   asc,
+  competitions,
   countDistinct,
   DB,
   desc,
   eq,
+  eraRulesSets,
   eras,
   inArray,
   players,
   playerSkills,
   positions,
   skillExternalIds,
+  skillRulesSets,
   skills,
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
@@ -206,5 +210,71 @@ export class SkillsService {
     limit: number,
   ): Promise<SkillPlayerCount[]> {
     return this.rankSkillsByPlayerCount(scope, limit, ['random']);
+  }
+
+  /**
+   * The catalogue counts behind the stats summary's `Skills:` line. These
+   * count how many distinct skills are *defined* under the rules set(s) in
+   * scope, matching Rules sets / Races / Positions — not how many skills
+   * players actually hold, which is what the toplists above rank.
+   *
+   * `countAll` counts every skill in the catalogue, including one attached to
+   * no rules set. The three scoped methods below only reach skills that are
+   * attached to a rules set in scope, so a defined-but-unattached skill shows
+   * up in the all-time count but not in any scoped one.
+   *
+   * `skill_rules_sets` and `era_rules_sets` are joined directly on
+   * `rules_set_id`: both are NOT NULL foreign keys to the same `rules_sets`
+   * row, so hopping through `rules_sets` itself would drop no rows and select
+   * nothing.
+   */
+  countAll(): Promise<number> {
+    return countRows(this.db, skills);
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(skillRulesSets.skillId) })
+      .from(skillRulesSets)
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, skillRulesSets.rulesSetId),
+      )
+      .where(eq(eraRulesSets.eraId, eraId));
+    return row.count;
+  }
+
+  /**
+   * A competition has no narrower rules-set scope than the era it runs in, so
+   * this is the era count reached through the competition's own `eraId`.
+   * Unlike `RacesService.countByCompetition` / `PositionsService.
+   * countByCompetition`, which count what actually took part
+   * (competition_teams -> team_eras), this stays a catalogue count: every
+   * skill the era's rules set(s) define, not only ones held by a participant.
+   */
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(skillRulesSets.skillId) })
+      .from(skillRulesSets)
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, skillRulesSets.rulesSetId),
+      )
+      .innerJoin(competitions, eq(competitions.eraId, eraRulesSets.eraId))
+      .where(eq(competitions.id, competitionId));
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(skillRulesSets.skillId) })
+      .from(skillRulesSets)
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, skillRulesSets.rulesSetId),
+      )
+      .innerJoin(eras, eq(eras.id, eraRulesSets.eraId))
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
   }
 }

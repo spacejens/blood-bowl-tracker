@@ -241,4 +241,32 @@ describe('CompetitionGroupsService', () => {
       expect(pattern).toBe('50\\%\\_x%');
     });
   });
+
+  it('counts every competition group', async () => {
+    const { service } = await makeService([{ count: 14 }]);
+
+    await expect(service.countAll()).resolves.toBe(14);
+  });
+
+  it('counts the competition groups of one league', async () => {
+    const { service, db } = await makeService([{ count: 5 }]);
+
+    await expect(service.countByLeague(9)).resolves.toBe(5);
+
+    expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(9);
+    expect(extractJoinColumns(firstCallArg(db.chains[0].where))).toEqual([
+      'competition_groups.league_id',
+    ]);
+  });
+
+  it('counts the distinct competition groups that have a competition in an era', async () => {
+    const { service, db } = await makeService([{ count: 3 }]);
+
+    await expect(service.countByEra(5)).resolves.toBe(3);
+
+    expect(extractFilterValues(firstCallArg(db.chains[0].where))).toBe(5);
+    expect(extractJoinColumns(firstCallArg(db.chains[0].where))).toEqual([
+      'competitions.era_id',
+    ]);
+  });
 });

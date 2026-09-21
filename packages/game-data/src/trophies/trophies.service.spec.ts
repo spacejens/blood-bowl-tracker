@@ -750,4 +750,73 @@ describe('TrophiesService', () => {
       expect(chains[0].orderBy).toHaveBeenCalled();
     });
   });
+
+  describe('scoped counts', () => {
+    it('counts every trophy in the catalogue', async () => {
+      await build([{ count: 58 }]);
+
+      await expect(service.countAll()).resolves.toBe(58);
+    });
+
+    it('counts league-direct trophies together with the trophies of the league groups', async () => {
+      const { chains } = await build([{ count: 21 }]);
+
+      await expect(service.countByLeague(9)).resolves.toBe(21);
+
+      // or(eq(competitionGroups.leagueId, 9), eq(trophies.leagueId, 9))
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        9, 9,
+      ]);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].leftJoin, 0, 1)),
+      ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
+    });
+
+    it('counts trophies of the competition groups that run competitions in the era, plus any trophy scoped directly to one of those groups’ leagues', async () => {
+      // chains[0] is the outer count query; chains[1] and chains[2] are the
+      // two subqueries built for the inArray conditions (groups, then
+      // leagues).
+      const { chains } = await build([{ count: 12 }], [], []);
+
+      await expect(service.countByEra(5)).resolves.toBe(12);
+
+      expect(chains).toHaveLength(3);
+      expect(extractFilterValues(firstCallArg(chains[1].where))).toBe(5);
+      expect(extractFilterValues(firstCallArg(chains[2].where))).toBe(5);
+      expect(
+        extractJoinColumns(firstCallArg(chains[2].innerJoin, 0, 1)),
+      ).toEqual(['competition_groups.id', 'competitions.competition_group_id']);
+      // or(inArray(trophies.competitionGroupId, ...), inArray(trophies.leagueId, ...))
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'trophies.competition_group_id',
+        'trophies.league_id',
+      ]);
+      expect(sqlText(firstCallArg(chains[0].where)).toLowerCase()).toContain(
+        ' or ',
+      );
+    });
+
+    it("counts the trophies of the competition's own group, plus any trophy scoped directly to that group's league", async () => {
+      // chains[0] is the outer count query; chains[1] and chains[2] are the
+      // two subqueries built for the inArray conditions (group, then
+      // league).
+      const { chains } = await build([{ count: 4 }], [], []);
+
+      await expect(service.countByCompetition(7)).resolves.toBe(4);
+
+      expect(chains).toHaveLength(3);
+      expect(extractFilterValues(firstCallArg(chains[1].where))).toBe(7);
+      expect(extractFilterValues(firstCallArg(chains[2].where))).toBe(7);
+      expect(
+        extractJoinColumns(firstCallArg(chains[2].innerJoin, 0, 1)),
+      ).toEqual(['competition_groups.id', 'competitions.competition_group_id']);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'trophies.competition_group_id',
+        'trophies.league_id',
+      ]);
+      expect(sqlText(firstCallArg(chains[0].where)).toLowerCase()).toContain(
+        ' or ',
+      );
+    });
+  });
 });

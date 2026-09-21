@@ -6,6 +6,7 @@ import {
   DateToplistModule,
   ErasModule,
   ExternalSystemsModule,
+  KeywordsModule,
   LeaguesModule,
   MatchesModule,
   OnThisDateModule,
@@ -81,6 +82,7 @@ const GAME_DATA_MODULES = [
   CharacteristicDisplayFormattingModule,
   RacesModule,
   SkillsModule,
+  KeywordsModule,
   ExternalSystemsModule,
   TrophiesModule,
 ];
