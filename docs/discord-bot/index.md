@@ -15,6 +15,11 @@ application.
 4. Under **Token**, click **Reset Token** and copy the value. This is your
    `DISCORD_BOT_TOKEN`. Treat it like a password — anyone with it can control
    your bot. If it leaks, reset it here to invalidate the old one.
+5. Under **Privileged Gateway Intents**, enable **Message Content Intent** if
+   you intend to use the [TP notification feed](tp-feed.md). It is what lets
+   the bot read the embeds of messages it did not post itself; without it
+   those messages arrive with their contents stripped. Nothing else the bot
+   does needs it.
 
 ## 2. Invite the bot to your server
 
@@ -105,6 +110,15 @@ Configuration is supplied through an environment file in the app directory.
      `RANDOM_INSIGHTS_FILTER_PROBABILITY`, the template's value is a
      local-testing starting point; how varied the posts in a live channel
      should feel is worth deciding deliberately for that audience.
+   - `TP_FEED_SOURCE_DISCORD_CHANNEL` — optional, and unset by default. The
+     channel TP's own Discord integration posts its league notifications into.
+     Set it and the bot parses those notifications; left unset, the feature is
+     entirely off. See [TP notification feed](tp-feed.md).
+   - `TP_FEED_DEBUG_DISCORD_CHANNEL` — optional, and unset by default. The
+     channel the bot echoes its one-line interpretation of each parsed TP
+     notification to. Left unset, notifications are still parsed and
+     unrecognised shapes still logged, but nothing is posted. This is
+     diagnostic output, so it belongs in a maintainer channel.
    - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
      — the bearer tokens the API accepts on `/rpc`, one per importer tool
      (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
