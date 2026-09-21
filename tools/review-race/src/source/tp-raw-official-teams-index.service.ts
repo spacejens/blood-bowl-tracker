@@ -19,6 +19,19 @@ const TEAMS_DIR = 'teams';
  */
 const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
 
+/**
+ * TP's `positionTypes` bitmask, bit value -> the curated positional keyword
+ * whose code that bit value IS: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower,
+ * 16 Catcher, 32 Blocker, 64 Special. One entry can carry several bits.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword, which TP carries as
+ * the separate `isBigGuy` boolean rather than as a `positionTypes` bit.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
 /** The five characteristics TP carries on every official-list entry. */
 interface TpRawPositionCharacteristics {
   move: number;
@@ -63,13 +76,23 @@ export interface TpRawOfficialPosition {
   /** The entry's starting skills, by TP skill master id. */
   skills: TpRawSkillRef[];
   /**
-   * The numeric keyword codes TP lists for this position, from its `race`
-   * array. TP's name for the field is `race`, but it is not the team's race:
-   * a code is shared across unrelated team races and a position carries up
-   * to three. Empty for every pre-BB2025 rules set, where the field is
-   * absent.
+   * The numeric keyword codes TP lists for this position, merged from all
+   * three fields it spreads them over: `race` (species codes), the set bits
+   * of `positionTypes` (positional codes) and `isBigGuy`. TP's name for the
+   * `race` field is not the team's race — a code is shared across unrelated
+   * team races. Empty for a pre-BB2025 rules set, where all three are absent.
    */
   keywordCodes: number[];
+  /**
+   * TP's raw `positionTypes` value, shown beside the decoded codes so a
+   * reviewer can check the decode without reading the JSON by hand. Null when
+   * TP carries no numeric value — which includes every Big Guy entry, where TP
+   * writes a literal `null`, and every pre-BB2025 entry, where the field is
+   * absent.
+   */
+  positionTypes: number | null;
+  /** TP's raw `isBigGuy` flag; false when TP carries no boolean value. */
+  isBigGuy: boolean;
   /**
    * A star entry's own exclusive skill, which TP publishes as a sibling of
    * the `skills` array rather than an entry inside it. Null for an ordinary
@@ -303,15 +326,36 @@ export class TpRawOfficialTeamsIndexService {
       characteristics: { move, strength, agility, passing, armour },
       skills: this.skillRefs(entry),
       keywordCodes: this.keywordCodes(entry),
+      positionTypes: this.numberProperty(entry, 'positionTypes'),
+      isBigGuy: this.property(entry, 'isBigGuy') === true,
       specialRuleName: this.stringProperty(entry, 'specialRuleName'),
     };
   }
 
-  /** One entry's `race[]`, defensively filtered to numeric codes only. */
+  /**
+   * One entry's keyword codes: its `race` array (species codes) in TP's own
+   * order, then the set bits of `positionTypes` ascending (positional codes,
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE` when
+   * `isBigGuy` is set. Deduplicated, first occurrence winning.
+   *
+   * Decoded here rather than reused from packages/parse-tp: that parser's
+   * reading of these files is the code under review, and a bug in it must not
+   * agree with itself against the raw display.
+   */
   private keywordCodes(entry: unknown): number[] {
-    return this.arrayProperty(entry, 'race').filter(
+    const species = this.arrayProperty(entry, 'race').filter(
       (value): value is number => typeof value === 'number',
     );
+    const mask = this.numberProperty(entry, 'positionTypes') ?? 0;
+    return [
+      ...new Set([
+        ...species,
+        ...POSITION_TYPE_CODES.filter((code) => (mask & code) !== 0),
+        ...(this.property(entry, 'isBigGuy') === true
+          ? [BIG_GUY_KEYWORD_CODE]
+          : []),
+      ]),
+    ];
   }
 
   /** One entry's `skills[]`, defensively shaped. */
@@ -335,6 +379,11 @@ export class TpRawOfficialTeamsIndexService {
   private stringProperty(value: unknown, key: string): string | null {
     const property = this.property(value, key);
     return typeof property === 'string' && property !== '' ? property : null;
+  }
+
+  private numberProperty(value: unknown, key: string): number | null {
+    const property = this.property(value, key);
+    return typeof property === 'number' ? property : null;
   }
 
   private async readJson(path: string): Promise<unknown> {

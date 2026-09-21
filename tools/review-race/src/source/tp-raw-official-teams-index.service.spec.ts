@@ -144,6 +144,8 @@ describe('TpRawOfficialTeamsIndexService', () => {
           },
           skills: [],
           keywordCodes: [],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
         },
       ],
@@ -201,6 +203,8 @@ describe('TpRawOfficialTeamsIndexService', () => {
       },
       skills: [],
       keywordCodes: [100],
+      positionTypes: null,
+      isBigGuy: false,
       specialRuleName: null,
     });
   });
@@ -541,6 +545,103 @@ describe('TpRawOfficialTeamsIndexService', () => {
     const race = await service.raceFor('Dwarf_BB2025');
 
     expect(race?.positions[0]?.keywordCodes).toEqual([111, 110]);
+  });
+
+  it("decodes an entry's positionTypes bits into keyword codes", async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          lineUpMasters: [
+            // 6 = Runner (2) + Blitzer (4), as TP's "Dragon Prince" carries it.
+            lineman({
+              position: 'Dragon Prince',
+              race: [101],
+              positionTypes: 6,
+            }),
+          ],
+        }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].keywordCodes).toEqual([101, 2, 4]);
+  });
+
+  it('decodes the isBigGuy flag into the Big Guy keyword code', async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          lineUpMasters: [
+            lineman({
+              position: 'Mummy',
+              race: [110],
+              positionTypes: 32,
+              isBigGuy: true,
+            }),
+          ],
+        }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].keywordCodes).toEqual([110, 32, 134]);
+  });
+
+  it('shows the raw positionTypes value and isBigGuy flag as TP carries them', async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          lineUpMasters: [
+            lineman({
+              position: 'Troll',
+              race: [102],
+              positionTypes: null,
+              isBigGuy: true,
+            }),
+          ],
+        }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].positionTypes).toBeNull();
+    expect(race?.positions[0].isBigGuy).toBe(true);
+    expect(race?.positions[0].keywordCodes).toEqual([102, 134]);
+  });
+
+  it('reports no positional data for a pre-BB2025 entry carrying neither field', async () => {
+    write('BB2020', {
+      rosterMasters: [roster({ lineUpMasters: [lineman()] })],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].positionTypes).toBeNull();
+    expect(race?.positions[0].isBigGuy).toBe(false);
+    expect(race?.positions[0].keywordCodes).toEqual([]);
+  });
+
+  it('yields no positional codes rather than throwing for a non-numeric positionTypes', async () => {
+    write('BB2025', {
+      rosterMasters: [
+        roster({
+          lineUpMasters: [lineman({ race: [100], positionTypes: 'blitzer' })],
+        }),
+      ],
+      starplayerMasters: [],
+    });
+
+    const race = await service.raceFor('Dwarf_BB2025');
+
+    expect(race?.positions[0].positionTypes).toBeNull();
+    expect(race?.positions[0].keywordCodes).toEqual([100]);
   });
 
   it('reports no keyword codes for an entry with no race array', async () => {
