@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.service';
+import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
@@ -28,6 +29,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(DiscordBotTokenService)).toBeInstanceOf(
       DiscordBotTokenService,
+    );
+    expect(moduleRef.get(FetchRecentDiscordMessagesService)).toBeInstanceOf(
+      FetchRecentDiscordMessagesService,
     );
     expect(moduleRef.get(CheckProductionConfigPortService)).toBeInstanceOf(
       CheckProductionConfigPortService,
