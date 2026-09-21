@@ -5,9 +5,12 @@ import type {
 import type { Db, Trophy } from '@blood-bowl-tracker/db';
 import {
   competitionGroups,
+  competitions,
+  countDistinct,
   DB,
   eq,
   ilike,
+  inArray,
   leagues,
   or,
   trophies,
@@ -18,6 +21,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { countRows } from '../shared/count-all';
 import type { DbOrTx } from '../shared/db-or-tx';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
@@ -507,6 +511,78 @@ export class TrophiesService {
         );
       }
     }
+  }
+
+  /**
+   * The counts behind the stats summary's `Trophies:` line. Every one uses
+   * `countDistinct(trophies.id)` rather than `count()` so a join that matches
+   * a trophy more than once — the league query's competition-group join, the
+   * competition query's — can never inflate the number.
+   */
+  countAll(): Promise<number> {
+    return countRows(this.db, trophies);
+  }
+
+  /**
+   * Both kinds of trophy a league owns: the ones scoped directly to it, and
+   * the ones scoped to one of its competition groups. The same `or` condition
+   * `listAllWithLeague` uses, and the join is outer for the same reason — an
+   * inner join would drop every league-direct trophy.
+   */
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(trophies.id) })
+      .from(trophies)
+      .leftJoin(
+        competitionGroups,
+        eq(competitionGroups.id, trophies.competitionGroupId),
+      )
+      .where(
+        or(
+          eq(competitionGroups.leagueId, leagueId),
+          eq(trophies.leagueId, leagueId),
+        ),
+      );
+    return row.count;
+  }
+
+  /**
+   * The trophies of every competition group that runs at least one
+   * competition in this era. League-direct trophies have a null
+   * `competitionGroupId`, so `inArray` excludes them — correctly: such a
+   * trophy belongs to the whole league, not to one era of it.
+   */
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(trophies.id) })
+      .from(trophies)
+      .where(
+        inArray(
+          trophies.competitionGroupId,
+          this.db
+            .select({ competitionGroupId: competitions.competitionGroupId })
+            .from(competitions)
+            .where(eq(competitions.eraId, eraId)),
+        ),
+      );
+    return row.count;
+  }
+
+  /**
+   * The trophies of the one competition group this competition belongs to
+   * (`competitions.competitionGroupId` is NOT NULL). League-direct trophies
+   * are excluded for the same reason as in `countByEra`.
+   */
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(trophies.id) })
+      .from(trophies)
+      .innerJoin(
+        competitions,
+        eq(competitions.competitionGroupId, trophies.competitionGroupId),
+      )
+      .where(eq(competitions.id, competitionId));
+    return row.count;
   }
 }
 
