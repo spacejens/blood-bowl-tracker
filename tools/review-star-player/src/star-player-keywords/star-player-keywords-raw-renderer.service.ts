@@ -10,6 +10,12 @@ import type { TpRawStarPlayerEntry } from '../source/tp-raw-star-player-index.se
 /** What a cell shows for a star TP gives no keyword codes. */
 const NO_KEYWORDS = 'none';
 
+/** What a cell shows for an entry TP carries no numeric positionTypes on. */
+const NO_POSITION_TYPES = 'none';
+
+/** The column headers of this panel's one table. */
+const HEADERS = ['Rules set', 'TP keyword codes', 'positionTypes', 'isBigGuy'];
+
 /**
  * The star-keywords raw panel: TP's own numeric keyword codes for this star,
  * next to the curated catalogue that names them.
@@ -44,10 +50,14 @@ export class StarPlayerKeywordsRawRendererService {
     if (lookup.stars.length === 0) {
       return (
         this.html.subheading('TP') +
-        this.html.table(
-          ['Rules set', 'TP keyword codes'],
-          [this.html.highlight([lookup.notFoundNote, NO_KEYWORDS])],
-        )
+        this.html.table(HEADERS, [
+          this.html.highlight([
+            lookup.notFoundNote,
+            NO_KEYWORDS,
+            NO_POSITION_TYPES,
+            'no',
+          ]),
+        ])
       );
     }
     const rows: TableRow[] = [];
@@ -56,18 +66,26 @@ export class StarPlayerKeywordsRawRendererService {
         rows.push(this.tpRow(entry, catalogue));
       }
     }
-    return (
-      this.html.subheading('TP') +
-      this.html.table(['Rules set', 'TP keyword codes'], rows)
-    );
+    return this.html.subheading('TP') + this.html.table(HEADERS, rows);
   }
 
+  /**
+   * One rules set's row. The last two cells are TP's raw `positionTypes` and
+   * `isBigGuy` values, shown unmodified so a reviewer can check the decoded
+   * names beside them without reading the downloaded JSON by hand.
+   */
   private tpRow(
     entry: TpRawStarPlayerEntry,
     catalogue: Map<string, string>,
   ): TableRow {
+    const raw = [
+      entry.positionTypes === null
+        ? NO_POSITION_TYPES
+        : String(entry.positionTypes),
+      entry.isBigGuy ? 'yes' : 'no',
+    ];
     if (entry.keywordCodes.length === 0) {
-      return [entry.rulesSet, NO_KEYWORDS];
+      return [entry.rulesSet, NO_KEYWORDS, ...raw];
     }
     let hasUncurated = false;
     const parts = entry.keywordCodes.map((code) => {
@@ -78,10 +96,8 @@ export class StarPlayerKeywordsRawRendererService {
       }
       return `${name} (${code})`;
     });
-    const cell = parts.join(', ');
-    return hasUncurated
-      ? this.html.highlight([entry.rulesSet, cell], [1])
-      : [entry.rulesSet, cell];
+    const cells = [entry.rulesSet, parts.join(', '), ...raw];
+    return hasUncurated ? this.html.highlight(cells, [1]) : cells;
   }
 
   /** The curated catalogue, keyed by its `tourplay.net` code. */

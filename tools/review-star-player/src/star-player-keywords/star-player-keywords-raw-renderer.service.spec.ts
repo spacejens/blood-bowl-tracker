@@ -53,6 +53,8 @@ describe('StarPlayerKeywordsRawRendererService', () => {
               eligibleTeamRaces: [],
               skills: [],
               keywordCodes: [111, 110],
+              positionTypes: null,
+              isBigGuy: false,
             },
           ],
         },
@@ -85,6 +87,8 @@ describe('StarPlayerKeywordsRawRendererService', () => {
               eligibleTeamRaces: [],
               skills: [],
               keywordCodes: [777],
+              positionTypes: null,
+              isBigGuy: false,
             },
           ],
         },
@@ -113,6 +117,8 @@ describe('StarPlayerKeywordsRawRendererService', () => {
               eligibleTeamRaces: [],
               skills: [],
               keywordCodes: [],
+              positionTypes: null,
+              isBigGuy: false,
             },
           ],
         },
@@ -122,7 +128,9 @@ describe('StarPlayerKeywordsRawRendererService', () => {
 
     const html = await service.render(star);
 
-    expect(html).toContain('<tr><td>BB2025</td><td>none</td></tr>');
+    expect(html).toContain(
+      '<tr><td>BB2025</td><td>none</td><td>none</td><td>no</td></tr>',
+    );
   });
 
   it('notes that the star is not in the downloaded TP data', async () => {
@@ -130,5 +138,71 @@ describe('StarPlayerKeywordsRawRendererService', () => {
 
     expect(html).toContain('class="mismatch"');
     expect(html).toContain('no TP entry found for spelling(s) Grombrindal');
+  });
+
+  it('shows the raw positionTypes value and isBigGuy flag beside the decoded names', async () => {
+    lookup.tpStarsFor.mockResolvedValue({
+      notFoundNote: 'not found',
+      stars: [
+        {
+          name: 'Dribl and Drull',
+          entries: [
+            {
+              rulesSet: 'BB2025',
+              cost: 250000,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: [],
+              skills: [],
+              keywordCodes: [130, 64],
+              positionTypes: 64,
+              isBigGuy: false,
+            },
+          ],
+        },
+      ],
+    });
+    manual.keywords.mockResolvedValue([
+      { name: 'Skink', kind: 'species', code: '130' },
+      { name: 'Special', kind: 'positional', code: '64' },
+    ]);
+
+    const html = await service.render(star);
+
+    expect(html).toContain('positionTypes');
+    expect(html).toContain('isBigGuy');
+    expect(html).toContain('Skink (130)');
+    expect(html).toContain('Special (64)');
+    expect(html).toContain('<td>64</td>');
+    expect(html).toContain('<td>no</td>');
+  });
+
+  it('shows no raw positional values for a star TP carries none for', async () => {
+    lookup.tpStarsFor.mockResolvedValue({
+      notFoundNote: 'not found',
+      stars: [
+        {
+          name: 'Griff Oberwald',
+          entries: [
+            {
+              rulesSet: 'BB2020',
+              cost: 280000,
+              specialRuleName: null,
+              characteristics: null,
+              eligibleTeamRaces: [],
+              skills: [],
+              keywordCodes: [],
+              positionTypes: null,
+              isBigGuy: false,
+            },
+          ],
+        },
+      ],
+    });
+
+    const html = await service.render(star);
+
+    expect(html).toContain('<td>none</td>');
+    expect(html).toContain('<td>no</td>');
   });
 });

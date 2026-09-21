@@ -103,6 +103,8 @@ describe('TpRawStarPlayerIndexService', () => {
           eligibleTeamRaces: ['WoodElf_BB2025'],
           skills: [],
           keywordCodes: [],
+          positionTypes: null,
+          isBigGuy: false,
         },
       ],
     });
@@ -363,6 +365,65 @@ describe('TpRawStarPlayerIndexService', () => {
     const star = await service.starFor('Eldril Sidewinder');
 
     expect(star?.entries[0]?.keywordCodes).toEqual([]);
+  });
+
+  it("decodes a star entry's positionTypes bits into keyword codes", async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      // 64 = Special, the keyword Dribl and Drull carry under the rulebook and
+      // TP never puts in the race array.
+      starplayerMasters: [{ ...ELDRIL, race: [130], positionTypes: 64 }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([130, 64]);
+    expect(star?.entries[0]?.positionTypes).toBe(64);
+    expect(star?.entries[0]?.isBigGuy).toBe(false);
+  });
+
+  it("decodes a star entry's isBigGuy flag into the Big Guy keyword code", async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [
+        { ...ELDRIL, race: [116], positionTypes: null, isBigGuy: true },
+      ],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([116, 134]);
+    expect(star?.entries[0]?.positionTypes).toBeNull();
+    expect(star?.entries[0]?.isBigGuy).toBe(true);
+  });
+
+  it('reports no positional data for a star entry carrying neither field', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [ELDRIL],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.positionTypes).toBeNull();
+    expect(star?.entries[0]?.isBigGuy).toBe(false);
+    expect(star?.entries[0]?.keywordCodes).toEqual([]);
+  });
+
+  it('yields no positional codes rather than throwing for a non-numeric positionTypes', async () => {
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [{ ...ELDRIL, race: [116], positionTypes: 'special' }],
+    });
+    const service = await makeService();
+
+    const star = await service.starFor('Eldril Sidewinder');
+
+    expect(star?.entries[0]?.keywordCodes).toEqual([116]);
+    expect(star?.entries[0]?.positionTypes).toBeNull();
   });
 
   it('scans the mirror only once per process', async () => {

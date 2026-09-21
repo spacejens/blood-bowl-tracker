@@ -20,6 +20,20 @@ const TEAMS_DIR = 'teams';
 const CANONICAL_ROSTER_TYPES = new Set([0, 1]);
 
 /**
+ * TP's `positionTypes` bitmask, bit value -> the curated positional keyword
+ * whose code that bit value IS: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower,
+ * 16 Catcher, 32 Blocker, 64 Special. This is where a star's "Special"
+ * keyword comes from -- TP never puts it in the `race` array.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword, which TP carries as
+ * the separate `isBigGuy` boolean rather than as a `positionTypes` bit.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
+/**
  * One skill reference on a star entry. TP names the skill only by
  * `skillMasterId` in the official team list; the display name lives in roster
  * files and is resolved separately by `TpSkillMasterNamesService`.
@@ -54,12 +68,22 @@ export interface TpRawStarPlayerEntry {
    */
   skills: TpRawSkillRef[];
   /**
-   * The numeric BB2025 keyword codes TP lists for this star, from its own
-   * `race` array. TP's name for the field is `race`, but it is not the
-   * star's species -- a code is shared across unrelated stars and a star
-   * carries several.
+   * The numeric BB2025 keyword codes TP lists for this star, merged from all
+   * three fields it spreads them over: `race` (species codes -- TP's name for
+   * the field is not the star's species alone, and a code is shared across
+   * unrelated stars), the set bits of `positionTypes` (positional codes) and
+   * `isBigGuy`.
    */
   keywordCodes: number[];
+  /**
+   * TP's raw `positionTypes` value, shown beside the decoded codes so a
+   * reviewer can check the decode without reading the JSON by hand. Null when
+   * TP carries no numeric value -- which includes every Big Guy entry, where
+   * TP writes a literal `null`, and every pre-BB2025 entry.
+   */
+  positionTypes: number | null;
+  /** TP's raw `isBigGuy` flag; false when TP carries no boolean value. */
+  isBigGuy: boolean;
 }
 
 /** One star as TP carries it, across every rules set. */
@@ -178,16 +202,37 @@ export class TpRawStarPlayerIndexService {
         eligibleTeamRaces: this.eligibleTeamRaces(raw, canonical),
         skills: this.skillRefs(raw),
         keywordCodes: this.keywordCodes(raw),
+        positionTypes: this.number(raw, 'positionTypes'),
+        isBigGuy: this.property(raw, 'isBigGuy') === true,
       });
       stars.set(name, star);
     }
   }
 
-  /** One entry's `race[]`, defensively filtered to numeric codes only. */
+  /**
+   * One entry's keyword codes: its `race` array (species codes) in TP's own
+   * order, then the set bits of `positionTypes` ascending (positional codes,
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE` when
+   * `isBigGuy` is set. Deduplicated, first occurrence winning.
+   *
+   * Decoded here rather than reused from packages/parse-tp: that parser's
+   * reading of these files is the code under review, and a bug in it must not
+   * agree with itself against the raw display.
+   */
   private keywordCodes(entry: unknown): number[] {
-    return this.arrayProperty(entry, 'race').filter(
+    const species = this.arrayProperty(entry, 'race').filter(
       (value): value is number => typeof value === 'number',
     );
+    const mask = this.number(entry, 'positionTypes') ?? 0;
+    return [
+      ...new Set([
+        ...species,
+        ...POSITION_TYPE_CODES.filter((code) => (mask & code) !== 0),
+        ...(this.property(entry, 'isBigGuy') === true
+          ? [BIG_GUY_KEYWORD_CODE]
+          : []),
+      ]),
+    ];
   }
 
   private skillRefs(entry: unknown): TpRawSkillRef[] {

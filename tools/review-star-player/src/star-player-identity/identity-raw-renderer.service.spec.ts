@@ -108,6 +108,8 @@ describe('StarPlayerIdentityRawRendererService', () => {
               eligibleTeamRaces: ['WoodElf_BB2025'],
               skills: [],
               keywordCodes: [],
+              positionTypes: null,
+              isBigGuy: false,
             },
           ],
         },
