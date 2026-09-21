@@ -11,14 +11,17 @@ import { gameData } from './pg-schema';
 export const keywordKindEnum = gameData.enum('keyword_kind', KEYWORD_KINDS);
 
 /**
- * The catalogue of BB2025 keywords — Goblin, Undead, Big Guy and so on.
+ * The catalogue of keywords — Goblin, Undead, Big Guy and so on. Species
+ * keywords are BB2025-only; positional keywords (including Big Guy) also
+ * appear under DB2021, and Big Guy alone also appears under BB2020.
  *
  * A keyword carries a name and a kind, and nothing else. Unlike a skill's
- * category, a keyword's kind does not vary between rules sets: the whole
- * concept exists only under BB2025, so there is nothing for an earlier rules
- * set to disagree with. Which positions carry which keyword is recorded per
- * rules set on `position_rules_set_keywords`, for the same reason a
- * position's characteristics live on `position_rules_sets`.
+ * category, a keyword's kind does not vary between rules sets: kind is a
+ * property of the catalogue row itself, so the same keyword recorded against
+ * positions under several rules sets is always the same row with the same
+ * kind. Which positions carry which keyword is recorded per rules set on
+ * `position_rules_set_keywords`, for the same reason a position's
+ * characteristics live on `position_rules_sets`.
  *
  * The catalogue is hand-curated (tools/import-manual): TP publishes only
  * numeric codes, never names, so the names cannot be derived from imported

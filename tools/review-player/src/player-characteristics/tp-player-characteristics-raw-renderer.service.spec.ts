@@ -46,6 +46,8 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templatePassing: null,
       templateArmour: null,
       templateKeywordCodes: null,
+      templatePositionTypes: null,
+      templateIsBigGuy: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -81,6 +83,8 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templatePassing: null,
       templateArmour: null,
       templateKeywordCodes: null,
+      templatePositionTypes: null,
+      templateIsBigGuy: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -116,6 +120,8 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templatePassing: null,
       templateArmour: null,
       templateKeywordCodes: null,
+      templatePositionTypes: null,
+      templateIsBigGuy: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 
@@ -158,6 +164,8 @@ describe('TpPlayerCharacteristicsRawRendererService', () => {
       templatePassing: null,
       templateArmour: null,
       templateKeywordCodes: null,
+      templatePositionTypes: null,
+      templateIsBigGuy: null,
     };
     index.aggregateFor.mockResolvedValue(aggregate);
 

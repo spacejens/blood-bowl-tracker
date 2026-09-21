@@ -12,10 +12,22 @@ import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
 /** What a cell shows for a player template TP gives no keyword codes. */
 const NO_KEYWORDS = 'none';
 
+/** What a cell shows for a template TP carries no numeric positionTypes on. */
+const NO_POSITION_TYPES = 'none';
+
+/** The template row's raw `positionTypes` and `isBigGuy` values. */
+interface TemplateRowInput {
+  codes: number[];
+  positionTypes: number | null;
+  isBigGuy: boolean | null;
+  catalogue: Map<string, string>;
+}
+
 /**
  * The player-keywords raw panel: the BB2025 keyword codes of the position
- * template this player was recruited from -- TP's `lineUps[].lineUpMaster.race`
- * -- next to the curated catalogue that names them.
+ * template this player was recruited from -- merged from TP's
+ * `lineUps[].lineUpMaster.race`, `positionTypes` and `isBigGuy` -- next to
+ * the curated catalogue that names them.
  *
  * Only TP publishes keyword codes at all -- BBL has no such concept -- so
  * there is no BBL sub-section here, unlike the other raw panels. A player
@@ -50,8 +62,15 @@ export class PlayerKeywordsRawRendererService {
     const entries = await this.manual.all();
     const catalogue = this.catalogueByCode(entries);
     const templateTable = this.html.table(
-      ['Source', 'TP keyword codes'],
-      [this.templateRow(codes, catalogue)],
+      ['Source', 'TP keyword codes', 'positionTypes', 'isBigGuy'],
+      [
+        this.templateRow({
+          codes,
+          positionTypes: aggregate?.templatePositionTypes ?? null,
+          isBigGuy: aggregate?.templateIsBigGuy ?? null,
+          catalogue,
+        }),
+      ],
     );
     const manualTable = this.manualSection(entries);
     return manualTable === null
@@ -84,26 +103,32 @@ export class PlayerKeywordsRawRendererService {
     return row?.externalId ?? null;
   }
 
-  private templateRow(
-    codes: number[],
-    catalogue: Map<string, string>,
-  ): TableRow {
-    if (codes.length === 0) {
-      return ['Template', NO_KEYWORDS];
+  /**
+   * The template's row. The last two cells are TP's raw `positionTypes` and
+   * `isBigGuy` values, shown unmodified so a reviewer can check the decoded
+   * names beside them without reading the downloaded JSON by hand.
+   */
+  private templateRow(input: TemplateRowInput): TableRow {
+    const raw = [
+      input.positionTypes === null
+        ? NO_POSITION_TYPES
+        : String(input.positionTypes),
+      input.isBigGuy === true ? 'yes' : 'no',
+    ];
+    if (input.codes.length === 0) {
+      return ['Template', NO_KEYWORDS, ...raw];
     }
     let hasUncurated = false;
-    const parts = codes.map((code) => {
-      const name = catalogue.get(String(code));
+    const parts = input.codes.map((code) => {
+      const name = input.catalogue.get(String(code));
       if (name === undefined) {
         hasUncurated = true;
         return `${code} — not curated`;
       }
       return `${name} (${code})`;
     });
-    const cell = parts.join(', ');
-    return hasUncurated
-      ? this.html.highlight(['Template', cell], [1])
-      : ['Template', cell];
+    const cells = ['Template', parts.join(', '), ...raw];
+    return hasUncurated ? this.html.highlight(cells, [1]) : cells;
   }
 
   /** The whole curated catalogue, rendered once as its own sub-table. */

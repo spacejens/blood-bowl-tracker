@@ -19,6 +19,35 @@ const TEAMS_DIR = 'teams';
  */
 const IMPORTED_ROSTER_TYPES = new Set([0, 1]);
 
+/**
+ * TP's `positionTypes` bitmask, bit value -> the curated positional keyword
+ * whose code that bit value IS: 1 Lineman, 2 Runner, 4 Blitzer, 8 Thrower,
+ * 16 Catcher, 32 Blocker, 64 Special. One entry can carry several bits.
+ * DB2021 also carries an additional bit (128) outside this table, which is
+ * NOT an 8th positional role — see `DB2021_BIG_GUY_BIT` below, decoded
+ * separately as its own source of the Big Guy keyword.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword, which TP normally
+ * carries as the separate `isBigGuy` boolean rather than as a
+ * `positionTypes` bit in the curated 1-64 table above.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
+/**
+ * DB2021's own Big Guy signal, distinct from the curated `POSITION_TYPE_CODES`
+ * table: of DB2021's 12 `positionTypes: 128` entries, 11 also carry
+ * `isBigGuy: true` (e.g. DB2021 uses bit 128 where BB2025 uses bit 32 for the
+ * same position type, "Ogre Blocker"). The one exception ("College of
+ * Death / Mummy") also lacks `isBigGuy` on its BB2020 twin entry, suggesting
+ * TP simply omits the boolean there rather than a real rules distinction.
+ * Treated as an independent, additional source of `BIG_GUY_KEYWORD_CODE`
+ * alongside `isBigGuy`, not as an 8th positional role.
+ */
+const DB2021_BIG_GUY_BIT = 128;
+
 /** The five characteristics TP carries on every official-list entry. */
 interface TpRawPositionCharacteristics {
   move: number;
@@ -63,13 +92,28 @@ export interface TpRawOfficialPosition {
   /** The entry's starting skills, by TP skill master id. */
   skills: TpRawSkillRef[];
   /**
-   * The numeric keyword codes TP lists for this position, from its `race`
-   * array. TP's name for the field is `race`, but it is not the team's race:
-   * a code is shared across unrelated team races and a position carries up
-   * to three. Empty for every pre-BB2025 rules set, where the field is
-   * absent.
+   * The numeric keyword codes TP lists for this position, merged from all
+   * three fields it spreads them over: `race` (species codes), the set bits
+   * of `positionTypes` (positional codes) and `isBigGuy`. TP's name for the
+   * `race` field is not the team's race — a code is shared across unrelated
+   * team races. Species codes are BB2025-only in practice (no other rules
+   * set's data carries a non-empty `race`), but positional codes and Big Guy
+   * are not BB2025-exclusive: DB2021 publishes the full positional set and
+   * BB2020 and DB2021 both publish `isBigGuy`, so this can be non-empty for
+   * those rules sets too.
    */
   keywordCodes: number[];
+  /**
+   * TP's raw `positionTypes` value, shown beside the decoded codes so a
+   * reviewer can check the decode without reading the JSON by hand. Null
+   * when TP carries no numeric value — TP simply omits the field rather than
+   * writing a literal `null`, both for a Big Guy entry (though some BB2025
+   * entries carry both a `positionTypes` bit and `isBigGuy` at once, e.g.
+   * "Deathroller") and for every pre-BB2025 entry.
+   */
+  positionTypes: number | null;
+  /** TP's raw `isBigGuy` flag; false when TP carries no boolean value. */
+  isBigGuy: boolean;
   /**
    * A star entry's own exclusive skill, which TP publishes as a sibling of
    * the `skills` array rather than an entry inside it. Null for an ordinary
@@ -303,15 +347,46 @@ export class TpRawOfficialTeamsIndexService {
       characteristics: { move, strength, agility, passing, armour },
       skills: this.skillRefs(entry),
       keywordCodes: this.keywordCodes(entry),
+      positionTypes: this.numberProperty(entry, 'positionTypes'),
+      isBigGuy: this.property(entry, 'isBigGuy') === true,
       specialRuleName: this.stringProperty(entry, 'specialRuleName'),
     };
   }
 
-  /** One entry's `race[]`, defensively filtered to numeric codes only. */
+  /**
+   * One entry's keyword codes: its `race` array (species codes) in TP's own
+   * order, then the set bits of `positionTypes` ascending (positional codes,
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE`
+   * whenever `isBigGuy` is set or `positionTypes` carries `DB2021_BIG_GUY_BIT`.
+   * `isBigGuy` is not BB2025-only — BB2020 carries it with neither `race` nor
+   * `positionTypes` (39 entries); DB2021 carries it alongside `positionTypes`
+   * but never `race` (12 entries) — and Big Guy is a genuine positional
+   * keyword under those rules sets too, so it is decoded unconditionally.
+   * Deduplicated, first occurrence winning, so an entry with both `isBigGuy`
+   * and bit 128 still only gets the code once.
+   *
+   * Decoded here rather than reused from packages/parse-tp: that parser's
+   * reading of these files is the code under review, and a bug in it must not
+   * agree with itself against the raw display.
+   */
   private keywordCodes(entry: unknown): number[] {
-    return this.arrayProperty(entry, 'race').filter(
+    const species = this.arrayProperty(entry, 'race').filter(
       (value): value is number => typeof value === 'number',
     );
+    const mask = this.numberProperty(entry, 'positionTypes') ?? 0;
+    const positionalCodes = POSITION_TYPE_CODES.filter(
+      (code) => (mask & code) !== 0,
+    );
+    const isBigGuy =
+      this.property(entry, 'isBigGuy') === true ||
+      (mask & DB2021_BIG_GUY_BIT) !== 0;
+    return [
+      ...new Set([
+        ...species,
+        ...positionalCodes,
+        ...(isBigGuy ? [BIG_GUY_KEYWORD_CODE] : []),
+      ]),
+    ];
   }
 
   /** One entry's `skills[]`, defensively shaped. */
@@ -335,6 +410,11 @@ export class TpRawOfficialTeamsIndexService {
   private stringProperty(value: unknown, key: string): string | null {
     const property = this.property(value, key);
     return typeof property === 'string' && property !== '' ? property : null;
+  }
+
+  private numberProperty(value: unknown, key: string): number | null {
+    const property = this.property(value, key);
+    return typeof property === 'number' ? property : null;
   }
 
   private async readJson(path: string): Promise<unknown> {

@@ -38,6 +38,21 @@ function writeRoster(rosterId: number, lineUps: unknown[]): void {
   );
 }
 
+function writeRosterWithTemplate(master: Record<string, unknown>): void {
+  writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+  writeRoster(500, [
+    {
+      id: 2477481,
+      ma: 6,
+      st: 4,
+      ag: 3,
+      pa: 5,
+      av: 7,
+      lineUpMaster: { ma: 6, st: 4, ag: 3, pa: 5, av: 7, ...master },
+    },
+  ]);
+}
+
 type EntriesFn = (dir: string) => Promise<Dirent[]>;
 
 /**
@@ -628,6 +643,95 @@ describe('TpRawPlayerIndexService', () => {
     const aggregate = await service.aggregateFor('2477481');
 
     expect(aggregate?.templateKeywordCodes).toEqual([111, 110]);
+  });
+
+  it("decodes a template's positionTypes bits into keyword codes", async () => {
+    // 3 = Lineman (1) + Runner (2), as TP's "Night Runner" carries it.
+    writeRosterWithTemplate({ race: [104], positionTypes: 3 });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([104, 1, 2]);
+    expect(aggregate?.templatePositionTypes).toBe(3);
+    expect(aggregate?.templateIsBigGuy).toBe(false);
+  });
+
+  it("decodes a template's isBigGuy flag into the Big Guy keyword code", async () => {
+    writeRosterWithTemplate({ race: [118], isBigGuy: true });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([118, 134]);
+    expect(aggregate?.templatePositionTypes).toBeNull();
+    expect(aggregate?.templateIsBigGuy).toBe(true);
+  });
+
+  it('gives the Big Guy keyword code for a BB2020-shaped template with isBigGuy but no race or positionTypes', async () => {
+    // Real shape from BB2020 data (e.g. "Trained Troll", "Minotaur"):
+    // isBigGuy true, no race array, no positionTypes.
+    writeRosterWithTemplate({ isBigGuy: true });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([134]);
+    expect(aggregate?.templateIsBigGuy).toBe(true);
+  });
+
+  it('decodes a recognized positionTypes bit for a DB2021-shaped template with no race or isBigGuy', async () => {
+    // Real shape from DB2021 data: positionTypes carries a recognized bit,
+    // no race array, no isBigGuy.
+    writeRosterWithTemplate({ positionTypes: 32 });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([32]);
+  });
+
+  it('adds the Big Guy code for a DB2021-shaped template with positionTypes bit 128 alone', async () => {
+    // Real shape from DB2021 data: bit 128 is DB2021's own Big Guy signal, no
+    // isBigGuy set.
+    writeRosterWithTemplate({ positionTypes: 128 });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([134]);
+  });
+
+  it('adds the Big Guy code once for a DB2021-shaped template with both positionTypes bit 128 and isBigGuy', async () => {
+    writeRosterWithTemplate({ positionTypes: 128, isBigGuy: true });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([134]);
+  });
+
+  it('reports null template keyword data when the template carries none of the three fields', async () => {
+    writeRosterWithTemplate({});
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toBeNull();
+    expect(aggregate?.templatePositionTypes).toBeNull();
+    expect(aggregate?.templateIsBigGuy).toBeNull();
+  });
+
+  it('reports an explicit isBigGuy: false rather than null when it is the only field present', async () => {
+    writeRosterWithTemplate({ isBigGuy: false });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([]);
+    expect(aggregate?.templatePositionTypes).toBeNull();
+    expect(aggregate?.templateIsBigGuy).toBe(false);
+  });
+
+  it('yields no positional codes rather than throwing for a non-numeric positionTypes', async () => {
+    writeRosterWithTemplate({ race: [104], positionTypes: 'runner' });
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.templateKeywordCodes).toEqual([104]);
+    expect(aggregate?.templatePositionTypes).toBeNull();
   });
 
   it('leaves the lasting-injury fields null for a player with no roster file', async () => {

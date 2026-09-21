@@ -35,7 +35,7 @@ export const SyncPositionRulesSetKeywordsResultSchema = z.object({
  * One stored keyword as the read procedure returns it, without the
  * `positionId` the caller already supplied. The name and kind come along
  * because every caller wants to display the keyword, and a second round trip
- * to name it would be pure overhead for a 41-row catalogue.
+ * to name it would be pure overhead for a 48-row catalogue.
  */
 export const PositionRulesSetKeywordRefSchema = z.object({
   rulesSetId: z.number().int(),

@@ -6,7 +6,7 @@ import { gameData } from './pg-schema';
 import { positionRulesSets } from './position-rules-sets';
 
 /**
- * One BB2025 keyword a position (or star player) carries under one rules set.
+ * One keyword a position (or star player) carries under one rules set.
  *
  * Anchored to `position_rules_sets.id` rather than to duplicated
  * `position_id` / `rules_set_id` columns, exactly as
@@ -18,9 +18,16 @@ import { positionRulesSets } from './position-rules-sets';
  * Lineman carries Human, Zombie and Undead together), and one keyword is
  * shared across positions from unrelated team races.
  *
- * A missing row means the position has no keyword recorded under that rules
- * set, which for every pre-BB2025 rules set is simply the whole truth: the
- * concept does not exist there, and TP's own data carries nothing to import.
+ * Coverage is not uniformly BB2025-only: species keywords (e.g. Human,
+ * Zombie, Undead) are BB2025-only in practice, but positional keywords are
+ * also recorded under DB2021 (96 positions), and the Big Guy keyword also
+ * under BB2020 (39 positions) and DB2021 (13 positions: 12 via `isBigGuy`
+ * and 12 via DB2021's own `positionTypes` bit 128, overlapping on 11 — the
+ * two signals are not subsets of each other). A missing row
+ * means the position has no keyword recorded under that rules set — for a
+ * rules set/keyword-kind combination TP's data never carries (e.g. species
+ * keywords under BB2020), that absence is the whole truth: the concept does
+ * not exist there.
  */
 const positionRulesSetKeywordsTable = historyTrackedTable({
   schema: gameData,

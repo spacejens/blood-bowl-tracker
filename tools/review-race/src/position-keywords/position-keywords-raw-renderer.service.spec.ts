@@ -62,6 +62,8 @@ describe('PositionKeywordsRawRendererService', () => {
           },
           skills: [],
           keywordCodes: [111, 110],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
         },
       ],
@@ -100,6 +102,8 @@ describe('PositionKeywordsRawRendererService', () => {
           },
           skills: [],
           keywordCodes: [777],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
         },
       ],
@@ -134,6 +138,8 @@ describe('PositionKeywordsRawRendererService', () => {
           },
           skills: [],
           keywordCodes: [],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
         },
       ],
@@ -166,6 +172,8 @@ describe('PositionKeywordsRawRendererService', () => {
           },
           skills: [],
           keywordCodes: [999],
+          positionTypes: null,
+          isBigGuy: false,
           specialRuleName: null,
         },
       ],
@@ -179,6 +187,86 @@ describe('PositionKeywordsRawRendererService', () => {
     // The null-code entry must not be reachable by TP code lookup, so an
     // unrelated code still shows as not curated rather than matching it.
     expect(html).toContain('999 — not curated');
+  });
+
+  it('shows the raw positionTypes value and isBigGuy flag beside the decoded names', async () => {
+    raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf-25'], name: [] });
+    tp.raceFor.mockResolvedValue({
+      teamRaceCode: 'dwarf-25',
+      raceName: 'Dwarf',
+      rulesSets: ['BB2025'],
+      positions: [
+        {
+          name: 'Mummy',
+          isStar: false,
+          isOfficial: true,
+          rulesSet: 'BB2025',
+          tpPositionId: 1,
+          characteristics: {
+            move: 3,
+            strength: 5,
+            agility: 5,
+            passing: 0,
+            armour: 10,
+          },
+          skills: [],
+          keywordCodes: [110, 32, 134],
+          positionTypes: 32,
+          isBigGuy: true,
+          specialRuleName: null,
+        },
+      ],
+    });
+    manual.keywords.mockResolvedValue([
+      { name: 'Undead', kind: 'species', code: '110' },
+      { name: 'Blocker', kind: 'positional', code: '32' },
+      { name: 'Big Guy', kind: 'positional', code: '134' },
+    ]);
+
+    const html = await service.render(race);
+
+    expect(html).toContain('positionTypes');
+    expect(html).toContain('isBigGuy');
+    expect(html).toContain('Undead (110)');
+    expect(html).toContain('Blocker (32)');
+    expect(html).toContain('Big Guy (134)');
+    expect(html).toContain('<td>32</td>');
+    expect(html).toContain('<td>yes</td>');
+  });
+
+  it('shows no raw positional values for a position TP carries none for', async () => {
+    raceIds.forRace.mockResolvedValue({ bbl: [], tp: ['dwarf-25'], name: [] });
+    tp.raceFor.mockResolvedValue({
+      teamRaceCode: 'dwarf-25',
+      raceName: 'Dwarf',
+      rulesSets: ['BB2020'],
+      positions: [
+        {
+          name: 'Dwarf Blocker',
+          isStar: false,
+          isOfficial: true,
+          rulesSet: 'BB2020',
+          tpPositionId: 2,
+          characteristics: {
+            move: 4,
+            strength: 3,
+            agility: 4,
+            passing: 5,
+            armour: 10,
+          },
+          skills: [],
+          keywordCodes: [],
+          positionTypes: null,
+          isBigGuy: false,
+          specialRuleName: null,
+        },
+      ],
+    });
+
+    const html = await service.render(race);
+
+    expect(html).toContain('<td>none</td>');
+    expect(html).toContain('<td>no</td>');
   });
 
   it('notes that no raw keyword data exists for the race', async () => {

@@ -15,6 +15,35 @@ const ROSTERS_FILENAME = /^rosters_(\d+)\.json$/;
 /** The two rosters a TP `match_<id>.json` embeds its line-ups under. */
 const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
 
+/**
+ * TP's `positionTypes` bitmask on a position template, bit value -> the
+ * curated positional keyword whose code that bit value IS: 1 Lineman,
+ * 2 Runner, 4 Blitzer, 8 Thrower, 16 Catcher, 32 Blocker, 64 Special.
+ * DB2021 also carries an additional bit (128) outside this table, which is
+ * NOT an 8th positional role — see `DB2021_BIG_GUY_BIT` below, decoded
+ * separately as its own source of the Big Guy keyword.
+ */
+const POSITION_TYPE_CODES = [1, 2, 4, 8, 16, 32, 64] as const;
+
+/**
+ * The curated code of the "Big Guy" positional keyword, which TP normally
+ * carries as the separate `isBigGuy` boolean rather than as a
+ * `positionTypes` bit in the curated 1-64 table above.
+ */
+const BIG_GUY_KEYWORD_CODE = 134;
+
+/**
+ * DB2021's own Big Guy signal, distinct from the curated `POSITION_TYPE_CODES`
+ * table: of DB2021's 12 `positionTypes: 128` entries, 11 also carry
+ * `isBigGuy: true` (e.g. DB2021 uses bit 128 where BB2025 uses bit 32 for the
+ * same position type, "Ogre Blocker"). The one exception ("College of
+ * Death / Mummy") also lacks `isBigGuy` on its BB2020 twin entry, suggesting
+ * TP simply omits the boolean there rather than a real rules distinction.
+ * Treated as an independent, additional source of `BIG_GUY_KEYWORD_CODE`
+ * alongside `isBigGuy`, not as an 8th positional role.
+ */
+const DB2021_BIG_GUY_BIT = 128;
+
 /** Everything the raw side knows about one TP player, from the files alone. */
 export interface TpRawPlayerAggregate {
   lineUpId: number;
@@ -47,6 +76,8 @@ export interface TpRawPlayerAggregate {
    * that carries their line-up id. Null when no downloaded roster file does —
    * TP publishes all of this only in `rosters_<id>.json`.
    *
+   * (See `templateKeywordCodes` below for how `isBigGuy` there is decoded.)
+   *
    * The template is what makes a stat reduction visible at all: TP has no
    * explicit flag for one, and the review panel shows the current value next
    * to its template so a reviewer can see the gap the importer claims to have
@@ -60,13 +91,32 @@ export interface TpRawPlayerAggregate {
   templatePassing: number | null;
   templateArmour: number | null;
   /**
-   * The BB2025 keyword codes of the position template this player was
-   * recruited from, out of `lineUps[].lineUpMaster.race`. Null when no
-   * downloaded roster file carries the player's line-up id -- the same
-   * absence the template characteristics beside it already report. Empty for
-   * a pre-BB2025 roster, where TP publishes no codes.
+   * The keyword codes of the position template this player was recruited
+   * from, merged from all three fields TP spreads them over on
+   * `lineUps[].lineUpMaster`: `race` (species codes, BB2025-only in
+   * practice), the set bits of `positionTypes` (positional codes -- also
+   * published by DB2021) and `isBigGuy` (also published by BB2020 and
+   * DB2021), decoded unconditionally (see `templateKeywordCodes` below).
+   * Null when no downloaded roster file carries the player's line-up id, or
+   * when the template that does carries none of the three -- the same
+   * absence the template characteristics beside it already report.
    */
   templateKeywordCodes: number[] | null;
+  /**
+   * The template's raw `positionTypes` and `isBigGuy` values, shown beside the
+   * decoded codes so a reviewer can check the decode without reading the
+   * downloaded JSON by hand. `positionTypes` is null whenever TP carries no
+   * numeric value -- TP simply omits the field rather than writing a literal
+   * null, both for a Big Guy template (though some BB2025 templates carry
+   * both a `positionTypes` bit and `isBigGuy` at once) and for a template
+   * from a rules set that does not publish the field at all (e.g. BB2020);
+   * `templateIsBigGuy` is null when the template carries none of the three
+   * keyword fields -- the same overall absence `templateKeywordCodes`
+   * reports -- and otherwise the RAW unfiltered flag, false when the template
+   * carries no flag of its own.
+   */
+  templatePositionTypes: number | null;
+  templateIsBigGuy: boolean | null;
 }
 
 /** Mutable accumulator, plus the match id the reported total came from. */
@@ -94,6 +144,8 @@ interface RawCharacteristics {
   templatePassing: number | null;
   templateArmour: number | null;
   templateKeywordCodes: number[] | null;
+  templatePositionTypes: number | null;
+  templateIsBigGuy: boolean | null;
 }
 
 /**
@@ -210,6 +262,8 @@ export class TpRawPlayerIndexService {
         player.templatePassing = line.templatePassing;
         player.templateArmour = line.templateArmour;
         player.templateKeywordCodes = line.templateKeywordCodes;
+        player.templatePositionTypes = line.templatePositionTypes;
+        player.templateIsBigGuy = line.templateIsBigGuy;
       }
     }
   }
@@ -270,6 +324,8 @@ export class TpRawPlayerIndexService {
       templatePassing: null,
       templateArmour: null,
       templateKeywordCodes: null,
+      templatePositionTypes: null,
+      templateIsBigGuy: null,
     };
     player.matchCount += 1;
     // TP's match ids increase over time, so the highest one a player appears
@@ -368,12 +424,77 @@ export class TpRawPlayerIndexService {
           this.property(entry, 'lineUpMaster'),
           'av',
         ),
-        templateKeywordCodes: this.numberArrayProperty(
+        templateKeywordCodes: this.templateKeywordCodes(
           this.property(entry, 'lineUpMaster'),
-          'race',
+        ),
+        templatePositionTypes: this.numberProperty(
+          this.property(entry, 'lineUpMaster'),
+          'positionTypes',
+        ),
+        templateIsBigGuy: this.templateIsBigGuy(
+          this.property(entry, 'lineUpMaster'),
         ),
       });
     }
+  }
+
+  /**
+   * One template's keyword codes: its `race` array (species codes) in TP's own
+   * order, then the set bits of `positionTypes` ascending (positional codes,
+   * where the bit value IS the curated code), then `BIG_GUY_KEYWORD_CODE`
+   * whenever `isBigGuy` is set or `positionTypes` carries
+   * `DB2021_BIG_GUY_BIT`. `isBigGuy` is not BB2025-only — BB2020 carries it
+   * with neither `race` nor `positionTypes` (39 entries); DB2021 carries it
+   * alongside `positionTypes` but never `race` (12 entries) — and Big Guy is
+   * a genuine positional keyword under those rules sets too, so it is
+   * decoded unconditionally. Deduplicated, first occurrence winning, so a
+   * template with both `isBigGuy` and bit 128 still only gets the code once.
+   * Null when the template carries none of the three fields at all, which is
+   * how "TP publishes nothing here" is reported to the panel (distinct from
+   * carrying `isBigGuy` alone, which reports as `[134]`).
+   *
+   * Decoded here rather than reused from packages/parse-tp: that parser's
+   * reading of these files is the code under review, and a bug in it must not
+   * agree with itself against the raw display.
+   */
+  private templateKeywordCodes(master: unknown): number[] | null {
+    const species = this.numberArrayProperty(master, 'race');
+    const mask = this.numberProperty(master, 'positionTypes');
+    const rawIsBigGuy = this.booleanProperty(master, 'isBigGuy');
+    const isBigGuy =
+      rawIsBigGuy === true || ((mask ?? 0) & DB2021_BIG_GUY_BIT) !== 0;
+    if (species === null && mask === null && rawIsBigGuy === null) {
+      return null;
+    }
+    const positionalCodes = POSITION_TYPE_CODES.filter(
+      (code) => ((mask ?? 0) & code) !== 0,
+    );
+    return [
+      ...new Set([
+        ...(species ?? []),
+        ...positionalCodes,
+        ...(isBigGuy ? [BIG_GUY_KEYWORD_CODE] : []),
+      ]),
+    ];
+  }
+
+  /**
+   * The template's raw `isBigGuy` flag: whatever value TP carries -- true or
+   * an explicit false -- for a template that carries at least one of the
+   * three keyword fields, and null only when the template carries none of
+   * them at all -- the same overall absence `templateKeywordCodes` reports.
+   * The presence check uses the raw flag's own null-ness, not its truthiness,
+   * so an explicit `isBigGuy: false` with no other field is reported as
+   * `false` rather than folded into the "nothing here" null case.
+   */
+  private templateIsBigGuy(master: unknown): boolean | null {
+    const species = this.numberArrayProperty(master, 'race');
+    const mask = this.numberProperty(master, 'positionTypes');
+    const isBigGuy = this.booleanProperty(master, 'isBigGuy');
+    if (species === null && mask === null && isBigGuy === null) {
+      return null;
+    }
+    return isBigGuy === true;
   }
 
   private numberProperty(value: unknown, key: string): number | null {

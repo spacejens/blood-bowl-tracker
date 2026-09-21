@@ -74,8 +74,11 @@ tool's own composition.
       ever sees the database, so this is the closest DB-expressible signal that a keyword
       TP published was dropped during import. Also DB-only.
    8. **Race has a position carrying three or more keywords** — races where a
-      `position_rules_sets` row has three or more `position_rules_set_keywords` rows,
-      which is where a wrong keyword code is most likely and least obvious. Also DB-only.
+      `position_rules_sets` row has three or more `position_rules_set_keywords` rows.
+      Positional keywords stack on top of species keywords, so this is a sizeable slice
+      of BB2025 positions (roughly a fifth), not a rare one — but a longer keyword list
+      is still where a wrong or duplicated code is easiest for a human reviewer to miss.
+      Also DB-only.
    9. **Race has no BBL data** — races with no `race_external_ids` row for the BBL
       external system. A DB-only check — it does not look at the downloaded BBL mirror
       files.
@@ -174,8 +177,11 @@ tool's own composition.
      resolution logic — the very thing under review. The two panels are shown side by
      side purely for a human reviewer to compare by eye.
    - **position-keywords** — left: a TP sub-table, one row per (position, rules set) TP
-     publishes, showing its numeric `race`-array keyword codes resolved against the
-     curated catalogue (`Goblin (111)`), with a code the catalogue does not name rendered
+     publishes, showing its numeric keyword codes — merged from the `race` array, the
+     `positionTypes` bitmask and the `isBigGuy` flag — resolved against the
+     curated catalogue (`Goblin (111)`), alongside the raw `positionTypes` and `isBigGuy`
+     values TP carries so a reviewer can check the decode without reading the JSON by
+     hand, with a code the catalogue does not name rendered
      as a highlighted row (`777 — not curated`); plus a manual-curation sub-table listing
      the whole curated catalogue once, not per position, so a reviewer can see the names
      codes are read against without leaving the report. Unlike the other raw panels there

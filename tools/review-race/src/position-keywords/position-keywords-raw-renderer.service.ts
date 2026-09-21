@@ -11,6 +11,9 @@ import { TpRawOfficialTeamsIndexService } from '../source/tp-raw-official-teams-
 /** What a cell shows for a position TP gives no keyword codes. */
 const NO_KEYWORDS = 'none';
 
+/** What a cell shows for an entry TP carries no numeric positionTypes on. */
+const NO_POSITION_TYPES = 'none';
+
 /**
  * The position-keywords raw panel: TP's own numeric keyword codes next to
  * the curated catalogue that names them.
@@ -78,16 +81,36 @@ export class PositionKeywordsRawRendererService {
     }
     return (
       this.html.subheading('TP') +
-      this.html.table(['Position', 'Rules set', 'TP keyword codes'], rows)
+      this.html.table(
+        [
+          'Position',
+          'Rules set',
+          'TP keyword codes',
+          'positionTypes',
+          'isBigGuy',
+        ],
+        rows,
+      )
     );
   }
 
+  /**
+   * One position's row. The last two cells are TP's raw `positionTypes` and
+   * `isBigGuy` values, shown unmodified so a reviewer can check the decode in
+   * the "TP keyword codes" cell beside them without reading the JSON by hand.
+   */
   private tpRow(
     position: TpRawOfficialPosition,
     catalogue: Map<string, string>,
   ): TableRow {
+    const raw = [
+      position.positionTypes === null
+        ? NO_POSITION_TYPES
+        : String(position.positionTypes),
+      position.isBigGuy ? 'yes' : 'no',
+    ];
     if (position.keywordCodes.length === 0) {
-      return [position.name, position.rulesSet, NO_KEYWORDS];
+      return [position.name, position.rulesSet, NO_KEYWORDS, ...raw];
     }
     let hasUncurated = false;
     const parts = position.keywordCodes.map((code) => {
@@ -98,10 +121,8 @@ export class PositionKeywordsRawRendererService {
       }
       return `${name} (${code})`;
     });
-    const cell = parts.join(', ');
-    return hasUncurated
-      ? this.html.highlight([position.name, position.rulesSet, cell], [2])
-      : [position.name, position.rulesSet, cell];
+    const cells = [position.name, position.rulesSet, parts.join(', '), ...raw];
+    return hasUncurated ? this.html.highlight(cells, [2]) : cells;
   }
 
   /** The curated catalogue, keyed by its `tourplay.net` code. */
