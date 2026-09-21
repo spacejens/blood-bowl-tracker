@@ -71,6 +71,21 @@ describe('FetchDiscordMessageService', () => {
     ).rejects.toThrow(/404.*Unknown Message/s);
   });
 
+  it('never includes the bot token in the failure message', async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: () => Promise.resolve('{"message":"401: Unauthorized"}'),
+    });
+
+    const error: unknown = await service
+      .run('https://discord.com/channels/111/222/333')
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).not.toContain('secret-bot-token');
+  });
+
   it('rejects a link that is not a Discord message link, before reading the token or calling Discord', async () => {
     await expect(service.run('https://example.com/whatever')).rejects.toThrow(
       /discord\.com\/channels/,

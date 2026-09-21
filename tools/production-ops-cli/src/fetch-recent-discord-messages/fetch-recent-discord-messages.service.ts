@@ -28,6 +28,11 @@ export class FetchRecentDiscordMessagesService {
           `(Discord's own limit for this endpoint), got ${String(count)}.`,
       );
     }
+    if (!/^\d+$/.test(channelId)) {
+      throw new Error(
+        `channel id must be a Discord snowflake (digits only), got '${channelId}'.`,
+      );
+    }
     const token = await this.botToken.read();
     const response = await fetch(
       `${DISCORD_API_BASE_URL}/channels/${channelId}/messages?limit=${count}`,

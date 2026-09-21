@@ -76,9 +76,12 @@ describe('FetchRecentDiscordMessagesService', () => {
       text: () => Promise.resolve('{"message":"401: Unauthorized"}'),
     });
 
-    await expect(service.run('123456789', 5)).rejects.toThrow(
-      expect.not.stringContaining('secret-bot-token') as unknown,
-    );
+    const error: unknown = await service
+      .run('123456789', 5)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).not.toContain('secret-bot-token');
   });
 
   it('rejects a count above Discord’s limit before reading the token or calling Discord', async () => {
@@ -100,6 +103,14 @@ describe('FetchRecentDiscordMessagesService', () => {
   it('rejects a non-integer count before reading the token or calling Discord', async () => {
     await expect(service.run('123456789', 2.5)).rejects.toThrow(
       /between 1 and 100/,
+    );
+    expect(botToken.read).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-numeric channel id before reading the token or calling Discord', async () => {
+    await expect(service.run('not-a-snowflake', 5)).rejects.toThrow(
+      /snowflake/,
     );
     expect(botToken.read).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
