@@ -844,6 +844,11 @@
     { skill: { system: 'Name', id: 'Yoink!' }, rulesSet: { system: 'Name', id: 'BB2020' }, category: 'unique' },
 
     // --- DB2021: harvested from BBL/TP data dumps ---
+    // Categories are confirmed against the printed DB2021 rulebook. Several
+    // skills present under other rules sets are confirmed absent from
+    // DB2021 specifically and so have no row here: Kick, Cannoneer, Cloud
+    // Burster, Hail Mary Pass, Ball & Chain, Chainsaw, Secret Weapon, and
+    // Swarming.
     { skill: { system: 'Name', id: 'Block' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dauntless' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
     { skill: { system: 'Name', id: 'Dirty Player' }, rulesSet: { system: 'Name', id: 'DB2021' }, category: 'general' },
