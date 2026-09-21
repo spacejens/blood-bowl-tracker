@@ -7,13 +7,20 @@ import type {
 import type { Db, Keyword } from '@blood-bowl-tracker/db';
 import {
   asc,
+  competitions,
+  countDistinct,
   DB,
   eq,
+  eraRulesSets,
+  eras,
   keywordExternalIds,
   keywords,
+  positionRulesSetKeywords,
+  positionRulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { countRows } from '../shared/count-all';
 import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
@@ -103,5 +110,74 @@ export class KeywordsService {
       .innerJoin(keywords, eq(keywords.id, keywordExternalIds.keywordId))
       .where(eq(keywordExternalIds.externalSystemId, externalSystemId))
       .orderBy(asc(keywordExternalIds.externalId));
+  }
+
+  /**
+   * The catalogue counts behind the stats summary's `Keywords:` line — how
+   * many distinct keywords are *defined* under the rules set(s) in scope, the
+   * same kind of count as Rules sets, Races, Positions and Skills. A keyword
+   * reaches a rules set only through the positions that carry it, hence the
+   * `position_rules_sets` hop.
+   *
+   * `position_rules_sets` and `era_rules_sets` are joined directly on
+   * `rules_set_id`: both are NOT NULL foreign keys to the same `rules_sets`
+   * row, so hopping through `rules_sets` itself would drop no rows.
+   */
+  countAll(): Promise<number> {
+    return countRows(this.db, keywords);
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionRulesSetKeywords.keywordId) })
+      .from(positionRulesSetKeywords)
+      .innerJoin(
+        positionRulesSets,
+        eq(positionRulesSets.id, positionRulesSetKeywords.positionRulesSetId),
+      )
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, positionRulesSets.rulesSetId),
+      )
+      .where(eq(eraRulesSets.eraId, eraId));
+    return row.count;
+  }
+
+  /**
+   * A competition has no narrower rules-set scope than the era it runs in, so
+   * this is the era count reached through the competition's own `eraId`.
+   */
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionRulesSetKeywords.keywordId) })
+      .from(positionRulesSetKeywords)
+      .innerJoin(
+        positionRulesSets,
+        eq(positionRulesSets.id, positionRulesSetKeywords.positionRulesSetId),
+      )
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, positionRulesSets.rulesSetId),
+      )
+      .innerJoin(competitions, eq(competitions.eraId, eraRulesSets.eraId))
+      .where(eq(competitions.id, competitionId));
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionRulesSetKeywords.keywordId) })
+      .from(positionRulesSetKeywords)
+      .innerJoin(
+        positionRulesSets,
+        eq(positionRulesSets.id, positionRulesSetKeywords.positionRulesSetId),
+      )
+      .innerJoin(
+        eraRulesSets,
+        eq(eraRulesSets.rulesSetId, positionRulesSets.rulesSetId),
+      )
+      .innerJoin(eras, eq(eras.id, eraRulesSets.eraId))
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
   }
 }
