@@ -6,7 +6,7 @@ import JSON5 from 'json5';
 import type { ManualDataFile } from './manual-data-file.schema';
 import { ManualDataFileSchema } from './manual-data-file.schema';
 
-export const DATA_ROOT = join(__dirname, '../../data');
+const DATA_ROOT = join(__dirname, '../../data');
 
 /**
  * Parses and validates every curated JSON5 file in one phase directory,
