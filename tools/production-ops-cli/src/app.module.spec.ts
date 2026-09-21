@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
+import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ResetProductionSchemaService } from './reset-production-schema/reset-production-schema.service';
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
@@ -24,6 +25,9 @@ describe('AppModule', () => {
     expect(moduleRef.get(GitRootsService)).toBeInstanceOf(GitRootsService);
     expect(moduleRef.get(ChildProcessService)).toBeInstanceOf(
       ChildProcessService,
+    );
+    expect(moduleRef.get(DiscordBotTokenService)).toBeInstanceOf(
+      DiscordBotTokenService,
     );
     expect(moduleRef.get(CheckProductionConfigPortService)).toBeInstanceOf(
       CheckProductionConfigPortService,
