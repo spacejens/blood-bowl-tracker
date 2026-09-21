@@ -791,6 +791,9 @@ describe('TrophiesService', () => {
         'trophies.competition_group_id',
         'trophies.league_id',
       ]);
+      expect(sqlText(firstCallArg(chains[0].where)).toLowerCase()).toContain(
+        ' or ',
+      );
     });
 
     it("counts the trophies of the competition's own group, plus any trophy scoped directly to that group's league", async () => {
@@ -811,6 +814,9 @@ describe('TrophiesService', () => {
         'trophies.competition_group_id',
         'trophies.league_id',
       ]);
+      expect(sqlText(firstCallArg(chains[0].where)).toLowerCase()).toContain(
+        ' or ',
+      );
     });
   });
 });
