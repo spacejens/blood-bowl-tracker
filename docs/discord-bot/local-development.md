@@ -70,9 +70,11 @@ but with the dev application's and dev server's values:
 - `TP_FEED_SOURCE_DISCORD_CHANNEL` and `TP_FEED_DEBUG_DISCORD_CHANNEL`, if set
   at all — same reasoning, channel ids from the dev server rather than
   production. Both are optional (see [TP notification feed](tp-feed.md)), and
-  in practice TP itself only posts into the real production server, so
-  setting these locally is only useful for testing the parser against
-  messages you post yourself, not real TP notifications.
+  in practice TP itself only posts into the real production server. Testing
+  the parser locally therefore means posting representative embeds through a
+  test webhook (or any other integration that posts as a webhook) into the
+  dev server's source channel — an ordinary message you type yourself has no
+  `webhookId` and the parser ignores it, the same as it would in production.
 
 The remaining variables (`RANDOM_INSIGHTS_CRON`, the
 `RANDOM_INSIGHTS_*_PROBABILITY` tunables, and the `API_TOKEN_IMPORT_*`
