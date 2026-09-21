@@ -983,8 +983,6 @@
     { skill: { system: 'Name', id: 'Jump Up' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Leap' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Safe Pair of Hands' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
-    // BB2025's own renamed spelling of "Side Step"; category carried over
-    // from earlier editions, not independently confirmed.
     { skill: { system: 'Name', id: 'Side Step' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Sprint' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
     { skill: { system: 'Name', id: 'Sure Feet' }, rulesSet: { system: 'Name', id: 'BB2025' }, category: 'agility' },
