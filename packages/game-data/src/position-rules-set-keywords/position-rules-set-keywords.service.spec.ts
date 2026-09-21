@@ -9,6 +9,7 @@ import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { PositionRulesSetKeywordsService } from './position-rules-set-keywords.service';
 
@@ -162,6 +163,21 @@ describe('PositionRulesSetKeywordsService', () => {
       const service = await makeService(db);
 
       await expect(service.listByPosition(1)).resolves.toEqual([]);
+    });
+
+    it('orders positional keywords before every other kind, by name within each group', async () => {
+      const db = mockDb([]);
+      const service = await makeService(db);
+
+      await service.listByPosition(1);
+
+      const orderBy = db.chains[0].orderBy.mock.calls[0];
+      expect(orderBy).toHaveLength(3);
+      expect(extractJoinColumns(orderBy[0])).toEqual(['rules_sets.name']);
+      expect(extractJoinColumns(orderBy[1])).toEqual(['keywords.kind']);
+      expect(sqlText(orderBy[1])).toContain("'positional' then 0 else 1 end");
+      expect(extractJoinColumns(orderBy[2])).toEqual(['keywords.name']);
+      expect(sqlText(orderBy[2])).toContain(' asc');
     });
   });
 });

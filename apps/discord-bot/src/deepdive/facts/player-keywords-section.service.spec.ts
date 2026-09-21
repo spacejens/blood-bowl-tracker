@@ -44,6 +44,19 @@ describe('PlayerKeywordsSectionService', () => {
     ]);
   });
 
+  it('keeps the keyword order it is given', () => {
+    const blitzer: PositionKeyword = {
+      ...goblin,
+      keywordId: 4,
+      keywordName: 'Blitzer',
+      kind: 'positional',
+    };
+
+    expect(
+      service.build({ rows: [blitzer, goblin, undead], rulesSetId: 25 }),
+    ).toEqual(['Keywords: Blitzer, Goblin, Undead']);
+  });
+
   it('ignores keywords recorded under another rules set', () => {
     expect(
       service.build({ rows: [goblin, otherRulesSet], rulesSetId: 25 }),
