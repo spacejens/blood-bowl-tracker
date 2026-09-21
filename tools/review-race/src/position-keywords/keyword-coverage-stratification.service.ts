@@ -37,8 +37,12 @@ const SEVERAL_KEYWORDS_THRESHOLD = 3;
  * array — so "differs from TP" is not a stratum that can exist here. A
  * BB2025 `position_rules_sets` row with no `position_rules_set_keywords` row
  * is the closest DB-visible signal that something was dropped; a position
- * carrying three or more keywords is where a wrong code is most likely and
- * least obvious to a human reviewer.
+ * carrying three or more keywords is a useful stratum for the opposite
+ * failure — an extra or misresolved code. Positional keywords stack on top
+ * of species keywords, so roughly a fifth of BB2025 positions now reach this
+ * threshold — this stratum is a sizeable, not a rare, slice of positions —
+ * but a longer keyword list is still where one wrong or duplicated entry is
+ * easiest for a human reviewer to miss among several correct-looking ones.
  *
  * Both are expressed race-first ("this race has at least one such
  * position"), because races are the sampling unit.

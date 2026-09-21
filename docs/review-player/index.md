@@ -229,10 +229,12 @@ keywords.
    - **player-keywords** — a player carries no keywords of their own; they
      come from the player's _position_, so this panel pair differs in shape
      from the others. Left: the BB2025 keyword codes TP publishes on the
-     position template this player was recruited from
-     (`lineUps[].lineUpMaster.race` in the same downloaded roster file the
-     characteristics panel already reads), next to the curated catalogue
-     that names them — a code no curated keyword carries is highlighted, and
+     position template this player was recruited from, merged from
+     `lineUps[].lineUpMaster.race`, `positionTypes` and `isBigGuy` (in the
+     same downloaded roster file the characteristics panel already reads),
+     alongside the raw `positionTypes` and `isBigGuy` values so a reviewer can
+     check the decode without reading the JSON by hand, next to the curated
+     catalogue that names them — a code no curated keyword carries is highlighted, and
      a player no downloaded TP roster file carries gets a note instead of a
      table. Only TP publishes keyword codes at all — BBL has no such concept
      — so there is no BBL sub-section here. Right: what

@@ -3,7 +3,8 @@
 TP publishes a starting skill's parenthetical value as a `skillAttributeMaster`
 with a `type`. Types 0–2 are directly displayable; **type 3 is an opaque
 numeric code** — a keyword code, from the same id space as a position's own
-`race` array of keywords. `TpSkillResolverService.decodeTypeThreeTarget`
+keyword codes (see [Position keywords](./index.md#position-keywords)).
+`TpSkillResolverService.decodeTypeThreeTarget`
 resolves it against the curated keyword catalogue
 (`TpKeywordCatalogService`, see [Position keywords](./index.md#position-keywords))
 for `Hatred` (skillMasterId 307) and `Animosity` (skillMasterId 269) only —

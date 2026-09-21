@@ -122,8 +122,11 @@ awareness or HTML parsing, so depending on it does not weaken the boundary above
      TP names skills by a per-rules-set id, so matching the two up would mean
      re-running the importer's own resolution — the thing under review.
    - **star-player-keywords** — left: a TP sub-table, one row per rules set TP
-     publishes an entry for this star under, showing its numeric `race`-array
-     keyword codes resolved against the curated catalogue (`Goblin (111)`), with a
+     publishes an entry for this star under, showing its numeric keyword codes —
+     merged from the `race` array, the `positionTypes` bitmask and the `isBigGuy`
+     flag — resolved against the curated catalogue (`Goblin (111)`), alongside the
+     raw `positionTypes` and `isBigGuy` values so a reviewer can check the decode
+     without reading the JSON by hand, with a
      code the catalogue does not name rendered as a highlighted row
      (`777 — not curated`); plus a manual-curation sub-table listing the whole
      curated catalogue once, so a reviewer can see the names codes are read

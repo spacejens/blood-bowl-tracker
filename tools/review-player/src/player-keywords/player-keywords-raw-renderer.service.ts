@@ -25,8 +25,9 @@ interface TemplateRowInput {
 
 /**
  * The player-keywords raw panel: the BB2025 keyword codes of the position
- * template this player was recruited from -- TP's `lineUps[].lineUpMaster.race`
- * -- next to the curated catalogue that names them.
+ * template this player was recruited from -- merged from TP's
+ * `lineUps[].lineUpMaster.race`, `positionTypes` and `isBigGuy` -- next to
+ * the curated catalogue that names them.
  *
  * Only TP publishes keyword codes at all -- BBL has no such concept -- so
  * there is no BBL sub-section here, unlike the other raw panels. A player

@@ -450,10 +450,15 @@ players (which have no resolve procedure).
 
 ### Position keywords
 
-Each BB2025 position and star player in TP's official team list carries a
-`race` array of numeric keyword codes (parsed as
-`TpOfficialPosition.keywordCodes`); earlier rules sets carry none.
-`TpKeywordCatalogService` reads the curated keyword catalogue once per run
+Each BB2025 position and star player in TP's official team list carries its
+numeric keyword codes spread over three fields: the `race` array (species
+codes), the `positionTypes` bitmask (positional codes) and the `isBigGuy`
+boolean, merged into one array (parsed as `TpOfficialPosition.keywordCodes`).
+Earlier rules sets carry no `race` or `positionTypes`, but `isBigGuy` can
+still appear there (BB2020/DB2021 Big Guys such as Trolls and Minotaurs); a
+Big Guy keyword code is only ever added alongside a non-empty `race` or a set
+`positionTypes` bit, so an earlier-rules-set entry still ends up with no
+keyword codes at all. `TpKeywordCatalogService` reads the curated keyword catalogue once per run
 (via `KeywordsImportService.listKeywords`), keyed by each keyword's
 `tourplay.net` external id, and
 `TpPositionKeywordsImportService` resolves every position's codes against it

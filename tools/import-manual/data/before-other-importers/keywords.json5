@@ -87,8 +87,9 @@
     { name: 'Blocker', kind: 'positional', externalIds: [{ system: 'Name', id: 'Blocker' }, { system: 'tourplay.net', id: '32' }] },
     { name: 'Special', kind: 'positional', externalIds: [{ system: 'Name', id: 'Special' }, { system: 'tourplay.net', id: '64' }] },
     // Big Guy is not a `positionTypes` bit: tourplay.net carries it as the
-    // separate `isBigGuy` boolean, and every entry with that flag set has a
-    // null `positionTypes`.
+    // separate `isBigGuy` boolean. Some entries carry both a `positionTypes`
+    // bit and `isBigGuy` at once (e.g. "Deathroller", "Ogre Blocker",
+    // "Mummy").
     { name: 'Big Guy', kind: 'positional', externalIds: [{ system: 'Name', id: 'Big Guy' }, { system: 'tourplay.net', id: '134' }] },
 
     // Special keyword: Animosity's "no restriction" target.
