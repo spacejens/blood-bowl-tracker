@@ -53,8 +53,8 @@ describe('PlayerKeywordsSectionService', () => {
     };
 
     expect(
-      service.build({ rows: [blitzer, goblin, undead], rulesSetId: 25 }),
-    ).toEqual(['Keywords: Blitzer, Goblin, Undead']);
+      service.build({ rows: [undead, blitzer, goblin], rulesSetId: 25 }),
+    ).toEqual(['Keywords: Undead, Blitzer, Goblin']);
   });
 
   it('ignores keywords recorded under another rules set', () => {

@@ -21,7 +21,10 @@
 //                  each position and star player, one bit per keyword; the
 //                  bit value itself is the code curated below. "Big Guy" is
 //                  the exception: it is the separate `isBigGuy` boolean, and
-//                  keeps its own code 134.
+//                  keeps its own code 134. DB2021 also signals Big Guy via
+//                  a second, uncurated `positionTypes` bit (128) that
+//                  tools/import-tp decodes to code 134 directly -- 128 is
+//                  not itself a curated code and never appears below.
 //   special     -- the sentinel "no restriction", which Animosity's target
 //                  code 999 carries. Not a creature and not a role.
 //

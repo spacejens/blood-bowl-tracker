@@ -19,6 +19,13 @@ include `134` ("Big Guy", a `positional` keyword) and `999` ("All", a
 `special` keyword). Any keyword kind is a valid Hatred/Animosity target in
 practice.
 
+The positional keywords' own codes (`1`–`64`, TP's `positionTypes` bit
+values) now share this same id space, alongside the species codes (`100`+)
+and the `999` sentinel. All observed target codes are `100` or above, so no
+collision has occurred in practice, but a future target value in the `1`–`64`
+range would resolve to a positional keyword rather than raise an
+uncurated-code import error.
+
 The same lookup also decodes type-3 attributes on a **player's own** gained
 skills, not only on position templates: a player's `Hatred` or `Animosity`
 skill resolves through the identical catalogue, and a code the catalogue

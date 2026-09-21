@@ -56,11 +56,11 @@ describe('PositionKeywordsSectionService', () => {
   it('keeps the keyword order it is given within one rules set', () => {
     expect(
       service.build([
-        keyword({ keywordId: 1, keywordName: 'Blitzer', kind: 'positional' }),
-        keyword({ keywordId: 2, keywordName: 'Human' }),
-        keyword({ keywordId: 3, keywordName: 'Undead' }),
+        keyword({ keywordId: 1, keywordName: 'Undead' }),
+        keyword({ keywordId: 2, keywordName: 'Blitzer', kind: 'positional' }),
+        keyword({ keywordId: 3, keywordName: 'Human' }),
       ]),
-    ).toEqual(['BB2025 keywords: Blitzer, Human, Undead']);
+    ).toEqual(['BB2025 keywords: Undead, Blitzer, Human']);
   });
 
   it('keeps a positional or special keyword unmarked', () => {
