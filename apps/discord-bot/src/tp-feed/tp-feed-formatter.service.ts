@@ -28,6 +28,18 @@ export class TpFeedFormatterService {
   }
 
   /**
+   * Renders the heads-up posted for a message that looks like a TP
+   * notification but did not resolve to a parsed event — either an
+   * unrecognised shape or a recognised kind whose fields failed to parse.
+   * Deliberately generic: the detailed reason stays in the parser's own
+   * server-log warning, and this line exists only to point a maintainer at
+   * the original message.
+   */
+  formatUnrecognized(messageUrl: string): string {
+    return `Unrecognized TP notification — ${messageUrl}`;
+  }
+
+  /**
    * Which side won is decided by the scores rather than by `winnerName`:
    * TP's prose names the winner in title case ("Calavera Selvática FC") while
    * the team fields are upper-cased ("CALAVERA SELVÁTICA FC"), so the two

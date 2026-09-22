@@ -185,4 +185,14 @@ describe('TpFeedFormatterService', () => {
       'Fired: #10 Helmut Cool (Imperial Thrower) from Bamberger Billy-Böbs — https://tp/r/1',
     );
   });
+
+  it('formats an unrecognized notification as a link back to the message', () => {
+    expect(
+      service.formatUnrecognized(
+        'https://discord.com/channels/910000000000000000/920000000000000000/930000000000000000',
+      ),
+    ).toBe(
+      'Unrecognized TP notification — https://discord.com/channels/910000000000000000/920000000000000000/930000000000000000',
+    );
+  });
 });
