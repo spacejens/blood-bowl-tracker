@@ -9,7 +9,8 @@ import { TpFeedParserService } from './tp-feed-parser.service';
 /**
  * Wires the TP notification feed to Discord: watches the configured source
  * channel, parses each message, and echoes a one-line interpretation to the
- * configured debug channel.
+ * configured debug channel — or, for a message that looks like a TP
+ * notification but does not parse, a one-line notice linking back to it.
  *
  * The two channels are independently optional. With no source channel the
  * handler is never registered at all, so the feature costs nothing; with a
@@ -63,17 +64,24 @@ export class TpFeedListenerService implements OnModuleInit {
     if (message.channelId !== sourceChannelId) {
       return;
     }
-    const event = this.parser.parse(message);
-    if (!event) {
+    const result = this.parser.parse(message);
+    if (result.status === 'ignored') {
       return;
     }
     const debugChannelId = this.config.getTpFeedDebugDiscordChannel();
     if (!debugChannelId) {
       return;
     }
+    // `message.url` is discord.js's own jump-link getter
+    // (https://discord.com/channels/<guild>/<channel>/<message>), so a
+    // maintainer can open the message that did not parse.
+    const content =
+      result.status === 'event'
+        ? this.formatter.format(result.event)
+        : this.formatter.formatUnrecognized(message.url);
     try {
       await this.discordClient.sendMessage(debugChannelId, {
-        content: this.formatter.format(event),
+        content,
         // TP notification text is free-form and could contain something
         // that reads as a mention (e.g. a player or coach name starting
         // with @); nothing in this feed should ever ping anyone.
@@ -81,7 +89,7 @@ export class TpFeedListenerService implements OnModuleInit {
       });
     } catch (error) {
       this.logger.error(
-        'Failed to post TP feed interpretation',
+        'Failed to post TP feed message',
         error instanceof Error ? (error.stack ?? error.message) : String(error),
       );
     }

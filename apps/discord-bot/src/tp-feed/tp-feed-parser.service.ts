@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Embed, Message } from 'discord.js';
 
-import type { TeamInfo, TpFeedEvent } from './tp-feed-event';
+import type { TeamInfo, TpFeedEvent, TpFeedParseResult } from './tp-feed-event';
 
 /** `` `#10` Helmut Cool *(Imperial Thrower)* `` */
 const PLAYER_FIELD_PATTERN =
@@ -30,26 +30,27 @@ interface PlayerFieldParts {
 /**
  * Turns one TP (tourplay.net) webhook notification into a typed event.
  *
- * Deliberately total and non-throwing: every unparseable input returns null.
- * Two kinds of null are distinguished on purpose.
+ * Deliberately total and non-throwing: every unparseable input still yields a
+ * result. Two kinds of non-event are distinguished on purpose.
  *
- * - Silent null: the message is not a TP notification at all (an ordinary
+ * - `ignored`: the message is not a TP notification at all (an ordinary
  *   human post in the channel), or it is a TP notification of a kind this
  *   feature recognises and deliberately ignores (match scheduled, in-match
- *   events). Warning about those would drown the log.
- * - Warned null: the message *looks* like a TP notification but matches no
+ *   events). Warning about those would drown the log, and the listener stays
+ *   silent about them too.
+ * - `unrecognized`: the message *looks* like a TP notification but matches no
  *   known kind, or matches one and then fails to parse. TP can change its
- *   message format without notice, and these warnings are the only way to
- *   notice that drift before it silently breaks parsing.
+ *   message format without notice, so these are both warned about here and
+ *   surfaced in the debug channel by the listener.
  */
 @Injectable()
 export class TpFeedParserService {
   private readonly logger = new Logger(TpFeedParserService.name);
 
-  parse(message: Message): TpFeedEvent | null {
+  parse(message: Message): TpFeedParseResult {
     const embed = message.embeds.at(0);
     if (!message.webhookId || !embed) {
-      return null;
+      return { status: 'ignored' };
     }
     const title = embed.title ?? '';
     const authorName = embed.author?.name ?? '';
@@ -67,7 +68,7 @@ export class TpFeedParserService {
     // which are distinguished only by icon and value text — none of which
     // this feature needs, since the whole category is out of scope.
     if (title.includes('Match scheduled') || authorName === 'Match Event') {
-      return null;
+      return { status: 'ignored' };
     }
     if (authorName === 'New skill/characteristic') {
       return this.parseNewSkillOrCharacteristic(embed, message.id);
@@ -81,10 +82,10 @@ export class TpFeedParserService {
     this.logger.warn(
       `Unrecognized TP notification shape (message ${message.id}): ${this.describe(embed)}`,
     );
-    return null;
+    return { status: 'unrecognized' };
   }
 
-  private parseMatchStart(embed: Embed, messageId: string): TpFeedEvent | null {
+  private parseMatchStart(embed: Embed, messageId: string): TpFeedParseResult {
     const kind = 'match-start';
     const home = this.parseTeamField(embed.fields.at(0)?.name);
     if (!home) return this.parseFailure(kind, 'home team field', messageId);
@@ -92,10 +93,10 @@ export class TpFeedParserService {
     if (!away) return this.parseFailure(kind, 'away team field', messageId);
     const link = embed.author?.url;
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
-    return { kind, home, away, link };
+    return { status: 'event', event: { kind, home, away, link } };
   }
 
-  private parseMatchEnd(embed: Embed, messageId: string): TpFeedEvent | null {
+  private parseMatchEnd(embed: Embed, messageId: string): TpFeedParseResult {
     const kind = 'match-end';
     const home = this.parseTeamField(embed.fields.at(0)?.name);
     if (!home) return this.parseFailure(kind, 'home team field', messageId);
@@ -112,18 +113,24 @@ export class TpFeedParserService {
     const description = embed.description ?? '';
     const shared = { kind, home, away, homeScore, awayScore, link } as const;
     if (DRAW_DESCRIPTION_PATTERN.test(description)) {
-      return { ...shared, outcome: 'draw', winnerName: null };
+      return {
+        status: 'event',
+        event: { ...shared, outcome: 'draw', winnerName: null },
+      };
     }
     const winnerName =
       WINNER_DESCRIPTION_PATTERN.exec(description)?.groups?.winner;
     if (!winnerName) return this.parseFailure(kind, 'description', messageId);
-    return { ...shared, outcome: 'win', winnerName };
+    return {
+      status: 'event',
+      event: { ...shared, outcome: 'win', winnerName },
+    };
   }
 
   private parseNewSkillOrCharacteristic(
     embed: Embed,
     messageId: string,
-  ): TpFeedEvent | null {
+  ): TpFeedParseResult {
     const kind = 'new-skill-or-characteristic';
     const field = embed.fields.at(0);
     const player = this.parsePlayerField(field?.name);
@@ -134,21 +141,24 @@ export class TpFeedParserService {
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
     const description = this.parseSkillDescription(field?.value);
     if (!description) return this.parseFailure(kind, 'field value', messageId);
-    return { kind, ...player, teamName, description, link };
+    return {
+      status: 'event',
+      event: { kind, ...player, teamName, description, link },
+    };
   }
 
   private parsePlayerTransaction(
     embed: Embed,
     messageId: string,
     kind: 'hired' | 'fired',
-  ): TpFeedEvent | null {
+  ): TpFeedParseResult {
     const player = this.parsePlayerField(embed.fields.at(0)?.name);
     if (!player) return this.parseFailure(kind, 'player field', messageId);
     const teamName = embed.footer?.text;
     if (!teamName) return this.parseFailure(kind, 'footer.text', messageId);
     const link = embed.author?.url;
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
-    return { kind, ...player, teamName, link };
+    return { status: 'event', event: { kind, ...player, teamName, link } };
   }
 
   /**
@@ -196,11 +206,11 @@ export class TpFeedParserService {
     kind: TpFeedEvent['kind'],
     field: string,
     messageId: string,
-  ): null {
+  ): TpFeedParseResult {
     this.logger.warn(
       `Failed to parse TP ${kind} notification (message ${messageId}): ${field} did not match the expected shape`,
     );
-    return null;
+    return { status: 'unrecognized' };
   }
 
   /** A short excerpt of an embed, enough to diagnose an unexpected shape. */

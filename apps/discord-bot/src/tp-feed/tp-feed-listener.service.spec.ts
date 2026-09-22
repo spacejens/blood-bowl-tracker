@@ -14,9 +14,11 @@ import { TpFeedParserService } from './tp-feed-parser.service';
 
 const SOURCE_CHANNEL = '910000000000000000';
 const DEBUG_CHANNEL = '920000000000000000';
+const MESSAGE_URL =
+  'https://discord.com/channels/900000000000000000/910000000000000000/930000000000000000';
 
 function message(channelId: string): Message {
-  return { id: 'm1', channelId } as unknown as Message;
+  return { id: 'm1', channelId, url: MESSAGE_URL } as unknown as Message;
 }
 
 describe('TpFeedListenerService', () => {
@@ -41,14 +43,20 @@ describe('TpFeedListenerService', () => {
     config.getTpFeedSourceDiscordChannel.mockReturnValue(SOURCE_CHANNEL);
     config.getTpFeedDebugDiscordChannel.mockReturnValue(DEBUG_CHANNEL);
     parser.parse.mockReturnValue({
-      kind: 'hired',
-      playerNumber: '3',
-      playerName: 'Ragnfred Brownlock',
-      position: 'Halfling Hefty',
-      teamName: "Satan's Little Helpers",
-      link: 'https://tp/r/1',
+      status: 'event',
+      event: {
+        kind: 'hired',
+        playerNumber: '3',
+        playerName: 'Ragnfred Brownlock',
+        position: 'Halfling Hefty',
+        teamName: "Satan's Little Helpers",
+        link: 'https://tp/r/1',
+      },
     });
     formatter.format.mockReturnValue('Hired: #3 Ragnfred Brownlock');
+    formatter.formatUnrecognized.mockReturnValue(
+      `Unrecognized TP notification — ${MESSAGE_URL}`,
+    );
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpFeedListenerService,
@@ -99,13 +107,40 @@ describe('TpFeedListenerService', () => {
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
   });
 
-  it('posts nothing when the parser returns no event', async () => {
-    parser.parse.mockReturnValue(null);
+  it('posts nothing when the parser ignores the message', async () => {
+    parser.parse.mockReturnValue({ status: 'ignored' });
     service.onModuleInit();
 
     await registeredHandler()(message(SOURCE_CHANNEL));
 
     expect(formatter.format).not.toHaveBeenCalled();
+    expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
+    expect(discordClient.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('posts an unrecognized notice linking to the original message', async () => {
+    parser.parse.mockReturnValue({ status: 'unrecognized' });
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL));
+
+    expect(formatter.formatUnrecognized).toHaveBeenCalledWith(MESSAGE_URL);
+    expect(formatter.format).not.toHaveBeenCalled();
+    expect(discordClient.sendMessage).toHaveBeenCalledWith(DEBUG_CHANNEL, {
+      content: `Unrecognized TP notification — ${MESSAGE_URL}`,
+      allowedMentions: { parse: [] },
+    });
+  });
+
+  it('posts nothing for an unrecognized message when no debug channel is configured', async () => {
+    parser.parse.mockReturnValue({ status: 'unrecognized' });
+    config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL));
+
+    expect(parser.parse).toHaveBeenCalled();
+    expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
   });
 
@@ -131,7 +166,7 @@ describe('TpFeedListenerService', () => {
     ).resolves.toBeUndefined();
 
     expect(errorLog).toHaveBeenCalledWith(
-      'Failed to post TP feed interpretation',
+      'Failed to post TP feed message',
       expect.any(String),
     );
     errorLog.mockRestore();
