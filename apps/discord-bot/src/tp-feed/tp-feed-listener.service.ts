@@ -89,7 +89,7 @@ export class TpFeedListenerService implements OnModuleInit {
       });
     } catch (error) {
       this.logger.error(
-        'Failed to post TP feed interpretation',
+        'Failed to post TP feed message',
         error instanceof Error ? (error.stack ?? error.message) : String(error),
       );
     }

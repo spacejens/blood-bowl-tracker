@@ -166,7 +166,7 @@ describe('TpFeedListenerService', () => {
     ).resolves.toBeUndefined();
 
     expect(errorLog).toHaveBeenCalledWith(
-      'Failed to post TP feed interpretation',
+      'Failed to post TP feed message',
       expect.any(String),
     );
     errorLog.mockRestore();
