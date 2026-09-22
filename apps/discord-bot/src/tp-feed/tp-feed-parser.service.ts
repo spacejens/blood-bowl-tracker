@@ -55,13 +55,13 @@ export class TpFeedParserService {
     const title = embed.title ?? '';
     const authorName = embed.author?.name ?? '';
     if (title.startsWith(':football:') && title.includes('Start of match')) {
-      return this.toResult(this.parseMatchStart(embed, message.id));
+      return this.parseMatchStart(embed, message.id);
     }
     if (
       title.startsWith(':checkered_flag:') &&
       title.includes('End of the match')
     ) {
-      return this.toResult(this.parseMatchEnd(embed, message.id));
+      return this.parseMatchEnd(embed, message.id);
     }
     // Recognised, deliberately out of scope. "Match Event" is the shared
     // author name of every in-match event (MVP, casualty, touchdown, ...),
@@ -71,19 +71,13 @@ export class TpFeedParserService {
       return { status: 'ignored' };
     }
     if (authorName === 'New skill/characteristic') {
-      return this.toResult(
-        this.parseNewSkillOrCharacteristic(embed, message.id),
-      );
+      return this.parseNewSkillOrCharacteristic(embed, message.id);
     }
     if (authorName === 'Hired') {
-      return this.toResult(
-        this.parsePlayerTransaction(embed, message.id, 'hired'),
-      );
+      return this.parsePlayerTransaction(embed, message.id, 'hired');
     }
     if (authorName === 'Fired') {
-      return this.toResult(
-        this.parsePlayerTransaction(embed, message.id, 'fired'),
-      );
+      return this.parsePlayerTransaction(embed, message.id, 'fired');
     }
     this.logger.warn(
       `Unrecognized TP notification shape (message ${message.id}): ${this.describe(embed)}`,
@@ -91,17 +85,7 @@ export class TpFeedParserService {
     return { status: 'unrecognized' };
   }
 
-  /**
-   * Lifts a per-kind parser's nullable return into the public result. Those
-   * helpers only ever return null via `parseFailure`, which has already
-   * logged the reason — so a null here is always the `unrecognized` case,
-   * never the silent one.
-   */
-  private toResult(event: TpFeedEvent | null): TpFeedParseResult {
-    return event ? { status: 'event', event } : { status: 'unrecognized' };
-  }
-
-  private parseMatchStart(embed: Embed, messageId: string): TpFeedEvent | null {
+  private parseMatchStart(embed: Embed, messageId: string): TpFeedParseResult {
     const kind = 'match-start';
     const home = this.parseTeamField(embed.fields.at(0)?.name);
     if (!home) return this.parseFailure(kind, 'home team field', messageId);
@@ -109,10 +93,10 @@ export class TpFeedParserService {
     if (!away) return this.parseFailure(kind, 'away team field', messageId);
     const link = embed.author?.url;
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
-    return { kind, home, away, link };
+    return { status: 'event', event: { kind, home, away, link } };
   }
 
-  private parseMatchEnd(embed: Embed, messageId: string): TpFeedEvent | null {
+  private parseMatchEnd(embed: Embed, messageId: string): TpFeedParseResult {
     const kind = 'match-end';
     const home = this.parseTeamField(embed.fields.at(0)?.name);
     if (!home) return this.parseFailure(kind, 'home team field', messageId);
@@ -129,18 +113,24 @@ export class TpFeedParserService {
     const description = embed.description ?? '';
     const shared = { kind, home, away, homeScore, awayScore, link } as const;
     if (DRAW_DESCRIPTION_PATTERN.test(description)) {
-      return { ...shared, outcome: 'draw', winnerName: null };
+      return {
+        status: 'event',
+        event: { ...shared, outcome: 'draw', winnerName: null },
+      };
     }
     const winnerName =
       WINNER_DESCRIPTION_PATTERN.exec(description)?.groups?.winner;
     if (!winnerName) return this.parseFailure(kind, 'description', messageId);
-    return { ...shared, outcome: 'win', winnerName };
+    return {
+      status: 'event',
+      event: { ...shared, outcome: 'win', winnerName },
+    };
   }
 
   private parseNewSkillOrCharacteristic(
     embed: Embed,
     messageId: string,
-  ): TpFeedEvent | null {
+  ): TpFeedParseResult {
     const kind = 'new-skill-or-characteristic';
     const field = embed.fields.at(0);
     const player = this.parsePlayerField(field?.name);
@@ -151,21 +141,24 @@ export class TpFeedParserService {
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
     const description = this.parseSkillDescription(field?.value);
     if (!description) return this.parseFailure(kind, 'field value', messageId);
-    return { kind, ...player, teamName, description, link };
+    return {
+      status: 'event',
+      event: { kind, ...player, teamName, description, link },
+    };
   }
 
   private parsePlayerTransaction(
     embed: Embed,
     messageId: string,
     kind: 'hired' | 'fired',
-  ): TpFeedEvent | null {
+  ): TpFeedParseResult {
     const player = this.parsePlayerField(embed.fields.at(0)?.name);
     if (!player) return this.parseFailure(kind, 'player field', messageId);
     const teamName = embed.footer?.text;
     if (!teamName) return this.parseFailure(kind, 'footer.text', messageId);
     const link = embed.author?.url;
     if (!link) return this.parseFailure(kind, 'author.url', messageId);
-    return { kind, ...player, teamName, link };
+    return { status: 'event', event: { kind, ...player, teamName, link } };
   }
 
   /**
@@ -213,11 +206,11 @@ export class TpFeedParserService {
     kind: TpFeedEvent['kind'],
     field: string,
     messageId: string,
-  ): null {
+  ): TpFeedParseResult {
     this.logger.warn(
       `Failed to parse TP ${kind} notification (message ${messageId}): ${field} did not match the expected shape`,
     );
-    return null;
+    return { status: 'unrecognized' };
   }
 
   /** A short excerpt of an embed, enough to diagnose an unexpected shape. */
