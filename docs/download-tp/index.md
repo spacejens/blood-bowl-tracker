@@ -83,16 +83,31 @@ browser (once per configured rules set).
 Puppeteer is used here because `download-tp` was built around a real browser,
 not because TP requires one. An investigation on 2026-09-23 found that TP's
 API can be fetched with plain HTTP — Node's built-in `fetch()`, no browser —
-provided each request sends the full set of headers TP's own frontend sends:
-`accept`, `accept-language`, `content-type`, `priority`, `sec-fetch-dest`,
-`sec-fetch-mode`, `sec-fetch-site`, `x-requested-with`, `user-agent` and
-`referer`. The `User-Agent` alone was rejected with a 403 response, no
+provided each request sends a browser-like set of headers, sufficient though
+not individually isolated as necessary: `accept`, `accept-language`,
+`content-type`, `priority`, `sec-fetch-dest`, `sec-fetch-mode`,
+`sec-fetch-site`, `x-requested-with`, `user-agent` and `referer` — values:
+
+- `accept: application/json, text/plain, */*`
+- `accept-language: en`
+- `content-type: application/json`
+- `priority: u=1, i`
+- `sec-fetch-dest: empty`, `sec-fetch-mode: cors`, `sec-fetch-site: same-origin`
+- `x-requested-with: XMLHttpRequest`
+- `referer`: the frontend page URL the request belongs to
+- `user-agent`: the Chrome 120 macOS string already used above
+
+No cookies or request pacing were needed — 38 requests ran back-to-back with
+none rejected. The `User-Agent` alone was rejected with a 403 response, no
 `content-type` or `server` header, and a body of `Access denied.`.
 
 It was validated first against a tournament's honours page, then against
-every request a full download of a small finished competition makes (38
-requests: tournament pages, every fixtures round, every match and every
-participant roster), all returning the same JSON the browser receives.
+every request a full download of a small finished league competition makes
+(38 requests: tournament pages, every fixtures round, every match and every
+participant roster — the official-teams/rules-set path was not exercised).
+Every request that also had a browser capture to compare against (16 of the 38) returned identical JSON; the rest (fixture rounds beyond the current one,
+matches, rosters) returned 2xx JSON whose match and roster counts matched an
+existing reference download exactly.
 
 Plain HTTP cannot click, so anything TP's frontend loads on a button click has
 to be requested directly by URL. On the honours page, the Team/Player/Coach
