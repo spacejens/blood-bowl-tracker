@@ -78,6 +78,31 @@ fast, with a message naming the key to set, before any browser is launched.
 caught once the official-teams download has already run and launched a
 browser (once per configured rules set).
 
+## Plain-HTTP fetching
+
+Puppeteer is used here because `download-tp` was built around a real browser,
+not because TP requires one. An investigation on 2026-09-23 found that TP's
+API can be fetched with plain HTTP — Node's built-in `fetch()`, no browser —
+provided each request sends the full set of headers TP's own frontend sends:
+`accept`, `accept-language`, `content-type`, `priority`, `sec-fetch-dest`,
+`sec-fetch-mode`, `sec-fetch-site`, `x-requested-with`, `user-agent` and
+`referer`. The `User-Agent` alone was rejected with a 403 response, no
+`content-type` or `server` header, and a body of `Access denied.`.
+
+It was validated first against a tournament's honours page, then against
+every request a full download of a small finished competition makes (38
+requests: tournament pages, every fixtures round, every match and every
+participant roster), all returning the same JSON the browser receives.
+
+Plain HTTP cannot click, so anything TP's frontend loads on a button click has
+to be requested directly by URL. On the honours page, the Team/Player/Coach
+toggles request `tournament/<slug>/lineup-stats` (Player) and
+`tournament/<slug>/coach-stats` (Coach), relative to the API base URL; the
+default-selected Team toggle fires no separate request.
+
+This makes a browser-free fetcher possible — one that can run inside the
+discord-bot's server environment, where bundling Chrome is too heavy.
+
 ## Development
 
 ```bash
