@@ -33,53 +33,70 @@ describe('TpFeedParserService', () => {
 
   it('parses a start of match notification', () => {
     expect(service.parse(matchStartMessage())).toEqual({
-      kind: 'match-start',
-      home: { name: 'EVERVAIN EGRETS', race: 'High Elf', coach: 'Patrick M' },
-      away: {
-        name: 'ROCKET FROM THE TOMBS',
-        race: 'Tomb Kings',
-        coach: 'Andreas Gunnarsson',
+      status: 'event',
+      event: {
+        kind: 'match-start',
+        home: {
+          name: 'EVERVAIN EGRETS',
+          race: 'High Elf',
+          coach: 'Patrick M',
+        },
+        away: {
+          name: 'ROCKET FROM THE TOMBS',
+          race: 'Tomb Kings',
+          coach: 'Andreas Gunnarsson',
+        },
+        link: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
       },
-      link: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
     });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('parses a drawn end of match notification', () => {
     expect(service.parse(matchEndDrawMessage())).toEqual({
-      kind: 'match-end',
-      home: { name: 'EVERVAIN EGRETS', race: 'High Elf', coach: 'Patrick M' },
-      away: {
-        name: 'ROCKET FROM THE TOMBS',
-        race: 'Tomb Kings',
-        coach: 'Andreas Gunnarsson',
+      status: 'event',
+      event: {
+        kind: 'match-end',
+        home: {
+          name: 'EVERVAIN EGRETS',
+          race: 'High Elf',
+          coach: 'Patrick M',
+        },
+        away: {
+          name: 'ROCKET FROM THE TOMBS',
+          race: 'Tomb Kings',
+          coach: 'Andreas Gunnarsson',
+        },
+        homeScore: 0,
+        awayScore: 0,
+        outcome: 'draw',
+        winnerName: null,
+        link: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
       },
-      homeScore: 0,
-      awayScore: 0,
-      outcome: 'draw',
-      winnerName: null,
-      link: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670570',
     });
   });
 
   it('parses a won end of match notification, including the winner name', () => {
     expect(service.parse(matchEndWinMessage())).toEqual({
-      kind: 'match-end',
-      home: {
-        name: 'CALAVERA SELVÁTICA FC',
-        race: 'Amazon',
-        coach: 'MichaelF',
+      status: 'event',
+      event: {
+        kind: 'match-end',
+        home: {
+          name: 'CALAVERA SELVÁTICA FC',
+          race: 'Amazon',
+          coach: 'MichaelF',
+        },
+        away: {
+          name: "SATAN'S LITTLE HELPERS",
+          race: 'Halfling',
+          coach: 'Jens Rydholm',
+        },
+        homeScore: 2,
+        awayScore: 1,
+        outcome: 'win',
+        winnerName: 'Calavera Selvática FC',
+        link: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670571',
       },
-      away: {
-        name: "SATAN'S LITTLE HELPERS",
-        race: 'Halfling',
-        coach: 'Jens Rydholm',
-      },
-      homeScore: 2,
-      awayScore: 1,
-      outcome: 'win',
-      winnerName: 'Calavera Selvática FC',
-      link: 'https://tourplay.net/en/blood-bowl/tloeg-blood-bowl-league-sasong-31/match/670571',
     });
   });
 
@@ -103,68 +120,88 @@ describe('TpFeedParserService', () => {
     });
 
     expect(service.parse(message)).toMatchObject({
-      outcome: 'win',
-      winnerName: 'Pain in Spain',
+      status: 'event',
+      event: {
+        outcome: 'win',
+        winnerName: 'Pain in Spain',
+      },
     });
   });
 
   it('parses a new skill/characteristic notification', () => {
     expect(service.parse(newSkillMessage())).toEqual({
-      kind: 'new-skill-or-characteristic',
-      playerNumber: '8',
-      playerName: 'Phothara The Crimson',
-      position: 'Tomb Guardian',
-      teamName: 'Rocket From The Tombs',
-      description: 'Random Primary Guard ★8',
-      link: 'https://tourplay.net/en/blood-bowl/roster/167242',
+      status: 'event',
+      event: {
+        kind: 'new-skill-or-characteristic',
+        playerNumber: '8',
+        playerName: 'Phothara The Crimson',
+        position: 'Tomb Guardian',
+        teamName: 'Rocket From The Tombs',
+        description: 'Random Primary Guard ★8',
+        link: 'https://tourplay.net/en/blood-bowl/roster/167242',
+      },
     });
   });
 
   it('parses a hired notification', () => {
     expect(service.parse(hiredMessage())).toEqual({
-      kind: 'hired',
-      playerNumber: '3',
-      playerName: 'Ragnfred Brownlock',
-      position: 'Halfling Hefty',
-      teamName: "Satan's Little Helpers",
-      link: 'https://tourplay.net/en/blood-bowl/roster/167242',
+      status: 'event',
+      event: {
+        kind: 'hired',
+        playerNumber: '3',
+        playerName: 'Ragnfred Brownlock',
+        position: 'Halfling Hefty',
+        teamName: "Satan's Little Helpers",
+        link: 'https://tourplay.net/en/blood-bowl/roster/167242',
+      },
     });
   });
 
   it('parses a fired notification', () => {
     expect(service.parse(firedMessage())).toEqual({
-      kind: 'fired',
-      playerNumber: '10',
-      playerName: 'Helmut Cool',
-      position: 'Imperial Thrower',
-      teamName: 'Bamberger Billy-Böbs',
-      link: 'https://tourplay.net/en/blood-bowl/roster/167242',
+      status: 'event',
+      event: {
+        kind: 'fired',
+        playerNumber: '10',
+        playerName: 'Helmut Cool',
+        position: 'Imperial Thrower',
+        teamName: 'Bamberger Billy-Böbs',
+        link: 'https://tourplay.net/en/blood-bowl/roster/167242',
+      },
     });
   });
 
   it('ignores a match scheduled notification without warning', () => {
-    expect(service.parse(matchScheduledMessage())).toBeNull();
+    expect(service.parse(matchScheduledMessage())).toEqual({
+      status: 'ignored',
+    });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('ignores an in-match event notification without warning', () => {
-    expect(service.parse(matchEventMessage())).toBeNull();
+    expect(service.parse(matchEventMessage())).toEqual({
+      status: 'ignored',
+    });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('ignores a non-webhook message without warning', () => {
-    expect(service.parse(nonWebhookMessage())).toBeNull();
+    expect(service.parse(nonWebhookMessage())).toEqual({
+      status: 'ignored',
+    });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('ignores a webhook message with no embeds without warning', () => {
     const message = { id: 'x', webhookId: 'w', embeds: [] } as never;
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'ignored' });
     expect(warn).not.toHaveBeenCalled();
   });
 
   it('warns with a diagnosable excerpt for an unrecognized shape', () => {
-    expect(service.parse(unrecognizedMessage())).toBeNull();
+    expect(service.parse(unrecognizedMessage())).toEqual({
+      status: 'unrecognized',
+    });
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('Unrecognized TP notification'),
     );
@@ -173,7 +210,7 @@ describe('TpFeedParserService', () => {
     );
   });
 
-  it('warns and returns null when a team field is malformed', () => {
+  it('warns and reports unrecognized when a team field is malformed', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
       fields: [
@@ -187,14 +224,14 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-start'));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('home team field'),
     );
   });
 
-  it('warns and returns null when the away team field is missing', () => {
+  it('warns and reports unrecognized when the away team field is missing', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
       fields: [
@@ -207,13 +244,13 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('away team field'),
     );
   });
 
-  it('warns and returns null when a start of match has no link', () => {
+  it('warns and reports unrecognized when a start of match has no link', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
       fields: [
@@ -230,11 +267,11 @@ describe('TpFeedParserService', () => {
       ],
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  it('warns and returns null when a score is not a number', () => {
+  it('warns and reports unrecognized when a score is not a number', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
       description: 'Draw in 1 hour.',
@@ -253,11 +290,11 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('home score'));
   });
 
-  it('warns and returns null when the away score is not a number', () => {
+  it('warns and reports unrecognized when the away score is not a number', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
       description: 'Draw in 1 hour.',
@@ -276,11 +313,11 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('away score'));
   });
 
-  it('warns and returns null when an end of match outcome is unreadable', () => {
+  it('warns and reports unrecognized when an end of match outcome is unreadable', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
       description: 'Abandoned after 10 minutes.',
@@ -299,11 +336,11 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('description'));
   });
 
-  it('warns and returns null when a player field does not match', () => {
+  it('warns and reports unrecognized when a player field does not match', () => {
     const message = sampleMessage({
       author: {
         name: 'Hired',
@@ -313,11 +350,11 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('player field'));
   });
 
-  it('warns and returns null when the team footer is missing', () => {
+  it('warns and reports unrecognized when the team footer is missing', () => {
     const message = sampleMessage({
       author: {
         name: 'Fired',
@@ -332,11 +369,11 @@ describe('TpFeedParserService', () => {
       ],
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('footer.text'));
   });
 
-  it('warns and returns null when a hire notification has no link', () => {
+  it('warns and reports unrecognized when a hire notification has no link', () => {
     const message = sampleMessage({
       author: { name: 'Hired' },
       fields: [
@@ -349,11 +386,11 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  it('warns and returns null when a skill description is only backticks and whitespace', () => {
+  it('warns and reports unrecognized when a skill description is only backticks and whitespace', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
@@ -369,11 +406,11 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('field value'));
   });
 
-  it('warns and returns null when an end of match has a malformed home team field', () => {
+  it('warns and reports unrecognized when an end of match has a malformed home team field', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
       description: 'Draw in 1 hour.',
@@ -388,14 +425,14 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-end'));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('home team field'),
     );
   });
 
-  it('warns and returns null when an end of match has a malformed away team field', () => {
+  it('warns and reports unrecognized when an end of match has a malformed away team field', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
       description: 'Draw in 1 hour.',
@@ -410,14 +447,14 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-end'));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('away team field'),
     );
   });
 
-  it('warns and returns null when an end of match has no link', () => {
+  it('warns and reports unrecognized when an end of match has no link', () => {
     const message = sampleMessage({
       title: ':checkered_flag:  End of the match',
       description: 'Draw in 1 hour.',
@@ -435,12 +472,12 @@ describe('TpFeedParserService', () => {
       ],
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-end'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  it('warns and returns null when a skill notification has a malformed player field', () => {
+  it('warns and reports unrecognized when a skill notification has a malformed player field', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
@@ -456,12 +493,12 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('new-skill'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('player field'));
   });
 
-  it('warns and returns null when a skill notification has no team footer', () => {
+  it('warns and reports unrecognized when a skill notification has no team footer', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
@@ -476,12 +513,12 @@ describe('TpFeedParserService', () => {
       ],
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('new-skill'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('footer.text'));
   });
 
-  it('warns and returns null when a skill notification has no link', () => {
+  it('warns and reports unrecognized when a skill notification has no link', () => {
     const message = sampleMessage({
       author: { name: 'New skill/characteristic' },
       fields: [
@@ -494,12 +531,12 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('new-skill'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('author.url'));
   });
 
-  it('warns and returns null when a team field has an empty race line', () => {
+  it('warns and reports unrecognized when a team field has an empty race line', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
       fields: [
@@ -517,14 +554,14 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-start'));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('home team field'),
     );
   });
 
-  it('warns and returns null when a team field has an empty coach line', () => {
+  it('warns and reports unrecognized when a team field has an empty coach line', () => {
     const message = sampleMessage({
       title: ':football:  1 min - Start of match',
       fields: [
@@ -542,7 +579,7 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('match-start'));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('home team field'),
@@ -555,7 +592,7 @@ describe('TpFeedParserService', () => {
       author: {},
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('title=(none)'));
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('author.name=(none)'),
@@ -583,11 +620,11 @@ describe('TpFeedParserService', () => {
       author: { url: 'https://tourplay.net/en/blood-bowl/match/1' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('description'));
   });
 
-  it('returns null when player field is missing entirely', () => {
+  it('reports unrecognized when player field is missing entirely', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
@@ -597,11 +634,11 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('player field'));
   });
 
-  it('warns and returns null when a skill notification field value is missing entirely (no value key)', () => {
+  it('warns and reports unrecognized when a skill notification field value is missing entirely (no value key)', () => {
     const message = sampleMessage({
       author: {
         name: 'New skill/characteristic',
@@ -616,7 +653,7 @@ describe('TpFeedParserService', () => {
       footer: { text: 'Some Team' },
     });
 
-    expect(service.parse(message)).toBeNull();
+    expect(service.parse(message)).toEqual({ status: 'unrecognized' });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('field value'));
   });
 });

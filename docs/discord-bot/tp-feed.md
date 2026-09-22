@@ -26,10 +26,12 @@ scope: match-scheduled notifications, and the in-match event notifications
 
 Anything else posted by a webhook with an embed in the source channel logs a
 warning naming the message id and a short excerpt of the embed, and so does
-any recognised notification whose fields do not parse. TP can change its
-message format without notice, and those warnings are the only way to notice
-the drift before it silently breaks parsing — so they are worth reading after
-a TP update.
+any recognised notification whose fields do not parse. Both cases also post a
+short `Unrecognized TP notification` line, linking back to the original
+message, into the debug channel — TP can change its message format without
+notice, and this is how that drift becomes visible without anyone watching
+the server log. The log warning carries the detail; the debug post is the
+heads-up that there is detail worth reading.
 
 ## Configuration
 
@@ -39,10 +41,11 @@ Both variables are optional and are documented in
 - `TP_FEED_SOURCE_DISCORD_CHANNEL` — the channel TP's integration posts into.
   Left unset, the bot does not listen for TP notifications at all and the
   feature is entirely off.
-- `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations are posted
-  to. Left unset, notifications are still parsed and unrecognised shapes are
-  still logged, but nothing is posted. Because this is diagnostic output,
-  point it at a maintainer channel rather than one real members read.
+- `TP_FEED_DEBUG_DISCORD_CHANNEL` — the channel the interpretations, and the
+  notices about notifications that did not parse, are posted to. Left unset,
+  notifications are still parsed and unrecognised shapes are still logged, but
+  nothing is posted. Because this is diagnostic output, point it at a
+  maintainer channel rather than one real members read.
 
 Copy both ids with Developer Mode enabled (User Settings > Advanced >
 Developer Mode), by right-clicking the channel and choosing **Copy Channel

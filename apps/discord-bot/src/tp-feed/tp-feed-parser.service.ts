@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Embed, Message } from 'discord.js';
 
-import type { TeamInfo, TpFeedEvent } from './tp-feed-event';
+import type { TeamInfo, TpFeedEvent, TpFeedParseResult } from './tp-feed-event';
 
 /** `` `#10` Helmut Cool *(Imperial Thrower)* `` */
 const PLAYER_FIELD_PATTERN =
@@ -30,58 +30,75 @@ interface PlayerFieldParts {
 /**
  * Turns one TP (tourplay.net) webhook notification into a typed event.
  *
- * Deliberately total and non-throwing: every unparseable input returns null.
- * Two kinds of null are distinguished on purpose.
+ * Deliberately total and non-throwing: every unparseable input still yields a
+ * result. Two kinds of non-event are distinguished on purpose.
  *
- * - Silent null: the message is not a TP notification at all (an ordinary
+ * - `ignored`: the message is not a TP notification at all (an ordinary
  *   human post in the channel), or it is a TP notification of a kind this
  *   feature recognises and deliberately ignores (match scheduled, in-match
- *   events). Warning about those would drown the log.
- * - Warned null: the message *looks* like a TP notification but matches no
+ *   events). Warning about those would drown the log, and the listener stays
+ *   silent about them too.
+ * - `unrecognized`: the message *looks* like a TP notification but matches no
  *   known kind, or matches one and then fails to parse. TP can change its
- *   message format without notice, and these warnings are the only way to
- *   notice that drift before it silently breaks parsing.
+ *   message format without notice, so these are both warned about here and
+ *   surfaced in the debug channel by the listener.
  */
 @Injectable()
 export class TpFeedParserService {
   private readonly logger = new Logger(TpFeedParserService.name);
 
-  parse(message: Message): TpFeedEvent | null {
+  parse(message: Message): TpFeedParseResult {
     const embed = message.embeds.at(0);
     if (!message.webhookId || !embed) {
-      return null;
+      return { status: 'ignored' };
     }
     const title = embed.title ?? '';
     const authorName = embed.author?.name ?? '';
     if (title.startsWith(':football:') && title.includes('Start of match')) {
-      return this.parseMatchStart(embed, message.id);
+      return this.toResult(this.parseMatchStart(embed, message.id));
     }
     if (
       title.startsWith(':checkered_flag:') &&
       title.includes('End of the match')
     ) {
-      return this.parseMatchEnd(embed, message.id);
+      return this.toResult(this.parseMatchEnd(embed, message.id));
     }
     // Recognised, deliberately out of scope. "Match Event" is the shared
     // author name of every in-match event (MVP, casualty, touchdown, ...),
     // which are distinguished only by icon and value text — none of which
     // this feature needs, since the whole category is out of scope.
     if (title.includes('Match scheduled') || authorName === 'Match Event') {
-      return null;
+      return { status: 'ignored' };
     }
     if (authorName === 'New skill/characteristic') {
-      return this.parseNewSkillOrCharacteristic(embed, message.id);
+      return this.toResult(
+        this.parseNewSkillOrCharacteristic(embed, message.id),
+      );
     }
     if (authorName === 'Hired') {
-      return this.parsePlayerTransaction(embed, message.id, 'hired');
+      return this.toResult(
+        this.parsePlayerTransaction(embed, message.id, 'hired'),
+      );
     }
     if (authorName === 'Fired') {
-      return this.parsePlayerTransaction(embed, message.id, 'fired');
+      return this.toResult(
+        this.parsePlayerTransaction(embed, message.id, 'fired'),
+      );
     }
     this.logger.warn(
       `Unrecognized TP notification shape (message ${message.id}): ${this.describe(embed)}`,
     );
-    return null;
+    return { status: 'unrecognized' };
+  }
+
+  /**
+   * Lifts a per-kind parser's nullable return into the public result. Those
+   * helpers only ever return null via `parseFailure`, which has already
+   * logged the reason — so a null here is always the `unrecognized` case,
+   * never the silent one.
+   */
+  private toResult(event: TpFeedEvent | null): TpFeedParseResult {
+    return event ? { status: 'event', event } : { status: 'unrecognized' };
   }
 
   private parseMatchStart(embed: Embed, messageId: string): TpFeedEvent | null {
