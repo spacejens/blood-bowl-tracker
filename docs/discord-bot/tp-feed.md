@@ -6,6 +6,12 @@ integration. The bot can watch that channel, parse those notifications, and
 echo a one-line interpretation of each into a second channel, so a maintainer
 can confirm by eye that they are being read correctly.
 
+Every notification the bot finishes processing also gets a ✔️ reaction in
+the source channel — whether it was interpreted, reported as unrecognised,
+or deliberately ignored. A message without the checkmark was never fully
+handled, for example because the bot was down when it arrived or posting its
+interpretation to the debug channel failed.
+
 This is a diagnostic feature. Parsed notifications are not imported into the
 tracked data — nothing downstream reacts to them yet.
 
@@ -49,9 +55,10 @@ Both variables are optional and are documented in
 
 Copy both ids with Developer Mode enabled (User Settings > Advanced >
 Developer Mode), by right-clicking the channel and choosing **Copy Channel
-ID**. The bot needs **View Channel** on the source channel, and **View
-Channel** plus **Send Messages** on the debug channel. The bot must also be a
-member of the guild where TP posts its notifications, which may not be the
+ID**. The bot needs **View Channel**, **Read Message History** and **Add
+Reactions** on the source channel (the latter two for the ✔️ reaction), and
+**View Channel** plus **Send Messages** on the debug channel. The bot must also
+be a member of the guild where TP posts its notifications, which may not be the
 same guild as the one its other features (startup/insights messages) operate
 in.
 
