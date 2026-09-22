@@ -30,7 +30,9 @@ application.
    (e.g. `/insights`) to register.
 3. Under **Bot Permissions**, select at least **Send Messages**, **Embed
    Links** (the startup message and most `/insights` facts are embeds), and
-   **View Channel** for the target channels.
+   **View Channel** for the target channels. If you use the
+   [TP notification feed](tp-feed.md), also select **Read Message History**
+   and **Add Reactions** for the source channel.
 4. Copy the generated URL, open it in a browser, choose your server, and
    authorize. You need **Manage Server** permission on that server to add the
    bot.

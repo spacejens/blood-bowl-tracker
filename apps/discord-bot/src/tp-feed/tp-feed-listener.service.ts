@@ -6,6 +6,9 @@ import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { TpFeedFormatterService } from './tp-feed-formatter.service';
 import { TpFeedParserService } from './tp-feed-parser.service';
 
+/** Discord's `:heavy_check_mark:`, marking a source message as handled. */
+const PROCESSED_REACTION = '✔️';
+
 /**
  * Wires the TP notification feed to Discord: watches the configured source
  * channel, parses each message, and echoes a one-line interpretation to the
@@ -20,6 +23,11 @@ import { TpFeedParserService } from './tp-feed-parser.service';
  * The source channel id is read once, at registration, and closed over: the
  * configuration cannot change while the process runs, so re-reading it per
  * message would buy nothing.
+ *
+ * Every source message whose processing completes cleanly also gets a ✔️
+ * reaction, so the source channel itself shows at a glance which messages
+ * were handled and, by omission, which were missed (downtime, a crash, or a
+ * message that arrived before the bot was listening).
  */
 @Injectable()
 export class TpFeedListenerService implements OnModuleInit {
@@ -52,6 +60,11 @@ export class TpFeedListenerService implements OnModuleInit {
    * Every message the bot can see reaches here, so the channel check comes
    * first and before any parsing work.
    *
+   * The ✔️ reaction is added once, at the end of whichever branch finishes
+   * processing: the parser ignored the message, there is no debug channel to
+   * post to, or the post succeeded. A failed post does not count as finished
+   * processing, so it gets no reaction.
+   *
    * A failed post is logged and dropped rather than retried or queued,
    * matching how the bot's other one-off messages behave (see
    * `startup-notifier.service.ts`): this output is diagnostic, and a missed
@@ -66,10 +79,12 @@ export class TpFeedListenerService implements OnModuleInit {
     }
     const result = this.parser.parse(message);
     if (result.status === 'ignored') {
+      await this.markProcessed(message);
       return;
     }
     const debugChannelId = this.config.getTpFeedDebugDiscordChannel();
     if (!debugChannelId) {
+      await this.markProcessed(message);
       return;
     }
     // `message.url` is discord.js's own jump-link getter
@@ -88,10 +103,29 @@ export class TpFeedListenerService implements OnModuleInit {
         allowedMentions: { parse: [] },
       });
     } catch (error) {
-      this.logger.error(
-        'Failed to post TP feed message',
-        error instanceof Error ? (error.stack ?? error.message) : String(error),
-      );
+      this.logFailure('Failed to post TP feed message', error);
+      return;
     }
+    await this.markProcessed(message);
+  }
+
+  /**
+   * Reacts directly on the message object already in hand — no channel
+   * fetch is needed. A failure (missing permission, message already
+   * deleted, API error) is logged and dropped, like a failed post.
+   */
+  private async markProcessed(message: Message): Promise<void> {
+    try {
+      await message.react(PROCESSED_REACTION);
+    } catch (error) {
+      this.logFailure('Failed to react to TP feed message', error);
+    }
+  }
+
+  private logFailure(summary: string, error: unknown): void {
+    this.logger.error(
+      summary,
+      error instanceof Error ? (error.stack ?? error.message) : String(error),
+    );
   }
 }

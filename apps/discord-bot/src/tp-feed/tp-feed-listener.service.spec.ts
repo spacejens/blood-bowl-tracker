@@ -16,9 +16,14 @@ const SOURCE_CHANNEL = '910000000000000000';
 const DEBUG_CHANNEL = '920000000000000000';
 const MESSAGE_URL =
   'https://discord.com/channels/900000000000000000/910000000000000000/930000000000000000';
+const PROCESSED_REACTION = '✔️';
 
-function message(channelId: string): Message {
-  return { id: 'm1', channelId, url: MESSAGE_URL } as unknown as Message;
+/**
+ * A fake discord.js message. Pass a `react` mock to assert on, or to make
+ * reacting fail; each call otherwise gets its own fresh mock.
+ */
+function message(channelId: string, react = vi.fn()): Message {
+  return { id: 'm1', channelId, url: MESSAGE_URL, react } as unknown as Message;
 }
 
 describe('TpFeedListenerService', () => {
@@ -85,10 +90,11 @@ describe('TpFeedListenerService', () => {
     expect(discordClient.registerMessageHandler).not.toHaveBeenCalled();
   });
 
-  it('posts the formatted interpretation to the debug channel', async () => {
+  it('posts the formatted interpretation to the debug channel, then reacts', async () => {
+    const react = vi.fn();
     service.onModuleInit();
 
-    await registeredHandler()(message(SOURCE_CHANNEL));
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
 
     expect(parser.parse).toHaveBeenCalled();
     expect(formatter.format).toHaveBeenCalled();
@@ -96,33 +102,40 @@ describe('TpFeedListenerService', () => {
       content: 'Hired: #3 Ragnfred Brownlock',
       allowedMentions: { parse: [] },
     });
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
-  it('ignores a message from any other channel without parsing it', async () => {
+  it('ignores a message from any other channel without parsing or reacting', async () => {
+    const react = vi.fn();
     service.onModuleInit();
 
-    await registeredHandler()(message('999999999999999999'));
+    await registeredHandler()(message('999999999999999999', react));
 
     expect(parser.parse).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(react).not.toHaveBeenCalled();
   });
 
-  it('posts nothing when the parser ignores the message', async () => {
+  it('posts nothing but still reacts when the parser ignores the message', async () => {
+    const react = vi.fn();
     parser.parse.mockReturnValue({ status: 'ignored' });
     service.onModuleInit();
 
-    await registeredHandler()(message(SOURCE_CHANNEL));
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
 
     expect(formatter.format).not.toHaveBeenCalled();
     expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(config.getTpFeedDebugDiscordChannel).not.toHaveBeenCalled();
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
-  it('posts an unrecognized notice linking to the original message', async () => {
+  it('posts an unrecognized notice linking to the original message, then reacts', async () => {
+    const react = vi.fn();
     parser.parse.mockReturnValue({ status: 'unrecognized' });
     service.onModuleInit();
 
-    await registeredHandler()(message(SOURCE_CHANNEL));
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
 
     expect(formatter.formatUnrecognized).toHaveBeenCalledWith(MESSAGE_URL);
     expect(formatter.format).not.toHaveBeenCalled();
@@ -130,31 +143,37 @@ describe('TpFeedListenerService', () => {
       content: `Unrecognized TP notification — ${MESSAGE_URL}`,
       allowedMentions: { parse: [] },
     });
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
-  it('posts nothing for an unrecognized message when no debug channel is configured', async () => {
+  it('posts nothing but still reacts to an unrecognized message when no debug channel is configured', async () => {
+    const react = vi.fn();
     parser.parse.mockReturnValue({ status: 'unrecognized' });
     config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
     service.onModuleInit();
 
-    await registeredHandler()(message(SOURCE_CHANNEL));
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
 
     expect(parser.parse).toHaveBeenCalled();
     expect(formatter.formatUnrecognized).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
-  it('still parses but posts nothing when no debug channel is configured', async () => {
+  it('still parses and reacts but posts nothing when no debug channel is configured', async () => {
+    const react = vi.fn();
     config.getTpFeedDebugDiscordChannel.mockReturnValue(undefined);
     service.onModuleInit();
 
-    await registeredHandler()(message(SOURCE_CHANNEL));
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
 
     expect(parser.parse).toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
   });
 
-  it('logs and swallows a failure to post', async () => {
+  it('logs and swallows a failure to post, and does not react', async () => {
+    const react = vi.fn();
     const errorLog = vi
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
@@ -162,12 +181,66 @@ describe('TpFeedListenerService', () => {
     service.onModuleInit();
 
     await expect(
-      registeredHandler()(message(SOURCE_CHANNEL)),
+      registeredHandler()(message(SOURCE_CHANNEL, react)),
     ).resolves.toBeUndefined();
 
     expect(errorLog).toHaveBeenCalledWith(
       'Failed to post TP feed message',
       expect.any(String),
+    );
+    expect(react).not.toHaveBeenCalled();
+    errorLog.mockRestore();
+  });
+
+  it('reacts only after the debug-channel post has completed', async () => {
+    let postCompleted = false;
+    let postCompletedWhenReacting: boolean | undefined;
+    discordClient.sendMessage.mockImplementation(async () => {
+      await Promise.resolve();
+      postCompleted = true;
+    });
+    const react = vi.fn((_emoji: string) => {
+      postCompletedWhenReacting = postCompleted;
+    });
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
+    expect(postCompletedWhenReacting).toBe(true);
+  });
+
+  it('logs and swallows a failure to react', async () => {
+    const react = vi.fn().mockRejectedValue(new Error('Unknown Message'));
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    service.onModuleInit();
+
+    await expect(
+      registeredHandler()(message(SOURCE_CHANNEL, react)),
+    ).resolves.toBeUndefined();
+
+    expect(react).toHaveBeenCalledWith(PROCESSED_REACTION);
+    expect(errorLog).toHaveBeenCalledWith(
+      'Failed to react to TP feed message',
+      expect.stringContaining('Unknown Message'),
+    );
+    errorLog.mockRestore();
+  });
+
+  it('logs a non-Error rejection from reacting as a string', async () => {
+    const react = vi.fn().mockRejectedValue('rate limited');
+    const errorLog = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    service.onModuleInit();
+
+    await registeredHandler()(message(SOURCE_CHANNEL, react));
+
+    expect(errorLog).toHaveBeenCalledWith(
+      'Failed to react to TP feed message',
+      'rate limited',
     );
     errorLog.mockRestore();
   });
