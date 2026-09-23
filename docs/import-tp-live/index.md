@@ -5,8 +5,10 @@ the database. It is server-side code: it calls `packages/game-data`
 in-process and never goes over RPC. Two callers use it:
 
 - **The live import**, `TpLiveTeamImportService.importTeam(...)`, which
-  fetches a roster from TP's API first. `apps/discord-bot`'s on-demand TP
-  imports are built on it and call it in-process.
+  fetches a roster from TP's API first. This is the entry point a future
+  `apps/discord-bot` on-demand TP import will call in-process — no such
+  caller exists yet, but nothing about this package needs to change for one
+  to be added.
 - **The `tpRosters.import` RPC procedure**, which `packages/api-server`
   implements with it. `tools/import-tp`'s bulk run calls that procedure once
   per downloaded roster file, so a bulk import and a live one import a team
