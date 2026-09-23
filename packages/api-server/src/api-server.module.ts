@@ -23,7 +23,10 @@ import {
   TrophiesModule,
   TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
-import { TpRosterModule } from '@blood-bowl-tracker/import-tp-live';
+import {
+  TpMatchModule,
+  TpRosterModule,
+} from '@blood-bowl-tracker/import-tp-live';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
@@ -60,6 +63,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     TrophiesModule,
     TrophyAwardsModule,
     TpRosterModule,
+    TpMatchModule,
   ],
   providers: [
     ApiTokenAuthService,

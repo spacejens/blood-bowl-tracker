@@ -43,7 +43,10 @@ import {
   TrophyAwardsService,
   TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
-import { TpRosterImportService } from '@blood-bowl-tracker/import-tp-live';
+import {
+  TpMatchImportService,
+  TpRosterImportService,
+} from '@blood-bowl-tracker/import-tp-live';
 import { Injectable } from '@nestjs/common';
 import type {
   AnySchema,
@@ -67,6 +70,7 @@ import {
   buildPositionSyncRaceErasRoute,
   buildSkillRulesSetsRoutes,
   buildSppAwardValuesRoutes,
+  buildTpMatchesRoutes,
   buildTpRostersRoutes,
   buildTrophyAwardsRoutes,
 } from './rpc-router-factory-hand-written-routes';
@@ -116,6 +120,7 @@ export class RpcRouterFactoryService {
     private readonly trophyAwardsService: TrophyAwardsService,
     private readonly missingTrophyAwards: MissingTrophyAwardsService,
     private readonly tpRosterImport: TpRosterImportService,
+    private readonly tpMatchImport: TpMatchImportService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -515,6 +520,7 @@ export class RpcRouterFactoryService {
         this.externalSystemsService,
       ),
       tpRosters: buildTpRostersRoutes(this.tpRosterImport),
+      tpMatches: buildTpMatchesRoutes(this.tpMatchImport),
     };
   }
 }
