@@ -116,6 +116,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 
 ## Architecture
 
+`TpTeamsImportService`, `TpPlayersImportService`, `TpEraRulesSetResolverService` and the player services they delegate to (induced star hires, lasting-injury and characteristics builders, `TpMercenaryCharacteristicsService`) live in `packages/import-tp-live`, shared with the live team import (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). They read this tool's `externalSystemName` and `league.eras` config through DI tokens that `src/source/tp-roster-import-providers.module.ts` wires to its config services.
+
 - **ImportTpConfigService** — loads `import-tp-config.json5` (JSON5), exposing
   raw top-level values via `get<T>(key)` and the api-server base URL via
   `getApiBaseUrl()`. A missing file is treated as empty so each getter throws
@@ -184,7 +186,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 - **TpTeamsImportService** — upserts each team (keyed by roster id + name),
   resolving race via `raceIdsByCode` and coach via `coachIdsByTpId`;
   skips any team whose race or coach cannot be resolved. Teams are grouped by
-  id so one seen under multiple eras unions its eras.
+  id so one seen under multiple eras unions its eras. Only the eras the
+  rosters are under are resolved.
 - **TpPositionsImportService** — upserts each position from TP's official
   team list (read via `OfficialTeamsCollectionService`, not from played
   rosters), grouped by `(raceId, name)` — one unified path for regular and
@@ -473,6 +476,7 @@ position's other keywords are still written. The same catalogue also decodes a
 
 ## Related documentation
 
+- [import-tp-live](../import-tp-live/index.md) — live team import, and where the team/player import services live.
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
 - [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.
