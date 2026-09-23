@@ -38,11 +38,14 @@ const ROSTER: TpRoster = {
 interface MakeServiceOptions {
   /** TP race code -> DB race id, as if already resolved via ReferenceLookupService. */
   raceIdsByCode?: Map<string, number>;
+  /** TP era name -> DB era id, as if already resolved via ReferenceLookupService. */
+  eraIdsByName?: Map<string, number>;
   bootstrapResult?: ExternalSystemBootstrapResult;
 }
 
 async function makeService({
   raceIdsByCode = new Map([['Orc', 50]]),
+  eraIdsByName = new Map([['Fourth era', 99]]),
   bootstrapResult = { ok: true, ids: [TP_SYSTEM_ID] },
 }: MakeServiceOptions = {}): Promise<{
   service: TpEraResolutionService;
@@ -54,7 +57,7 @@ async function makeService({
   externalSystemName.getTpSystemName.mockReturnValue('TP');
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
   externalSystemBootstrap.bootstrap.mockResolvedValue(bootstrapResult);
-  const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
+  const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
     raceIdsByCode,
   });
   const racesImport = mock<RacesImportService>();
@@ -83,8 +86,8 @@ async function makeService({
 }
 
 describe('TpEraResolutionService', () => {
-  it('uses an explicitly given era without looking anything up', async () => {
-    const { service, externalSystemBootstrap, racesImport } =
+  it('uses an explicitly given era once it validates against the DB', async () => {
+    const { service, externalSystemBootstrap, lookup, racesImport } =
       await makeService();
     const errors: ImportError[] = [];
 
@@ -95,9 +98,37 @@ describe('TpEraResolutionService', () => {
     });
 
     expect(era).toBe('Fourth era');
-    expect(externalSystemBootstrap.bootstrap).not.toHaveBeenCalled();
+    expect(externalSystemBootstrap.bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', category: 'imported_data_source' },
+    ]);
+    expect(lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
+    ]);
     expect(racesImport.listOngoingEras).not.toHaveBeenCalled();
     expect(errors).toEqual([]);
+  });
+
+  it('records one error when the explicitly given era does not exist', async () => {
+    const { service, racesImport } = await makeService({
+      eraIdsByName: new Map(),
+    });
+    const errors: ImportError[] = [];
+
+    const era = await service.resolveEra({
+      roster: ROSTER,
+      era: 'Nonexistent era',
+      errors,
+    });
+
+    expect(era).toBeUndefined();
+    expect(errors).toEqual([
+      {
+        item: { team: 5, era: 'Nonexistent era' },
+        message:
+          'Could not resolve an era for team "Da Boyz": era "Nonexistent era" does not exist',
+      },
+    ]);
+    expect(racesImport.listOngoingEras).not.toHaveBeenCalled();
   });
 
   it("resolves the race's single ongoing era", async () => {

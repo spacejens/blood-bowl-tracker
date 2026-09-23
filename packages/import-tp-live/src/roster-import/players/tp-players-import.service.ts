@@ -290,7 +290,9 @@ export class TpPlayersImportService {
         skillsByPlayerId,
       };
     }
-    const eraNames = [...new Set(eras.map((era) => era.name))];
+    // Only the eras these rosters are under: a bulk run passes every roster's
+    // real era, a live import only the one era it resolved.
+    const eraNames = [...new Set(rosters.map((entry) => entry.era))];
     const eraIds = await this.lookup.lookupMap(
       'era',
       eraNames.map((name) => ({

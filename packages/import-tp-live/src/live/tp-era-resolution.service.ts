@@ -33,8 +33,10 @@ export class TpEraResolutionService {
 
   /**
    * The era name to import `roster` under. TP's roster carries no era, so an
-   * explicitly given era is used as-is; otherwise the team's race is resolved
-   * by its TP race code and its one ongoing era (no end date) is used. No
+   * explicitly given era is validated (it must resolve to a real era, the
+   * same way the teams import will look it up) and returned as-is;
+   * otherwise the team's race is resolved by its TP race code and its one
+   * ongoing era (no end date) is used. An unresolvable explicit era, no
    * ongoing era, or several — a Dungeon Bowl era commonly runs alongside a
    * normal one — cannot be decided here, so each records one ImportError and
    * yields undefined, as does a race that cannot be resolved. The returned
@@ -45,10 +47,6 @@ export class TpEraResolutionService {
     era,
     errors,
   }: ResolveEraOptions): Promise<string | undefined> {
-    if (era !== undefined) {
-      return era;
-    }
-
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       {
         name: this.externalSystemName.getTpSystemName(),
@@ -60,6 +58,21 @@ export class TpEraResolutionService {
       return undefined;
     }
     const [tpSystemId] = bootstrap.ids;
+
+    if (era !== undefined) {
+      const eraRef = { externalSystemId: tpSystemId, externalId: era };
+      const eraIds = await this.lookup.lookupMap('era', [eraRef]);
+      if (eraIds.get(this.lookup.keyOf(eraRef)) === undefined) {
+        errors.push(
+          this.importResults.error({
+            item: { team: roster.id, era },
+            message: `Could not resolve an era for team "${roster.teamName}": era "${era}" does not exist`,
+          }),
+        );
+        return undefined;
+      }
+      return era;
+    }
 
     const raceRef = {
       externalSystemId: tpSystemId,

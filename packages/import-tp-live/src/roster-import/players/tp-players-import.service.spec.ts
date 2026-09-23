@@ -682,7 +682,7 @@ describe('TpPlayersImportService', () => {
     expect(result).toBe(CANNED_RESULT);
   });
 
-  it('resolves every configured era in one batched call', async () => {
+  it('resolves eras from the rosters actually being imported, not the full configured era list', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service, lookup } = await makeService({ upsertPlayerResult });
 
@@ -691,13 +691,46 @@ describe('TpPlayersImportService', () => {
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
     });
 
-    expect(lookup.lookupMap).toHaveBeenCalledWith(
-      'era',
-      expect.arrayContaining([
-        { externalSystemId: TP_SYSTEM_ID, externalId: 'Third Era' },
-        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth Era' },
+    // `rosters` only carries "Third Era"; the configured provider (see
+    // makeService's default eraIdsByName) also declares "Fourth Era", which
+    // must NOT be looked up since no roster being imported is under it.
+    expect(lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: 'Third Era' },
+    ]);
+  });
+
+  it('resolves players under an era not in the configured era rules sets list, as long as it exists in the DB', async () => {
+    // Models a live single-team import: TpEraResolutionService resolved one
+    // era for this team that need not be among whatever
+    // TP_ERA_RULES_SETS_PROVIDER.getEras() (the bulk-import configured list)
+    // returns -- only the reference lookup (the DB) needs to know it.
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      eraIdsByName: new Map([
+        ['Third Era', 500],
+        ['Fourth Era', 501],
+        ['Live Era', 502],
       ]),
-    );
+      getEras: () => [
+        { name: 'Third Era', rulesSets: ['BB2020'] },
+        { name: 'Fourth Era', rulesSets: ['BB2020'] },
+      ],
+    });
+    const liveRosters: TpRosterEntry[] = [{ ...rosters[0], era: 'Live Era' }];
+
+    const { playerIdsByLineUpId } = await service.importPlayers({
+      rosters: liveRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 502 }]]]),
+    });
+
+    expect(playerIdsByLineUpId.size).toBe(1);
+    const { errors } = resultArgs(importResults);
+    expect(
+      errors.some((error) =>
+        error.message.includes('could not resolve team era'),
+      ),
+    ).toBe(false);
   });
 
   it('records one error and imports nothing when the era rules sets cannot be read', async () => {
