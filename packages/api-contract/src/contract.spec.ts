@@ -303,25 +303,6 @@ describe('contract', () => {
     ).toBe(false);
   });
 
-  it('exposes a read-only races.listOngoingEras', () => {
-    expect(contract.races.listOngoingEras).toBeDefined();
-    expect(errorCodesOf(contract.races.listOngoingEras)).toEqual([]);
-  });
-
-  it('races.listOngoingEras takes a raceId and returns id/name rows', () => {
-    const inputSchema = contract.races.listOngoingEras['~orpc']
-      .inputSchema as z.ZodType;
-    expect(inputSchema.safeParse({ raceId: 7 }).success).toBe(true);
-    expect(inputSchema.safeParse({}).success).toBe(false);
-
-    const outputSchema = contract.races.listOngoingEras['~orpc']
-      .outputSchema as z.ZodType;
-    expect(outputSchema.safeParse([{ id: 5, name: 'Fifth era' }]).success).toBe(
-      true,
-    );
-    expect(outputSchema.safeParse([{ id: 5 }]).success).toBe(false);
-  });
-
   it('defines skills.upsert with CONFLICT and BAD_REQUEST errors', () => {
     expect(errorCodesOf(contract.skills.upsert)).toEqual([
       'CONFLICT',

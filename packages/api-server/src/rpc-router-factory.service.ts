@@ -64,7 +64,6 @@ import {
   buildPositionRulesSetSkillsRoutes,
   buildPositionRulesSetsRoutes,
   buildPositionSyncRaceErasRoute,
-  buildRaceListOngoingErasRoute,
   buildSkillRulesSetsRoutes,
   buildSppAwardValuesRoutes,
   buildTrophyAwardsRoutes,
@@ -327,15 +326,12 @@ export class RpcRouterFactoryService {
         conflictError: LeagueUpsertConflictError,
         unwrap: (r) => ({ entity: r.league, created: r.created }),
       }),
-      races: {
-        ...this.buildStandardEntityRoutes({
-          procedures: contract.races,
-          service: this.racesService,
-          conflictError: RaceUpsertConflictError,
-          unwrap: (r) => ({ entity: r.race, created: r.created }),
-        }),
-        ...buildRaceListOngoingErasRoute(this.racesService),
-      },
+      races: this.buildStandardEntityRoutes({
+        procedures: contract.races,
+        service: this.racesService,
+        conflictError: RaceUpsertConflictError,
+        unwrap: (r) => ({ entity: r.race, created: r.created }),
+      }),
       players: {
         ...this.buildUpsertRoute({
           procedure: contract.players.upsert,

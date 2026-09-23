@@ -1,15 +1,15 @@
-import type { ImportError } from '@blood-bowl-tracker/import';
+import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import {
-  ExternalSystemBootstrapService,
-  ImportResultService,
-  RacesImportService,
-  ReferenceLookupService,
-} from '@blood-bowl-tracker/import';
+  ErasService,
+  ExternalSystemsService,
+  RacesService,
+} from '@blood-bowl-tracker/game-data';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
-import type { TpExternalSystemNameProvider } from '../tp-import-providers';
-import { TP_EXTERNAL_SYSTEM_NAME_PROVIDER } from '../tp-import-providers';
+import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
+import { TpImportResultsService } from '../tp-import-results.service';
+import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
 /** Options for {@link TpEraResolutionService.resolveEra}. */
 export interface ResolveEraOptions {
@@ -23,18 +23,17 @@ export interface ResolveEraOptions {
 @Injectable()
 export class TpEraResolutionService {
   constructor(
-    @Inject(TP_EXTERNAL_SYSTEM_NAME_PROVIDER)
-    private readonly externalSystemName: TpExternalSystemNameProvider,
-    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly lookup: ReferenceLookupService,
-    private readonly racesImport: RacesImportService,
-    private readonly importResults: ImportResultService,
+    private readonly externalSystems: ExternalSystemsService,
+    private readonly eras: ErasService,
+    private readonly races: RacesService,
+    private readonly importResults: TpImportResultsService,
+    private readonly runner: TpUpsertRunnerService,
   ) {}
 
   /**
    * The era name to import `roster` under. TP's roster carries no era, so an
    * explicitly given era is validated (it must resolve to a real era, the
-   * same way the teams import will look it up) and returned as-is;
+   * same way the roster import will look it up) and returned as-is;
    * otherwise the team's race is resolved by its TP race code and its one
    * ongoing era (no end date) is used. An unresolvable explicit era, no
    * ongoing era, or several — a Dungeon Bowl era commonly runs alongside a
@@ -47,22 +46,27 @@ export class TpEraResolutionService {
     era,
     errors,
   }: ResolveEraOptions): Promise<string | undefined> {
-    const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      {
-        name: this.externalSystemName.getTpSystemName(),
-        category: 'imported_data_source',
-      },
-    ]);
-    if (!bootstrap.ok) {
-      errors.push(bootstrap.error);
+    const tpSystem = await this.runner.record({
+      run: () =>
+        this.externalSystems.upsert({
+          name: TP_EXTERNAL_SYSTEM_NAME,
+          category: 'imported_data_source',
+        }),
+      item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+      errors,
+      buildErrorMessage: (error) => this.runner.messageOf(error),
+    });
+    if (tpSystem === undefined) {
       return undefined;
     }
-    const [tpSystemId] = bootstrap.ids;
+    const tpSystemId = tpSystem.system.id;
 
     if (era !== undefined) {
-      const eraRef = { externalSystemId: tpSystemId, externalId: era };
-      const eraIds = await this.lookup.lookupMap('era', [eraRef]);
-      if (eraIds.get(this.lookup.keyOf(eraRef)) === undefined) {
+      const resolved = await this.eras.resolve({
+        externalSystemId: tpSystemId,
+        externalId: era,
+      });
+      if (!resolved.found) {
         errors.push(
           this.importResults.error({
             item: { team: roster.id, era },
@@ -74,13 +78,11 @@ export class TpEraResolutionService {
       return era;
     }
 
-    const raceRef = {
+    const race = await this.races.resolve({
       externalSystemId: tpSystemId,
       externalId: roster.teamRaceCode,
-    };
-    const raceIds = await this.lookup.lookupMap('race', [raceRef]);
-    const raceId = raceIds.get(this.lookup.keyOf(raceRef));
-    if (raceId === undefined) {
+    });
+    if (!race.found) {
       errors.push(
         this.importResults.error({
           item: { team: roster.id, teamRaceCode: roster.teamRaceCode },
@@ -90,7 +92,13 @@ export class TpEraResolutionService {
       return undefined;
     }
 
-    const ongoing = await this.racesImport.listOngoingEras(raceId, errors);
+    const ongoing = await this.runner.record({
+      run: () => this.races.listOngoingEras(race.id),
+      item: { race: race.id, ongoingEras: 'list' },
+      errors,
+      buildErrorMessage: (error) =>
+        `Failed to list ongoing eras for race ${race.id}: ${this.runner.messageOf(error)}`,
+    });
     if (ongoing === undefined) {
       return undefined;
     }

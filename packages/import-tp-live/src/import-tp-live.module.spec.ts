@@ -1,4 +1,6 @@
 import { ApiClientModule } from '@blood-bowl-tracker/api-client';
+import { DB } from '@blood-bowl-tracker/db';
+import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Global, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -27,11 +29,13 @@ import {
       useValue: { getTpSystemName: () => 'TP' },
     },
     { provide: TP_ERA_RULES_SETS_PROVIDER, useValue: { getEras: () => [] } },
+    { provide: DB, useValue: mockDb().db },
   ],
   exports: [
     TP_CONNECTION_PROVIDER,
     TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
     TP_ERA_RULES_SETS_PROVIDER,
+    DB,
   ],
 })
 class TestTpProvidersModule {}

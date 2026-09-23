@@ -60,33 +60,4 @@ describe('RacesImportService', () => {
       'Failed to import race "Orc": boom',
     );
   });
-
-  describe('listOngoingEras', () => {
-    it("returns the race's ongoing eras", async () => {
-      const rows = [{ id: 5, name: 'Fifth era' }];
-      runner.recordUpsertResult.mockResolvedValue(rows);
-
-      await expect(service.listOngoingEras(7, [])).resolves.toEqual(rows);
-
-      const [options] = runner.recordUpsertResult.mock.calls[0];
-      client.races.listOngoingEras.mockResolvedValue(rows);
-      await expect(options.upsert()).resolves.toEqual(rows);
-      expect(client.races.listOngoingEras).toHaveBeenCalledWith({ raceId: 7 });
-      expect(options.item).toEqual({ race: 7, ongoingEras: 'list' });
-    });
-
-    it('builds an error message naming the race when the call fails', async () => {
-      runner.recordUpsertResult.mockResolvedValue(undefined);
-
-      await service.listOngoingEras(7, []);
-
-      const [options] = runner.recordUpsertResult.mock.calls[0];
-      expect(options.buildErrorMessage(new Error('boom'))).toBe(
-        'Failed to list ongoing eras for race 7: boom',
-      );
-      expect(options.buildErrorMessage('down')).toBe(
-        'Failed to list ongoing eras for race 7: down',
-      );
-    });
-  });
 });

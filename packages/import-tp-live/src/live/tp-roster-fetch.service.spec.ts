@@ -1,5 +1,4 @@
-import type { ImportError } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
+import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
@@ -10,9 +9,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { mockImportResultService } from '../import-package.test-helpers';
 import type { TpConnectionProvider } from '../tp-import-providers';
 import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
+import { TpImportResultsService } from '../tp-import-results.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
 const BACKEND = 'https://tp.example/api/';
@@ -54,7 +53,9 @@ describe('TpRosterFetchService', () => {
         // assert on the actual URLs requested.
         TpRosterPathsService,
         { provide: RosterParserService, useValue: parser },
-        { provide: ImportResultService, useValue: mockImportResultService() },
+        // Constructor-free and pure, per Global Constraints, so tests pass
+        // it real and assert on the actual recorded error objects.
+        TpImportResultsService,
       ],
     }).compile();
     service = moduleRef.get(TpRosterFetchService);

@@ -11,7 +11,6 @@ import {
   PositionRulesSetSkillsService,
   PositionRulesSetsService,
   PositionsService,
-  RacesService,
   SkillRulesSetsService,
   SppAdjustmentsService,
   SppAwardValuesService,
@@ -320,17 +319,6 @@ export function buildPlayerSkillsRoutes(
     ),
     list: implement(contract.playerSkills.list).handler(({ input }) =>
       playerSkillsService.listByPlayer(input.playerId, input.rulesSetId),
-    ),
-  };
-}
-
-// races.listOngoingEras: plainly read-only and declares no errors, like
-// competitionGroups.list. It delegates straight to the one query that
-// answers it; the query's id/name rows are exactly the contract's output.
-export function buildRaceListOngoingErasRoute(racesService: RacesService) {
-  return {
-    listOngoingEras: implement(contract.races.listOngoingEras).handler(
-      ({ input }) => racesService.listOngoingEras(input.raceId),
     ),
   };
 }

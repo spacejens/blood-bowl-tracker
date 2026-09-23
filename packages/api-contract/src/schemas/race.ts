@@ -17,16 +17,3 @@ export const UpsertRaceSchema = z.object({
 
 export type Race = z.infer<typeof RaceSchema>;
 export type UpsertRace = z.infer<typeof UpsertRaceSchema>;
-
-export const ListOngoingErasSchema = z.object({
-  raceId: z.number().int(),
-});
-
-/** One era a race can currently be played in (no end date). */
-export const OngoingEraSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-});
-
-export type ListOngoingEras = z.infer<typeof ListOngoingErasSchema>;
-export type OngoingEra = z.infer<typeof OngoingEraSchema>;
