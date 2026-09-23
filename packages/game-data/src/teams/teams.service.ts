@@ -6,6 +6,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Team } from '@blood-bowl-tracker/db';
 import {
+  and,
   coaches,
   competitionTeams,
   DB,
@@ -143,6 +144,23 @@ export class TeamsService {
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .where(eq(teamEras.teamId, teamId))
       .orderBy(eras.startDate, eras.name);
+  }
+
+  /**
+   * The team era linking `teamId` to `eraId`, or undefined when the team was
+   * never imported under that era. How a match import resolves a
+   * participating team, known by its source's team id, to the team era it
+   * played the match as.
+   */
+  async findTeamEraId(
+    teamId: number,
+    eraId: number,
+  ): Promise<number | undefined> {
+    const rows = await this.db
+      .select({ id: teamEras.id })
+      .from(teamEras)
+      .where(and(eq(teamEras.teamId, teamId), eq(teamEras.eraId, eraId)));
+    return rows[0]?.id;
   }
 
   async getCareerSpan(

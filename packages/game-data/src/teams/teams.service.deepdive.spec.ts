@@ -9,6 +9,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -130,6 +131,28 @@ describe('TeamsService lookups', () => {
       expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
         ['eras.name'],
       );
+    });
+  });
+
+  describe('findTeamEraId', () => {
+    it('returns the team era id the query resolves to', async () => {
+      await build([{ id: 31 }]);
+      await expect(service.findTeamEraId(7, 40)).resolves.toBe(31);
+    });
+
+    it('returns undefined when the team is not linked to the era', async () => {
+      await build([]);
+      await expect(service.findTeamEraId(7, 40)).resolves.toBeUndefined();
+    });
+
+    it('filters by both the team and the era', async () => {
+      const { chains } = await build([]);
+
+      await service.findTeamEraId(7, 40);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        7, 40,
+      ]);
     });
   });
 
