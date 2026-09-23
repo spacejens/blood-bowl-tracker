@@ -8,12 +8,12 @@ import {
   ReferenceLookupService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
-import { EraDataConfigService } from '../eras/era-data-config.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+import type { TpExternalSystemNameProvider } from '../../tp-import-providers';
+import { TP_EXTERNAL_SYSTEM_NAME_PROVIDER } from '../../tp-import-providers';
+import type { TpRosterEntry } from '../../tp-roster-entry';
+import { TpRosterEraErrorService } from '../tp-roster-era-error.service';
 
 /**
  * One team (keyed by roster id), accumulated across its roster files.
@@ -35,11 +35,11 @@ export class TpTeamsImportService {
   constructor(
     private readonly teamsImport: TeamsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
+    @Inject(TP_EXTERNAL_SYSTEM_NAME_PROVIDER)
+    private readonly externalSystemName: TpExternalSystemNameProvider,
     private readonly nameExternalId: NameExternalIdService,
-    private readonly rosterCollection: RosterCollectionService,
+    private readonly rosterEraErrors: TpRosterEraErrorService,
     private readonly importResults: ImportResultService,
-    private readonly eraDataConfig: EraDataConfigService,
     private readonly lookup: ReferenceLookupService,
   ) {}
 
@@ -53,15 +53,16 @@ export class TpTeamsImportService {
    * or coach cannot be resolved is recorded as an error and skipped rather
    * than upserted with an invalid foreign key (mirrors BblTeamsImportService).
    * Teams are grouped by id so one seen under multiple eras unions its eras.
-   * `rosters` is the already-collected roster list (via
-   * `RosterCollectionService`, run once for all three imports); this service
-   * only groups and upserts.
+   * `rosters` is the already-collected roster list — every roster file from
+   * tools/import-tp's bulk run, or the one roster a live import fetched; this
+   * service only groups and upserts. Only the eras those rosters are under
+   * are resolved.
    * Also returns `teamErasByRosterId`, mapping each imported team's roster id to
    * the resolved `{ id, eraId }[]` eras from its upsert response — consumed by
    * TpTeamParticipationImportService to resolve a roster id + era id to a
    * team_eras id. Idempotent.
    */
-  async importTeams(rosters: RosterEntry[]): Promise<{
+  async importTeams(rosters: TpRosterEntry[]): Promise<{
     result: ImportResult;
     teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
   }> {
@@ -86,23 +87,9 @@ export class TpTeamsImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    let eraNames: string[];
-    try {
-      eraNames = [
-        ...new Set(this.eraDataConfig.getEras().map((era) => era.name)),
-      ];
-    } catch (error) {
-      errors.push(
-        this.importResults.error({
-          item: { externalSystems: [tpSystemName] },
-          message: error instanceof Error ? error.message : String(error),
-        }),
-      );
-      return {
-        result: this.importResults.result({ imported, errors }),
-        teamErasByRosterId,
-      };
-    }
+    // Only the eras these rosters are under: a bulk run passes every roster's
+    // real era, a live import only the one era it resolved.
+    const eraNames = [...new Set(rosters.map((entry) => entry.era))];
     const eraIds = await this.lookup.lookupMap(
       'era',
       eraNames.map((name) => ({
@@ -128,7 +115,7 @@ export class TpTeamsImportService {
         this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
       );
       if (eraId === undefined) {
-        errors.push(this.rosterCollection.unknownEraError(era, roster));
+        errors.push(this.rosterEraErrors.unknownEraError(era, roster));
       } else {
         group.eraIds.add(eraId);
       }

@@ -2,6 +2,7 @@
 
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
+import { TpTeamsImportService } from '@blood-bowl-tracker/import-tp-live';
 import type {
   TpInducedStarPlayer,
   TpRosterPlayer,
@@ -33,7 +34,6 @@ import { OfficialTeamsCollectionService } from './source/official-teams-collecti
 import { RosterCollectionService } from './source/roster-collection.service';
 import { SkillMasterNameCollectionService } from './source/skill-master-name-collection.service';
 import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
-import { TpTeamsImportService } from './teams/tp-teams-import.service';
 import { TpMissingTrophyAwardsImportService } from './trophy-awards/tp-missing-trophy-awards-import.service';
 import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 

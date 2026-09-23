@@ -1,5 +1,6 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
+import type { TpRosterEntry } from '@blood-bowl-tracker/import-tp-live';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -10,11 +11,10 @@ import { TpSourceReader } from './tp-source-reader';
  * One parsed roster file, tagged with the era and competition directories it
  * was found in. The competition slug is the per-competition team-membership
  * signal for TP team-participation import (a roster file only ever appears
- * under the competition directories its team actually played in).
+ * under the competition directories its team actually played in); the team
+ * and player imports need only the roster and era.
  */
-export interface RosterEntry {
-  roster: TpRoster;
-  era: string;
+export interface RosterEntry extends TpRosterEntry {
   competition: string;
 }
 

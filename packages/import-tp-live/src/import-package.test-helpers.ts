@@ -1,5 +1,6 @@
 import {
   ImportResultService,
+  NameExternalIdService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -22,6 +23,38 @@ export function mockImportResultService(): MockProxy<ImportResultService> {
     message,
   }));
   return importResults;
+}
+
+/**
+ * A `MockProxy<NameExternalIdService>` whose seven `forX(name)` methods return
+ * the name they were given. Those are pure identity passthroughs with nothing
+ * computed or formatted, so there is no algorithm to drift out of sync with
+ * the real NameExternalIdService (see
+ * `packages/import/src/name-external-id.service.ts`) — they are exempt from
+ * the canned-response rule. `forPosition`, which concatenates a
+ * `"raceName: positionName"` template, is deliberately *not* stubbed here.
+ */
+export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forCoach.mockImplementation((name) => name);
+  nameExternalId.forEra.mockImplementation((name) => name);
+  nameExternalId.forLeague.mockImplementation((name) => name);
+  nameExternalId.forRulesSet.mockImplementation((name) => name);
+  nameExternalId.forTeam.mockImplementation((name) => name);
+  nameExternalId.forRace.mockImplementation((name) => name);
+  nameExternalId.forStarPosition.mockImplementation((name) => name);
+  return nameExternalId;
+}
+
+/**
+ * Realigns a `vi.fn()` test double's static type to the exact function
+ * signature a `MockProxy` method's `mockImplementation()` requires.
+ * `vi.fn()` without an explicit generic produces a type not structurally
+ * assignable to any concrete function type, so TypeScript needs this one
+ * documented escape hatch instead of a bare `as X` in each spec.
+ */
+export function asProviderMethod<F>(fn: unknown): F {
+  return fn as F;
 }
 
 /**

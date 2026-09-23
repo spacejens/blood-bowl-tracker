@@ -11,22 +11,26 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { EraDataConfig } from '../eras/era-data-config.service';
-import { EraDataConfigService } from '../eras/era-data-config.service';
 import {
   asProviderMethod,
-  mockEraDataConfigService,
   mockImportResultService,
   mockNameExternalIdService,
   mockReferenceLookupService,
-} from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+} from '../../import-package.test-helpers';
+import type { TpExternalSystemNameProvider } from '../../tp-import-providers';
+import { TP_EXTERNAL_SYSTEM_NAME_PROVIDER } from '../../tp-import-providers';
+import type { TpRosterEntry } from '../../tp-roster-entry';
+import { TpRosterEraErrorService } from '../tp-roster-era-error.service';
 import { TpTeamsImportService } from './tp-teams-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
 const TP_SYSTEM_ID = 1;
+
+/** The canned ImportError the mocked TpRosterEraErrorService.unknownEraError returns. */
+const CANNED_UNKNOWN_ERA_ERROR: ImportError = {
+  item: { canned: true },
+  message: 'canned unknown era error',
+};
 
 interface MakeServiceOptions {
   bootstrap: ReturnType<typeof vi.fn>;
@@ -38,8 +42,6 @@ interface MakeServiceOptions {
   raceIdsByCode?: Map<string, number>;
   /** TP coach id -> DB coach id, as if already resolved via ReferenceLookupService. */
   coachIdsByTpId?: Map<string, number>;
-  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
-  getEras?: () => EraDataConfig[];
 }
 
 /**
@@ -79,11 +81,11 @@ async function makeService({
     ['guid-c', 900],
     ['guid-d', 901],
   ]),
-  getEras,
 }: MakeServiceOptions): Promise<{
   service: TpTeamsImportService;
   importResults: MockProxy<ImportResultService>;
   lookup: MockProxy<ReferenceLookupService>;
+  rosterEraErrors: MockProxy<TpRosterEraErrorService>;
 }> {
   const teamsImport = mock<TeamsImportService>();
   teamsImport.upsert.mockImplementation(asProviderMethod(upsertTeam));
@@ -91,24 +93,17 @@ async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  const externalSystemName = mock<TpExternalSystemNameProvider>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
-  const rosterCollection = mock<RosterCollectionService>();
-  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
-    item: { era, roster: roster.id },
-    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
-  }));
+  const rosterEraErrors = mock<TpRosterEraErrorService>();
+  rosterEraErrors.unknownEraError.mockReturnValue(CANNED_UNKNOWN_ERA_ERROR);
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
-  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
-  if (getEras) {
-    eraDataConfig.getEras.mockImplementation(getEras);
-  }
   const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
     raceIdsByCode,
     coachIdsByTpId,
@@ -123,13 +118,12 @@ async function makeService({
         useValue: externalSystemBootstrap,
       },
       {
-        provide: ExternalSystemNameConfigService,
+        provide: TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
         useValue: externalSystemName,
       },
       { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: RosterCollectionService, useValue: rosterCollection },
+      { provide: TpRosterEraErrorService, useValue: rosterEraErrors },
       { provide: ImportResultService, useValue: importResults },
-      { provide: EraDataConfigService, useValue: eraDataConfig },
       { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
@@ -137,6 +131,7 @@ async function makeService({
     service: moduleRef.get(TpTeamsImportService),
     importResults,
     lookup,
+    rosterEraErrors,
   };
 }
 
@@ -148,10 +143,9 @@ interface RosterOpts {
   coachTpId: string;
 }
 
-function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
+function rosterEntry(era: string, opts: RosterOpts): TpRosterEntry {
   return {
     era,
-    competition: 'comp',
     roster: {
       id: opts.id,
       teamName: opts.teamName ?? `Team ${opts.id}`,
@@ -355,9 +349,15 @@ describe('TpTeamsImportService', () => {
 
   it('records an error for a roster under an unknown era but still upserts the team', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
-    const { service, importResults } = await makeService({
+    const { service, importResults, rosterEraErrors } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
+    });
+    const ghost = rosterEntry('Ghost era', {
+      id: 5,
+      teamName: 'Da Boyz',
+      teamRace: 'Orc',
+      coachTpId: 'guid-c',
     });
 
     await service.importTeams([
@@ -367,18 +367,18 @@ describe('TpTeamsImportService', () => {
         teamRace: 'Orc',
         coachTpId: 'guid-c',
       }),
-      rosterEntry('Ghost era', {
-        id: 5,
-        teamName: 'Da Boyz',
-        teamRace: 'Orc',
-        coachTpId: 'guid-c',
-      }),
+      ghost,
     ]);
 
     expect(upsertTeam).toHaveBeenCalledTimes(1);
     expect((upsertTeam.mock.calls[0][0] as UpsertTeam).eras).toEqual([100]);
-    const { errors } = resultArgs(importResults);
-    expect(errors.some((e) => e.message.includes('Ghost era'))).toBe(true);
+    expect(rosterEraErrors.unknownEraError).toHaveBeenCalledWith(
+      'Ghost era',
+      ghost.roster,
+    );
+    expect(resultArgs(importResults).errors).toContain(
+      CANNED_UNKNOWN_ERA_ERROR,
+    );
   });
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
@@ -449,7 +449,7 @@ describe('TpTeamsImportService', () => {
     expect(result).toBe(CANNED_RESULT);
   });
 
-  it('resolves every configured era in one batched call', async () => {
+  it('resolves only the eras the rosters are under, each once, in one batched call', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
     const { service, lookup } = await makeService({
       bootstrap: twoSystemUpsertMock(),
@@ -459,44 +459,18 @@ describe('TpTeamsImportService', () => {
     await service.importTeams([
       rosterEntry('Fourth era', {
         id: 5,
-        teamName: 'Da Boyz',
         teamRace: 'Orc',
         coachTpId: 'guid-c',
       }),
-    ]);
-
-    expect(lookup.lookupMap).toHaveBeenCalledWith(
-      'era',
-      expect.arrayContaining([
-        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
-        { externalSystemId: TP_SYSTEM_ID, externalId: 'Fifth era' },
-      ]),
-    );
-  });
-
-  it('records one error and imports nothing when the era config cannot be read', async () => {
-    const upsertTeam = vi.fn();
-    const { service, importResults } = await makeService({
-      bootstrap: twoSystemUpsertMock(),
-      upsertTeam,
-      getEras: () => {
-        throw new Error('TP_ERAS is not set.');
-      },
-    });
-
-    await service.importTeams([
       rosterEntry('Fourth era', {
-        id: 5,
-        teamName: 'Da Boyz',
+        id: 6,
         teamRace: 'Orc',
-        coachTpId: 'guid-c',
+        coachTpId: 'guid-d',
       }),
     ]);
 
-    const { imported, errors } = resultArgs(importResults);
-    expect(imported).toBe(0);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('TP_ERAS');
-    expect(upsertTeam).not.toHaveBeenCalled();
+    expect(lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: 'Fourth era' },
+    ]);
   });
 });

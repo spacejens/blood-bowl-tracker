@@ -16,6 +16,7 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
+    "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
     "@blood-bowl-tracker/parse-tp": "workspace:*",
     "@blood-bowl-tracker/scrape-tp": "workspace:*",

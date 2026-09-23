@@ -2,6 +2,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import {
+  TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
+  TpTeamsImportService,
+} from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -18,8 +22,8 @@ import { TpPositionCharacteristicsImportService } from './positions/tp-position-
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
+import { ExternalSystemNameConfigService } from './source/external-system-name-config.service';
 import { TpSourceReader } from './source/tp-source-reader';
-import { TpTeamsImportService } from './teams/tp-teams-import.service';
 import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 describe('AppModule', () => {
@@ -138,6 +142,26 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpPositionKeywordsImportService)).toBeInstanceOf(
       TpPositionKeywordsImportService,
+    );
+  });
+
+  it("wires packages/import-tp-live's tokens to this tool's config", async () => {
+    const configPath = join(dir, 'import-tp-config.json5');
+    writeFileSync(
+      configPath,
+      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
+      'utf8',
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule.register()],
+    })
+      .overrideProvider(IMPORT_TP_CONFIG_PATH)
+      .useValue(configPath)
+      .compile();
+
+    expect(moduleRef.get(TP_EXTERNAL_SYSTEM_NAME_PROVIDER)).toBe(
+      moduleRef.get(ExternalSystemNameConfigService),
     );
   });
 });

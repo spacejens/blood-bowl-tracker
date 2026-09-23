@@ -1,4 +1,5 @@
 import { ApiClientModule } from '@blood-bowl-tracker/api-client';
+import { TpRosterImportModule } from '@blood-bowl-tracker/import-tp-live';
 import { DynamicModule, Module } from '@nestjs/common';
 
 import { CoachesModule } from './coaches/coaches.module';
@@ -16,8 +17,8 @@ import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
+import { TpRosterImportProvidersModule } from './source/tp-roster-import-providers.module';
 import { TeamParticipationModule } from './team-participation/team-participation.module';
-import { TeamsModule } from './teams/teams.module';
 import { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 
 @Module({})
@@ -36,6 +37,7 @@ export class AppModule {
         }),
         EraDataConfigModule,
         SourceModule,
+        TpRosterImportProvidersModule,
         LeaguesModule,
         RulesSetsModule,
         ErasModule,
@@ -43,7 +45,7 @@ export class AppModule {
         MatchesModule,
         CoachesModule,
         RacesModule,
-        TeamsModule,
+        TpRosterImportModule,
         TeamParticipationModule,
         PositionsModule,
         KeywordsModule,
