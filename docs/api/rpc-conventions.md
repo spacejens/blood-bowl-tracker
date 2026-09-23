@@ -199,10 +199,16 @@ checking `skillRulesSets.list` for the `unique` category instead.
 `playerSkills.list`: given a player id, answers every skill recorded for that
 player — starting and gained alike — which `upsert` cannot answer either,
 since it only ever writes the skills it is given, not the player's full set.
-`races.listOngoingEras`: given a race id, answers the eras the race is linked
-to that have no end date. A live team import that is not told which era a team
-plays in uses the race's one ongoing era, and `upsert` cannot answer which eras
-are ongoing.
+
+One procedure is a coarse, source-specific import rather than an entity
+upsert: `tpRosters.import` takes one TP roster exactly as TP's API returns
+it and upserts its team and players server-side, in-process through
+`packages/import-tp-live`. It exists so a client-only tool can import a
+roster in one call without orchestrating the individual upserts itself, and
+so the same logic runs in-process for the discord-bot's live import. Every
+failure comes back in the result's `ImportResult`s, so it declares no
+contract errors, and since everything it writes is an upsert it is safe to
+retry.
 
 ## Error responses
 

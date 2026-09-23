@@ -133,7 +133,7 @@ Plain HTTP cannot click through pages or observe what a page requests, so
 The mapping was captured once from a real browser session. If TP's frontend
 changes which endpoints a page calls, update
 `tools/download-tp/src/downloader/tp-api-paths.service.ts` to match. Roster
-paths are the exception: they live in `packages/import-tp-live`'s
+paths are the exception: they live in `packages/tp-paths`'
 `TpRosterPathsService`, shared with the live team import (see
 [docs/import-tp-live/index.md](../import-tp-live/index.md)).
 
