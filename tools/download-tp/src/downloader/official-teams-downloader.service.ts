@@ -42,21 +42,29 @@ export class OfficialTeamsDownloaderService {
    * rules set, not per competition, so nothing here reads
    * `download.tournaments`.
    *
-   * Each rules set is its own visit to the teams page, so each gets its own
-   * session, requesting only that rules set's team list.
+   * The whole run is one visit to the teams page — switching between rules
+   * sets the way a user would switch tabs — so every rules set's request goes
+   * through the same shared session, not a fresh one each time. No session is
+   * created at all when there is nothing to download.
    */
   async downloadOfficialTeams(): Promise<void> {
+    const rulesSets = this.downloadTpConfigService.getRulesSets();
+    if (rulesSets.length === 0) {
+      return;
+    }
     const referer = this.downloadTpConfigService.getFrontendUrl() + 'teams';
-    for (const rulesSet of this.downloadTpConfigService.getRulesSets()) {
+    const session = this.tpFetcherService.createSession();
+    for (const rulesSet of rulesSets) {
       const path = this.tpApiPathsService.officialTeams(
         this.ruleSetId(rulesSet),
       );
       const dirName = `teams/${rulesSet}`;
       this.fileSystemService.mkdir(dirName);
-      await this.apiResponseStoringService.fetchAndStore(
-        this.tpFetcherService.createSession(),
-        { path, referer, dirName },
-      );
+      await this.apiResponseStoringService.fetchAndStore(session, {
+        path,
+        referer,
+        dirName,
+      });
     }
   }
 

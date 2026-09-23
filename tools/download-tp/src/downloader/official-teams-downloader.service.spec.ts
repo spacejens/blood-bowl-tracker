@@ -78,13 +78,13 @@ describe('OfficialTeamsDownloaderService', () => {
     ]);
   });
 
-  it('uses a fresh session for each rules set', async () => {
+  it('uses one shared session for the whole official-teams run', async () => {
     await service.downloadOfficialTeams();
 
     const calls = storingService.fetchAndStore.mock.calls;
-    expect(sessions).toHaveLength(2);
+    expect(sessions).toHaveLength(1);
     expect(calls[0][0]).toBe(sessions[0]);
-    expect(calls[1][0]).toBe(sessions[1]);
+    expect(calls[1][0]).toBe(sessions[0]);
   });
 
   it('matches rules set names case-insensitively', async () => {
@@ -102,7 +102,6 @@ describe('OfficialTeamsDownloaderService', () => {
     configService.getRulesSets.mockReturnValue(['BB2016']);
 
     await expect(service.downloadOfficialTeams()).rejects.toThrow('BB2016');
-    expect(tpFetcherService.createSession).not.toHaveBeenCalled();
     expect(storingService.fetchAndStore).not.toHaveBeenCalled();
   });
 
@@ -111,6 +110,7 @@ describe('OfficialTeamsDownloaderService', () => {
 
     await service.downloadOfficialTeams();
 
+    expect(tpFetcherService.createSession).not.toHaveBeenCalled();
     expect(storingService.fetchAndStore).not.toHaveBeenCalled();
     expect(fileSystemService.mkdir).not.toHaveBeenCalled();
   });

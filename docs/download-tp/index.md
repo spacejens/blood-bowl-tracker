@@ -102,12 +102,14 @@ exactly. The switch to plain HTTP was then checked end to end: a full download
 of that competition and all three official team lists produced output
 byte-identical to the puppeteer-based tool's.
 
-Each tournament's download uses one `scrape-tp` session, and each rules set's
-official-team download its own, so cookies and pacing (a random 0.5–2 second
-gap between a session's requests) carry across a download the way they would
-across one visit in a browser. The investigation needed neither — 38 requests
-ran back-to-back with none rejected — so they are there to keep the traffic
-looking like one person browsing, not to work around an observed block.
+Each tournament's download uses one `scrape-tp` session, and the whole
+official-team download (every configured rules set) shares one session too —
+switching rules sets the way a user would switch tabs on the same page — so
+cookies and pacing (a random 0.5–2 second gap between a session's requests)
+carry across a download the way they would across one visit in a browser. The
+investigation needed neither — 38 requests ran back-to-back with none
+rejected — so they are there to keep the traffic looking like one person
+browsing, not to work around an observed block.
 
 Plain HTTP cannot click through pages or observe what a page requests, so
 `download-tp` requests each page's endpoints directly. Paths are relative to
