@@ -36,9 +36,11 @@ export class TpEraResolutionService {
    * same way the roster import will look it up) and returned as-is;
    * otherwise the team's race is resolved by its TP race code and its one
    * ongoing era (no end date) is used. An unresolvable explicit era, no
-   * ongoing era, or several — a Dungeon Bowl era commonly runs alongside a
-   * normal one — cannot be decided here, so each records one ImportError and
-   * yields undefined, as does a race that cannot be resolved. The returned
+   * ongoing era, or several — a race belongs to Dungeon Bowl or to normal
+   * play, never both, so several ongoing eras for one race is a genuine
+   * ambiguity, not something to guess at — cannot be decided here, so each
+   * records one ImportError and yields undefined, as does a race that
+   * cannot be resolved. The returned
    * name is the era's TP external id, which is its name.
    */
   async resolveEra({

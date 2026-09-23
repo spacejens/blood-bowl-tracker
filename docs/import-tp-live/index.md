@@ -76,9 +76,10 @@ linked to with no end date) decide it:
 
 - exactly one: that era is used;
 - none: the team is not imported;
-- several: the team is not imported, and the caller must name the era. This
-  is a normal case, not a rare one: a Dungeon Bowl era commonly runs
-  alongside a normal era.
+- several: the team is not imported, and the caller must name the era. A
+  race belongs to Dungeon Bowl or to normal play, never both, so several
+  ongoing eras for one race is a genuine ambiguity — e.g. the race is
+  available across two overlapping normal eras — not something to guess at.
 
 The live import registers TP's external system under the name `TP`
 (`TP_EXTERNAL_SYSTEM_NAME`), `tools/import-tp`'s own default.
