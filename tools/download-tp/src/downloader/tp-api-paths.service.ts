@@ -6,35 +6,15 @@ import { Injectable } from '@nestjs/common';
  * included — TP's own frontend requests for the matching page, as captured
  * from a real browser session, so the files written under these names are the
  * same ones a browser-based capture recorded. If TP's frontend changes which
- * endpoints a page calls, this is the one place to update — except roster paths,
- * which live in packages/tp-paths's TpRosterPathsService, shared with the
- * live team import.
+ * endpoints a page calls, this is the one place to update — except roster, tournament, phase and match paths,
+ * which live in packages/tp-paths, shared with the live import.
  *
  * `slug` is a tournament's name as it appears in the frontend path.
  */
 @Injectable()
 export class TpApiPathsService {
-  /** The tournament itself: its categories and their phases. */
-  tournament(slug: string): string {
-    return `tournament/${slug}`;
-  }
-
   news(slug: string): string {
     return `tournament/${slug}/news`;
-  }
-
-  /** One phase's fixtures, as first loaded: only its current round's matches. */
-  phase(slug: string, phaseId: number): string {
-    return `tournament/${slug}/phases?page=0&pageSize=50&phaseId=${phaseId}&type=COACH`;
-  }
-
-  /** One specific round of a phase, as the frontend's round tabs request it. */
-  phaseRound(slug: string, phaseId: number, roundNumber: number): string {
-    return `${this.phase(slug, phaseId)}&round=${roundNumber}`;
-  }
-
-  match(matchId: number | string): string {
-    return `match/${matchId}`;
   }
 
   /** A phase's standings. "clasifications" is TP's own spelling. */

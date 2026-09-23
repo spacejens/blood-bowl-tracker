@@ -1,6 +1,10 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
-import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
+import {
+  TpMatchPathsService,
+  TpRosterPathsService,
+  TpTournamentPathsService,
+} from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
@@ -42,7 +46,9 @@ export class LeaguesDownloaderService {
     private readonly tpFetcherService: TpFetcherService,
     private readonly apiResponseStoringService: ApiResponseStoringService,
     private readonly tpApiPathsService: TpApiPathsService,
+    private readonly tpMatchPathsService: TpMatchPathsService,
     private readonly tpRosterPathsService: TpRosterPathsService,
+    private readonly tpTournamentPathsService: TpTournamentPathsService,
     private readonly fileSystemService: FileSystemService,
   ) {}
 
@@ -70,7 +76,7 @@ export class LeaguesDownloaderService {
     const newsPage = this.tournamentPage(crawl, 'news');
     const tournament = (await this.fetch(
       crawl,
-      paths.tournament(slug),
+      this.tpTournamentPathsService.apiPath(slug),
       newsPage,
     )) as TpTournament;
     await this.fetch(crawl, paths.news(slug), newsPage);
@@ -115,13 +121,12 @@ export class LeaguesDownloaderService {
     crawl: LeagueCrawl,
     phaseIds: number[],
   ): Promise<void> {
-    const paths = this.tpApiPathsService;
     const scoresPage = this.tournamentPage(crawl, 'scores');
     const phases: TpPhase[] = [];
     for (const phaseId of phaseIds) {
       const phase = (await this.fetch(
         crawl,
-        paths.phase(crawl.slug, phaseId),
+        this.tpTournamentPathsService.phaseApiPath(crawl.slug, phaseId),
         scoresPage,
       )) as TpPhase;
       phases.push(phase);
@@ -130,7 +135,11 @@ export class LeaguesDownloaderService {
           phases.push(
             (await this.fetch(
               crawl,
-              paths.phaseRound(crawl.slug, phaseId, round.roundNumber),
+              this.tpTournamentPathsService.phaseRoundApiPath(
+                crawl.slug,
+                phaseId,
+                round.roundNumber,
+              ),
               scoresPage,
             )) as TpPhase,
           );
@@ -141,8 +150,8 @@ export class LeaguesDownloaderService {
       for (const match of phase.matches ?? []) {
         await this.fetch(
           crawl,
-          paths.match(match.matchId),
-          this.tournamentPage(crawl, `match/${match.matchId}`),
+          this.tpMatchPathsService.apiPath(match.matchId),
+          `${this.downloadTpConfigService.getFrontendUrl()}${this.tpMatchPathsService.frontendPath(crawl.slug, match.matchId)}`,
         );
       }
     }
@@ -196,7 +205,7 @@ export class LeaguesDownloaderService {
 
   /** A page under the tournament's frontend URL, used as a referer. */
   private tournamentPage(crawl: LeagueCrawl, page: string): string {
-    return `${this.downloadTpConfigService.getFrontendUrl()}${crawl.slug}/${page}`;
+    return `${this.downloadTpConfigService.getFrontendUrl()}${this.tpTournamentPathsService.frontendPath(crawl.slug, page)}`;
   }
 
   private fetch(
