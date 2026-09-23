@@ -60,7 +60,9 @@ export class TpRosterFilesImportService {
   }: ImportRosterFilesOptions): Promise<RosterFilesImportOutcome> {
     const externalSystemName = this.externalSystemName.getTpSystemName();
     const teamErrors: ImportError[] = [];
+    const seenTeamErrors = new Set<string>();
     const playerErrors: ImportError[] = [];
+    const seenPlayerErrors = new Set<string>();
     let teamsImported = 0;
     let playersImported = 0;
     const teamErasByRosterId = new Map<
@@ -93,9 +95,9 @@ export class TpRosterFilesImportService {
         continue;
       }
       teamsImported += outcome.team.imported;
-      teamErrors.push(...outcome.team.errors);
+      this.pushDistinct(teamErrors, seenTeamErrors, outcome.team.errors);
       playersImported += outcome.players.imported;
-      playerErrors.push(...outcome.players.errors);
+      this.pushDistinct(playerErrors, seenPlayerErrors, outcome.players.errors);
       if (outcome.teamEras.length > 0) {
         const known = teamErasByRosterId.get(rosterId) ?? [];
         const knownIds = new Set(known.map((row) => row.id));
@@ -127,6 +129,27 @@ export class TpRosterFilesImportService {
       insertedPlayerIds,
       mercenaryPositionUsages,
     };
+  }
+
+  /**
+   * Appends each error unless an identical one (same item and message) was
+   * already recorded. A single misconfigured era, or a mercenary position
+   * with no curated row, is reported once per `tpRosters.import` call, so
+   * without this an ambiguous era with N rosters would repeat its error N
+   * times in the run's summary.
+   */
+  private pushDistinct(
+    target: ImportError[],
+    seen: Set<string>,
+    errors: ImportError[],
+  ): void {
+    for (const error of errors) {
+      const key = JSON.stringify([error.item, error.message]);
+      if (!seen.has(key)) {
+        seen.add(key);
+        target.push(error);
+      }
+    }
   }
 
   private distinctByEraAndRoster(rosters: RosterEntry[]): RosterEntry[] {

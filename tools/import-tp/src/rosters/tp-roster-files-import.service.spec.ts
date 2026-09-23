@@ -262,6 +262,63 @@ describe('TpRosterFilesImportService', () => {
     expect(result.playerResult).toBe(cannedPlayerResult);
   });
 
+  it('deduplicates identical team and player errors across calls', async () => {
+    const teamError = {
+      item: { era: 'Fourth era', rulesSets: [] },
+      message: 'Era "Fourth era" declares 0 rules sets; skipped.',
+    };
+    const playerError = {
+      item: { position: 'Ogre' },
+      message: 'No curated characteristics for "Ogre"; skipped.',
+    };
+    importRunner.recordUpsertResult.mockResolvedValue(
+      outcome({
+        team: { success: false, imported: 1, errors: [teamError] },
+        players: { success: false, imported: 0, errors: [playerError] },
+      }),
+    );
+    importResults.result.mockImplementation((options) => ({
+      success: options.errors.length === 0,
+      ...options,
+    }));
+
+    const result = await service.importRosterFiles({
+      rosters: [entry(1, 'Fourth era'), entry(2, 'Fourth era')],
+      matchEmbeddedPlayersByRosterId: new Map(),
+    });
+
+    expect(result.teamResult.errors).toEqual([teamError]);
+    expect(result.playerResult.errors).toEqual([playerError]);
+    expect(result.teamResult.imported).toBe(2);
+  });
+
+  it('keeps distinct team and player errors across calls', async () => {
+    const teamErrorA = { item: { rosterId: 1 }, message: 'boom A' };
+    const teamErrorB = { item: { rosterId: 2 }, message: 'boom B' };
+    importRunner.recordUpsertResult
+      .mockResolvedValueOnce(
+        outcome({
+          team: { success: false, imported: 0, errors: [teamErrorA] },
+        }),
+      )
+      .mockResolvedValueOnce(
+        outcome({
+          team: { success: false, imported: 0, errors: [teamErrorB] },
+        }),
+      );
+    importResults.result.mockImplementation((options) => ({
+      success: options.errors.length === 0,
+      ...options,
+    }));
+
+    const result = await service.importRosterFiles({
+      rosters: [entry(1, 'Fourth era'), entry(2, 'Fourth era')],
+      matchEmbeddedPlayersByRosterId: new Map(),
+    });
+
+    expect(result.teamResult.errors).toEqual([teamErrorA, teamErrorB]);
+  });
+
   it('records a failed call on the team result and carries on', async () => {
     importRunner.recordUpsertResult
       .mockResolvedValueOnce(undefined)
