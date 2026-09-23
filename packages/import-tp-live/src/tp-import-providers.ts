@@ -18,3 +18,21 @@ export interface TpConnectionProvider {
   /** Base URL of TP's frontend; roster page paths are appended to it. */
   getFrontendUrl(): string;
 }
+
+/**
+ * The name TP's external system is registered under. Needed by the team and
+ * player upserts and by era resolution, bulk and live alike.
+ */
+export const TP_EXTERNAL_SYSTEM_NAME_PROVIDER = Symbol(
+  'TP_EXTERNAL_SYSTEM_NAME_PROVIDER',
+);
+
+/**
+ * Supplies TP's external-system name. tools/import-tp's
+ * `ExternalSystemNameConfigService` has this shape (config-file driven,
+ * defaulting to "TP"); a live caller with no config file can supply a plain
+ * "TP".
+ */
+export interface TpExternalSystemNameProvider {
+  getTpSystemName(): string;
+}
