@@ -80,8 +80,10 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
    * Rules sets to download TP's official team list for, from
    * `download.rulesSets`. Required to be present, but may be empty — an
    * empty list means "skip the official-teams download entirely". Each value
-   * names the tab on TP's teams page and the `data/teams/<rulesSet>/` output
-   * folder.
+   * names the `data/teams/<rulesSet>/` output folder and is looked up
+   * (case-insensitively) in `TP_RULES_SET_IDS` in
+   * `OfficialTeamsDownloaderService` for TP's own numeric `ruleSet` id — it
+   * names neither a tab label nor anything else TP itself exposes.
    */
   getRulesSets(): string[] {
     const download = this.downloadGroup();
