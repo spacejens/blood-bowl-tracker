@@ -293,8 +293,11 @@ describe('TpRosterFilesImportService', () => {
   });
 
   it('keeps distinct team and player errors across calls', async () => {
-    const teamErrorA = { item: { rosterId: 1 }, message: 'boom A' };
-    const teamErrorB = { item: { rosterId: 2 }, message: 'boom B' };
+    // Same message, different item: proves the dedup key is [item, message]
+    // together, not message alone -- a message-only key would wrongly
+    // collapse these two into one.
+    const teamErrorA = { item: { rosterId: 1 }, message: 'boom' };
+    const teamErrorB = { item: { rosterId: 2 }, message: 'boom' };
     importRunner.recordUpsertResult
       .mockResolvedValueOnce(
         outcome({
