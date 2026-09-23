@@ -7,6 +7,7 @@ export * from './schemas/competition-group';
 export * from './schemas/era';
 export * from './schemas/external-id';
 export * from './schemas/external-system';
+export * from './schemas/import-result';
 export * from './schemas/keyword';
 export * from './schemas/league';
 export * from './schemas/match';
