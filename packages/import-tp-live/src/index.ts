@@ -8,6 +8,12 @@ export type {
 export { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 export type { FetchRosterOptions } from './live/tp-roster-fetch.service';
 export { TpRosterFetchService } from './live/tp-roster-fetch.service';
+export { TpRosterModule } from './roster/tp-roster.module';
+export type {
+  ImportRawRosterOptions,
+  ImportRosterOptions,
+} from './roster/tp-roster-import.service';
+export { TpRosterImportService } from './roster/tp-roster-import.service';
 export { TpEraRulesSetResolverService } from './roster-import/eras/tp-era-rules-set-resolver.service';
 export type { InducedStarPlayerHireGroup } from './roster-import/players/tp-induced-star-players-import.service';
 export type {
@@ -17,6 +23,7 @@ export type {
 export { TpPlayersImportService } from './roster-import/players/tp-players-import.service';
 export { TpTeamsImportService } from './roster-import/teams/tp-teams-import.service';
 export { TpRosterImportModule } from './roster-import/tp-roster-import.module';
+export { TP_EXTERNAL_SYSTEM_NAME } from './tp-external-system';
 export type {
   TpConnectionProvider,
   TpEraRulesSets,
