@@ -9,8 +9,7 @@ import { EraDataConfigModule } from './eras/era-data-config.module';
 import { ErasModule } from './eras/eras.module';
 import { KeywordsModule } from './keywords/keywords.module';
 import { LeaguesModule } from './leagues/leagues.module';
-import { MatchEventsModule } from './match-events/match-events.module';
-import { MatchesModule } from './matches/matches.module';
+import { MatchFilesModule } from './match-files/match-files.module';
 import { PlayersModule } from './players/players.module';
 import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
@@ -40,15 +39,14 @@ export class AppModule {
         RulesSetsModule,
         ErasModule,
         CompetitionsModule,
-        MatchesModule,
         CoachesModule,
         RacesModule,
         RostersModule,
         TeamParticipationModule,
+        MatchFilesModule,
         PositionsModule,
         KeywordsModule,
         PlayersModule,
-        MatchEventsModule,
         TrophyAwardsModule,
       ],
     };

@@ -114,6 +114,12 @@ describe('TpMatchFilesImportService', () => {
     expect(sourceReader.filesOfType).toHaveBeenCalledWith('match');
     const [options] = importRunner.recordUpsertResult.mock.calls[0];
     expect(options.item).toEqual({ match: 1, competition: 18442 });
+    expect(options.buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to import match 1: boom',
+    );
+    expect(options.buildErrorMessage('boom')).toBe(
+      'Failed to import match 1: boom',
+    );
     client.tpMatches.import.mockResolvedValue(outcome(3));
     await options.upsert();
     expect(client.tpMatches.import).toHaveBeenCalledWith({
@@ -171,6 +177,17 @@ describe('TpMatchFilesImportService', () => {
     );
 
     await service.importMatchFiles(OPTIONS);
+
+    expect(importRunner.recordUpsertResult).not.toHaveBeenCalled();
+  });
+
+  it('skips a competition with no resolved database id', async () => {
+    sourceReader.filesOfType.mockReturnValue(filesFrom([matchFile(1)]));
+
+    await service.importMatchFiles({
+      ...OPTIONS,
+      competitionIdsByTpId: new Map(),
+    });
 
     expect(importRunner.recordUpsertResult).not.toHaveBeenCalled();
   });
