@@ -205,4 +205,29 @@ describe('TpLiveTeamImportService', () => {
     ]);
     expect(playersImport.importPlayers).not.toHaveBeenCalled();
   });
+
+  it('catches an unexpected exception from a collaborator instead of throwing, reporting one error naming the roster id', async () => {
+    rosterFetch.fetchRoster.mockRejectedValue(
+      new Error('collaborator regressed'),
+    );
+
+    const result = await service.importTeam({ rosterId: 163386 });
+
+    expect(result).toEqual({ team: FIRST_RESULT, players: SECOND_RESULT });
+    expect(importResults.result.mock.calls).toEqual([
+      [
+        {
+          imported: 0,
+          errors: [
+            {
+              item: { rosterId: 163386 },
+              message:
+                'Unexpected error importing team 163386: collaborator regressed',
+            },
+          ],
+        },
+      ],
+      [{ imported: 0, errors: [] }],
+    ]);
+  });
 });

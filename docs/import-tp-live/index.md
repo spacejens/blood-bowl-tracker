@@ -52,6 +52,13 @@ its coach (by TP coach id), the era, and the positions its players play (by
 TP `lineUpMasterId`). A missing race or coach skips the team; a missing
 position skips that player. Each is reported as an error.
 
+A live import always skips a team whose coach cannot be resolved: `TpRoster`
+carries only TP's internal coach id, never a coach name, and there is no live
+coach-import capability, so the team upsert cannot create a coach on the fly.
+In practice this means a brand-new team whose coach has never been imported
+before (via `tools/import-tp`'s bulk run or `tools/import-bbl`) fails to
+import live with a "could not resolve coach" error.
+
 A live import brings in the roster's current state only. Unlike a bulk run it
 has no match data, so it adds no departed players seen only in match
 snapshots and no star players hired through inducements, and it sends no

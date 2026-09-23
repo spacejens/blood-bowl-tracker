@@ -705,7 +705,7 @@ describe('TpPlayersImportService', () => {
     // TP_ERA_RULES_SETS_PROVIDER.getEras() (the bulk-import configured list)
     // returns -- only the reference lookup (the DB) needs to know it.
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const { service, importResults } = await makeService({
+    const { service, importResults, lookup } = await makeService({
       upsertPlayerResult,
       eraIdsByName: new Map([
         ['Third Era', 500],
@@ -725,12 +725,14 @@ describe('TpPlayersImportService', () => {
     });
 
     expect(playerIdsByLineUpId.size).toBe(1);
+    // Only the roster's own era ("Live Era") is looked up -- not the full
+    // configured era rules sets list ("Third Era", "Fourth Era"), which is
+    // what the old buggy code did and what let this test pass either way.
+    expect(lookup.lookupMap).toHaveBeenCalledWith('era', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: 'Live Era' },
+    ]);
     const { errors } = resultArgs(importResults);
-    expect(
-      errors.some((error) =>
-        error.message.includes('could not resolve team era'),
-      ),
-    ).toBe(false);
+    expect(errors).toEqual([]);
   });
 
   it('records one error and imports nothing when the era rules sets cannot be read', async () => {

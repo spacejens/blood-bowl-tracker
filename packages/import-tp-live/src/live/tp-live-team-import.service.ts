@@ -55,38 +55,48 @@ export class TpLiveTeamImportService {
     era,
     session,
   }: ImportTeamOptions): Promise<TpLiveTeamImportResult> {
-    const errors: ImportError[] = [];
-    const roster = await this.rosterFetch.fetchRoster({
-      rosterId,
-      errors,
-      session,
-    });
-    if (roster === undefined) {
-      return this.notImported(errors);
-    }
-    const resolvedEra = await this.eraResolution.resolveEra({
-      roster,
-      era,
-      errors,
-    });
-    if (resolvedEra === undefined) {
-      return this.notImported(errors);
-    }
+    try {
+      const errors: ImportError[] = [];
+      const roster = await this.rosterFetch.fetchRoster({
+        rosterId,
+        errors,
+        session,
+      });
+      if (roster === undefined) {
+        return this.notImported(errors);
+      }
+      const resolvedEra = await this.eraResolution.resolveEra({
+        roster,
+        era,
+        errors,
+      });
+      if (resolvedEra === undefined) {
+        return this.notImported(errors);
+      }
 
-    const entry: TpRosterEntry = { roster, era: resolvedEra };
-    const { result: team, teamErasByRosterId } =
-      await this.teamsImport.importTeams([entry]);
-    if (!teamErasByRosterId.has(roster.id)) {
-      return {
-        team,
-        players: this.importResults.result({ imported: 0, errors: [] }),
-      };
+      const entry: TpRosterEntry = { roster, era: resolvedEra };
+      const { result: team, teamErasByRosterId } =
+        await this.teamsImport.importTeams([entry]);
+      if (!teamErasByRosterId.has(roster.id)) {
+        return {
+          team,
+          players: this.importResults.result({ imported: 0, errors: [] }),
+        };
+      }
+      const { result: players } = await this.playersImport.importPlayers({
+        rosters: [entry],
+        teamErasByRosterId,
+      });
+      return { team, players };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return this.notImported([
+        {
+          item: { rosterId },
+          message: `Unexpected error importing team ${rosterId}: ${message}`,
+        },
+      ]);
     }
-    const { result: players } = await this.playersImport.importPlayers({
-      rosters: [entry],
-      teamErasByRosterId,
-    });
-    return { team, players };
   }
 
   private notImported(errors: ImportError[]): TpLiveTeamImportResult {
