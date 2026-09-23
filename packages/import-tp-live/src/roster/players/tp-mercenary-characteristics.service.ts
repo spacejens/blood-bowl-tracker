@@ -7,7 +7,7 @@ import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 
 /** One mercenary position's characteristics under one rules set. */
-export interface MercenaryCharacteristics {
+interface MercenaryCharacteristics {
   move: number;
   strength: number;
   agility: number;

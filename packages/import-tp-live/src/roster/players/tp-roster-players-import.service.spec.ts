@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { TpLastingInjuryBuilderService } from '../../roster-import/players/tp-lasting-injury-builder.service';
 import { TpImportResultsService } from '../../tp-import-results.service';
 import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import {
@@ -18,6 +17,7 @@ import {
   tpRoster,
 } from '../tp-roster.test-helpers';
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
+import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import type { MercenaryCurated } from './tp-mercenary-characteristics.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';

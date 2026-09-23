@@ -14,25 +14,6 @@ export type {
   ImportRosterOptions,
 } from './roster/tp-roster-import.service';
 export { TpRosterImportService } from './roster/tp-roster-import.service';
-export { TpEraRulesSetResolverService } from './roster-import/eras/tp-era-rules-set-resolver.service';
-export type { InducedStarPlayerHireGroup } from './roster-import/players/tp-induced-star-players-import.service';
-export type {
-  ImportPlayersOptions,
-  MercenaryPositionUsage,
-} from './roster-import/players/tp-players-import.service';
-export { TpPlayersImportService } from './roster-import/players/tp-players-import.service';
-export { TpTeamsImportService } from './roster-import/teams/tp-teams-import.service';
-export { TpRosterImportModule } from './roster-import/tp-roster-import.module';
 export { TP_EXTERNAL_SYSTEM_NAME } from './tp-external-system';
-export type {
-  TpConnectionProvider,
-  TpEraRulesSets,
-  TpEraRulesSetsProvider,
-  TpExternalSystemNameProvider,
-} from './tp-import-providers';
-export {
-  TP_CONNECTION_PROVIDER,
-  TP_ERA_RULES_SETS_PROVIDER,
-  TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
-} from './tp-import-providers';
-export type { TpRosterEntry } from './tp-roster-entry';
+export type { TpConnectionProvider } from './tp-import-providers';
+export { TP_CONNECTION_PROVIDER } from './tp-import-providers';

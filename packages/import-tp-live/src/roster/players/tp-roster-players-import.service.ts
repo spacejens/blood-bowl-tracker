@@ -9,11 +9,11 @@ import { PlayersService } from '@blood-bowl-tracker/game-data';
 import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpLastingInjuryBuilderService } from '../../roster-import/players/tp-lasting-injury-builder.service';
 import { TpUpsertRunnerService } from '../../tp-upsert-runner.service';
 import type { TpRosterContext } from '../tp-roster-context.service';
 import type { IncreaseBaselineCache } from './tp-characteristic-increases.service';
 import { TpCharacteristicIncreasesService } from './tp-characteristic-increases.service';
+import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';

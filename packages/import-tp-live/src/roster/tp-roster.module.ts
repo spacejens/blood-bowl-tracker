@@ -12,11 +12,11 @@ import {
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
-import { TpLastingInjuryBuilderService } from '../roster-import/players/tp-lasting-injury-builder.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpNameExternalIdService } from '../tp-name-external-id.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpCharacteristicIncreasesService } from './players/tp-characteristic-increases.service';
+import { TpLastingInjuryBuilderService } from './players/tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './players/tp-mercenary-characteristics.service';
 import { TpPlayerCharacteristicsBuilderService } from './players/tp-player-characteristics-builder.service';
 import { TpPlayerPositionService } from './players/tp-player-position.service';

@@ -701,9 +701,6 @@ importers:
       '@blood-bowl-tracker/game-data':
         specifier: workspace:*
         version: link:../game-data
-      '@blood-bowl-tracker/import':
-        specifier: workspace:*
-        version: link:../import
       '@blood-bowl-tracker/parse-tp':
         specifier: workspace:*
         version: link:../parse-tp
@@ -720,9 +717,6 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
     devDependencies:
-      '@blood-bowl-tracker/api-client':
-        specifier: workspace:*
-        version: link:../api-client
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../db
