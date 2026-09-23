@@ -60,8 +60,6 @@ import {
   UpsertPositionSchema,
 } from './schemas/position';
 import {
-  ListPositionRulesSetsSchema,
-  PositionRulesSetCharacteristicsSchema,
   SyncPositionRulesSetsResultSchema,
   SyncPositionRulesSetsSchema,
 } from './schemas/position-rules-set';
@@ -196,18 +194,6 @@ export const contract = {
         },
       })
       .output(SyncPositionRulesSetsResultSchema),
-    // A plainly read-only procedure, the second in this contract after
-    // `competitionGroups.list`. tools/import-tp's mercenary hires carry no
-    // characteristics anywhere in TP's own data, so the importer reads back
-    // the curated `position_rules_sets` rows tools/import-manual wrote in its
-    // before-other-importers phase instead of keeping a second,
-    // hand-duplicated copy of the same values in its own config file. Writes
-    // nothing, so it declares no errors. One position per call: the caller
-    // already holds the position id from its own `positions.upsert` response,
-    // and a position has only a handful of rows.
-    list: oc
-      .input(ListPositionRulesSetsSchema)
-      .output(z.array(PositionRulesSetCharacteristicsSchema)),
   },
   skills: {
     upsert: upsertProcedure(UpsertSkillSchema, SkillSchema),
@@ -235,9 +221,9 @@ export const contract = {
         },
       })
       .output(SyncSkillRulesSetsResultSchema),
-    // Read-only, so it declares no errors — like competitionGroups.list and
-    // positionRulesSets.list. One skill per call: the caller already holds
-    // the skill id from its own `skills.upsert` response.
+    // Read-only, so it declares no errors — like competitionGroups.list. One
+    // skill per call: the caller already holds the skill id from its own
+    // `skills.upsert` response.
     list: oc
       .input(ListSkillRulesSetsSchema)
       .output(z.array(SkillRulesSetCategorySchema)),
@@ -272,10 +258,10 @@ export const contract = {
     // external id across files, phases or tools.
     resolve: resolveProcedure(),
     resolveBatch: resolveBatchProcedure(),
-    // Read-only, so it declares no errors — like competitionGroups.list and
-    // positionRulesSets.list. The whole catalogue in one call: a caller that
-    // holds only numeric codes cannot name a keyword from its own data, and
-    // the catalogue is small and changes only by curation.
+    // Read-only, so it declares no errors — like competitionGroups.list. The
+    // whole catalogue in one call: a caller that holds only numeric codes
+    // cannot name a keyword from its own data, and the catalogue is small and
+    // changes only by curation.
     list: oc
       .input(ListKeywordsSchema)
       .output(z.array(KeywordCatalogEntrySchema)),

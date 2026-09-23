@@ -38,7 +38,9 @@ export class SkillRulesSetsImportService {
   /**
    * Every rules set one skill exists under, with its category there. Reuses
    * recordUpsertResult for a read exactly as
-   * PositionRulesSetsImportService.listPositionRulesSets does.
+   * CompetitionGroupsImportService.listCompetitionGroups does: the helper is
+   * "run this call, record a failure as an ImportError, return undefined" --
+   * nothing about it is upsert-specific beyond the option's name.
    */
   listSkillRulesSets(
     skillId: number,

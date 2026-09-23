@@ -52,8 +52,8 @@ export const SkillRulesSetCategorySchema = z.object({
 /**
  * Input of the read procedure: one skill at a time. A skill has only a
  * handful of rows (one per rules set that has it), and a caller already holds
- * the skill id from its own `skills.upsert` response — the same reasoning as
- * `ListPositionRulesSetsSchema`.
+ * the skill id from its own `skills.upsert` response, so there is nothing to
+ * batch.
  */
 export const ListSkillRulesSetsSchema = z.object({
   skillId: z.number().int(),

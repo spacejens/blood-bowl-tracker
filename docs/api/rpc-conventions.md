@@ -184,11 +184,6 @@ nothing, and declares no contract errors. Current examples:
 `competitionGroupId` from its own competition upsert's response, but needs that
 group's curated _name_ to build a trophy's TP external id — and `upsert` cannot
 answer that, because the name is the input it was given.
-`positionRulesSets.list`: `tools/import-tp`'s mercenary hires carry no
-characteristics anywhere in TP's own data, so the importer reads back the
-curated `position_rules_sets` rows `tools/import-manual` wrote in its
-before-other-importers phase, rather than keeping a second, hand-duplicated
-copy of the same values in its own config file.
 `skillRulesSets.list`: a caller that already holds a skill's id from its own
 `skills.upsert` response needs the rules sets and categories that skill
 belongs to, which `upsert` cannot answer either. `positionRulesSetSkills.list`
