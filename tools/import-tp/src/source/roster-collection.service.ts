@@ -10,12 +10,15 @@ import { TpSourceReader } from './tp-source-reader';
  * One parsed roster file, tagged with the era and competition directories it
  * was found in. The competition slug is the per-competition team-membership
  * signal for TP team-participation import (a roster file only ever appears
- * under the competition directories its team actually played in).
+ * under the competition directories its team actually played in). `content`
+ * is the file's JSON exactly as read: the roster import sends it to the
+ * server unparsed, which does its own parsing.
  */
 export interface RosterEntry {
   roster: TpRoster;
   era: string;
   competition: string;
+  content: unknown;
 }
 
 @Injectable()
@@ -31,9 +34,9 @@ export class RosterCollectionService {
    * into a `TpRoster` tagged with its era. A per-file parse failure is
    * recorded and skipped; a throw from files() is recorded and the rosters
    * collected so far returned -- mirroring TpCoachesImportService.collectCoaches.
-   * Called once from main.ts and the resulting list shared by the races,
-   * positions and teams imports, so a bad file is scanned and reported once
-   * rather than independently by each of the three.
+   * Called once from main.ts and the resulting list shared by the roster
+   * import, team participation and the roster player facts, so a bad file is
+   * scanned and reported once rather than independently by each of them.
    */
   async collect(errors: ImportError[]): Promise<RosterEntry[]> {
     const rosters: RosterEntry[] = [];
@@ -47,6 +50,7 @@ export class RosterCollectionService {
             roster: this.rosterParser.parse(file.content),
             era: file.era,
             competition: file.competition,
+            content: file.content,
           });
         } catch (error) {
           errors.push(
@@ -75,13 +79,5 @@ export class RosterCollectionService {
       );
     }
     return rosters;
-  }
-
-  /** An ImportError for a roster whose era name is not among the imported eras. */
-  unknownEraError(era: string, roster: TpRoster): ImportError {
-    return this.importResults.error({
-      item: { era, roster: roster.id },
-      message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
-    });
   }
 }

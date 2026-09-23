@@ -179,16 +179,11 @@ shaped this way instead of as an upsert, and its exact result shape.
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
-nothing, and declares no contract errors. There are currently five.
+nothing, and declares no contract errors. Current examples:
 `competitionGroups.list`: `tools/import-tp` already holds a competition's
 `competitionGroupId` from its own competition upsert's response, but needs that
 group's curated _name_ to build a trophy's TP external id — and `upsert` cannot
 answer that, because the name is the input it was given.
-`positionRulesSets.list`: `tools/import-tp`'s mercenary hires carry no
-characteristics anywhere in TP's own data, so the importer reads back the
-curated `position_rules_sets` rows `tools/import-manual` wrote in its
-before-other-importers phase, rather than keeping a second, hand-duplicated
-copy of the same values in its own config file.
 `skillRulesSets.list`: a caller that already holds a skill's id from its own
 `skills.upsert` response needs the rules sets and categories that skill
 belongs to, which `upsert` cannot answer either. `positionRulesSetSkills.list`
@@ -199,6 +194,16 @@ checking `skillRulesSets.list` for the `unique` category instead.
 `playerSkills.list`: given a player id, answers every skill recorded for that
 player — starting and gained alike — which `upsert` cannot answer either,
 since it only ever writes the skills it is given, not the player's full set.
+
+One procedure is a coarse, source-specific import rather than an entity
+upsert: `tpRosters.import` takes one TP roster exactly as TP's API returns
+it and upserts its team and players server-side, in-process through
+`packages/import-tp-live`. It exists so a client-only tool can import a
+roster in one call without orchestrating the individual upserts itself, and
+so the same logic runs in-process for the discord-bot's live import. Every
+failure comes back in the result's `ImportResult`s, so it declares no
+contract errors, and since everything it writes is an upsert it is safe to
+retry.
 
 ## Error responses
 

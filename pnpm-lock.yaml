@@ -367,6 +367,9 @@ importers:
       '@blood-bowl-tracker/game-data':
         specifier: workspace:*
         version: link:../game-data
+      '@blood-bowl-tracker/import-tp-live':
+        specifier: workspace:*
+        version: link:../import-tp-live
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -687,6 +690,64 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(typescript@6.0.3)(vitest@5.0.1)
 
+  packages/import-tp-live:
+    dependencies:
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../domain-enums
+      '@blood-bowl-tracker/game-data':
+        specifier: workspace:*
+        version: link:../game-data
+      '@blood-bowl-tracker/parse-tp':
+        specifier: workspace:*
+        version: link:../parse-tp
+      '@blood-bowl-tracker/scrape-tp':
+        specifier: workspace:*
+        version: link:../scrape-tp
+      '@blood-bowl-tracker/tp-paths':
+        specifier: workspace:*
+        version: link:../tp-paths
+      '@nestjs/common':
+        specifier: ^12.0.0
+        version: 12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+    devDependencies:
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../db
+      '@nestjs/testing':
+        specifier: ^12.0.0
+        version: 12.0.4(@nestjs/common@12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.0.4)(@nestjs/platform-express@12.0.4)
+      '@swc/core':
+        specifier: ^1.15.47
+        version: 1.16.2
+      '@types/node':
+        specifier: ^24.13.6
+        version: 24.13.6
+      '@vitest/coverage-v8':
+        specifier: ^5.0.0
+        version: 5.0.1(vitest@5.0.1)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      unplugin-swc:
+        specifier: ^1.5.10
+        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+      vite:
+        specifier: ^8.2.1
+        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+      vitest-mock-extended:
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@5.0.1)
+
   packages/parse-tp:
     dependencies:
       '@blood-bowl-tracker/domain-enums':
@@ -823,6 +884,40 @@ importers:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/tp-paths:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^12.0.0
+        version: 12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+    devDependencies:
+      '@nestjs/testing':
+        specifier: ^12.0.0
+        version: 12.0.4(@nestjs/common@12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.0.4)(@nestjs/platform-express@12.0.4)
+      '@swc/core':
+        specifier: ^1.15.47
+        version: 1.16.2
+      '@types/node':
+        specifier: ^24.13.6
+        version: 24.13.6
+      '@vitest/coverage-v8':
+        specifier: ^5.0.0
+        version: 5.0.1(vitest@5.0.1)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      unplugin-swc:
+        specifier: ^1.5.10
+        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+      vite:
+        specifier: ^8.2.1
+        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
+
   tools/cli-shared:
     dependencies:
       '@nestjs/common':
@@ -917,6 +1012,9 @@ importers:
       '@blood-bowl-tracker/scrape-tp':
         specifier: workspace:*
         version: link:../../packages/scrape-tp
+      '@blood-bowl-tracker/tp-paths':
+        specifier: workspace:*
+        version: link:../../packages/tp-paths
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.0.4(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)

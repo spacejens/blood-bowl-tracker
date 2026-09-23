@@ -123,6 +123,7 @@ function roster(era: string, comp: string, id: number): RosterEntry {
   return {
     era,
     competition: comp,
+    content: {},
     roster: {
       id,
       teamName: `Team ${id}`,

@@ -1,7 +1,4 @@
-import type {
-  TpPlayerCharacteristics,
-  TpPositionCharacteristics,
-} from '@blood-bowl-tracker/parse-tp';
+import type { TpPositionCharacteristics } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -20,36 +17,12 @@ export interface TpPlayerCharacteristicsPayload {
 }
 
 /**
- * Builds the characteristics fields the TP players importer attaches to its
- * `players.upsert` payloads. Split out of `TpPlayersImportService` to keep
- * that file under the repo's source-file line cap; it holds no state and
- * performs no I/O.
+ * Builds the characteristics a hired star player's `players.upsert` payload
+ * carries: the star position's template values for the hiring era's rules
+ * set. Holds no state and performs no I/O.
  */
 @Injectable()
 export class TpPlayerCharacteristicsBuilderService {
-  /**
-   * A roster player's own current characteristics, validated under the rules
-   * set the player's era declares. Returns `undefined` when the player carried
-   * none (a match-embedded-only entry: `lineUps[]` snapshots inside a match
-   * file have no `ma/st/ag/pa/av`) or when the era resolved to no single rules
-   * set -- an omitted group leaves whatever is already stored untouched.
-   */
-  forRosterPlayer(options: {
-    characteristics: TpPlayerCharacteristics | undefined;
-    eraName: string;
-    rulesSetIdByEraName: Map<string, number>;
-  }): TpPlayerCharacteristicsPayload | undefined {
-    const { characteristics, eraName, rulesSetIdByEraName } = options;
-    if (characteristics === undefined) {
-      return undefined;
-    }
-    const rulesSetId = rulesSetIdByEraName.get(eraName);
-    if (rulesSetId === undefined) {
-      return undefined;
-    }
-    return { ...characteristics, rulesSetId };
-  }
-
   /**
    * A star player hired mid-season via an `inducements_roll` event has no
    * `lineUps[]` entry, so no characteristics of their own; a freshly-hired

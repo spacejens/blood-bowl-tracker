@@ -72,7 +72,7 @@ export interface TpRosterPosition {
  * `fallbackPositionName` and `isBigGuy` are also carried inline on every
  * `lineUps[]` entry -- unlike a regular or star position, a mercenary Big Guy
  * hire (e.g. "Giant") has no catalog entry in either `rosterMaster` array at
- * all, so `lineUpMasterId` never resolves for one. `TpPlayersImportService`
+ * all, so `lineUpMasterId` never resolves for one. `TpPlayerPositionService`
  * falls back to `fallbackPositionName` (gated on `isBigGuy`) to still import
  * such a player, reusing an `isStarPlayer: true` Position the same way a star
  * player does.

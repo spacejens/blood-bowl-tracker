@@ -239,9 +239,12 @@ upserts to collide with.
 each of its `(position, rules set)` pairs is one no source importer can
 ever produce a row for, so there is no snapshot that could overwrite it, and
 curating early means the row already exists when a source importer needs to
-read it. `tools/import-tp`'s mercenary hires do exactly that (via
-`positionRulesSets.list`), which is what lets that tool hold no duplicate copy
-of the values. Whether an entry qualifies is a case-by-case judgment call every
+read it. The server-side TP roster import (`packages/import-tp-live`, used by
+both `tools/import-tp`'s bulk run and a live import) does exactly that for
+mercenary hires — reading the curated rows back via `packages/game-data`'s
+`PositionRulesSetsService` — which is what lets it hold no duplicate copy of
+the values. Whether an entry
+qualifies is a case-by-case judgment call every
 time, never a rule about the rules set: BBL can write BB2020-keyed rows too,
 given real usage evidence, so "it is a BB2020 entry" is not the test. Because
 nothing else in the before phase declares the positions these entries

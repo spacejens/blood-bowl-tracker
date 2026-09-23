@@ -3,8 +3,8 @@
 `packages/scrape-tp` is the one place this repo's code makes HTTP requests to
 TP. It sends plain-HTTP requests to TP's API that TP accepts as coming from a
 browser, and keeps each logical visit's requests paced and cookie-consistent.
-`tools/download-tp` uses it today; the discord-bot's on-demand TP import is
-meant to use it too.
+`tools/download-tp` uses it, and so does `packages/import-tp-live`, the live
+team import the discord-bot's on-demand TP import builds on.
 
 ## Why it exists
 

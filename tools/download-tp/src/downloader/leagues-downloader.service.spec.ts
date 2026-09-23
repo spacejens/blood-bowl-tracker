@@ -1,5 +1,6 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -86,6 +87,7 @@ describe('LeaguesDownloaderService', () => {
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual paths requested.
         TpApiPathsService,
+        TpRosterPathsService,
         { provide: DownloadTpConfigService, useValue: configService },
         { provide: TpFetcherService, useValue: tpFetcherService },
         { provide: ApiResponseStoringService, useValue: storingService },

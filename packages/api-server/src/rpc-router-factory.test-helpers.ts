@@ -27,6 +27,7 @@ import {
   TrophiesService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
+import { TpRosterImportService } from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
 import { mock } from 'vitest-mock-extended';
 
@@ -72,6 +73,7 @@ export async function createRouterHarness() {
     sppAwardValuesService: mock<SppAwardValuesService>(),
     playerLastingInjuryBackfillService:
       mock<PlayerLastingInjuryBackfillService>(),
+    tpRosterImportService: mock<TpRosterImportService>(),
   };
 
   const moduleRef = await Test.createTestingModule({
@@ -133,6 +135,10 @@ export async function createRouterHarness() {
       {
         provide: PlayerLastingInjuryBackfillService,
         useValue: mocks.playerLastingInjuryBackfillService,
+      },
+      {
+        provide: TpRosterImportService,
+        useValue: mocks.tpRosterImportService,
       },
       UpsertHandlerService,
     ],

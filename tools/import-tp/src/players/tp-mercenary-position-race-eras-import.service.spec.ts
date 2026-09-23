@@ -1,3 +1,4 @@
+import type { TpMercenaryPositionUsage as MercenaryPositionUsage } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -19,7 +20,6 @@ import {
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
-import type { MercenaryPositionUsage } from './tp-players-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
 const TP_SYSTEM_ID = 1;

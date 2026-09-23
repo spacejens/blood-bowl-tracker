@@ -4,7 +4,13 @@ import type {
   UpsertRulesSet,
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
-import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eq,
+  eraRulesSets,
+  rulesSetExternalIds,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
@@ -73,5 +79,21 @@ export class RulesSetsService {
 
   countAll(): Promise<number> {
     return countRows(this.db, rulesSets);
+  }
+
+  /**
+   * The rules sets an era declares, oldest first (by id, the same order
+   * `ErasService.getRulesSetNames` uses). Several are legitimate — an era can
+   * span rules sets in sequence — so a caller needing exactly one decides
+   * what several mean for it.
+   */
+  async listByEra(eraId: number): Promise<RulesSet[]> {
+    const rows = await this.db
+      .select({ rulesSet: rulesSets })
+      .from(eraRulesSets)
+      .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
+      .where(eq(eraRulesSets.eraId, eraId))
+      .orderBy(rulesSets.id);
+    return rows.map((row) => row.rulesSet);
   }
 }

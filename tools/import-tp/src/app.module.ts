@@ -14,10 +14,10 @@ import { MatchesModule } from './matches/matches.module';
 import { PlayersModule } from './players/players.module';
 import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
+import { RostersModule } from './rosters/rosters.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
 import { TeamParticipationModule } from './team-participation/team-participation.module';
-import { TeamsModule } from './teams/teams.module';
 import { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 
 @Module({})
@@ -43,7 +43,7 @@ export class AppModule {
         MatchesModule,
         CoachesModule,
         RacesModule,
-        TeamsModule,
+        RostersModule,
         TeamParticipationModule,
         PositionsModule,
         KeywordsModule,

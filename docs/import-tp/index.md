@@ -116,6 +116,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 
 ## Architecture
 
+Teams and players are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, which `packages/import-tp-live` implements (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster for that upsert; it does parse rosters for team participation and for the skills and career SPP counts later steps need.
+
 - **ImportTpConfigService** — loads `import-tp-config.json5` (JSON5), exposing
   raw top-level values via `get<T>(key)` and the api-server base URL via
   `getApiBaseUrl()`. A missing file is treated as empty so each getter throws
@@ -181,10 +183,17 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   race id -> display name), consumed by the positions import to build a Name
   external id; downstream consumers otherwise resolve a race server-side by
   its `teamRaceCode`.
-- **TpTeamsImportService** — upserts each team (keyed by roster id + name),
-  resolving race via `raceIdsByCode` and coach via `coachIdsByTpId`;
-  skips any team whose race or coach cannot be resolved. Teams are grouped by
-  id so one seen under multiple eras unions its eras.
+- **TpRosterFilesImportService** — calls `tpRosters.import` once per
+  distinct (era, roster id), since a roster file appears under every
+  competition its team played in. Each call sends the file's raw content,
+  its era (from the directory it was found in), the configured external
+  system name, and the roster's match-snapshot-only players. The server
+  upserts the team (keyed by roster id + name, race and coach resolved by
+  TP external id, skipped with an error when either is missing) and its
+  players. A team seen under several eras is sent once per era; the
+  server's era sync only ever adds, so its eras accumulate. Returns
+  `teamErasByRosterId`, `playerIdsByLineUpId`, `insertedPlayerIds` and
+  `mercenaryPositionUsages` for the later steps.
 - **TpPositionsImportService** — upserts each position from TP's official
   team list (read via `OfficialTeamsCollectionService`, not from played
   rosters), grouped by `(raceId, name)` — one unified path for regular and
@@ -226,34 +235,31 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   would have its whole position's batch rejected by server-side validation —
   not an issue today, since every rules set TP currently covers (BB2020,
   DB2021, BB2025) has Passing. Runs right after positions import.
-- **TpPlayersImportService** — imports every roster player instance from
-  `lineUps[]`: each resolves a team era (roster id + era, via
-  `teamErasByRosterId`) and a position (`lineUpMasterId`, via
-  `positionIdsByExternalId`); if that fails but the player is a mercenary
-  Big Guy (`isBigGuy: true`, e.g. "Giant" — no catalog entry in either
-  `rosterMaster` array at all), it falls back to a reused `isStarPlayer: true`
-  Position keyed by the player's own inline `fallbackPositionName`, the same
-  treatment a star player gets. A player whose team era or position (even via
-  that fallback) can't be resolved is recorded as an error and skipped.
-  Because TP supplies no characteristics for a mercenary anywhere — the name
-  is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire
-  carries no `ma/st/ag/pa/av` — each hire's characteristics come from the
-  curated `position_rules_sets` row `tools/import-manual` writes in its
-  before-other-importers phase
+- **Player import (server-side, `TpRosterPlayersImportService` in `packages/import-tp-live`)** —
+  imports every roster player instance from `lineUps[]`, in the same `tpRosters.import` call that
+  upserts the team (`teamErasByRosterId` above is this call's own return value, not an input to
+  it): each player's team era is the `teamEraId` that call's own team upsert just returned, and
+  its position comes from `TpPlayerPositionService.resolveCatalogPositions` (one batched
+  `positions.resolveBatch` call per roster, over every distinct `lineUpMasterId` on it); if that
+  fails but the player is a mercenary Big Guy (`isBigGuy: true`, e.g. "Giant" — no catalog entry
+  in either `rosterMaster` array at all), it falls back to a reused `isStarPlayer: true` Position
+  keyed by the player's own inline `fallbackPositionName`, the same treatment a star player gets.
+  A player whose team era or position (even via that fallback) can't be resolved is recorded as
+  an error and skipped. Because TP supplies no characteristics for a mercenary anywhere — the
+  name is in no roster catalog, and the match-embedded `lineUps[]` entry for a hire carries no
+  `ma/st/ag/pa/av` — each hire's characteristics come from the curated `position_rules_sets` row
+  `tools/import-manual` writes in its before-other-importers phase
   (`data/before-other-importers/position-characteristics-gap-fill.json5`).
-  `TpMercenaryCharacteristicsService` reads that row over the
-  `positionRulesSets.list` procedure, once per distinct mercenary name per
-  import run, and caches it by rules set id for the run's hires. The tool
-  keeps no copy of the values itself: two copies of the same numbers could
-  drift, and reading the real row removes that risk. The per-hire fallback
-  runs only when the hire embedded no characteristics of its own, so a future
-  TP payload that does supply them still wins. A mercenary position with no
-  curated row at all, or a hire under a rules set no row covers, is recorded
-  as an `ImportError` rather than silently leaving the characteristics unset.
-  Players carry only a TP external id (no Name external id — player names
-  aren't unique). Returns
-  `playerIdsByLineUpId`, consumed by match-event import to resolve a
-  `matchEvents[].lineUpId`. Also consumes `matchEmbeddedPlayersByRosterId`
+  `TpMercenaryCharacteristicsService` reads that row from the database, once per distinct
+  mercenary name per roster import, and caches it by rules set id for the run's hires. It keeps
+  no copy of the values itself: two copies of the same numbers could drift, and reading the real
+  row removes that risk. The per-hire fallback runs only when the hire embedded no
+  characteristics of its own, so a future TP payload that does supply them still wins. A
+  mercenary position with no curated row at all, or a hire under a rules set no row covers, is
+  recorded as an `ImportError` rather than silently leaving the characteristics unset. Players
+  carry only a TP external id (no Name external id — player names aren't unique). Returns
+  `playerIdsByLineUpId`, consumed by match-event import to resolve a `matchEvents[].lineUpId`.
+  Also consumes `matchEmbeddedPlayersByRosterId`
   from `main.ts`'s pre-scan of `matchesByCompetitionId` (each match's
   `homeRosterPlayers`/`awayRosterPlayers` — a per-match roster snapshot
   parsed by `MatchParserService`, grouped by roster id): for each roster it
@@ -262,18 +268,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   (absent from the standalone `rosters_<id>.json` file) is still imported,
   with `roster.players`' own data winning on conflict for a given id — see
   [file-format-rosters.md](./file-format-rosters.md)
-  for why. Also imports every star player hired via an `inducements_roll`
-  match event (gathered by `main.ts` from the already-parsed match events,
-  not from any roster field), each getting a reused `isStarPlayer: true`
-  Position and a Player scoped to the hiring roster's team-era; returns
-  `starPlayerIdsByRosterAndMaster`, keyed
-  `` `${rosterId}:${lineUpMasterId}` `` (currently unconsumed downstream — no
-  match-event type references a player by `lineUpMasterId` yet). Star
-  position race/era availability is not derived from any of this: TP's
-  official team list already states directly which race may field which star
-  under which rules set, so `TpPositionsImportService`'s `syncRaceEras` calls
-  (above) cover star positions the same way they cover regular ones — this
-  step needs no equivalent bookkeeping of its own.
+  for why.
 
   A roster player's current lasting injuries come from three places.
   `nigglingInjuries` and `canPlayNextGame` are stated directly in the
@@ -286,8 +281,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   "worse" depends on the rules set's declared format for that specific
   characteristic — under a target-number format Agility and Passing are targets
   the player rolls, so a lower number is better, while Armour is a target the
-  opponent rolls, so a higher number is better — which is why the rules-sets
-  step's own upsert responses are threaded through to the players step. One
+  opponent rolls, so a higher number is better — which is why the import
+  reads the era's rules set, with its formats, from the database. One
   player can legitimately show an advancement on one characteristic and an
   injury on another at the same time.
 
@@ -304,6 +299,22 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   Characteristic-increase counts are derived the same way BBL's are: diffing
   converted characteristics against the position's stored values under the
   era's rules set, adding back outstanding reductions.
+- **TpInducedStarPlayersStepService** — imports every star player hired via
+  an `inducements_roll` match event (gathered by `main.ts` from the
+  already-parsed match events): each gets a reused `isStarPlayer: true`
+  Position and a Player scoped to the hiring roster's team-era, with the
+  star position's template characteristics for the hiring era's rules set.
+  Returns `starPlayerIdsByRosterAndMaster`, keyed
+  `` `${rosterId}:${lineUpMasterId}` `` (currently unconsumed downstream — no
+  match-event type references a player by `lineUpMasterId` yet). Star
+  position race/era availability is not derived from any of this: TP's
+  official team list already states directly which race may field which star
+  under which rules set, so `TpPositionsImportService`'s `syncRaceEras` calls
+  (above) cover star positions the same way they cover regular ones — this
+  step needs no equivalent bookkeeping of its own.
+- **TpRosterPlayerFactsService** — reads each imported roster player's
+  skills and career SPP counts off the parsed roster files, keyed by DB
+  player id, for the player-skills sync and SPP adjustments.
 - **TpMercenaryPositionRaceErasImportService** — writes `positions_race_eras`
   for mercenary Big Guy positions, which no official-list catalog carries, so
   their race/era availability is the one kind still derived from observed
@@ -405,20 +416,27 @@ version pair on every import. Correctness is guaranteed from the next full
 database drop and re-import onward; no attempt is made to retroactively repair
 a database carrying lasting-injury columns from a partial rollout.
 
-`main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras, then competitions, then matches (fed the competitions step's
-`matchesByCompetitionId`), then coaches, then races, then teams, then
-positions, then players (including hired star players), then team
-participation, then trophy awards, then match events, and finally match
-outcomes — aggregating each step's `ImportResult` into one overall result,
-mirroring `tools/import-bbl/src/main.ts`.
-Races, teams, and positions run after coaches; they have no FK dependency on the
-earlier import steps (only on each other, in that order). Players run after
-positions and teams (each player resolves a team era and a position). Team
-participation runs after that because it needs the teams step's resolved
-team-era ids and the competitions step's maps. Trophy awards run after team
-participation, resolving each award's competition, curated group, and
-winning team's team era. Match events run after that because they depend on
+`main.ts` orchestrates these in dependency order — league, then rule sets, then eras, then
+competitions, then matches (fed the competitions step's `matchesByCompetitionId`), then coaches,
+then the roster files and TP's official team list, each scanned and parsed once client-side for
+the bulk tool's own local steps below (the roster import call re-sends each file's raw content,
+which `TpRosterImportService.importRawRoster` parses a second time, server-side), then
+races, then positions, then position characteristics, then the keyword catalog and position
+keywords, then starting skills, then roster import — teams and players together, one
+`tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent
+once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)) —
+then induced star hires, then roster player facts (skills and career SPP counts), then player
+skills sync, then mercenary position/race/era sync, then team participation, then trophy awards,
+then match events, then SPP adjustments, then the lasting-injury backfill, then match outcomes,
+and finally missing trophy awards — aggregating each step's `ImportResult` into one overall
+result, mirroring `tools/import-bbl/src/main.ts`.
+Races and positions run after coaches; they have no FK dependency on the earlier import steps
+(only on each other, in that order). Roster import runs after positions and skills (each player
+resolves a team era and a position, needing the starting-skills catalog already loaded). Team
+participation runs after that because it needs the roster import's resolved team-era ids and the
+competitions step's maps. Trophy awards run after team participation, resolving each award's
+competition, curated group, and winning team's team era. Match events run after that because they
+depend on
 `match_teams`, which team participation is what populates. Match outcomes
 run last of all because they count scores from the touchdown events match
 events just imported.
@@ -473,6 +491,7 @@ position's other keywords are still written. The same catalogue also decodes a
 
 ## Related documentation
 
+- [import-tp-live](../import-tp-live/index.md) — the server-side team/player import behind `tpRosters.import`, and the live team import.
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
 - [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.

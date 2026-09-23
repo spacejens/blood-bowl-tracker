@@ -432,6 +432,8 @@ Run this section only if "Run the TP import against production" was selected in 
 2. Report the outcome. Per `tools/import-tp/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
 3. The same production failure interpretations, no-rollback caveat, and continue-on-failure behaviour as the manual "before" section apply here.
 
+Unlike the BBL and manual imports, a team and its players are not imported by this local tool build at all: `tools/import-tp` only sends each roster file's raw content over the `tpRosters.import` RPC procedure, which `packages/import-tp-live` implements and which runs inside whatever `api-server` image is currently deployed to production — so a local-only change to team/player import logic has no effect on a production TP import until it is merged and deployed (see [docs/import-tp-live/index.md](../../../docs/import-tp-live/index.md)).
+
 ### Run the manual import (after other importers) against production
 
 Run this section only if "Run the manual import (after other importers) against production" was selected in step 0 (or chained from the database reset). Runs last of the four imports, after every other selected import — its whole purpose is to clean up names and attach external IDs once the system-specific importers have run. Runs standalone if it is the only import picked.

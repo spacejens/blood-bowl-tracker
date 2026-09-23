@@ -125,8 +125,18 @@ describe('RosterCollectionService', () => {
 
       expect(errors).toHaveLength(0);
       expect(rosters).toEqual([
-        { roster: ORC_ROSTER, era: 'Fourth era', competition: 'comp-a' },
-        { roster: DWARF_ROSTER, era: 'Fifth era', competition: 'comp-b' },
+        {
+          roster: ORC_ROSTER,
+          era: 'Fourth era',
+          competition: 'comp-a',
+          content: { rosterFile: 1 },
+        },
+        {
+          roster: DWARF_ROSTER,
+          era: 'Fifth era',
+          competition: 'comp-b',
+          content: { rosterFile: 2 },
+        },
       ]);
       expect(rosterParser.parse).toHaveBeenNthCalledWith(1, { rosterFile: 1 });
       expect(rosterParser.parse).toHaveBeenNthCalledWith(2, { rosterFile: 2 });
@@ -177,7 +187,12 @@ describe('RosterCollectionService', () => {
       const rosters = await service.collect(errors);
 
       expect(rosters).toEqual([
-        { roster: ORC_ROSTER, era: 'Fourth era', competition: 'comp' },
+        {
+          roster: ORC_ROSTER,
+          era: 'Fourth era',
+          competition: 'comp',
+          content: { rosterFile: 1 },
+        },
       ]);
       expect(errors.some((e) => e.message.includes('rosters_bad.json'))).toBe(
         true,
@@ -231,25 +246,6 @@ describe('RosterCollectionService', () => {
       expect(rosters).toHaveLength(0);
       expect(errors).toHaveLength(1);
       expect(errors[0].message).toContain('a string error');
-    });
-  });
-
-  describe('unknownEraError', () => {
-    it('builds an ImportError naming the era and roster id', () => {
-      const error = service.unknownEraError('Ghost era', {
-        id: 42,
-        teamName: 'T',
-        teamRaceCode: 'Orc',
-        raceName: 'Orc',
-        coachTpId: 'coach-1',
-        positions: [],
-        starPositions: [],
-        players: [],
-      });
-
-      expect(error.item).toEqual({ era: 'Ghost era', roster: 42 });
-      expect(error.message).toContain('Ghost era');
-      expect(error.message).toContain('42');
     });
   });
 });

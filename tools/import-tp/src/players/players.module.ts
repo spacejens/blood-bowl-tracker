@@ -6,13 +6,11 @@ import { EraRulesSetModule } from '../eras/era-rules-set.module';
 import { SkillsModule } from '../skills/skills.module';
 import { SourceModule } from '../source/source.module';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
+import { TpInducedStarPlayersStepService } from './tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './tp-lasting-injury-backfill-import.service';
-import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
-import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';
 import { TpPlayerSkillsImportService } from './tp-player-skills-import.service';
-import { TpPlayersImportService } from './tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.service';
 
 @Module({
@@ -24,22 +22,20 @@ import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.servi
     SkillsModule,
   ],
   providers: [
-    TpPlayersImportService,
-    TpInducedStarPlayersImportService,
     TpSppAdjustmentsImportService,
-    TpPlayerCharacteristicsBuilderService,
-    TpMercenaryCharacteristicsService,
     TpMercenaryPositionRaceErasImportService,
-    TpLastingInjuryBuilderService,
     TpLastingInjuryBackfillImportService,
     TpPlayerSkillsImportService,
+    TpInducedStarPlayersImportService,
+    TpInducedStarPlayersStepService,
+    TpPlayerCharacteristicsBuilderService,
   ],
   exports: [
-    TpPlayersImportService,
     TpSppAdjustmentsImportService,
     TpMercenaryPositionRaceErasImportService,
     TpLastingInjuryBackfillImportService,
     TpPlayerSkillsImportService,
+    TpInducedStarPlayersStepService,
   ],
 })
 export class PlayersModule {}

@@ -14,12 +14,14 @@ import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
+import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
+import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 import { TpSourceReader } from './source/tp-source-reader';
-import { TpTeamsImportService } from './teams/tp-teams-import.service';
 import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 describe('AppModule', () => {
@@ -104,8 +106,14 @@ describe('AppModule', () => {
     expect(moduleRef.get(TpRacesImportService)).toBeInstanceOf(
       TpRacesImportService,
     );
-    expect(moduleRef.get(TpTeamsImportService)).toBeInstanceOf(
-      TpTeamsImportService,
+    expect(moduleRef.get(TpRosterFilesImportService)).toBeInstanceOf(
+      TpRosterFilesImportService,
+    );
+    expect(moduleRef.get(TpRosterPlayerFactsService)).toBeInstanceOf(
+      TpRosterPlayerFactsService,
+    );
+    expect(moduleRef.get(TpInducedStarPlayersStepService)).toBeInstanceOf(
+      TpInducedStarPlayersStepService,
     );
     expect(moduleRef.get(TpPositionsImportService)).toBeInstanceOf(
       TpPositionsImportService,

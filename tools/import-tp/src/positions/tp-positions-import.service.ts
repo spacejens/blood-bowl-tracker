@@ -360,7 +360,7 @@ export class TpPositionsImportService {
 
   /**
    * A group's external ids: one TP id per official-list position id (what
-   * keeps a roster-embedded player resolvable, since TpPlayersImportService
+   * keeps a roster-embedded player resolvable, since TpPlayerPositionService
    * looks a position up by `String(lineUpMasterId)`), plus a Name id --
    * bare for a star, race-scoped for a regular position. A race whose name is
    * missing from `raceNamesById` records one error and contributes no Name id
