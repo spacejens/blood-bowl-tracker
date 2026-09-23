@@ -50,7 +50,12 @@ interface MakeServiceOptions {
  * packages/parse-tp/src/tournament-parser.service.spec.ts; this spec only
  * needs parse() to succeed or fail on demand.
  */
-const CANNED_TOURNAMENT: TpTournament = { id: 1, name: 'T', ruleSet: 20 };
+const CANNED_TOURNAMENT: TpTournament = {
+  id: 1,
+  name: 'T',
+  ruleSet: 20,
+  phases: [],
+};
 
 /**
  * The canned TpMatch the mocked MatchParserService.parse returns. The real
@@ -215,7 +220,7 @@ function tournamentFile(
   competition: string,
   tournament: { id: number; name: string; ruleSet?: number },
 ): { file: TpSourceFile; tournament: TpTournament } {
-  const parsed: TpTournament = { ruleSet: 20, ...tournament };
+  const parsed: TpTournament = { ruleSet: 20, phases: [], ...tournament };
   return {
     file: {
       era,
