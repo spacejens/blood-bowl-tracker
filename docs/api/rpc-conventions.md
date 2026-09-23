@@ -179,7 +179,7 @@ shaped this way instead of as an upsert, and its exact result shape.
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
-nothing, and declares no contract errors. There are currently six.
+nothing, and declares no contract errors. Current examples:
 `competitionGroups.list`: `tools/import-tp` already holds a competition's
 `competitionGroupId` from its own competition upsert's response, but needs that
 group's curated _name_ to build a trophy's TP external id — and `upsert` cannot
