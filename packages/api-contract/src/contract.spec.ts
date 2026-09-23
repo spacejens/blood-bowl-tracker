@@ -391,4 +391,24 @@ describe('resolve procedures', () => {
     expect(namespace.resolve).toBeUndefined();
     expect(namespace.resolveBatch).toBeUndefined();
   });
+
+  it('exposes tpRosters.import declaring no errors', () => {
+    expect(contract.tpRosters.import).toBeDefined();
+    expect(errorCodesOf(contract.tpRosters.import)).toEqual([]);
+  });
+
+  it('tpRosters.import takes raw roster JSON plus its era and external system', () => {
+    const inputSchema = contract.tpRosters.import['~orpc']
+      .inputSchema as z.ZodType;
+    expect(
+      inputSchema.safeParse({
+        roster: { id: 1 },
+        era: 'Fourth era',
+        externalSystemName: 'TP',
+      }).success,
+    ).toBe(true);
+    expect(
+      inputSchema.safeParse({ roster: {}, era: 'Fourth era' }).success,
+    ).toBe(false);
+  });
 });

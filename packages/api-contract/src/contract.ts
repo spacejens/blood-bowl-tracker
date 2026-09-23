@@ -92,6 +92,10 @@ import {
 } from './schemas/spp-award-value';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
 import {
+  ImportTpRosterSchema,
+  TpRosterImportResultSchema,
+} from './schemas/tp-roster';
+import {
   ResolveTrophyByNameSchema,
   TrophySchema,
   UpsertTrophySchema,
@@ -442,5 +446,13 @@ export const contract = {
       UpsertExternalSystemSchema,
       ExternalSystemSchema,
     ),
+  },
+  tpRosters: {
+    // A coarse, TP-specific import rather than an entity upsert: the server
+    // parses one raw TP roster and upserts its team and players in-process,
+    // so a client never orchestrates the individual upserts itself. Each
+    // failure comes back in the result's ImportResults, so it declares no
+    // errors. Safe to retry: everything it writes is an upsert.
+    import: oc.input(ImportTpRosterSchema).output(TpRosterImportResultSchema),
   },
 };

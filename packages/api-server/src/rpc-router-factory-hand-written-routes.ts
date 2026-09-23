@@ -16,6 +16,7 @@ import {
   SppAwardValuesService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
+import { TpRosterImportService } from '@blood-bowl-tracker/import-tp-live';
 import { implement } from '@orpc/server';
 
 import type { UpsertHandlerService } from './upsert-handler.service';
@@ -319,6 +320,22 @@ export function buildPlayerSkillsRoutes(
     ),
     list: implement(contract.playerSkills.list).handler(({ input }) =>
       playerSkillsService.listByPlayer(input.playerId, input.rulesSetId),
+    ),
+  };
+}
+
+// tpRosters.import: a coarse TP import, not an upsert of one entity. Every
+// failure is reported in the result's ImportResults, so it declares no
+// contract error and is not routed through the upsert handler.
+export function buildTpRostersRoutes(tpRosterImport: TpRosterImportService) {
+  return {
+    import: implement(contract.tpRosters.import).handler(({ input }) =>
+      tpRosterImport.importRawRoster({
+        content: input.roster,
+        era: input.era,
+        externalSystemName: input.externalSystemName,
+        matchEmbeddedPlayers: input.matchEmbeddedPlayers,
+      }),
     ),
   };
 }
