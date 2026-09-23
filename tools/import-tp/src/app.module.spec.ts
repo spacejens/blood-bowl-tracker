@@ -2,12 +2,6 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import {
-  TP_ERA_RULES_SETS_PROVIDER,
-  TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
-  TpPlayersImportService,
-  TpTeamsImportService,
-} from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -16,16 +10,17 @@ import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
-import { EraDataConfigService } from './eras/era-data-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
+import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
+import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
-import { ExternalSystemNameConfigService } from './source/external-system-name-config.service';
 import { TpSourceReader } from './source/tp-source-reader';
 import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
@@ -111,8 +106,14 @@ describe('AppModule', () => {
     expect(moduleRef.get(TpRacesImportService)).toBeInstanceOf(
       TpRacesImportService,
     );
-    expect(moduleRef.get(TpTeamsImportService)).toBeInstanceOf(
-      TpTeamsImportService,
+    expect(moduleRef.get(TpRosterFilesImportService)).toBeInstanceOf(
+      TpRosterFilesImportService,
+    );
+    expect(moduleRef.get(TpRosterPlayerFactsService)).toBeInstanceOf(
+      TpRosterPlayerFactsService,
+    );
+    expect(moduleRef.get(TpInducedStarPlayersStepService)).toBeInstanceOf(
+      TpInducedStarPlayersStepService,
     );
     expect(moduleRef.get(TpPositionsImportService)).toBeInstanceOf(
       TpPositionsImportService,
@@ -145,32 +146,6 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpPositionKeywordsImportService)).toBeInstanceOf(
       TpPositionKeywordsImportService,
-    );
-  });
-
-  it("wires packages/import-tp-live's tokens to this tool's config", async () => {
-    const configPath = join(dir, 'import-tp-config.json5');
-    writeFileSync(
-      configPath,
-      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
-      'utf8',
-    );
-
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule.register()],
-    })
-      .overrideProvider(IMPORT_TP_CONFIG_PATH)
-      .useValue(configPath)
-      .compile();
-
-    expect(moduleRef.get(TP_EXTERNAL_SYSTEM_NAME_PROVIDER)).toBe(
-      moduleRef.get(ExternalSystemNameConfigService),
-    );
-    expect(moduleRef.get(TP_ERA_RULES_SETS_PROVIDER)).toBe(
-      moduleRef.get(EraDataConfigService),
-    );
-    expect(moduleRef.get(TpPlayersImportService)).toBeInstanceOf(
-      TpPlayersImportService,
     );
   });
 });

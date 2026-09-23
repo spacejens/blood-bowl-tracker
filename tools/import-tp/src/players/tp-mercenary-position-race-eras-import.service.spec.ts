@@ -1,3 +1,4 @@
+import type { TpMercenaryPositionUsage as MercenaryPositionUsage } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -5,7 +6,6 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
-import type { MercenaryPositionUsage } from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';

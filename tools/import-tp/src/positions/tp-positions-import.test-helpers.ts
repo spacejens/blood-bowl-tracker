@@ -11,7 +11,6 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
-import { TpEraRulesSetResolverService } from '@blood-bowl-tracker/import-tp-live';
 import type {
   TpOfficialPosition,
   TpPositionCharacteristics,
@@ -23,6 +22,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
+import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import {
   asProviderMethod,
   mockImportResultService,
@@ -73,7 +73,7 @@ export interface MakeServiceOptions {
    * set DB id. An era absent from it models the resolver having skipped it
    * (zero or several declared rules sets, or an unresolvable name) -- that
    * resolution logic has its own spec at
-   * packages/import-tp-live/src/roster-import/eras/tp-era-rules-set-resolver.service.spec.ts.
+   * ../eras/tp-era-rules-set-resolver.service.spec.ts.
    */
   rulesSetIdByEraName?: Map<string, number>;
 }

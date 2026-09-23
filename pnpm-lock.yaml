@@ -1253,9 +1253,6 @@ importers:
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import
-      '@blood-bowl-tracker/import-tp-live':
-        specifier: workspace:*
-        version: link:../../packages/import-tp-live
       '@blood-bowl-tracker/parse-tp':
         specifier: workspace:*
         version: link:../../packages/parse-tp

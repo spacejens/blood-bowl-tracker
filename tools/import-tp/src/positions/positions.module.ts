@@ -1,9 +1,9 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
-import { TpRosterImportModule } from '@blood-bowl-tracker/import-tp-live';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
 import { EraDataConfigModule } from '../eras/era-data-config.module';
+import { EraRulesSetModule } from '../eras/era-rules-set.module';
 import { SkillsModule } from '../skills/skills.module';
 import { SourceModule } from '../source/source.module';
 import { TpPositionCharacteristicsImportService } from './tp-position-characteristics-import.service';
@@ -15,7 +15,7 @@ import { TpPositionsImportService } from './tp-positions-import.service';
     ImportModule,
     SourceModule,
     EraDataConfigModule,
-    TpRosterImportModule,
+    EraRulesSetModule,
     ParseTpModule,
     SkillsModule,
   ],
