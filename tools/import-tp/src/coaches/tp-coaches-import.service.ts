@@ -45,8 +45,8 @@ export class TpCoachesImportService {
    * still imported. Idempotent.
    *
    * Each coach's DB id is not returned here — downstream consumers (e.g.
-   * TpTeamsImportService) resolve a coach server-side, by its TP `id` as the
-   * external id, via ReferenceLookupService.
+   * `TpTeamUpsertService`, part of the server-side roster import) resolve a
+   * coach by its TP `id` as the external id.
    */
   async importCoaches(): Promise<{
     result: ImportResult;

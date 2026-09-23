@@ -44,9 +44,8 @@ describe('TpApiPathsService', () => {
     );
   });
 
-  it('builds the match, roster and official team list paths', () => {
+  it('builds the match and official team list paths', () => {
     expect(paths.match(576264)).toBe('match/576264');
-    expect(paths.roster(163386)).toBe('rosters/163386');
     expect(paths.officialTeams(25)).toBe('rosters/masters?ruleSet=25');
   });
 });

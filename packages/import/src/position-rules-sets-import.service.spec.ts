@@ -84,42 +84,4 @@ describe('PositionRulesSetsImportService', () => {
       },
     ]);
   });
-
-  describe('listPositionRulesSets', () => {
-    const rows = [
-      {
-        rulesSetId: 900,
-        move: 6,
-        strength: 7,
-        agility: 5,
-        passing: 5,
-        armour: 11,
-      },
-    ];
-
-    it("returns the position's stat lines on success", async () => {
-      client.positionRulesSets.list.mockResolvedValue(rows);
-      const errors: ImportError[] = [];
-
-      const result = await service.listPositionRulesSets(42, errors);
-
-      expect(client.positionRulesSets.list).toHaveBeenCalledWith({
-        positionId: 42,
-      });
-      expect(result).toEqual(rows);
-      expect(errors).toEqual([]);
-    });
-
-    it('records an error and returns undefined when the read fails', async () => {
-      client.positionRulesSets.list.mockRejectedValue(new Error('boom'));
-      const errors: ImportError[] = [];
-
-      const result = await service.listPositionRulesSets(42, errors);
-
-      expect(result).toBeUndefined();
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('42');
-      expect(errors[0].message).toContain('boom');
-    });
-  });
 });

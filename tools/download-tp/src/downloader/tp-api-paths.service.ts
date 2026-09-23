@@ -6,7 +6,9 @@ import { Injectable } from '@nestjs/common';
  * included — TP's own frontend requests for the matching page, as captured
  * from a real browser session, so the files written under these names are the
  * same ones a browser-based capture recorded. If TP's frontend changes which
- * endpoints a page calls, this is the one place to update.
+ * endpoints a page calls, this is the one place to update — except roster paths,
+ * which live in packages/tp-paths's TpRosterPathsService, shared with the
+ * live team import.
  *
  * `slug` is a tournament's name as it appears in the frontend path.
  */
@@ -62,10 +64,6 @@ export class TpApiPathsService {
   /** One category's participants, keyed by category id in the response. */
   inscriptions(slug: string, categoryId: number): string {
     return `inscriptions/${slug}/category/${categoryId}/inscriptions?page=0&pageSize=75`;
-  }
-
-  roster(rosterId: number | string): string {
-    return `rosters/${rosterId}`;
   }
 
   awards(slug: string): string {

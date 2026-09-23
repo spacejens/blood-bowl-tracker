@@ -15,6 +15,7 @@ import {
   eras,
   ilike,
   inArray,
+  isNull,
   matches,
   matchTeams,
   max,
@@ -105,6 +106,22 @@ export class RacesService {
       .from(raceEras)
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
       .where(eq(raceEras.raceId, raceId))
+      .orderBy(eras.startDate, eras.name);
+  }
+
+  /**
+   * The eras this race can be played in that are still ongoing (no end
+   * date), oldest first. A race belongs to Dungeon Bowl or to normal play,
+   * never both, so more than one result means the race is genuinely
+   * ambiguous across two overlapping eras of the same kind — a caller
+   * needing exactly one decides what to do about that.
+   */
+  listOngoingEras(raceId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: eras.id, name: eras.name })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(and(eq(raceEras.raceId, raceId), isNull(eras.endDate)))
       .orderBy(eras.startDate, eras.name);
   }
 

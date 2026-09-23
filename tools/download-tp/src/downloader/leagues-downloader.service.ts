@@ -1,5 +1,6 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
@@ -41,6 +42,7 @@ export class LeaguesDownloaderService {
     private readonly tpFetcherService: TpFetcherService,
     private readonly apiResponseStoringService: ApiResponseStoringService,
     private readonly tpApiPathsService: TpApiPathsService,
+    private readonly tpRosterPathsService: TpRosterPathsService,
     private readonly fileSystemService: FileSystemService,
   ) {}
 
@@ -173,8 +175,8 @@ export class LeaguesDownloaderService {
         for (const inscription of inscriptions) {
           await this.fetch(
             crawl,
-            paths.roster(inscription.roster.id),
-            `${frontendUrl}roster/${inscription.roster.id}`,
+            this.tpRosterPathsService.apiPath(inscription.roster.id),
+            `${frontendUrl}${this.tpRosterPathsService.frontendPath(inscription.roster.id)}`,
           );
         }
       }

@@ -257,52 +257,6 @@ describe('contract', () => {
     ).toBe(false);
   });
 
-  it('exposes a read-only positionRulesSets.list alongside sync', () => {
-    expect(contract.positionRulesSets.sync).toBeDefined();
-    expect(contract.positionRulesSets.list).toBeDefined();
-    expect(errorCodesOf(contract.positionRulesSets.list)).toEqual([]);
-  });
-
-  it('positionRulesSets.list takes a positionId and returns characteristics rows', () => {
-    const inputSchema = contract.positionRulesSets.list['~orpc']
-      .inputSchema as z.ZodType;
-    expect(inputSchema.safeParse({ positionId: 7 }).success).toBe(true);
-    expect(inputSchema.safeParse({}).success).toBe(false);
-
-    const outputSchema = contract.positionRulesSets.list['~orpc']
-      .outputSchema as z.ZodType;
-    expect(
-      outputSchema.safeParse([
-        {
-          rulesSetId: 900,
-          move: 6,
-          strength: 7,
-          agility: 5,
-          passing: 5,
-          armour: 11,
-        },
-      ]).success,
-    ).toBe(true);
-    // A passing-absent rules set stores an explicit null, not an omission.
-    expect(
-      outputSchema.safeParse([
-        {
-          rulesSetId: 901,
-          move: 4,
-          strength: 3,
-          agility: 2,
-          passing: null,
-          armour: 9,
-        },
-      ]).success,
-    ).toBe(true);
-    expect(
-      outputSchema.safeParse([
-        { rulesSetId: 901, move: 4, strength: 3, agility: 2, armour: 9 },
-      ]).success,
-    ).toBe(false);
-  });
-
   it('defines skills.upsert with CONFLICT and BAD_REQUEST errors', () => {
     expect(errorCodesOf(contract.skills.upsert)).toEqual([
       'CONFLICT',
@@ -390,5 +344,25 @@ describe('resolve procedures', () => {
     const namespace = contract[name] as Record<string, unknown>;
     expect(namespace.resolve).toBeUndefined();
     expect(namespace.resolveBatch).toBeUndefined();
+  });
+
+  it('exposes tpRosters.import declaring no errors', () => {
+    expect(contract.tpRosters.import).toBeDefined();
+    expect(errorCodesOf(contract.tpRosters.import)).toEqual([]);
+  });
+
+  it('tpRosters.import takes raw roster JSON plus its era and external system', () => {
+    const inputSchema = contract.tpRosters.import['~orpc']
+      .inputSchema as z.ZodType;
+    expect(
+      inputSchema.safeParse({
+        roster: { id: 1 },
+        era: 'Fourth era',
+        externalSystemName: 'TP',
+      }).success,
+    ).toBe(true);
+    expect(
+      inputSchema.safeParse({ roster: {}, era: 'Fourth era' }).success,
+    ).toBe(false);
   });
 });

@@ -15,9 +15,9 @@ import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristi
 
 /**
  * One hired-star-player group: the roster that hired them, the real era the
- * hiring match's competition belongs to (so a roster id spanning multiple
- * eras, per `TpTeamsImportService`'s era-union grouping, resolves its team
- * era unambiguously instead of guessing), and the star players themselves.
+ * hiring match's competition belongs to (so a roster id imported under
+ * several eras resolves its team era unambiguously instead of guessing), and
+ * the star players themselves.
  */
 export interface InducedStarPlayerHireGroup {
   rosterId: number;
@@ -53,9 +53,9 @@ export interface ImportHiresOptions {
 
 /**
  * Imports star players hired mid-season via an `inducements_roll` match
- * event. Split out of `TpPlayersImportService` to keep that file (and its
- * spec) under the repo's line caps; the hire loop is a self-contained block
- * with its own inputs and its own output map.
+ * event. Kept in its own file (and spec), under the repo's line caps, since
+ * the hire loop is a self-contained block with its own inputs and its own
+ * output map; called by `TpInducedStarPlayersStepService`.
  */
 @Injectable()
 export class TpInducedStarPlayersImportService {

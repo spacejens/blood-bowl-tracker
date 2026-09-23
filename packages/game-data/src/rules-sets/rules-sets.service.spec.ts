@@ -5,7 +5,11 @@ import { mockDb } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import { firstCallArg } from '../shared/query-assertions.test-helpers';
+import {
+  extractAllFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import {
   RulesSetsService,
   RulesSetUpsertConflictError,
@@ -126,6 +130,34 @@ describe('RulesSetsService', () => {
       const { chains } = await build([{ count: 5 }]);
       await expect(service.countAll()).resolves.toBe(5);
       expect(chains[0].from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('listByEra', () => {
+    it("returns the era's rules sets", async () => {
+      const bb2020 = { ...fakeRulesSet, moveFormat: 'bare' as const };
+      await build([{ rulesSet: bb2020 }]);
+
+      await expect(service.listByEra(40)).resolves.toEqual([bb2020]);
+    });
+
+    it('returns an empty array for an era declaring no rules sets', async () => {
+      await build([]);
+
+      await expect(service.listByEra(40)).resolves.toEqual([]);
+    });
+
+    it("filters by the era's id and orders by rules set id", async () => {
+      const { chains } = await build([]);
+
+      await service.listByEra(40);
+
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        40,
+      ]);
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy))).toEqual([
+        'rules_sets.id',
+      ]);
     });
   });
 });

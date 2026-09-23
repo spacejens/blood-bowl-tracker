@@ -33,7 +33,7 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
  * skillMasterIds with no starting/gained split, no `isRandom` and no attribute
  * values, and importing that would record a knowingly incomplete picture --
  * such a player is simply absent from `skillsByPlayerId`, which
- * `TpPlayersImportService` builds.
+ * `TpRosterPlayerFactsService` builds.
  *
  * TP-local rather than shared because the id resolution is TP's own; the
  * shared piece is `PlayerSkillsImportService`, consumed unchanged and called

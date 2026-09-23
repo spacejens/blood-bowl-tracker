@@ -24,12 +24,13 @@
 // Giant Mercenary is the one entry that qualifies today. BBL never creates a
 // position candidate for it: a mercenary is not a scraped race-roster
 // position and is not BBL-flagged as a star player. TP creates the position
-// (TpPlayersImportService.resolveMercenaryPositionId, from a hire's inline
-// fallbackPositionName) but supplies no characteristics for it anywhere --
-// the name appears in no roster catalog, and the match-embedded lineUps[]
-// entry for an actual hire carries no ma/st/ag/pa/av either. So nothing can
-// overwrite the row below, and TP's players step reads it back over the API
-// (positionRulesSets.list) to give each hire real values.
+// (TpPlayerPositionService's mercenary-position resolution, from a hire's
+// inline fallbackPositionName) but supplies no characteristics for it
+// anywhere -- the name appears in no roster catalog, and the match-embedded
+// lineUps[] entry for an actual hire carries no ma/st/ag/pa/av either. So
+// nothing can overwrite the row below, and TpMercenaryCharacteristicsService
+// reads it back directly from position_rules_sets (via packages/game-data's
+// PositionRulesSetsService, not an RPC call) to give each hire real values.
 //
 // BB2025 has no Giant Mercenary published yet, so it has no entry here
 // either -- that absence is intentional, not a gap to fill.

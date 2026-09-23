@@ -16,7 +16,7 @@ export interface TpOfficialPosition {
   /**
    * TP's own numeric id for this position, when the official list carries
    * one. Registered as a TP external id by the importer, which is what keeps
-   * a roster-embedded player resolvable: `TpPlayersImportService` looks its
+   * a roster-embedded player resolvable: `TpPlayerPositionService` looks its
    * position up by `String(lineUpMasterId)`.
    */
   tpPositionId?: number;

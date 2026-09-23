@@ -34,38 +34,8 @@ export const SyncPositionRulesSetsResultSchema = z.object({
   positionRulesSetIds: z.array(z.number()),
 });
 
-/**
- * One stored stat line as the read procedure returns it: the rules set's id
- * plus the five characteristic columns, without the `positionId` the caller
- * already supplied as input. `passing` is nullable for the same reason it is
- * on the entry schema — a rules set whose `passingFormat` is 'absent' stores
- * an explicit null.
- */
-export const PositionRulesSetCharacteristicsSchema = z.object({
-  rulesSetId: z.number().int(),
-  move: z.number().int(),
-  strength: z.number().int(),
-  agility: z.number().int(),
-  passing: z.number().int().nullable(),
-  armour: z.number().int(),
-});
-
-/**
- * Input of the read procedure: one position at a time. A position has only a
- * handful of rows (one per rules set it has been recorded under), and the one
- * caller — tools/import-tp's mercenary step — already holds the position id
- * from its own `positions.upsert` response, so there is nothing to batch.
- */
-export const ListPositionRulesSetsSchema = z.object({
-  positionId: z.number().int(),
-});
-
 export type PositionRulesSetEntry = z.infer<typeof PositionRulesSetEntrySchema>;
 export type SyncPositionRulesSets = z.infer<typeof SyncPositionRulesSetsSchema>;
 export type SyncPositionRulesSetsResult = z.infer<
   typeof SyncPositionRulesSetsResultSchema
 >;
-export type PositionRulesSetCharacteristics = z.infer<
-  typeof PositionRulesSetCharacteristicsSchema
->;
-export type ListPositionRulesSets = z.infer<typeof ListPositionRulesSetsSchema>;

@@ -68,18 +68,18 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
 **Races and positions** are not imported from this file at all — see
 [file-format-official-teams.md](./file-format-official-teams.md) and
 [index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
-entries. `TpTeamsImportService` and `TpPlayersImportService` below still
-resolve a race or position id from a roster file's `teamRaceCode` /
+entries. The team and player import (server-side, via `tpRosters.import`)
+still resolves a race or position id from a roster file's `teamRaceCode` /
 `lineUpMasterId`, but they resolve server-side, by external id, against
 whatever those two services upserted from the official team list earlier in
 the same run.
 
-**Teams** (via `TpTeamsImportService`) are keyed by roster `id` and `teamName`
+**Teams** are keyed by roster `id` and `teamName`
 (one TP and one Name external id). Their race resolves server-side, by
 `teamRaceCode`, and their coach server-side, by `coachTpId`; a team whose race
 or coach cannot be resolved is recorded as an error and skipped.
 
-**Players** (via `TpPlayersImportService`) import every roster's `players`
+**Players** import every roster's `players`
 entry: each resolves a team era (roster id + era, via
 `teamErasByRosterId`) and a position server-side, by `lineUpMasterId`,
 against whatever `TpPositionsImportService` upserted from the official team
@@ -107,12 +107,16 @@ absent from the standalone roster file, even though historical
 `lineUpId` — without the match-embedded snapshot, that player's identity
 (and thus the event's player attribution) is lost. `main.ts` pre-scans every
 match's `homeRosterPlayers`/`awayRosterPlayers`, grouping them by roster id
-into `matchEmbeddedPlayersByRosterId`, and `TpPlayersImportService` merges
-each roster's match-embedded players with `roster.players`, keyed by player
-id — the standalone file's data wins on conflict for a given id (presumed
-freshest), so the match-embedded snapshot only fills in ids the standalone
-file doesn't list. The service also imports **hired star players** — named via an `inducements_roll`
-match event's `extraData.starPlayers[]` (see [`match_<id>.json`](./file-format-match.md)), not via any field on the roster file itself. Each hired star player
+into `matchEmbeddedPlayersByRosterId`, and each roster's match-snapshot
+players are sent with its `tpRosters.import` call, where
+`TpRosterPlayersImportService` merges them with `roster.players`, keyed by
+player id — the standalone file's data wins on conflict for a given id
+(presumed freshest), so the match-embedded snapshot only fills in ids the
+standalone file doesn't list. **Hired star players** — named via an
+`inducements_roll` match event's `extraData.starPlayers[]` (see
+[`match_<id>.json`](./file-format-match.md)), not via any field on the
+roster file itself — are imported separately, by `tools/import-tp`'s
+`TpInducedStarPlayersStepService`. Each hired star player
 gets one reused `isStarPlayer: true` Position (a bare-name TP external id)
 and a Player scoped to the hiring roster's team-era for the era the hiring
 match's competition belongs to. Returns `starPlayerIdsByRosterAndMaster`
@@ -128,8 +132,8 @@ official team list's `lineUpMasters`/`starplayerMasters` share one id space
 `TpPositionsImportService` registers a TP external id per `tpPositionId` for
 both regular and star positions alike, so a `lineUps[]` entry here whose
 `lineUpMasterId` points at either kind still resolves correctly against that
-one server-side lookup — no special-casing needed in `TpPlayersImportService`
-or match-event resolution.
+one server-side lookup — no special-casing needed in
+`TpRosterPlayersImportService` (server-side) or match-event resolution.
 
 **Mercenary Big Guys** (e.g. "Giant"): a small class of `lineUps[]` entries
 whose `lineUpMasterId` isn't present in EITHER `lineUpMasters` or
@@ -140,13 +144,13 @@ regular or star position, every `lineUps[]` entry (standalone AND
 match-embedded) carries its own position name and Big Guy flag directly
 inline (`position: "Giant Mercenary"`, `isBigGuy: true`), regardless of
 whether it also resolves via a catalog. `TpRosterPlayer.fallbackPositionName`
-carries this inline name; `TpPlayersImportService` uses it (gated on
+carries this inline name; `TpRosterPlayersImportService` (server-side) uses it (gated on
 `isBigGuy`, so a genuine regular-position catalog gap is never masked) as
 described above.
 These entries also never carry `ma/st/ag/pa/av`, in either the standalone
 roster file or the match-embedded snapshot, so a mercenary's characteristics
 cannot come from TP at all — the importer takes them from a curated table
-instead (see [index.md](./index.md)'s `TpPlayersImportService` entry).
+instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-side) entry).
 
 **Still not handled** (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
