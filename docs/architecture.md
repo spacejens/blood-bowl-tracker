@@ -179,7 +179,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
 
 - `apps/` are server-side (currently only `apps/discord-bot`); they call server-side packages like `packages/game-data` in-process and must never be forced to call themselves through the API
 - `tools/` are client-side; a tool that needs server-side logic goes through `packages/api-client` over the network rather than importing a server-side package (`packages/game-data`, `packages/db`, `packages/api-server`) directly. The `tools/review-*` family (`review-match`, `review-player`, `review-race`, `review-star-player`) is a deliberate exception: they read `packages/db` directly as local-only developer report aids outside the import pipeline, never touching the API
-- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries) and `packages/domain-enums` (the enum source of truth, with no dependencies of its own)
+- `packages/` are usually one-sided (client-only or server-only). Deliberate exceptions exist for shared-shape/enum packages designed to serve both sides: `packages/api-contract` (the RPC contract, built on `packages/domain-enums` and external libraries), `packages/domain-enums` (the enum source of truth, with no dependencies of its own), and `packages/tp-paths` (TP file-path computation shared between `packages/import-tp-live` and `tools/download-tp`, also with no dependencies of its own)
 
 ## Tool/app relationships
 
