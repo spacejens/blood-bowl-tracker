@@ -1,11 +1,13 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpPlayersImportService } from '../roster-import/players/tp-players-import.service';
-import { TpTeamsImportService } from '../roster-import/teams/tp-teams-import.service';
-import type { TpRosterEntry } from '../tp-roster-entry';
+import { TpRosterImportService } from '../roster/tp-roster-import.service';
+import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
+import { TpImportResultsService } from '../tp-import-results.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
@@ -38,17 +40,17 @@ export class TpLiveTeamImportService {
   constructor(
     private readonly rosterFetch: TpRosterFetchService,
     private readonly eraResolution: TpEraResolutionService,
-    private readonly teamsImport: TpTeamsImportService,
-    private readonly playersImport: TpPlayersImportService,
-    private readonly importResults: ImportResultService,
+    private readonly rosterImport: TpRosterImportService,
+    private readonly importResults: TpImportResultsService,
   ) {}
 
   /**
    * Import one team, and its players, from TP's live API: fetch and parse
-   * its roster, resolve its era, then upsert it through the same team and
-   * player imports tools/import-tp's bulk run uses. The team needs no
-   * competition. Every failure is reported in the returned results, never
-   * thrown; the players are skipped when the team itself was not imported.
+   * its roster, resolve its era, then upsert it through the same server-side
+   * roster import `tpRosters.import` uses, straight into the database. The
+   * team needs no competition. Every failure is reported in the returned
+   * results, never thrown; the players are skipped when the team itself was
+   * not imported.
    */
   async importTeam({
     rosterId,
@@ -74,18 +76,10 @@ export class TpLiveTeamImportService {
         return this.notImported(errors);
       }
 
-      const entry: TpRosterEntry = { roster, era: resolvedEra };
-      const { result: team, teamErasByRosterId } =
-        await this.teamsImport.importTeams([entry]);
-      if (!teamErasByRosterId.has(roster.id)) {
-        return {
-          team,
-          players: this.importResults.result({ imported: 0, errors: [] }),
-        };
-      }
-      const { result: players } = await this.playersImport.importPlayers({
-        rosters: [entry],
-        teamErasByRosterId,
+      const { team, players } = await this.rosterImport.importRoster({
+        roster,
+        era: resolvedEra,
+        externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       });
       return { team, players };
     } catch (error) {
