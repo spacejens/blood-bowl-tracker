@@ -1,7 +1,7 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RosterEntry } from '../source/roster-collection.service';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import { makeService } from './tp-players-import.test-helpers';
 
 /**
@@ -22,11 +22,10 @@ function mercenaryRosters(
       armour: number;
     };
   }[],
-): RosterEntry[] {
+): TpRosterEntry[] {
   return [
     {
       era: 'Third Era',
-      competition: 'comp',
       roster: {
         id: 123,
         teamName: 'Team 123',

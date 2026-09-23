@@ -8,6 +8,7 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
+import { TpEraRulesSetResolverService } from '@blood-bowl-tracker/import-tp-live';
 import type {
   TpPositionCharacteristics,
   TpPositionSkillRef,
@@ -16,7 +17,6 @@ import { Injectable } from '@nestjs/common';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
 import { EraDataConfigService } from '../eras/era-data-config.service';
-import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 

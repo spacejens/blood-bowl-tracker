@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { mockImportResultService } from '../import-package.test-helpers';
+import { mockImportResultService } from '../../import-package.test-helpers';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
 
 const BB2020_ID = 900;
@@ -52,9 +52,7 @@ describe('TpMercenaryCharacteristicsService', () => {
       const byEraName = service.rulesSetNameByEraName([
         {
           name: 'Third Era',
-          dataSubdir: 'third-era',
           rulesSets: ['BB2020'],
-          startDate: '2020-01-01',
         },
       ]);
 
@@ -65,15 +63,11 @@ describe('TpMercenaryCharacteristicsService', () => {
       const byEraName = service.rulesSetNameByEraName([
         {
           name: 'Ambiguous Era',
-          dataSubdir: 'ambiguous',
           rulesSets: ['BB2020', 'BB2025'],
-          startDate: '2020-01-01',
         },
         {
           name: 'Empty Era',
-          dataSubdir: 'empty',
           rulesSets: [],
-          startDate: '2020-01-01',
         },
       ]);
 

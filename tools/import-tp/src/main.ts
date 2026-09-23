@@ -2,7 +2,10 @@
 
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import { TpTeamsImportService } from '@blood-bowl-tracker/import-tp-live';
+import {
+  TpPlayersImportService,
+  TpTeamsImportService,
+} from '@blood-bowl-tracker/import-tp-live';
 import type {
   TpInducedStarPlayer,
   TpRosterPlayer,
@@ -23,7 +26,6 @@ import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpPlayerSkillsImportService } from './players/tp-player-skills-import.service';
-import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
 import { TpPositionSkillsImportService } from './positions/tp-position-skills-import.service';

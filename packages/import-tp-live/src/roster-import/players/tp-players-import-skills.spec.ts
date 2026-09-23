@@ -4,16 +4,15 @@ import type {
 } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RosterEntry } from '../source/roster-collection.service';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import { makeService } from './tp-players-import.test-helpers';
 
 /** One roster in 'Third Era' with one player on position 952, whose own
  * skill group is configurable. */
-function rosterWith(skills: TpPlayerSkills | undefined): RosterEntry[] {
+function rosterWith(skills: TpPlayerSkills | undefined): TpRosterEntry[] {
   return [
     {
       era: 'Third Era',
-      competition: 'comp',
       roster: {
         id: 123,
         teamName: 'Team 123',

@@ -1,7 +1,7 @@
 import type { RulesSet } from '@blood-bowl-tracker/api-contract';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RosterEntry } from '../source/roster-collection.service';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import { makeService } from './tp-players-import.test-helpers';
 
 const bb2020: RulesSet = {
@@ -22,11 +22,10 @@ const rulesSetsByName = new Map([['BB2020', bb2020]]);
  * configurable. Separate from the shared fixture, which stays
  * lasting-injury-free so the existing payload assertions still hold.
  */
-function rosterWith(overrides: Record<string, unknown>): RosterEntry[] {
+function rosterWith(overrides: Record<string, unknown>): TpRosterEntry[] {
   return [
     {
       era: 'Third Era',
-      competition: 'comp',
       roster: {
         id: 123,
         teamName: 'Team 123',

@@ -2,7 +2,7 @@ import type { RulesSet } from '@blood-bowl-tracker/api-contract';
 import type { PlayerCharacteristicReductionCounts } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RosterEntry } from '../source/roster-collection.service';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import { makeService } from './tp-players-import.test-helpers';
 
 /** The player's own current line: MA 6 ST 4 AG 3 PA 5 AV 10. */
@@ -14,11 +14,10 @@ const OWN = { move: 6, strength: 4, agility: 3, passing: 5, armour: 10 };
  * `rosters` fixture in the test-helpers, which stays characteristics-free so
  * the existing tp-players-import.service.spec.ts payload assertions still hold.
  */
-function rosterWith(characteristics: typeof OWN | undefined): RosterEntry[] {
+function rosterWith(characteristics: typeof OWN | undefined): TpRosterEntry[] {
   return [
     {
       era: 'Third Era',
-      competition: 'comp',
       roster: {
         id: 123,
         teamName: 'Team 123',
@@ -78,7 +77,7 @@ const rulesSetsByName = new Map([['BB2020', bb2020]]);
  * needs to derive a reduction count, which the increase-count wiring must
  * pass through to `PlayerCharacteristicIncreasesService.forPlayer`.
  */
-function rosterWithReduction(): RosterEntry[] {
+function rosterWithReduction(): TpRosterEntry[] {
   const [entry] = rosterWith(OWN);
   return [
     {
@@ -105,7 +104,7 @@ function rosterWithReduction(): RosterEntry[] {
  * pass through as `PlayerCharacteristicIncreasesService.forPlayer`'s baseline
  * override, in preference to a separate DB read.
  */
-function rosterWithTemplate(positionTemplate: typeof OWN): RosterEntry[] {
+function rosterWithTemplate(positionTemplate: typeof OWN): TpRosterEntry[] {
   const [entry] = rosterWith(OWN);
   return [
     {

@@ -20,14 +20,20 @@ import type {
   TpPositionCharacteristics,
   TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
-import type { EraDataConfig } from '../eras/era-data-config.service';
-import { EraDataConfigService } from '../eras/era-data-config.service';
+import type {
+  TpEraRulesSets,
+  TpEraRulesSetsProvider,
+  TpExternalSystemNameProvider,
+} from '../../tp-import-providers';
+import {
+  TP_ERA_RULES_SETS_PROVIDER,
+  TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
+} from '../../tp-import-providers';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+import { TpRosterEraErrorService } from '../tp-roster-era-error.service';
 import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
@@ -50,22 +56,22 @@ export interface MercenaryPositionUsage {
 /** Options for {@link TpPlayersImportService.importPlayers}, bundled into one
  * object to stay within the repo's 3-parameter limit. */
 export interface ImportPlayersOptions {
-  rosters: RosterEntry[];
+  rosters: TpRosterEntry[];
   teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
   /**
    * Star players hired via an `inducements_roll` match event, grouped by
-   * hiring roster id AND real era id (pre-scanned by `main.ts` from
-   * `matchesByCompetitionId` so this service stays the single owner of the
-   * player-resolution maps). Optional -- callers/tests that don't exercise
-   * star players can omit it.
+   * hiring roster id AND real era id (pre-scanned by tools/import-tp's
+   * `main.ts` from `matchesByCompetitionId` so this service stays the single
+   * owner of the player-resolution maps). Optional -- callers/tests that
+   * don't exercise star players can omit it.
    */
   inducedStarPlayerHireGroups?: InducedStarPlayerHireGroup[];
   /**
    * Players seen in match-embedded roster snapshots
    * (`TpMatch.homeRosterPlayers`/`awayRosterPlayers`), grouped by roster id
-   * (pre-scanned by `main.ts` from `matchesByCompetitionId`, so this service
-   * stays the single owner of the player-resolution maps). A standalone
-   * `rosters_<id>.json` file only reflects a roster's CURRENT composition as
+   * (pre-scanned by tools/import-tp's `main.ts` from `matchesByCompetitionId`,
+   * so this service stays the single owner of the player-resolution maps). A
+   * standalone `rosters_<id>.json` file only reflects a roster's CURRENT composition as
    * of when the local TP data mirror was downloaded, so a player who has
    * since left/been replaced is silently absent from it even though
    * historical `matchEvents[]` can still reference them — this map fills
@@ -100,12 +106,14 @@ export class TpPlayersImportService {
   constructor(
     private readonly playersImport: PlayersImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
-    private readonly externalSystemName: ExternalSystemNameConfigService,
+    @Inject(TP_EXTERNAL_SYSTEM_NAME_PROVIDER)
+    private readonly externalSystemName: TpExternalSystemNameProvider,
     private readonly positionsImport: PositionsImportService,
     private readonly nameExternalId: NameExternalIdService,
-    private readonly rosterCollection: RosterCollectionService,
+    private readonly rosterEraErrors: TpRosterEraErrorService,
     private readonly importResults: ImportResultService,
-    private readonly eraDataConfig: EraDataConfigService,
+    @Inject(TP_ERA_RULES_SETS_PROVIDER)
+    private readonly eraRulesSets: TpEraRulesSetsProvider,
     private readonly lookup: ReferenceLookupService,
     private readonly eraRulesSetResolver: TpEraRulesSetResolverService,
     private readonly characteristicsBuilder: TpPlayerCharacteristicsBuilderService,
@@ -262,9 +270,9 @@ export class TpPlayersImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    let eras: EraDataConfig[];
+    let eras: TpEraRulesSets[];
     try {
-      eras = this.eraDataConfig.getEras();
+      eras = await this.eraRulesSets.getEras();
     } catch (error) {
       errors.push(
         this.importResults.error({
@@ -356,7 +364,7 @@ export class TpPlayersImportService {
         this.lookup.keyOf({ externalSystemId: tpSystemId, externalId: era }),
       );
       if (eraId === undefined) {
-        errors.push(this.rosterCollection.unknownEraError(era, roster));
+        errors.push(this.rosterEraErrors.unknownEraError(era, roster));
       }
 
       // Merge the match-embedded roster snapshot into the standalone

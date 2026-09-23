@@ -5,7 +5,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import type { EraDataConfig } from './era-data-config.service';
+import type { TpEraRulesSets } from '../../tp-import-providers';
 
 @Injectable()
 export class TpEraRulesSetResolverService {
@@ -17,7 +17,8 @@ export class TpEraRulesSetResolverService {
   /**
    * Each era's single rules set, as a DB id. Characteristics are per rules
    * set, and TP's raw numeric `ruleSet` field has no established name mapping,
-   * so the era config's declared `rulesSets` is the only reliable source. An
+   * so each era's declared `rulesSets` (from the era rules-sets provider) is
+   * the only reliable source. An
    * era declaring anything other than exactly one rules set is ambiguous:
    * every roster in it is skipped for characteristics (its other import steps
    * are unaffected) and one error is recorded naming it. An unresolvable rules
@@ -35,7 +36,7 @@ export class TpEraRulesSetResolverService {
    * era -> rules set mapping to send characteristics for validation.
    */
   async resolveRulesSetIdByEraName(options: {
-    eras: EraDataConfig[];
+    eras: TpEraRulesSets[];
     tpSystemId: number;
     errors: ImportError[];
   }): Promise<Map<string, number>> {

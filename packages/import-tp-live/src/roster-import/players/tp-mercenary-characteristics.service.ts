@@ -5,7 +5,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import type { EraDataConfig } from '../eras/era-data-config.service';
+import type { TpEraRulesSets } from '../../tp-import-providers';
 import type { TpPlayerCharacteristicsPayload } from './tp-player-characteristics-builder.service';
 
 /**
@@ -84,7 +84,7 @@ export class TpMercenaryCharacteristicsService {
    * skipped here silently: the resolver has already recorded its own error for
    * it, and the caller then simply passes `rulesSet: undefined`.
    */
-  rulesSetNameByEraName(eras: EraDataConfig[]): Map<string, string> {
+  rulesSetNameByEraName(eras: TpEraRulesSets[]): Map<string, string> {
     const byEraName = new Map<string, string>();
     for (const era of eras) {
       if (era.rulesSets.length === 1) {

@@ -10,14 +10,14 @@ import type { MockProxy } from 'vitest-mock-extended';
 import {
   mockImportResultService,
   mockReferenceLookupService,
-} from '../import-package.test-helpers';
-import type { EraDataConfig } from './era-data-config.service';
+} from '../../import-package.test-helpers';
+import type { TpEraRulesSets } from '../../tp-import-providers';
 import { TpEraRulesSetResolverService } from './tp-era-rules-set-resolver.service';
 
 const TP_SYSTEM_ID = 1;
 
-function era(name: string, rulesSets: string[]): EraDataConfig {
-  return { name, dataSubdir: name, rulesSets, startDate: '2020-01-01' };
+function era(name: string, rulesSets: string[]): TpEraRulesSets {
+  return { name, rulesSets };
 }
 
 describe('TpEraRulesSetResolverService', () => {

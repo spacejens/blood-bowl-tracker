@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  TP_ERA_RULES_SETS_PROVIDER,
   TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
+  TpPlayersImportService,
   TpTeamsImportService,
 } from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
@@ -14,6 +16,7 @@ import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
+import { EraDataConfigService } from './eras/era-data-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
@@ -162,6 +165,12 @@ describe('AppModule', () => {
 
     expect(moduleRef.get(TP_EXTERNAL_SYSTEM_NAME_PROVIDER)).toBe(
       moduleRef.get(ExternalSystemNameConfigService),
+    );
+    expect(moduleRef.get(TP_ERA_RULES_SETS_PROVIDER)).toBe(
+      moduleRef.get(EraDataConfigService),
+    );
+    expect(moduleRef.get(TpPlayersImportService)).toBeInstanceOf(
+      TpPlayersImportService,
     );
   });
 });

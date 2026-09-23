@@ -36,3 +36,26 @@ export const TP_EXTERNAL_SYSTEM_NAME_PROVIDER = Symbol(
 export interface TpExternalSystemNameProvider {
   getTpSystemName(): string;
 }
+
+/**
+ * Each era's declared rules sets. TP's data names no rules set per era, so
+ * the player import reads them from here to validate characteristics and to
+ * pick a mercenary hire's curated values.
+ */
+export const TP_ERA_RULES_SETS_PROVIDER = Symbol('TP_ERA_RULES_SETS_PROVIDER');
+
+/** One era and the rules set names it spans, in chronological order. */
+export interface TpEraRulesSets {
+  name: string;
+  rulesSets: string[];
+}
+
+/**
+ * Supplies every era's declared rules sets. tools/import-tp's
+ * `EraDataConfigService` has this shape (from `league.eras` in its config
+ * file); a live caller supplies its own. May throw (or reject) when the
+ * eras cannot be read — the player import records that as one error.
+ */
+export interface TpEraRulesSetsProvider {
+  getEras(): TpEraRulesSets[] | Promise<TpEraRulesSets[]>;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RosterEntry } from '../source/roster-collection.service';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import {
   CANNED_RESULT,
   makeService,
@@ -210,10 +210,9 @@ describe('TpPlayersImportService', () => {
 
     // A permanently-rostered star player: its lineUps entry references a star
     // catalog id (5002), resolved server-side by its stringified id.
-    const starRosters: RosterEntry[] = [
+    const starRosters: TpRosterEntry[] = [
       {
         era: 'Third Era',
-        competition: 'comp',
         roster: {
           id: 123,
           teamName: 'Team 123',
@@ -325,10 +324,9 @@ describe('TpPlayersImportService', () => {
       upsertPosition,
     });
 
-    const mercenaryRosters: RosterEntry[] = [
+    const mercenaryRosters: TpRosterEntry[] = [
       {
         era: 'Third Era',
-        competition: 'comp',
         roster: {
           id: 123,
           teamName: 'Team 123',
@@ -395,10 +393,9 @@ describe('TpPlayersImportService', () => {
       upsertPosition,
     });
 
-    const mercenaryRosters: RosterEntry[] = [
+    const mercenaryRosters: TpRosterEntry[] = [
       {
         era: 'Third Era',
-        competition: 'comp',
         roster: {
           id: 123,
           teamName: 'Team 123',
@@ -450,10 +447,9 @@ describe('TpPlayersImportService', () => {
       upsertPosition,
     });
 
-    const mercenaryRosters: RosterEntry[] = [
+    const mercenaryRosters: TpRosterEntry[] = [
       {
         era: 'Third Era',
-        competition: 'comp',
         roster: {
           id: 123,
           teamName: 'Team 123',
@@ -499,10 +495,9 @@ describe('TpPlayersImportService', () => {
       upsertPosition,
     });
 
-    const mercenaryRosters: RosterEntry[] = [
+    const mercenaryRosters: TpRosterEntry[] = [
       {
         era: 'Third Era',
-        competition: 'comp',
         roster: {
           id: 123,
           teamName: 'Team 123',
@@ -568,10 +563,9 @@ describe('TpPlayersImportService', () => {
       upsertPosition,
     });
 
-    const mercenaryRosters: RosterEntry[] = [
+    const mercenaryRosters: TpRosterEntry[] = [
       {
         era: 'Third Era',
-        competition: 'comp',
         roster: {
           id: 123,
           teamName: 'Team 123',
@@ -643,7 +637,10 @@ describe('TpPlayersImportService', () => {
     const embedded = (total: number) => [
       { ...base, totalStarPlayerPoints: total },
     ];
-    const options = (rosterEntries: RosterEntry[], embeddedTotal: number) => ({
+    const options = (
+      rosterEntries: TpRosterEntry[],
+      embeddedTotal: number,
+    ) => ({
       rosters: rosterEntries,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       matchEmbeddedPlayersByRosterId: new Map([[123, embedded(embeddedTotal)]]),
@@ -657,7 +654,7 @@ describe('TpPlayersImportService', () => {
     );
 
     // roster.players (99) is higher than matchEmbedded (23).
-    const higherRosters: RosterEntry[] = [
+    const higherRosters: TpRosterEntry[] = [
       {
         ...rosters[0],
         roster: {
@@ -703,7 +700,7 @@ describe('TpPlayersImportService', () => {
     );
   });
 
-  it('records one error and imports nothing when the era config cannot be read', async () => {
+  it('records one error and imports nothing when the era rules sets cannot be read', async () => {
     const upsertPlayerResult = vi.fn();
     const { service, importResults } = await makeService({
       upsertPlayerResult,

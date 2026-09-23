@@ -5,6 +5,7 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
+import type { MercenaryPositionUsage } from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -19,7 +20,6 @@ import {
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMercenaryPositionRaceErasImportService } from './tp-mercenary-position-race-eras-import.service';
-import type { MercenaryPositionUsage } from './tp-players-import.service';
 
 /** The numeric id the mocked bootstrap assigns to the TP external system. */
 const TP_SYSTEM_ID = 1;

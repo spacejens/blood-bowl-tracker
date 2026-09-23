@@ -6,6 +6,8 @@ import {
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import type { TpEraRulesSetsProvider } from './tp-import-providers';
+
 /**
  * A `MockProxy<ImportResultService>` whose `error` returns the item/message it
  * was given. That method is a pure identity field copy with no branching or
@@ -121,4 +123,21 @@ export function mockReferenceLookupService(
     return Promise.resolve(map);
   });
   return lookup;
+}
+
+/**
+ * A `MockProxy<TpEraRulesSetsProvider>` whose `getEras()` returns one era per
+ * name, each declaring `BB2020` (only `name` matters to the services under
+ * test here -- they enumerate era *names* to build the reference-lookup
+ * batch, and resolve rules sets through a separately mocked resolver).
+ * Consumed alongside `mockReferenceLookupService` above.
+ */
+export function mockEraRulesSetsProvider(
+  names: string[],
+): MockProxy<TpEraRulesSetsProvider> {
+  const provider = mock<TpEraRulesSetsProvider>();
+  provider.getEras.mockReturnValue(
+    names.map((name) => ({ name, rulesSets: ['BB2020'] })),
+  );
+  return provider;
 }

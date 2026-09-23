@@ -1,7 +1,6 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpRosterEntry } from '@blood-bowl-tracker/import-tp-live';
-import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
@@ -75,13 +74,5 @@ export class RosterCollectionService {
       );
     }
     return rosters;
-  }
-
-  /** An ImportError for a roster whose era name is not among the imported eras. */
-  unknownEraError(era: string, roster: TpRoster): ImportError {
-    return this.importResults.error({
-      item: { era, roster: roster.id },
-      message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
-    });
   }
 }

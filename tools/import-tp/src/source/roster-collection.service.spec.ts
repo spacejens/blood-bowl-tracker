@@ -233,23 +233,4 @@ describe('RosterCollectionService', () => {
       expect(errors[0].message).toContain('a string error');
     });
   });
-
-  describe('unknownEraError', () => {
-    it('builds an ImportError naming the era and roster id', () => {
-      const error = service.unknownEraError('Ghost era', {
-        id: 42,
-        teamName: 'T',
-        teamRaceCode: 'Orc',
-        raceName: 'Orc',
-        coachTpId: 'coach-1',
-        positions: [],
-        starPositions: [],
-        players: [],
-      });
-
-      expect(error.item).toEqual({ era: 'Ghost era', roster: 42 });
-      expect(error.message).toContain('Ghost era');
-      expect(error.message).toContain('42');
-    });
-  });
 });

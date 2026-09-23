@@ -1,6 +1,11 @@
-import { TP_EXTERNAL_SYSTEM_NAME_PROVIDER } from '@blood-bowl-tracker/import-tp-live';
+import {
+  TP_ERA_RULES_SETS_PROVIDER,
+  TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
+} from '@blood-bowl-tracker/import-tp-live';
 import { Global, Module } from '@nestjs/common';
 
+import { EraDataConfigModule } from '../eras/era-data-config.module';
+import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from './external-system-name-config.service';
 import { SourceModule } from './source.module';
 
@@ -11,13 +16,17 @@ import { SourceModule } from './source.module';
  */
 @Global()
 @Module({
-  imports: [SourceModule],
+  imports: [SourceModule, EraDataConfigModule],
   providers: [
     {
       provide: TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
       useExisting: ExternalSystemNameConfigService,
     },
+    {
+      provide: TP_ERA_RULES_SETS_PROVIDER,
+      useExisting: EraDataConfigService,
+    },
   ],
-  exports: [TP_EXTERNAL_SYSTEM_NAME_PROVIDER],
+  exports: [TP_EXTERNAL_SYSTEM_NAME_PROVIDER, TP_ERA_RULES_SETS_PROVIDER],
 })
 export class TpRosterImportProvidersModule {}

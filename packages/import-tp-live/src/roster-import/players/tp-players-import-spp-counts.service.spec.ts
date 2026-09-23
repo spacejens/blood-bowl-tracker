@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { RosterEntry } from '../source/roster-collection.service';
+import type { TpRosterEntry } from '../../tp-roster-entry';
 import { makeService, rosters } from './tp-players-import.test-helpers';
 
 /** The shared `rosters` fixture's one player, with `careerCounts` overridden
  * (or omitted) per test. */
 function rostersWithCareerCounts(
-  careerCounts: RosterEntry['roster']['players'][number]['careerCounts'],
-): RosterEntry[] {
+  careerCounts: TpRosterEntry['roster']['players'][number]['careerCounts'],
+): TpRosterEntry[] {
   const [entry] = rosters;
   return [
     {
@@ -75,10 +75,10 @@ describe('TpPlayersImportService career counts', () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service } = await makeService({ upsertPlayerResult });
     const [entry] = rosters;
-    // Two RosterEntry rows for the same roster id, each a separate snapshot
+    // Two TpRosterEntry rows for the same roster id, each a separate snapshot
     // in time carrying the same player id with differing counters -- the
     // pre-scan must take the per-group maximum across both.
-    const twoSnapshots: RosterEntry[] = [
+    const twoSnapshots: TpRosterEntry[] = [
       {
         ...entry,
         roster: {

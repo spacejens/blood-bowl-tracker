@@ -12,19 +12,24 @@ import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { EraDataConfig } from '../eras/era-data-config.service';
-import { EraDataConfigService } from '../eras/era-data-config.service';
-import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
 import {
   asProviderMethod,
-  mockEraDataConfigService,
+  mockEraRulesSetsProvider,
   mockImportResultService,
   mockNameExternalIdService,
   mockReferenceLookupService,
-} from '../import-package.test-helpers';
-import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { RosterEntry } from '../source/roster-collection.service';
-import { RosterCollectionService } from '../source/roster-collection.service';
+} from '../../import-package.test-helpers';
+import type {
+  TpEraRulesSets,
+  TpExternalSystemNameProvider,
+} from '../../tp-import-providers';
+import {
+  TP_ERA_RULES_SETS_PROVIDER,
+  TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
+} from '../../tp-import-providers';
+import type { TpRosterEntry } from '../../tp-roster-entry';
+import { TpEraRulesSetResolverService } from '../eras/tp-era-rules-set-resolver.service';
+import { TpRosterEraErrorService } from '../tp-roster-era-error.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 import { TpLastingInjuryBuilderService } from './tp-lasting-injury-builder.service';
 import { TpMercenaryCharacteristicsService } from './tp-mercenary-characteristics.service';
@@ -47,8 +52,8 @@ export interface MakeServiceOptions {
    * via ReferenceLookupService's 'position' kind.
    */
   positionIdsByExternalId?: Map<string, number>;
-  /** Overrides EraDataConfigService.getEras(), e.g. to model it throwing. */
-  getEras?: () => EraDataConfig[];
+  /** Overrides the era rules-sets provider's getEras(), e.g. to model it throwing. */
+  getEras?: () => TpEraRulesSets[];
   /**
    * The map the mocked TpEraRulesSetResolverService returns: era name -> rules
    * set DB id. An era absent from it models the resolver having skipped it;
@@ -86,7 +91,7 @@ export const CANNED_RESULT: ImportResult = {
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
 
-/** The canned ImportError the mocked RosterCollectionService.unknownEraError returns. */
+/** The canned ImportError the mocked TpRosterEraErrorService.unknownEraError returns. */
 const CANNED_UNKNOWN_ERA_ERROR: ImportError = {
   item: { canned: true },
   message: 'canned unknown era error',
@@ -140,22 +145,22 @@ export async function makeService({
   externalSystemBootstrap.bootstrap.mockImplementation(
     asProviderMethod(bootstrap),
   );
-  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  const externalSystemName = mock<TpExternalSystemNameProvider>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const positionsImport = mock<PositionsImportService>();
   positionsImport.upsert.mockImplementation(asProviderMethod(upsertPosition));
   const nameExternalId = mockNameExternalIdService();
-  const rosterCollection = mock<RosterCollectionService>();
-  rosterCollection.unknownEraError.mockReturnValue(CANNED_UNKNOWN_ERA_ERROR);
+  const rosterEraErrors = mock<TpRosterEraErrorService>();
+  rosterEraErrors.unknownEraError.mockReturnValue(CANNED_UNKNOWN_ERA_ERROR);
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
   // ImportResultService.result's own success derivation is covered by
   // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
-  const eraDataConfig = mockEraDataConfigService([...eraIdsByName.keys()]);
+  const eraRulesSets = mockEraRulesSetsProvider([...eraIdsByName.keys()]);
   if (getEras) {
-    eraDataConfig.getEras.mockImplementation(getEras);
+    eraRulesSets.getEras.mockImplementation(getEras);
   }
   const lookup = mockReferenceLookupService(eraIdsByName, TP_SYSTEM_ID, {
     positionIdsByExternalId,
@@ -204,14 +209,14 @@ export async function makeService({
         useValue: externalSystemBootstrap,
       },
       {
-        provide: ExternalSystemNameConfigService,
+        provide: TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
         useValue: externalSystemName,
       },
       { provide: PositionsImportService, useValue: positionsImport },
       { provide: NameExternalIdService, useValue: nameExternalId },
-      { provide: RosterCollectionService, useValue: rosterCollection },
+      { provide: TpRosterEraErrorService, useValue: rosterEraErrors },
       { provide: ImportResultService, useValue: importResults },
-      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: TP_ERA_RULES_SETS_PROVIDER, useValue: eraRulesSets },
       { provide: ReferenceLookupService, useValue: lookup },
       {
         provide: TpEraRulesSetResolverService,
@@ -244,10 +249,9 @@ export async function makeService({
 
 /** A single-roster, single-player fixture reused across specs that don't care
  * about the player's specific data. */
-export const rosters: RosterEntry[] = [
+export const rosters: TpRosterEntry[] = [
   {
     era: 'Third Era',
-    competition: 'comp',
     roster: {
       id: 123,
       teamName: 'Team 123',

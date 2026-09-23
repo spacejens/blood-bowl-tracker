@@ -15,7 +15,7 @@ import {
   asProviderMethod,
   mockImportResultService,
   mockNameExternalIdService,
-} from '../import-package.test-helpers';
+} from '../../import-package.test-helpers';
 import type { InducedStarPlayerHireGroup } from './tp-induced-star-players-import.service';
 import { TpInducedStarPlayersImportService } from './tp-induced-star-players-import.service';
 import { TpPlayerCharacteristicsBuilderService } from './tp-player-characteristics-builder.service';

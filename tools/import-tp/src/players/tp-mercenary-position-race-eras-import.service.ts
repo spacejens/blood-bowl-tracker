@@ -5,11 +5,11 @@ import {
   PositionsImportService,
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
+import type { MercenaryPositionUsage } from '@blood-bowl-tracker/import-tp-live';
 import { Injectable } from '@nestjs/common';
 
 import { EraDataConfigService } from '../eras/era-data-config.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { MercenaryPositionUsage } from './tp-players-import.service';
 
 export interface SyncMercenaryPositionRaceErasOptions {
   mercenaryPositionUsages: MercenaryPositionUsage[];
