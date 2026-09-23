@@ -1,11 +1,10 @@
+import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
-import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
+import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
-
-/** API path of TP's official team list, relative to the backend API URL. */
-const OFFICIAL_TEAMS_API_PATH = 'rosters/masters';
+import { TpApiPathsService } from './tp-api-paths.service';
 
 /**
  * TP's numeric `ruleSet` query parameter value per rules set, keyed by the
@@ -31,7 +30,9 @@ const TP_RULES_SET_IDS: Readonly<Record<string, number>> = {
 export class OfficialTeamsDownloaderService {
   constructor(
     private readonly downloadTpConfigService: DownloadTpConfigService,
-    private readonly pageViewerService: ApiResponseStoringPageViewerService,
+    private readonly tpFetcherService: TpFetcherService,
+    private readonly apiResponseStoringService: ApiResponseStoringService,
+    private readonly tpApiPathsService: TpApiPathsService,
     private readonly fileSystemService: FileSystemService,
   ) {}
 
@@ -41,25 +42,21 @@ export class OfficialTeamsDownloaderService {
    * rules set, not per competition, so nothing here reads
    * `download.tournaments`.
    *
-   * One page visit per rules set. Opening the teams page always loads the
-   * default tab's rules set, so that rules set's own response is requested
-   * from inside the already-open page (reusing its session and headers) and
-   * only that response is stored — otherwise every folder would also hold the
-   * default tab's team list.
+   * Each rules set is its own visit to the teams page, so each gets its own
+   * session, requesting only that rules set's team list.
    */
   async downloadOfficialTeams(): Promise<void> {
-    const frontendUrl = this.downloadTpConfigService.getFrontendUrl();
-    const backendApiUrl = this.downloadTpConfigService.getBackendApiUrl();
+    const referer = this.downloadTpConfigService.getFrontendUrl() + 'teams';
     for (const rulesSet of this.downloadTpConfigService.getRulesSets()) {
-      const requestPath = `${OFFICIAL_TEAMS_API_PATH}?ruleSet=${this.ruleSetId(rulesSet)}`;
+      const path = this.tpApiPathsService.officialTeams(
+        this.ruleSetId(rulesSet),
+      );
       const dirName = `teams/${rulesSet}`;
       this.fileSystemService.mkdir(dirName);
-      await this.pageViewerService.viewPage({
-        pageUrl: frontendUrl + 'teams',
-        dirName,
-        followUpRequests: () => [backendApiUrl + requestPath],
-        storeResponse: (requestUrl) => requestUrl === requestPath,
-      });
+      await this.apiResponseStoringService.fetchAndStore(
+        this.tpFetcherService.createSession(),
+        { path, referer, dirName },
+      );
     }
   }
 
