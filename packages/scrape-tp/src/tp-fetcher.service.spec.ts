@@ -13,6 +13,8 @@ type FakeResponseInit = {
   status?: number;
   body?: string;
   setCookies?: string[];
+  /** Simulates a body read that takes this long, via a fake timer. */
+  textDelayMs?: number;
 };
 
 /**
@@ -23,13 +25,19 @@ type FakeResponseInit = {
 function fakeResponse(init: FakeResponseInit = {}): Response {
   const status = init.status ?? 200;
   const body = init.body ?? '{}';
+  const textDelayMs = init.textDelayMs ?? 0;
   return {
     ok: status >= 200 && status < 300,
     status,
     headers: new Headers(
       (init.setCookies ?? []).map((c): [string, string] => ['set-cookie', c]),
     ),
-    text: () => Promise.resolve(body),
+    text: () =>
+      textDelayMs > 0
+        ? new Promise<string>((resolve) =>
+            setTimeout(() => resolve(body), textDelayMs),
+          )
+        : Promise.resolve(body),
   } as unknown as Response;
 }
 
@@ -269,6 +277,24 @@ describe('TpFetcherService', () => {
       await vi.advanceTimersByTimeAsync(0);
       expect(fetchMock).toHaveBeenCalledTimes(2);
       await other;
+    });
+
+    it('paces from when the response body finishes reading, not from when fetch resolves', async () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0); // shortest delay: 0.5 s
+      fetchMock.mockResolvedValueOnce(fakeResponse({ textDelayMs: 2500 }));
+      const session = service.createSession();
+
+      const first = session.fetch(URL_A);
+      await vi.advanceTimersByTimeAsync(2500); // let the slow body read finish
+      await first;
+
+      const second = session.fetch(URL_B);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(1); // still waiting to pace
+
+      await vi.advanceTimersByTimeAsync(500);
+      await second;
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   });
 });

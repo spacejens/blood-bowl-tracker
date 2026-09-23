@@ -84,20 +84,23 @@ export class TpFetcherService {
     options: TpFetchOptions = {},
   ): Promise<unknown> {
     await this.waitForPacing(state);
-    const response = await globalThis.fetch(url, {
-      method: options.method ?? 'GET',
-      headers: this.buildHeaders(state, options.referer),
-      body: options.body,
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
-    state.lastRequestAt = Date.now();
-    this.absorbCookies(state, response.headers.getSetCookie());
-    if (!response.ok) {
-      throw new Error(
-        `TP request to ${url} failed with status ${response.status}`,
-      );
+    try {
+      const response = await globalThis.fetch(url, {
+        method: options.method ?? 'GET',
+        headers: this.buildHeaders(state, options.referer),
+        body: options.body,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      this.absorbCookies(state, response.headers.getSetCookie());
+      if (!response.ok) {
+        throw new Error(
+          `TP request to ${url} failed with status ${response.status}`,
+        );
+      }
+      return this.parseJson(url, await response.text());
+    } finally {
+      state.lastRequestAt = Date.now();
     }
-    return this.parseJson(url, await response.text());
   }
 
   /**
