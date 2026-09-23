@@ -77,7 +77,12 @@ import {
   SyncPositionRulesSetSkillsResultSchema,
   SyncPositionRulesSetSkillsSchema,
 } from './schemas/position-rules-set-skill';
-import { RaceSchema, UpsertRaceSchema } from './schemas/race';
+import {
+  ListOngoingErasSchema,
+  OngoingEraSchema,
+  RaceSchema,
+  UpsertRaceSchema,
+} from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
 import { SkillSchema, UpsertSkillSchema } from './schemas/skill';
 import {
@@ -131,6 +136,14 @@ export const contract = {
     upsertBatch: batchUpsertProcedure(UpsertRaceSchema, RaceSchema),
     resolve: resolveProcedure(),
     resolveBatch: resolveBatchProcedure(),
+    // Plainly read-only, like competitionGroups.list. A live team import
+    // that is not told which era a team plays in picks its race's one
+    // ongoing era, and `upsert` cannot answer which eras are ongoing. Writes
+    // nothing, so it declares no errors. Several ongoing eras come back as
+    // they are: what that means is the caller's decision.
+    listOngoingEras: oc
+      .input(ListOngoingErasSchema)
+      .output(z.array(OngoingEraSchema)),
   },
   players: {
     upsert: upsertProcedure(UpsertPlayerSchema, PlayerSchema),
