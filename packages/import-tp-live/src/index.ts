@@ -1,5 +1,11 @@
+export { ImportTpLiveModule } from './import-tp-live.module';
 export type { ResolveEraOptions } from './live/tp-era-resolution.service';
 export { TpEraResolutionService } from './live/tp-era-resolution.service';
+export type {
+  ImportTeamOptions,
+  TpLiveTeamImportResult,
+} from './live/tp-live-team-import.service';
+export { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 export type { FetchRosterOptions } from './live/tp-roster-fetch.service';
 export { TpRosterFetchService } from './live/tp-roster-fetch.service';
 export { TpEraRulesSetResolverService } from './roster-import/eras/tp-era-rules-set-resolver.service';
