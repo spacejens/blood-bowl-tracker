@@ -111,9 +111,10 @@ export class RacesService {
 
   /**
    * The eras this race can be played in that are still ongoing (no end
-   * date), oldest first. More than one can be ongoing at once — a Dungeon
-   * Bowl era commonly runs alongside a normal one — so a caller needing
-   * exactly one decides what several mean for it.
+   * date), oldest first. A race belongs to Dungeon Bowl or to normal play,
+   * never both, so more than one result means the race is genuinely
+   * ambiguous across two overlapping eras of the same kind — a caller
+   * needing exactly one decides what to do about that.
    */
   listOngoingEras(raceId: number): Promise<{ id: number; name: string }[]> {
     return this.db

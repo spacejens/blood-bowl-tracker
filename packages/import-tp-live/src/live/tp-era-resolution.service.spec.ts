@@ -117,10 +117,13 @@ describe('TpEraResolutionService', () => {
   });
 
   it('records one error naming every era when the race is in several ongoing eras', async () => {
+    // A race belongs to Dungeon Bowl or to normal play, never both, so this
+    // models the genuine ambiguity: the race is linked to two overlapping
+    // normal eras, not a normal era plus a Dungeon Bowl one.
     races.resolve.mockResolvedValue({ found: true, id: 7 });
     races.listOngoingEras.mockResolvedValue([
       { id: 40, name: 'Fourth era' },
-      { id: 41, name: 'Second Dungeon Bowl era' },
+      { id: 41, name: 'Fifth era' },
     ]);
 
     await expect(
@@ -131,10 +134,10 @@ describe('TpEraResolutionService', () => {
         item: {
           team: 163386,
           teamRaceCode: 'orc',
-          ongoingEras: ['Fourth era', 'Second Dungeon Bowl era'],
+          ongoingEras: ['Fourth era', 'Fifth era'],
         },
         message:
-          'Could not resolve an era for team "Da Boyz": race "Orc" is in several ongoing eras (Fourth era, Second Dungeon Bowl era); the era must be specified explicitly',
+          'Could not resolve an era for team "Da Boyz": race "Orc" is in several ongoing eras (Fourth era, Fifth era); the era must be specified explicitly',
       },
     ]);
   });
