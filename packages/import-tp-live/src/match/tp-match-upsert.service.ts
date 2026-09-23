@@ -55,6 +55,15 @@ export class TpMatchUpsertService {
     context,
     errors,
   }: UpsertTpMatchOptions): Promise<number | undefined> {
+    if (!bracket.some((m) => m.id === match.id)) {
+      errors.push(
+        this.importResults.error({
+          item: { match: match.id },
+          message: `Skipping match ${match.id}: it is not part of the given bracket, so it does not belong to the imported competition.`,
+        }),
+      );
+      return undefined;
+    }
     let category: MatchCategory;
     try {
       category = this.categoryClassifier.classify({

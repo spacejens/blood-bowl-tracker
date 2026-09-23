@@ -96,6 +96,27 @@ describe('TpMatchUpsertService', () => {
       expect(errors).toEqual([]);
     });
 
+    it('records one error and upserts nothing when the match is not part of the given bracket', async () => {
+      const foreignBracket = [bracketMatch({ id: 999, round: 1 })];
+
+      await expect(
+        service.upsertMatch({
+          match: tpMatch(),
+          bracket: foreignBracket,
+          context: matchContext(),
+          errors,
+        }),
+      ).resolves.toBeUndefined();
+      expect(errors).toEqual([
+        {
+          item: { match: MATCH_TP_ID },
+          message: `Skipping match ${MATCH_TP_ID}: it is not part of the given bracket, so it does not belong to the imported competition.`,
+        },
+      ]);
+      expect(classifier.classify).not.toHaveBeenCalled();
+      expect(matches.upsert).not.toHaveBeenCalled();
+    });
+
     it('records one error and upserts nothing when the match cannot be classified', async () => {
       classifier.classify.mockImplementation(() => {
         throw new Error('unanticipated bracket shape');

@@ -43,6 +43,7 @@ describe('TpLiveCompetitionUpsertService', () => {
       system: mock<ExternalSystem>({ id: 1 }),
       created: false,
     });
+    competitions.resolve.mockResolvedValue({ found: false });
     eras.resolve.mockResolvedValue({ found: true, id: 40 });
     span.derive.mockReturnValue({
       type: 'season',
@@ -92,6 +93,20 @@ describe('TpLiveCompetitionUpsertService', () => {
       eraId: 40,
       startDate: '2026-01-10',
       endDate: '2026-06-20',
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('leaves era, type and dates untouched when the competition is already imported', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+
+    await expect(upsert()).resolves.toBe(true);
+    expect(eras.resolve).not.toHaveBeenCalled();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      name: 'tLoEGBBL Säsong 30',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });

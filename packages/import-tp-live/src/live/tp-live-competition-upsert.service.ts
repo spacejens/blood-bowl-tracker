@@ -1,4 +1,7 @@
-import type { ImportError } from '@blood-bowl-tracker/api-contract';
+import type {
+  ImportError,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import {
   CompetitionsService,
   ErasService,
@@ -35,12 +38,15 @@ export class TpLiveCompetitionUpsertService {
 
   /**
    * Upserts a live-fetched TP tournament as a competition, keyed by its TP
-   * id, with its name, era, and a type and start/end dates derived from its
-   * fixtures' dates — the same fields tools/import-tp's bulk import sends. It
-   * never sends a competition group: that classification is curated in
-   * tools/import-manual and the database requires one, so a competition not
-   * already curated fails to be created and is reported. Resolves true once
-   * upserted; each failure records one error.
+   * id. A competition already imported under that TP id has its name kept in
+   * sync and its external id link ensured, but its era, type and start/end
+   * dates are left exactly as already stored. A brand-new competition gets
+   * its era resolved by name and its type and start/end dates derived from
+   * its fixtures' dates — the same fields tools/import-tp's bulk import
+   * sends. It never sends a competition group: that classification is
+   * curated in tools/import-manual and the database requires one, so a new
+   * competition not already curated fails to be created and is reported.
+   * Resolves true once upserted; each failure records one error.
    */
   async upsertCompetition({
     tournament,
@@ -62,41 +68,56 @@ export class TpLiveCompetitionUpsertService {
       return false;
     }
     const tpSystemId = tpSystem.system.id;
-    const eraRef = await this.eras.resolve({
+    const externalIds = [
+      { externalSystemId: tpSystemId, externalId: String(tournament.id) },
+    ];
+    const competitionRef = await this.competitions.resolve({
       externalSystemId: tpSystemId,
-      externalId: era,
+      externalId: String(tournament.id),
     });
-    if (!eraRef.found) {
-      errors.push(
-        this.importResults.error({
-          item: { competition: tournament.id, era },
-          message: `Skipping competition "${tournament.name}": era "${era}" does not exist.`,
-        }),
-      );
-      return false;
-    }
-    const span = this.span.derive(playedDates);
-    if (span === undefined) {
-      errors.push(
-        this.importResults.error({
-          item: { competition: tournament.id },
-          message: `Skipping competition "${tournament.name}": no dated matches found.`,
-        }),
-      );
-      return false;
+
+    let fields: Pick<
+      UpsertCompetition,
+      'type' | 'eraId' | 'startDate' | 'endDate'
+    > = {};
+    if (!competitionRef.found) {
+      const eraRef = await this.eras.resolve({
+        externalSystemId: tpSystemId,
+        externalId: era,
+      });
+      if (!eraRef.found) {
+        errors.push(
+          this.importResults.error({
+            item: { competition: tournament.id, era },
+            message: `Skipping competition "${tournament.name}": era "${era}" does not exist.`,
+          }),
+        );
+        return false;
+      }
+      const span = this.span.derive(playedDates);
+      if (span === undefined) {
+        errors.push(
+          this.importResults.error({
+            item: { competition: tournament.id },
+            message: `Skipping competition "${tournament.name}": no dated matches found.`,
+          }),
+        );
+        return false;
+      }
+      fields = {
+        type: span.type,
+        eraId: eraRef.id,
+        startDate: span.startDate,
+        endDate: span.endDate,
+      };
     }
     const upserted = await this.runner.record({
       run: () =>
         this.competitions.upsert({
           name: tournament.name,
-          type: span.type,
-          eraId: eraRef.id,
-          startDate: span.startDate,
-          endDate: span.endDate,
+          ...fields,
           teamEraIds: [],
-          externalIds: [
-            { externalSystemId: tpSystemId, externalId: String(tournament.id) },
-          ],
+          externalIds,
         }),
       item: { competition: tournament.id },
       errors,
