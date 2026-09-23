@@ -735,6 +735,38 @@ describe('TpPlayersImportService', () => {
     expect(errors).toEqual([]);
   });
 
+  it('scopes rules-set resolution to only the eras rosters are actually under, not the full configured provider list', async () => {
+    // Models a live single-team import against a config provider whose full
+    // era list also declares an unrelated, misconfigured era (ambiguous
+    // rules sets). resolveRulesSetIdByEraName records one error for EVERY
+    // era it's given with rulesSets.length !== 1, unconditionally -- so if
+    // this misconfigured era were passed through, the run would report a
+    // spurious error about an era that has nothing to do with the team
+    // being imported. Scoping to the imported eras keeps the resolver from
+    // ever being asked about it.
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service, importResults, eraRulesSetResolver } = await makeService({
+      upsertPlayerResult,
+      getEras: () => [
+        { name: 'Third Era', rulesSets: ['BB2020'] },
+        { name: 'Misconfigured Era', rulesSets: [] },
+      ],
+    });
+
+    await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+    });
+
+    expect(eraRulesSetResolver.resolveRulesSetIdByEraName).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eras: [{ name: 'Third Era', rulesSets: ['BB2020'] }],
+      }),
+    );
+    const { errors } = resultArgs(importResults);
+    expect(errors).toEqual([]);
+  });
+
   it('records one error and imports nothing when the era rules sets cannot be read', async () => {
     const upsertPlayerResult = vi.fn();
     const { service, importResults } = await makeService({

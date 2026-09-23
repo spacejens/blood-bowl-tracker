@@ -136,6 +136,7 @@ export async function makeService({
   lookup: MockProxy<ReferenceLookupService>;
   mercenaryCharacteristics: MockProxy<TpMercenaryCharacteristicsService>;
   characteristicIncreases: MockProxy<PlayerCharacteristicIncreasesService>;
+  eraRulesSetResolver: MockProxy<TpEraRulesSetResolverService>;
 }> {
   const playersImport = mock<PlayersImportService>();
   playersImport.upsertPlayerResult.mockImplementation(
@@ -244,6 +245,7 @@ export async function makeService({
     lookup,
     mercenaryCharacteristics,
     characteristicIncreases,
+    eraRulesSetResolver,
   };
 }
 

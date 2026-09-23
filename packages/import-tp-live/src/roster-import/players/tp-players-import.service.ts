@@ -293,6 +293,12 @@ export class TpPlayersImportService {
     // Only the eras these rosters are under: a bulk run passes every roster's
     // real era, a live import only the one era it resolved.
     const eraNames = [...new Set(rosters.map((entry) => entry.era))];
+    // Rules-set resolution below must see only the eras these rosters are
+    // actually under -- unlike eraIds above, `eras` still holds the
+    // provider's FULL list, and resolveRulesSetIdByEraName records an error
+    // for every era it's given whose rulesSets are ambiguous, regardless of
+    // whether any roster in this run uses it.
+    const importedEras = eras.filter((era) => eraNames.includes(era.name));
     const eraIds = await this.lookup.lookupMap(
       'era',
       eraNames.map((name) => ({
@@ -326,14 +332,14 @@ export class TpPlayersImportService {
     // of that era's player import is unaffected.
     const rulesSetIdByEraName =
       await this.eraRulesSetResolver.resolveRulesSetIdByEraName({
-        eras,
+        eras: importedEras,
         tpSystemId,
         errors,
       });
     // The curated mercenary table is keyed by rules-set NAME while the
     // resolver above yields ids, so the fallback below needs both.
     const rulesSetNameByEraName =
-      this.mercenaryCharacteristics.rulesSetNameByEraName(eras);
+      this.mercenaryCharacteristics.rulesSetNameByEraName(importedEras);
     const mercenaryPositionIdsByName = new Map<string, number>();
 
     // One batched lookup for the whole run, not one per player: collect
