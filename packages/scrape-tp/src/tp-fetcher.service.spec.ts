@@ -133,6 +133,17 @@ describe('TpFetcherService', () => {
         `TP request to ${URL_A} returned a body that is not valid JSON`,
       );
     });
+
+    it('aborts a request that runs longer than 30 s, instead of hanging', async () => {
+      const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+
+      await service.createSession().fetch(URL_A);
+
+      expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+      expect(fetchMock.mock.calls[0][1]?.signal).toBe(
+        timeoutSpy.mock.results[0].value,
+      );
+    });
   });
 
   describe('cookies', () => {

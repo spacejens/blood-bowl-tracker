@@ -41,6 +41,9 @@ const tournament = await session.fetch(
 - `createSession()` starts one logical visit — a whole tournament download,
   say, or one on-demand fetch of an entity. Create one per visit, not one per
   request: pacing and cookies only carry across requests in the same session.
+  Make one request at a time on a session — pacing and the cookie jar are
+  only meaningful in sequence, so concurrent calls on the same session (e.g.
+  via `Promise.all`) are not supported.
 - `session.fetch(url, options?)` makes one request and returns its body
   parsed as JSON, typed `unknown` for the caller to narrow. Options:
   `referer` (the TP frontend page URL the request belongs to — pass it on
@@ -63,10 +66,11 @@ const tournament = await session.fetch(
   Time the caller already spent in between counts toward that. Separate
   sessions do not pace against each other.
 - **Failure.** A non-2xx response throws, naming the URL and status; a 2xx
-  body that is not valid JSON throws too. There is no retry or backoff: the
-  header set was reliable across 38 back-to-back requests, so there is no
-  observed failure to retry for. Whether a failure aborts the caller's work
-  is the caller's decision.
+  body that is not valid JSON throws too; a request that takes longer than
+  30 seconds is aborted and throws rather than hanging. There is no retry or
+  backoff: the header set was reliable across 38 back-to-back requests, so
+  there is no observed failure to retry for. Whether a failure aborts the
+  caller's work is the caller's decision.
 
 ## Development
 

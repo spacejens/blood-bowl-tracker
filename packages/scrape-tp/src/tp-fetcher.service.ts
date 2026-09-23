@@ -16,12 +16,15 @@ export type TpFetchOptions = {
 /**
  * One logical visit to TP — e.g. one whole tournament download. Its requests
  * share a cookie jar and are paced against each other; nothing is shared with
- * any other session.
+ * any other session. Callers make one request at a time: pacing and the
+ * cookie jar are only meaningful in sequence, so concurrent calls on the same
+ * session (e.g. via `Promise.all`) are not supported.
  */
 export type TpFetchSession = {
   /**
    * Requests `url` and returns its body parsed as JSON. Throws when the
-   * response is not 2xx or its body is not valid JSON; never retries.
+   * response is not 2xx, the body is not valid JSON, or the request does not
+   * complete within {@link REQUEST_TIMEOUT_MS}; never retries.
    */
   fetch(url: string, options?: TpFetchOptions): Promise<unknown>;
 };
@@ -54,6 +57,9 @@ const BROWSER_HEADERS: Readonly<Record<string, string>> = {
 const MIN_DELAY_MS = 500;
 const MAX_DELAY_MS = 2000;
 
+/** A request that hasn't completed within this long is aborted, not retried. */
+const REQUEST_TIMEOUT_MS = 30_000;
+
 /**
  * Makes requests to TP's API that TP accepts from a non-browser client. All
  * request logic lives here; a session is only the per-visit state this
@@ -82,6 +88,7 @@ export class TpFetcherService {
       method: options.method ?? 'GET',
       headers: this.buildHeaders(state, options.referer),
       body: options.body,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     state.lastRequestAt = Date.now();
     this.absorbCookies(state, response.headers.getSetCookie());

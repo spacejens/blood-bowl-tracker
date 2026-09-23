@@ -11,9 +11,11 @@ For each configured tournament it requests, in one continuous session, the
 same API endpoints TP's own frontend requests for the tournament's pages
 (news, scores, classifications, honours, statistics, players, awards), plus
 every match and every participant roster those responses list. Where TP
-paginates (phase rounds, participant categories) it requests every page
-directly. See [Plain-HTTP fetching](#plain-http-fetching) for how requests are
-made and which endpoints each page maps to.
+paginates by round or category (phases, classifications, inscriptions) it
+requests every round and every category directly, each at that endpoint's
+first page — matching what the tool always fetched. See
+[Plain-HTTP fetching](#plain-http-fetching) for how requests are made and
+which endpoints each page maps to.
 
 Downloaded files land in `tools/download-tp/data/<tournament>/`, one folder per
 configured tournament, which is gitignored. That layout matches
