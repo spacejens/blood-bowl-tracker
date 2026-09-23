@@ -1,191 +1,211 @@
+import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
-import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
+import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
+import { TpApiPathsService } from './tp-api-paths.service';
+
+/** Shape of the parts of TP's tournament response this service traverses. */
+type TpTournament = {
+  categories?: { id: number; phases?: { id: number }[] }[];
+};
 
 /**
- * Shape of the parts of a TP phases response this service traverses. The live
- * API returns one response per phase, each flat: its matches are directly on
- * `matches` (carrying their own `group`), not nested under `rounds[].groups[]`
- * as an older single-response API did.
+ * Shape of the parts of a TP phases response this service traverses. The
+ * live API returns one response per phase, each flat: its matches are
+ * directly on `matches` (carrying their own `group`), not nested under
+ * `rounds[].groups[]` as an older single-response API did.
  */
 type TpPhase = {
   currentRound?: number;
   rounds?: { roundNumber: number }[];
-  matches?: { matchId: string }[];
+  matches?: { matchId: number | string }[];
 };
 
-/** Shape of the parts of the TP inscriptions response this service traverses. */
-type TpInscription = { roster: { id: string } };
+/** Shape of the parts of a TP inscriptions response this service traverses. */
+type TpInscription = { roster: { id: number | string } };
+
+/** What every request of one tournament's crawl shares. */
+type LeagueCrawl = {
+  session: TpFetchSession;
+  slug: string;
+  dirName: string;
+};
 
 @Injectable()
 export class LeaguesDownloaderService {
   constructor(
     private readonly downloadTpConfigService: DownloadTpConfigService,
-    private readonly pageViewerService: ApiResponseStoringPageViewerService,
+    private readonly tpFetcherService: TpFetcherService,
+    private readonly apiResponseStoringService: ApiResponseStoringService,
+    private readonly tpApiPathsService: TpApiPathsService,
     private readonly fileSystemService: FileSystemService,
   ) {}
 
   async downloadAllLeagues(): Promise<void> {
-    const frontendUrl = this.downloadTpConfigService.getFrontendUrl();
-    for (const tournamentName of this.downloadTpConfigService.getTournaments()) {
-      const dirName = tournamentName;
+    for (const slug of this.downloadTpConfigService.getTournaments()) {
+      const dirName = slug;
       this.fileSystemService.mkdir(dirName);
-      await this.downloadLeague(
-        frontendUrl + tournamentName,
-        frontendUrl,
+      await this.downloadLeague({
+        session: this.tpFetcherService.createSession(),
+        slug,
         dirName,
-      );
+      });
     }
   }
 
-  private async downloadLeague(
-    tournamentUrl: string,
-    frontendUrl: string,
-    dirName: string,
-  ): Promise<void> {
-    await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/news',
-      dirName,
-    });
-    const fixturesPageResult = await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/scores',
-      dirName,
-      followUpRequests: (apiResponses) => this.missingRoundUrls(apiResponses),
-    });
-    await this.downloadMatches(fixturesPageResult, tournamentUrl, dirName);
-    await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/classifications',
-      dirName,
-    });
-    await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/honours',
-      dirName,
-      clickableElements: [
-        { selector: '.mat-button-toggle-button', textContent: 'Team' },
-        { selector: '.mat-button-toggle-button', textContent: 'Player' },
-        { selector: '.mat-button-toggle-button', textContent: 'Coach' },
-      ],
-    });
-    await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/statistics',
-      dirName,
-    });
-    const participantsPageResult = await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/players',
-      dirName,
-    });
-    await this.downloadParticipants(
-      participantsPageResult,
-      frontendUrl,
-      dirName,
+  /**
+   * One tournament's whole crawl, through one session so pacing and cookies
+   * carry across every page as one continuous visit. Pages are covered in
+   * the order a browser-based crawl visited them, each with the API requests
+   * TP's frontend makes for that page (see TpApiPathsService).
+   */
+  private async downloadLeague(crawl: LeagueCrawl): Promise<void> {
+    const paths = this.tpApiPathsService;
+    const { slug } = crawl;
+    const newsPage = this.tournamentPage(crawl, 'news');
+    const tournament = (await this.fetch(
+      crawl,
+      paths.tournament(slug),
+      newsPage,
+    )) as TpTournament;
+    await this.fetch(crawl, paths.news(slug), newsPage);
+    const phaseIds = this.phaseIds(tournament, slug);
+    await this.downloadFixtures(crawl, phaseIds);
+    const classificationsPage = this.tournamentPage(crawl, 'classifications');
+    for (const phaseId of phaseIds) {
+      await this.fetch(
+        crawl,
+        paths.classifications(slug, phaseId),
+        classificationsPage,
+      );
+    }
+    const honoursPage = this.tournamentPage(crawl, 'honours');
+    await this.fetch(crawl, paths.teamStats(slug), honoursPage);
+    await this.fetch(crawl, paths.lineupStats(slug), honoursPage);
+    await this.fetch(crawl, paths.coachStats(slug), honoursPage);
+    await this.fetch(
+      crawl,
+      paths.statistics(slug),
+      this.tournamentPage(crawl, 'statistics'),
     );
-    await this.pageViewerService.viewPage({
-      pageUrl: tournamentUrl + '/awards',
-      dirName,
-    });
+    await this.downloadParticipants(
+      crawl,
+      (tournament.categories ?? []).map((category) => category.id),
+    );
+    await this.fetch(
+      crawl,
+      paths.awards(slug),
+      this.tournamentPage(crawl, 'awards'),
+    );
   }
 
-  private async downloadMatches(
-    fixturesPageResult: Map<string, unknown>,
-    tournamentUrl: string,
-    dirName: string,
+  /**
+   * Every phase's fixtures, then every match they list. A phase response
+   * only carries its own `currentRound`'s matches; the frontend loads older
+   * rounds by clicking a round tab, which re-requests the same URL with
+   * `&round=<n>` appended. The round numbers are already in the first
+   * response's `rounds[]`, so each other round is requested directly.
+   */
+  private async downloadFixtures(
+    crawl: LeagueCrawl,
+    phaseIds: number[],
   ): Promise<void> {
-    const phases = this.findResponses(
-      'phases',
-      fixturesPageResult,
-    ) as TpPhase[];
-    if (phases.length === 0) {
-      throw new Error(
-        'Did not find any response with URL path ending in phases',
-      );
+    const paths = this.tpApiPathsService;
+    const scoresPage = this.tournamentPage(crawl, 'scores');
+    const phases: TpPhase[] = [];
+    for (const phaseId of phaseIds) {
+      const phase = (await this.fetch(
+        crawl,
+        paths.phase(crawl.slug, phaseId),
+        scoresPage,
+      )) as TpPhase;
+      phases.push(phase);
+      for (const round of phase.rounds ?? []) {
+        if (round.roundNumber !== phase.currentRound) {
+          phases.push(
+            (await this.fetch(
+              crawl,
+              paths.phaseRound(crawl.slug, phaseId, round.roundNumber),
+              scoresPage,
+            )) as TpPhase,
+          );
+        }
+      }
     }
     for (const phase of phases) {
       for (const match of phase.matches ?? []) {
-        await this.pageViewerService.viewPage({
-          pageUrl: tournamentUrl + '/match/' + match.matchId,
-          dirName,
-        });
+        await this.fetch(
+          crawl,
+          paths.match(match.matchId),
+          this.tournamentPage(crawl, `match/${match.matchId}`),
+        );
       }
     }
   }
 
+  /**
+   * Every category's participant list, then every roster they list. The
+   * live API paginates participants per category; each response is keyed by
+   * category id.
+   */
   private async downloadParticipants(
-    participantsPageResult: Map<string, unknown>,
-    frontendUrl: string,
-    dirName: string,
+    crawl: LeagueCrawl,
+    categoryIds: number[],
   ): Promise<void> {
-    // The live API paginates participants per category, so there is one
-    // response per category rather than one for the whole tournament. Each
-    // one is still keyed by category id.
-    const participantsListResponses = this.findResponses(
-      'inscriptions',
-      participantsPageResult,
-    ) as Record<string, TpInscription[]>[];
-    if (participantsListResponses.length === 0) {
-      throw new Error(
-        'Did not find any response with URL path ending in inscriptions',
+    const paths = this.tpApiPathsService;
+    const playersPage = this.tournamentPage(crawl, 'players');
+    const responses: Record<string, TpInscription[]>[] = [];
+    for (const categoryId of categoryIds) {
+      responses.push(
+        (await this.fetch(
+          crawl,
+          paths.inscriptions(crawl.slug, categoryId),
+          playersPage,
+        )) as Record<string, TpInscription[]>,
       );
     }
-    for (const participantsListResponse of participantsListResponses) {
-      for (const inscriptions of Object.values(participantsListResponse)) {
+    const frontendUrl = this.downloadTpConfigService.getFrontendUrl();
+    for (const response of responses) {
+      for (const inscriptions of Object.values(response)) {
         for (const inscription of inscriptions) {
-          await this.pageViewerService.viewPage({
-            pageUrl: frontendUrl + 'roster/' + inscription.roster.id,
-            dirName,
-          });
+          await this.fetch(
+            crawl,
+            paths.roster(inscription.roster.id),
+            `${frontendUrl}roster/${inscription.roster.id}`,
+          );
         }
       }
     }
   }
 
-  /**
-   * Finds every response whose URL path — the part before any query string —
-   * ends with the given suffix. Matching on the path is what makes this
-   * robust against TP's per-phase/per-category pagination query parameters.
-   */
-  private findResponses(
-    pathSuffix: string,
-    pageResult: Map<string, unknown>,
-  ): unknown[] {
-    const foundResponses: unknown[] = [];
-    pageResult.forEach((response, requestUrl) => {
-      if (this.pathEndsWith(requestUrl, pathSuffix)) {
-        foundResponses.push(response);
-      }
-    });
-    return foundResponses;
+  /** Every phase id across the tournament's categories, in listed order. */
+  private phaseIds(tournament: TpTournament, slug: string): number[] {
+    const phaseIds = (tournament.categories ?? []).flatMap((category) =>
+      (category.phases ?? []).map((phase) => phase.id),
+    );
+    if (phaseIds.length === 0) {
+      throw new Error(`Tournament ${slug} lists no phases in its categories`);
+    }
+    return phaseIds;
   }
 
-  private pathEndsWith(requestUrl: string, pathSuffix: string): boolean {
-    return requestUrl.split('?')[0].endsWith(pathSuffix);
+  /** A page under the tournament's frontend URL, used as a referer. */
+  private tournamentPage(crawl: LeagueCrawl, page: string): string {
+    return `${this.downloadTpConfigService.getFrontendUrl()}${crawl.slug}/${page}`;
   }
 
-  /**
-   * A phase response only carries its own `currentRound`'s matches; the
-   * frontend loads older rounds by clicking a round tab, which re-requests the
-   * same URL with `&round=<n>` appended. Tab labels differ by phase category
-   * ("Matchday N" for the main phase, "Day N" for qualifying and playoffs), so
-   * matching tabs by text would be brittle -- the round numbers are already in
-   * the first response's `rounds[]`, so each missing round is requested
-   * directly instead. The extra responses land under the same URL path, so
-   * `findResponses('phases', ...)` picks them up with no merging step.
-   */
-  private missingRoundUrls(apiResponses: Map<string, unknown>): string[] {
-    const apiUrl = this.downloadTpConfigService.getBackendApiUrl();
-    const urls: string[] = [];
-    apiResponses.forEach((response, requestUrl) => {
-      if (!this.pathEndsWith(requestUrl, 'phases')) {
-        return;
-      }
-      const phase = response as TpPhase;
-      for (const round of phase.rounds ?? []) {
-        if (round.roundNumber !== phase.currentRound) {
-          urls.push(`${apiUrl}${requestUrl}&round=${round.roundNumber}`);
-        }
-      }
+  private fetch(
+    crawl: LeagueCrawl,
+    path: string,
+    referer: string,
+  ): Promise<unknown> {
+    return this.apiResponseStoringService.fetchAndStore(crawl.session, {
+      path,
+      referer,
+      dirName: crawl.dirName,
     });
-    return urls;
   }
 }
