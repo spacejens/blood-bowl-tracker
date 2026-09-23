@@ -8,6 +8,12 @@ export type {
 export { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 export type { FetchRosterOptions } from './live/tp-roster-fetch.service';
 export { TpRosterFetchService } from './live/tp-roster-fetch.service';
+export { TpMatchModule } from './match/tp-match.module';
+export type {
+  ImportMatchOptions,
+  ImportRawMatchOptions,
+} from './match/tp-match-import.service';
+export { TpMatchImportService } from './match/tp-match-import.service';
 export { TpRosterModule } from './roster/tp-roster.module';
 export type {
   ImportRawRosterOptions,
