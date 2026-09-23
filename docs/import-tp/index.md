@@ -416,28 +416,27 @@ version pair on every import. Correctness is guaranteed from the next full
 database drop and re-import onward; no attempt is made to retroactively repair
 a database carrying lasting-injury columns from a partial rollout.
 
-`main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras, then competitions, then matches (fed the competitions step's
-`matchesByCompetitionId`), then coaches, then the roster files and TP's
-official team list (each scanned and parsed once, shared by the steps below),
-then races, then positions, then position characteristics, then the keyword
-catalog and position keywords, then starting skills, then roster import —
-teams and players together, one `tpRosters.import` call per roster (see
-[import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)) —
-then induced star hires, then roster player facts (skills and career SPP
-counts), then player skills sync, then mercenary position/race/era sync,
-then team participation, then trophy awards, then match events, then SPP
-adjustments, then the lasting-injury backfill, then match outcomes, and
-finally missing trophy awards — aggregating each step's `ImportResult` into
-one overall result, mirroring `tools/import-bbl/src/main.ts`.
-Races and positions run after coaches; they have no FK dependency on the
-earlier import steps (only on each other, in that order). Roster import runs
-after positions and skills (each player resolves a team era and a position,
-needing the starting-skills catalog already loaded). Team participation runs
-after that because it needs the roster import's resolved team-era ids and
-the competitions step's maps. Trophy awards run after team participation,
-resolving each award's competition, curated group, and winning team's team
-era. Match events run after that because they depend on
+`main.ts` orchestrates these in dependency order — league, then rule sets, then eras, then
+competitions, then matches (fed the competitions step's `matchesByCompetitionId`), then coaches,
+then the roster files and TP's official team list, each scanned and parsed once client-side for
+the bulk tool's own local steps below (the roster import call re-sends each file's raw content,
+which `TpRosterImportService.importRawRoster` parses a second time, server-side), then
+races, then positions, then position characteristics, then the keyword catalog and position
+keywords, then starting skills, then roster import — teams and players together, one
+`tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent
+once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)) —
+then induced star hires, then roster player facts (skills and career SPP counts), then player
+skills sync, then mercenary position/race/era sync, then team participation, then trophy awards,
+then match events, then SPP adjustments, then the lasting-injury backfill, then match outcomes,
+and finally missing trophy awards — aggregating each step's `ImportResult` into one overall
+result, mirroring `tools/import-bbl/src/main.ts`.
+Races and positions run after coaches; they have no FK dependency on the earlier import steps
+(only on each other, in that order). Roster import runs after positions and skills (each player
+resolves a team era and a position, needing the starting-skills catalog already loaded). Team
+participation runs after that because it needs the roster import's resolved team-era ids and the
+competitions step's maps. Trophy awards run after team participation, resolving each award's
+competition, curated group, and winning team's team era. Match events run after that because they
+depend on
 `match_teams`, which team participation is what populates. Match outcomes
 run last of all because they count scores from the touchdown events match
 events just imported.
