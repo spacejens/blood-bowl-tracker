@@ -67,8 +67,9 @@ run's rules-sets step supplies.
 
 ## Era resolution
 
-TP's roster names no era. An era passed explicitly is used as given. Otherwise
-the team's race is looked up by its TP race code, and the race's ongoing eras
+TP's roster names no era. An era passed explicitly is used once it is found
+in the database; an unknown one is not imported. Otherwise the team's race is
+looked up by its TP race code, and the race's ongoing eras
 — eras it is linked to with no end date, via the read-only
 `races.listOngoingEras` procedure — decide it:
 
@@ -88,6 +89,8 @@ the result:
 | TP request fails (network error, TP refusing or rate-limiting it) | `team`, naming the roster id |
 | Response does not parse as a roster | `team`, naming the roster id |
 | Race unresolvable, no ongoing era, or several ongoing eras | `team`, naming the race and the eras found |
+| Explicitly passed era does not exist | `team`, naming the era |
+| TP external system cannot be set up | `team` |
 | Team or player upsert failure | `team` / `players`, as in a bulk run |
 
 When the team is not imported, its players are not attempted and `players`
