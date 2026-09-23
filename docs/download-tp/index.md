@@ -11,9 +11,10 @@ For each configured tournament it requests, in one continuous session, the
 same API endpoints TP's own frontend requests for the tournament's pages
 (news, scores, classifications, honours, statistics, players, awards), plus
 every match and every participant roster those responses list. Where TP
-paginates by round or category (phases, classifications, inscriptions) it
-requests every round and every category directly, each at that endpoint's
-first page — matching what the tool always fetched. See
+paginates by phase, round or category (phases, classifications per phase,
+inscriptions per category) it requests every phase, round and category
+directly, each at that endpoint's first page — matching what the tool always
+fetched. See
 [Plain-HTTP fetching](#plain-http-fetching) for how requests are made and
 which endpoints each page maps to.
 
