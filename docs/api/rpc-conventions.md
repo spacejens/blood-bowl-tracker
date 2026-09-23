@@ -205,6 +205,16 @@ failure comes back in the result's `ImportResult`s, so it declares no
 contract errors, and since everything it writes is an upsert it is safe to
 retry.
 
+`tpMatches.import` is the same shape of procedure for a match: it takes one
+TP match exactly as TP's API returns it, plus its bracket (every match in its
+competition, for classifying playoff stages) and its competition's TP id, and
+upserts the match, links its teams, imports its events, and resolves its
+outcome — all server-side, through the same `packages/import-tp-live` module
+`tpRosters.import` uses. See
+[import-tp-live's match import](../import-tp-live/match-import.md). Like
+`tpRosters.import`, every failure comes back in the result rather than being
+thrown, so it declares no contract errors either.
+
 ## Error responses
 
 Procedures declare their possible errors on the oRPC contract itself (see

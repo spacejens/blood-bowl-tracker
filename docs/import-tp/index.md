@@ -53,8 +53,8 @@ Top-level keys:
       files. TP's subdirectory names are its own slugs and don't necessarily
       match the era's display name. Every `identity.name` and every
       `dataSubdir` must be unique across the array.
-See `import-tp-config.example.json5` for a worked example with real era
-names, rule sets, and dates.
+      See `import-tp-config.example.json5` for a worked example with real era
+      names, rule sets, and dates.
 
 Rule-set names and era dates are config-supplied because TP's data carries
 only an opaque numeric rule-set code, not a name or a date range. The tool
@@ -92,6 +92,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 
    `tools/import-tp/import-tp-config.json5` is git-ignored, so your
    configuration is never committed.
+
 2. Build and run the tool so the config file is picked up automatically:
 
    ```bash
@@ -107,6 +108,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
    ```
 
    On failure, the tool exits with a non-zero status and prints each error.
+
 3. To import into the production api-server instead, keep a second config file
    `tools/import-tp/import-tp-config.production.json5` (copied from the same
    example template, with `apiBaseUrl` changed to `http://localhost:3001`),
@@ -116,7 +118,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 
 ## Architecture
 
-Teams and players are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, which `packages/import-tp-live` implements (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster for that upsert; it does parse rosters for team participation and for the skills and career SPP counts later steps need.
+Teams, players and matches are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, and `TpMatchFilesImportService` sends each match file's raw content to `tpMatches.import`, both implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster or a match for those upserts; it does parse rosters and matches for team/competition participation and for the skills and career SPP counts later steps need.
 
 - **ImportTpConfigService** — loads `import-tp-config.json5` (JSON5), exposing
   raw top-level values via `get<T>(key)` and the api-server base URL via
@@ -156,15 +158,6 @@ Teams and players are imported server-side: `TpRosterFilesImportService` sends e
   Competitions missing a base tournament file, with an unparsable one, with
   no dated matches, or whose era has no known id are skipped with a recorded
   error.
-- **TpMatchesImportService** — upserts each match as a `Match` row linked to its
-  competition. Match files carry no tournament id, so matches are linked via the
-  directory scan `TpCompetitionsImportService` already performs: it exposes a
-  `matchesByCompetitionId` map (keyed by DB competition id) that this service
-  consumes rather than scanning the source files itself. Each match carries a TP
-  external id (the stringified `matchId`) and no Name external id (match names
-  are not unique); team-era linkage (`match_teams`) is handled by
-  `TpTeamParticipationImportService` and match events by
-  `TpMatchEventsImportService`, both below.
 - **TpCoachesImportService** — upserts every coach registered to a competition,
   read from each competition's `inscriptions_<slug>_inscriptions.json` file via
   `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
@@ -212,12 +205,12 @@ Teams and players are imported server-side: `TpRosterFilesImportService` sends e
   so their availability comes straight from that, not from observed hires.
   Each group
   also carries the characteristics the official list reports per `(position,
-  rules set)` (see
+rules set)` (see
   [file-format-official-teams.md](./file-format-official-teams.md)),
   resolving each era's rules set via `TpEraRulesSetResolverService`. That does
   need conflict resolution: an official roster (`teamRosterType === 0`) and a
   legacy one (`1`) of the same race can both carry the same `(position, rules
-  set)` with different stats — three BB2020 positions really do (Norse Yhetee,
+set)` with different stats — three BB2020 positions really do (Norse Yhetee,
   Vampire Thrall Lineman, Vampire Blitzer) — so
   `recordCharacteristicsForRulesSet` tags each recorded value with the roster
   kind it came from and lets the official value win regardless of which roster
@@ -299,6 +292,7 @@ Teams and players are imported server-side: `TpRosterFilesImportService` sends e
   Characteristic-increase counts are derived the same way BBL's are: diffing
   converted characteristics against the position's stored values under the
   era's rules set, adding back outstanding reductions.
+
 - **TpInducedStarPlayersStepService** — imports every star player hired via
   an `inducements_roll` match event (gathered by `main.ts` from the
   already-parsed match events): each gets a reused `isStarPlayer: true`
@@ -324,18 +318,16 @@ Teams and players are imported server-side: `TpRosterFilesImportService` sends e
   upsert-only `syncRaceEras` call per position. Runs right after players,
   since the usages only exist once players are imported; an unresolvable race
   code or era name is recorded as an error and skipped.
-- **TpTeamParticipationImportService** — populates `match_teams` and
-  `competition_teams` for the already-imported matches and competitions. Runs
-  after teams import (it needs each team's resolved team-era ids) and consumes
-  only maps the earlier steps produced plus the shared `rosters` list — no new
-  file scanning. For each competition it resolves the roster ids of the roster
-  files under its own directory to team-era ids and re-upserts the competition
-  with those `teamEraIds` (writing `competition_teams`); it then re-upserts each
-  match with its `[home, away]` team-era ids, resolved from the roster ids the
-  parser reads out of each match file (writing `match_teams`). Both writes are
-  additive/idempotent; unlike BBL, TP needs no page scraping because it embeds
-  both teams' roster ids per match and a roster file's directory placement is
-  the competition-membership signal.
+- **TpTeamParticipationImportService** — populates `competition_teams` for the
+  already-imported competitions: every registered team, including one that
+  never played a match. Runs after teams import (it needs each team's
+  resolved team-era ids) and consumes only maps the earlier steps produced
+  plus the shared `rosters` list — no new file scanning. For each competition
+  it resolves the roster ids of the roster files under its own directory to
+  team-era ids and re-upserts the competition with those `teamEraIds`. A
+  match's own teams (`match_teams`) are linked by `tpMatches.import` instead,
+  below — unlike BBL, TP needs no page scraping for that because it embeds
+  both teams' roster ids per match.
 - **TpAwardsReaderService** — walks every competition directory's `awards_*.json`
   file via `AwardsParserService` from `packages/parse-tp`, returning the parsed
   awards keyed by `${era}::${competition}` (the same directory key
@@ -359,19 +351,18 @@ Teams and players are imported server-side: `TpRosterFilesImportService` sends e
   recorded as an error and skipped; resolutions (successes and failures) are
   memoized per run, and further rows against an already-known-bad key are
   summarized in one error at the end.
-- **TpMatchEventsImportService** — imports touchdown, injury/casualty, and
-  administrative match events from every already-parsed TP match's
-  `matchEvents[]` (see
-  [file-format-match.md](./file-format-match.md)
-  for the full decode table). Unlike BBL, which correlates separately
-  scraped action/consequence occurrences, TP embeds the acting/victim player
-  and team directly on each event, so no correlation step is needed. Runs
-  after the team-participation and players steps: it needs `match_teams`
-  (populated by team participation, above), the players step's
-  `playerIdsByLineUpId`/`starPlayerIdsByRosterAndMaster` maps, and
-  `matchIdsByTpId` (from matches import) to resolve each event's match.
-  Idempotent; a roster id or `lineUpId` that can't be resolved is recorded as
-  a non-fatal error and the event is still emitted with that field omitted.
+- **TpMatchFilesImportService** — streams every `match_*.json` again and
+  sends each raw to `tpMatches.import` with its competition's TP id and
+  bracket; see
+  [import-tp-live's match import](../import-tp-live/match-import.md) for what
+  the server does with it (upserting the match, linking its teams, importing
+  its events — see
+  [file-format-match.md](./file-format-match.md) for the full decode table —
+  and resolving its outcome). Runs after team participation and trophy
+  awards, since it needs both teams' team eras resolvable. Files are streamed
+  again rather than kept from the competitions scan, so only one raw match is
+  held in memory at a time; a file under a competition that was not imported,
+  or that did not parse during the competitions scan, is skipped.
 - **TpSppAdjustmentsImportService** — reconciles `players.spp_adjustment` for
   every imported player. Unlike BBL, TP's own career SPP total is already
   trusted and stored as `players.spp_total` by the players step, so this step
@@ -380,23 +371,12 @@ Teams and players are imported server-side: `TpRosterFilesImportService` sends e
   career-wide and can include competitions not yet downloaded, each player's
   TP-reported career action counts are sent along so the server can price and
   discount those not-yet-imported events instead of misattributing them as
-  unexplained adjustment. Runs after match events, since it depends on
+  unexplained adjustment. Runs after match-file import, since it depends on
   `match_events.spp_value` already being populated.
-- **TpMatchOutcomesImportService** — runs last of every match-related step
-  (after match events, since it counts scores from the `touchdown` events they
-  import): per competition, it sends `matches.resolveOutcomes` a tie-break for
-  every match with a `winner` — TP's own per-match field, independent of
-  score, so no bracket reconstruction like BBL's trophy-table placements is
-  needed. `'home'`/`'away'` resolve the corresponding roster id to a team era
-  (via `teamErasByRosterId` and the competition's `eraId`); `'draw'` sends an
-  explicit `null` winner; a match with no `winner` sends no tie-break at all.
-  TP has no result-override config, unlike BBL — `overrides` is always empty.
-  Every match the server cannot settle is reported as an import error naming
-  its TP match id.
 
 ### Lasting-injury history backfill
 
-A final step, after the match-events step, for the players this run inserted.
+A final step, after match-file import, for the players this run inserted.
 A current-state-only write records only what is outstanding now, so an injury
 already healed before the first import that captured live state would leave no
 trace anywhere. For each freshly-inserted player the server recomputes what
@@ -417,29 +397,30 @@ database drop and re-import onward; no attempt is made to retroactively repair
 a database carrying lasting-injury columns from a partial rollout.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets, then eras, then
-competitions, then matches (fed the competitions step's `matchesByCompetitionId`), then coaches,
-then the roster files and TP's official team list, each scanned and parsed once client-side for
-the bulk tool's own local steps below (the roster import call re-sends each file's raw content,
-which `TpRosterImportService.importRawRoster` parses a second time, server-side), then
-races, then positions, then position characteristics, then the keyword catalog and position
-keywords, then starting skills, then roster import — teams and players together, one
+competitions (producing `matchesByCompetitionId`, consumed later by the match-file import below),
+then coaches, then the roster files and TP's official team list, each scanned and parsed once
+client-side for the bulk tool's own local steps below (the roster import call re-sends each
+file's raw content, which `TpRosterImportService.importRawRoster` parses a second time,
+server-side), then races, then positions, then position characteristics, then the keyword catalog
+and position keywords, then starting skills, then roster import — teams and players together, one
 `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent
 once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)) —
 then induced star hires, then roster player facts (skills and career SPP counts), then player
 skills sync, then mercenary position/race/era sync, then team participation, then trophy awards,
-then match events, then SPP adjustments, then the lasting-injury backfill, then match outcomes,
-and finally missing trophy awards — aggregating each step's `ImportResult` into one overall
-result, mirroring `tools/import-bbl/src/main.ts`.
+then match files (one `tpMatches.import` call per file, importing the match, its teams, its
+events and its outcome together — see
+[import-tp-live's match import](../import-tp-live/match-import.md)), then SPP adjustments, then
+the lasting-injury backfill, and finally missing trophy awards — aggregating each step's
+`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
 Races and positions run after coaches; they have no FK dependency on the earlier import steps
 (only on each other, in that order). Roster import runs after positions and skills (each player
 resolves a team era and a position, needing the starting-skills catalog already loaded). Team
 participation runs after that because it needs the roster import's resolved team-era ids and the
 competitions step's maps. Trophy awards run after team participation, resolving each award's
-competition, curated group, and winning team's team era. Match events run after that because they
-depend on
-`match_teams`, which team participation is what populates. Match outcomes
-run last of all because they count scores from the touchdown events match
-events just imported.
+competition, curated group, and winning team's team era. Match files run after that because
+resolving a match's context needs both teams' team eras already resolvable, the same requirement
+team participation exists to satisfy. SPP adjustments run last of the match-related steps because
+they depend on `match_events.spp_value`, which match-file import is what populates.
 
 ### Reference resolution
 
@@ -491,7 +472,7 @@ position's other keywords are still written. The same catalogue also decodes a
 
 ## Related documentation
 
-- [import-tp-live](../import-tp-live/index.md) — the server-side team/player import behind `tpRosters.import`, and the live team import.
+- [import-tp-live](../import-tp-live/index.md) — the server-side team/player import behind `tpRosters.import` and the live team import, and the server-side match import behind `tpMatches.import` and the live match import (see its [match-import.md](../import-tp-live/match-import.md)).
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
 - [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.

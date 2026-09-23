@@ -4,7 +4,7 @@
 TP. It sends plain-HTTP requests to TP's API that TP accepts as coming from a
 browser, and keeps each logical visit's requests paced and cookie-consistent.
 `tools/download-tp` uses it, and so does `packages/import-tp-live`, the live
-team import the discord-bot's on-demand TP import builds on.
+team and match import the discord-bot's on-demand TP import builds on.
 
 ## Why it exists
 

@@ -71,10 +71,10 @@ packages/
                         call api-client; also owns the config-service factories the import
                         tools' own config, external-system-name and source
                         services are built from
-  import-tp-live/     — server-side NestJS module importing one TP roster's
-                        team and players straight through packages/game-data:
-                        the live import (fetch via scrape-tp, era
-                        auto-resolution) and the core behind tpRosters.import
+  import-tp-live/     — server-side NestJS module importing one TP roster or
+                        one completed TP match, with its teams and
+                        competition, through packages/game-data: the core
+                        behind tpRosters.import/tpMatches.import and the live entry points
   parse-tp/           — library package for reusable TP JSON-parsing logic
                         (matches, rosters, awards, tournaments); consumed
                         by tools/import-tp and packages/import-tp-live
@@ -100,8 +100,8 @@ packages/
                         pacing; no TP URL knowledge, no config, and no
                         dependency on any other workspace package; consumed by
                         tools/download-tp and packages/import-tp-live
-  tp-paths/           — TP's URL paths as TP's frontend requests them; pure,
-                        no I/O, shared by tools/download-tp and import-tp-live
+  tp-paths/           — TP's roster/tournament/match paths as TP's frontend
+                        requests them; pure, no I/O, shared by tools/download-tp and import-tp-live
 
 tools/
   download-tp/        — NestJS CLI application that fetches TP's API over
@@ -169,7 +169,7 @@ tools/
 
 - `apps/discord-bot` imports `packages/api-server` (to host the `/rpc` endpoint) and can import `packages/game-data` directly for any in-process feature that needs coach/external-system data, without a network hop
 - `tools/import-*` import `packages/import`, which internally calls `packages/api-client` to reach a deployed `api-server` over the network
-- `packages/api-server` also imports `packages/import-tp-live` to implement `tpRosters.import`; `packages/import-tp-live` calls `packages/game-data` in-process and never reaches the api-server over RPC, so `apps/discord-bot` can call it directly while `tools/import-tp` reaches it only through that one procedure
+- `packages/api-server` also imports `packages/import-tp-live` to implement `tpRosters.import` and `tpMatches.import`; `packages/import-tp-live` calls `packages/game-data` in-process and never reaches the api-server over RPC, so `apps/discord-bot` can call it directly while `tools/import-tp` reaches it only through those two procedures
 - `packages/api-server` imports `packages/game-data` (for persistence) and `packages/api-contract` (for the RPC contract it implements) — it has no dependency on `packages/db` directly
 - `packages/game-data` has no dependency on any network-facing package — it is pure business logic over `packages/db`
 
@@ -192,12 +192,12 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`tools/download-tp`** (downloader) — fetches TP's API via `packages/scrape-tp` into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
 - **`packages/scrape-tp`** (shared fetching) — the one implementation of how this repo makes HTTP requests TP accepts: the browser-like header set, per-visit sessions with a cookie jar, and randomized pacing between a session's requests. Consumed by `tools/download-tp` and `packages/import-tp-live` (the building block a future `apps/discord-bot` on-demand TP import will use), so a change to how requests look reaches both. It deliberately knows no TP URLs or page-to-endpoint mapping — those stay with each consumer — and depends on no other workspace package
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed by `tools/import-tp` and `packages/import-tp-live`. It has no BBL counterpart: BBL _interpretation_ (page-type parsing, HTML extraction) stays inside each tool that does it, deliberately, so the review tools can check the importer's reading of a page against their own. Only the mechanical file access is shared, via `packages/read-bbl-mirror`
-- **`packages/import-tp-live`** (TP roster import, server-side) — imports one TP roster's team and players directly through `packages/game-data`: the live import (fetch via `packages/scrape-tp`, parse via `packages/parse-tp`, era auto-resolution) and the implementation behind `tpRosters.import`, which `tools/import-tp`'s bulk run calls once per roster file — so a change to how a TP team or player is imported reaches bulk and live imports together. Deliberately depends on neither `packages/import` nor `packages/api-client`. Live match and competition import (not yet built) will build on it the same way (see `docs/import-tp-live/index.md`)
-- **`packages/tp-paths`** (shared TP paths) — TP's URL paths, pure and I/O-free, so the client-only `tools/download-tp` and the server-side `packages/import-tp-live` can both depend on it without either gaining the other's dependencies
+- **`packages/import-tp-live`** (TP roster and match import, server-side) — imports one TP roster's team and players, or one completed TP match with its teams and competition, directly through `packages/game-data`: the live imports (fetch via `packages/scrape-tp`, parse via `packages/parse-tp`, era auto-resolution; a live match import creates the competition it needs) and the implementations behind `tpRosters.import` and `tpMatches.import`, which `tools/import-tp`'s bulk run calls once per roster or match file — so a change to how a TP team, player or match is imported reaches bulk and live imports together. Deliberately depends on neither `packages/import` nor `packages/api-client` (see `docs/import-tp-live/index.md`)
+- **`packages/tp-paths`** (shared TP paths) — TP's roster, tournament and match paths, pure and I/O-free, so the client-only `tools/download-tp` and the server-side `packages/import-tp-live` can both depend on it without either gaining the other's dependencies
 - **`packages/read-bbl-mirror`** (shared mirror access) — the mechanics of getting text out of a BBL wget mirror directory: resolving a filename safely against a caller-supplied data directory, reporting a missing file as `null` and a missing directory as an empty listing, decoding bytes as ISO-8859-1, and listing plain files. Consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`, so a change here reaches all five at once. It carries no BBL-page-type awareness and no HTML parsing on purpose: which files matter, what their names mean and what their contents say stay with each consumer, which is what keeps the review tools' independence from importer logic intact. Like `packages/config-loader`, it deliberately depends on no other workspace package
 - **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do, not what it knows: every matched slash command, button click and select-menu selection lands in the `discord_bot_usage` schema. `packages/discord-client` calls it after each interaction has already been replied to, fire-and-forget, so a recording failure can never affect a user-facing reply. `packages/discord-client` is its only writer. `apps/discord-bot` reads it back through `InteractionEventsQueryService`, for the `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` maintainer commands; broader reporting on the captured data is still separate work
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other; it reads the mirror's files through `packages/read-bbl-mirror`, while every BBL page-type and HTML interpretation stays in the tool
-- **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity; its team and player import go through the `tpRosters.import` procedure, one call per roster file
+- **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity; its team, player and match import go through the `tpRosters.import` and `tpMatches.import` procedures, one call per roster or match file
 - **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data. It can also supply characteristics a source importer reads back over the API rather than deriving itself — see the gap-fill pattern in `docs/import-manual/index.md`
 - **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once. It owns:
   - **The shared upsert plumbing** (`createUpsertImportServiceBase`) alongside the runner and batch helpers; for entities with exactly one upsert call, the import service is a declarative subclass supplying only the client resource it upserts through and the wording of its per-item error message, giving it the base class's shared `upsert(data, errors)` method — a subclass may still add its own entity-specific extra method alongside it.
