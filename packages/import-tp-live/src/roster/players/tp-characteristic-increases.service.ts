@@ -73,10 +73,10 @@ const ZERO_REDUCTIONS: PlayerCharacteristicReductionCounts = {
 };
 
 /**
- * A copy of packages/import's PlayerCharacteristicIncreasesService
- * arithmetic, which this server-side package cannot depend on; keep the two
- * in step. Reads its fallback baseline straight from the database and keeps
- * no state between imports (see `newCache`).
+ * Server-side implementation of the characteristic-increase arithmetic, for
+ * this package's TP roster import, which cannot depend on the RPC-client
+ * `packages/import`. Reads its fallback baseline straight from the database
+ * and keeps no state between imports (see `newCache`).
  *
  * Derives how many times each of a player's five characteristics has been
  * increased by advancement.

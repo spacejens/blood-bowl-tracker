@@ -16,7 +16,7 @@ export interface ImportSppAdjustmentsOptions {
   playerIds: number[];
   /**
    * TP's career-wide per-action-type counts, keyed by DB player id (from
-   * `TpPlayersImportService`). Optional, and legitimately missing per player:
+   * `TpRosterPlayerFactsService`). Optional, and legitimately missing per player:
    * only the standalone roster files carry the counters, so a player seen only
    * in a match-embedded snapshot has none and simply gets no
    * ongoing-competition estimate.

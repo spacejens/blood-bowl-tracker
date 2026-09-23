@@ -60,12 +60,6 @@ export { MatchOutcomesImportService } from './match-outcomes-import.service';
 export { MatchesImportService } from './matches-import.service';
 export { MissingTrophyAwardsImportService } from './missing-trophy-awards-import.service';
 export { NameExternalIdService } from './name-external-id.service';
-export type {
-  PlayerCharacteristicIncreaseCounts,
-  PlayerCharacteristicReductionCounts,
-  PlayerCurrentCharacteristics,
-} from './player-characteristic-increases.service';
-export { PlayerCharacteristicIncreasesService } from './player-characteristic-increases.service';
 export {
   PLAYER_SKILLS_SYNC_CHUNK_SIZE,
   PlayerSkillsImportService,

@@ -53,9 +53,9 @@ export interface ImportHiresOptions {
 
 /**
  * Imports star players hired mid-season via an `inducements_roll` match
- * event. Split out of `TpPlayersImportService` to keep that file (and its
- * spec) under the repo's line caps; the hire loop is a self-contained block
- * with its own inputs and its own output map.
+ * event. Kept in its own file (and spec), under the repo's line caps, since
+ * the hire loop is a self-contained block with its own inputs and its own
+ * output map; called by `TpInducedStarPlayersStepService`.
  */
 @Injectable()
 export class TpInducedStarPlayersImportService {

@@ -23,8 +23,9 @@ export interface SyncMercenaryPositionRaceErasOptions {
  * `starPlayersMasters`), per `TpMercenaryCharacteristicsService`'s own doc
  * comment. So mercenary race/era availability must still be derived from
  * actual usage:
- * `TpPlayersImportService` emits one `MercenaryPositionUsage` per imported
- * mercenary Big Guy hire. This step resolves each usage's raw
+ * The server-side roster import (`TpRosterPlayersImportService`) emits one
+ * `MercenaryPositionUsage` per imported mercenary Big Guy hire, returned to
+ * this tool via `tpRosters.import`. This step resolves each usage's raw
  * `(teamRaceCode, era)` references to numeric `(raceId, eraId)`, dedupes the
  * pairs per mercenary position, and persists them with one
  * `PositionsImportService.syncRaceEras` call per position -- the same
