@@ -1,3 +1,4 @@
+import { TpRosterPathsModule } from '@blood-bowl-tracker/import-tp-live';
 import { ScrapeTpModule } from '@blood-bowl-tracker/scrape-tp';
 import { Module } from '@nestjs/common';
 
@@ -8,7 +9,7 @@ import { OfficialTeamsDownloaderService } from './official-teams-downloader.serv
 import { TpApiPathsService } from './tp-api-paths.service';
 
 @Module({
-  imports: [ScrapeTpModule],
+  imports: [ScrapeTpModule, TpRosterPathsModule],
   providers: [
     LeaguesDownloaderService,
     OfficialTeamsDownloaderService,
