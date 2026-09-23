@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  browserGroupSchema,
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
@@ -47,23 +46,6 @@ describe('connectionGroupSchema', () => {
     expect(connectionGroupSchema.safeParse({}).success).toBe(true);
     expect(connectionGroupSchema.safeParse(undefined).success).toBe(false);
     expect(connectionGroupSchema.safeParse('nope').success).toBe(false);
-  });
-});
-
-describe('browserGroupSchema', () => {
-  it('reads an explicit headless true', () => {
-    expect(browserGroupSchema.parse({ headless: true }).headless).toBe(true);
-  });
-
-  it('treats anything else as not headless', () => {
-    expect(
-      browserGroupSchema.parse({ headless: 'yes' }).headless,
-    ).toBeUndefined();
-    expect(browserGroupSchema.parse({}).headless).toBeUndefined();
-  });
-
-  it('fails when the group is not an object', () => {
-    expect(browserGroupSchema.safeParse(undefined).success).toBe(false);
   });
 });
 

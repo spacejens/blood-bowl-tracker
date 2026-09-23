@@ -100,9 +100,10 @@ packages/
                         tools/download-tp
 
 tools/
-  download-tp/        — NestJS CLI application that scrapes TP with puppeteer
-                        and records the site's API responses as local JSON
-                        files for later import by tools/import-tp
+  download-tp/        — NestJS CLI application that fetches TP's API over
+                        plain HTTP via packages/scrape-tp and records the
+                        responses as local JSON files for later import by
+                        tools/import-tp
   import-<source>/    — one NestJS CLI application per upstream data source; uses
                         packages/import to call a deployed api-server instance
   import-manual/      — NestJS CLI application for hand-authored supplementary
@@ -175,7 +176,7 @@ change — or opens an opportunity — somewhere else. Only participants in that
 pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 `tools/db-diagram`, `tools/eslint-rules`, `tools/markdownlint-rules`) are omitted.
 
-- **`tools/download-tp`** (downloader) — scrapes TP into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
+- **`tools/download-tp`** (downloader) — fetches TP's API via `packages/scrape-tp` into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
 - **`packages/scrape-tp`** (shared fetching) — the one implementation of how this repo makes HTTP requests TP accepts: the browser-like header set, per-visit sessions with a cookie jar, and randomized pacing between a session's requests. Consumed by `tools/download-tp` today and intended for `apps/discord-bot`'s on-demand TP import, so a change to how requests look reaches both. It deliberately knows no TP URLs or page-to-endpoint mapping — those stay with each consumer — and depends on no other workspace package
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot. It has no BBL counterpart: BBL _interpretation_ (page-type parsing, HTML extraction) stays inside each tool that does it, deliberately, so the review tools can check the importer's reading of a page against their own. Only the mechanical file access is shared, via `packages/read-bbl-mirror`
 - **`packages/read-bbl-mirror`** (shared mirror access) — the mechanics of getting text out of a BBL wget mirror directory: resolving a filename safely against a caller-supplied data directory, reporting a missing file as `null` and a missing directory as an empty listing, decoding bytes as ISO-8859-1, and listing plain files. Consumed by `tools/import-bbl`, `tools/review-match`, `tools/review-player`, `tools/review-race` and `tools/review-star-player`, so a change here reaches all five at once. It carries no BBL-page-type awareness and no HTML parsing on purpose: which files matter, what their names mean and what their contents say stay with each consumer, which is what keeps the review tools' independence from importer logic intact. Like `packages/config-loader`, it deliberately depends on no other workspace package

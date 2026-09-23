@@ -23,7 +23,6 @@
     "@blood-bowl-tracker/scrape-tp": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
-    "puppeteer": "^25.5.0",
     "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },

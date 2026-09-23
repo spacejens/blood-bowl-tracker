@@ -16,7 +16,6 @@ const VALID_CONFIG = `{
     frontendUrl: 'https://tp.example/blood-bowl/',
     backendApiUrl: 'https://tp.example/api/',
   },
-  browser: { headless: true },
   download: { tournaments: ['season-29', 'season-30'] },
 }`;
 
@@ -74,7 +73,6 @@ describe('DownloadTpConfigService', () => {
     const service = await makeService(writeConfig(VALID_CONFIG));
     expect(service.getFrontendUrl()).toBe('https://tp.example/blood-bowl/');
     expect(service.getBackendApiUrl()).toBe('https://tp.example/api/');
-    expect(service.isHeadless()).toBe(true);
     expect(service.getTournaments()).toEqual(['season-29', 'season-30']);
   });
 
@@ -140,35 +138,8 @@ describe('DownloadTpConfigService', () => {
     );
   });
 
-  it('defaults headless to false when browser is absent', async () => {
-    const service = await makeService(writeConfig(`{}`));
-    expect(service.isHeadless()).toBe(false);
-  });
-
-  it('defaults headless to false when browser is not an object', async () => {
-    const service = await makeService(writeConfig(`{ browser: 'yes' }`));
-    expect(service.isHeadless()).toBe(false);
-  });
-
-  it('defaults headless to false when browser is null', async () => {
-    const service = await makeService(writeConfig(`{ browser: null }`));
-    expect(service.isHeadless()).toBe(false);
-  });
-
-  it('defaults headless to false when headless is absent', async () => {
-    const service = await makeService(writeConfig(`{ browser: {} }`));
-    expect(service.isHeadless()).toBe(false);
-  });
-
-  it('returns false for a non-boolean headless value', async () => {
-    const service = await makeService(
-      writeConfig(`{ browser: { headless: 'true' } }`),
-    );
-    expect(service.isHeadless()).toBe(false);
-  });
-
   it('throws when download is not set', async () => {
-    const service = await makeService(writeConfig(`{ browser: {} }`));
+    const service = await makeService(writeConfig(`{}`));
     expect(() => service.getTournaments()).toThrow(
       'download is not set in download-tp-config.json5',
     );

@@ -12,11 +12,6 @@ allowBuilds:
   # Declined: protobufjs's postinstall only regenerates its own TypeScript
   # types from .proto sources for its own build; not needed to require it.
   protobufjs: false
-  # Deliberately declined, not just unset: running puppeteer's postinstall
-  # would download Chromium on every CI install. docs/download-tp/index.md
-  # documents the one-off `pnpm exec puppeteer browsers install chrome` a
-  # developer runs locally to actually use the tool.
-  puppeteer: false
   # Declined: brought in transitively by testcontainers for remote-Docker SSH
   # support, which is unused here (local Docker only); pure-JS fallback works.
   ssh2: false

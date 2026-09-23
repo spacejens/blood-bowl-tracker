@@ -17,14 +17,6 @@ export const connectionGroupSchema = z.looseObject({
   backendApiUrl: z.string().min(1).optional().catch(undefined),
 });
 
-/**
- * The optional `browser` group. Only an explicit `true` means headless, so
- * anything else becomes `undefined`.
- */
-export const browserGroupSchema = z.looseObject({
-  headless: z.literal(true).optional().catch(undefined),
-});
-
 /** The `download` group's presence — its contents are checked separately. */
 export const downloadGroupSchema = z.looseObject({});
 
