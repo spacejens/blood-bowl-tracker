@@ -1,13 +1,13 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ScrapeTpModule } from '@blood-bowl-tracker/scrape-tp';
+import { TpPathsModule } from '@blood-bowl-tracker/tp-paths';
 import { Module } from '@nestjs/common';
 
 import { TpEraResolutionService } from './live/tp-era-resolution.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpRosterFetchService } from './live/tp-roster-fetch.service';
 import { TpRosterImportModule } from './roster-import/tp-roster-import.module';
-import { TpRosterPathsModule } from './tp-roster-paths.module';
 
 /**
  * Live TP team import. The importing app provides TP_CONNECTION_PROVIDER,
@@ -21,7 +21,7 @@ import { TpRosterPathsModule } from './tp-roster-paths.module';
     ImportModule,
     ParseTpModule,
     ScrapeTpModule,
-    TpRosterPathsModule,
+    TpPathsModule,
     TpRosterImportModule,
   ],
   providers: [

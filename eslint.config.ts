@@ -57,6 +57,8 @@ export default tseslint.config(
             'packages/review-harness/vitest.config.ts',
             'packages/scrape-tp/test/*.ts',
             'packages/scrape-tp/vitest.config.ts',
+            'packages/tp-paths/test/*.ts',
+            'packages/tp-paths/vitest.config.ts',
             'tools/download-tp/test/*.ts',
             'tools/download-tp/vitest.config.ts',
             'tools/eslint-rules/vitest.config.ts',

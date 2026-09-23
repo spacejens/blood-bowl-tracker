@@ -29,5 +29,3 @@ export {
   TP_EXTERNAL_SYSTEM_NAME_PROVIDER,
 } from './tp-import-providers';
 export type { TpRosterEntry } from './tp-roster-entry';
-export { TpRosterPathsModule } from './tp-roster-paths.module';
-export { TpRosterPathsService } from './tp-roster-paths.service';

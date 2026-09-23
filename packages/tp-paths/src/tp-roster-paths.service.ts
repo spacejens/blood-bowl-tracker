@@ -5,8 +5,8 @@ import { Injectable } from '@nestjs/common';
  * for a roster page: the API path its data is fetched from, relative to TP's
  * backend API base URL, and the frontend page path it is shown on, relative
  * to TP's frontend base URL (sent as the fetch's referer). The one place
- * these paths live: tools/download-tp's bulk download and this package's
- * live import both build roster requests from it.
+ * these paths live: tools/download-tp's bulk download and
+ * packages/import-tp-live's live fetch both build roster requests from it.
  */
 @Injectable()
 export class TpRosterPathsService {

@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
  * from a real browser session, so the files written under these names are the
  * same ones a browser-based capture recorded. If TP's frontend changes which
  * endpoints a page calls, this is the one place to update — except roster paths,
- * which live in packages/import-tp-live's TpRosterPathsService, shared with the
+ * which live in packages/tp-paths's TpRosterPathsService, shared with the
  * live team import.
  *
  * `slug` is a tournament's name as it appears in the frontend path.

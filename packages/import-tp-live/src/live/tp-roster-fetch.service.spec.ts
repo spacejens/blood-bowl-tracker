@@ -4,6 +4,7 @@ import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -12,7 +13,6 @@ import { mock } from 'vitest-mock-extended';
 import { mockImportResultService } from '../import-package.test-helpers';
 import type { TpConnectionProvider } from '../tp-import-providers';
 import { TP_CONNECTION_PROVIDER } from '../tp-import-providers';
-import { TpRosterPathsService } from '../tp-roster-paths.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
 const BACKEND = 'https://tp.example/api/';

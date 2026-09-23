@@ -1,6 +1,6 @@
-import { TpRosterPathsService } from '@blood-bowl-tracker/import-tp-live';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import { TpRosterPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
