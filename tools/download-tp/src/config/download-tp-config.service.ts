@@ -4,7 +4,6 @@ import { createConfigLoaderServiceBase } from '@blood-bowl-tracker/config-loader
 import { Injectable } from '@nestjs/common';
 
 import {
-  browserGroupSchema,
   configFileSchema,
   connectionGroupSchema,
   downloadGroupSchema,
@@ -48,23 +47,14 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
 
   /**
    * Base URL of the TP API, including a trailing slash, from
-   * `connection.backendApiUrl`. Required — responses whose URL starts with it
-   * are the ones recorded.
+   * `connection.backendApiUrl`. Required — every API request is sent to a
+   * path under it.
    */
   getBackendApiUrl(): string {
     return this.getConnectionUrl(
       'backendApiUrl',
       "'https://tourplay.net/api/'",
     );
-  }
-
-  /**
-   * Whether to run the browser headless, from `browser.headless`. Optional:
-   * anything other than an explicit `true` means "show the browser".
-   */
-  isHeadless(): boolean {
-    const browser = browserGroupSchema.safeParse(this.get('browser'));
-    return browser.success && browser.data.headless === true;
   }
 
   /**
@@ -90,8 +80,10 @@ export class DownloadTpConfigService extends createConfigLoaderServiceBase({
    * Rules sets to download TP's official team list for, from
    * `download.rulesSets`. Required to be present, but may be empty — an
    * empty list means "skip the official-teams download entirely". Each value
-   * names the tab on TP's teams page and the `data/teams/<rulesSet>/` output
-   * folder.
+   * names the `data/teams/<rulesSet>/` output folder and is looked up
+   * (case-insensitively) in `TP_RULES_SET_IDS` in
+   * `OfficialTeamsDownloaderService` for TP's own numeric `ruleSet` id — it
+   * names neither a tab label nor anything else TP itself exposes.
    */
   getRulesSets(): string[] {
     const download = this.downloadGroup();

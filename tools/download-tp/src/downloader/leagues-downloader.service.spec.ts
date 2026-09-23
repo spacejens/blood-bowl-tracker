@@ -1,346 +1,257 @@
+import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
-import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
+import type { StoredApiRequest } from './api-response-storing.service';
+import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 import { LeaguesDownloaderService } from './leagues-downloader.service';
+import { TpApiPathsService } from './tp-api-paths.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
-const API = 'https://tp.example/api/';
 
-const singleRoundPhase = {
-  currentRound: 1,
-  rounds: [{ roundNumber: 1 }],
-  matches: [{ matchId: 'm1' }, { matchId: 'm2' }],
-};
+function phasePath(slug: string, phaseId: number): string {
+  return `tournament/${slug}/phases?page=0&pageSize=50&phaseId=${phaseId}&type=COACH`;
+}
 
-const inscriptionsResponse = {
-  '22494': [{ roster: { id: 'r1' } }, { roster: { id: 'r2' } }],
-};
+function classificationsPath(slug: string, phaseId: number): string {
+  return `tournament/${slug}/clasifications?page=0&pageSize=75&phaseId=${phaseId}&type=COACH`;
+}
+
+function inscriptionsPath(slug: string, categoryId: number): string {
+  return `inscriptions/${slug}/category/${categoryId}/inscriptions?page=0&pageSize=75`;
+}
+
+/**
+ * A minimal complete tournament: one category with one single-round phase
+ * holding two matches, and two registered rosters.
+ */
+function tournamentResponses(slug: string): Record<string, unknown> {
+  return {
+    [`tournament/${slug}`]: { categories: [{ id: 7, phases: [{ id: 1 }] }] },
+    [phasePath(slug, 1)]: {
+      currentRound: 1,
+      rounds: [{ roundNumber: 1 }],
+      matches: [{ matchId: 11 }, { matchId: 12 }],
+    },
+    [inscriptionsPath(slug, 7)]: {
+      '7': [{ roster: { id: 21 } }, { roster: { id: 22 } }],
+    },
+  };
+}
 
 describe('LeaguesDownloaderService', () => {
   let service: LeaguesDownloaderService;
   let configService: MockProxy<DownloadTpConfigService>;
-  let pageViewer: MockProxy<ApiResponseStoringPageViewerService>;
+  let tpFetcherService: MockProxy<TpFetcherService>;
+  let storingService: MockProxy<ApiResponseStoringService>;
   let fileSystemService: MockProxy<FileSystemService>;
-  let followedUpUrls: string[];
+  let sessions: MockProxy<TpFetchSession>[];
 
-  /**
-   * Cans what the storing page viewer returns per page. The `/scores` call
-   * still runs whatever `followUpRequests` resolver the service under test
-   * passed, recording the URLs it asked for in `followedUpUrls` -- that is
-   * the service's own request, which the follow-up tests assert on. The
-   * resolver's return value is *not* used to build the response map: the
-   * real viewer's merge of follow-up responses is its own behaviour, not
-   * something this stub should re-derive. `/scores` simply answers
-   * `mergedScores`, the complete map the test declares, which defaults to
-   * `scores` for the tests that exercise no follow-up merging.
-   */
-  function stubPages(
-    scores: Map<string, unknown>,
-    players: Map<string, unknown>,
-    mergedScores: Map<string, unknown> = scores,
-  ): void {
-    pageViewer.viewPage.mockImplementation((options) => {
-      if (options.pageUrl.endsWith('/scores')) {
-        for (const url of options.followUpRequests?.(scores) ?? []) {
-          followedUpUrls.push(url);
-        }
-        return Promise.resolve(new Map<string, unknown>(mergedScores));
-      }
-      if (options.pageUrl.endsWith('/players')) return Promise.resolve(players);
-      return Promise.resolve(new Map<string, unknown>());
-    });
+  /** Cans each API path's response; a path not listed answers `{}`. */
+  function stubResponses(responses: Record<string, unknown>): void {
+    storingService.fetchAndStore.mockImplementation((_session, request) =>
+      Promise.resolve(responses[request.path] ?? {}),
+    );
   }
 
-  function visitedUrls(): string[] {
-    return pageViewer.viewPage.mock.calls.map((call) => call[0].pageUrl);
+  function requests(): StoredApiRequest[] {
+    return storingService.fetchAndStore.mock.calls.map((call) => call[1]);
+  }
+
+  function requestedPaths(): string[] {
+    return requests().map((request) => request.path);
   }
 
   beforeEach(async () => {
-    followedUpUrls = [];
     configService = mock<DownloadTpConfigService>();
     configService.getFrontendUrl.mockReturnValue(FRONTEND);
-    configService.getBackendApiUrl.mockReturnValue(API);
     configService.getTournaments.mockReturnValue(['season-30']);
-    pageViewer = mock<ApiResponseStoringPageViewerService>();
+    sessions = [];
+    tpFetcherService = mock<TpFetcherService>();
+    tpFetcherService.createSession.mockImplementation(() => {
+      const session = mock<TpFetchSession>();
+      sessions.push(session);
+      return session;
+    });
+    storingService = mock<ApiResponseStoringService>();
     fileSystemService = mock<FileSystemService>();
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/phases?page=0&pageSize=50&phaseId=1&type=COACH',
-          singleRoundPhase,
-        ],
-      ]),
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/category/22494/inscriptions?page=0&pageSize=75',
-          inscriptionsResponse,
-        ],
-      ]),
-    );
+    stubResponses(tournamentResponses('season-30'));
     const moduleRef = await Test.createTestingModule({
       providers: [
         LeaguesDownloaderService,
+        // Pure, dependency-free path formatting, passed real so these tests
+        // assert on the actual paths requested.
+        TpApiPathsService,
         { provide: DownloadTpConfigService, useValue: configService },
-        {
-          provide: ApiResponseStoringPageViewerService,
-          useValue: pageViewer,
-        },
+        { provide: TpFetcherService, useValue: tpFetcherService },
+        { provide: ApiResponseStoringService, useValue: storingService },
         { provide: FileSystemService, useValue: fileSystemService },
       ],
     }).compile();
     service = moduleRef.get(LeaguesDownloaderService);
   });
 
-  it('creates one output directory per configured tournament', async () => {
-    configService.getTournaments.mockReturnValue(['season-29', 'season-30']);
-
+  it('requests every endpoint in page order, each with the page it belongs to as referer', async () => {
     await service.downloadAllLeagues();
 
-    expect(fileSystemService.mkdir).toHaveBeenCalledWith('season-29');
-    expect(fileSystemService.mkdir).toHaveBeenCalledWith('season-30');
+    const page = `${FRONTEND}season-30`;
+    expect(requests().map((r) => [r.path, r.referer])).toEqual([
+      ['tournament/season-30', `${page}/news`],
+      ['tournament/season-30/news', `${page}/news`],
+      [phasePath('season-30', 1), `${page}/scores`],
+      ['match/11', `${page}/match/11`],
+      ['match/12', `${page}/match/12`],
+      [classificationsPath('season-30', 1), `${page}/classifications`],
+      ['tournament/season-30/team-stats', `${page}/honours`],
+      ['tournament/season-30/lineup-stats', `${page}/honours`],
+      ['tournament/season-30/coach-stats', `${page}/honours`],
+      ['tournament/season-30/statistics', `${page}/statistics`],
+      [inscriptionsPath('season-30', 7), `${page}/players`],
+      ['rosters/21', `${FRONTEND}roster/21`],
+      ['rosters/22', `${FRONTEND}roster/22`],
+      ['awards/season-30/awards', `${page}/awards`],
+    ]);
   });
 
-  it('visits every top-level tournament page in order, into the tournament dir', async () => {
+  it('stores every response of a tournament into its dir, through one shared session', async () => {
     await service.downloadAllLeagues();
 
-    const base = `${FRONTEND}season-30`;
-    expect(visitedUrls()).toEqual([
-      `${base}/news`,
-      `${base}/scores`,
-      `${base}/match/m1`,
-      `${base}/match/m2`,
-      `${base}/classifications`,
-      `${base}/honours`,
-      `${base}/statistics`,
-      `${base}/players`,
-      `${FRONTEND}roster/r1`,
-      `${FRONTEND}roster/r2`,
-      `${base}/awards`,
-    ]);
-    for (const call of pageViewer.viewPage.mock.calls) {
-      expect(call[0].dirName).toBe('season-30');
+    expect(tpFetcherService.createSession).toHaveBeenCalledTimes(1);
+    for (const [session, request] of storingService.fetchAndStore.mock.calls) {
+      expect(session).toBe(sessions[0]);
+      expect(request.dirName).toBe('season-30');
     }
   });
 
-  it('clicks through the Team, Player and Coach toggles on the honours page', async () => {
-    await service.downloadAllLeagues();
-
-    expect(pageViewer.viewPage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        pageUrl: `${FRONTEND}season-30/honours`,
-        dirName: 'season-30',
-        clickableElements: [
-          { selector: '.mat-button-toggle-button', textContent: 'Team' },
-          { selector: '.mat-button-toggle-button', textContent: 'Player' },
-          { selector: '.mat-button-toggle-button', textContent: 'Coach' },
-        ],
-      }),
-    );
-  });
-
-  it('visits the matches of every phase response, not just one', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/phases?page=0&pageSize=50&phaseId=1&type=COACH',
-          {
-            currentRound: 1,
-            rounds: [{ roundNumber: 1 }],
-            matches: [{ matchId: 'a' }],
-          },
-        ],
-        [
-          'tournaments/18442/phases?page=0&pageSize=50&phaseId=2&type=COACH',
-          {
-            currentRound: 1,
-            rounds: [{ roundNumber: 1 }],
-            matches: [{ matchId: 'b' }],
-          },
-        ],
-      ]),
-      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
-    );
+  it('creates one output dir and one session per configured tournament', async () => {
+    configService.getTournaments.mockReturnValue(['season-29', 'season-30']);
+    stubResponses({
+      ...tournamentResponses('season-29'),
+      ...tournamentResponses('season-30'),
+    });
 
     await service.downloadAllLeagues();
 
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/a`);
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/b`);
+    expect(fileSystemService.mkdir.mock.calls).toEqual([
+      ['season-29'],
+      ['season-30'],
+    ]);
+    expect(sessions).toHaveLength(2);
+    for (const [session, request] of storingService.fetchAndStore.mock.calls) {
+      expect(session).toBe(
+        request.dirName === 'season-29' ? sessions[0] : sessions[1],
+      );
+    }
+    expect(new Set(requests().map((r) => r.dirName))).toEqual(
+      new Set(['season-29', 'season-30']),
+    );
   });
 
-  it('visits the rosters of every inscriptions response, not just one', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'x/phases?type=COACH',
-          { currentRound: 1, rounds: [{ roundNumber: 1 }], matches: [] },
+  it('requests every phase of every category, with its classifications and matches', async () => {
+    stubResponses({
+      'tournament/season-30': {
+        categories: [
+          { id: 7, phases: [{ id: 1 }, { id: 2 }] },
+          { id: 8, phases: [{ id: 3 }] },
         ],
-      ]),
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/category/1/inscriptions?page=0&pageSize=75',
-          { '1': [{ roster: { id: 'r1' } }] },
-        ],
-        [
-          'tournaments/18442/category/2/inscriptions?page=0&pageSize=75',
-          { '2': [{ roster: { id: 'r2' } }] },
-        ],
-      ]),
-    );
+      },
+      [phasePath('season-30', 1)]: {
+        currentRound: 1,
+        rounds: [{ roundNumber: 1 }],
+        matches: [{ matchId: 'a' }],
+      },
+      [phasePath('season-30', 2)]: {
+        currentRound: 1,
+        rounds: [{ roundNumber: 1 }],
+      },
+      [phasePath('season-30', 3)]: {
+        currentRound: 1,
+        rounds: [{ roundNumber: 1 }],
+        matches: [{ matchId: 'c' }],
+      },
+      [inscriptionsPath('season-30', 7)]: { '7': [{ roster: { id: 'r7' } }] },
+      [inscriptionsPath('season-30', 8)]: { '8': [{ roster: { id: 'r8' } }] },
+    });
 
     await service.downloadAllLeagues();
 
-    expect(visitedUrls()).toContain(`${FRONTEND}roster/r1`);
-    expect(visitedUrls()).toContain(`${FRONTEND}roster/r2`);
+    expect(requestedPaths()).toEqual(
+      expect.arrayContaining([
+        phasePath('season-30', 1),
+        phasePath('season-30', 2),
+        phasePath('season-30', 3),
+        classificationsPath('season-30', 1),
+        classificationsPath('season-30', 2),
+        classificationsPath('season-30', 3),
+        'match/a',
+        'match/c',
+        inscriptionsPath('season-30', 7),
+        inscriptionsPath('season-30', 8),
+        'rosters/r7',
+        'rosters/r8',
+      ]),
+    );
   });
 
-  it('ignores a response whose path merely contains, but does not end with, the suffix', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/phases/summary?x=1',
-          { matches: [{ matchId: 'nope' }] },
-        ],
-        [
-          'tournaments/18442/phases?phaseId=1&type=COACH',
-          {
-            currentRound: 1,
-            rounds: [{ roundNumber: 1 }],
-            matches: [{ matchId: 'yes' }],
-          },
-        ],
-      ]),
-      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
-    );
+  it("requests every round of a phase other than its current one, and those rounds' matches", async () => {
+    const base = phasePath('season-30', 1);
+    stubResponses({
+      'tournament/season-30': { categories: [{ id: 7, phases: [{ id: 1 }] }] },
+      [base]: {
+        currentRound: 9,
+        rounds: [{ roundNumber: 8 }, { roundNumber: 9 }, { roundNumber: 10 }],
+        matches: [{ matchId: 'r9' }],
+      },
+      [`${base}&round=8`]: { matches: [{ matchId: 'r8' }] },
+      [`${base}&round=10`]: { matches: [{ matchId: 'r10' }] },
+    });
 
     await service.downloadAllLeagues();
 
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/yes`);
-    expect(visitedUrls()).not.toContain(`${FRONTEND}season-30/match/nope`);
-  });
-
-  it('throws when the fixtures page has no phases response', async () => {
-    stubPages(
-      new Map<string, unknown>([['something-else', {}]]),
-      new Map<string, unknown>(),
-    );
-
-    await expect(service.downloadAllLeagues()).rejects.toThrow(
-      'Did not find any response with URL path ending in phases',
-    );
-  });
-
-  it('throws when the players page has no inscriptions response', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'x/phases?type=COACH',
-          { currentRound: 1, rounds: [{ roundNumber: 1 }], matches: [] },
-        ],
-      ]),
-      new Map<string, unknown>([['something-else', {}]]),
-    );
-
-    await expect(service.downloadAllLeagues()).rejects.toThrow(
-      'Did not find any response with URL path ending in inscriptions',
-    );
-  });
-
-  it('asks for every round of a phase other than the one already returned', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/phases?phaseId=1&type=COACH',
-          {
-            currentRound: 9,
-            rounds: [
-              { roundNumber: 8 },
-              { roundNumber: 9 },
-              { roundNumber: 10 },
-            ],
-            matches: [{ matchId: 'r9' }],
-          },
-        ],
-      ]),
-      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
-    );
-
-    await service.downloadAllLeagues();
-
-    expect(followedUpUrls).toEqual([
-      `${API}tournaments/18442/phases?phaseId=1&type=COACH&round=8`,
-      `${API}tournaments/18442/phases?phaseId=1&type=COACH&round=10`,
+    expect(
+      requestedPaths().filter(
+        (path) => path.includes('/phases?') || path.startsWith('match/'),
+      ),
+    ).toEqual([
+      base,
+      `${base}&round=8`,
+      `${base}&round=10`,
+      'match/r9',
+      'match/r8',
+      'match/r10',
     ]);
   });
 
-  it('visits the matches returned by the follow-up round requests too', async () => {
-    const basePhases = new Map<string, unknown>([
-      [
-        'tournaments/18442/phases?phaseId=1&type=COACH',
-        {
-          currentRound: 2,
-          rounds: [{ roundNumber: 1 }, { roundNumber: 2 }],
-          matches: [{ matchId: 'current' }],
-        },
-      ],
-    ]);
-    stubPages(
-      basePhases,
-      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
-      new Map<string, unknown>([
-        ...basePhases,
-        [
-          'tournaments/18442/phases?phaseId=1&type=COACH&round=1',
-          {
-            currentRound: 1,
-            rounds: [{ roundNumber: 1 }, { roundNumber: 2 }],
-            matches: [{ matchId: 'older' }],
-          },
-        ],
-      ]),
-    );
+  it('requests no extra rounds for a phase response with no rounds array', async () => {
+    stubResponses({
+      'tournament/season-30': { categories: [{ id: 7, phases: [{ id: 1 }] }] },
+      [phasePath('season-30', 1)]: { matches: [{ matchId: 'lone' }] },
+    });
 
     await service.downloadAllLeagues();
 
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/current`);
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/older`);
-  });
-
-  it('asks for no follow-up rounds for a single-round phase or a non-phases response', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        [
-          'tournaments/18442/phases?phaseId=1&type=COACH',
-          {
-            currentRound: 1,
-            rounds: [{ roundNumber: 1 }],
-            matches: [{ matchId: 'only' }],
-          },
-        ],
-        ['tournaments/18442/classifications?page=0', { rounds: [] }],
-      ]),
-      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
+    expect(requestedPaths().some((path) => path.includes('&round='))).toBe(
+      false,
     );
-
-    await service.downloadAllLeagues();
-
-    expect(followedUpUrls).toEqual([]);
+    expect(requestedPaths()).toContain('match/lone');
   });
 
-  it('asks for no follow-up rounds for a phase response with no rounds array', async () => {
-    stubPages(
-      new Map<string, unknown>([
-        ['x/phases?type=COACH', { matches: [{ matchId: 'lone' }] }],
-      ]),
-      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
-    );
+  it.each([
+    ['no categories', {}],
+    ['an empty categories list', { categories: [] }],
+    ['a category without phases', { categories: [{ id: 7 }] }],
+  ])(
+    'throws when the tournament response has %s',
+    async (_label, tournament) => {
+      stubResponses({ 'tournament/season-30': tournament });
 
-    await service.downloadAllLeagues();
-
-    expect(followedUpUrls).toEqual([]);
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/lone`);
-  });
+      await expect(service.downloadAllLeagues()).rejects.toThrow(
+        'Tournament season-30 lists no phases',
+      );
+    },
+  );
 });

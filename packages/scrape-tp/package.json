@@ -1,14 +1,11 @@
 {
-  "name": "@blood-bowl-tracker/download-tp",
+  "name": "@blood-bowl-tracker/scrape-tp",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/main.js",
-  "bin": {
-    "download-tp": "dist/main.js"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -19,22 +16,15 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@blood-bowl-tracker/config-loader": "workspace:*",
-    "@blood-bowl-tracker/scrape-tp": "workspace:*",
     "@nestjs/common": "^12.0.0",
-    "@nestjs/core": "^12.0.0",
-    "reflect-metadata": "^0.2.2",
-    "zod": "^4.4.3"
+    "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
     "@nestjs/testing": "^12.0.0",
-    "@swc/core": "^1.15.47",
     "@types/node": "^24.13.6",
     "@vitest/coverage-v8": "^5.0.0",
     "typescript": "^6.0.3",
-    "unplugin-swc": "^1.5.10",
     "vite": "^8.2.1",
-    "vitest": "^5.0.0",
-    "vitest-mock-extended": "^5.1.1"
+    "vitest": "^5.0.0"
   }
 }

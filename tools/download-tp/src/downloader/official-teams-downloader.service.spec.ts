@@ -1,35 +1,49 @@
+import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
+import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DownloadTpConfigService } from '../config/download-tp-config.service';
-import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
+import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 import { OfficialTeamsDownloaderService } from './official-teams-downloader.service';
+import { TpApiPathsService } from './tp-api-paths.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
-const BACKEND = 'https://tp.example/api/';
 
 describe('OfficialTeamsDownloaderService', () => {
   let service: OfficialTeamsDownloaderService;
   let configService: MockProxy<DownloadTpConfigService>;
-  let pageViewer: MockProxy<ApiResponseStoringPageViewerService>;
+  let tpFetcherService: MockProxy<TpFetcherService>;
+  let storingService: MockProxy<ApiResponseStoringService>;
   let fileSystemService: MockProxy<FileSystemService>;
+  let sessions: MockProxy<TpFetchSession>[];
 
   beforeEach(async () => {
     configService = mock<DownloadTpConfigService>();
-    pageViewer = mock<ApiResponseStoringPageViewerService>();
-    fileSystemService = mock<FileSystemService>();
     configService.getFrontendUrl.mockReturnValue(FRONTEND);
-    configService.getBackendApiUrl.mockReturnValue(BACKEND);
     configService.getRulesSets.mockReturnValue(['BB2020', 'BB2025']);
-    pageViewer.viewPage.mockResolvedValue(new Map<string, unknown>());
+    sessions = [];
+    tpFetcherService = mock<TpFetcherService>();
+    tpFetcherService.createSession.mockImplementation(() => {
+      const session = mock<TpFetchSession>();
+      sessions.push(session);
+      return session;
+    });
+    storingService = mock<ApiResponseStoringService>();
+    storingService.fetchAndStore.mockResolvedValue({});
+    fileSystemService = mock<FileSystemService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         OfficialTeamsDownloaderService,
+        // Pure, dependency-free path formatting, passed real so these tests
+        // assert on the actual paths requested.
+        TpApiPathsService,
         { provide: DownloadTpConfigService, useValue: configService },
-        { provide: ApiResponseStoringPageViewerService, useValue: pageViewer },
+        { provide: TpFetcherService, useValue: tpFetcherService },
+        { provide: ApiResponseStoringService, useValue: storingService },
         { provide: FileSystemService, useValue: fileSystemService },
       ],
     }).compile();
@@ -45,35 +59,32 @@ describe('OfficialTeamsDownloaderService', () => {
     ]);
   });
 
-  it('visits the teams page once per rules set, storing into that rules set folder', async () => {
+  it("requests each rules set's own team list into its own folder, with the teams page as referer", async () => {
     await service.downloadOfficialTeams();
 
-    const calls = pageViewer.viewPage.mock.calls.map((call) => call[0]);
-    expect(calls).toHaveLength(2);
-    expect(calls[0].pageUrl).toBe(`${FRONTEND}teams`);
-    expect(calls[0].dirName).toBe('teams/BB2020');
-    expect(calls[1].pageUrl).toBe(`${FRONTEND}teams`);
-    expect(calls[1].dirName).toBe('teams/BB2025');
-  });
-
-  it('requests that rules set’s own masters endpoint from inside the page', async () => {
-    await service.downloadOfficialTeams();
-
-    const calls = pageViewer.viewPage.mock.calls.map((call) => call[0]);
-    expect(calls[0].followUpRequests?.(new Map<string, unknown>())).toEqual([
-      `${BACKEND}rosters/masters?ruleSet=20`,
-    ]);
-    expect(calls[1].followUpRequests?.(new Map<string, unknown>())).toEqual([
-      `${BACKEND}rosters/masters?ruleSet=25`,
+    expect(
+      storingService.fetchAndStore.mock.calls.map((call) => call[1]),
+    ).toEqual([
+      {
+        path: 'rosters/masters?ruleSet=20',
+        referer: `${FRONTEND}teams`,
+        dirName: 'teams/BB2020',
+      },
+      {
+        path: 'rosters/masters?ruleSet=25',
+        referer: `${FRONTEND}teams`,
+        dirName: 'teams/BB2025',
+      },
     ]);
   });
 
-  it('stores only the response for the rules set being downloaded', async () => {
+  it('uses one shared session for the whole official-teams run', async () => {
     await service.downloadOfficialTeams();
 
-    const storeResponse = pageViewer.viewPage.mock.calls[0][0].storeResponse;
-    expect(storeResponse?.('rosters/masters?ruleSet=20')).toBe(true);
-    expect(storeResponse?.('rosters/masters?ruleSet=25')).toBe(false);
+    const calls = storingService.fetchAndStore.mock.calls;
+    expect(sessions).toHaveLength(1);
+    expect(calls[0][0]).toBe(sessions[0]);
+    expect(calls[1][0]).toBe(sessions[0]);
   });
 
   it('matches rules set names case-insensitively', async () => {
@@ -81,18 +92,17 @@ describe('OfficialTeamsDownloaderService', () => {
 
     await service.downloadOfficialTeams();
 
-    const call = pageViewer.viewPage.mock.calls[0][0];
-    expect(call.dirName).toBe('teams/db2021');
-    expect(call.followUpRequests?.(new Map<string, unknown>())).toEqual([
-      `${BACKEND}rosters/masters?ruleSet=21`,
-    ]);
+    expect(storingService.fetchAndStore.mock.calls[0][1]).toMatchObject({
+      path: 'rosters/masters?ruleSet=21',
+      dirName: 'teams/db2021',
+    });
   });
 
   it('fails with a helpful message for a rules set TP has no id for', async () => {
     configService.getRulesSets.mockReturnValue(['BB2016']);
 
     await expect(service.downloadOfficialTeams()).rejects.toThrow('BB2016');
-    expect(pageViewer.viewPage).not.toHaveBeenCalled();
+    expect(storingService.fetchAndStore).not.toHaveBeenCalled();
   });
 
   it('does nothing when no rules set is configured', async () => {
@@ -100,7 +110,8 @@ describe('OfficialTeamsDownloaderService', () => {
 
     await service.downloadOfficialTeams();
 
-    expect(pageViewer.viewPage).not.toHaveBeenCalled();
+    expect(tpFetcherService.createSession).not.toHaveBeenCalled();
+    expect(storingService.fetchAndStore).not.toHaveBeenCalled();
     expect(fileSystemService.mkdir).not.toHaveBeenCalled();
   });
 });

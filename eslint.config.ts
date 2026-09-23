@@ -53,6 +53,8 @@ export default tseslint.config(
             'packages/read-bbl-mirror/vitest.config.ts',
             'packages/review-harness/test/*.ts',
             'packages/review-harness/vitest.config.ts',
+            'packages/scrape-tp/test/*.ts',
+            'packages/scrape-tp/vitest.config.ts',
             'tools/download-tp/test/*.ts',
             'tools/download-tp/vitest.config.ts',
             'tools/eslint-rules/vitest.config.ts',
