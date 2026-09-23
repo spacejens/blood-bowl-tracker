@@ -256,7 +256,7 @@ importers:
     devDependencies:
       '@nestjs/cli':
         specifier: ^12.0.0
-        version: 12.0.3(@swc/core@1.16.2)(@types/node@24.13.6)(prettier@3.9.8)
+        version: 12.0.5(@swc/core@1.16.2)(@types/node@24.13.6)(prettier@3.9.8)
       '@nestjs/schematics':
         specifier: ^12.0.0
         version: 12.0.4(chokidar@5.0.0)(prettier@3.9.8)(typescript@6.0.3)
@@ -277,10 +277,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -323,7 +323,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -354,7 +354,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -406,10 +406,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -446,7 +446,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -492,7 +492,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -529,7 +529,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -575,10 +575,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -599,7 +599,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -636,7 +636,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -682,7 +682,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -777,7 +777,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -808,7 +808,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -848,7 +848,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -879,7 +879,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -947,10 +947,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -993,10 +993,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1045,10 +1045,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1072,7 +1072,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1109,10 +1109,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1170,10 +1170,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1225,10 +1225,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1280,10 +1280,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1307,7 +1307,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1350,10 +1350,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1402,10 +1402,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1460,10 +1460,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1515,10 +1515,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -1570,10 +1570,10 @@ importers:
         version: 6.0.3
       unplugin-swc:
         specifier: ^1.5.10
-        version: 1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+        version: 1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
       vite:
         specifier: ^8.2.1
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.0
         version: 5.0.1(@types/node@24.13.6)(@vitest/coverage-v8@5.0.1)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -2108,8 +2108,8 @@ packages:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
 
-  '@nestjs/cli@12.0.3':
-    resolution: {integrity: sha512-HofsPoiWsx6gZ7/IivaZJrgsq/3CTCb4FkCQzFu/Q3J2V+4xC7GYnit/HNB66EfuY8j3gWJCzasMKmF5VugmOA==}
+  '@nestjs/cli@12.0.5':
+    resolution: {integrity: sha512-28PJP/dYqGdAZoLbGgJORY9CxqkYBN449WKOUiYAXKwtSEAq7jJChtHCJYo1jLMwM0mwKqCjpBYIAWoHzyhSxw==}
     engines: {node: '>= 20.11'}
     hasBin: true
     peerDependencies:
@@ -5990,7 +5990,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.4
     optional: true
 
-  '@nestjs/cli@12.0.3(@swc/core@1.16.2)(@types/node@24.13.6)(prettier@3.9.8)':
+  '@nestjs/cli@12.0.5(@swc/core@1.16.2)(@types/node@24.13.6)(prettier@3.9.8)':
     dependencies:
       '@angular-devkit/core': 22.1.8(chokidar@5.0.0)
       '@angular-devkit/schematics': 22.1.8(chokidar@5.0.0)
@@ -6001,6 +6001,7 @@ snapshots:
       chokidar: 5.0.0
       cli-table3: 0.6.5
       commander: 15.0.0
+      jsonc-parser: 3.3.1
       minimatch: 10.2.6
       node-emoji: 2.2.0
       ora: 9.4.1
@@ -6744,7 +6745,7 @@ snapshots:
       estree-walker: 3.0.3
       magic-string: 1.4.1
     optionalDependencies:
-      vite: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
 
   '@vitest/spy@5.0.1': {}
 
@@ -9188,12 +9189,12 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-swc@1.6.0(@swc/core@1.16.2)(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)):
+  unplugin-swc@1.6.0(@swc/core@1.16.2)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@rollup/pluginutils': 5.4.0
       '@swc/core': 1.16.2
       load-tsconfig: 0.2.5
-      unplugin: 3.4.0(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1))
+      unplugin: 3.4.0(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rsbuild/core'
@@ -9206,15 +9207,14 @@ snapshots:
       - vite
       - webpack
 
-  unplugin@3.4.0(esbuild@0.25.12)(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)):
+  unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
       picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
-      esbuild: 0.25.12
       rolldown: 1.2.9
-      vite: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
 
   uri-js@4.4.1:
     dependencies:
@@ -9224,7 +9224,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite@8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1):
+  vite@8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -9233,7 +9233,6 @@ snapshots:
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 24.13.6
-      esbuild: 0.25.12
       fsevents: 2.3.3
       jiti: 2.7.0
       yaml: 2.9.1
@@ -9258,7 +9257,7 @@ snapshots:
       tinybench: 6.1.4
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
-      vite: 8.3.0(@types/node@24.13.6)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.0(@types/node@24.13.6)(jiti@2.7.0)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.13.6
