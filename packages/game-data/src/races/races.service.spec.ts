@@ -507,6 +507,42 @@ describe('RacesService', () => {
     });
   });
 
+  describe('listOngoingEras', () => {
+    it('returns the id/name rows the query resolves to', async () => {
+      const rows = [{ id: 5, name: 'Fifth era' }];
+      await build(rows);
+      await expect(service.listOngoingEras(7)).resolves.toEqual(rows);
+    });
+
+    it('returns an empty array when the race is in no ongoing era', async () => {
+      await build([]);
+      await expect(service.listOngoingEras(7)).resolves.toEqual([]);
+    });
+
+    it("keeps only the race's eras that have no end date", async () => {
+      const { chains } = await build([]);
+
+      await service.listOngoingEras(7);
+
+      const where = firstCallArg(chains[0].where);
+      expect(extractAllFilterValues(where)).toEqual([7]);
+      expect(sqlText(where).match(/is null/g)).toHaveLength(1);
+    });
+
+    it('orders eras chronologically by start date, then name', async () => {
+      const { chains } = await build([]);
+
+      await service.listOngoingEras(7);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['eras.name'],
+      );
+    });
+  });
+
   describe('listPositionsByEra', () => {
     it('returns a flat, already-ordered row per position', async () => {
       const rows = [

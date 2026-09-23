@@ -15,6 +15,7 @@ import {
   eras,
   ilike,
   inArray,
+  isNull,
   matches,
   matchTeams,
   max,
@@ -105,6 +106,21 @@ export class RacesService {
       .from(raceEras)
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
       .where(eq(raceEras.raceId, raceId))
+      .orderBy(eras.startDate, eras.name);
+  }
+
+  /**
+   * The eras this race can be played in that are still ongoing (no end
+   * date), oldest first. More than one can be ongoing at once — a Dungeon
+   * Bowl era commonly runs alongside a normal one — so a caller needing
+   * exactly one decides what several mean for it.
+   */
+  listOngoingEras(raceId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: eras.id, name: eras.name })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(and(eq(raceEras.raceId, raceId), isNull(eras.endDate)))
       .orderBy(eras.startDate, eras.name);
   }
 
