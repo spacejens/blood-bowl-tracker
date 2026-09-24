@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { TpCompetitionModule } from './tp-competition.module';
+import { TpCompetitionImportService } from './tp-competition-import.service';
 import { TpCompetitionUpsertService } from './tp-competition-upsert.service';
 
 /** Stands in for the app's `@Global()` DbModule. */
@@ -23,6 +24,16 @@ describe('TpCompetitionModule', () => {
 
     expect(moduleRef.get(TpCompetitionUpsertService)).toBeInstanceOf(
       TpCompetitionUpsertService,
+    );
+  });
+
+  it('composes TpCompetitionImportService with its real dependencies wired', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [TestDbModule, TpCompetitionModule],
+    }).compile();
+
+    expect(moduleRef.get(TpCompetitionImportService)).toBeInstanceOf(
+      TpCompetitionImportService,
     );
   });
 });

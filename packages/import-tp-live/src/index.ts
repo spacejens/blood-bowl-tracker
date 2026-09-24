@@ -1,3 +1,6 @@
+export { TpCompetitionModule } from './competition/tp-competition.module';
+export type { ImportCompetitionOptions } from './competition/tp-competition-import.service';
+export { TpCompetitionImportService } from './competition/tp-competition-import.service';
 export { ImportTpLiveModule } from './import-tp-live.module';
 export type {
   FetchBracketOptions,
