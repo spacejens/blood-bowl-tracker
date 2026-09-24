@@ -1,12 +1,12 @@
 import type {
   CompetitionType,
   MatchCategory,
+  TpBracketMatch,
 } from '@blood-bowl-tracker/api-contract';
-import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 export interface ClassifyTpMatchOptions {
-  match: TpMatch;
+  match: TpBracketMatch;
   /** The owning competition's type -- cups never get a season_* category. */
   competitionType: CompetitionType;
   /**
@@ -15,14 +15,14 @@ export interface ClassifyTpMatchOptions {
    * final apart from a bronze match sharing the same tuple -- only bracket
    * tracing across the rest of the competition's matches can.
    */
-  competitionMatches: TpMatch[];
+  competitionMatches: TpBracketMatch[];
 }
 
 /** One `(phaseOrder, round)` position, and the matches sharing it. */
 interface Stage {
   phaseOrder: number;
   round: number;
-  matches: TpMatch[];
+  matches: TpBracketMatch[];
 }
 
 /**
@@ -91,9 +91,8 @@ export class TpMatchCategoryService {
       stage.matches.some((m) => m.id === match.id),
     );
     if (stageIndex === -1) {
-      // Unreachable from TpMatchesImportService, which always includes
-      // `match` in `competitionMatches` -- but guard explicitly rather than
-      // let findIndex's "not found" sentinel (-1) collide with a stage
+      // Unreachable from TpMatchUpsertService, whose bracket always includes the match itself --
+      // but guard explicitly rather than let findIndex's "not found" sentinel (-1) collide with a stage
       // index below, which would otherwise silently misclassify instead of
       // throwing.
       throw new Error(
@@ -129,7 +128,7 @@ export class TpMatchCategoryService {
   }
 
   /** Every distinct `(phaseOrder, round)` pair among `nonMain`, sorted ascending. */
-  private buildStages(nonMain: TpMatch[]): Stage[] {
+  private buildStages(nonMain: TpBracketMatch[]): Stage[] {
     const byKey = new Map<string, Stage>();
     for (const m of nonMain) {
       const key = `${m.phaseOrder}:${m.round}`;
@@ -156,11 +155,11 @@ export class TpMatchCategoryService {
    * covering a drawn semifinal.
    */
   private classifyTerminal(
-    match: TpMatch,
-    semifinalMatches: TpMatch[],
-    terminalMatches: TpMatch[],
+    match: TpBracketMatch,
+    semifinalMatches: TpBracketMatch[],
+    terminalMatches: TpBracketMatch[],
   ): MatchCategory {
-    const winnerTeamId = (m: TpMatch): number | undefined =>
+    const winnerTeamId = (m: TpBracketMatch): number | undefined =>
       m.winner === 'home'
         ? m.homeTeamTpId
         : m.winner === 'away'
@@ -180,7 +179,7 @@ export class TpMatchCategoryService {
       );
     }
 
-    const containsAnyWinner = (m: TpMatch): boolean =>
+    const containsAnyWinner = (m: TpBracketMatch): boolean =>
       confirmedWinners.includes(m.homeTeamTpId) ||
       confirmedWinners.includes(m.awayTeamTpId);
 

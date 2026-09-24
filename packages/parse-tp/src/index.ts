@@ -24,6 +24,11 @@ export type {
 export { OfficialTeamsParserService } from './official-teams-parser.service';
 export { ParseTpModule } from './parse-tp.module';
 export type {
+  TpFixture,
+  TpPhaseFixtures,
+} from './phase-fixtures-parser.service';
+export { PhaseFixturesParserService } from './phase-fixtures-parser.service';
+export type {
   TpCareerSppCounts,
   TpGainedSkillRef,
   TpPlayerCharacteristics,
@@ -39,7 +44,10 @@ export { RosterParserService } from './roster-parser.service';
 export { SecretObjectiveService } from './secret-objective.service';
 export type { TpSkillMaster } from './skill-master-names-parser.service';
 export { SkillMasterNamesParserService } from './skill-master-names-parser.service';
-export type { TpTournament } from './tournament-parser.service';
+export type {
+  TpTournament,
+  TpTournamentPhase,
+} from './tournament-parser.service';
 export { TournamentParserService } from './tournament-parser.service';
 // Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { WeatherTypeService } from './weather-type.service';

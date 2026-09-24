@@ -16,7 +16,10 @@ import {
   SppAwardValuesService,
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
-import { TpRosterImportService } from '@blood-bowl-tracker/import-tp-live';
+import {
+  TpMatchImportService,
+  TpRosterImportService,
+} from '@blood-bowl-tracker/import-tp-live';
 import { implement } from '@orpc/server';
 
 import type { UpsertHandlerService } from './upsert-handler.service';
@@ -327,6 +330,22 @@ export function buildTpRostersRoutes(tpRosterImport: TpRosterImportService) {
         era: input.era,
         externalSystemName: input.externalSystemName,
         matchEmbeddedPlayers: input.matchEmbeddedPlayers,
+      }),
+    ),
+  };
+}
+
+// tpMatches.import: a coarse TP import, like tpRosters.import. Every failure
+// is reported in the result's ImportResults, so it declares no contract
+// error and is not routed through the upsert handler.
+export function buildTpMatchesRoutes(tpMatchImport: TpMatchImportService) {
+  return {
+    import: implement(contract.tpMatches.import).handler(({ input }) =>
+      tpMatchImport.importRawMatch({
+        content: input.match,
+        bracket: input.bracket,
+        competitionTpId: input.competitionTpId,
+        externalSystemName: input.externalSystemName,
       }),
     ),
   };

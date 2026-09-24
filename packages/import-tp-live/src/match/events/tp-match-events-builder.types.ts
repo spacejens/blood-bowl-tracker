@@ -1,4 +1,4 @@
-import type { ImportError } from '@blood-bowl-tracker/import';
+import type { ImportError } from '@blood-bowl-tracker/api-contract';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 
 import type {

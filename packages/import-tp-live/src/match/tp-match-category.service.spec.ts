@@ -1,25 +1,17 @@
-import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
+import type { TpBracketMatch } from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { ClassifyTpMatchOptions } from './tp-match-category.service';
 import { TpMatchCategoryService } from './tp-match-category.service';
 
-/**
- * A minimal `TpMatch`, only the fields `TpMatchCategoryService` reads
- * (`phaseOrder`, `round`, `homeTeamTpId`, `awayTeamTpId`, `winner`) are
- * meaningful; the rest are filled with unrelated placeholder values.
- */
-function match(overrides: Partial<TpMatch> & { id: number }): TpMatch {
+/** A bracket match; only `id` is required, the rest default to a main-phase home win. */
+function match(
+  overrides: Partial<TpBracketMatch> & { id: number },
+): TpBracketMatch {
   return {
-    playedDate: new Date('2024-01-01'),
-    name: 'Round 1',
     homeTeamTpId: 1,
     awayTeamTpId: 2,
-    matchEvents: [],
-    homeRosterPlayers: [],
-    awayRosterPlayers: [],
-    phaseType: 160,
     phaseOrder: 1,
     round: 1,
     winner: 'home',
@@ -37,7 +29,7 @@ function match(overrides: Partial<TpMatch> & { id: number }): TpMatch {
  * the semifinal; the semifinal winners (here, 1 and 5) meet in the final,
  * and the semifinal losers (7 and 3) meet in the bronze match.
  */
-function sixMatchSeason(): TpMatch[] {
+function sixMatchSeason(): TpBracketMatch[] {
   return [
     // Qualifier: order 2, round 1.
     match({
@@ -102,7 +94,7 @@ function sixMatchSeason(): TpMatch[] {
  * real data. Same team-id story as {@link sixMatchSeason} minus the
  * qualifier: teams 1, 3, 5, 7 go directly into the semifinal.
  */
-function fourMatchSeason(): TpMatch[] {
+function fourMatchSeason(): TpBracketMatch[] {
   return [
     // Semifinal: order 2, round 2 (an arbitrary (order, round) pair, chosen
     // to prove the stage is found by sorted (order, round) position, not
@@ -152,7 +144,7 @@ function fourMatchSeason(): TpMatch[] {
  * ascending `(phaseOrder, round)` position, not by phase-type/order numbers.
  * Same team-id story as {@link sixMatchSeason}.
  */
-function sixMatchSeasonInvertedGrouping(): TpMatch[] {
+function sixMatchSeasonInvertedGrouping(): TpBracketMatch[] {
   return [
     // Qualifier: order 2, round 1.
     match({
@@ -326,7 +318,7 @@ describe('TpMatchCategoryService', () => {
     // match must be the final, and by transitivity team 1 must have won its
     // drawn semifinal on some tiebreak the score doesn't expose. The other
     // terminal match (3 v 7) is therefore bronze.
-    const matches: TpMatch[] = [
+    const matches: TpBracketMatch[] = [
       match({
         id: 1,
         phaseOrder: 2,
@@ -381,7 +373,7 @@ describe('TpMatchCategoryService', () => {
   });
 
   it('throws naming the match id when both semifinal-stage matches are drawn (unresolvable)', () => {
-    const matches: TpMatch[] = [
+    const matches: TpBracketMatch[] = [
       match({
         id: 1,
         phaseOrder: 2,
@@ -434,7 +426,7 @@ describe('TpMatchCategoryService', () => {
     // contain one of those winners -- a real bracket can never produce this
     // (a team can only play in one terminal match), but the guard must
     // still catch it and throw rather than pick one arbitrarily.
-    const matches: TpMatch[] = [
+    const matches: TpBracketMatch[] = [
       match({
         id: 1,
         phaseOrder: 2,
@@ -482,7 +474,7 @@ describe('TpMatchCategoryService', () => {
   });
 
   it('throws for a season competition whose non-main match count is not 4 or 6', () => {
-    const matches: TpMatch[] = [
+    const matches: TpBracketMatch[] = [
       match({ id: 1, phaseOrder: 2, round: 1 }),
       match({ id: 2, phaseOrder: 2, round: 1 }),
       match({ id: 3, phaseOrder: 2, round: 1 }),
@@ -497,7 +489,7 @@ describe('TpMatchCategoryService', () => {
   });
 
   it('throws when a stage bucket does not contain exactly 2 matches', () => {
-    const matches: TpMatch[] = [
+    const matches: TpBracketMatch[] = [
       match({ id: 1, phaseOrder: 2, round: 1 }),
       match({ id: 2, phaseOrder: 2, round: 1 }),
       match({ id: 3, phaseOrder: 2, round: 1 }),

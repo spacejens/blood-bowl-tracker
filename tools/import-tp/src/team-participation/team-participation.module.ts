@@ -4,7 +4,7 @@ import { Module } from '@nestjs/common';
 import { TpTeamParticipationImportService } from './tp-team-participation-import.service';
 
 @Module({
-  // ImportModule supplies CompetitionsImportService + MatchesImportService.
+  // ImportModule supplies CompetitionsImportService + ImportResultService.
   // No SourceModule/ParseTpModule: this service does no file I/O or parsing and
   // reads the TP external-system id from each competition's own upsert object.
   imports: [ImportModule],

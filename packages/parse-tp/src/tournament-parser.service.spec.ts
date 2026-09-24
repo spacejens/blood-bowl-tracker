@@ -13,21 +13,59 @@ describe('TournamentParserService', () => {
     service = moduleRef.get(TournamentParserService);
   });
 
-  it('extracts id, name and ruleSet from a valid tournament body', () => {
+  it('extracts id, name, ruleSet and phases from a valid tournament body', () => {
     const result = service.parse({
       id: 12345,
       name: 'tLoEGBBL Chaos Cup 8',
       ruleSet: 25,
       // Unrelated fields that must be ignored, not rejected:
       categories: [{ id: 1 }],
-      phases: [],
       scoringRules: { win: 3 },
     });
     expect(result).toEqual({
       id: 12345,
       name: 'tLoEGBBL Chaos Cup 8',
       ruleSet: 25,
+      phases: [],
     });
+  });
+
+  it("flattens every category's phases, in listed order, to their id and order", () => {
+    const result = service.parse({
+      id: 18442,
+      name: 'tLoEGBBL Säsong 30',
+      ruleSet: 25,
+      categories: [
+        {
+          id: 22308,
+          phases: [
+            { id: 31255, order: 1, type: 160, roundName: 'MATCHDAY' },
+            { id: 34100, order: 2, type: 30 },
+          ],
+        },
+        { id: 22309, phases: [{ id: 34101, order: 3 }] },
+      ],
+    });
+    expect(result.phases).toEqual([
+      { id: 31255, order: 1 },
+      { id: 34100, order: 2 },
+      { id: 34101, order: 3 },
+    ]);
+  });
+
+  it('returns no phases when the tournament lists no categories', () => {
+    expect(service.parse({ id: 1, name: 'X', ruleSet: 25 }).phases).toEqual([]);
+  });
+
+  it('throws naming the field when a phase has no order', () => {
+    expect(() =>
+      service.parse({
+        id: 1,
+        name: 'X',
+        ruleSet: 25,
+        categories: [{ phases: [{ id: 5 }] }],
+      }),
+    ).toThrow(/order/);
   });
 
   it('throws naming the field when id is missing', () => {

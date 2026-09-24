@@ -1,13 +1,13 @@
 import type {
   ActionType,
   ConsequenceType,
+  ImportError,
   UpsertMatchEvent,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpInjuryType, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
+import { TpImportResultsService } from '../../tp-import-results.service';
 import {
   type TpAdminMatchEvent,
   TpAdminMatchEventBuilderService,
@@ -89,7 +89,7 @@ const INJURY_ACTION_SEVERITY_BY_TYPE: Record<TpInjuryType, ActionType> = {
 @Injectable()
 export class TpMatchEventKindBuildersService {
   constructor(
-    private readonly importResults: ImportResultService,
+    private readonly importResults: TpImportResultsService,
     private readonly adminEventBuilder: TpAdminMatchEventBuilderService,
     private readonly helpers: TpMatchEventHelpersService,
   ) {}

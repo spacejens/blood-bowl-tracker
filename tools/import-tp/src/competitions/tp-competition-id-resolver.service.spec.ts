@@ -78,7 +78,7 @@ async function makeService(options: MakeServiceOptions = {}): Promise<{
 }
 
 describe('TpCompetitionIdResolverService', () => {
-  it('resolves competition ids and derives type/era maps for every hit', async () => {
+  it('resolves competition ids and derives the era map for every hit', async () => {
     const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
       competitionIdsByExternalId: new Map([['100', 42]]),
     });
@@ -89,7 +89,6 @@ describe('TpCompetitionIdResolverService', () => {
     });
 
     expect(outcome.competitionIdsByTpId.get(100)).toBe(42);
-    expect(outcome.competitionTypesByCompetitionId.get(42)).toBe('cup');
     expect(outcome.eraIdByCompetitionId.get(42)).toBe(5);
     expect(outcome.result).toEqual({ success: true, imported: 0, errors: [] });
   });
@@ -102,28 +101,10 @@ describe('TpCompetitionIdResolverService', () => {
     });
 
     expect(outcome.competitionIdsByTpId.size).toBe(0);
-    expect(outcome.competitionTypesByCompetitionId.size).toBe(0);
     expect(outcome.eraIdByCompetitionId.size).toBe(0);
     expect(outcome.result.success).toBe(false);
     expect(outcome.result.errors).toHaveLength(1);
     expect(outcome.result.errors[0]?.message).toContain('100');
-  });
-
-  it('resolves the competition id without setting a type when upsert.type is undefined', async () => {
-    const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
-      competitionIdsByExternalId: new Map([['100', 42]]),
-    });
-    const { service } = await makeService({ lookup });
-
-    const outcome = await service.resolveCompetitionIds({
-      competitionsByTpId: new Map([
-        [100, competitionEntry({ type: undefined })],
-      ]),
-    });
-
-    expect(outcome.competitionIdsByTpId.get(100)).toBe(42);
-    expect(outcome.competitionTypesByCompetitionId.has(42)).toBe(false);
-    expect(outcome.eraIdByCompetitionId.get(42)).toBe(5);
   });
 
   it('throws when a resolved competition has no eraId', async () => {

@@ -1,8 +1,8 @@
 import type {
   ActionType,
   ConsequenceType,
+  ImportError,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError } from '@blood-bowl-tracker/import';
 import type { TpInjuryType, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { beforeEach, describe, expect, it } from 'vitest';
 

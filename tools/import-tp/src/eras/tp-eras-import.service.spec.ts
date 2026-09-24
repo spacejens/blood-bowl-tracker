@@ -56,7 +56,12 @@ interface MakeServiceOptions {
  * packages/parse-tp/src/tournament-parser.service.spec.ts; this spec only
  * needs parse() to succeed or fail on demand.
  */
-const CANNED_TOURNAMENT: TpTournament = { id: 1, name: 'T', ruleSet: 20 };
+const CANNED_TOURNAMENT: TpTournament = {
+  id: 1,
+  name: 'T',
+  ruleSet: 20,
+  phases: [],
+};
 
 /**
  * The canned ImportResult the mocked ImportResultService.result returns.
@@ -459,8 +464,8 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
     tournamentParser.parse
-      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 20 })
-      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 21 });
+      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 20, phases: [] })
+      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 21, phases: [] });
 
     await service.importEras();
 

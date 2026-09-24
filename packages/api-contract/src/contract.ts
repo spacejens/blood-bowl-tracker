@@ -90,6 +90,10 @@ import {
 } from './schemas/spp-award-value';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
 import {
+  ImportTpMatchSchema,
+  TpMatchImportResultSchema,
+} from './schemas/tp-match';
+import {
   ImportTpRosterSchema,
   TpRosterImportResultSchema,
 } from './schemas/tp-roster';
@@ -440,5 +444,14 @@ export const contract = {
     // failure comes back in the result's ImportResults, so it declares no
     // errors. Safe to retry: everything it writes is an upsert.
     import: oc.input(ImportTpRosterSchema).output(TpRosterImportResultSchema),
+  },
+  tpMatches: {
+    // A coarse, TP-specific import, like tpRosters.import: the server parses
+    // one raw TP match and imports its row, team participation, events and
+    // outcome in-process, resolving its competition, teams and players by TP
+    // id. Each failure comes back in the result's per-stage ImportResults,
+    // so it declares no errors. Safe to retry: everything it writes is an
+    // upsert or an append-only sync.
+    import: oc.input(ImportTpMatchSchema).output(TpMatchImportResultSchema),
   },
 };

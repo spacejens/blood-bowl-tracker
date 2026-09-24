@@ -1,18 +1,23 @@
 # import-tp-live
 
-`packages/import-tp-live` imports one TP team, and its players, straight into
-the database. It is server-side code: it calls `packages/game-data`
-in-process and never goes over RPC. Two callers use it:
+`packages/import-tp-live` imports one TP team, or one completed TP match
+with its teams and competition, straight into the database. It is
+server-side code: it calls `packages/game-data` in-process and never goes
+over RPC. Two live entry points and two RPC procedures use it:
 
-- **The live import**, `TpLiveTeamImportService.importTeam(...)`, which
+- **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
   fetches a roster from TP's API first. This is the entry point a future
   `apps/discord-bot` on-demand TP import will call in-process — no such
   caller exists yet, but nothing about this package needs to change for one
   to be added.
+- **The live match import**, `TpLiveMatchImportService.importMatch(...)` —
+  see [match-import.md](match-import.md).
 - **The `tpRosters.import` RPC procedure**, which `packages/api-server`
   implements with it. `tools/import-tp`'s bulk run calls that procedure once
   per downloaded roster file, so a bulk import and a live one import a team
   the same way.
+- **The `tpMatches.import` RPC procedure** — see
+  [match-import.md](match-import.md).
 
 ## What it owns
 
@@ -24,8 +29,12 @@ in-process and never goes over RPC. Two callers use it:
 - **Roster import**: `TpRosterImportService`, in `TpRosterModule`. It
   resolves the TP and Name external systems, the era and the era's rules
   set, upserts the team, then upserts its players.
-- **The live entry point**: `TpLiveTeamImportService.importTeam(...)`, in
-  `ImportTpLiveModule`.
+- **The live team entry point**: `TpLiveTeamImportService.importTeam(...)`,
+  in `ImportTpLiveModule`.
+- **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
+  match-context, upsert, events and outcome services, plus
+  `TpLiveMatchImportService` and its match/bracket fetch and live
+  competition upsert services — see [match-import.md](match-import.md).
 
 ## Importing a team live
 
@@ -46,8 +55,8 @@ The result carries two `ImportResult`s: `team` (the team upsert, plus any
 failure before it) and `players`.
 
 A team needs no competition. It is a complete entity on its own, and TP's
-roster data carries no competition either. Importing a match or a
-competition live is what later ties a team to it.
+roster data carries no competition either. See [match-import.md](match-import.md)
+for how a live match import ties a team and a competition together.
 
 What must already be in the database:
 
@@ -65,9 +74,12 @@ whose coach was never imported before (by `tools/import-tp` or
 
 A live import brings in the roster's current state only. It has no match
 data, so it adds no departed players seen only in match snapshots and no
-star players hired through inducements. It does send characteristics,
-lasting injuries and characteristic-increase counts, validated against the
-rules set the era declares.
+star players hired through inducements — unless the caller passes the
+match's roster snapshot, which is what a live match import does for each of
+its two teams (see [match-import.md](match-import.md)) so a player who has
+since left the roster still exists to be referenced by the match's events.
+It does send characteristics, lasting injuries and characteristic-increase
+counts, validated against the rules set the era declares.
 
 ## Era resolution
 
@@ -120,8 +132,8 @@ reports nothing imported.
 
 ## Wiring it into an app
 
-The package reads no config of its own. `TpRosterModule` needs
-`packages/db`'s `DB`, which the app's `DbModule` provides.
+The package reads no config of its own. `TpRosterModule` and `TpMatchModule`
+both need `packages/db`'s `DB`, which the app's `DbModule` provides.
 `ImportTpLiveModule` also needs `TP_CONNECTION_PROVIDER`, provided from a
 `@Global()` module: `getBackendApiUrl()` and `getFrontendUrl()`, TP's base
 URLs with trailing slashes included.

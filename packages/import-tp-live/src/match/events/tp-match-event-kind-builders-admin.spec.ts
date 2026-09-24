@@ -1,11 +1,10 @@
 import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
-import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { mockImportResultService } from '../import-package.test-helpers';
+import { TpImportResultsService } from '../../tp-import-results.service';
 import { TpAdminMatchEventBuilderService } from './tp-admin-match-event-builder.service';
 import { TpMatchEventHelpersService } from './tp-match-event-helpers.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
@@ -38,7 +37,7 @@ describe('TpMatchEventKindBuildersService admin events', () => {
           useValue: adminEventBuilder,
         },
         TpMatchEventHelpersService,
-        { provide: ImportResultService, useValue: mockImportResultService() },
+        TpImportResultsService,
       ],
     }).compile();
     service = moduleRef.get(TpMatchEventKindBuildersService);

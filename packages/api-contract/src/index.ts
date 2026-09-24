@@ -24,6 +24,7 @@ export * from './schemas/skill';
 export * from './schemas/skill-rules-set';
 export * from './schemas/spp-award-value';
 export * from './schemas/team';
+export * from './schemas/tp-match';
 export * from './schemas/tp-roster';
 export * from './schemas/trophy';
 export * from './schemas/trophy-award';

@@ -13,9 +13,7 @@ import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
-import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
-import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
-import { TpMatchesImportService } from './matches/tp-matches-import.service';
+import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
 import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-players-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
@@ -57,32 +55,17 @@ async function run(): Promise<ImportResult> {
     // Every competition's DB id is resolved once here, server-side by
     // external id (its TP id, stringified), rather than threaded through as
     // a client-side id map: one batched lookup for the whole run, reused
-    // below both for match category classification and for the hired-star
-    // era resolution. A resolve miss is recorded as an ImportError by the
+    // below for the hired-star era resolution and to link each match file to
+    // its competition. A resolve miss is recorded as an ImportError by the
     // service itself (see TpCompetitionIdResolverService), not silently
     // dropped.
     const {
       result: competitionIdResolutionResult,
-      competitionTypesByCompetitionId,
+      competitionIdsByTpId,
       eraIdByCompetitionId,
     } = await app.get(TpCompetitionIdResolverService).resolveCompetitionIds({
       competitionsByTpId: competitionOutcome.competitionsByTpId,
     });
-
-    // Matches link to their competition only via the directory scan competitions
-    // import already performed (match files carry no tournament id), so this
-    // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
-    // Each competition's type (for match category classification) comes from
-    // the same competitions import's upsert payloads, keyed by DB competition
-    // id via competitionTypesByCompetitionId, resolved just above by
-    // TpCompetitionIdResolverService.
-
-    const { result: matchResult, matchIdsByTpId } = await app
-      .get(TpMatchesImportService)
-      .importMatches({
-        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
-        competitionTypesByCompetitionId,
-      });
 
     const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
 
@@ -351,15 +334,13 @@ async function run(): Promise<ImportResult> {
         mercenaryPositionUsages,
       });
 
-    // Team participation (match_teams + competition_teams) runs before match
-    // events: match events resolve team-era ids the same way (roster id +
-    // era), and — more importantly — the server upsert match events uses
-    // resolves against match_teams, which this step is what populates.
+    // Competition teams (competition_teams) come from the roster files under
+    // each competition's directory, so every registered team is linked,
+    // whether or not it played.
     const teamParticipationOutcome = await app
       .get(TpTeamParticipationImportService)
       .importTeamParticipation({
         competitionsByTpId: competitionOutcome.competitionsByTpId,
-        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
         teamErasByRosterId,
         rosters,
       });
@@ -379,23 +360,21 @@ async function run(): Promise<ImportResult> {
         teamErasByRosterId,
       });
 
-    // Match events (touchdowns and injuries/casualties) run last: they need
-    // match_teams (populated above), the players step's lineUpId/star-player
-    // maps, and reuse the same matchesByCompetitionId + eraIdByCompetitionId
-    // already built for the hired-star-player scan above (competition DB id
-    // -> its real eraId), rather than resolving the era a second time.
-    const matchEventsOutcome = await app
-      .get(TpMatchEventsImportService)
-      .importMatchEvents({
+    // Each match file goes to the server as-is (tpMatches.import), which
+    // classifies the match against its competition's bracket, upserts it,
+    // links its teams, imports its events and resolves its outcome. It runs
+    // after the roster and star-player imports because the server resolves
+    // each match's teams and players by the TP ids those steps wrote, and
+    // before the SPP and lasting-injury passes, which read its match events.
+    const matchFilesOutcome = await app
+      .get(TpMatchFilesImportService)
+      .importMatchFiles({
+        competitionsByTpId: competitionOutcome.competitionsByTpId,
+        competitionIdsByTpId,
         matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
-        eraIdByCompetitionId,
-        matchIdsByTpId,
-        teamErasByRosterId,
-        playerIdsByLineUpId,
-        starPlayerIdsByRosterAndMaster,
       });
 
-    // Runs after the match-events step: the adjustment is the gap between
+    // Runs after the match-files step: the adjustment is the gap between
     // TP's own reported career total (already stored on players.spp_total by
     // the players step) and what the player's events explain -- the spp_value
     // those events just wrote, PLUS an estimate of the SPP earned in
@@ -413,7 +392,7 @@ async function run(): Promise<ImportResult> {
         careerCountsByPlayerId: careerSppCountsByPlayerId,
       });
 
-    // Also runs after the match-events step, and for the same structural
+    // Also runs after the match-files step, and for the same structural
     // reason: it recomputes each freshly-inserted player's accumulated
     // niggling injuries and stat reductions from the match events just
     // written, so it can manufacture the players_history versions a player
@@ -426,19 +405,6 @@ async function run(): Promise<ImportResult> {
         ...insertedPlayerIds,
         ...starHiresOutcome.insertedPlayerIds,
       ]);
-
-    // Match outcomes run last: scores are counted from the touchdown events
-    // imported just above, and TP's own `winner` field per match is used
-    // directly as a tie-break -- no bracket reconstruction needed, since TP
-    // already exposes this signal per match, independent of score.
-    const matchOutcomesOutcome = await app
-      .get(TpMatchOutcomesImportService)
-      .importMatchOutcomes({
-        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
-        matchIdsByTpId,
-        eraIdByCompetitionId,
-        teamErasByRosterId,
-      });
 
     // Runs last of all: TP records no player trophy winners at all, so every
     // player trophy for a TP-sourced competition is computed here, from the
@@ -464,7 +430,6 @@ async function run(): Promise<ImportResult> {
       eraOutcome.result,
       competitionOutcome.result,
       competitionIdResolutionResult,
-      matchResult,
       coachOutcome.result,
       rosterCollectionResult,
       officialTeamsCollectionResult,
@@ -482,10 +447,12 @@ async function run(): Promise<ImportResult> {
       mercenaryPositionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       trophyAwardsOutcome.result,
-      matchEventsOutcome.result,
+      matchFilesOutcome.matchResult,
+      matchFilesOutcome.participationResult,
+      matchFilesOutcome.eventsResult,
+      matchFilesOutcome.outcomeResult,
       sppAdjustmentsOutcome.result,
       lastingInjuryBackfillOutcome.result,
-      matchOutcomesOutcome.result,
       missingTrophyAwardsOutcome.result,
     ];
     return {

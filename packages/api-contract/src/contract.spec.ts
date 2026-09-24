@@ -365,4 +365,29 @@ describe('resolve procedures', () => {
       inputSchema.safeParse({ roster: {}, era: 'Fourth era' }).success,
     ).toBe(false);
   });
+
+  it('exposes tpMatches.import declaring no errors', () => {
+    expect(contract.tpMatches.import).toBeDefined();
+    expect(errorCodesOf(contract.tpMatches.import)).toEqual([]);
+  });
+
+  it('tpMatches.import takes raw match JSON plus its bracket, competition and external system', () => {
+    const inputSchema = contract.tpMatches.import['~orpc']
+      .inputSchema as z.ZodType;
+    expect(
+      inputSchema.safeParse({
+        match: { matchId: 1 },
+        bracket: [],
+        competitionTpId: 18442,
+        externalSystemName: 'TP',
+      }).success,
+    ).toBe(true);
+    expect(
+      inputSchema.safeParse({
+        match: {},
+        bracket: [],
+        externalSystemName: 'TP',
+      }).success,
+    ).toBe(false);
+  });
 });

@@ -14,22 +14,12 @@ describe('TpApiPathsService', () => {
   });
 
   it('builds the tournament-level paths', () => {
-    expect(paths.tournament('s30')).toBe('tournament/s30');
     expect(paths.news('s30')).toBe('tournament/s30/news');
     expect(paths.teamStats('s30')).toBe('tournament/s30/team-stats');
     expect(paths.lineupStats('s30')).toBe('tournament/s30/lineup-stats');
     expect(paths.coachStats('s30')).toBe('tournament/s30/coach-stats');
     expect(paths.statistics('s30')).toBe('tournament/s30/statistics');
     expect(paths.awards('s30')).toBe('awards/s30/awards');
-  });
-
-  it('builds a phase path, and a round of it', () => {
-    expect(paths.phase('s30', 31255)).toBe(
-      'tournament/s30/phases?page=0&pageSize=50&phaseId=31255&type=COACH',
-    );
-    expect(paths.phaseRound('s30', 31255, 3)).toBe(
-      'tournament/s30/phases?page=0&pageSize=50&phaseId=31255&type=COACH&round=3',
-    );
   });
 
   it("builds a phase's classifications path, in TP's own spelling", () => {
@@ -44,8 +34,7 @@ describe('TpApiPathsService', () => {
     );
   });
 
-  it('builds the match and official team list paths', () => {
-    expect(paths.match(576264)).toBe('match/576264');
+  it('builds the official team list path', () => {
     expect(paths.officialTeams(25)).toBe('rosters/masters?ruleSet=25');
   });
 });

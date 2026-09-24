@@ -1,31 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+/** One phase of a tournament: its id, and its 1-based order within the tournament. */
+export interface TpTournamentPhase {
+  id: number;
+  /** What a match's `group.phase.order` refers to. */
+  order: number;
+}
+
 /**
  * The subset of a TP `tournament_<slug>.json` body this tool cares about.
  * `ruleSet` is TP's opaque numeric rule-set code (no human-readable name
- * exists anywhere in the data). Other tournament fields (categories, phases,
- * scoring rules, etc.) are intentionally ignored until a future sub-issue
- * needs them.
+ * exists anywhere in the data). Other tournament fields (scoring rules, etc.)
+ * are intentionally ignored until a future sub-issue needs them. Phases are
+ * read; they're needed to classify a match's bracket stage.
  */
 export interface TpTournament {
   id: number;
   name: string;
   ruleSet: number;
+  /** Every category's phases, in listed order. */
+  phases: TpTournamentPhase[];
 }
 
 const TpTournamentSchema = z.object({
   id: z.number(),
   name: z.string(),
   ruleSet: z.number(),
+  categories: z
+    .array(
+      z.object({
+        phases: z
+          .array(z.object({ id: z.number(), order: z.number() }))
+          .nullish(),
+      }),
+    )
+    .nullish(),
 });
 
 @Injectable()
 export class TournamentParserService {
   /**
-   * Validate and extract `{ id, name, ruleSet }` from a parsed TP tournament
-   * JSON body. Extra fields are allowed and dropped. Throws an Error whose
-   * message names the failing field on any shape mismatch.
+   * Validate and extract `{ id, name, ruleSet, phases }` from a parsed TP
+   * tournament JSON body. Extra fields are allowed and dropped. Throws an
+   * Error whose message names the failing field on any shape mismatch.
    */
   parse(content: unknown): TpTournament {
     const result = TpTournamentSchema.safeParse(content);
@@ -42,6 +60,12 @@ export class TournamentParserService {
       id: result.data.id,
       name: result.data.name,
       ruleSet: result.data.ruleSet,
+      phases: (result.data.categories ?? []).flatMap((category) =>
+        (category.phases ?? []).map((phase) => ({
+          id: phase.id,
+          order: phase.order,
+        })),
+      ),
     };
   }
 }

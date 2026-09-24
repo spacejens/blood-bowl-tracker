@@ -69,7 +69,7 @@ export interface TpMatch {
    * phase, 30/110 for playoff phases in the local data). TP never names a
    * match's stage in text (`roundName` only ever holds DAY/MATCHDAY/ROUND),
    * so this plus `phaseOrder` is the only stage signal available. Decoded by
-   * `TpMatchCategoryService` in tools/import-tp -- but note that `type`'s
+   * `TpMatchCategoryService` in packages/import-tp-live -- but note that `type`'s
    * literal value carries no fixed stage meaning by itself (it is not stable
    * across seasons); the classifier keys off `phaseOrder`/`round` position
    * instead, and only carries `phaseType` for possible future use.

@@ -1,7 +1,4 @@
-import type {
-  CompetitionType,
-  UpsertCompetition,
-} from '@blood-bowl-tracker/api-contract';
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
@@ -32,8 +29,6 @@ export interface ResolveCompetitionIdsResult {
    * than one of the two derived views.
    */
   competitionIdsByTpId: Map<number, number>;
-  /** Each competition's database id to its cup/season type. */
-  competitionTypesByCompetitionId: Map<number, CompetitionType>;
   /** Each competition's database id to the era it belongs to. */
   eraIdByCompetitionId: Map<number, number>;
 }
@@ -42,9 +37,9 @@ export interface ResolveCompetitionIdsResult {
  * Resolves every competition TpCompetitionsImportService just imported to
  * its database id, server-side by external id (its TP id, stringified) --
  * one batched lookup for the whole run, reused both for match category
- * classification and for hired-star era resolution -- and derives the two
- * small maps `main.ts` threads onward from that same resolved id:
- * `competitionTypesByCompetitionId` and `eraIdByCompetitionId`.
+ * classification and for hired-star era resolution -- and derives the small
+ * map `main.ts` threads onward from that same resolved id:
+ * `eraIdByCompetitionId`.
  *
  * A competition whose id fails to resolve is recorded as an `ImportError`
  * and omitted from every map here, mirroring how
@@ -66,7 +61,6 @@ export class TpCompetitionIdResolverService {
     const { competitionsByTpId } = options;
     const errors: ImportError[] = [];
     const competitionIdsByTpId = new Map<number, number>();
-    const competitionTypesByCompetitionId = new Map<number, CompetitionType>();
     const eraIdByCompetitionId = new Map<number, number>();
 
     // Each entry's TP external system id is read out of its own upsert once
@@ -103,10 +97,6 @@ export class TpCompetitionIdResolverService {
       }
       competitionIdsByTpId.set(tpId, competitionId);
 
-      if (entry.upsert.type !== undefined) {
-        competitionTypesByCompetitionId.set(competitionId, entry.upsert.type);
-      }
-
       // UpsertCompetitionSchema.eraId is optional to support partial-upsert
       // payloads from other callers, but TpCompetitionsImportService always
       // resolves eraId from the era name before building this upsert --
@@ -129,7 +119,6 @@ export class TpCompetitionIdResolverService {
       // them). Mirrors the rosterCollectionResult precedent in main.ts.
       result: this.importResults.result({ imported: 0, errors }),
       competitionIdsByTpId,
-      competitionTypesByCompetitionId,
       eraIdByCompetitionId,
     };
   }

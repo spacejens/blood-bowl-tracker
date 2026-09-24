@@ -15,16 +15,18 @@ scoreResume yet), else `createdInstant` as a last resort. `createdInstant` is
 only a record-setup timestamp (when the match slot was created, e.g. at
 schedule generation) and can predate the actual play date by months — it is
 deliberately not an earlier fallback. TP competition import uses these dates to
-classify a competition as a cup or season by their span. `TpMatchesImportService`
-then imports each match as a `Match` row linked to its competition (via the
-directory scan, since a match file carries no tournament id — see below),
-carrying only a TP external id (the stringified `matchId`); match names are not
-unique, so they are never used as an external id. The parser also reads
+classify a competition as a cup or season by their span. Each match is then
+imported as a `Match` row linked to its competition through `tpMatches.import`
+(`tools/import-tp`'s `TpMatchFilesImportService` sends each match file's raw
+content to it; a live match import calls the same shared core — see
+[import-tp-live's match import](../import-tp-live/match-import.md)), carrying
+only a TP external id (the stringified `matchId`); match names are not unique,
+so they are never used as an external id. The parser also reads
 `inscriptionLocal.roster.id` / `inscriptionVisitor.roster.id` (the home/away
-team roster ids); `TpTeamParticipationImportService` resolves these to team-era
-ids and re-upserts each match with its `match_teams`, and derives each
-competition's `competition_teams` from which roster files appear under its
-directory.
+team roster ids); the server resolves these to team eras and links them to the
+match (`match_teams`), and `tools/import-tp`'s `TpTeamParticipationImportService`
+separately derives each competition's `competition_teams` from which roster
+files appear under its directory.
 
 ## Match category classification (`phaseType`/`phaseOrder`/`round`/`winner`)
 
@@ -34,9 +36,10 @@ numeric: `group.phase.type`, `group.phase.order`, and the match's own
 top-level `round`. `MatchParserService.parse()` additionally exposes these as
 `phaseType`/`phaseOrder`/`round` on `TpMatch`, plus `winner` (`'home'`/
 `'away'`/`'draw'`/`undefined`, mapped from `scoreResume.winner`). Decoding
-this into a `MatchCategory` is `tools/import-tp`'s
-`TpMatchCategoryService.classify()`'s job — see its doc comment for the full
-algorithm. Summary, with the evidence behind it:
+this into a `MatchCategory` is `packages/import-tp-live`'s
+`TpMatchCategoryService.classify()`'s job (see
+[import-tp-live's match import](../import-tp-live/match-import.md)) — see its
+doc comment for the full algorithm. Summary, with the evidence behind it:
 
 - `phaseOrder === 1` is always the main phase (regular season, or a cup's
   pool play) — `normal`, for both `season` and `cup` competitions. Every
@@ -110,9 +113,9 @@ modeled payload (e.g. code `27`, "player assigned to line-up", is a
 structural row, not a modeled roll). A `None` `injuryType` is a real,
 imported event (a genuine "Badly Hurt" result — see below).
 
-`tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
+`packages/import-tp-live`'s match event builders turn each decoded event
 into zero, one, or two `UpsertMatchEvent`s (see
-[index.md](./index.md#architecture)). Unlike BBL, which correlates
+[import-tp-live's match import](../import-tp-live/match-import.md)). Unlike BBL, which correlates
 separately scraped action/consequence occurrences, TP embeds the
 acting/victim player and team directly on the event for every kind EXCEPT
 casualties — a legitimate, confirmed exception to the original "no
@@ -170,7 +173,7 @@ A code-6 `casualty_caused` event is the ACTION of a specific player breaking
 armor; a code-8 `injury` event is the roll reporting the VICTIM and severity.
 They are TP's one exception to "no correlation needed": the specific
 attacker can only be recovered by pairing the two events after the fact,
-implemented in `tools/import-tp/src/match-events/tp-match-events-correlation.service.ts`
+implemented in `packages/import-tp-live/src/match/events/tp-match-events-correlation.service.ts`
 (mirroring where BBL's action/consequence correlation lives), computed once
 per match before its events are dispatched.
 

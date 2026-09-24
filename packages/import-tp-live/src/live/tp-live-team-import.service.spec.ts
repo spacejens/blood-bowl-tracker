@@ -2,7 +2,7 @@ import type {
   ImportError,
   ImportResult,
 } from '@blood-bowl-tracker/api-contract';
-import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
+import type { TpRoster, TpRosterPlayer } from '@blood-bowl-tracker/parse-tp';
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -72,7 +72,11 @@ describe('TpLiveTeamImportService', () => {
 
     const result = await service.importTeam({ rosterId: 163386 });
 
-    expect(result).toEqual({ team: TEAM_RESULT, players: PLAYERS_RESULT });
+    expect(result).toEqual({
+      team: TEAM_RESULT,
+      players: PLAYERS_RESULT,
+      era: 'Fourth era',
+    });
     expect(rosterFetch.fetchRoster).toHaveBeenCalledWith({
       rosterId: 163386,
       errors: [],
@@ -144,6 +148,7 @@ describe('TpLiveTeamImportService', () => {
     );
     expect(result.players.success).toBe(true);
     expect(result.players.imported).toBe(0);
+    expect(result.era).toBeUndefined();
     expect(eraResolution.resolveEra).not.toHaveBeenCalled();
     expect(rosterImport.importRoster).not.toHaveBeenCalled();
   });
@@ -165,6 +170,7 @@ describe('TpLiveTeamImportService', () => {
     expect(result.team.success).toBe(false);
     expect(result.team.errors).toHaveLength(1);
     expect(result.team.errors[0].message).toContain('Could not resolve an era');
+    expect(result.era).toBeUndefined();
     expect(rosterImport.importRoster).not.toHaveBeenCalled();
   });
 
@@ -183,5 +189,53 @@ describe('TpLiveTeamImportService', () => {
     });
     expect(result.players.success).toBe(true);
     expect(result.players.imported).toBe(0);
+    expect(result.era).toBeUndefined();
+  });
+
+  it("passes a match's embedded players through to the roster import", async () => {
+    stubHappyPath();
+    const departed: TpRosterPlayer = {
+      id: 5009,
+      name: 'Grim',
+      number: 9,
+      lineUpMasterId: 77,
+      rosterId: 163386,
+      fallbackPositionName: 'Lineman',
+      isBigGuy: false,
+      totalStarPlayerPoints: 4,
+    };
+
+    await service.importTeam({
+      rosterId: 163386,
+      matchEmbeddedPlayers: [departed],
+    });
+
+    expect(rosterImport.importRoster).toHaveBeenCalledWith({
+      roster: ROSTER,
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      matchEmbeddedPlayers: [departed],
+    });
+  });
+
+  it('reports no era when the roster import did not import the team', async () => {
+    rosterFetch.fetchRoster.mockResolvedValue(ROSTER);
+    eraResolution.resolveEra.mockResolvedValue('Fourth era');
+    rosterImport.importRoster.mockResolvedValue({
+      team: {
+        success: false,
+        imported: 0,
+        errors: [{ item: 1, message: 'no coach' }],
+      },
+      players: { success: true, imported: 0, errors: [] },
+      teamEras: [],
+      importedPlayers: [],
+      mercenaryPositionUsages: [],
+    });
+
+    const result = await service.importTeam({ rosterId: 163386 });
+
+    expect(result.era).toBeUndefined();
+    expect(result.team.success).toBe(false);
   });
 });
