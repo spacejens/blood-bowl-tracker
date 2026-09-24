@@ -78,8 +78,12 @@ teams, classifies it, and upserts it:
   genuine draw) is sent as this match's tie-break; the server only consults
   it when the score is tied and the category forbids a draw, preferring
   bracket progression for a tied qualifier or semifinal. Only this match is
-  reported — a bracket-traced outcome (e.g. a final depending on its
-  semifinal) settles once the later-stage match is imported, not before.
+  reported — a bracket-traced outcome (e.g. a tied semifinal, resolved by
+  checking which team played in, and thus won, its final) settles once the
+  later-stage match is imported, not before. A tied semifinal imported
+  before its final is recorded as a draw in the meantime, since that is what
+  TP's own `scoreResume.winner` reports for it, and is corrected once the
+  final is imported and the competition's outcomes are re-resolved.
 
 A stage whose prerequisite failed is not attempted and reports nothing
 imported.

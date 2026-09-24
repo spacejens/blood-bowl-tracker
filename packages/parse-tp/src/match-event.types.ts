@@ -82,7 +82,7 @@ export type TpMatchEvent =
        * The game turn this foul happened on, when present (absent on some
        * older events). The hard, order-independent key used to pair this
        * foul with the `injury` it caused — see `correlateFouls` in
-       * tools/import-tp, mirroring `casualty_caused.turnNumber`.
+       * `packages/import-tp-live`, mirroring `casualty_caused.turnNumber`.
        */
       turnNumber?: number;
       /**
@@ -130,9 +130,9 @@ export type TpMatchEvent =
        * (code 8), which reports the victim + severity. `rosterId` here is
        * the ACTING team (the causer's own roster), following every other
        * event type's convention that the identified `lineUpId` player
-       * belongs to `rosterId`. See `tp-match-events-correlation.ts` in
-       * tools/import-tp for how this is paired with its `injury` event via
-       * `turnNumber`.
+       * belongs to `rosterId`. See
+       * `packages/import-tp-live/src/match/events/tp-match-events-correlation.service.ts`
+       * for how this is paired with its `injury` event via `turnNumber`.
        */
       type: 'casualty_caused';
       lineUpId: number;

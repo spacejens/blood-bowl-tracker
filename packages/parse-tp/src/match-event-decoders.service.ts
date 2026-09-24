@@ -59,7 +59,7 @@ const casualtyCausedRaw = z.object({
 /**
  * Code 31 (`foul`) carries turn fields that `touchdownRaw` does not decode.
  * They are what lets a foul be paired with the `injury` it caused (see
- * `tools/import-tp`'s `correlateFouls`). `rosterId` is already the fouler's
+ * `correlateFouls` in `packages/import-tp-live`). `rosterId` is already the fouler's
  * own team, so `turnRosterId` is expected to equal it; it is decoded anyway
  * for symmetry with `injury.turnRosterId`.
  */

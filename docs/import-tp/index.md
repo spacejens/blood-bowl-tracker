@@ -438,14 +438,13 @@ referencing it can be resolved — but resolution itself reads the database,
 not a client-side id map built earlier in the same run.
 
 Some maps deliberately remain, because no external-id resolve can answer
-them: the competition payload carrier `competitionsByTpId` and the two maps
-`TpCompetitionIdResolverService` derives from it
-(`competitionTypesByCompetitionId` and `eraIdByCompetitionId`, both keyed by
-the already-resolved database competition id — not client-side substitutes
-for resolution, just its readily available byproducts), parsed match data, a
-race's display name (`raceNamesById`), `team_eras` rows (which have no
-external ids of their own), classification and evidence sets, and matches and
-players (which have no resolve procedure).
+them: the competition payload carrier `competitionsByTpId` and the map
+`TpCompetitionIdResolverService` derives from it (`eraIdByCompetitionId`,
+keyed by the already-resolved database competition id — not a client-side
+substitute for resolution, just its readily available byproduct), parsed
+match data, a race's display name (`raceNamesById`), `team_eras` rows (which
+have no external ids of their own), classification and evidence sets, and
+matches and players (which have no resolve procedure).
 
 ### Position keywords
 
