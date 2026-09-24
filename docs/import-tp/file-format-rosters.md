@@ -5,7 +5,8 @@ and star players come from TP's official team list, not from this file — see
 [file-format-official-teams.md](./file-format-official-teams.md) and
 [index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
 entries. Roster files remain the source for teams, players, and (via the
-match/competition directory structure) team participation.
+match/competition directory structure) the teams registered to a competition
+(see `TpCompetitionsImportService` in [index.md](./index.md)).
 
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
 teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
@@ -27,7 +28,7 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   resolve the team's coach.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
-  strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but
+strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but
   `TpPositionsImportService` does not consume this field: it sources
   positions and their characteristics from TP's official team list instead
   (see [file-format-official-teams.md](./file-format-official-teams.md)),

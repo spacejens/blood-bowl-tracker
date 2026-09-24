@@ -1,9 +1,10 @@
 # import-tp-live
 
-`packages/import-tp-live` imports one TP team, or one completed TP match
-with its teams and competition, straight into the database. It is
-server-side code: it calls `packages/game-data` in-process and never goes
-over RPC. Two live entry points and two RPC procedures use it:
+`packages/import-tp-live` imports one TP team, one completed TP match with
+its teams and competition, or one TP competition with its registered teams
+and trophy awards, straight into the database. It is server-side code: it
+calls `packages/game-data` in-process and never goes over RPC. Three live
+entry points and three RPC procedures use it:
 
 - **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
   fetches a roster from TP's API first. This is the entry point a future
@@ -12,12 +13,17 @@ over RPC. Two live entry points and two RPC procedures use it:
   to be added.
 - **The live match import**, `TpLiveMatchImportService.importMatch(...)` —
   see [match-import.md](match-import.md).
+- **The live competition import**,
+  `TpLiveCompetitionImportService.importCompetition(...)` — see
+  [competition-import.md](competition-import.md).
 - **The `tpRosters.import` RPC procedure**, which `packages/api-server`
   implements with it. `tools/import-tp`'s bulk run calls that procedure once
   per downloaded roster file, so a bulk import and a live one import a team
   the same way.
 - **The `tpMatches.import` RPC procedure** — see
   [match-import.md](match-import.md).
+- **The `tpCompetitions.import` RPC procedure** — see
+  [competition-import.md](competition-import.md).
 
 ## What it owns
 
@@ -33,8 +39,13 @@ over RPC. Two live entry points and two RPC procedures use it:
   in `ImportTpLiveModule`.
 - **Match import**: `TpMatchModule`, with `TpMatchImportService` and its
   match-context, upsert, events and outcome services, plus
-  `TpLiveMatchImportService` and its match/bracket fetch and live
-  competition upsert services — see [match-import.md](match-import.md).
+  `TpLiveMatchImportService` and its match/bracket fetch services — see
+  [match-import.md](match-import.md).
+- **Competition import**: `TpCompetitionModule`, with
+  `TpCompetitionImportService` and its upsert, participant and trophy-award
+  services (the upsert is shared with the live match import), plus
+  `TpLiveCompetitionImportService` and its inscriptions/awards fetch
+  services — see [competition-import.md](competition-import.md).
 
 ## Importing a team live
 
@@ -132,8 +143,9 @@ reports nothing imported.
 
 ## Wiring it into an app
 
-The package reads no config of its own. `TpRosterModule` and `TpMatchModule`
-both need `packages/db`'s `DB`, which the app's `DbModule` provides.
+The package reads no config of its own. `TpRosterModule`, `TpMatchModule`
+and `TpCompetitionModule` all need `packages/db`'s `DB`, which the app's
+`DbModule` provides.
 `ImportTpLiveModule` also needs `TP_CONNECTION_PROVIDER`, provided from a
 `@Global()` module: `getBackendApiUrl()` and `getFrontendUrl()`, TP's base
 URLs with trailing slashes included.
