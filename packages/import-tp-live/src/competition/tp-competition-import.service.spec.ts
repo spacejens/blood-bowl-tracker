@@ -74,6 +74,7 @@ describe('TpCompetitionImportService', () => {
       playedDates: OPTIONS.playedDates,
       era: 'Fourth era',
       externalSystemName: 'TP',
+      overlayExisting: true,
       errors: [],
     });
     expect(participants.linkParticipants).toHaveBeenCalledWith({

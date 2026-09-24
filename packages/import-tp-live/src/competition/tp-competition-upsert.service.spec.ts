@@ -126,6 +126,36 @@ describe('TpCompetitionUpsertService', () => {
     expect(errors).toEqual([]);
   });
 
+  it('overlays era, type and dates on an already-imported competition when asked', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+
+    await expect(
+      service.upsertCompetition({
+        tournament: TOURNAMENT,
+        playedDates: DATES,
+        era: 'Fourth era',
+        externalSystemName: 'TP',
+        overlayExisting: true,
+        errors,
+      }),
+    ).resolves.toEqual(upsertedCompetition());
+    expect(eras.resolve).toHaveBeenCalledWith({
+      externalSystemId: 1,
+      externalId: 'Fourth era',
+    });
+    expect(span.derive).toHaveBeenCalledWith(DATES);
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      name: 'tLoEGBBL Säsong 30',
+      type: 'season',
+      eraId: 40,
+      startDate: '2026-01-10',
+      endDate: '2026-06-20',
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(errors).toEqual([]);
+  });
+
   it('records one error when the TP system cannot be set up', async () => {
     externalSystems.upsert.mockRejectedValue(new Error('db down'));
 

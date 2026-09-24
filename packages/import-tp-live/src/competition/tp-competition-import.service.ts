@@ -46,9 +46,14 @@ export class TpCompetitionImportService {
 
   /**
    * Upserts the competition, links its registered teams, then records its
-   * trophy awards for those linked teams. A stage whose prerequisite failed
-   * is not attempted and reports nothing imported: nothing is linked without
-   * a competition, and no award is recorded when the team link failed.
+   * trophy awards for those linked teams. The upsert overlays an
+   * already-imported competition's era, type and dates from this call's own
+   * data, matching BBL's and TP's bulk import contract (see
+   * tools/import-manual/data/before-other-importers/competitions.json5) — a
+   * live match import's own incidental competition upsert does not, since it
+   * only knows one match's date. A stage whose prerequisite failed is not
+   * attempted and reports nothing imported: nothing is linked without a
+   * competition, and no award is recorded when the team link failed.
    */
   async importCompetition({
     tournament,
@@ -64,6 +69,7 @@ export class TpCompetitionImportService {
       playedDates,
       era,
       externalSystemName,
+      overlayExisting: true,
       errors: competitionErrors,
     });
     const competitionResult = this.importResults.result({

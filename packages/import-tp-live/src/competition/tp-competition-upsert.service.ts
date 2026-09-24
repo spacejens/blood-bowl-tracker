@@ -28,6 +28,18 @@ export interface UpsertTpCompetitionOptions {
   era: string;
   /** The name TP's external system is registered under. */
   externalSystemName: string;
+  /**
+   * Whether an already-imported competition's era, type and dates are
+   * overwritten from `playedDates`/`era` instead of left as already stored.
+   * The full competition import (live standalone and `tpCompetitions.import`)
+   * sees the whole competition's matches and sets this, matching BBL's and
+   * TP's bulk import contract (see
+   * `tools/import-manual/data/before-other-importers/competitions.json5`). A
+   * live match import triggering this as a side effect of importing one
+   * match leaves it false: it only knows that one match's date, not the
+   * competition's full span.
+   */
+  overlayExisting?: boolean;
   errors: ImportError[];
 }
 
@@ -55,22 +67,24 @@ export class TpCompetitionUpsertService {
   ) {}
 
   /**
-   * Upserts a TP tournament as a competition, keyed by its TP id. A
-   * competition already imported under that TP id has its name kept in sync
-   * and its external id link ensured, but its era, type and start/end dates
-   * are left exactly as already stored. A brand-new competition gets its era
-   * resolved by name and its type and start/end dates derived from its
-   * matches' dates. It never sends a competition group: that classification
-   * is curated in tools/import-manual and the database requires one, so a
-   * new competition not already curated fails to be created and is reported.
-   * Resolves the stored competition once upserted; each failure records one
-   * error and resolves undefined.
+   * Upserts a TP tournament as a competition, keyed by its TP id. A brand-new
+   * competition gets its era resolved by name and its type and start/end
+   * dates derived from its matches' dates. An already-imported competition
+   * has its name kept in sync and its external id link ensured; its era,
+   * type and dates are also overwritten from this call's own data when
+   * `overlayExisting` is set, and otherwise left exactly as already stored.
+   * It never sends a competition group: that classification is curated in
+   * tools/import-manual and the database requires one, so a new competition
+   * not already curated fails to be created and is reported. Resolves the
+   * stored competition once upserted; each failure records one error and
+   * resolves undefined.
    */
   async upsertCompetition({
     tournament,
     playedDates,
     era,
     externalSystemName,
+    overlayExisting = false,
     errors,
   }: UpsertTpCompetitionOptions): Promise<UpsertedTpCompetition | undefined> {
     const tpSystem = await this.runner.record({
@@ -99,7 +113,7 @@ export class TpCompetitionUpsertService {
       UpsertCompetition,
       'type' | 'eraId' | 'startDate' | 'endDate'
     > = {};
-    if (!competitionRef.found) {
+    if (!competitionRef.found || overlayExisting) {
       const eraRef = await this.eras.resolve({
         externalSystemId: tpSystemId,
         externalId: era,
