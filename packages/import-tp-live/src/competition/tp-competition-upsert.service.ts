@@ -7,26 +7,44 @@ import {
   ErasService,
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
-import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpCompetitionSpanService } from './tp-competition-span.service';
 
-/** Options for {@link TpLiveCompetitionUpsertService.upsertCompetition}. */
-export interface UpsertLiveCompetitionOptions {
-  tournament: TpTournament;
-  /** Every dated match's date in the tournament's fixture lists. */
+/** A TP tournament's identity: all a competition upsert reads of it. */
+export interface TpCompetitionTournament {
+  id: number;
+  name: string;
+}
+
+/** Options for {@link TpCompetitionUpsertService.upsertCompetition}. */
+export interface UpsertTpCompetitionOptions {
+  tournament: TpCompetitionTournament;
+  /** Every dated match's date in the tournament. */
   playedDates: Date[];
-  /** The era to import the competition under, by name. */
+  /** The era to import a new competition under, by name. */
   era: string;
+  /** The name TP's external system is registered under. */
+  externalSystemName: string;
   errors: ImportError[];
 }
 
+/** What the later stages of a competition import need of an upserted competition. */
+export interface UpsertedTpCompetition {
+  tpSystemId: number;
+  competitionId: number;
+  /** TP's id of the competition: its external id under the TP system. */
+  competitionTpId: number;
+  /** The era the competition is stored under. */
+  eraId: number;
+  /** The competition's curated group. */
+  competitionGroupId: number;
+}
+
 @Injectable()
-export class TpLiveCompetitionUpsertService {
+export class TpCompetitionUpsertService {
   constructor(
     private readonly externalSystems: ExternalSystemsService,
     private readonly eras: ErasService,
@@ -37,35 +55,36 @@ export class TpLiveCompetitionUpsertService {
   ) {}
 
   /**
-   * Upserts a live-fetched TP tournament as a competition, keyed by its TP
-   * id. A competition already imported under that TP id has its name kept in
-   * sync and its external id link ensured, but its era, type and start/end
-   * dates are left exactly as already stored. A brand-new competition gets
-   * its era resolved by name and its type and start/end dates derived from
-   * its fixtures' dates — the same fields tools/import-tp's bulk import
-   * sends. It never sends a competition group: that classification is
-   * curated in tools/import-manual and the database requires one, so a new
-   * competition not already curated fails to be created and is reported.
-   * Resolves true once upserted; each failure records one error.
+   * Upserts a TP tournament as a competition, keyed by its TP id. A
+   * competition already imported under that TP id has its name kept in sync
+   * and its external id link ensured, but its era, type and start/end dates
+   * are left exactly as already stored. A brand-new competition gets its era
+   * resolved by name and its type and start/end dates derived from its
+   * matches' dates. It never sends a competition group: that classification
+   * is curated in tools/import-manual and the database requires one, so a
+   * new competition not already curated fails to be created and is reported.
+   * Resolves the stored competition once upserted; each failure records one
+   * error and resolves undefined.
    */
   async upsertCompetition({
     tournament,
     playedDates,
     era,
+    externalSystemName,
     errors,
-  }: UpsertLiveCompetitionOptions): Promise<boolean> {
+  }: UpsertTpCompetitionOptions): Promise<UpsertedTpCompetition | undefined> {
     const tpSystem = await this.runner.record({
       run: () =>
         this.externalSystems.upsert({
-          name: TP_EXTERNAL_SYSTEM_NAME,
+          name: externalSystemName,
           category: 'imported_data_source',
         }),
-      item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+      item: { externalSystems: [externalSystemName] },
       errors,
       buildErrorMessage: (error) => this.runner.messageOf(error),
     });
     if (tpSystem === undefined) {
-      return false;
+      return undefined;
     }
     const tpSystemId = tpSystem.system.id;
     const externalIds = [
@@ -92,7 +111,7 @@ export class TpLiveCompetitionUpsertService {
             message: `Skipping competition "${tournament.name}": era "${era}" does not exist.`,
           }),
         );
-        return false;
+        return undefined;
       }
       const span = this.span.derive(playedDates);
       if (span === undefined) {
@@ -102,7 +121,7 @@ export class TpLiveCompetitionUpsertService {
             message: `Skipping competition "${tournament.name}": no dated matches found.`,
           }),
         );
-        return false;
+        return undefined;
       }
       fields = {
         type: span.type,
@@ -124,6 +143,15 @@ export class TpLiveCompetitionUpsertService {
       buildErrorMessage: (error) =>
         `Failed to upsert competition "${tournament.name}" (TP id ${tournament.id}): ${this.runner.messageOf(error)}`,
     });
-    return upserted !== undefined;
+    if (upserted === undefined) {
+      return undefined;
+    }
+    return {
+      tpSystemId,
+      competitionId: upserted.competition.id,
+      competitionTpId: tournament.id,
+      eraId: upserted.competition.eraId,
+      competitionGroupId: upserted.competition.competitionGroupId,
+    };
   }
 }

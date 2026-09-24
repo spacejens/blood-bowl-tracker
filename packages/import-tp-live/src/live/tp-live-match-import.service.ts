@@ -6,11 +6,11 @@ import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
+import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
 import { TpMatchImportService } from '../match/tp-match-import.service';
 import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
-import { TpLiveCompetitionUpsertService } from './tp-live-competition-upsert.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
 import { TpMatchFetchService } from './tp-match-fetch.service';
@@ -54,7 +54,7 @@ export class TpLiveMatchImportService {
     private readonly matchFetch: TpMatchFetchService,
     private readonly bracketFetch: TpBracketFetchService,
     private readonly teamImport: TpLiveTeamImportService,
-    private readonly competitionUpsert: TpLiveCompetitionUpsertService,
+    private readonly competitionUpsert: TpCompetitionUpsertService,
     private readonly matchImport: TpMatchImportService,
     private readonly importResults: TpImportResultsService,
   ) {}
@@ -122,19 +122,21 @@ export class TpLiveMatchImportService {
         errors: competitionErrors,
         session: visit,
       });
-      const competitionImported =
-        bracket !== undefined &&
-        (await this.competitionUpsert.upsertCompetition({
-          tournament: bracket.tournament,
-          playedDates: bracket.playedDates,
-          era: homeTeam.era,
-          errors: competitionErrors,
-        }));
+      const upserted =
+        bracket === undefined
+          ? undefined
+          : await this.competitionUpsert.upsertCompetition({
+              tournament: bracket.tournament,
+              playedDates: bracket.playedDates,
+              era: homeTeam.era,
+              externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+              errors: competitionErrors,
+            });
       const competition = this.importResults.result({
-        imported: competitionImported ? 1 : 0,
+        imported: upserted === undefined ? 0 : 1,
         errors: competitionErrors,
       });
-      if (bracket === undefined || !competitionImported) {
+      if (bracket === undefined || upserted === undefined) {
         return { ...this.nothingImported(), homeTeam, awayTeam, competition };
       }
 

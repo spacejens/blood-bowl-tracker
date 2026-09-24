@@ -1,5 +1,4 @@
 import {
-  CompetitionsModule,
   ErasModule,
   ExternalSystemsModule,
   RacesModule,
@@ -9,10 +8,9 @@ import { ScrapeTpModule } from '@blood-bowl-tracker/scrape-tp';
 import { TpPathsModule } from '@blood-bowl-tracker/tp-paths';
 import { Module } from '@nestjs/common';
 
+import { TpCompetitionModule } from './competition/tp-competition.module';
 import { TpBracketFetchService } from './live/tp-bracket-fetch.service';
-import { TpCompetitionSpanService } from './live/tp-competition-span.service';
 import { TpEraResolutionService } from './live/tp-era-resolution.service';
-import { TpLiveCompetitionUpsertService } from './live/tp-live-competition-upsert.service';
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
@@ -36,7 +34,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     ErasModule,
     ExternalSystemsModule,
     RacesModule,
-    CompetitionsModule,
+    TpCompetitionModule,
   ],
   providers: [
     TpRosterFetchService,
@@ -44,8 +42,6 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpLiveTeamImportService,
     TpMatchFetchService,
     TpBracketFetchService,
-    TpCompetitionSpanService,
-    TpLiveCompetitionUpsertService,
     TpLiveMatchImportService,
   ],
   exports: [TpLiveTeamImportService, TpLiveMatchImportService],
