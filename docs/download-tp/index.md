@@ -133,7 +133,8 @@ Plain HTTP cannot click through pages or observe what a page requests, so
 The mapping was captured once from a real browser session. If TP's frontend
 changes which endpoints a page calls, update
 `tools/download-tp/src/downloader/tp-api-paths.service.ts` to match. Roster,
-tournament and match paths are the exception: they live in `packages/tp-paths`'
+tournament (including inscriptions and awards) and match paths are the
+exception: they live in `packages/tp-paths`'
 `TpRosterPathsService`, `TpTournamentPathsService` and `TpMatchPathsService`,
 shared with the live team and match imports (see
 [docs/import-tp-live/index.md](../import-tp-live/index.md)).

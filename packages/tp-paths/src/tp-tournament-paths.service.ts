@@ -6,7 +6,7 @@ import { Injectable } from '@nestjs/common';
  * TP's frontend base URL (sent as a fetch's referer). `slug` is the
  * tournament's name as it appears in the frontend path. Shared by
  * tools/download-tp's bulk download and packages/import-tp-live's live match
- * import.
+ * and competition imports.
  */
 @Injectable()
 export class TpTournamentPathsService {
@@ -27,6 +27,16 @@ export class TpTournamentPathsService {
     roundNumber: number,
   ): string {
     return `${this.phaseApiPath(slug, phaseId)}&round=${roundNumber}`;
+  }
+
+  /** One category's registered participants, as the players page loads them. */
+  inscriptionsApiPath(slug: string, categoryId: number): string {
+    return `inscriptions/${slug}/category/${categoryId}/inscriptions?page=0&pageSize=75`;
+  }
+
+  /** The tournament's awards, as the awards page loads them. */
+  awardsApiPath(slug: string): string {
+    return `awards/${slug}/awards`;
   }
 
   /** One of the tournament's pages (e.g. `scores`, `news`). */
