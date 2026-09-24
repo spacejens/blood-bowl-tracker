@@ -227,7 +227,7 @@ export class BblTrophyAwardsImportService {
    * Everything this competition's award rows need, or `undefined` after
    * recording why they must all be skipped: the competition was not
    * imported, or its group is not in the curated catalog. Mirrors
-   * TpTrophyAwardsImportService.buildContext.
+   * packages/import-tp-live's TpCompetitionTrophyAwardsService.
    */
   private buildContext(
     options: {
