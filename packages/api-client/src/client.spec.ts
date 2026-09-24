@@ -127,6 +127,7 @@ describe('createApiClient', () => {
       'skills',
       'sppAwardValues',
       'teams',
+      'tpCompetitions',
       'tpMatches',
       'tpRosters',
       'trophies',

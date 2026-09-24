@@ -90,6 +90,10 @@ import {
 } from './schemas/spp-award-value';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
 import {
+  ImportTpCompetitionSchema,
+  TpCompetitionImportResultSchema,
+} from './schemas/tp-competition';
+import {
   ImportTpMatchSchema,
   TpMatchImportResultSchema,
 } from './schemas/tp-match';
@@ -436,6 +440,17 @@ export const contract = {
       UpsertExternalSystemSchema,
       ExternalSystemSchema,
     ),
+  },
+  tpCompetitions: {
+    // A coarse, TP-specific import, like tpRosters.import and
+    // tpMatches.import: the server upserts one competition, links its
+    // registered teams and records its trophy awards in-process, resolving
+    // its era, teams and trophies by name and TP id. Each failure comes back
+    // in the result's per-stage ImportResults, so it declares no errors.
+    // Safe to retry: everything it writes is an upsert or an add-only sync.
+    import: oc
+      .input(ImportTpCompetitionSchema)
+      .output(TpCompetitionImportResultSchema),
   },
   tpRosters: {
     // A coarse, TP-specific import rather than an entity upsert: the server

@@ -44,6 +44,7 @@ import {
   TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import {
+  TpCompetitionImportService,
   TpMatchImportService,
   TpRosterImportService,
 } from '@blood-bowl-tracker/import-tp-live';
@@ -70,6 +71,7 @@ import {
   buildPositionSyncRaceErasRoute,
   buildSkillRulesSetsRoutes,
   buildSppAwardValuesRoutes,
+  buildTpCompetitionsRoutes,
   buildTpMatchesRoutes,
   buildTpRostersRoutes,
   buildTrophyAwardsRoutes,
@@ -121,6 +123,7 @@ export class RpcRouterFactoryService {
     private readonly missingTrophyAwards: MissingTrophyAwardsService,
     private readonly tpRosterImport: TpRosterImportService,
     private readonly tpMatchImport: TpMatchImportService,
+    private readonly tpCompetitionImport: TpCompetitionImportService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -521,6 +524,7 @@ export class RpcRouterFactoryService {
       ),
       tpRosters: buildTpRostersRoutes(this.tpRosterImport),
       tpMatches: buildTpMatchesRoutes(this.tpMatchImport),
+      tpCompetitions: buildTpCompetitionsRoutes(this.tpCompetitionImport),
     };
   }
 }
