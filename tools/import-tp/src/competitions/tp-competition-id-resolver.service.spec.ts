@@ -1,4 +1,4 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ReferenceLookupService,
@@ -14,55 +14,16 @@ import {
 import { TpCompetitionIdResolverService } from './tp-competition-id-resolver.service';
 
 const TP_SYSTEM_ID = 9;
+const CANNED_RESULT: ImportResult = { success: true, imported: 0, errors: [] };
 
-function competitionEntry(overrides: Partial<UpsertCompetition> = {}): {
-  upsert: UpsertCompetition;
-  era: string;
-  competition: string;
-  competitionGroupId: number;
-} {
-  return {
-    upsert: {
-      name: 'Winter Cup',
-      type: 'cup',
-      eraId: 5,
-      startDate: '2020-01-01',
-      endDate: '2020-01-03',
-      teamEraIds: [],
-      externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: '100' }],
-      ...overrides,
-    },
-    era: 'era-1',
-    competition: 'winter-cup',
-    competitionGroupId: 1,
-  };
-}
-
-interface MakeServiceOptions {
-  lookup?: MockProxy<ReferenceLookupService>;
-  importResults?: MockProxy<ImportResultService>;
-}
-
-/**
- * Builds a TpCompetitionIdResolverService with mocked collaborators. Each
- * parameter defaults to a permissive mock (an empty-map lookup that resolves
- * nothing, and an ImportResultService whose `result` derives `success` from
- * `errors.length === 0` the same way the real one does) so a test overrides
- * only the collaborator its case actually needs.
- */
-async function makeService(options: MakeServiceOptions = {}): Promise<{
-  service: TpCompetitionIdResolverService;
-  lookup: MockProxy<ReferenceLookupService>;
-  importResults: MockProxy<ImportResultService>;
-}> {
-  const lookup =
-    options.lookup ?? mockReferenceLookupService(new Map(), TP_SYSTEM_ID);
-  const importResults = options.importResults ?? mockImportResultService();
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+async function makeService(
+  lookup: MockProxy<ReferenceLookupService> = mockReferenceLookupService(
+    new Map(),
+    TP_SYSTEM_ID,
+  ),
+) {
+  const importResults = mockImportResultService();
+  importResults.result.mockReturnValue(CANNED_RESULT);
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpCompetitionIdResolverService,
@@ -78,47 +39,70 @@ async function makeService(options: MakeServiceOptions = {}): Promise<{
 }
 
 describe('TpCompetitionIdResolverService', () => {
-  it('resolves competition ids and derives the era map for every hit', async () => {
-    const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
-      competitionIdsByExternalId: new Map([['100', 42]]),
-    });
-    const { service } = await makeService({ lookup });
+  it('resolves every imported competition to its database id in one batched call', async () => {
+    const { service, lookup, importResults } = await makeService(
+      mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
+        competitionIdsByExternalId: new Map([['100', 42]]),
+      }),
+    );
 
     const outcome = await service.resolveCompetitionIds({
-      competitionsByTpId: new Map([[100, competitionEntry()]]),
+      tpIds: [100],
+      tpSystemId: TP_SYSTEM_ID,
     });
 
-    expect(outcome.competitionIdsByTpId.get(100)).toBe(42);
-    expect(outcome.eraIdByCompetitionId.get(42)).toBe(5);
-    expect(outcome.result).toEqual({ success: true, imported: 0, errors: [] });
+    expect(outcome.competitionIdsByTpId).toEqual(new Map([[100, 42]]));
+    expect(lookup.lookupMap).toHaveBeenCalledWith('competition', [
+      { externalSystemId: TP_SYSTEM_ID, externalId: '100' },
+    ]);
+    expect(importResults.result).toHaveBeenCalledWith({
+      imported: 0,
+      errors: [],
+    });
+    expect(outcome.result).toBe(CANNED_RESULT);
   });
 
-  it('records an ImportError and omits the competition when it fails to resolve', async () => {
-    const { service } = await makeService();
+  it('records an error and omits a competition that does not resolve', async () => {
+    const { service, importResults } = await makeService();
 
     const outcome = await service.resolveCompetitionIds({
-      competitionsByTpId: new Map([[100, competitionEntry()]]),
+      tpIds: [100],
+      tpSystemId: TP_SYSTEM_ID,
     });
 
     expect(outcome.competitionIdsByTpId.size).toBe(0);
-    expect(outcome.eraIdByCompetitionId.size).toBe(0);
-    expect(outcome.result.success).toBe(false);
-    expect(outcome.result.errors).toHaveLength(1);
-    expect(outcome.result.errors[0]?.message).toContain('100');
+    expect(importResults.result).toHaveBeenCalledWith({
+      imported: 0,
+      errors: [
+        {
+          item: { competition: 100 },
+          message:
+            'Could not resolve competition id 100 to a database id: its match files and missing trophy awards will be skipped.',
+        },
+      ],
+    });
   });
 
-  it('throws when a resolved competition has no eraId', async () => {
-    const lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
-      competitionIdsByExternalId: new Map([['100', 42]]),
-    });
-    const { service } = await makeService({ lookup });
+  it('looks nothing up when the TP system could not be set up', async () => {
+    const { service, lookup } = await makeService();
 
-    await expect(
-      service.resolveCompetitionIds({
-        competitionsByTpId: new Map([
-          [100, competitionEntry({ eraId: undefined })],
-        ]),
-      }),
-    ).rejects.toThrow(/has no eraId/);
+    const outcome = await service.resolveCompetitionIds({
+      tpIds: [100],
+      tpSystemId: undefined,
+    });
+
+    expect(outcome.competitionIdsByTpId.size).toBe(0);
+    expect(lookup.lookupMap).not.toHaveBeenCalled();
+  });
+
+  it('looks nothing up when no competition was imported', async () => {
+    const { service, lookup } = await makeService();
+
+    await service.resolveCompetitionIds({
+      tpIds: [],
+      tpSystemId: TP_SYSTEM_ID,
+    });
+
+    expect(lookup.lookupMap).not.toHaveBeenCalled();
   });
 });

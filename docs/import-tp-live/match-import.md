@@ -40,7 +40,10 @@ an earlier one fails:
    was imported under), type and dates derived from the fixture lists' dates
    by the same ≤ 3-day cup rule `tools/import-tp`'s bulk import uses. It
    never sends a competition group, so a competition not already curated by
-   `tools/import-manual` cannot be created this way.
+   `tools/import-manual` cannot be created this way. This is the
+   competition import's own upsert stage (see
+   [competition-import.md](competition-import.md)); a match import does not
+   link the competition's other teams or record its awards.
 6. **The shared core**, below, importing the match itself.
 
 Only the requested match is imported; its bracket siblings are used only for

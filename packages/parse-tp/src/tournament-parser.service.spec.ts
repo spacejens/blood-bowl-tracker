@@ -27,6 +27,7 @@ describe('TournamentParserService', () => {
       name: 'tLoEGBBL Chaos Cup 8',
       ruleSet: 25,
       phases: [],
+      categoryIds: [1],
     });
   });
 
@@ -101,5 +102,27 @@ describe('TournamentParserService', () => {
   it('throws when the body is not an object', () => {
     expect(() => service.parse(null)).toThrow();
     expect(() => service.parse('not json')).toThrow();
+  });
+
+  it("lists every category's id, in listed order", () => {
+    const result = service.parse({
+      id: 18442,
+      name: 'tLoEGBBL Säsong 30',
+      ruleSet: 25,
+      categories: [{ id: 22308 }, { id: 22309, phases: [] }],
+    });
+    expect(result.categoryIds).toEqual([22308, 22309]);
+  });
+
+  it('returns no category ids when the tournament lists no categories', () => {
+    expect(
+      service.parse({ id: 1, name: 'X', ruleSet: 25 }).categoryIds,
+    ).toEqual([]);
+  });
+
+  it('throws naming the field when a category has no id', () => {
+    expect(() =>
+      service.parse({ id: 1, name: 'X', ruleSet: 25, categories: [{}] }),
+    ).toThrow(/categories\.0\.id/);
   });
 });

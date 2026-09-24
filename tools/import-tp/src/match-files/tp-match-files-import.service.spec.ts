@@ -70,8 +70,8 @@ const OPTIONS = {
     [18442, { era: 'Fourth era', competition: 'sasong-30' }],
   ]),
   competitionIdsByTpId: new Map([[18442, 12]]),
-  matchesByCompetitionId: new Map([
-    [12, [parsed(1), parsed(2, { phaseOrder: 2, winner: undefined })]],
+  matchesByCompetitionTpId: new Map([
+    [18442, [parsed(1), parsed(2, { phaseOrder: 2, winner: undefined })]],
   ]),
 };
 

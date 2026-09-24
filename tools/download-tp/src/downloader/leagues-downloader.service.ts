@@ -105,7 +105,7 @@ export class LeaguesDownloaderService {
     );
     await this.fetch(
       crawl,
-      paths.awards(slug),
+      this.tpTournamentPathsService.awardsApiPath(slug),
       this.tournamentPage(crawl, 'awards'),
     );
   }
@@ -166,14 +166,16 @@ export class LeaguesDownloaderService {
     crawl: LeagueCrawl,
     categoryIds: number[],
   ): Promise<void> {
-    const paths = this.tpApiPathsService;
     const playersPage = this.tournamentPage(crawl, 'players');
     const responses: Record<string, TpInscription[]>[] = [];
     for (const categoryId of categoryIds) {
       responses.push(
         (await this.fetch(
           crawl,
-          paths.inscriptions(crawl.slug, categoryId),
+          this.tpTournamentPathsService.inscriptionsApiPath(
+            crawl.slug,
+            categoryId,
+          ),
           playersPage,
         )) as Record<string, TpInscription[]>,
       );

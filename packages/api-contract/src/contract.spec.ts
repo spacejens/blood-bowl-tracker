@@ -366,6 +366,11 @@ describe('resolve procedures', () => {
     ).toBe(false);
   });
 
+  it('exposes tpCompetitions.import declaring no errors', () => {
+    expect(contract.tpCompetitions.import).toBeDefined();
+    expect(errorCodesOf(contract.tpCompetitions.import)).toEqual([]);
+  });
+
   it('exposes tpMatches.import declaring no errors', () => {
     expect(contract.tpMatches.import).toBeDefined();
     expect(errorCodesOf(contract.tpMatches.import)).toEqual([]);

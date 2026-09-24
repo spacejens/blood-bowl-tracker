@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { ImportTpLiveModule } from './import-tp-live.module';
+import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TP_CONNECTION_PROVIDER } from './tp-import-providers';
@@ -44,6 +45,16 @@ describe('ImportTpLiveModule', () => {
 
     expect(moduleRef.get(TpLiveMatchImportService)).toBeInstanceOf(
       TpLiveMatchImportService,
+    );
+  });
+
+  it('composes TpLiveCompetitionImportService with its real dependencies wired', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [TestTpProvidersModule, ImportTpLiveModule],
+    }).compile();
+
+    expect(moduleRef.get(TpLiveCompetitionImportService)).toBeInstanceOf(
+      TpLiveCompetitionImportService,
     );
   });
 });

@@ -28,6 +28,7 @@ import {
   TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import {
+  TpCompetitionImportService,
   TpMatchImportService,
   TpRosterImportService,
 } from '@blood-bowl-tracker/import-tp-live';
@@ -78,6 +79,7 @@ export async function createRouterHarness() {
       mock<PlayerLastingInjuryBackfillService>(),
     tpRosterImportService: mock<TpRosterImportService>(),
     tpMatchImportService: mock<TpMatchImportService>(),
+    tpCompetitionImportService: mock<TpCompetitionImportService>(),
   };
 
   const moduleRef = await Test.createTestingModule({
@@ -147,6 +149,10 @@ export async function createRouterHarness() {
       {
         provide: TpMatchImportService,
         useValue: mocks.tpMatchImportService,
+      },
+      {
+        provide: TpCompetitionImportService,
+        useValue: mocks.tpCompetitionImportService,
       },
       UpsertHandlerService,
     ],

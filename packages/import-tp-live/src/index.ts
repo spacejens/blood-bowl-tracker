@@ -1,4 +1,9 @@
+export { TpCompetitionModule } from './competition/tp-competition.module';
+export type { ImportCompetitionOptions } from './competition/tp-competition-import.service';
+export { TpCompetitionImportService } from './competition/tp-competition-import.service';
 export { ImportTpLiveModule } from './import-tp-live.module';
+export type { FetchAwardsOptions } from './live/tp-awards-fetch.service';
+export { TpAwardsFetchService } from './live/tp-awards-fetch.service';
 export type {
   FetchBracketOptions,
   TpBracket,
@@ -6,6 +11,14 @@ export type {
 export { TpBracketFetchService } from './live/tp-bracket-fetch.service';
 export type { ResolveEraOptions } from './live/tp-era-resolution.service';
 export { TpEraResolutionService } from './live/tp-era-resolution.service';
+export type { FetchParticipantsOptions } from './live/tp-inscriptions-fetch.service';
+export { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service';
+export type {
+  ImportLiveCompetitionOptions,
+  TpLiveCompetitionImportResult,
+  TpLiveCompetitionTeamResult,
+} from './live/tp-live-competition-import.service';
+export { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
 export type {
   ImportLiveMatchOptions,
   TpLiveMatchImportResult,

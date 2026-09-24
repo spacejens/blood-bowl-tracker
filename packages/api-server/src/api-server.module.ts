@@ -24,6 +24,7 @@ import {
   TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
 import {
+  TpCompetitionModule,
   TpMatchModule,
   TpRosterModule,
 } from '@blood-bowl-tracker/import-tp-live';
@@ -64,6 +65,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     TrophyAwardsModule,
     TpRosterModule,
     TpMatchModule,
+    TpCompetitionModule,
   ],
   providers: [
     ApiTokenAuthService,

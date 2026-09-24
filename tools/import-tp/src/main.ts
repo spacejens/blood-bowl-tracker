@@ -8,6 +8,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
+import { TpCompetitionSourcesService } from './competitions/tp-competition-sources.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
@@ -30,9 +31,7 @@ import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.serv
 import { OfficialTeamsCollectionService } from './source/official-teams-collection.service';
 import { RosterCollectionService } from './source/roster-collection.service';
 import { SkillMasterNameCollectionService } from './source/skill-master-name-collection.service';
-import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpMissingTrophyAwardsImportService } from './trophy-awards/tp-missing-trophy-awards-import.service';
-import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -48,30 +47,19 @@ async function run(): Promise<ImportResult> {
       .importRulesSets();
     const eraOutcome = await app.get(TpErasImportService).importEras();
 
-    const competitionOutcome = await app
-      .get(TpCompetitionsImportService)
-      .importCompetitions();
-
-    // Every competition's DB id is resolved once here, server-side by
-    // external id (its TP id, stringified), rather than threaded through as
-    // a client-side id map: one batched lookup for the whole run, reused
-    // below for the hired-star era resolution and to link each match file to
-    // its competition. A resolve miss is recorded as an ImportError by the
-    // service itself (see TpCompetitionIdResolverService), not silently
-    // dropped.
-    const {
-      result: competitionIdResolutionResult,
-      competitionIdsByTpId,
-      eraIdByCompetitionId,
-    } = await app.get(TpCompetitionIdResolverService).resolveCompetitionIds({
-      competitionsByTpId: competitionOutcome.competitionsByTpId,
-    });
+    // Every competition directory is scanned once, up front: its tournament,
+    // its era and its parsed matches feed the hired-star and match-snapshot
+    // passes below, long before the competitions themselves are imported
+    // (after the rosters, further down). Nothing is upserted here.
+    const competitionSources = await app
+      .get(TpCompetitionSourcesService)
+      .collect();
 
     const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
 
     // Roster files (rosters_<id>.json) are scanned and parsed once here, then
-    // shared by the roster import, team participation and the roster player
-    // facts below, so a bad file is reported once.
+    // shared by the roster import, the competition import and the roster
+    // player facts below, so a bad file is reported once.
     const rosterErrors: ImportError[] = [];
     const rosters = await app
       .get(RosterCollectionService)
@@ -180,11 +168,9 @@ async function run(): Promise<ImportResult> {
 
     // A roster id can be imported under more than one era, so resolving a
     // hired star player's team era later needs the real eraId the
-    // inducements_roll event came from -- not a guess. eraIdByCompetitionId
-    // (each DB competition id's real eraId) was
-    // already resolved above by TpCompetitionIdResolverService, the same
-    // value TpTeamParticipationImportService already resolves roster ids
-    // against.
+    // inducements_roll event came from -- not a guess: the era of the
+    // directory the match's competition was found in, which the competition
+    // scan above already resolved.
 
     // Star players hired via an inducements_roll event aren't part of any
     // roster's lineUps[], so they're gathered from the already-parsed match
@@ -192,9 +178,11 @@ async function run(): Promise<ImportResult> {
     // by the hiring roster id AND the real era the match's
     // competition belongs to (so a roster id spanning multiple eras
     // resolves its team era unambiguously downstream, instead of guessing).
-    // Hired-star extraction is skipped when a competition's eraId can't be
-    // resolved (match-embedded player accumulation above still runs) --
-    // shouldn't happen in practice.
+    // The eraId lookup below is optional only for TypeScript's sake: every
+    // key in matchesByCompetitionTpId comes from a competition
+    // TpCompetitionSourcesService already validated has an eraId, so the
+    // undefined branch (match-embedded player accumulation above still runs)
+    // is unreachable in practice.
     //
     // This same pass also builds matchEmbeddedPlayersByRosterId: a standalone
     // rosters_<id>.json file only reflects a roster's CURRENT composition as
@@ -205,7 +193,7 @@ async function run(): Promise<ImportResult> {
     // inscriptionLocal/Visitor.roster.lineUps[]) embeds a per-match snapshot
     // of that side's roster, so accumulating them across every match a
     // roster played (deduped by player id) fills that gap without a third
-    // scan of matchesByCompetitionId.
+    // scan of matchesByCompetitionTpId.
     const inducedStarPlayerHireGroupsByKey = new Map<
       string,
       InducedStarPlayerHireGroup
@@ -228,10 +216,11 @@ async function run(): Promise<ImportResult> {
       }
     };
     for (const [
-      competitionId,
+      competitionTpId,
       matches,
-    ] of competitionOutcome.matchesByCompetitionId.entries()) {
-      const eraId = eraIdByCompetitionId.get(competitionId);
+    ] of competitionSources.matchesByCompetitionTpId.entries()) {
+      const eraId =
+        competitionSources.competitionsByTpId.get(competitionTpId)?.eraId;
       for (const match of matches) {
         accumulateMatchEmbeddedPlayers(
           match.homeTeamTpId,
@@ -334,44 +323,44 @@ async function run(): Promise<ImportResult> {
         mercenaryPositionUsages,
       });
 
-    // Competition teams (competition_teams) come from the roster files under
-    // each competition's directory, so every registered team is linked,
-    // whether or not it played.
-    const teamParticipationOutcome = await app
-      .get(TpTeamParticipationImportService)
-      .importTeamParticipation({
-        competitionsByTpId: competitionOutcome.competitionsByTpId,
-        teamErasByRosterId,
+    // Each competition goes to the server in one tpCompetitions.import call,
+    // which upserts it, links every team registered to it (the roster files
+    // under its directory, whether or not the team played) and records its
+    // trophy awards. It runs after the roster import, because linking a team
+    // and awarding it a trophy both need its team era, and before the match
+    // files, whose import needs the competition to exist.
+    const competitionOutcome = await app
+      .get(TpCompetitionsImportService)
+      .importCompetitions({
+        competitionsByTpId: competitionSources.competitionsByTpId,
+        matchesByCompetitionTpId: competitionSources.matchesByCompetitionTpId,
         rosters,
       });
 
-    // Trophy awards run after competitions, teams and team participation:
-    // each award resolves its own competition (server-side, by external id,
-    // from competitionsByTpId), that competition's curated group
-    // (competitionsByTpId's competitionGroupId, read off the competition
-    // upsert's own response) and its winning team's team era
-    // (teamErasByRosterId + the competition's own eraId). TP records
-    // team awards only -- placements plus Best Stunty / Wooden Spoon -- so no
-    // player data is needed here.
-    const trophyAwardsOutcome = await app
-      .get(TpTrophyAwardsImportService)
-      .importTrophyAwards({
-        competitionsByTpId: competitionOutcome.competitionsByTpId,
-        teamErasByRosterId,
+    // Every imported competition's DB id is resolved once here, server-side
+    // by external id (its TP id, stringified): one batched lookup for the
+    // whole run, reused below to link each match file to its competition and
+    // to scope the missing-trophy-awards pass. A resolve miss is recorded as
+    // an ImportError by the service itself, not silently dropped.
+    const { result: competitionIdResolutionResult, competitionIdsByTpId } =
+      await app.get(TpCompetitionIdResolverService).resolveCompetitionIds({
+        tpIds: competitionOutcome.importedTpIds,
+        tpSystemId: competitionSources.tpSystemId,
       });
 
     // Each match file goes to the server as-is (tpMatches.import), which
     // classifies the match against its competition's bracket, upserts it,
     // links its teams, imports its events and resolves its outcome. It runs
-    // after the roster and star-player imports because the server resolves
-    // each match's teams and players by the TP ids those steps wrote, and
-    // before the SPP and lasting-injury passes, which read its match events.
+    // after the roster, star-player and competition imports because the
+    // server resolves each match's teams and players by the TP ids those
+    // steps wrote, and before the SPP and lasting-injury passes, which read
+    // its match events.
     const matchFilesOutcome = await app
       .get(TpMatchFilesImportService)
       .importMatchFiles({
-        competitionsByTpId: competitionOutcome.competitionsByTpId,
+        competitionsByTpId: competitionSources.competitionsByTpId,
         competitionIdsByTpId,
-        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
+        matchesByCompetitionTpId: competitionSources.matchesByCompetitionTpId,
       });
 
     // Runs after the match-files step: the adjustment is the gap between
@@ -411,9 +400,7 @@ async function run(): Promise<ImportResult> {
     // match events and outcomes the steps above imported.
     const missingTrophyAwardsOutcome = await app
       .get(TpMissingTrophyAwardsImportService)
-      .importMissingTrophyAwards([
-        ...competitionOutcome.matchesByCompetitionId.keys(),
-      ]);
+      .importMissingTrophyAwards([...competitionIdsByTpId.values()]);
 
     // One-off developer review aid: whatever SPP the ongoing-competition
     // estimate could NOT explain, so a real discrepancy can be told apart from
@@ -428,8 +415,7 @@ async function run(): Promise<ImportResult> {
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraOutcome.result,
-      competitionOutcome.result,
-      competitionIdResolutionResult,
+      competitionSources.result,
       coachOutcome.result,
       rosterCollectionResult,
       officialTeamsCollectionResult,
@@ -445,8 +431,10 @@ async function run(): Promise<ImportResult> {
       starHiresOutcome.result,
       playerSkillsOutcome.result,
       mercenaryPositionRaceErasOutcome.result,
-      teamParticipationOutcome.result,
-      trophyAwardsOutcome.result,
+      competitionOutcome.competitionResult,
+      competitionOutcome.participationResult,
+      competitionOutcome.trophyAwardsResult,
+      competitionIdResolutionResult,
       matchFilesOutcome.matchResult,
       matchFilesOutcome.participationResult,
       matchFilesOutcome.eventsResult,

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppModule } from './app.module';
 import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionIdResolverService } from './competitions/tp-competition-id-resolver.service';
+import { TpCompetitionSourcesService } from './competitions/tp-competition-sources.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
@@ -23,7 +24,6 @@ import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.ser
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 import { TpSourceReader } from './source/tp-source-reader';
-import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 describe('AppModule', () => {
   let dir: string;
@@ -122,8 +122,8 @@ describe('AppModule', () => {
     expect(
       moduleRef.get(TpPositionCharacteristicsImportService),
     ).toBeInstanceOf(TpPositionCharacteristicsImportService);
-    expect(moduleRef.get(TpTrophyAwardsImportService)).toBeInstanceOf(
-      TpTrophyAwardsImportService,
+    expect(moduleRef.get(TpCompetitionSourcesService)).toBeInstanceOf(
+      TpCompetitionSourcesService,
     );
     expect(moduleRef.get(TpMatchFilesImportService)).toBeInstanceOf(
       TpMatchFilesImportService,

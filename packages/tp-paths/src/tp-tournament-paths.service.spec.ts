@@ -29,4 +29,14 @@ describe('TpTournamentPathsService', () => {
   it('builds a tournament page path', () => {
     expect(paths.frontendPath('s30', 'scores')).toBe('s30/scores');
   });
+
+  it("builds a category's inscriptions path", () => {
+    expect(paths.inscriptionsApiPath('s30', 22308)).toBe(
+      'inscriptions/s30/category/22308/inscriptions?page=0&pageSize=75',
+    );
+  });
+
+  it("builds a tournament's awards path", () => {
+    expect(paths.awardsApiPath('s30')).toBe('awards/s30/awards');
+  });
 });

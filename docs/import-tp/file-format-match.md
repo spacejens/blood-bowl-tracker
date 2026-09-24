@@ -24,9 +24,9 @@ only a TP external id (the stringified `matchId`); match names are not unique,
 so they are never used as an external id. The parser also reads
 `inscriptionLocal.roster.id` / `inscriptionVisitor.roster.id` (the home/away
 team roster ids); the server resolves these to team eras and links them to the
-match (`match_teams`), and `tools/import-tp`'s `TpTeamParticipationImportService`
-separately derives each competition's `competition_teams` from which roster
-files appear under its directory.
+match (`match_teams`), and the competition import (`tpCompetitions.import`)
+separately links every team registered to the competition — in bulk, the
+roster files under its directory.
 
 ## Match category classification (`phaseType`/`phaseOrder`/`round`/`winner`)
 

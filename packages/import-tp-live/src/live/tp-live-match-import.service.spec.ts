@@ -9,6 +9,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { upsertedCompetition } from '../competition/tp-competition.test-helpers';
+import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
 import {
   AWAY_ROSTER_ID,
   bracketMatch,
@@ -20,7 +22,6 @@ import { TpMatchImportService } from '../match/tp-match-import.service';
 import { TpImportResultsService } from '../tp-import-results.service';
 import type { TpBracket } from './tp-bracket-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
-import { TpLiveCompetitionUpsertService } from './tp-live-competition-upsert.service';
 import { TpLiveMatchImportService } from './tp-live-match-import.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
@@ -48,7 +49,13 @@ const notAttemptedTeam: TpLiveTeamImportResult = {
   era: undefined,
 };
 const BRACKET: TpBracket = {
-  tournament: { id: 18442, name: 'Säsong 30', ruleSet: 25, phases: [] },
+  tournament: {
+    id: 18442,
+    name: 'Säsong 30',
+    ruleSet: 25,
+    phases: [],
+    categoryIds: [22308],
+  },
   matches: [bracketMatch()],
   playedDates: [new Date('2026-06-13')],
 };
@@ -66,7 +73,7 @@ describe('TpLiveMatchImportService', () => {
   let matchFetch: MockProxy<TpMatchFetchService>;
   let bracketFetch: MockProxy<TpBracketFetchService>;
   let teamImport: MockProxy<TpLiveTeamImportService>;
-  let competitionUpsert: MockProxy<TpLiveCompetitionUpsertService>;
+  let competitionUpsert: MockProxy<TpCompetitionUpsertService>;
   let matchImport: MockProxy<TpMatchImportService>;
 
   beforeEach(async () => {
@@ -76,12 +83,14 @@ describe('TpLiveMatchImportService', () => {
     matchFetch = mock<TpMatchFetchService>();
     bracketFetch = mock<TpBracketFetchService>();
     teamImport = mock<TpLiveTeamImportService>();
-    competitionUpsert = mock<TpLiveCompetitionUpsertService>();
+    competitionUpsert = mock<TpCompetitionUpsertService>();
     matchImport = mock<TpMatchImportService>();
     matchFetch.fetchMatch.mockResolvedValue(tpMatch());
     teamImport.importTeam.mockResolvedValue(teamImported);
     bracketFetch.fetchBracket.mockResolvedValue(BRACKET);
-    competitionUpsert.upsertCompetition.mockResolvedValue(true);
+    competitionUpsert.upsertCompetition.mockResolvedValue(
+      upsertedCompetition(),
+    );
     matchImport.importMatch.mockResolvedValue(CORE);
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -92,7 +101,7 @@ describe('TpLiveMatchImportService', () => {
         { provide: TpBracketFetchService, useValue: bracketFetch },
         { provide: TpLiveTeamImportService, useValue: teamImport },
         {
-          provide: TpLiveCompetitionUpsertService,
+          provide: TpCompetitionUpsertService,
           useValue: competitionUpsert,
         },
         { provide: TpMatchImportService, useValue: matchImport },
@@ -138,6 +147,7 @@ describe('TpLiveMatchImportService', () => {
       tournament: BRACKET.tournament,
       playedDates: BRACKET.playedDates,
       era: 'Fourth era',
+      externalSystemName: 'TP',
       errors: [],
     });
     expect(matchImport.importMatch).toHaveBeenCalledWith({
@@ -244,7 +254,7 @@ describe('TpLiveMatchImportService', () => {
   it('reports a competition upsert failure and imports no match data', async () => {
     competitionUpsert.upsertCompetition.mockImplementation(({ errors }) => {
       errors.push({ item: 1, message: 'no group' });
-      return Promise.resolve(false);
+      return Promise.resolve(undefined);
     });
 
     const result = await importMatch();

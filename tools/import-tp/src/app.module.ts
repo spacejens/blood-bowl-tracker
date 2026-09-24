@@ -16,7 +16,6 @@ import { RacesModule } from './races/races.module';
 import { RostersModule } from './rosters/rosters.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
-import { TeamParticipationModule } from './team-participation/team-participation.module';
 import { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 
 @Module({})
@@ -42,7 +41,6 @@ export class AppModule {
         CoachesModule,
         RacesModule,
         RostersModule,
-        TeamParticipationModule,
         MatchFilesModule,
         PositionsModule,
         KeywordsModule,

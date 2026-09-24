@@ -41,7 +41,8 @@ const CUP_MAX_SPAN_DAYS = 3;
  * so a competition this importer had to create without a curated group never
  * reaches this map — its upsert fails with a per-record error instead.
  * BblTrophyAwardsImportService can therefore resolve a trophy against this
- * group id directly, mirroring TpTrophyAwardsImportService.
+ * group id directly, mirroring packages/import-tp-live's
+ * TpCompetitionTrophyAwardsService.
  *
  * Reported alongside `competitionsByBblId` rather than replacing it: the four
  * other importer steps consuming that map only ever need the

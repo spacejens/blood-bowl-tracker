@@ -215,6 +215,14 @@ outcome — all server-side, through the same `packages/import-tp-live` module
 `tpRosters.import`, every failure comes back in the result rather than being
 thrown, so it declares no contract errors either.
 
+`tpCompetitions.import` is the same shape again, for a competition: it takes
+the competition's tournament id and name, its matches' dates, its era name,
+its registered teams' TP roster ids and its parsed awards. It then upserts
+the competition, links those teams and records its trophy awards, all
+server-side through `packages/import-tp-live`. See
+[import-tp-live's competition import](../import-tp-live/competition-import.md).
+It also declares no contract errors.
+
 ## Error responses
 
 Procedures declare their possible errors on the oRPC contract itself (see
