@@ -18,4 +18,17 @@ export class TpNameExternalIdService {
   forStarPosition(name: string): string {
     return name;
   }
+
+  forRace(name: string): string {
+    return name;
+  }
+
+  /** Position names are not globally unique, so a regular position's is race-scoped. */
+  forPosition(raceName: string, positionName: string): string {
+    return `${raceName}: ${positionName}`;
+  }
+
+  forSkill(name: string): string {
+    return name;
+  }
 }

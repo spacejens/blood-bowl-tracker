@@ -20,4 +20,16 @@ describe('TpNameExternalIdService', () => {
   it("uses a star position's bare name", () => {
     expect(service.forStarPosition('Giant Mercenary')).toBe('Giant Mercenary');
   });
+
+  it("uses a race's bare name", () => {
+    expect(service.forRace('Orc')).toBe('Orc');
+  });
+
+  it("scopes a regular position's name by its race", () => {
+    expect(service.forPosition('Orc', 'Blitzer')).toBe('Orc: Blitzer');
+  });
+
+  it("uses a skill's bare name", () => {
+    expect(service.forSkill('Block')).toBe('Block');
+  });
 });
