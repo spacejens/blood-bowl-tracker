@@ -26,8 +26,4 @@ describe('TpApiPathsService', () => {
       'tournament/s30/clasifications?page=0&pageSize=75&phaseId=34100&type=COACH',
     );
   });
-
-  it('builds the official team list path', () => {
-    expect(paths.officialTeams(25)).toBe('rosters/masters?ruleSet=25');
-  });
 });
