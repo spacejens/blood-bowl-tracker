@@ -26,6 +26,7 @@ export * from './schemas/spp-award-value';
 export * from './schemas/team';
 export * from './schemas/tp-competition';
 export * from './schemas/tp-match';
+export * from './schemas/tp-official-teams';
 export * from './schemas/tp-roster';
 export * from './schemas/trophy';
 export * from './schemas/trophy-award';
