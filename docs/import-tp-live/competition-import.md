@@ -59,10 +59,12 @@ already-fetched, already-parsed input:
 - **Competition**: upserted by its TP id. A new competition gets its era by
   name, and its type and dates from its matches' dates. The dates are
   classified by the same ≤ 3-day cup rule as
-  [match import](match-import.md). An already-imported competition keeps
-  its stored era, type and dates, and only its name and external id are
-  kept in sync. It never sends a competition group, so a competition not
-  already curated by `tools/import-manual` cannot be created.
+  [match import](match-import.md). An already-imported competition has its
+  era, type and dates overwritten from this call's data, and its name and
+  external id kept in sync (a live match import's own upsert leaves the
+  stored era, type and dates alone). It never sends a competition group, so
+  a competition not already curated by `tools/import-manual` cannot be
+  created.
 - **Participation**: each registered roster is resolved to its team, and
   then to that team's era in the competition's era. Every resolved team era
   is added to the competition (`competition_teams`). The sync only ever
