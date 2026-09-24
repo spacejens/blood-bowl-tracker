@@ -465,8 +465,20 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
     tournamentParser.parse
-      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 20, phases: [], categoryIds: [] })
-      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 21, phases: [], categoryIds: [] });
+      .mockReturnValueOnce({
+        id: 1,
+        name: 'T',
+        ruleSet: 20,
+        phases: [],
+        categoryIds: [],
+      })
+      .mockReturnValueOnce({
+        id: 1,
+        name: 'T',
+        ruleSet: 21,
+        phases: [],
+        categoryIds: [],
+      });
 
     await service.importEras();
 
