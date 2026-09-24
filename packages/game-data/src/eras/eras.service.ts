@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { Db, Era } from '@blood-bowl-tracker/db';
 import {
+  and,
   count,
   DB,
   eq,
@@ -172,6 +173,33 @@ export class ErasService {
       .where(eq(eras.leagueId, leagueId))
       .orderBy(rulesSets.id);
     return rows.map((r) => r.name);
+  }
+
+  /**
+   * Every era that declares this rules set and carries an external id under
+   * this external system, distinct, oldest id first. Scoping by external
+   * system is what keeps an importer to its own league's eras: another
+   * source's league can declare the same rules set, but its eras carry no id
+   * under this system. `id` is selected because Postgres requires SELECT
+   * DISTINCT's ORDER BY expressions to appear in the select list.
+   */
+  listByRulesSetAndExternalSystem(options: {
+    rulesSetId: number;
+    externalSystemId: number;
+  }): Promise<{ id: number; name: string }[]> {
+    const { rulesSetId, externalSystemId } = options;
+    return this.db
+      .selectDistinct({ id: eras.id, name: eras.name })
+      .from(eraRulesSets)
+      .innerJoin(eras, eq(eras.id, eraRulesSets.eraId))
+      .innerJoin(eraExternalIds, eq(eraExternalIds.eraId, eras.id))
+      .where(
+        and(
+          eq(eraRulesSets.rulesSetId, rulesSetId),
+          eq(eraExternalIds.externalSystemId, externalSystemId),
+        ),
+      )
+      .orderBy(eras.id);
   }
 
   listErasWithLeague(scope: FactScope): Promise<

@@ -9,6 +9,7 @@ import { mock } from 'vitest-mock-extended';
 
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -312,6 +313,46 @@ describe('ErasService', () => {
     it('returns an empty array when the league has no rules sets', async () => {
       await build([]);
       await expect(service.getRulesSetNamesByLeague(9)).resolves.toEqual([]);
+    });
+  });
+
+  describe('listByRulesSetAndExternalSystem', () => {
+    it('lists the distinct eras declaring the rules set that carry an id under the system', async () => {
+      const rows = [
+        { id: 3, name: 'Fourth era' },
+        { id: 5, name: 'Fifth era' },
+      ];
+      const { db, chains } = await build(rows);
+
+      await expect(
+        service.listByRulesSetAndExternalSystem({
+          rulesSetId: 20,
+          externalSystemId: 1,
+        }),
+      ).resolves.toEqual(rows);
+
+      expect(db.selectDistinct).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['eras.id', 'era_rules_sets.era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['eras_external_ids.era_id', 'eras.id']);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        20, 1,
+      ]);
+      expect(chains[0].orderBy).toHaveBeenCalledWith(eras.id);
+    });
+
+    it('answers an empty list when no era qualifies', async () => {
+      await build([]);
+
+      await expect(
+        service.listByRulesSetAndExternalSystem({
+          rulesSetId: 20,
+          externalSystemId: 1,
+        }),
+      ).resolves.toEqual([]);
     });
   });
 
