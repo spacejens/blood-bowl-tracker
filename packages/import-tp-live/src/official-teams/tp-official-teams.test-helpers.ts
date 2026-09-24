@@ -3,6 +3,7 @@ import type {
   TpOfficialRace,
 } from '@blood-bowl-tracker/parse-tp';
 
+import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.service';
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
 
 export const TP_SYSTEM_ID = 1;
@@ -53,6 +54,19 @@ export function officialRace(
     teamRaceCode: 'orc20',
     isOfficial: true,
     positions: [officialPosition()],
+    ...overrides,
+  };
+}
+
+export function positionSlot(
+  overrides: Partial<TpOfficialPositionSlot> = {},
+): TpOfficialPositionSlot {
+  return {
+    positionId: 9,
+    name: 'Blitzer',
+    characteristics: CHARACTERISTICS,
+    skills: [],
+    keywordCodes: [],
     ...overrides,
   };
 }
