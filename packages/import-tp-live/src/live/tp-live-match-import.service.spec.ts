@@ -48,7 +48,7 @@ const notAttemptedTeam: TpLiveTeamImportResult = {
   era: undefined,
 };
 const BRACKET: TpBracket = {
-  tournament: { id: 18442, name: 'Säsong 30', ruleSet: 25, phases: [] },
+  tournament: { id: 18442, name: 'Säsong 30', ruleSet: 25, phases: [], categoryIds: [22308] },
   matches: [bracketMatch()],
   playedDates: [new Date('2026-06-13')],
 };

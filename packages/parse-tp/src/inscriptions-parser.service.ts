@@ -30,6 +30,13 @@ const InscriptionsSchema = z.record(
   z.array(InscriptionEntrySchema),
 );
 
+// The same file, read only for each registration's team: every entry carries
+// a nested `roster` copy whose `id` is the team's TP roster id.
+const InscriptionRostersSchema = z.record(
+  z.string(),
+  z.array(z.object({ roster: z.object({ id: z.number() }) })),
+);
+
 @Injectable()
 export class InscriptionsParserService {
   /**
@@ -42,13 +49,7 @@ export class InscriptionsParserService {
   parseCoaches(content: unknown): TpCoach[] {
     const result = InscriptionsSchema.safeParse(content);
     if (!result.success) {
-      throw new Error(
-        `Invalid TP inscriptions JSON: ${result.error.issues
-          .map(
-            (issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`,
-          )
-          .join('; ')}`,
-      );
+      throw this.invalid(result.error);
     }
     return Object.values(result.data).flatMap((entries) =>
       entries.map((entry) => {
@@ -61,6 +62,30 @@ export class InscriptionsParserService {
         }
         return coach;
       }),
+    );
+  }
+
+  /**
+   * Validate and flatten a parsed TP inscriptions JSON body into the TP
+   * roster id of every registration, across every category, in file order.
+   * Duplicates are left in place — deduping is the caller's job. Throws an
+   * Error whose message names the failing field on any shape mismatch.
+   */
+  parseRosterIds(content: unknown): number[] {
+    const result = InscriptionRostersSchema.safeParse(content);
+    if (!result.success) {
+      throw this.invalid(result.error);
+    }
+    return Object.values(result.data).flatMap((entries) =>
+      entries.map((entry) => entry.roster.id),
+    );
+  }
+
+  private invalid(error: z.ZodError): Error {
+    return new Error(
+      `Invalid TP inscriptions JSON: ${error.issues
+        .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+        .join('; ')}`,
     );
   }
 }

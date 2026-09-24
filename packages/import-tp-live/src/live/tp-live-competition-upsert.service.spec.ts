@@ -22,6 +22,7 @@ const TOURNAMENT: TpTournament = {
   name: 'tLoEGBBL Säsong 30',
   ruleSet: 25,
   phases: [],
+  categoryIds: [],
 };
 const DATES = [new Date('2026-01-10'), new Date('2026-06-20')];
 

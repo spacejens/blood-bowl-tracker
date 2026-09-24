@@ -35,6 +35,7 @@ const TOURNAMENT: TpTournament = {
     { id: 31255, order: 1 },
     { id: 34100, order: 2 },
   ],
+  categoryIds: [22308],
 };
 
 function fixture(id: number, round: number, playedDate?: Date) {

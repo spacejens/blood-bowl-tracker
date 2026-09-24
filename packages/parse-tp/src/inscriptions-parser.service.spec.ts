@@ -131,4 +131,28 @@ describe('InscriptionsParserService', () => {
     expect(() => service.parseCoaches(null)).toThrow();
     expect(() => service.parseCoaches('not json')).toThrow();
   });
+
+  describe('parseRosterIds', () => {
+    it("lists every registration's roster id across categories, keeping duplicates", () => {
+      expect(
+        service.parseRosterIds({
+          '22308': [
+            { roster: { id: 163386, teamName: 'Ruddalen Rotters' } },
+            { roster: { id: 179769 } },
+          ],
+          '22309': [{ roster: { id: 163386 } }],
+        }),
+      ).toEqual([163386, 179769, 163386]);
+    });
+
+    it('returns an empty list for a body with no registrations', () => {
+      expect(service.parseRosterIds({ '22308': [] })).toEqual([]);
+    });
+
+    it('throws naming the field when a registration has no roster id', () => {
+      expect(() =>
+        service.parseRosterIds({ '22308': [{ roster: {} }] }),
+      ).toThrow(/22308\.0\.roster\.id/);
+    });
+  });
 });

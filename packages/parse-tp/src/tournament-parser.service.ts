@@ -12,8 +12,9 @@ export interface TpTournamentPhase {
  * The subset of a TP `tournament_<slug>.json` body this tool cares about.
  * `ruleSet` is TP's opaque numeric rule-set code (no human-readable name
  * exists anywhere in the data). Other tournament fields (scoring rules, etc.)
- * are intentionally ignored until a future sub-issue needs them. Phases are
- * read; they're needed to classify a match's bracket stage.
+ * are intentionally ignored until a future sub-issue needs them. Phases and
+ * category ids are read: phases classify a match's bracket stage, and a
+ * category's id is what its inscriptions are requested by.
  */
 export interface TpTournament {
   id: number;
@@ -21,6 +22,8 @@ export interface TpTournament {
   ruleSet: number;
   /** Every category's phases, in listed order. */
   phases: TpTournamentPhase[];
+  /** Every category's id, in listed order: what its inscriptions are requested by. */
+  categoryIds: number[];
 }
 
 const TpTournamentSchema = z.object({
@@ -30,6 +33,7 @@ const TpTournamentSchema = z.object({
   categories: z
     .array(
       z.object({
+        id: z.number(),
         phases: z
           .array(z.object({ id: z.number(), order: z.number() }))
           .nullish(),
@@ -41,7 +45,7 @@ const TpTournamentSchema = z.object({
 @Injectable()
 export class TournamentParserService {
   /**
-   * Validate and extract `{ id, name, ruleSet, phases }` from a parsed TP
+   * Validate and extract `{ id, name, ruleSet, phases, categoryIds }` from a parsed TP
    * tournament JSON body. Extra fields are allowed and dropped. Throws an
    * Error whose message names the failing field on any shape mismatch.
    */
@@ -65,6 +69,9 @@ export class TournamentParserService {
           id: phase.id,
           order: phase.order,
         })),
+      ),
+      categoryIds: (result.data.categories ?? []).map(
+        (category) => category.id,
       ),
     };
   }

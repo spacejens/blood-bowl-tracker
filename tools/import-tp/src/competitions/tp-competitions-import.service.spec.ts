@@ -55,6 +55,7 @@ const CANNED_TOURNAMENT: TpTournament = {
   name: 'T',
   ruleSet: 20,
   phases: [],
+  categoryIds: [],
 };
 
 /**
@@ -220,7 +221,7 @@ function tournamentFile(
   competition: string,
   tournament: { id: number; name: string; ruleSet?: number },
 ): { file: TpSourceFile; tournament: TpTournament } {
-  const parsed: TpTournament = { ruleSet: 20, phases: [], ...tournament };
+  const parsed: TpTournament = { ruleSet: 20, phases: [], categoryIds: [], ...tournament };
   return {
     file: {
       era,
