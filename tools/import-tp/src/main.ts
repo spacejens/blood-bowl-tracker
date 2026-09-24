@@ -178,9 +178,11 @@ async function run(): Promise<ImportResult> {
     // by the hiring roster id AND the real era the match's
     // competition belongs to (so a roster id spanning multiple eras
     // resolves its team era unambiguously downstream, instead of guessing).
-    // Hired-star extraction is skipped when a competition's eraId can't be
-    // resolved (match-embedded player accumulation above still runs) --
-    // shouldn't happen in practice.
+    // The eraId lookup below is optional only for TypeScript's sake: every
+    // key in matchesByCompetitionTpId comes from a competition
+    // TpCompetitionSourcesService already validated has an eraId, so the
+    // undefined branch (match-embedded player accumulation above still runs)
+    // is unreachable in practice.
     //
     // This same pass also builds matchEmbeddedPlayersByRosterId: a standalone
     // rosters_<id>.json file only reflects a roster's CURRENT composition as

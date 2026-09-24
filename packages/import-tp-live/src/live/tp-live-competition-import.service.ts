@@ -76,6 +76,7 @@ export class TpLiveCompetitionImportService {
     era,
     session,
   }: ImportLiveCompetitionOptions): Promise<TpLiveCompetitionImportResult> {
+    const teams: TpLiveCompetitionTeamResult[] = [];
     try {
       const visit = session ?? this.fetcher.createSession();
       const competitionErrors: ImportError[] = [];
@@ -99,7 +100,6 @@ export class TpLiveCompetitionImportService {
           errors: participationErrors,
           session: visit,
         });
-      const teams: TpLiveCompetitionTeamResult[] = [];
       for (const rosterId of participantRosterIds ?? []) {
         const team = await this.teamImport.importTeam({
           rosterId,
@@ -149,6 +149,7 @@ export class TpLiveCompetitionImportService {
       const message = error instanceof Error ? error.message : String(error);
       return {
         ...this.nothingImported(),
+        teams,
         competition: this.failed([
           {
             item: { tournamentSlug },

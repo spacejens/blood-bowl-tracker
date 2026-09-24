@@ -243,7 +243,7 @@ describe('TpLiveCompetitionImportService', () => {
     );
   });
 
-  it('catches an unexpected exception instead of throwing, reporting it on the competition', async () => {
+  it('catches an unexpected exception instead of throwing, keeping already-imported teams', async () => {
     competitionImport.importCompetition.mockRejectedValue(new Error('db down'));
 
     await expect(importCompetition()).resolves.toEqual({
@@ -257,7 +257,10 @@ describe('TpLiveCompetitionImportService', () => {
           },
         ],
       },
-      teams: [],
+      teams: [
+        { rosterId: 163386, ...teamImported },
+        { rosterId: 179769, ...teamImported },
+      ],
       participation: nothing,
       trophyAwards: nothing,
     });

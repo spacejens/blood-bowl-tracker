@@ -196,8 +196,16 @@ describe('TpCompetitionsImportService', () => {
     expect(outcome.competitionResult).toBe(CANNED_RESULT);
   });
 
-  it('counts nothing for a call that failed outright', async () => {
-    importRunner.recordUpsertResult.mockResolvedValue(undefined);
+  it('counts nothing for a call that failed outright, recording the error in the competition stage', async () => {
+    const failure = { item: { competition: 18442 }, message: 'boom' };
+    importRunner.recordUpsertResult.mockImplementation((options) => {
+      // The real ImportRunnerService pushes onto the errors array it's given
+      // when its upsert call rejects. Mimicking that here proves
+      // importCompetitions passes it the exact array its own competition
+      // tally later reads back, not a copy.
+      options.errors.push(failure);
+      return Promise.resolve(undefined);
+    });
 
     const outcome = await service.importCompetitions({
       competitionsByTpId: new Map([[18442, source(18442, 'sasong-30')]]),
@@ -206,8 +214,8 @@ describe('TpCompetitionsImportService', () => {
     });
 
     expect(outcome.importedTpIds).toEqual([]);
-    expect(importResults.result.mock.calls[1]).toEqual([
-      { imported: 0, errors: [] },
+    expect(importResults.result.mock.calls[0]).toEqual([
+      { imported: 0, errors: [failure] },
     ]);
   });
 
