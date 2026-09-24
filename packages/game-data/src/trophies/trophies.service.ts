@@ -1,4 +1,5 @@
 import type {
+  ExternalId,
   ResolveResult,
   UpsertTrophy,
 } from '@blood-bowl-tracker/api-contract';
@@ -25,6 +26,7 @@ import { countRows } from '../shared/count-all';
 import type { DbOrTx } from '../shared/db-or-tx';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 import type {
@@ -144,6 +146,25 @@ export class TrophiesService {
     return rows.length === 1
       ? { found: true, id: rows[0].id }
       : { found: false };
+  }
+
+  /**
+   * Resolve one external-id pair to the trophy that already declares it, or
+   * `{ found: false }`. How an importer finds a curated trophy by the key its
+   * source uses for it (TP's `${disambiguator}-${groupName}`) without ever
+   * creating one: an unknown key is authored-data feedback the caller
+   * reports, not a trophy to invent.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await resolveByExternalIds({
+      db: this.db,
+      externalIdTable: trophyExternalIds,
+      ownerIdColumn: trophyExternalIds.trophyId,
+      externalSystemIdColumn: trophyExternalIds.externalSystemId,
+      externalIdColumn: trophyExternalIds.externalId,
+      externalIds: [externalId],
+    });
+    return result;
   }
 
   /** One trophy's deepdive header, or `undefined` when no such trophy exists. */
