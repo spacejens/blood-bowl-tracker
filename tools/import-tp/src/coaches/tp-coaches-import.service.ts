@@ -94,7 +94,7 @@ export class TpCoachesImportService {
    * Single streaming pass over every source file, parsing each inscriptions
    * file into coaches. A per-file parse failure is recorded and skipped; a
    * throw from files() is recorded and the coaches collected so far returned —
-   * mirroring TpCompetitionsImportService.collectGroups.
+   * mirroring TpCompetitionSourcesService.collectGroups.
    */
   private async collectCoaches(errors: ImportError[]): Promise<TpCoach[]> {
     const coaches: TpCoach[] = [];

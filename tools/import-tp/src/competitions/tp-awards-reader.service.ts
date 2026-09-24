@@ -19,7 +19,7 @@ export class TpAwardsReaderService {
   /**
    * Every competition directory's parsed awards, keyed by
    * `${era}::${competition}` -- the same directory key
-   * TpCompetitionsImportService groups its competitions by, which is how an
+   * TpCompetitionSourcesService groups its competitions by, which is how an
    * award is later matched to the competition it belongs to (award files
    * carry no tournament id).
    *
@@ -28,7 +28,7 @@ export class TpAwardsReaderService {
    * malformed file records an error and costs that one competition its
    * awards, nothing more. A throw from the directory walk itself (e.g. a
    * missing era directory) is recorded and whatever was collected so far is
-   * returned -- the same shape TpCompetitionsImportService.collectGroups
+   * returned -- the same shape TpCompetitionSourcesService.collectGroups
    * uses.
    */
   async getAwardsByDirectory(
@@ -44,8 +44,8 @@ export class TpAwardsReaderService {
           // Accumulate rather than overwrite: if a competition directory ever
           // held two awards_*.json files, overwriting would silently drop the
           // first file's awards -- the same silent data-loss bug
-          // TpCompetitionsImportService's matchesByCompetitionId accumulation
-          // guards against.
+          // TpCompetitionSourcesService's matchesByCompetitionTpId
+          // accumulation guards against.
           awardsByDirectory.set(key, [
             ...(awardsByDirectory.get(key) ?? []),
             ...this.awardsParser.parse(file.content),

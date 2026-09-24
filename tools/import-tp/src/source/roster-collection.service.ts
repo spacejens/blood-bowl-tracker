@@ -9,7 +9,7 @@ import { TpSourceReader } from './tp-source-reader';
 /**
  * One parsed roster file, tagged with the era and competition directories it
  * was found in. The competition slug is the per-competition team-membership
- * signal for TP team-participation import (a roster file only ever appears
+ * signal for the TP competition import (a roster file only ever appears
  * under the competition directories its team actually played in). `content`
  * is the file's JSON exactly as read: the roster import sends it to the
  * server unparsed, which does its own parsing.
@@ -35,8 +35,9 @@ export class RosterCollectionService {
    * recorded and skipped; a throw from files() is recorded and the rosters
    * collected so far returned -- mirroring TpCoachesImportService.collectCoaches.
    * Called once from main.ts and the resulting list shared by the roster
-   * import, team participation and the roster player facts, so a bad file is
-   * scanned and reported once rather than independently by each of them.
+   * import, the competition import and the roster player facts, so a bad
+   * file is scanned and reported once rather than independently by each of
+   * them.
    */
   async collect(errors: ImportError[]): Promise<RosterEntry[]> {
     const rosters: RosterEntry[] = [];

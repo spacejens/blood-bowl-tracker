@@ -19,10 +19,10 @@ import { TpSourceReader } from '../source/tp-source-reader';
 export interface ImportMatchFilesOptions {
   /** Each imported competition's directory, by TP id. */
   competitionsByTpId: ReadonlyMap<number, { era: string; competition: string }>;
-  /** Each imported competition's database id, by TP id. */
+  /** Each imported competition's database id, by TP id; only these are imported. */
   competitionIdsByTpId: ReadonlyMap<number, number>;
-  /** Every parsed match, by competition database id. */
-  matchesByCompetitionId: ReadonlyMap<number, TpMatch[]>;
+  /** Every parsed match, by its competition's TP id. */
+  matchesByCompetitionTpId: ReadonlyMap<number, TpMatch[]>;
 }
 
 /** What importing every match file did, one result per stage. */
@@ -134,15 +134,14 @@ export class TpMatchFilesImportService {
   private competitionsByDirectory({
     competitionsByTpId,
     competitionIdsByTpId,
-    matchesByCompetitionId,
+    matchesByCompetitionTpId,
   }: ImportMatchFilesOptions): Map<string, CompetitionOfFiles> {
     const byDirectory = new Map<string, CompetitionOfFiles>();
     for (const [tpId, entry] of competitionsByTpId) {
-      const competitionId = competitionIdsByTpId.get(tpId);
-      if (competitionId === undefined) {
+      if (!competitionIdsByTpId.has(tpId)) {
         continue;
       }
-      const matches = matchesByCompetitionId.get(competitionId) ?? [];
+      const matches = matchesByCompetitionTpId.get(tpId) ?? [];
       byDirectory.set(`${entry.era}::${entry.competition}`, {
         tpId,
         bracket: matches.map((match) => ({

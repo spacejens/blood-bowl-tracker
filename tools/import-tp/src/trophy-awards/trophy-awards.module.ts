@@ -1,19 +1,11 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
-import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
-import { SourceModule } from '../source/source.module';
-import { TpAwardsReaderService } from './tp-awards-reader.service';
 import { TpMissingTrophyAwardsImportService } from './tp-missing-trophy-awards-import.service';
-import { TpTrophyAwardsImportService } from './tp-trophy-awards-import.service';
 
 @Module({
-  imports: [ImportModule, SourceModule, ParseTpModule],
-  providers: [
-    TpAwardsReaderService,
-    TpTrophyAwardsImportService,
-    TpMissingTrophyAwardsImportService,
-  ],
-  exports: [TpTrophyAwardsImportService, TpMissingTrophyAwardsImportService],
+  imports: [ImportModule],
+  providers: [TpMissingTrophyAwardsImportService],
+  exports: [TpMissingTrophyAwardsImportService],
 })
 export class TrophyAwardsModule {}
