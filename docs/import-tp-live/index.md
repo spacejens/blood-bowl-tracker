@@ -1,10 +1,11 @@
 # import-tp-live
 
 `packages/import-tp-live` imports one TP team, one completed TP match with
-its teams and competition, or one TP competition with its registered teams
-and trophy awards, straight into the database. It is server-side code: it
-calls `packages/game-data` in-process and never goes over RPC. Three live
-entry points and three RPC procedures use it:
+its teams and competition, one TP competition with its registered teams and
+trophy awards, or TP's official team list for every rules set, straight into
+the database. It is server-side code: it calls `packages/game-data`
+in-process and never goes over RPC. Four live entry points and four RPC
+procedures use it:
 
 - **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
   fetches a roster from TP's API first. This is the entry point a future
@@ -16,6 +17,9 @@ entry points and three RPC procedures use it:
 - **The live competition import**,
   `TpLiveCompetitionImportService.importCompetition(...)` — see
   [competition-import.md](competition-import.md).
+- **The live official-teams import**,
+  `TpLiveOfficialTeamsImportService.importOfficialTeams(...)` — see
+  [official-teams-import.md](official-teams-import.md).
 - **The `tpRosters.import` RPC procedure**, which `packages/api-server`
   implements with it. `tools/import-tp`'s bulk run calls that procedure once
   per downloaded roster file, so a bulk import and a live one import a team
@@ -24,6 +28,8 @@ entry points and three RPC procedures use it:
   [match-import.md](match-import.md).
 - **The `tpCompetitions.import` RPC procedure** — see
   [competition-import.md](competition-import.md).
+- **The `tpOfficialTeams.import` RPC procedure** — see
+  [official-teams-import.md](official-teams-import.md).
 
 ## What it owns
 
@@ -46,6 +52,11 @@ entry points and three RPC procedures use it:
   services (the upsert is shared with the live match import), plus
   `TpLiveCompetitionImportService` and its inscriptions/awards fetch
   services — see [competition-import.md](competition-import.md).
+- **Official team list import**: `TpOfficialTeamsModule`, with
+  `TpOfficialTeamsImportService` and its context, race, position,
+  characteristics, keyword and starting-skill services, plus
+  `TpLiveOfficialTeamsImportService` and `TpOfficialTeamsFetchService` — see
+  [official-teams-import.md](official-teams-import.md).
 
 ## Importing a team live
 

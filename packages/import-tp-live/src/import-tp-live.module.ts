@@ -15,17 +15,21 @@ import { TpEraResolutionService } from './live/tp-era-resolution.service';
 import { TpInscriptionsFetchService } from './live/tp-inscriptions-fetch.service';
 import { TpLiveCompetitionImportService } from './live/tp-live-competition-import.service';
 import { TpLiveMatchImportService } from './live/tp-live-match-import.service';
+import { TpLiveOfficialTeamsImportService } from './live/tp-live-official-teams-import.service';
 import { TpLiveTeamImportService } from './live/tp-live-team-import.service';
 import { TpMatchFetchService } from './live/tp-match-fetch.service';
+import { TpOfficialTeamsFetchService } from './live/tp-official-teams-fetch.service';
 import { TpRosterFetchService } from './live/tp-roster-fetch.service';
 import { TpMatchModule } from './match/tp-match.module';
+import { TpOfficialTeamsModule } from './official-teams/tp-official-teams.module';
 import { TpRosterModule } from './roster/tp-roster.module';
 
 /**
  * Live TP import: fetch one roster, one completed match with its teams and
- * competition, or one competition with its registered teams and trophy
- * awards, from TP's API and import it in-process through TpRosterModule,
- * TpMatchModule and TpCompetitionModule. The importing app provides
+ * competition, one competition with its registered teams and trophy awards,
+ * or TP's official team list for every rules set, from TP's API and import
+ * it in-process through TpRosterModule, TpMatchModule, TpCompetitionModule
+ * and TpOfficialTeamsModule. The importing app provides
  * TP_CONNECTION_PROVIDER from a `@Global()` module and packages/db's `DB`.
  */
 @Module({
@@ -39,6 +43,7 @@ import { TpRosterModule } from './roster/tp-roster.module';
     ExternalSystemsModule,
     RacesModule,
     TpCompetitionModule,
+    TpOfficialTeamsModule,
   ],
   providers: [
     TpRosterFetchService,
@@ -50,11 +55,14 @@ import { TpRosterModule } from './roster/tp-roster.module';
     TpAwardsFetchService,
     TpInscriptionsFetchService,
     TpLiveCompetitionImportService,
+    TpOfficialTeamsFetchService,
+    TpLiveOfficialTeamsImportService,
   ],
   exports: [
     TpLiveTeamImportService,
     TpLiveMatchImportService,
     TpLiveCompetitionImportService,
+    TpLiveOfficialTeamsImportService,
   ],
 })
 export class ImportTpLiveModule {}
