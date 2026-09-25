@@ -6,10 +6,12 @@ export { DiscordClientModule } from './discord-client.module';
 export type {
   ButtonHandler,
   MessageHandler,
+  RestrictedRole,
   SelectMenuHandler,
   SlashCommandDefinition,
 } from './discord-client.service';
 export {
+  ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientService,
   RESTRICTED_COMMAND_ROLE_ID,

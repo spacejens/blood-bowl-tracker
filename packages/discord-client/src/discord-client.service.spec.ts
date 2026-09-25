@@ -85,6 +85,7 @@ import {
 } from 'discord.js';
 
 import {
+  ADMIN_COMMAND_ROLE_ID,
   DISCORD_BOT_TOKEN,
   DiscordClientModule,
   DiscordClientService,
@@ -367,6 +368,49 @@ describe('DiscordClientService', () => {
     expect(moduleRef.get(RESTRICTED_COMMAND_ROLE_ID)).toBe('role-1');
   });
 
+  it('provides the admin role id from the async factory', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        DiscordClientModule.forRootAsync({
+          useFactory: () => 'tkn',
+          useAdminRoleIdFactory: () => 'admin-1',
+        }),
+      ],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(ADMIN_COMMAND_ROLE_ID)).toBe('admin-1');
+  });
+
+  it('provides the admin role id given to forRoot', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        DiscordClientModule.forRoot({ token: 'tkn', adminRoleId: 'admin-1' }),
+      ],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(ADMIN_COMMAND_ROLE_ID)).toBe('admin-1');
+  });
+
+  it('leaves the admin role id unset when forRootAsync has no admin factory', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [DiscordClientModule.forRootAsync({ useFactory: () => 'tkn' })],
+    })
+      .overrideProvider(UsageTrackingService)
+      .useValue(mock<UsageTrackingService>())
+      .overrideProvider(InteractionEventsQueryService)
+      .useValue(mock<InteractionEventsQueryService>())
+      .compile();
+    expect(moduleRef.get(ADMIN_COMMAND_ROLE_ID)).toBeUndefined();
+  });
+
   it('rejects init when the client never becomes ready', async () => {
     vi.useFakeTimers();
     try {
@@ -636,12 +680,12 @@ describe('DiscordClientService', () => {
     ]);
   });
 
-  it('does not forward the restricted flag to the global command registration', async () => {
+  it('does not forward the restricted role to the global command registration', async () => {
     await service.registerCommands([
       {
         name: 'debugstuff',
         description: 'Debug: stuff',
-        restricted: true,
+        restrictedRole: 'debug',
         execute: vi.fn().mockResolvedValue('ok'),
       },
     ]);

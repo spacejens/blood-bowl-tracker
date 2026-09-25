@@ -3,9 +3,8 @@ import { InteractionEventsQueryService } from '@blood-bowl-tracker/discord-bot-u
 import {
   DiscordClientService,
   MemberRoleAccessService,
-  RESTRICTED_COMMAND_ROLE_ID,
 } from '@blood-bowl-tracker/discord-client';
-import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
@@ -46,20 +45,20 @@ import { DEBUG_RETRIGGER_CUSTOM_ID_PREFIX } from './debug-custom-ids';
  * retriggered command's `MessageFlags.Ephemeral` flag is cleared, so the
  * dispatcher posts it non-ephemerally into the channel the retrigger was
  * clicked in - matching how the original command would have replied. A
- * `restricted: true` command's reply keeps its flags exactly as `execute()`
- * returned them, so it stays ephemeral - since `/debuginteractions`,
- * `/debugtopusers` and `/debugfilterusage` (the three commands that appear in
- * `/debuginteractions`' own listing) are all `restricted: true`, their
- * retriggered replies are never posted publicly.
+ * restricted command (one with a `restrictedRole`)'s reply keeps its flags
+ * exactly as `execute()` returned them, so it stays ephemeral - since
+ * `/debuginteractions`, `/debugtopusers` and `/debugfilterusage` (the three
+ * commands that appear in `/debuginteractions`' own listing) all have a
+ * `restrictedRole`, their retriggered replies are never posted publicly.
  *
- * Retriggering a `restricted: true` command also re-checks the clicking
- * member against the configured role, the same check
- * `DiscordClientService.handleInteraction` applies to a direct invocation -
- * necessary because this service bypasses that dispatcher entirely, so
- * without a check of its own here, a stale retrigger button (e.g. held from
- * before a role was configured, or after it was revoked) would let anyone
- * who can click it run the command regardless. This service's own three
- * error/denial replies are ephemeral.
+ * Retriggering a restricted command also re-checks the clicking member
+ * against the role `DiscordClientService.requiredRoleId` names for it, the
+ * same check `DiscordClientService.handleInteraction` applies to a direct
+ * invocation - necessary because this service bypasses that dispatcher
+ * entirely, so without a check of its own here, a stale retrigger button
+ * (e.g. held from before a role was configured, or after it was revoked)
+ * would let anyone who can click it run the command regardless. This
+ * service's own three error/denial replies are ephemeral.
  *
  * The synthetic button/select-menu interactions built for `retriggerButton`
  * and `retriggerSelectMenu` also carry `member`, forwarded from the real
@@ -78,9 +77,6 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
     private readonly registry: SlashCommandRegistryService,
     private readonly discordClient: DiscordClientService,
     private readonly memberRoleAccess: MemberRoleAccessService,
-    @Optional()
-    @Inject(RESTRICTED_COMMAND_ROLE_ID)
-    private readonly restrictedRoleId: string | undefined,
   ) {}
 
   onModuleInit(): void {
@@ -122,10 +118,10 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
         this.ephemeral(DEBUG_RETRIGGER_HANDLER_NOT_FOUND_MESSAGE),
       );
     }
+    const requiredRoleId = this.discordClient.requiredRoleId(definition);
     if (
-      definition.restricted &&
-      this.restrictedRoleId !== undefined &&
-      !this.memberRoleAccess.hasRole(interaction.member, this.restrictedRoleId)
+      requiredRoleId !== undefined &&
+      !this.memberRoleAccess.hasRole(interaction.member, requiredRoleId)
     ) {
       return Promise.resolve(
         this.ephemeral(DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE),
@@ -160,7 +156,9 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
     return definition
       .execute(synthetic)
       .then((result) =>
-        definition.restricted ? result : this.stripEphemeralFlag(result),
+        definition.restrictedRole === undefined
+          ? this.stripEphemeralFlag(result)
+          : result,
       );
   }
 
@@ -168,13 +166,13 @@ export class DebugRetriggerHandlerService implements OnModuleInit {
    * Clears `MessageFlags.Ephemeral` from an *unrestricted* retriggered
    * command's reply, so the dispatcher posts it non-ephemerally where the
    * original command would have. Only called for a command whose `definition`
-   * is not `restricted` - a restricted command's reply must stay ephemeral
-   * (see the class doc comment), so `retriggerCommand` never routes one
-   * through here. `flags` is cleared via bitwise math rather than compared
-   * for exact equality - a reply combining Ephemeral with another flag (e.g.
-   * `SuppressEmbeds`) must keep that other flag. A plain string result
-   * carries no flags and needs no change; a result with no `flags` at all
-   * needs none either.
+   * has no `restrictedRole` - a restricted command's reply must stay
+   * ephemeral (see the class doc comment), so `retriggerCommand` never routes
+   * one through here. `flags` is cleared via bitwise math rather than
+   * compared for exact equality - a reply combining Ephemeral with another
+   * flag (e.g. `SuppressEmbeds`) must keep that other flag. A plain string
+   * result carries no flags and needs no change; a result with no `flags` at
+   * all needs none either.
    */
   private stripEphemeralFlag(
     result: string | InteractionReplyOptions,

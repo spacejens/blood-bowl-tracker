@@ -89,21 +89,23 @@ Two things follow from how retriggering reruns the interaction:
   removed. This can't loop forever, but it's worth recognizing these rows
   for what they are.
 - The reply lands in the channel where the retrigger was clicked, not the
-  channel the original interaction happened in. For a command that is _not_
-  `restricted: true`, this is also an intentional exception to the
+  channel the original interaction happened in. For a command that is not
+  restricted to a role, this is also an intentional exception to the
   "Ephemeral by design" rule below: the reply is posted publicly rather than
   ephemerally, so a retrigger reproduces the answer as everyone would have
   seen it. `/debuginteractions`, [`/debugtopusers`](debug-top-users.md) and
-  `/debugfilterusage` are all `restricted: true`, though, so retriggering any
-  of them keeps the reply ephemeral, visible only to whoever clicked
-  retrigger — it is never posted publicly.
+  `/debugfilterusage` are all restricted to the `debug` role, though, so
+  retriggering any of them keeps the reply ephemeral, visible only to
+  whoever clicked retrigger — it is never posted publicly.
 
-Retriggering a `restricted: true` command also re-checks the clicking member
-against the configured role (`DEBUG_COMMAND_ROLE_ID`), the same check a
-direct invocation goes through. A click by someone who no longer holds the
-role, or a stale retrigger button held from before the role was configured,
-gets the same private "you don't have permission to use this command." reply
-described above, and the command does not run.
+Retriggering a restricted command also re-checks the clicking member against
+the role that command requires (`DEBUG_COMMAND_ROLE_ID` for the `debug`
+commands, `ADMIN_COMMAND_ROLE_ID` for admin commands such as
+[`/importtp`](import-tp.md)), the same check a direct invocation goes
+through. A click by someone who does not hold that role, or a stale
+retrigger button held from before the role was configured, gets the same
+private "you don't have permission to use this command." reply described
+above, and the command does not run.
 
 Two more things can go wrong, and both also answer with a plain ephemeral
 message rather than failing:

@@ -33,8 +33,9 @@ const DEBUG_TOP_USERS_TITLE = 'Top bot users';
  *
  * `debug`-prefixed: the prefix is a visibility convention marking maintainer
  * tooling, independent of access control. Access control is the separate
- * `restricted: true` flag below, which limits the command to holders of the
- * deployment's configured role whenever one is configured.
+ * `restrictedRole: 'debug'` setting below, which limits the command to
+ * holders of the deployment's configured debug role whenever one is
+ * configured.
  *
  * The reply is ephemeral, like its `/debuginteractions` sibling: which
  * specific users are most active is not public-channel content.
@@ -62,7 +63,7 @@ export class DebugTopUsersCommandService implements OnModuleInit {
     return {
       name: 'debugtopusers',
       description: 'Debug: List the most active bot users',
-      restricted: true,
+      restrictedRole: 'debug',
       options: [
         {
           name: 'kind',

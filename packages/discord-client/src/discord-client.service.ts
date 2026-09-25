@@ -39,13 +39,24 @@ import { MemberRoleAccessService } from './member-role-access.service';
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
 /**
- * The Discord role id members must hold to run a command marked
- * `restricted`, or `undefined` where the deployment configured none, in which
+ * The Discord role id members must hold to run a command whose
+ * `restrictedRole` is `'debug'` (the bot-development team's maintainer
+ * tooling), or `undefined` where the deployment configured none, in which
  * case no restriction is applied. Supplied by the host application, so this
  * package stays free of any configuration concern, exactly like
  * `DISCORD_BOT_TOKEN`.
  */
 export const RESTRICTED_COMMAND_ROLE_ID = Symbol('RESTRICTED_COMMAND_ROLE_ID');
+
+/**
+ * The same as `RESTRICTED_COMMAND_ROLE_ID`, for commands whose
+ * `restrictedRole` is `'admin'` (league-administrator commands). Configured
+ * independently, so the two audiences need not overlap.
+ */
+export const ADMIN_COMMAND_ROLE_ID = Symbol('ADMIN_COMMAND_ROLE_ID');
+
+/** Which configured role a restricted command requires. */
+export type RestrictedRole = 'debug' | 'admin';
 
 const READY_TIMEOUT_MS = 30_000;
 
@@ -70,14 +81,15 @@ export interface SlashCommandDefinition {
   description: string;
   options?: ApplicationCommandOptionData[];
   /**
-   * Opt in to the deployment's role restriction: when a restricted role is
-   * configured, only a guild member holding it may run this command, and
-   * anyone else — including anyone invoking it in a DM, where there is no
-   * guild role to check — gets an ephemeral refusal instead. Deliberately an
-   * explicit per-command flag rather than a `debug`-name-prefix rule, so the
-   * naming convention and the access rule stay independent of each other.
+   * Opt in to one of the deployment's role restrictions: when the named
+   * role kind has a role id configured, only a guild member holding it may
+   * run this command, and anyone else — including anyone invoking it in a
+   * DM, where there is no guild role to check — gets an ephemeral refusal
+   * instead. A role kind with no configured id leaves the command open.
+   * Deliberately an explicit per-command setting rather than a name-prefix
+   * rule, so the naming convention and the access rule stay independent.
    */
-  restricted?: boolean;
+  restrictedRole?: RestrictedRole;
   execute: (
     interaction: ChatInputCommandInteraction,
   ) => Promise<string | InteractionReplyOptions>;
@@ -155,7 +167,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     @Inject(DISCORD_BOT_TOKEN) private readonly token: string,
     @Optional()
     @Inject(RESTRICTED_COMMAND_ROLE_ID)
-    private readonly restrictedRoleId: string | undefined,
+    private readonly debugRoleId: string | undefined,
+    @Optional()
+    @Inject(ADMIN_COMMAND_ROLE_ID)
+    private readonly adminRoleId: string | undefined,
     private readonly memberRoleAccess: MemberRoleAccessService,
     private readonly usageTracking: UsageTrackingService,
   ) {
@@ -535,11 +550,30 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Whether this invocation must be refused: the command opted into the
-   * restriction, this deployment configured a role, and the invoking member
-   * does not hold it. An unrestricted command, or a deployment with no
-   * configured role, is never refused and behaves exactly like an open
-   * command.
+   * The role id a member must hold to run `definition`: the configured id
+   * for its `restrictedRole`, or `undefined` when it opts into no
+   * restriction or its role kind has no configured id — in which case it is
+   * open to everyone. Public so a caller that runs a command's `execute`
+   * outside this dispatcher (the `/debuginteractions` retrigger button)
+   * applies exactly the same rule.
+   */
+  requiredRoleId(definition: SlashCommandDefinition): string | undefined {
+    switch (definition.restrictedRole) {
+      case 'debug':
+        return this.debugRoleId;
+      case 'admin':
+        return this.adminRoleId;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Whether this invocation must be refused: the command opted into a
+   * restricted role, this deployment configured an id for it, and the
+   * invoking member does not hold it. An unrestricted command, or a
+   * deployment with no configured role, is never refused and behaves
+   * exactly like an open command.
    *
    * A refusal is still recorded through the usual usage path as a failed
    * command, so it needs no separate telemetry and shows up in the recorded
@@ -549,13 +583,11 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     definition: SlashCommandDefinition,
     interaction: ChatInputCommandInteraction,
   ): boolean {
-    if (!definition.restricted || this.restrictedRoleId === undefined) {
+    const roleId = this.requiredRoleId(definition);
+    if (roleId === undefined) {
       return false;
     }
-    return !this.memberRoleAccess.hasRole(
-      interaction.member,
-      this.restrictedRoleId,
-    );
+    return !this.memberRoleAccess.hasRole(interaction.member, roleId);
   }
 
   /** The ephemeral refusal sent instead of a restricted command's reply. */

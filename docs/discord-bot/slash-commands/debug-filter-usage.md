@@ -85,9 +85,9 @@ specific users do what is not public-channel content. See
 that applies to every `debug`-prefixed command. This command also appears
 in `/debuginteractions`' own listing, so it can be
 [retriggered](debug-interactions.md#retriggering-a-listed-interaction) —
-and because this command is `restricted: true`, a retrigger's reply stays
-ephemeral (visible only to whoever clicked retrigger) and re-checks the
-clicking member's role, exactly as described there.
+and because this command is restricted to the `debug` role, a retrigger's
+reply stays ephemeral (visible only to whoever clicked retrigger) and
+re-checks the clicking member's role, exactly as described there.
 
 ## What is not counted
 

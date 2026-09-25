@@ -66,8 +66,8 @@ describe('DebugFilterUsageCommandService', () => {
     );
   });
 
-  it('marks the command as restricted', () => {
-    expect(service.buildCommand().restricted).toBe(true);
+  it('restricts the command to the debug role', () => {
+    expect(service.buildCommand().restrictedRole).toBe('debug');
   });
 
   it('offers one optional days option, at least 1', () => {
