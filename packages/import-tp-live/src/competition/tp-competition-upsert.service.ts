@@ -20,6 +20,14 @@ export interface TpCompetitionTournament {
   name: string;
 }
 
+/** Options for {@link TpCompetitionUpsertService.datesToDerive}. */
+interface DatesToDeriveOptions {
+  competitionRef: ResolveResult;
+  playedDates: Date[];
+  tournament: TpCompetitionTournament;
+  errors: ImportError[];
+}
+
 /** Options for {@link TpCompetitionUpsertService.upsertCompetition}. */
 export interface UpsertTpCompetitionOptions {
   tournament: TpCompetitionTournament;
@@ -138,14 +146,13 @@ export class TpCompetitionUpsertService {
         );
         return undefined;
       }
-      const dates = await this.datesToDerive(competitionRef, playedDates);
+      const dates = await this.datesToDerive({
+        competitionRef,
+        playedDates,
+        tournament,
+        errors,
+      });
       if (dates === undefined) {
-        errors.push(
-          this.importResults.error({
-            item: { competition: tournament.id },
-            message: `Skipping competition "${tournament.name}": stored competition could not be read back after being resolved.`,
-          }),
-        );
         return undefined;
       }
       const span = this.span.derive(dates);
@@ -196,18 +203,37 @@ export class TpCompetitionUpsertService {
    * new): this call's played dates, plus an already-stored competition's
    * own start and end dates, so an overlay only ever widens the stored
    * range. Undefined when the competition was just resolved as existing but
-   * its row cannot be read back — the caller treats that as a failure
-   * rather than silently deriving from the played dates alone, which could
-   * shrink the stored range or reclassify its type.
+   * its row cannot be read back, or that read fails outright — either way
+   * the caller treats it as a failure and skips the competition, rather than
+   * silently deriving from the played dates alone (which could shrink the
+   * stored range or reclassify its type) or letting the read's rejection
+   * propagate and abort the rest of the import. Records one error either
+   * way, so this is the only place that reports a read failure.
    */
-  private async datesToDerive(
-    competitionRef: ResolveResult,
-    playedDates: Date[],
-  ): Promise<Date[] | undefined> {
+  private async datesToDerive({
+    competitionRef,
+    playedDates,
+    tournament,
+    errors,
+  }: DatesToDeriveOptions): Promise<Date[] | undefined> {
     if (!competitionRef.found) {
       return playedDates;
     }
-    const existing = await this.competitions.findById(competitionRef.id);
+    const existing = await this.runner.record({
+      run: async () => {
+        const row = await this.competitions.findById(competitionRef.id);
+        if (row === undefined) {
+          throw new Error(
+            'stored competition could not be read back after being resolved.',
+          );
+        }
+        return row;
+      },
+      item: { competition: tournament.id },
+      errors,
+      buildErrorMessage: (error) =>
+        `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+    });
     if (existing === undefined) {
       return undefined;
     }

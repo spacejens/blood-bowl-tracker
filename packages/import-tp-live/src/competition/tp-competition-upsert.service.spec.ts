@@ -245,6 +245,21 @@ describe('TpCompetitionUpsertService', () => {
     ]);
   });
 
+  it('records one error, rather than rejecting, when reading the stored competition back fails', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockRejectedValue(new Error('db down'));
+
+    await expect(overlay(DATES)).resolves.toBeUndefined();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message: 'Skipping competition "tLoEGBBL Säsong 30": db down',
+      },
+    ]);
+  });
+
   it('records one error when the TP system cannot be set up', async () => {
     externalSystems.upsert.mockRejectedValue(new Error('db down'));
 
