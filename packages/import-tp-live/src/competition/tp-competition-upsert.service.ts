@@ -1,5 +1,6 @@
 import type {
   ImportError,
+  ResolveResult,
   UpsertCompetition,
 } from '@blood-bowl-tracker/api-contract';
 import {
@@ -19,6 +20,14 @@ export interface TpCompetitionTournament {
   name: string;
 }
 
+/** Options for {@link TpCompetitionUpsertService.datesToDerive}. */
+interface DatesToDeriveOptions {
+  competitionRef: ResolveResult;
+  playedDates: Date[];
+  tournament: TpCompetitionTournament;
+  errors: ImportError[];
+}
+
 /** Options for {@link TpCompetitionUpsertService.upsertCompetition}. */
 export interface UpsertTpCompetitionOptions {
   tournament: TpCompetitionTournament;
@@ -30,7 +39,12 @@ export interface UpsertTpCompetitionOptions {
   externalSystemName: string;
   /**
    * Whether an already-imported competition's era, type and dates are
-   * overwritten from `playedDates`/`era` instead of left as already stored.
+   * overwritten from `era`/`playedDates` (merged with its own stored dates,
+   * so its date range only ever widens) instead of left as already stored.
+   * Only takes effect when this call has new `playedDates`; with none,
+   * era, type and dates are all left exactly as already stored — notably, a
+   * stored `null` end date (meaning ongoing) is never turned into a fixed
+   * date by this.
    * The full competition import (live standalone and `tpCompetitions.import`)
    * sees the whole competition's matches and sets this, matching BBL's and
    * TP's bulk import contract (see
@@ -70,9 +84,14 @@ export class TpCompetitionUpsertService {
    * Upserts a TP tournament as a competition, keyed by its TP id. A brand-new
    * competition gets its era resolved by name and its type and start/end
    * dates derived from its matches' dates. An already-imported competition
-   * has its name kept in sync and its external id link ensured; its era,
-   * type and dates are also overwritten from this call's own data when
-   * `overlayExisting` is set, and otherwise left exactly as already stored.
+   * has its name kept in sync and its external id link ensured; when
+   * `overlayExisting` is set and this call has new match dates, its era is
+   * overwritten and its type and dates are re-derived from those dates
+   * merged with its stored dates (so the range only ever widens) — with no
+   * new match dates, era, type and dates are all left exactly as already
+   * stored, including a `null`/ongoing end date. A new competition with no
+   * dated match fails; an already-stored one never does, since a call with
+   * no new matches for it simply leaves it unchanged.
    * It never sends a competition group: that classification is curated in
    * tools/import-manual and the database requires one, so a new competition
    * not already curated fails to be created and is reported. Resolves the
@@ -113,7 +132,7 @@ export class TpCompetitionUpsertService {
       UpsertCompetition,
       'type' | 'eraId' | 'startDate' | 'endDate'
     > = {};
-    if (!competitionRef.found || overlayExisting) {
+    if (!competitionRef.found || (overlayExisting && playedDates.length > 0)) {
       const eraRef = await this.eras.resolve({
         externalSystemId: tpSystemId,
         externalId: era,
@@ -127,7 +146,16 @@ export class TpCompetitionUpsertService {
         );
         return undefined;
       }
-      const span = this.span.derive(playedDates);
+      const dates = await this.datesToDerive({
+        competitionRef,
+        playedDates,
+        tournament,
+        errors,
+      });
+      if (dates === undefined) {
+        return undefined;
+      }
+      const span = this.span.derive(dates);
       if (span === undefined) {
         errors.push(
           this.importResults.error({
@@ -167,5 +195,52 @@ export class TpCompetitionUpsertService {
       eraId: upserted.competition.eraId,
       competitionGroupId: upserted.competition.competitionGroupId,
     };
+  }
+
+  /**
+   * The dates a competition's type and span are derived from, called only
+   * when there are new dated matches to derive from (or the competition is
+   * new): this call's played dates, plus an already-stored competition's
+   * own start and end dates, so an overlay only ever widens the stored
+   * range. Undefined when the competition was just resolved as existing but
+   * its row cannot be read back, or that read fails outright — either way
+   * the caller treats it as a failure and skips the competition, rather than
+   * silently deriving from the played dates alone (which could shrink the
+   * stored range or reclassify its type) or letting the read's rejection
+   * propagate and abort the rest of the import. Records one error either
+   * way, so this is the only place that reports a read failure.
+   */
+  private async datesToDerive({
+    competitionRef,
+    playedDates,
+    tournament,
+    errors,
+  }: DatesToDeriveOptions): Promise<Date[] | undefined> {
+    if (!competitionRef.found) {
+      return playedDates;
+    }
+    const existing = await this.runner.record({
+      run: async () => {
+        const row = await this.competitions.findById(competitionRef.id);
+        if (row === undefined) {
+          throw new Error(
+            'stored competition could not be read back after being resolved.',
+          );
+        }
+        return row;
+      },
+      item: { competition: tournament.id },
+      errors,
+      buildErrorMessage: (error) =>
+        `Skipping competition "${tournament.name}": ${this.runner.messageOf(error)}`,
+    });
+    if (existing === undefined) {
+      return undefined;
+    }
+    return [
+      ...playedDates,
+      new Date(existing.startDate),
+      ...(existing.endDate === null ? [] : [new Date(existing.endDate)]),
+    ];
   }
 }
