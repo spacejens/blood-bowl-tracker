@@ -38,7 +38,11 @@ function eventRow(
   };
 }
 
-/** A click on the retrigger button for `eventId`, by a given member (if any). */
+/**
+ * A click on the retrigger button for `eventId`, by a given member (if any).
+ * `deferReply` is a jest mock rather than omitted, so a test can assert
+ * whether the real button interaction was deferred.
+ */
 function click(
   eventId: string,
   member?: ButtonInteraction['member'],
@@ -46,7 +50,8 @@ function click(
   return {
     customId: `${DEBUG_RETRIGGER_CUSTOM_ID_PREFIX}${eventId}`,
     member: member ?? null,
-  } as ButtonInteraction;
+    deferReply: vi.fn().mockResolvedValue(undefined),
+  } as unknown as ButtonInteraction;
 }
 
 /**
@@ -218,6 +223,71 @@ describe('DebugRetriggerHandlerService', () => {
     };
     expect(synthetic.options.getUser('user')).toEqual({ id: '999888777' });
     expect(synthetic.options.getUser('missing')).toBeNull();
+  });
+
+  it('defers the real button interaction ephemerally before running a deferEphemeral command, then still runs execute', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'importtp' }),
+    );
+    const execute = vi.fn().mockResolvedValue('the answer');
+    registry.findByName.mockReturnValue({
+      name: 'importtp',
+      description: 'd',
+      deferEphemeral: true,
+      execute,
+    });
+    const interaction = click('11');
+
+    expect(await service.handle(interaction)).toBe('the answer');
+
+    expect(interaction.deferReply).toHaveBeenCalledWith({
+      flags: MessageFlags.Ephemeral,
+    });
+    const deferReply = interaction.deferReply as ReturnType<typeof vi.fn>;
+    expect(deferReply.mock.invocationCallOrder[0]).toBeLessThan(
+      execute.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('does not defer the real button interaction when retriggering a command that is not deferEphemeral', async () => {
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'insights' }),
+    );
+    registry.findByName.mockReturnValue({
+      name: 'insights',
+      description: 'd',
+      execute: vi.fn().mockResolvedValue('ok'),
+    });
+    const interaction = click('11');
+
+    await service.handle(interaction);
+
+    expect(interaction.deferReply).not.toHaveBeenCalled();
+  });
+
+  it('does not defer the real button interaction when denying a deferEphemeral restricted command', async () => {
+    const { service, events, registry, memberRoleAccess } =
+      await makeService('role-1');
+    memberRoleAccess.hasRole.mockReturnValue(false);
+    events.findById.mockResolvedValue(
+      eventRow({ kind: 'command', name: 'importtp' }),
+    );
+    const execute = vi.fn();
+    registry.findByName.mockReturnValue({
+      name: 'importtp',
+      description: 'd',
+      restrictedRole: 'admin',
+      deferEphemeral: true,
+      execute,
+    });
+    const interaction = click('11');
+
+    expect(await service.handle(interaction)).toEqual({
+      content: DEBUG_RETRIGGER_ACCESS_DENIED_MESSAGE,
+      flags: MessageFlags.Ephemeral,
+    });
+    expect(interaction.deferReply).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('replies ephemerally when the command is no longer registered', async () => {
