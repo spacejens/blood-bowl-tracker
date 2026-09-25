@@ -46,6 +46,7 @@ import {
 import {
   TpCompetitionImportService,
   TpMatchImportService,
+  TpOfficialTeamsImportService,
   TpRosterImportService,
 } from '@blood-bowl-tracker/import-tp-live';
 import { Injectable } from '@nestjs/common';
@@ -73,6 +74,7 @@ import {
   buildSppAwardValuesRoutes,
   buildTpCompetitionsRoutes,
   buildTpMatchesRoutes,
+  buildTpOfficialTeamsRoutes,
   buildTpRostersRoutes,
   buildTrophyAwardsRoutes,
 } from './rpc-router-factory-hand-written-routes';
@@ -124,6 +126,7 @@ export class RpcRouterFactoryService {
     private readonly tpRosterImport: TpRosterImportService,
     private readonly tpMatchImport: TpMatchImportService,
     private readonly tpCompetitionImport: TpCompetitionImportService,
+    private readonly tpOfficialTeamsImport: TpOfficialTeamsImportService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -525,6 +528,7 @@ export class RpcRouterFactoryService {
       tpRosters: buildTpRostersRoutes(this.tpRosterImport),
       tpMatches: buildTpMatchesRoutes(this.tpMatchImport),
       tpCompetitions: buildTpCompetitionsRoutes(this.tpCompetitionImport),
+      tpOfficialTeams: buildTpOfficialTeamsRoutes(this.tpOfficialTeamsImport),
     };
   }
 }

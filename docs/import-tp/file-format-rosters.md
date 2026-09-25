@@ -3,8 +3,10 @@
 See [file-format.md](./file-format.md) for the other pages. Races, positions
 and star players come from TP's official team list, not from this file — see
 [file-format-official-teams.md](./file-format-official-teams.md) and
-[index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
-entries. Roster files remain the source for teams, players, and (via the
+`packages/import-tp-live`'s `TpOfficialRacesUpsertService`/
+`TpOfficialPositionsUpsertService` (see
+[docs/import-tp-live/index.md](../import-tp-live/index.md)). Roster files
+remain the source for teams, players, and (via the
 match/competition directory structure) the teams registered to a competition
 (see `TpCompetitionsImportService` in [index.md](./index.md)).
 
@@ -16,8 +18,8 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 - `teamRaceCode` — extracted from the `teamRace` field (which carries a
   rule-set-looking suffix like `"Dwarf"` or `"Snotling_BB2025"`). Team import
   resolves each team's race server-side, by this code, against whatever
-  `TpRacesImportService` (fed from the official team list, not this file)
-  upserted earlier in the same run.
+  `TpOfficialRacesUpsertService` (fed from the official team list, not this
+  file) upserted earlier in the same run.
 - `raceName` — extracted from `rosterMaster.name`, the display name for the
   race (e.g. `"Dwarf"`, `"Skaven"`, `"Snotling"`). Stable across every
   rule-set-variant code of the same logical race. Not currently consumed by
@@ -29,13 +31,13 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
 strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but
-  `TpPositionsImportService` does not consume this field: it sources
+  `TpOfficialPositionsUpsertService` does not consume this field: it sources
   positions and their characteristics from TP's official team list instead
   (see [file-format-official-teams.md](./file-format-official-teams.md)),
   which publishes each rules set's own catalog value per position rather than
   one played roster's snapshot of it — and, where a race's official and legacy
   catalog rosters disagree about a `(position, rules set)`, the official one's
-  value wins (see [index.md](./index.md)).
+  value wins.
 - `starPositions` — extracted from `rosterMaster.starPlayersMasters[]` (named
   star players permanently embedded in a roster's line-up, as distinct from
   the star players hired for a single match via `inducements_roll` — see
@@ -46,8 +48,8 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
   the per-instance line-up id that `matchEvents[].lineUpId` (see
   [`match_<id>.json`](./file-format-match.md))
   references; `lineUpMasterId` links to a position TP position id, resolved
-  server-side against whatever `TpPositionsImportService` upserted from the
-  official team list (the `positions`/`starPositions` fields above are not
+  server-side against whatever `TpOfficialPositionsUpsertService` upserted from
+  the official team list (the `positions`/`starPositions` fields above are not
   what this resolves against, despite carrying the same `tpPositionId`
   values). `fallbackPositionName` and `isBigGuy` are carried straight from the
   entry's own `position`/`isBigGuy` fields (present on every `lineUps[]`
@@ -68,8 +70,9 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
 
 **Races and positions** are not imported from this file at all — see
 [file-format-official-teams.md](./file-format-official-teams.md) and
-[index.md](./index.md)'s `TpRacesImportService`/`TpPositionsImportService`
-entries. The team and player import (server-side, via `tpRosters.import`)
+`packages/import-tp-live`'s `TpOfficialRacesUpsertService`/
+`TpOfficialPositionsUpsertService`. The team and player import (server-side,
+via `tpRosters.import`)
 still resolves a race or position id from a roster file's `teamRaceCode` /
 `lineUpMasterId`, but they resolve server-side, by external id, against
 whatever those two services upserted from the official team list earlier in
@@ -83,8 +86,8 @@ or coach cannot be resolved is recorded as an error and skipped.
 **Players** import every roster's `players`
 entry: each resolves a team era (roster id + era, via
 `teamErasByRosterId`) and a position server-side, by `lineUpMasterId`,
-against whatever `TpPositionsImportService` upserted from the official team
-list. If that lookup fails but the player is flagged
+against whatever `TpOfficialPositionsUpsertService` upserted from the
+official team list. If that lookup fails but the player is flagged
 `isBigGuy: true` (a mercenary Big Guy hire like "Giant", with no catalog
 entry in either `rosterMaster` array at all — see "Still not handled" below
 for why), it falls back to a reused `isStarPlayer: true` Position keyed by
@@ -130,8 +133,9 @@ future event type that would need it.
 opposed to the ones hired for a single match via `inducements_roll`): the
 official team list's `lineUpMasters`/`starplayerMasters` share one id space
 (see [file-format-official-teams.md](./file-format-official-teams.md)), and
-`TpPositionsImportService` registers a TP external id per `tpPositionId` for
-both regular and star positions alike, so a `lineUps[]` entry here whose
+`TpOfficialPositionsUpsertService` registers a TP external id per
+`tpPositionId` for both regular and star positions alike, so a `lineUps[]`
+entry here whose
 `lineUpMasterId` points at either kind still resolves correctly against that
 one server-side lookup — no special-casing needed in
 `TpRosterPlayersImportService` (server-side) or match-event resolution.

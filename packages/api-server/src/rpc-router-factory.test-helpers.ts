@@ -30,6 +30,7 @@ import {
 import {
   TpCompetitionImportService,
   TpMatchImportService,
+  TpOfficialTeamsImportService,
   TpRosterImportService,
 } from '@blood-bowl-tracker/import-tp-live';
 import { Test } from '@nestjs/testing';
@@ -80,6 +81,7 @@ export async function createRouterHarness() {
     tpRosterImportService: mock<TpRosterImportService>(),
     tpMatchImportService: mock<TpMatchImportService>(),
     tpCompetitionImportService: mock<TpCompetitionImportService>(),
+    tpOfficialTeamsImportService: mock<TpOfficialTeamsImportService>(),
   };
 
   const moduleRef = await Test.createTestingModule({
@@ -153,6 +155,10 @@ export async function createRouterHarness() {
       {
         provide: TpCompetitionImportService,
         useValue: mocks.tpCompetitionImportService,
+      },
+      {
+        provide: TpOfficialTeamsImportService,
+        useValue: mocks.tpOfficialTeamsImportService,
       },
       UpsertHandlerService,
     ],

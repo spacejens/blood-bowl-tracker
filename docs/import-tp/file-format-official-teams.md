@@ -29,9 +29,10 @@ Two consequences:
 
 - The tab labels are marketing copy, not rules set names, so
   `OfficialTeamsDownloaderService` selects a rules set by the `ruleSet` id it
-  maps each configured rules set name to (`TP_RULES_SET_IDS`) and requests that
-  URL from inside the open page, rather than by clicking a tab. Nothing in the
-  downloader depends on the page's DOM.
+  maps each configured rules set name to and requests that URL from inside the
+  open page, rather than by clicking a tab. That rules-set-name → `ruleSet` id
+  map lives in `packages/tp-paths`' `TpOfficialTeamsPathsService`, shared with
+  the live import. Nothing in the downloader depends on the page's DOM.
 - The official BB2025 list and the unofficial "Secret Bowl" one are **the same
   response**; the page splits them client-side by each roster's
   `teamRosterType`. There is no separate Secret Bowl download.

@@ -124,9 +124,11 @@ export class PositionCharacteristicsRawRendererService {
    * A race's TP codes cover both its official (`teamRosterType === 0`) and its
    * legacy (`1`) rosters, and the two can carry different characteristics for
    * the same `(rules set, position)` — three BB2020 positions really do. The
-   * importer keeps the official value there (`TpPositionsImportService`'s
-   * `recordCharacteristicsForRulesSet`), so this panel shows the official one
-   * too: deduping first-seen-wins would otherwise show the legacy stat line
+   * importer keeps the official value there (`packages/import-tp-live`'s
+   * `TpOfficialPositionsUpsertService`, which lets an official value win
+   * over a legacy one regardless of listing order), so this panel shows the
+   * official one too: deduping first-seen-wins would otherwise show the
+   * legacy stat line
    * against a database holding the official one, and read as an importer bug
    * that isn't there. The rule is applied independently here, on this tool's
    * own reading of the files, not by importing the importer's.

@@ -13,13 +13,10 @@ import { TpCompetitionsImportService } from './competitions/tp-competitions-impo
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
-import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
+import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
-import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
-import { TpPositionsImportService } from './positions/tp-positions-import.service';
-import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -89,7 +86,7 @@ describe('AppModule', () => {
     );
   });
 
-  it('registers the races, teams and positions import services', async () => {
+  it('registers the roster and match-file import services', async () => {
     const configPath = join(dir, 'import-tp-config.json5');
     writeFileSync(
       configPath,
@@ -104,9 +101,6 @@ describe('AppModule', () => {
       .useValue(configPath)
       .compile();
 
-    expect(moduleRef.get(TpRacesImportService)).toBeInstanceOf(
-      TpRacesImportService,
-    );
     expect(moduleRef.get(TpRosterFilesImportService)).toBeInstanceOf(
       TpRosterFilesImportService,
     );
@@ -116,21 +110,18 @@ describe('AppModule', () => {
     expect(moduleRef.get(TpInducedStarPlayersStepService)).toBeInstanceOf(
       TpInducedStarPlayersStepService,
     );
-    expect(moduleRef.get(TpPositionsImportService)).toBeInstanceOf(
-      TpPositionsImportService,
-    );
-    expect(
-      moduleRef.get(TpPositionCharacteristicsImportService),
-    ).toBeInstanceOf(TpPositionCharacteristicsImportService);
     expect(moduleRef.get(TpCompetitionSourcesService)).toBeInstanceOf(
       TpCompetitionSourcesService,
     );
     expect(moduleRef.get(TpMatchFilesImportService)).toBeInstanceOf(
       TpMatchFilesImportService,
     );
+    expect(moduleRef.get(TpOfficialTeamsFilesImportService)).toBeInstanceOf(
+      TpOfficialTeamsFilesImportService,
+    );
   });
 
-  it('registers the keyword catalogue and position-keywords import services', async () => {
+  it('registers the keyword catalogue service', async () => {
     const configPath = join(dir, 'import-tp-config.json5');
     writeFileSync(
       configPath,
@@ -147,9 +138,6 @@ describe('AppModule', () => {
 
     expect(moduleRef.get(TpKeywordCatalogService)).toBeInstanceOf(
       TpKeywordCatalogService,
-    );
-    expect(moduleRef.get(TpPositionKeywordsImportService)).toBeInstanceOf(
-      TpPositionKeywordsImportService,
     );
   });
 });

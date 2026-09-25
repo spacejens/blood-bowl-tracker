@@ -144,6 +144,24 @@ describe('TpLeaguesImportService', () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
+  it('stringifies a non-Error thrown while reading the league name', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsert = vi.fn();
+    const { service, importResults } = await makeService({
+      getLeagueName: () => {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error
+        throw 'league.name is not set';
+      },
+      bootstrap,
+      upsert,
+    });
+
+    await service.importLeague();
+
+    expect(resultArgs(importResults).errors).toHaveLength(1);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   it('records one error when the external system bootstrap fails', async () => {
     const bootstrap = vi.fn().mockResolvedValue({
       ok: false,

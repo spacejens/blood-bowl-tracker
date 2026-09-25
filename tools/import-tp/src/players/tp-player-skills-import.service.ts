@@ -78,9 +78,11 @@ export class TpPlayerSkillsImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    // Built once up front, exactly as TpPositionSkillsImportService does: a
-    // skill upserted by name registers EVERY TP id ever seen for it, which a
-    // set grown ref by ref would miss for any id seen after the first upsert.
+    // Built once up front, exactly as `packages/import-tp-live`'s
+    // `TpOfficialSkillRefsService` does for the official team list's starting
+    // skills: a skill upserted by name registers EVERY TP id ever seen for
+    // it, which a set grown ref by ref would miss for any id seen after the
+    // first upsert.
     const tpSkillMasterIdsByName = this.skillResolver.collectSkillMasterIds(
       skillMastersByMasterId,
     );
@@ -174,8 +176,9 @@ export class TpPlayerSkillsImportService {
    * its attribute is an unresolvable type-3 opaque code -- either drops the
    * skill entirely, recording an ImportError once per distinct id (or
    * (skillMasterId, attributeValue) pair) across the whole run, the same
-   * do-not-repeat-a-known-gap convention TpPositionSkillsImportService
-   * follows for starting skills.
+   * do-not-repeat-a-known-gap convention `packages/import-tp-live`'s
+   * `TpOfficialSkillRefsService` follows for the official team list's
+   * starting skills.
    */
   private async buildEntry(options: {
     playerId: number;
@@ -326,7 +329,8 @@ export class TpPlayerSkillsImportService {
    * through the curated keyword catalogue and, when the catalogue does not
    * carry it, the whole skill is left out with one ImportError per distinct
    * (skillMasterId, value) pair across the run -- the same convention
-   * `TpPositionSkillsImportService` follows (see
+   * `packages/import-tp-live`'s `TpOfficialSkillRefsService` follows for the
+   * official team list's starting skills (see
    * docs/import-tp/keyword-target-decoding.md).
    */
   private attributeValue(options: {

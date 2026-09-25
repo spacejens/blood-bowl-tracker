@@ -27,9 +27,10 @@
     // Rules sets to download TP's official per-rules-set team list for. Each
     // value names a tab on https://tourplay.net/en/blood-bowl/teams and the
     // data/teams/<rulesSet>/ output folder. Set to [] to skip the
-    // official-teams download entirely. Use the same spelling as
-    // import-tp-config.json5's league.eras[].identity.rulesSets so the
-    // import side lines them up (matched case-insensitively).
+    // official-teams download entirely. Use the same spelling, exactly
+    // (case-sensitively), as import-tp-config.json5's
+    // league.eras[].identity.rulesSets, since the server resolves a rules
+    // set by its exact external id.
     rulesSets: ['BB2020', 'DB2021', 'BB2025'],
   },
 }

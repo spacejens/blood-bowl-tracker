@@ -1,5 +1,6 @@
 import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
+import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -8,7 +9,6 @@ import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseStoringService } from './api-response-storing.service';
 import { FileSystemService } from './file-system.service';
 import { OfficialTeamsDownloaderService } from './official-teams-downloader.service';
-import { TpApiPathsService } from './tp-api-paths.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
 
@@ -40,7 +40,7 @@ describe('OfficialTeamsDownloaderService', () => {
         OfficialTeamsDownloaderService,
         // Pure, dependency-free path formatting, passed real so these tests
         // assert on the actual paths requested.
-        TpApiPathsService,
+        TpOfficialTeamsPathsService,
         { provide: DownloadTpConfigService, useValue: configService },
         { provide: TpFetcherService, useValue: tpFetcherService },
         { provide: ApiResponseStoringService, useValue: storingService },
@@ -101,7 +101,9 @@ describe('OfficialTeamsDownloaderService', () => {
   it('fails with a helpful message for a rules set TP has no id for', async () => {
     configService.getRulesSets.mockReturnValue(['BB2016']);
 
-    await expect(service.downloadOfficialTeams()).rejects.toThrow('BB2016');
+    await expect(service.downloadOfficialTeams()).rejects.toThrow(
+      'No TP ruleSet id is known for rules set "BB2016". Known rules sets are BB2020, DB2021, BB2025 (matched case-insensitively).',
+    );
     expect(storingService.fetchAndStore).not.toHaveBeenCalled();
   });
 

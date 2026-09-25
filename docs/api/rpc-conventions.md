@@ -223,6 +223,17 @@ server-side through `packages/import-tp-live`. See
 [import-tp-live's competition import](../import-tp-live/competition-import.md).
 It also declares no contract errors.
 
+`tpOfficialTeams.import` is the same shape for TP's official team list: it
+takes one rules set's name, its parsed races (official and legacy, with their
+positions, stars, characteristics, skill references and keyword codes),
+optional skill names for the referenced `skillMasterId`s and the external
+system name, and writes the races, positions, characteristics, keywords and
+starting skills server-side through `packages/import-tp-live`. Besides one
+`ImportResult` per stage it returns every position's characteristics, which a
+caller importing hired star players needs. See [import-tp-live's official team
+list import](../import-tp-live/official-teams-import.md). It also declares no
+contract errors.
+
 ## Error responses
 
 Procedures declare their possible errors on the oRPC contract itself (see

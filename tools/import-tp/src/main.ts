@@ -12,19 +12,15 @@ import { TpCompetitionSourcesService } from './competitions/tp-competition-sourc
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
-import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
+import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
 import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-players-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
 import { TpMercenaryPositionRaceErasImportService } from './players/tp-mercenary-position-race-eras-import.service';
 import { TpPlayerSkillsImportService } from './players/tp-player-skills-import.service';
 import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
-import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
-import { TpPositionSkillsImportService } from './positions/tp-position-skills-import.service';
-import { TpPositionsImportService } from './positions/tp-positions-import.service';
-import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -70,9 +66,10 @@ async function run(): Promise<ImportResult> {
     });
 
     // TP's official team list (races, positions, star players with their
-    // characteristics) is scanned and parsed once here, then shared by the
-    // races/positions imports below -- the canonical per-rules-set source,
-    // independent of which rosters happened to be played.
+    // characteristics) is scanned and parsed once here, then sent to the
+    // server by the official team list import below -- the canonical
+    // per-rules-set source, independent of which rosters happened to be
+    // played.
     const officialTeamsErrors: ImportError[] = [];
     const officialTeams = await app
       .get(OfficialTeamsCollectionService)
@@ -82,62 +79,10 @@ async function run(): Promise<ImportResult> {
       errors: officialTeamsErrors,
     });
 
-    const raceOutcome = await app
-      .get(TpRacesImportService)
-      .importRaces(officialTeams);
-
-    const {
-      result: positionResult,
-      characteristicsByPositionId,
-      skillRefsByPositionId,
-      keywordCodesByPositionId,
-      positionNamesById,
-    } = await app.get(TpPositionsImportService).importPositions(officialTeams, {
-      raceNamesById: raceOutcome.raceNamesById,
-    });
-
-    // Characteristics run immediately after the positions step that produced
-    // them: the map is keyed by the position ids that step just upserted, and
-    // by the rules set ids its era config resolved. This runs in the same TP
-    // importer invocation that writes position availability, which is a
-    // separate (and later) invocation than the BBL importer's -- so for every
-    // position both sources describe, TP's values overwrite BBL's. That
-    // ordering is deliberate: TP's values are per-rules-set and authoritative,
-    // where BBL's are a converted single snapshot.
-    // Star players need no special casing: position_rules_sets is keyed by
-    // positionId alone, and star race/era availability now comes from the
-    // positions step itself (its syncRaceEras calls above), not from this
-    // characteristics step.
-    const positionCharacteristicsOutcome = await app
-      .get(TpPositionCharacteristicsImportService)
-      .syncPositionCharacteristics(characteristicsByPositionId);
-
-    // The curated keyword catalogue is read once here, avoiding a repeated
-    // read cost, and passed down to the position-keyword import below.
-    const keywordCatalogErrors: ImportError[] = [];
-    const keywordCatalog = await app
-      .get(TpKeywordCatalogService)
-      .load(keywordCatalogErrors);
-    const keywordCatalogResult = app.get(ImportResultService).result({
-      imported: 0,
-      errors: keywordCatalogErrors,
-    });
-
-    // Position keywords run after the characteristics step for the same hard
-    // reason starting skills do: the API rejects a keyword for a (position,
-    // rules set) with no characteristics row, which that step is what
-    // creates.
-    const positionKeywordsOutcome = await app
-      .get(TpPositionKeywordsImportService)
-      .syncPositionKeywords({
-        keywordCodesByPositionId,
-        catalog: keywordCatalog,
-        positionNamesById,
-      });
-
     // The skillMasterId -> name lookup is scanned once here, from the same
     // mirror the rosters/matches were read from: rosters_masters names skills
-    // by id only, while every real roster and match embeds the name.
+    // by id only, while every real roster and match embeds the name. It is
+    // sent with the official team list below and reused by player skills.
     const skillNameErrors: ImportError[] = [];
     const skillMastersByMasterId = await app
       .get(SkillMasterNameCollectionService)
@@ -147,24 +92,32 @@ async function run(): Promise<ImportResult> {
       errors: skillNameErrors,
     });
 
-    // Starting skills run after the characteristics step for a hard reason:
-    // the API rejects a starting skill for a (position, rules set) with no
-    // characteristics row, which that step is what creates.
-    const rulesSetNamesById = new Map(
-      [...rulesSetsOutcome.rulesSetsByName.values()].map((rulesSet) => [
-        rulesSet.id,
-        rulesSet.name,
-      ]),
-    );
-    const positionSkillsOutcome = await app
-      .get(TpPositionSkillsImportService)
-      .syncPositionSkills({
-        skillRefsByPositionId,
-        skillMastersByMasterId,
-        positionNamesById,
-        rulesSetNamesById,
-        catalog: keywordCatalog,
-      });
+    // Each rules set's official team list goes to the server in one
+    // tpOfficialTeams.import call, which writes its races, positions and
+    // stars (with their race/era availability), characteristics, keywords
+    // and starting skills. This runs in the same TP importer invocation
+    // that writes position availability, which is a separate (and later)
+    // invocation than the BBL importer's -- so for every position both
+    // sources describe, TP's characteristics overwrite BBL's. That ordering
+    // is deliberate: TP's values are per-rules-set and authoritative, where
+    // BBL's are a converted single snapshot. It runs before the rosters,
+    // because players resolve their position against what it upserts.
+    const officialTeamsOutcome = await app
+      .get(TpOfficialTeamsFilesImportService)
+      .importOfficialTeams({ officialTeams, skillMastersByMasterId });
+    const { characteristicsByPositionId } = officialTeamsOutcome;
+
+    // The curated keyword catalogue is read once here and passed to the
+    // player-skills import below, which decodes Hatred/Animosity targets
+    // through it.
+    const keywordCatalogErrors: ImportError[] = [];
+    const keywordCatalog = await app
+      .get(TpKeywordCatalogService)
+      .load(keywordCatalogErrors);
+    const keywordCatalogResult = app.get(ImportResultService).result({
+      imported: 0,
+      errors: keywordCatalogErrors,
+    });
 
     // A roster id can be imported under more than one era, so resolving a
     // hired star player's team era later needs the real eraId the
@@ -300,7 +253,7 @@ async function run(): Promise<ImportResult> {
       .collect({ rosters, playerIdsByLineUpId });
 
     // Player skills reuse the same scanned skillMasterId -> name lookup the
-    // position starting-skills step above used, so no second scan happens.
+    // official team list import above was sent, so no second scan happens.
     const playerSkillsOutcome = await app
       .get(TpPlayerSkillsImportService)
       .syncPlayerSkills({
@@ -419,14 +372,14 @@ async function run(): Promise<ImportResult> {
       coachOutcome.result,
       rosterCollectionResult,
       officialTeamsCollectionResult,
-      raceOutcome.result,
-      rosterImport.teamResult,
-      positionResult,
-      positionCharacteristicsOutcome.result,
-      keywordCatalogResult,
-      positionKeywordsOutcome.result,
       skillNameCollectionResult,
-      positionSkillsOutcome.result,
+      officialTeamsOutcome.racesResult,
+      officialTeamsOutcome.positionsResult,
+      officialTeamsOutcome.characteristicsResult,
+      officialTeamsOutcome.keywordsResult,
+      officialTeamsOutcome.startingSkillsResult,
+      keywordCatalogResult,
+      rosterImport.teamResult,
       rosterImport.playerResult,
       starHiresOutcome.result,
       playerSkillsOutcome.result,

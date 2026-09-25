@@ -20,9 +20,9 @@ interface DecodeTypeThreeTargetOptions {
  * skill only by that id: the scanned `skillMastersByMasterId` lookup inverted
  * to every id per name, the curated `tourplay.net` external-id fallback for
  * an id no downloaded file names, and the Hatred/Animosity type-3 opaque-code
- * decode. Originally `TpPositionSkillsImportService`'s own private methods,
- * moved here so `TpPlayerSkillsImportService` can reuse the identical
- * resolution without duplicating it.
+ * decode. This is `TpPlayerSkillsImportService`'s own skill-id resolution;
+ * the official team list's starting skills are resolved server-side by
+ * `packages/import-tp-live`'s `TpOfficialSkillRefsService` instead.
  */
 @Injectable()
 export class TpSkillResolverService {
@@ -32,14 +32,14 @@ export class TpSkillResolverService {
    * Skill name -> every TP skillMasterId the scan ever saw for it. TP assigns
    * a skill a new id per rules set, so one name routinely has several; each
    * becomes a `tourplay.net` external id on the upserted skill, mirroring how
-   * TpPositionsImportService registers every TP position id on one position
-   * row (see its `tpPositionIds`/`externalIdsFor`).
+   * `packages/import-tp-live`'s `TpOfficialPositionsUpsertService` registers
+   * every TP position id on one position row.
    *
    * Built by inverting the whole scanned lookup UP FRONT rather than
-   * accumulated while refs are produced: StartingSkillsImportService upserts
-   * a name at most once per run, using the FIRST ref it sees for that name,
-   * so a set grown ref by ref would register only the ids seen before that
-   * ref happened to be built.
+   * accumulated while refs are produced: `TpPlayerSkillsImportService`
+   * upserts a skill name at most once per run, using the FIRST ref it sees
+   * for that name, so a set grown ref by ref would register only the ids
+   * seen before that ref happened to be built.
    */
   collectSkillMasterIds(
     skillMastersByMasterId: Map<number, TpSkillMaster>,

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { TpMatchPathsService } from './tp-match-paths.service';
+import { TpOfficialTeamsPathsService } from './tp-official-teams-paths.service';
 import { TpRosterPathsService } from './tp-roster-paths.service';
 import { TpTournamentPathsService } from './tp-tournament-paths.service';
 
@@ -12,11 +13,13 @@ import { TpTournamentPathsService } from './tp-tournament-paths.service';
 @Module({
   providers: [
     TpMatchPathsService,
+    TpOfficialTeamsPathsService,
     TpRosterPathsService,
     TpTournamentPathsService,
   ],
   exports: [
     TpMatchPathsService,
+    TpOfficialTeamsPathsService,
     TpRosterPathsService,
     TpTournamentPathsService,
   ],

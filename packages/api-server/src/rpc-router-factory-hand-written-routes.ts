@@ -19,6 +19,7 @@ import {
 import {
   TpCompetitionImportService,
   TpMatchImportService,
+  TpOfficialTeamsImportService,
   TpRosterImportService,
 } from '@blood-bowl-tracker/import-tp-live';
 import { implement } from '@orpc/server';
@@ -361,6 +362,19 @@ export function buildTpCompetitionsRoutes(
   return {
     import: implement(contract.tpCompetitions.import).handler(({ input }) =>
       tpCompetitionImport.importCompetition(input),
+    ),
+  };
+}
+
+// tpOfficialTeams.import: a coarse TP import, like tpRosters.import. Every
+// failure is reported in the result's per-stage ImportResults, so it
+// declares no contract error and is not routed through the upsert handler.
+export function buildTpOfficialTeamsRoutes(
+  tpOfficialTeamsImport: TpOfficialTeamsImportService,
+) {
+  return {
+    import: implement(contract.tpOfficialTeams.import).handler(({ input }) =>
+      tpOfficialTeamsImport.importOfficialTeams(input),
     ),
   };
 }

@@ -10,9 +10,8 @@ import { ErasModule } from './eras/eras.module';
 import { KeywordsModule } from './keywords/keywords.module';
 import { LeaguesModule } from './leagues/leagues.module';
 import { MatchFilesModule } from './match-files/match-files.module';
+import { OfficialTeamsModule } from './official-teams/official-teams.module';
 import { PlayersModule } from './players/players.module';
-import { PositionsModule } from './positions/positions.module';
-import { RacesModule } from './races/races.module';
 import { RostersModule } from './rosters/rosters.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
@@ -39,10 +38,9 @@ export class AppModule {
         ErasModule,
         CompetitionsModule,
         CoachesModule,
-        RacesModule,
         RostersModule,
         MatchFilesModule,
-        PositionsModule,
+        OfficialTeamsModule,
         KeywordsModule,
         PlayersModule,
         TrophyAwardsModule,

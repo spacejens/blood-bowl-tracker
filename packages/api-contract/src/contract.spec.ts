@@ -395,4 +395,24 @@ describe('resolve procedures', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('exposes tpOfficialTeams.import declaring no errors', () => {
+    expect(contract.tpOfficialTeams.import).toBeDefined();
+    expect(errorCodesOf(contract.tpOfficialTeams.import)).toEqual([]);
+  });
+
+  it('tpOfficialTeams.import takes one rules set of parsed races plus its external system', () => {
+    const inputSchema = contract.tpOfficialTeams.import['~orpc']
+      .inputSchema as z.ZodType;
+    expect(
+      inputSchema.safeParse({
+        rulesSet: 'BB2025',
+        races: [],
+        externalSystemName: 'TP',
+      }).success,
+    ).toBe(true);
+    expect(
+      inputSchema.safeParse({ races: [], externalSystemName: 'TP' }).success,
+    ).toBe(false);
+  });
 });
