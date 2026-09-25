@@ -56,6 +56,5 @@ export type {
   ImportRosterOptions,
 } from './roster/tp-roster-import.service';
 export { TpRosterImportService } from './roster/tp-roster-import.service';
-export { TP_EXTERNAL_SYSTEM_NAME } from './tp-external-system';
 export type { TpConnectionProvider } from './tp-import-providers';
 export { TP_CONNECTION_PROVIDER } from './tp-import-providers';

@@ -7,7 +7,6 @@ import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionImportService } from '../competition/tp-competition-import.service';
-import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpAwardsFetchService } from './tp-awards-fetch.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
@@ -25,6 +24,8 @@ export interface ImportLiveCompetitionOptions {
    * from, the way a team import does.
    */
   era: string;
+  /** The name TP's external system is registered under. */
+  externalSystemName: string;
   /**
    * The scrape-tp session to fetch through, so every request of the import
    * is paced as one visit. A fresh session is started when omitted.
@@ -74,6 +75,7 @@ export class TpLiveCompetitionImportService {
   async importCompetition({
     tournamentSlug,
     era,
+    externalSystemName,
     session,
   }: ImportLiveCompetitionOptions): Promise<TpLiveCompetitionImportResult> {
     const teams: TpLiveCompetitionTeamResult[] = [];
@@ -104,6 +106,7 @@ export class TpLiveCompetitionImportService {
         const team = await this.teamImport.importTeam({
           rosterId,
           era,
+          externalSystemName,
           session: visit,
         });
         teams.push({ rosterId, ...team });
@@ -128,7 +131,7 @@ export class TpLiveCompetitionImportService {
         era,
         participantRosterIds: participantRosterIds ?? [],
         awards: awards ?? [],
-        externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        externalSystemName,
       });
       return {
         competition: this.withErrors({

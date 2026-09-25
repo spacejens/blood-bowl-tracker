@@ -7,7 +7,6 @@ import type { TpFetchSession } from '@blood-bowl-tracker/scrape-tp';
 import { Injectable } from '@nestjs/common';
 
 import { TpRosterImportService } from '../roster/tp-roster-import.service';
-import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
@@ -21,6 +20,8 @@ export interface ImportTeamOptions {
    * race's one ongoing era when omitted.
    */
   era?: string;
+  /** The name TP's external system is registered under. */
+  externalSystemName: string;
   /**
    * The scrape-tp session to fetch through, so a caller importing several
    * teams paces them as one visit. A fresh session is started when omitted.
@@ -65,6 +66,7 @@ export class TpLiveTeamImportService {
   async importTeam({
     rosterId,
     era,
+    externalSystemName,
     session,
     matchEmbeddedPlayers,
   }: ImportTeamOptions): Promise<TpLiveTeamImportResult> {
@@ -81,6 +83,7 @@ export class TpLiveTeamImportService {
       const resolvedEra = await this.eraResolution.resolveEra({
         roster,
         era,
+        externalSystemName,
         errors,
       });
       if (resolvedEra === undefined) {
@@ -90,7 +93,7 @@ export class TpLiveTeamImportService {
       const { team, players } = await this.rosterImport.importRoster({
         roster,
         era: resolvedEra,
-        externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        externalSystemName,
         matchEmbeddedPlayers,
       });
       return {

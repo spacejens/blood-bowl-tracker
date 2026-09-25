@@ -27,6 +27,8 @@ import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
 import { TpMatchFetchService } from './tp-match-fetch.service';
 
+const EXTERNAL_SYSTEM_NAME = 'some-external-system';
+
 const nothing: ImportResult = { success: true, imported: 0, errors: [] };
 const one: ImportResult = { success: true, imported: 1, errors: [] };
 const teamImported: TpLiveTeamImportResult = {
@@ -111,7 +113,11 @@ describe('TpLiveMatchImportService', () => {
   });
 
   const importMatch = () =>
-    service.importMatch({ matchId: MATCH_TP_ID, tournamentSlug: 's30' });
+    service.importMatch({
+      matchId: MATCH_TP_ID,
+      tournamentSlug: 's30',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
   it('imports the match, both teams, the competition, then the match data, through one session', async () => {
     await expect(importMatch()).resolves.toEqual({
@@ -129,12 +135,14 @@ describe('TpLiveMatchImportService', () => {
     expect(teamImport.importTeam).toHaveBeenNthCalledWith(1, {
       rosterId: HOME_ROSTER_ID,
       era: undefined,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       session,
       matchEmbeddedPlayers: tpMatch().homeRosterPlayers,
     });
     expect(teamImport.importTeam).toHaveBeenNthCalledWith(2, {
       rosterId: AWAY_ROSTER_ID,
       era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       session,
       matchEmbeddedPlayers: tpMatch().awayRosterPlayers,
     });
@@ -147,14 +155,14 @@ describe('TpLiveMatchImportService', () => {
       tournament: BRACKET.tournament,
       playedDates: BRACKET.playedDates,
       era: 'Fourth era',
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       errors: [],
     });
     expect(matchImport.importMatch).toHaveBeenCalledWith({
       match: tpMatch(),
       bracket: BRACKET.matches,
       competitionTpId: 18442,
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
   });
 
@@ -165,6 +173,7 @@ describe('TpLiveMatchImportService', () => {
       matchId: MATCH_TP_ID,
       tournamentSlug: 's30',
       era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       session: given,
     });
 

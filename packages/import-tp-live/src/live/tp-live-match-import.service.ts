@@ -8,7 +8,6 @@ import { Injectable } from '@nestjs/common';
 
 import { TpCompetitionUpsertService } from '../competition/tp-competition-upsert.service';
 import { TpMatchImportService } from '../match/tp-match-import.service';
-import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpBracketFetchService } from './tp-bracket-fetch.service';
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
@@ -27,6 +26,8 @@ export interface ImportLiveMatchOptions {
    * from the home team's race's one ongoing era when omitted.
    */
   era?: string;
+  /** The name TP's external system is registered under. */
+  externalSystemName: string;
   /**
    * The scrape-tp session to fetch through, so every request of the import
    * is paced as one visit. A fresh session is started when omitted.
@@ -74,6 +75,7 @@ export class TpLiveMatchImportService {
     matchId,
     tournamentSlug,
     era,
+    externalSystemName,
     session,
   }: ImportLiveMatchOptions): Promise<TpLiveMatchImportResult> {
     try {
@@ -100,6 +102,7 @@ export class TpLiveMatchImportService {
       const homeTeam = await this.teamImport.importTeam({
         rosterId: match.homeTeamTpId,
         era,
+        externalSystemName,
         session: visit,
         matchEmbeddedPlayers: match.homeRosterPlayers,
       });
@@ -109,6 +112,7 @@ export class TpLiveMatchImportService {
       const awayTeam = await this.teamImport.importTeam({
         rosterId: match.awayTeamTpId,
         era: homeTeam.era,
+        externalSystemName,
         session: visit,
         matchEmbeddedPlayers: match.awayRosterPlayers,
       });
@@ -129,7 +133,7 @@ export class TpLiveMatchImportService {
               tournament: bracket.tournament,
               playedDates: bracket.playedDates,
               era: homeTeam.era,
-              externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+              externalSystemName,
               errors: competitionErrors,
             });
       const competition = this.importResults.result({
@@ -144,7 +148,7 @@ export class TpLiveMatchImportService {
         match,
         bracket: bracket.matches,
         competitionTpId: bracket.tournament.id,
-        externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        externalSystemName,
       });
       return { competition, homeTeam, awayTeam, ...core };
     } catch (error) {

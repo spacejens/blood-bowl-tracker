@@ -12,6 +12,7 @@ trophy awards. Its two callers are
 const result = await tpLiveCompetitionImportService.importCompetition({
   tournamentSlug: 'tloegbbl-sasong-30',
   era: 'Fourth era',
+  externalSystemName: 'TP',
 });
 ```
 
@@ -19,6 +20,9 @@ const result = await tpLiveCompetitionImportService.importCompetition({
 - `era`: required. The era to import the competition and its teams under,
   by name. A competition has no single team to resolve an era from, the way
   a team import does.
+- `externalSystemName`: required. The name TP's external system is
+  registered under, passed to every team import and the competition import.
+  Keep it in sync with the bulk import's configured name.
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.

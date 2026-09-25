@@ -10,6 +10,7 @@ callers are `TpLiveMatchImportService.importMatch(...)`, below, and the
 const result = await tpLiveMatchImportService.importMatch({
   matchId: 662796,
   tournamentSlug: 'tloegbbl-sasong-30',
+  externalSystemName: 'TP',
 });
 ```
 
@@ -18,6 +19,9 @@ const result = await tpLiveMatchImportService.importMatch({
 - `era`: optional. The era to import the home team under, by name. The away
   team and the competition follow whichever era the home team was imported
   under.
+- `externalSystemName`: required. The name TP's external system is
+  registered under, passed to both team imports, the competition and the
+  match. Keep it in sync with the bulk import's configured name.
 - `session`: optional. A `packages/scrape-tp` session to fetch through, so
   every request of the import is paced as one visit. A fresh session is
   started when omitted.
