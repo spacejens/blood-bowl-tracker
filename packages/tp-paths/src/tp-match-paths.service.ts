@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+/** A match page path: `<slug>/match/<positive integer id>`, nothing else. */
+const MATCH_FRONTEND_PATH = /^([^/]+)\/match\/([1-9]\d*)$/;
+
 /**
  * TP's paths for one match, exactly as TP's own frontend requests them for a
  * match page: the API path its data is fetched from, and the page path it is
@@ -7,10 +10,6 @@ import { Injectable } from '@nestjs/common';
  * tools/download-tp's bulk download and packages/import-tp-live's live match
  * import.
  */
-
-/** A match page path: `<slug>/match/<positive integer id>`, nothing else. */
-const MATCH_FRONTEND_PATH = /^([^/]+)\/match\/([1-9]\d*)$/;
-
 @Injectable()
 export class TpMatchPathsService {
   apiPath(matchId: number | string): string {

@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+/** A roster page path: `roster/<positive integer id>`, nothing else. */
+const ROSTER_FRONTEND_PATH = /^roster\/([1-9]\d*)$/;
+
 /**
  * TP's paths for one team roster, exactly as TP's own frontend requests them
  * for a roster page: the API path its data is fetched from, relative to TP's
@@ -8,10 +11,6 @@ import { Injectable } from '@nestjs/common';
  * these paths live: tools/download-tp's bulk download and
  * packages/import-tp-live's live fetch both build roster requests from it.
  */
-
-/** A roster page path: `roster/<positive integer id>`, nothing else. */
-const ROSTER_FRONTEND_PATH = /^roster\/([1-9]\d*)$/;
-
 @Injectable()
 export class TpRosterPathsService {
   apiPath(rosterId: number | string): string {

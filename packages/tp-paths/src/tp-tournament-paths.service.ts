@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+/** A tournament page path: a non-empty slug, optionally followed by more. */
+const TOURNAMENT_FRONTEND_PATH = /^([^/]+)(?:\/.*)?$/;
+
 /**
  * TP's paths for one tournament, exactly as TP's own frontend requests them:
  * API paths relative to TP's backend API base URL, and page paths relative to
@@ -8,10 +11,6 @@ import { Injectable } from '@nestjs/common';
  * tools/download-tp's bulk download and packages/import-tp-live's live match
  * and competition imports.
  */
-
-/** A tournament page path: a non-empty slug, optionally followed by more. */
-const TOURNAMENT_FRONTEND_PATH = /^([^/]+)(?:\/.*)?$/;
-
 @Injectable()
 export class TpTournamentPathsService {
   /** The tournament itself: its categories and their phases. */
