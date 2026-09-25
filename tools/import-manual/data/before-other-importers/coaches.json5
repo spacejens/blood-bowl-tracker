@@ -85,11 +85,25 @@
       ],
     },
     {
+      name: 'Michael F',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Michael F' },
+        { system: 'tourplay.net', id: '5e3a67ef-fb2c-40b7-7fdb-08ded2f6d46e' },
+      ],
+    },
+    {
       name: 'Niklas G',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Niklas G' },
         { system: 'tourplay.net', id: 'e7162529-4b45-49e2-2b14-08db43025cfd' },
         { system: 'NAF', id: '19170' },
+      ],
+    },
+    {
+      name: 'Oskar M',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Oskar' },
+        { system: 'tourplay.net', id: 'ee4d61c0-628a-407d-7fec-08ded2f6d46e' },
       ],
     },
     {
