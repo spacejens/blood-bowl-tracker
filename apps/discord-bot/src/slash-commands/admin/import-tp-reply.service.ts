@@ -146,7 +146,7 @@ export class ImportTpReplyService {
     return {
       title: `TP import: ${subject}`,
       failed: result.match.imported === 0,
-      notes: [],
+      notes: [this.eraNote(result.homeTeam.era)],
       ...this.stages([
         { label: 'Competition', result: result.competition },
         { label: 'Home team', result: result.homeTeam.team },

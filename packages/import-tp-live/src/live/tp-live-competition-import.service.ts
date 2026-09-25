@@ -74,8 +74,11 @@ export class TpLiveCompetitionImportService {
    * category's inscriptions, and import each registered team live, always
    * (keeping rosters current). Then fetch its awards and import everything
    * through the same server-side core `tpCompetitions.import` uses. A failed
-   * inscriptions or awards fetch still imports the competition, with no
-   * teams or no awards, and reports the fetch failure in that stage. With no
+   * awards fetch still imports the competition, with no awards. A failed
+   * inscriptions fetch still imports the competition, with no teams, only
+   * when `era` is given explicitly; without one, it leaves no teams to
+   * resolve an era from, so the competition stage fails instead. Either
+   * fetch failure is reported in its own stage. With no
    * era given, the competition is imported under the one era its registered
    * teams were imported under; teams that disagree, or none resolving one,
    * fail the competition stage, while the teams stay imported. Every failure
@@ -243,9 +246,11 @@ export class TpLiveCompetitionImportService {
       return eras[0];
     }
     const reason =
-      eras.length === 0
-        ? 'none of its registered teams was imported under an era'
-        : `its registered teams were imported under different eras (${eras.join(', ')})`;
+      teams.length === 0
+        ? 'no registered teams were found to resolve an era from'
+        : eras.length === 0
+          ? 'none of its registered teams was imported under an era'
+          : `its registered teams were imported under different eras (${eras.join(', ')})`;
     errors.push(
       this.importResults.error({
         item: { tournamentSlug },

@@ -55,8 +55,11 @@ when an earlier one fails:
 6. **The shared core**, below.
 
 A failed inscriptions fetch still imports the competition, with no teams
-linked and no awards. A failed awards fetch still imports the competition
-and links its teams. Either failure is reported in its own stage.
+linked and no awards — when `era` is given explicitly; without one, a failed
+inscriptions fetch leaves no teams to resolve an era from, so the
+competition stage fails instead (see the zero-teams row in the Failures
+table below). A failed awards fetch still imports the competition and links
+its teams. Either failure is reported in its own stage.
 
 The result carries `competition`, `participation` and `trophyAwards` (one
 `ImportResult` each), `teams`: one live team import result per registered

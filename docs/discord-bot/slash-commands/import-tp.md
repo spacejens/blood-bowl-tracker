@@ -47,7 +47,7 @@ one embed titled after the page imported, starting with a status:
   the team, or every rules set of the official team list.
 
 Below it, a line per import stage says how much it imported (for a
-competition or team, also the era used), and an **Errors** section lists
+competition, match or team, also the era used), and an **Errors** section lists
 every problem reported, labelled by stage. A very long reply is cut off at
 Discord's embed limit.
 

@@ -291,6 +291,8 @@ describe('TpLiveCompetitionImportService', () => {
     });
     const NO_TEAM_ERA =
       'Could not resolve an era for competition s30: none of its registered teams was imported under an era. Pass an era explicitly.';
+    const NO_REGISTERED_TEAMS =
+      'Could not resolve an era for competition s30: no registered teams were found to resolve an era from. Pass an era explicitly.';
 
     it('imports each team without forcing an era, then imports the competition under the era they agree on', async () => {
       const result = await importWithoutEra();
@@ -359,7 +361,7 @@ describe('TpLiveCompetitionImportService', () => {
       const result = await importWithoutEra();
 
       expect(teamImport.importTeam).not.toHaveBeenCalled();
-      expect(result.competition).toEqual(noEraFailure(NO_TEAM_ERA));
+      expect(result.competition).toEqual(noEraFailure(NO_REGISTERED_TEAMS));
       expect(result.era).toBeUndefined();
     });
 
@@ -378,7 +380,7 @@ describe('TpLiveCompetitionImportService', () => {
         imported: 0,
         errors: [fetchFailure],
       });
-      expect(result.competition).toEqual(noEraFailure(NO_TEAM_ERA));
+      expect(result.competition).toEqual(noEraFailure(NO_REGISTERED_TEAMS));
       expect(competitionImport.importCompetition).not.toHaveBeenCalled();
     });
   });

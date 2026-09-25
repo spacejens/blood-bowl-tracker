@@ -160,6 +160,7 @@ describe('ImportTpReplyService', () => {
         title: 'TP import: match 576264 (s30)',
         description: [
           '**Completed**',
+          'Era: Fourth era',
           '',
           '- Competition: 1 imported',
           '- Home team: 1 imported',
