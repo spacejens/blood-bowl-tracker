@@ -208,6 +208,48 @@ describe('TpOfficialPositionsUpsertService', () => {
     expect(result.slots).toHaveLength(1);
   });
 
+  it("keeps a star's official values when a legacy listing of it is processed after the official one", async () => {
+    const officialStar = officialPosition({
+      name: 'Grim Ironjaw',
+      isStarPlayer: true,
+      tpPositionId: 501,
+    });
+    const legacyStar = officialPosition({
+      name: 'Grim Ironjaw',
+      isStarPlayer: true,
+      tpPositionId: 501,
+      characteristics: LEGACY_STATS,
+    });
+
+    const result = await service.upsertPositions({
+      races: [
+        officialRace({ teamRaceCode: 'orc20', positions: [officialStar] }),
+        officialRace({
+          name: 'Dwarf',
+          teamRaceCode: 'dwarfLegacy20',
+          isOfficial: false,
+          positions: [legacyStar],
+        }),
+      ],
+      racesByCode: new Map([
+        ['orc20', ORC],
+        ['dwarfLegacy20', DWARF],
+      ]),
+      context: officialTeamsContext(),
+      errors,
+    });
+
+    expect(result.slots).toEqual([
+      {
+        positionId: 9,
+        name: 'Grim Ironjaw',
+        characteristics: CHARACTERISTICS,
+        skills: [],
+        keywordCodes: [],
+      },
+    ]);
+  });
+
   it('skips the positions of a race that was not imported, reporting it once', async () => {
     const result = await service.upsertPositions({
       races: [

@@ -94,6 +94,7 @@ export class TpOfficialPositionsUpsertService {
     const { context, errors } = options;
     let imported = 0;
     const slotsByPositionId = new Map<number, TpOfficialPositionSlot>();
+    const officialSlotPositionIds = new Set<number>();
     for (const group of this.groupPositions(options).values()) {
       const upserted = await this.runner.record({
         run: () =>
@@ -118,14 +119,25 @@ export class TpOfficialPositionsUpsertService {
       const positionId = upserted.position.id;
       const { characteristics, skills, keywordCodes } = group.source;
       // A star fielded by several races is one group per race, all landing on
-      // one row with the same values, so the row keeps a single slot.
-      slotsByPositionId.set(positionId, {
-        positionId,
-        name: group.name,
-        characteristics,
-        skills,
-        keywordCodes,
-      });
+      // one row, so the row keeps a single slot; an official listing's values
+      // win over a legacy one's, the same precedence groupPositions applies
+      // within one race, since the races can disagree on a star's stats.
+      if (
+        !slotsByPositionId.has(positionId) ||
+        group.source.isOfficial ||
+        !officialSlotPositionIds.has(positionId)
+      ) {
+        slotsByPositionId.set(positionId, {
+          positionId,
+          name: group.name,
+          characteristics,
+          skills,
+          keywordCodes,
+        });
+        if (group.source.isOfficial) {
+          officialSlotPositionIds.add(positionId);
+        }
+      }
       if (context.eraIds.length > 0) {
         await this.runner.record({
           run: () =>
