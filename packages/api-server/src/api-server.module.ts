@@ -26,6 +26,7 @@ import {
 import {
   TpCompetitionModule,
   TpMatchModule,
+  TpOfficialTeamsModule,
   TpRosterModule,
 } from '@blood-bowl-tracker/import-tp-live';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
@@ -66,6 +67,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     TpRosterModule,
     TpMatchModule,
     TpCompetitionModule,
+    TpOfficialTeamsModule,
   ],
   providers: [
     ApiTokenAuthService,

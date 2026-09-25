@@ -129,6 +129,7 @@ describe('createApiClient', () => {
       'teams',
       'tpCompetitions',
       'tpMatches',
+      'tpOfficialTeams',
       'tpRosters',
       'trophies',
       'trophyAwards',

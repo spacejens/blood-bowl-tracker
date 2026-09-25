@@ -98,6 +98,10 @@ import {
   TpMatchImportResultSchema,
 } from './schemas/tp-match';
 import {
+  ImportTpOfficialTeamsSchema,
+  TpOfficialTeamsImportResultSchema,
+} from './schemas/tp-official-teams';
+import {
   ImportTpRosterSchema,
   TpRosterImportResultSchema,
 } from './schemas/tp-roster';
@@ -468,5 +472,16 @@ export const contract = {
     // so it declares no errors. Safe to retry: everything it writes is an
     // upsert or an append-only sync.
     import: oc.input(ImportTpMatchSchema).output(TpMatchImportResultSchema),
+  },
+  tpOfficialTeams: {
+    // A coarse, TP-specific import, like tpRosters.import: the server writes
+    // one rules set's parsed official team list -- races, positions and
+    // stars with their race/era availability, characteristics, keywords and
+    // starting skills -- in-process. Each failure comes back in the result's
+    // per-stage ImportResults, so it declares no errors. Safe to retry:
+    // everything it writes is an upsert or an add-only sync.
+    import: oc
+      .input(ImportTpOfficialTeamsSchema)
+      .output(TpOfficialTeamsImportResultSchema),
   },
 };
