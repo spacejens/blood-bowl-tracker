@@ -11,15 +11,22 @@ trophy awards. Its two callers are
 ```ts
 const result = await tpLiveCompetitionImportService.importCompetition({
   tournamentSlug: 'tloegbbl-sasong-30',
-  era: 'Fourth era',
   externalSystemName: 'TP',
 });
 ```
 
 - `tournamentSlug`: the tournament, as named in TP's frontend URLs.
-- `era`: required. The era to import the competition and its teams under,
-  by name. A competition has no single team to resolve an era from, the way
-  a team import does.
+- `era`: optional. The era to import the competition and its teams under,
+  by name. When given, every registered team and the competition itself are
+  imported under it. When omitted, each registered team resolves its own era
+  exactly as a plain live team import does (see
+  [index.md](index.md#era-resolution)), and the competition is imported
+  under the one era every team that resolved an era agrees on. If the teams
+  resolved different eras, or none resolved one (including a competition
+  with no registered teams), the competition stage fails with an error
+  saying so, and the competition, its participation links and its trophy
+  awards are not imported; the teams already imported stay imported. Pass
+  the era explicitly to force such an import through.
 - `externalSystemName`: required. The name TP's external system is
   registered under, passed to every team import and the competition import.
   Keep it in sync with the bulk import's configured name.
@@ -35,21 +42,30 @@ when an earlier one fails:
    its category ids, and every dated match's date.
 2. **Fetch the inscriptions** of each category, the way TP's players page
    does, giving the TP roster id of every registered team.
-3. **Import each registered team live**, under the given era and through
-   the same session, with the ordinary live team import (see
+3. **Import each registered team live**, under the given era (or, with none
+   given, each resolving its own), through the same session, with the
+   ordinary live team import (see
    [index.md](index.md#importing-a-team-live)). A team that cannot be
    imported is reported and the rest of the import carries on.
-4. **Fetch the awards**, the way TP's awards page does. An unfinished
+4. **Settle the competition's era**: the given one, or — with none given —
+   the one era the imported teams agree on. With no agreed era the import
+   stops here and reports it in `competition`.
+5. **Fetch the awards**, the way TP's awards page does. An unfinished
    competition has none yet. That is not an error, and nothing is awarded.
-5. **The shared core**, below.
+6. **The shared core**, below.
 
 A failed inscriptions fetch still imports the competition, with no teams
-linked and no awards. A failed awards fetch still imports the competition
-and links its teams. Either failure is reported in its own stage.
+linked and no awards — when `era` is given explicitly; without one, a failed
+inscriptions fetch leaves no teams to resolve an era from, so the
+competition stage fails instead (see the zero-teams row in the Failures
+table below). A failed awards fetch still imports the competition and links
+its teams. Either failure is reported in its own stage.
 
 The result carries `competition`, `participation` and `trophyAwards` (one
-`ImportResult` each), plus `teams`: one live team import result per
-registered team, with its `rosterId`.
+`ImportResult` each), `teams`: one live team import result per registered
+team, with its `rosterId`, and `era`: the era the competition was imported
+under — the given one or the one the teams agreed on — or undefined when the
+import stopped before settling one.
 
 A team whose coach was never imported fails with a "could not resolve coach"
 error, exactly as a plain live team import does. There is no live coach
@@ -118,6 +134,7 @@ Neither entry point throws for an import problem. Every failure is one
 | Unknown era, no dated matches, or competition upsert failure (including a missing curated group) | `competition`                                         |
 | Inscriptions request/parse failure; live only                                                    | `participation`; no team is imported or linked        |
 | Team import failure; live only                                                                   | that team's entry in `teams`, as for a team import    |
+| No era given, and the teams' eras disagree or none resolved one; live only                       | `competition`; no participation or awards imported    |
 | Registered team not imported, or with no team era in the competition's era                       | `participation`; the other teams are still linked     |
 | Team-link failure                                                                                | `participation`; no award is recorded                 |
 | Awards request/parse failure; live only                                                          | `trophyAwards`; the competition imports with none     |

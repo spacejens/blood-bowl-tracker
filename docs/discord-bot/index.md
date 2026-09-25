@@ -82,7 +82,7 @@ Configuration is supplied through an environment file in the app directory.
      [Production monitoring](production-monitoring.md) for how the standby
      works and why silencing its announcement can be useful.
    - `DEBUG_COMMAND_ROLE_ID` — optional, and unset by default. The id of a
-     Discord server role whose members may run the maintainer slash commands
+     Discord server role whose members may run the `debug` maintainer slash commands
      ([`/debuginteractions`](slash-commands/debug-interactions.md),
      [`/debugtopusers`](slash-commands/debug-top-users.md) and
      [`/debugfilterusage`](slash-commands/debug-filter-usage.md)). Left unset,
@@ -91,6 +91,11 @@ Configuration is supplied through an environment file in the app directory.
      running one in a direct message with the bot, where there is no server
      role to check against. Copy a role id with Developer Mode enabled, from
      Server Settings > Roles > right-click the role > Copy Role ID.
+   - `ADMIN_COMMAND_ROLE_ID` — optional, and unset by default. The id of a
+     Discord server role whose members may run the league-administrator
+     slash commands ([`/importtp`](slash-commands/import-tp.md)). Independent
+     of `DEBUG_COMMAND_ROLE_ID`, and behaves the same way: left unset, those
+     commands are open to everyone who can see them.
    - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
      as a standard 5-field cron expression (an optional sixth leading field is
      seconds), in the bot process's local time zone (in the Docker deployment
@@ -129,6 +134,13 @@ Configuration is supplied through an environment file in the app directory.
      `connection.apiToken` in that tool's `import-*-config.json5`. A request
      with no token, or one matching none of these, is rejected with `401`.
      Leaving a variable empty disables that caller.
+   - `TP_EXTERNAL_SYSTEM_NAME`, `TP_FRONTEND_BASE_URL`, `TP_BACKEND_API_URL`
+     — required; the bot fails to start without them. What
+     [`/importtp`](slash-commands/import-tp.md) needs to import from TP: the
+     name TP's external system is registered under (identical to
+     `externalSystemName` in `tools/import-tp`'s `import-tp-config.json5`, or
+     a live import cannot find what the bulk import registered), and TP's
+     frontend and backend API base URLs, each with a trailing slash.
 
 `apps/discord-bot/.env` is git-ignored, so your secrets are never committed.
 Docker Compose loads this file via the `env_file` entry for the `discord-bot`
@@ -199,6 +211,9 @@ effect immediately.
   tooling: which Discord users have ever narrowed a command with an optional
   filter argument versus those who have only ever invoked commands plain,
   optionally narrowed to a recent window, replied ephemerally.
+- [`/importtp`](slash-commands/import-tp.md) — league-administrator tooling:
+  imports the TP competition, match, team or official team list a URL
+  points to, right away, replied ephemerally with a per-stage summary.
 
 ### Drill-down buttons and blank entity names
 

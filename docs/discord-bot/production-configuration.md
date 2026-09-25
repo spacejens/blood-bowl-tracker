@@ -35,6 +35,11 @@ quotes — `fly secrets import` stores each value verbatim, so
 `RANDOM_INSIGHTS_CRON="0 * * * *"` would push the literal quote characters
 and make the bot fail to start on an invalid cron expression.
 
+`TP_EXTERNAL_SYSTEM_NAME` must equal the `externalSystemName` in
+`tools/import-tp/import-tp-config.production.json5`, the name the production
+bulk import registers TP data under; a mismatch leaves `/importtp` unable to
+find anything the bulk import brought in.
+
 Push the file to Fly as secrets. The `deploy-production` skill automates
 this via its "Apply production configuration" action (main checkout
 only); the equivalent command by hand is:

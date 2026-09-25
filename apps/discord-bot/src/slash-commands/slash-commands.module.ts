@@ -22,6 +22,7 @@ import { StarPlayerDeepdiveService } from '../deepdive/facts/star-player-deepdiv
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
+import { AdminModule } from './admin/admin.module';
 import { DebugModule } from './debug/debug.module';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
@@ -42,6 +43,8 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
   // DebugModule supplies the debug-prefixed commands (currently
   // /debuginteractions; see #834/#836/#837/#838 for the rest) and their own
   // dependencies, including DiscordBotUsageModule.
+  // AdminModule supplies the admin-role commands (/importtp) and their own
+  // dependencies, including packages/import-tp-live.
   // SlashCommandRegistryModule supplies the shared SlashCommandRegistryService
   // singleton that both this module's command services and DebugModule's
   // register against - see that module's doc comment for why it is pulled out
@@ -51,6 +54,7 @@ import { SlashCommandRegistryModule } from './slash-command-registry.module';
     TrophiesModule,
     TrophyAwardsModule,
     DebugModule,
+    AdminModule,
     SlashCommandRegistryModule,
   ],
   providers: [

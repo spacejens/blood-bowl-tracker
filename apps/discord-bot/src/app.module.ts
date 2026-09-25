@@ -17,6 +17,7 @@ import { ProcessExitService } from './leader-election/process-exit.service';
 import { SleepService } from './leader-election/sleep.service';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 import { StartupNotifierService } from './startup-notifier.service';
+import { TpConnectionModule } from './tp-connection.module';
 import { TpFeedModule } from './tp-feed/tp-feed.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { TpFeedModule } from './tp-feed/tp-feed.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     DiscordBotConfigModule,
+    TpConnectionModule,
     DbModule.forRootAsync({
       useFactory: (config: DiscordBotConfigService) => config.getDatabaseUrl(),
       inject: [DiscordBotConfigService],
@@ -38,6 +40,8 @@ import { TpFeedModule } from './tp-feed/tp-feed.module';
         config.getDiscordBotToken(),
       useRestrictedRoleIdFactory: (config: DiscordBotConfigService) =>
         config.getDebugCommandRoleId(),
+      useAdminRoleIdFactory: (config: DiscordBotConfigService) =>
+        config.getAdminCommandRoleId(),
       inject: [DiscordBotConfigService],
     }),
     InsightsModule,

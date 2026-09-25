@@ -29,8 +29,9 @@ const DEBUG_FILTER_USAGE_TITLE = 'Filter usage';
  *
  * `debug`-prefixed: the prefix is a visibility convention marking maintainer
  * tooling, independent of access control. Access control is the separate
- * `restricted: true` flag below, which limits the command to holders of the
- * deployment's configured role whenever one is configured.
+ * `restrictedRole: 'debug'` setting below, which limits the command to
+ * holders of the deployment's configured debug role whenever one is
+ * configured.
  *
  * The reply is ephemeral, like its `/debuginteractions` and `/debugtopusers`
  * siblings: which specific users do what is not public-channel content.
@@ -58,7 +59,7 @@ export class DebugFilterUsageCommandService implements OnModuleInit {
     return {
       name: 'debugfilterusage',
       description: 'Debug: Report who uses optional filters vs. plain commands',
-      restricted: true,
+      restrictedRole: 'debug',
       options: [
         {
           name: 'days',

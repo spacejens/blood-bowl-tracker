@@ -8,10 +8,9 @@ in-process and never goes over RPC. Four live entry points and four RPC
 procedures use it:
 
 - **The live team import**, `TpLiveTeamImportService.importTeam(...)`, which
-  fetches a roster from TP's API first. This is the entry point a future
-  `apps/discord-bot` on-demand TP import will call in-process — no such
-  caller exists yet, but nothing about this package needs to change for one
-  to be added.
+  fetches a roster from TP's API first. `apps/discord-bot`'s
+  [`/importtp`](../discord-bot/slash-commands/import-tp.md) calls it, and
+  the three other live entry points below, in-process.
 - **The live match import**, `TpLiveMatchImportService.importMatch(...)` —
   see [match-import.md](match-import.md).
 - **The live competition import**,
@@ -165,7 +164,9 @@ and `TpCompetitionModule` all need `packages/db`'s `DB`, which the app's
 `DbModule` provides.
 `ImportTpLiveModule` also needs `TP_CONNECTION_PROVIDER`, provided from a
 `@Global()` module: `getBackendApiUrl()` and `getFrontendUrl()`, TP's base
-URLs with trailing slashes included.
+URLs with trailing slashes included. `apps/discord-bot` provides it from its
+`TpConnectionModule`, built from its `TP_FRONTEND_BASE_URL` and
+`TP_BACKEND_API_URL` settings.
 
 ## Development
 

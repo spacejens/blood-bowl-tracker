@@ -27,7 +27,9 @@ the command it belongs to. This is worked out from how each command is
 actually defined today, not from a fixed list, so any current or future
 optional argument is covered with no maintenance.
 
-No argument anywhere in the bot is required today. Today that means this
+Almost every argument in the bot is optional today; [`/importtp`](import-tp.md)'s
+`url` argument is the one required exception, and the classification
+correctly excludes it from filter-counting. Aside from that, this
 classification covers literally any argument on any command that has one,
 including `/deepdive`'s subject-selector arguments (`coach`, `team`,
 `player`, and the rest): picking one of those is effectively how you use
@@ -37,8 +39,9 @@ characteristic of the current command surface, not a bug — read the
 "Plain only" list with that in mind for a command whose every option
 happens to be a mandatory-in-practice selector.
 
-A command could in principle require an argument, and such an argument
-would never count as a filter — but, again, none does today.
+A command can require an argument, and such an argument never counts as
+a filter — [`/importtp`](import-tp.md)'s `url` argument is a current
+example.
 
 ## Arguments
 
@@ -85,9 +88,9 @@ specific users do what is not public-channel content. See
 that applies to every `debug`-prefixed command. This command also appears
 in `/debuginteractions`' own listing, so it can be
 [retriggered](debug-interactions.md#retriggering-a-listed-interaction) —
-and because this command is `restricted: true`, a retrigger's reply stays
-ephemeral (visible only to whoever clicked retrigger) and re-checks the
-clicking member's role, exactly as described there.
+and because this command is restricted to the `debug` role, a retrigger's
+reply stays ephemeral (visible only to whoever clicked retrigger) and
+re-checks the clicking member's role, exactly as described there.
 
 ## What is not counted
 

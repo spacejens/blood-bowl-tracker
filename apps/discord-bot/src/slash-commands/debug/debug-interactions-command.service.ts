@@ -36,8 +36,9 @@ const DEBUG_INTERACTIONS_TITLE = 'Recent interactions';
  *
  * `debug`-prefixed: the prefix is a visibility convention marking maintainer
  * tooling, independent of access control. Access control is the separate
- * `restricted: true` flag below, which limits the command to holders of the
- * deployment's configured role whenever one is configured.
+ * `restrictedRole: 'debug'` setting below, which limits the command to
+ * holders of the deployment's configured debug role whenever one is
+ * configured.
  *
  * The reply is ephemeral - the only ephemeral reply in the bot - because it
  * can surface another user's interaction history and internal error messages,
@@ -65,7 +66,7 @@ export class DebugInteractionsCommandService implements OnModuleInit {
     return {
       name: 'debuginteractions',
       description: 'Debug: List recent bot interactions',
-      restricted: true,
+      restrictedRole: 'debug',
       options: [
         {
           name: 'user',

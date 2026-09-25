@@ -30,6 +30,8 @@
     "@blood-bowl-tracker/discord-bot-usage": "workspace:*",
     "@blood-bowl-tracker/discord-client": "workspace:*",
     "@blood-bowl-tracker/game-data": "workspace:*",
+    "@blood-bowl-tracker/import-tp-live": "workspace:*",
+    "@blood-bowl-tracker/tp-paths": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/config": "^12.0.0",
     "@nestjs/core": "^12.0.0",

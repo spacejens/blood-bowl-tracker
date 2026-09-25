@@ -36,14 +36,44 @@ export class DiscordBotConfigService {
   }
 
   /**
-   * Discord role id whose members may run slash commands marked as
-   * restricted. Optional: unset or empty means no role check is applied and
+   * Discord role id whose members may run slash commands restricted to the
+   * `debug` role. Optional: unset or empty means no role check is applied and
    * those commands behave like any other. Like the getter above it never
    * throws — there is nothing to fail fast about when the variable is
    * genuinely optional.
    */
   getDebugCommandRoleId(): string | undefined {
     return this.configService.get<string>('DEBUG_COMMAND_ROLE_ID') || undefined;
+  }
+
+  /**
+   * Discord role id whose members may run slash commands restricted to the
+   * `admin` role (league-administrator commands such as `/importtp`).
+   * Optional and independent of the debug role: unset or empty means no role
+   * check is applied to those commands. Never throws, for the same reason as
+   * the getter above.
+   */
+  getAdminCommandRoleId(): string | undefined {
+    return this.configService.get<string>('ADMIN_COMMAND_ROLE_ID') || undefined;
+  }
+
+  /**
+   * The name TP's external system is registered under. Must match
+   * `tools/import-tp`'s configured `externalSystemName`, or a live import
+   * never finds what the bulk import registered.
+   */
+  getTpExternalSystemName(): string {
+    return this.getRequired('TP_EXTERNAL_SYSTEM_NAME');
+  }
+
+  /** TP's frontend base URL, with a trailing slash. */
+  getTpFrontendBaseUrl(): string {
+    return this.getRequired('TP_FRONTEND_BASE_URL');
+  }
+
+  /** TP's backend API base URL, with a trailing slash. */
+  getTpBackendApiUrl(): string {
+    return this.getRequired('TP_BACKEND_API_URL');
   }
 
   /**

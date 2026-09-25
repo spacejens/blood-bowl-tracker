@@ -19,11 +19,11 @@ export interface ImportLiveCompetitionOptions {
   /** The tournament, as named in TP's frontend URLs. */
   tournamentSlug: string;
   /**
-   * The era to import the competition and its teams under, by name. It is
-   * required because a competition has no single team to resolve an era
-   * from, the way a team import does.
+   * The era to import the competition and its teams under, by name. When
+   * omitted, each registered team resolves its own era, and the competition
+   * is imported under the one era they agree on (see `importCompetition`).
    */
-  era: string;
+  era?: string;
   /** The name TP's external system is registered under. */
   externalSystemName: string;
   /**
@@ -48,6 +48,12 @@ export interface TpLiveCompetitionImportResult {
   participation: ImportResult;
   /** The awards fetch and recording the trophy awards. */
   trophyAwards: ImportResult;
+  /**
+   * The era the competition was imported under: the given one, or the one
+   * its teams agreed on. Undefined when the import stopped before an era was
+   * settled.
+   */
+  era: string | undefined;
 }
 
 @Injectable()
@@ -68,9 +74,15 @@ export class TpLiveCompetitionImportService {
    * category's inscriptions, and import each registered team live, always
    * (keeping rosters current). Then fetch its awards and import everything
    * through the same server-side core `tpCompetitions.import` uses. A failed
-   * inscriptions or awards fetch still imports the competition, with no
-   * teams or no awards, and reports the fetch failure in that stage. Every
-   * failure is reported in the returned results, never thrown.
+   * awards fetch still imports the competition, with no awards. A failed
+   * inscriptions fetch still imports the competition, with no teams, only
+   * when `era` is given explicitly; without one, it leaves no teams to
+   * resolve an era from, so the competition stage fails instead. Either
+   * fetch failure is reported in its own stage. With no
+   * era given, the competition is imported under the one era its registered
+   * teams were imported under; teams that disagree, or none resolving one,
+   * fail the competition stage, while the teams stay imported. Every failure
+   * is reported in the returned results, never thrown.
    */
   async importCompetition({
     tournamentSlug,
@@ -112,6 +124,21 @@ export class TpLiveCompetitionImportService {
         teams.push({ rosterId, ...team });
       }
 
+      const competitionEra =
+        era ??
+        this.agreedEra({ tournamentSlug, teams, errors: competitionErrors });
+      if (competitionEra === undefined) {
+        return {
+          ...this.nothingImported(),
+          competition: this.failed(competitionErrors),
+          teams,
+          participation: this.importResults.result({
+            imported: 0,
+            errors: participationErrors,
+          }),
+        };
+      }
+
       const trophyErrors: ImportError[] = [];
       const awards =
         participantRosterIds === undefined
@@ -128,7 +155,7 @@ export class TpLiveCompetitionImportService {
           name: bracket.tournament.name,
         },
         playedDates: bracket.playedDates,
-        era,
+        era: competitionEra,
         participantRosterIds: participantRosterIds ?? [],
         awards: awards ?? [],
         externalSystemName,
@@ -147,6 +174,7 @@ export class TpLiveCompetitionImportService {
           result: core.trophyAwards,
           errors: trophyErrors,
         }),
+        era: competitionEra,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -190,6 +218,45 @@ export class TpLiveCompetitionImportService {
       teams: [],
       participation: nothing(),
       trophyAwards: nothing(),
+      era: undefined,
     };
+  }
+
+  /**
+   * The one era every registered team that resolved an era was imported
+   * under. Undefined, with the reason pushed onto `errors`, when they
+   * disagree or none resolved one — a competition only ever registers teams
+   * of one era, so either means its era cannot be determined yet.
+   */
+  private agreedEra({
+    tournamentSlug,
+    teams,
+    errors,
+  }: {
+    tournamentSlug: string;
+    teams: TpLiveCompetitionTeamResult[];
+    errors: ImportError[];
+  }): string | undefined {
+    const eras = [
+      ...new Set(
+        teams.flatMap((team) => (team.era === undefined ? [] : [team.era])),
+      ),
+    ];
+    if (eras.length === 1) {
+      return eras[0];
+    }
+    const reason =
+      teams.length === 0
+        ? 'no registered teams were found to resolve an era from'
+        : eras.length === 0
+          ? 'none of its registered teams was imported under an era'
+          : `its registered teams were imported under different eras (${eras.join(', ')})`;
+    errors.push(
+      this.importResults.error({
+        item: { tournamentSlug },
+        message: `Could not resolve an era for competition ${tournamentSlug}: ${reason}. Pass an era explicitly.`,
+      }),
+    );
+    return undefined;
   }
 }
