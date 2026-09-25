@@ -159,10 +159,11 @@ Teams, players, competitions, matches and TP's official team list are imported s
   `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
   globally by TP's stable `player.id` and keyed under three external systems:
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
-  coach's NAF number — only when present). Returns a `coachIdsByTpId` map,
-  unused downstream: the server-side team import upserts each team's coach
-  independently, from the roster file's own `coachTpId`/`coachName` (see
-  [file-format-rosters.md](./file-format-rosters.md)), not from this map.
+  coach's NAF number — only when present). Returns only its `ImportResult`:
+  the server-side team import upserts each team's coach independently, from
+  the roster file's own `coachTpId`/`coachName` (see
+  [file-format-rosters.md](./file-format-rosters.md)), not from anything
+  this step returns.
 - **TpOfficialTeamsFilesImportService** — imports TP's official team list (read via
   `OfficialTeamsCollectionService`, not from played rosters) through
   `tpOfficialTeams.import`, one call per `teams/<rulesSet>` folder. Each call
