@@ -159,8 +159,10 @@ Teams, players, competitions, matches and TP's official team list are imported s
   `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
   globally by TP's stable `player.id` and keyed under three external systems:
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
-  coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
-  later team-import sub-issue will use to resolve each team's coach; unused here.
+  coach's NAF number — only when present). Returns a `coachIdsByTpId` map,
+  unused downstream: the server-side team import upserts each team's coach
+  independently, from the roster file's own `coachTpId`/`coachName` (see
+  [file-format-rosters.md](./file-format-rosters.md)), not from this map.
 - **TpOfficialTeamsFilesImportService** — imports TP's official team list (read via
   `OfficialTeamsCollectionService`, not from played rosters) through
   `tpOfficialTeams.import`, one call per `teams/<rulesSet>` folder. Each call
@@ -181,9 +183,11 @@ Teams, players, competitions, matches and TP's official team list are imported s
   competition its team played in. Each call sends the file's raw content,
   its era (from the directory it was found in), the configured external
   system name, and the roster's match-snapshot-only players. The server
-  upserts the team (keyed by roster id + name, race and coach resolved by
-  TP external id, skipped with an error when either is missing) and its
-  players. A team seen under several eras is sent once per era; the
+  upserts the team (keyed by roster id + name; race resolved by TP external
+  id, skipped with an error if unresolved; coach upserted from the roster's
+  own coach id and name, created if unknown and its name refreshed if
+  already known — see [import-tp-live/index.md](../import-tp-live/index.md))
+  and its players. A team seen under several eras is sent once per era; the
   server's era sync only ever adds, so its eras accumulate. Returns
   `teamErasByRosterId`, `playerIdsByLineUpId`, `insertedPlayerIds` and
   `mercenaryPositionUsages` for the later steps.
