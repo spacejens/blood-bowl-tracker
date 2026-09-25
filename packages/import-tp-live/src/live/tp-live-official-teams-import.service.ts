@@ -63,9 +63,9 @@ export class TpLiveOfficialTeamsImportService {
    * for: TP's teams page is one page with a tab per rules set, so one import
    * covers them all. Each rules set is fetched through one shared session,
    * parsed, then written in-process through the same TpOfficialTeamsImportService
-   * `tpOfficialTeams.import` uses, under the given external system name. Every failure
-   * is reported in that rules set's result, never thrown, and never stops
-   * the other rules sets.
+   * `tpOfficialTeams.import` uses, under the given external system name.
+   * Every failure is reported in that rules set's result, never thrown, and
+   * never stops the other rules sets.
    */
   async importOfficialTeams({
     externalSystemName,
