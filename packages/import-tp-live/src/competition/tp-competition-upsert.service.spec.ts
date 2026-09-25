@@ -176,22 +176,19 @@ describe('TpCompetitionUpsertService', () => {
     expect(errors).toEqual([]);
   });
 
-  // Zero new played dates means no new information about the competition's
-  // span, so type/dates are left exactly as stored rather than recomputed
-  // from a merge that could misclassify or falsely close an ongoing one.
-  it('overwrites the era but keeps the stored type and dates when overlaying a competition with no new dated matches', async () => {
+  // Zero new played dates means no new information about the competition at
+  // all, so era, type and dates are all left exactly as stored rather than
+  // re-resolved or recomputed from a merge that could misclassify or falsely
+  // close an ongoing one.
+  it('keeps the stored era, type and dates when overlaying a competition with no new dated matches', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
 
     await expect(overlay([])).resolves.toEqual(upsertedCompetition());
-    expect(eras.resolve).toHaveBeenCalledWith({
-      externalSystemId: 1,
-      externalId: 'Fourth era',
-    });
+    expect(eras.resolve).not.toHaveBeenCalled();
     expect(span.derive).not.toHaveBeenCalled();
     expect(competitions.findById).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
       name: 'tLoEGBBL Säsong 30',
-      eraId: 40,
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
