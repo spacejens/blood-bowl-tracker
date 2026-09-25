@@ -38,6 +38,8 @@ import { TpFeedModule } from './tp-feed/tp-feed.module';
         config.getDiscordBotToken(),
       useRestrictedRoleIdFactory: (config: DiscordBotConfigService) =>
         config.getDebugCommandRoleId(),
+      useAdminRoleIdFactory: (config: DiscordBotConfigService) =>
+        config.getAdminCommandRoleId(),
       inject: [DiscordBotConfigService],
     }),
     InsightsModule,

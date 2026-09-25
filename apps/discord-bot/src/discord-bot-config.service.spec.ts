@@ -290,4 +290,68 @@ describe('DiscordBotConfigService', () => {
     vi.mocked(configService.get).mockReturnValue('');
     expect(service.getTpFeedDebugDiscordChannel()).toBeUndefined();
   });
+
+  it('returns the configured admin command role id', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'ADMIN_COMMAND_ROLE_ID' ? '930000000000000000' : undefined,
+    );
+    expect(service.getAdminCommandRoleId()).toBe('930000000000000000');
+    expect(configService.get).toHaveBeenCalledWith('ADMIN_COMMAND_ROLE_ID');
+  });
+
+  it('returns undefined when the admin command role id is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(service.getAdminCommandRoleId()).toBeUndefined();
+  });
+
+  it('treats an empty admin command role id as not configured', () => {
+    vi.mocked(configService.get).mockReturnValue('');
+    expect(service.getAdminCommandRoleId()).toBeUndefined();
+  });
+
+  it('returns the configured TP external system name', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_EXTERNAL_SYSTEM_NAME' ? 'tourplay.net' : undefined,
+    );
+    expect(service.getTpExternalSystemName()).toBe('tourplay.net');
+  });
+
+  it('throws when the TP external system name is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(() => service.getTpExternalSystemName()).toThrow(
+      'TP_EXTERNAL_SYSTEM_NAME is not configured',
+    );
+  });
+
+  it('returns the configured TP frontend base URL', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_FRONTEND_BASE_URL'
+        ? 'https://tourplay.net/en/blood-bowl/'
+        : undefined,
+    );
+    expect(service.getTpFrontendBaseUrl()).toBe(
+      'https://tourplay.net/en/blood-bowl/',
+    );
+  });
+
+  it('throws when the TP frontend base URL is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(() => service.getTpFrontendBaseUrl()).toThrow(
+      'TP_FRONTEND_BASE_URL is not configured',
+    );
+  });
+
+  it('returns the configured TP backend API URL', () => {
+    vi.mocked(configService.get).mockImplementation((key: string) =>
+      key === 'TP_BACKEND_API_URL' ? 'https://tourplay.net/api/' : undefined,
+    );
+    expect(service.getTpBackendApiUrl()).toBe('https://tourplay.net/api/');
+  });
+
+  it('throws when the TP backend API URL is not configured', () => {
+    vi.mocked(configService.get).mockReturnValue(undefined);
+    expect(() => service.getTpBackendApiUrl()).toThrow(
+      'TP_BACKEND_API_URL is not configured',
+    );
+  });
 });
