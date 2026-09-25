@@ -16,6 +16,7 @@ import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 import { TpEraResolutionService } from './tp-era-resolution.service';
 
 const TP_SYSTEM_ID = 1;
+const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 
 const roster: TpRoster = {
   id: 163386,
@@ -61,14 +62,19 @@ describe('TpEraResolutionService', () => {
     eras.resolve.mockResolvedValue({ found: true, id: 40 });
 
     await expect(
-      service.resolveEra({ roster, era: 'Fourth era', errors }),
+      service.resolveEra({
+        roster,
+        era: 'Fourth era',
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBe('Fourth era');
     expect(eras.resolve).toHaveBeenCalledWith({
       externalSystemId: TP_SYSTEM_ID,
       externalId: 'Fourth era',
     });
     expect(externalSystems.upsert).toHaveBeenCalledWith({
-      name: 'TP',
+      name: EXTERNAL_SYSTEM_NAME,
       category: 'imported_data_source',
     });
     expect(errors).toEqual([]);
@@ -78,7 +84,12 @@ describe('TpEraResolutionService', () => {
     eras.resolve.mockResolvedValue({ found: false });
 
     await expect(
-      service.resolveEra({ roster, era: 'Ghost era', errors }),
+      service.resolveEra({
+        roster,
+        era: 'Ghost era',
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBeUndefined();
     expect(errors).toEqual([
       {
@@ -93,9 +104,13 @@ describe('TpEraResolutionService', () => {
     races.resolve.mockResolvedValue({ found: true, id: 7 });
     races.listOngoingEras.mockResolvedValue([{ id: 40, name: 'Fourth era' }]);
 
-    await expect(service.resolveEra({ roster, errors })).resolves.toBe(
-      'Fourth era',
-    );
+    await expect(
+      service.resolveEra({
+        roster,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
+    ).resolves.toBe('Fourth era');
     expect(races.resolve).toHaveBeenCalledWith({
       externalSystemId: TP_SYSTEM_ID,
       externalId: 'orc',
@@ -108,7 +123,11 @@ describe('TpEraResolutionService', () => {
     races.listOngoingEras.mockResolvedValue([]);
 
     await expect(
-      service.resolveEra({ roster, errors }),
+      service.resolveEra({
+        roster,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBeUndefined();
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe(
@@ -127,7 +146,11 @@ describe('TpEraResolutionService', () => {
     ]);
 
     await expect(
-      service.resolveEra({ roster, errors }),
+      service.resolveEra({
+        roster,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBeUndefined();
     expect(errors).toEqual([
       {
@@ -146,7 +169,11 @@ describe('TpEraResolutionService', () => {
     races.resolve.mockResolvedValue({ found: false });
 
     await expect(
-      service.resolveEra({ roster, errors }),
+      service.resolveEra({
+        roster,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBeUndefined();
     expect(errors).toEqual([
       {
@@ -158,14 +185,18 @@ describe('TpEraResolutionService', () => {
     expect(races.listOngoingEras).not.toHaveBeenCalled();
   });
 
-  it('records one error when the TP external system cannot be set up', async () => {
+  it('records one error when the external system cannot be set up', async () => {
     externalSystems.upsert.mockRejectedValue(new Error('db down'));
 
     await expect(
-      service.resolveEra({ roster, errors }),
+      service.resolveEra({
+        roster,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBeUndefined();
     expect(errors).toEqual([
-      { item: { externalSystems: ['TP'] }, message: 'db down' },
+      { item: { externalSystems: [EXTERNAL_SYSTEM_NAME] }, message: 'db down' },
     ]);
   });
 
@@ -174,7 +205,11 @@ describe('TpEraResolutionService', () => {
     races.listOngoingEras.mockRejectedValue(new Error('boom'));
 
     await expect(
-      service.resolveEra({ roster, errors }),
+      service.resolveEra({
+        roster,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        errors,
+      }),
     ).resolves.toBeUndefined();
     expect(errors).toEqual([
       {

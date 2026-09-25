@@ -17,7 +17,10 @@ Both go through `TpOfficialTeamsImportService` (in `TpOfficialTeamsModule`),
 which writes one rules set at a time.
 
 ```ts
-const { rulesSets } = await tpLiveOfficialTeamsImportService.importOfficialTeams();
+const { rulesSets } =
+  await tpLiveOfficialTeamsImportService.importOfficialTeams({
+    externalSystemName: 'TP',
+  });
 for (const { rulesSet, fetch, write } of rulesSets) {
   // fetch: races fetched + fetch/parse failures; write: one ImportResult per stage
 }
@@ -75,5 +78,6 @@ whole import; the same underlying data is written either way.
 
 ## External system
 
-The live import registers everything under `TP_EXTERNAL_SYSTEM_NAME`, like
-the other live imports; `tpOfficialTeams.import` takes the name as input.
+Like the other live imports, the live import registers everything under the
+`externalSystemName` its caller passes, with no default;
+`tpOfficialTeams.import` takes the name as input too.

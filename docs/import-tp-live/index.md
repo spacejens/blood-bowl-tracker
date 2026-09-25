@@ -63,12 +63,17 @@ procedures use it:
 ```ts
 const { team, players } = await tpLiveTeamImportService.importTeam({
   rosterId: 163386,
+  externalSystemName: 'TP',
 });
 ```
 
 - `rosterId`: TP's roster id, the number in the team's roster page URL.
 - `era`: optional. The era to import the team under, by name. If left out,
   it is resolved automatically.
+- `externalSystemName`: required. The name TP's external system is
+  registered under. Pass the same name the bulk import (`tools/import-tp`)
+  is configured with, so the live import finds what the bulk import
+  registered.
 - `session`: optional. A `packages/scrape-tp` session to fetch through. A
   caller importing several teams in one go should pass one session, so their
   requests are paced as one visit. If left out, the import starts its own.
@@ -117,8 +122,9 @@ linked to with no end date) decide it:
   ongoing eras for one race is a genuine ambiguity — e.g. the race is
   available across two overlapping normal eras — not something to guess at.
 
-The live import registers TP's external system under the name `TP`
-(`TP_EXTERNAL_SYSTEM_NAME`), `tools/import-tp`'s own default.
+The live import registers TP's external system under the
+`externalSystemName` its caller passes; there is no default. A caller keeps
+it in sync with the name `tools/import-tp` is configured with.
 
 ## The `tpRosters.import` procedure
 

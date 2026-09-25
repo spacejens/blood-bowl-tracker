@@ -7,7 +7,6 @@ import {
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpUpsertRunnerService } from '../tp-upsert-runner.service';
 
@@ -16,6 +15,8 @@ export interface ResolveEraOptions {
   roster: TpRoster;
   /** The era the caller names explicitly; auto-resolved when omitted. */
   era?: string;
+  /** The name TP's external system is registered under. */
+  externalSystemName: string;
   /** Where a resolution failure is recorded. */
   errors: ImportError[];
 }
@@ -46,15 +47,16 @@ export class TpEraResolutionService {
   async resolveEra({
     roster,
     era,
+    externalSystemName,
     errors,
   }: ResolveEraOptions): Promise<string | undefined> {
     const tpSystem = await this.runner.record({
       run: () =>
         this.externalSystems.upsert({
-          name: TP_EXTERNAL_SYSTEM_NAME,
+          name: externalSystemName,
           category: 'imported_data_source',
         }),
-      item: { externalSystems: [TP_EXTERNAL_SYSTEM_NAME] },
+      item: { externalSystems: [externalSystemName] },
       errors,
       buildErrorMessage: (error) => this.runner.messageOf(error),
     });

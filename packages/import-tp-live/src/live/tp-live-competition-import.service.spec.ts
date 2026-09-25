@@ -21,6 +21,8 @@ import { TpLiveCompetitionImportService } from './tp-live-competition-import.ser
 import type { TpLiveTeamImportResult } from './tp-live-team-import.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
 
+const EXTERNAL_SYSTEM_NAME = 'some-external-system';
+
 const nothing: ImportResult = { success: true, imported: 0, errors: [] };
 const one: ImportResult = { success: true, imported: 1, errors: [] };
 const teamImported: TpLiveTeamImportResult = {
@@ -98,7 +100,11 @@ describe('TpLiveCompetitionImportService', () => {
   });
 
   const importCompetition = () =>
-    service.importCompetition({ tournamentSlug: 's30', era: 'Fourth era' });
+    service.importCompetition({
+      tournamentSlug: 's30',
+      era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
   it('fetches the bracket and inscriptions, imports each team, fetches the awards, then imports the competition, through one session', async () => {
     await expect(importCompetition()).resolves.toEqual({
@@ -124,11 +130,13 @@ describe('TpLiveCompetitionImportService', () => {
     expect(teamImport.importTeam).toHaveBeenNthCalledWith(1, {
       rosterId: 163386,
       era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       session,
     });
     expect(teamImport.importTeam).toHaveBeenNthCalledWith(2, {
       rosterId: 179769,
       era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       session,
     });
     expect(awardsFetch.fetchAwards).toHaveBeenCalledWith({
@@ -142,7 +150,7 @@ describe('TpLiveCompetitionImportService', () => {
       era: 'Fourth era',
       participantRosterIds: [163386, 179769],
       awards: [AWARD],
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
   });
 
@@ -152,6 +160,7 @@ describe('TpLiveCompetitionImportService', () => {
     await service.importCompetition({
       tournamentSlug: 's30',
       era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       session: given,
     });
 
