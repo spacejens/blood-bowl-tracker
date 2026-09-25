@@ -22,6 +22,7 @@ import type {
   InteractionReplyOptions,
   Message,
   MessageCreateOptions,
+  RepliableInteraction,
   RESTPostAPIChannelMessageJSONBody,
   StringSelectMenuInteraction,
 } from 'discord.js';
@@ -482,7 +483,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
-      await this.sendCommandReply(definition, interaction, content);
+      await this.sendReply(interaction, content);
       void this.recordUsage({
         interaction,
         kind: 'command',
@@ -495,7 +496,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         `Failed to handle /${interaction.commandName} command`,
         error,
       );
-      await this.sendCommandReply(definition, interaction, 'I am badly hurt');
+      await this.sendReply(interaction, 'I am badly hurt').catch(
+        (replyError: unknown) =>
+          this.logger.error('Failed to send failure reply', replyError),
+      );
       void this.recordUsage({
         interaction,
         kind: 'command',
@@ -611,15 +615,20 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Sends a command's reply: a plain reply, or — for a `deferEphemeral`
-   * command, which was already acknowledged — an edit of the deferred reply.
+   * Sends a reply chosen by the interaction's actual acknowledgment state: a
+   * plain reply if never deferred or replied to, otherwise an edit of the
+   * existing acknowledgment. Checked on the interaction itself rather than a
+   * static per-command setting, since a `deferReply()` call can fail before
+   * it takes effect — in which case `reply` is still correct. Shared by the
+   * command dispatcher and `replyWithHandler`: a button/select-menu handler
+   * may itself defer the real interaction before returning (see
+   * `DebugRetriggerHandlerService`), so this same check applies there too.
    */
-  private async sendCommandReply(
-    definition: SlashCommandDefinition,
-    interaction: ChatInputCommandInteraction,
+  private async sendReply(
+    interaction: RepliableInteraction,
     content: string | InteractionReplyOptions,
   ): Promise<void> {
-    if (!definition.deferEphemeral) {
+    if (!interaction.deferred && !interaction.replied) {
       await interaction.reply(content);
       return;
     }
@@ -720,7 +729,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(
         `Handled ${options.description} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
-      await interaction.reply(content);
+      await this.sendReply(interaction, content);
       void this.recordUsage({
         interaction,
         kind,
@@ -730,7 +739,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (error) {
       this.logger.error(`Failed to handle ${options.description}`, error);
-      await interaction.reply('I am badly hurt');
+      await this.sendReply(interaction, 'I am badly hurt').catch(
+        (replyError: unknown) =>
+          this.logger.error('Failed to send failure reply', replyError),
+      );
       void this.recordUsage({
         interaction,
         kind,

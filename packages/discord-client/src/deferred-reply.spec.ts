@@ -85,10 +85,17 @@ describe('DiscordClientService deferred commands', () => {
     return call[1] as (interaction: unknown) => void;
   }
 
+  /**
+   * `deferReply` sets `deferred` to `true` as a side effect, exactly like the
+   * real `discord.js` interaction it stands in for, so `sendReply`'s actual
+   * acknowledgment-state check behaves the same way in tests as in
+   * production. A test that overrides `deferReply` to reject bypasses this,
+   * so `deferred` correctly stays `false`.
+   */
   function commandInteraction(
     overrides: Record<string, unknown> = {},
   ): Record<string, unknown> {
-    return {
+    const interaction: Record<string, unknown> = {
       isAutocomplete: () => false,
       isButton: () => false,
       isStringSelectMenu: () => false,
@@ -102,11 +109,17 @@ describe('DiscordClientService deferred commands', () => {
       channelId: 'c1',
       channel: { name: 'general' },
       options: { data: [] },
+      deferred: false,
+      replied: false,
       reply: vi.fn().mockResolvedValue(undefined),
-      deferReply: vi.fn().mockResolvedValue(undefined),
+      deferReply: vi.fn().mockImplementation(() => {
+        interaction.deferred = true;
+        return Promise.resolve(undefined);
+      }),
       editReply: vi.fn().mockResolvedValue(undefined),
       ...overrides,
     };
+    return interaction;
   }
 
   beforeEach(() => {
@@ -198,6 +211,113 @@ describe('DiscordClientService deferred commands', () => {
 
     expect(interaction.deferReply).not.toHaveBeenCalled();
     expect(interaction.reply).toHaveBeenCalledWith('the answer');
+  });
+
+  it('falls back to a plain failure reply and still records usage when deferReply itself throws', async () => {
+    const service = await makeService();
+    const execute = vi.fn();
+    await service.registerCommands([
+      {
+        name: 'slowstuff',
+        description: 'Slow',
+        deferEphemeral: true,
+        execute,
+      },
+    ]);
+    const interaction = commandInteraction({
+      deferReply: vi.fn().mockRejectedValue(new Error('expired interaction')),
+    });
+
+    interactionHandler()(interaction);
+    await flush();
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(interaction.editReply).not.toHaveBeenCalled();
+    expect(interaction.reply).toHaveBeenCalledWith('I am badly hurt');
+    expect(usageTracking.recordInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: 'failure' }),
+    );
+  });
+
+  it('still records usage when both deferReply and the fallback failure reply throw', async () => {
+    const service = await makeService();
+    const execute = vi.fn();
+    await service.registerCommands([
+      {
+        name: 'slowstuff',
+        description: 'Slow',
+        deferEphemeral: true,
+        execute,
+      },
+    ]);
+    const interaction = commandInteraction({
+      deferReply: vi.fn().mockRejectedValue(new Error('expired interaction')),
+      reply: vi.fn().mockRejectedValue(new Error('also expired')),
+    });
+
+    await expect(
+      (async () => {
+        interactionHandler()(interaction);
+        await flush();
+      })(),
+    ).resolves.not.toThrow();
+
+    expect(usageTracking.recordInteraction).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: 'failure' }),
+    );
+  });
+
+  it('edits an already-deferred button reply instead of sending a plain reply', async () => {
+    const service = await makeService();
+    const handler = vi.fn().mockResolvedValue('era details');
+    service.registerButtonHandler('deepdive:era:', handler);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const editReply = vi.fn().mockResolvedValue(undefined);
+    const interaction = {
+      isAutocomplete: () => false,
+      isButton: () => true,
+      isStringSelectMenu: () => false,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:7',
+      user: { tag: 'testuser#0001', id: '123' },
+      channelId: '456',
+      channel: { name: 'test-channel' },
+      deferred: true,
+      replied: false,
+      reply,
+      editReply,
+    };
+    interactionHandler()(interaction);
+    await flush();
+    expect(editReply).toHaveBeenCalledWith('era details');
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('edits an already-deferred button reply with the failure message when the handler throws', async () => {
+    const service = await makeService();
+    service.registerButtonHandler(
+      'deepdive:era:',
+      vi.fn().mockRejectedValue(new Error('boom')),
+    );
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const editReply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => true,
+      isStringSelectMenu: () => false,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:7',
+      user: { tag: 'u#1', id: '1' },
+      channelId: '2',
+      channel: { name: 'c' },
+      deferred: true,
+      replied: false,
+      reply,
+      editReply,
+    });
+    await flush();
+    expect(editReply).toHaveBeenCalledWith('I am badly hurt');
+    expect(reply).not.toHaveBeenCalled();
   });
 
   it('refuses a denied deferred command with a plain reply, never deferring', async () => {
