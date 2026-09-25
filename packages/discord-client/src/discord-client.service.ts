@@ -18,6 +18,7 @@ import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
   Interaction,
+  InteractionEditReplyOptions,
   InteractionReplyOptions,
   Message,
   MessageCreateOptions,
@@ -90,6 +91,14 @@ export interface SlashCommandDefinition {
    * rule, so the naming convention and the access rule stay independent.
    */
   restrictedRole?: RestrictedRole;
+  /**
+   * For a command whose `execute` can outlast Discord's 3-second window for
+   * acknowledging an interaction (e.g. one that fetches from another site):
+   * the dispatcher acknowledges with an ephemeral deferred reply before
+   * calling `execute`, then edits that reply with `execute`'s result. The
+   * reply is therefore always ephemeral, whatever flags `execute` returns.
+   */
+  deferEphemeral?: boolean;
   execute: (
     interaction: ChatInputCommandInteraction,
   ) => Promise<string | InteractionReplyOptions>;
@@ -466,11 +475,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     try {
+      if (definition.deferEphemeral) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      }
       const content = await definition.execute(interaction);
       this.logger.log(
         `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
-      await interaction.reply(content);
+      await this.sendCommandReply(definition, interaction, content);
       void this.recordUsage({
         interaction,
         kind: 'command',
@@ -483,7 +495,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         `Failed to handle /${interaction.commandName} command`,
         error,
       );
-      await interaction.reply('I am badly hurt');
+      await this.sendCommandReply(definition, interaction, 'I am badly hurt');
       void this.recordUsage({
         interaction,
         kind: 'command',
@@ -595,6 +607,40 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     return {
       content: ACCESS_DENIED_MESSAGE,
       flags: MessageFlags.Ephemeral,
+    };
+  }
+
+  /**
+   * Sends a command's reply: a plain reply, or — for a `deferEphemeral`
+   * command, which was already acknowledged — an edit of the deferred reply.
+   */
+  private async sendCommandReply(
+    definition: SlashCommandDefinition,
+    interaction: ChatInputCommandInteraction,
+    content: string | InteractionReplyOptions,
+  ): Promise<void> {
+    if (!definition.deferEphemeral) {
+      await interaction.reply(content);
+      return;
+    }
+    await interaction.editReply(this.toEditReply(content));
+  }
+
+  /**
+   * A reply reshaped for `editReply`: a deferred reply's visibility was
+   * fixed when it was deferred and `editReply` does not take reply-only
+   * flags, so only the message body is kept.
+   */
+  private toEditReply(
+    content: string | InteractionReplyOptions,
+  ): string | InteractionEditReplyOptions {
+    if (typeof content === 'string') {
+      return content;
+    }
+    return {
+      content: content.content,
+      embeds: content.embeds,
+      components: content.components,
     };
   }
 
