@@ -14,9 +14,9 @@ import type { TpOfficialPositionSlot } from './tp-official-positions-upsert.serv
 import type { TpOfficialTeamsContext } from './tp-official-teams-context.service';
 
 /** Hatred's own skillMasterId. */
-export const HATRED_SKILL_MASTER_ID = 307;
+const HATRED_SKILL_MASTER_ID = 307;
 /** Animosity's own skillMasterId. */
-export const ANIMOSITY_SKILL_MASTER_ID = 269;
+const ANIMOSITY_SKILL_MASTER_ID = 269;
 
 /**
  * One starting skill, ready to write: its bare name (its identity) kept apart
