@@ -34,6 +34,11 @@ export class TpOfficialTeamsPathsService {
     return 'teams';
   }
 
+  /** The reverse of `frontendPath`: whether a page path is the teams page. */
+  matchFrontendPath(path: string): boolean {
+    return path === this.frontendPath();
+  }
+
   /** TP's `ruleSet` id for a rules set name, matched case-insensitively. */
   ruleSetIdFor(rulesSet: string): number | undefined {
     const wanted = rulesSet.toLowerCase();

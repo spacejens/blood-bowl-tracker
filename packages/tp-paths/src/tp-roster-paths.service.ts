@@ -8,6 +8,10 @@ import { Injectable } from '@nestjs/common';
  * these paths live: tools/download-tp's bulk download and
  * packages/import-tp-live's live fetch both build roster requests from it.
  */
+
+/** A roster page path: `roster/<positive integer id>`, nothing else. */
+const ROSTER_FRONTEND_PATH = /^roster\/([1-9]\d*)$/;
+
 @Injectable()
 export class TpRosterPathsService {
   apiPath(rosterId: number | string): string {
@@ -16,5 +20,17 @@ export class TpRosterPathsService {
 
   frontendPath(rosterId: number | string): string {
     return `roster/${rosterId}`;
+  }
+
+  /**
+   * The reverse of `frontendPath`: the roster id a roster page path shows, or
+   * undefined when the path is not a roster page (including a non-numeric,
+   * non-positive or out-of-range id). Never throws.
+   */
+  matchFrontendPath(path: string): number | undefined {
+    const match = ROSTER_FRONTEND_PATH.exec(path);
+    if (!match) return undefined;
+    const rosterId = Number(match[1]);
+    return Number.isSafeInteger(rosterId) ? rosterId : undefined;
   }
 }

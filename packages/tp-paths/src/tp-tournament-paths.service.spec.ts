@@ -39,4 +39,31 @@ describe('TpTournamentPathsService', () => {
   it("builds a tournament's awards path", () => {
     expect(paths.awardsApiPath('s30')).toBe('awards/s30/awards');
   });
+
+  describe('matchFrontendPath', () => {
+    it("extracts the slug from a tournament's bare path", () => {
+      expect(paths.matchFrontendPath('s30')).toBe('s30');
+    });
+
+    it("extracts the slug from one of a tournament's pages", () => {
+      expect(paths.matchFrontendPath('s30/rules')).toBe('s30');
+    });
+
+    it('extracts the slug from a deeper path under the tournament', () => {
+      expect(paths.matchFrontendPath('s30/a/b')).toBe('s30');
+    });
+
+    it('round-trips its own frontendPath', () => {
+      expect(paths.matchFrontendPath(paths.frontendPath('s30', 'scores'))).toBe(
+        's30',
+      );
+    });
+
+    it.each([
+      ['an empty path', ''],
+      ['an empty leading segment', '/scores'],
+    ])('does not match %s', (_label, path) => {
+      expect(paths.matchFrontendPath(path)).toBeUndefined();
+    });
+  });
 });
