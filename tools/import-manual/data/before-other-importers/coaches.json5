@@ -115,6 +115,13 @@
       ],
     },
     {
+      name: 'Sokrates M',
+      externalIds: [
+        { system: 'tourplay.net', id: '39bf70d2-e869-4fce-6c70-08dc0079a5af' },
+        { system: 'NAF', id: '39924' },
+      ],
+    },
+    {
       name: 'Tobias G',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Tobias' },
