@@ -124,5 +124,10 @@ own not-found message, exactly as it would for a live invocation.
 whoever ran them. `/debuginteractions` is the first to exist, but the
 rule is about the `debug` prefix, not this command specifically. The
 reply can surface another user's interaction history and internal error
-messages, neither of which belongs in a public channel. Every
-non-`debug`-prefixed command replies publicly.
+messages, neither of which belongs in a public channel. The `debug`
+prefix only guarantees the ephemeral side of this, though: a command's
+actual reply visibility is decided by whether it defers ephemerally (or
+is otherwise built to reply ephemerally), not solely by whether it
+carries the prefix. [`/importtp`](import-tp.md) is not `debug`-prefixed
+but still always replies ephemerally, since its per-stage import results
+are not public-channel content either.
