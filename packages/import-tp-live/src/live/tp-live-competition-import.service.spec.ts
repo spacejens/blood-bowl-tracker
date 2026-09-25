@@ -115,6 +115,7 @@ describe('TpLiveCompetitionImportService', () => {
       ],
       participation: CORE.participation,
       trophyAwards: one,
+      era: 'Fourth era',
     });
     expect(bracketFetch.fetchBracket).toHaveBeenCalledWith({
       tournamentSlug: 's30',
@@ -181,6 +182,7 @@ describe('TpLiveCompetitionImportService', () => {
       teams: [],
       participation: nothing,
       trophyAwards: nothing,
+      era: undefined,
     });
     expect(inscriptionsFetch.fetchParticipantRosterIds).not.toHaveBeenCalled();
     expect(competitionImport.importCompetition).not.toHaveBeenCalled();
@@ -272,6 +274,112 @@ describe('TpLiveCompetitionImportService', () => {
       ],
       participation: nothing,
       trophyAwards: nothing,
+      era: undefined,
+    });
+  });
+
+  describe('without an explicit era', () => {
+    const importWithoutEra = () =>
+      service.importCompetition({
+        tournamentSlug: 's30',
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+      });
+    const noEraFailure = (message: string): ImportResult => ({
+      success: false,
+      imported: 0,
+      errors: [{ item: { tournamentSlug: 's30' }, message }],
+    });
+    const NO_TEAM_ERA =
+      'Could not resolve an era for competition s30: none of its registered teams was imported under an era. Pass an era explicitly.';
+
+    it('imports each team without forcing an era, then imports the competition under the era they agree on', async () => {
+      const result = await importWithoutEra();
+
+      expect(teamImport.importTeam).toHaveBeenNthCalledWith(1, {
+        rosterId: 163386,
+        era: undefined,
+        externalSystemName: EXTERNAL_SYSTEM_NAME,
+        session,
+      });
+      expect(competitionImport.importCompetition).toHaveBeenCalledWith(
+        expect.objectContaining({ era: 'Fourth era' }),
+      );
+      expect(result.era).toBe('Fourth era');
+      expect(result.competition).toEqual(one);
+    });
+
+    it('ignores a team that resolved no era when the others agree', async () => {
+      teamImport.importTeam
+        .mockResolvedValueOnce(teamNotImported)
+        .mockResolvedValueOnce(teamImported);
+
+      const result = await importWithoutEra();
+
+      expect(competitionImport.importCompetition).toHaveBeenCalledWith(
+        expect.objectContaining({ era: 'Fourth era' }),
+      );
+      expect(result.era).toBe('Fourth era');
+    });
+
+    it('fails the competition stage when the teams resolved different eras, keeping the teams', async () => {
+      const fifthEraTeam = { ...teamImported, era: 'Fifth era' };
+      teamImport.importTeam
+        .mockResolvedValueOnce(teamImported)
+        .mockResolvedValueOnce(fifthEraTeam);
+
+      await expect(importWithoutEra()).resolves.toEqual({
+        competition: noEraFailure(
+          'Could not resolve an era for competition s30: its registered teams were imported under different eras (Fourth era, Fifth era). Pass an era explicitly.',
+        ),
+        teams: [
+          { rosterId: 163386, ...teamImported },
+          { rosterId: 179769, ...fifthEraTeam },
+        ],
+        participation: nothing,
+        trophyAwards: nothing,
+        era: undefined,
+      });
+      expect(awardsFetch.fetchAwards).not.toHaveBeenCalled();
+      expect(competitionImport.importCompetition).not.toHaveBeenCalled();
+    });
+
+    it('fails the competition stage when no team resolved an era', async () => {
+      teamImport.importTeam.mockResolvedValue(teamNotImported);
+
+      const result = await importWithoutEra();
+
+      expect(result.competition).toEqual(noEraFailure(NO_TEAM_ERA));
+      expect(result.teams).toHaveLength(2);
+      expect(competitionImport.importCompetition).not.toHaveBeenCalled();
+    });
+
+    it('fails the competition stage when the competition has no registered teams', async () => {
+      inscriptionsFetch.fetchParticipantRosterIds.mockResolvedValue([]);
+
+      const result = await importWithoutEra();
+
+      expect(teamImport.importTeam).not.toHaveBeenCalled();
+      expect(result.competition).toEqual(noEraFailure(NO_TEAM_ERA));
+      expect(result.era).toBeUndefined();
+    });
+
+    it('keeps an inscriptions fetch failure in participation when it leaves no era to resolve', async () => {
+      inscriptionsFetch.fetchParticipantRosterIds.mockImplementation(
+        ({ errors }) => {
+          errors.push(fetchFailure);
+          return Promise.resolve(undefined);
+        },
+      );
+
+      const result = await importWithoutEra();
+
+      expect(result.participation).toEqual({
+        success: false,
+        imported: 0,
+        errors: [fetchFailure],
+      });
+      expect(result.competition).toEqual(noEraFailure(NO_TEAM_ERA));
+      expect(competitionImport.importCompetition).not.toHaveBeenCalled();
     });
   });
 });
