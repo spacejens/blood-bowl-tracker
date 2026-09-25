@@ -23,6 +23,7 @@ const ROSTER: TpRoster = {
   teamRaceCode: 'Orc',
   raceName: 'Orc',
   coachTpId: 'guid-c',
+  coachName: 'Coach C',
   positions: [],
   starPositions: [],
   players: [],

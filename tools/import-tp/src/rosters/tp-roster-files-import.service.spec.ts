@@ -28,6 +28,7 @@ function entry(
     teamRaceCode: 'Orc',
     raceName: 'Orc',
     coachTpId: 'coach-1',
+    coachName: 'Coach 1',
     positions: [],
     starPositions: [],
     players: [],

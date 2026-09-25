@@ -8,7 +8,7 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
     id: 123,
     teamName: 'The Dwarf Team',
     teamRace: 'Dwarf_BB2025',
-    player: { applicationUserId: 'guid-coach-1' },
+    player: { applicationUserId: 'guid-coach-1', userNameToShow: 'Coach One' },
     lineUps: [
       {
         id: 2412443,
@@ -99,6 +99,7 @@ describe('RosterParserService', () => {
       teamRaceCode: 'Dwarf_BB2025',
       raceName: 'Dwarf',
       coachTpId: 'guid-coach-1',
+      coachName: 'Coach One',
       positions: [
         {
           tpPositionId: 952,
@@ -223,6 +224,26 @@ describe('RosterParserService', () => {
     expect(() => service.parse(rosterBody({ player: {} }))).toThrow(
       /player\.applicationUserId/,
     );
+  });
+
+  it("trims the coach's display name", () => {
+    const roster = service.parse(
+      rosterBody({
+        player: {
+          applicationUserId: 'guid-coach-1',
+          userNameToShow: '  Coach One  ',
+        },
+      }),
+    );
+    expect(roster.coachName).toBe('Coach One');
+  });
+
+  it('throws naming player.userNameToShow when the coach name is missing', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({ player: { applicationUserId: 'guid-coach-1' } }),
+      ),
+    ).toThrow(/player\.userNameToShow/);
   });
 
   it('throws for a non-object body', () => {

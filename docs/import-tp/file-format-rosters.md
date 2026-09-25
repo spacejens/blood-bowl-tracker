@@ -28,6 +28,10 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
 - `coachTpId` — extracted from `player.applicationUserId`, TP's stable coach
   account id. Looked up in `coachIdsByTpId` from `TpCoachesImportService` to
   resolve the team's coach.
+- `coachName` — extracted from `player.userNameToShow`, trimmed: the coach's
+  display name. Used by the live team import (`packages/import-tp-live`) to
+  create or rename the team's coach; this bulk import takes coach names from
+  inscriptions data instead.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
 strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but

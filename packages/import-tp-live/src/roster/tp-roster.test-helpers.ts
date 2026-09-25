@@ -49,6 +49,7 @@ export function tpRoster(overrides: Partial<TpRoster> = {}): TpRoster {
     teamRaceCode: 'orc',
     raceName: 'Orc',
     coachTpId: 'c-42',
+    coachName: 'Grimgor',
     positions: [],
     starPositions: [],
     players: [rosterPlayer()],
