@@ -67,6 +67,7 @@ rule-set codes are — and are not — used. See
   carries one set of
   characteristics per `(position, rules set)` per roster, and a race's official
   (`teamRosterType === 0`) and legacy (`1`) rosters can disagree about the same
-  pair. `TpPositionsImportService` (see [index.md](./index.md)) resolves that by
-  the roster kind — the official roster's value wins, whichever roster it
-  happens to process first — not by the code's rule-set suffix.
+  pair. `packages/import-tp-live`'s `TpOfficialPositionsUpsertService`
+  resolves that by the roster kind — the official roster's value wins,
+  whichever roster it happens to process first — not by the code's rule-set
+  suffix.

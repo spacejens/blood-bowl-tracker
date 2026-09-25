@@ -36,14 +36,15 @@ composing the raw code.
 
 Every `skillMasterId` the scan CAN name is registered as a `tourplay.net`
 external id on the skill it names, at ordinary upsert time — exactly as
-`TpPositionsImportService` registers every TP position id on one position row.
-No curation is needed for those.
+`packages/import-tp-live`'s `TpOfficialPositionsUpsertService` registers every
+TP position id on one position row. No curation is needed for those.
 
 A handful of `skillMasterId`s carry no name in any downloaded mirror file at
 all, so the scan can never learn them however much history is downloaded.
 Each is curated instead as a `tourplay.net` external id on the skill it means,
 in `tools/import-manual/data/before-other-importers/skills.json5`, and
-`TpPositionSkillsImportService` resolves it through the ordinary external-id
-mechanism. Most belong to a skill already known under a different id (TP
+`packages/import-tp-live`'s `TpOfficialSkillRefsService` resolves it through
+the ordinary external-id mechanism for the official team list's starting
+skills. Most belong to a skill already known under a different id (TP
 assigns a new id to the same skill per rules set), except `Punt` and
 `Fumblerooski`, genuinely new to the curated catalogue.

@@ -10,8 +10,9 @@
 // external id and needs no entry here.
 //
 // Positions: both BBL and TP key a position by "<raceName>: <positionName>"
-// under the "Name" external id (see NameExternalIdService.forPosition and
-// TpPositionsImportService/BblPositionsImportService). A position whose BBL
+// under the "Name" external id (see NameExternalIdService.forPosition,
+// `packages/import-tp-live`'s TpOfficialPositionsUpsertService and
+// BblPositionsImportService). A position whose BBL
 // and TP position name already match verbatim merges automatically via that
 // shared "Name" id and needs no entry here, the same as the race case above.
 // Only positions whose BBL and TP position name genuinely differs are listed
