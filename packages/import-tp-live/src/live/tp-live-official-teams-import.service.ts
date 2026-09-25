@@ -62,27 +62,33 @@ export class TpLiveOfficialTeamsImportService {
   async importOfficialTeams({
     session,
   }: ImportLiveOfficialTeamsOptions = {}): Promise<TpLiveOfficialTeamsImportResult> {
-    const visit = session ?? this.fetcher.createSession();
+    let visit = session;
     const rulesSets: TpLiveOfficialTeamsRulesSetResult[] = [];
     for (const rulesSet of this.officialTeamsPaths.knownRulesSets()) {
-      rulesSets.push(await this.importRulesSet(rulesSet, visit));
+      const outcome = await this.importRulesSet(rulesSet, visit);
+      rulesSets.push(outcome.result);
+      visit = outcome.session;
     }
     return { rulesSets };
   }
 
   private async importRulesSet(
     rulesSet: string,
-    session: TpFetchSession,
-  ): Promise<TpLiveOfficialTeamsRulesSetResult> {
+    session: TpFetchSession | undefined,
+  ): Promise<{
+    result: TpLiveOfficialTeamsRulesSetResult;
+    session: TpFetchSession | undefined;
+  }> {
     const errors: ImportError[] = [];
     try {
+      const visit = session ?? this.fetcher.createSession();
       const races = await this.officialTeamsFetch.fetchOfficialTeams({
         rulesSet,
         errors,
-        session,
+        session: visit,
       });
       if (races === undefined) {
-        return this.notWritten(rulesSet, errors);
+        return { result: this.notWritten(rulesSet, errors), session: visit };
       }
       const write = await this.officialTeamsImport.importOfficialTeams({
         rulesSet,
@@ -90,9 +96,15 @@ export class TpLiveOfficialTeamsImportService {
         externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
       });
       return {
-        rulesSet,
-        fetch: this.importResults.result({ imported: races.length, errors }),
-        write,
+        result: {
+          rulesSet,
+          fetch: this.importResults.result({
+            imported: races.length,
+            errors,
+          }),
+          write,
+        },
+        session: visit,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -102,7 +114,7 @@ export class TpLiveOfficialTeamsImportService {
           message: `Unexpected error importing TP's official team list for rules set ${rulesSet}: ${message}`,
         }),
       );
-      return this.notWritten(rulesSet, errors);
+      return { result: this.notWritten(rulesSet, errors), session };
     }
   }
 

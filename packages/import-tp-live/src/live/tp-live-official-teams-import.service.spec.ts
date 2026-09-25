@@ -124,6 +124,33 @@ describe('TpLiveOfficialTeamsImportService', () => {
     ]);
   });
 
+  it('reports an unexpected error for one rules set when creating the session fails, and still imports the others', async () => {
+    fetcher.createSession.mockImplementationOnce(() => {
+      throw new Error('no cookie jar available');
+    });
+
+    const result = await service.importOfficialTeams();
+
+    expect(result.rulesSets[0]).toEqual({
+      rulesSet: 'BB2020',
+      fetch: {
+        success: false,
+        imported: 0,
+        errors: [
+          {
+            item: { rulesSet: 'BB2020' },
+            message:
+              "Unexpected error importing TP's official team list for rules set BB2020: no cookie jar available",
+          },
+        ],
+      },
+      write: undefined,
+    });
+    expect(fetcher.createSession).toHaveBeenCalledTimes(2);
+    expect(result.rulesSets[1].write).toBe(WRITTEN);
+    expect(result.rulesSets[2].write).toBe(WRITTEN);
+  });
+
   it('reports an unexpected error for one rules set and still imports the others', async () => {
     officialTeamsImport.importOfficialTeams.mockRejectedValueOnce(
       new Error('connection reset'),
