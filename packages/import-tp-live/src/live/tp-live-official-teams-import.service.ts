@@ -9,18 +9,26 @@ import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
 
 import { TpOfficialTeamsImportService } from '../official-teams/tp-official-teams-import.service';
-import { TP_EXTERNAL_SYSTEM_NAME } from '../tp-external-system';
 import { TpImportResultsService } from '../tp-import-results.service';
 import { TpOfficialTeamsFetchService } from './tp-official-teams-fetch.service';
 
 /** Options for {@link TpLiveOfficialTeamsImportService.importOfficialTeams}. */
 export interface ImportLiveOfficialTeamsOptions {
+  /** The name TP's external system is registered under. */
+  externalSystemName: string;
   /**
    * The scrape-tp session to fetch through, so every rules set's request is
    * paced as one visit to the teams page. A fresh session is started when
    * omitted.
    */
   session?: TpFetchSession;
+}
+
+/** Options for importing one rules set's official team list. */
+interface ImportRulesSetOptions {
+  rulesSet: string;
+  externalSystemName: string;
+  session: TpFetchSession | undefined;
 }
 
 /** What importing one rules set's official team list did. */
@@ -55,27 +63,33 @@ export class TpLiveOfficialTeamsImportService {
    * for: TP's teams page is one page with a tab per rules set, so one import
    * covers them all. Each rules set is fetched through one shared session,
    * parsed, then written in-process through the same TpOfficialTeamsImportService
-   * `tpOfficialTeams.import` uses, under TP's external system. Every failure
+   * `tpOfficialTeams.import` uses, under the given external system name. Every failure
    * is reported in that rules set's result, never thrown, and never stops
    * the other rules sets.
    */
   async importOfficialTeams({
+    externalSystemName,
     session,
-  }: ImportLiveOfficialTeamsOptions = {}): Promise<TpLiveOfficialTeamsImportResult> {
+  }: ImportLiveOfficialTeamsOptions): Promise<TpLiveOfficialTeamsImportResult> {
     let visit = session;
     const rulesSets: TpLiveOfficialTeamsRulesSetResult[] = [];
     for (const rulesSet of this.officialTeamsPaths.knownRulesSets()) {
-      const outcome = await this.importRulesSet(rulesSet, visit);
+      const outcome = await this.importRulesSet({
+        rulesSet,
+        externalSystemName,
+        session: visit,
+      });
       rulesSets.push(outcome.result);
       visit = outcome.session;
     }
     return { rulesSets };
   }
 
-  private async importRulesSet(
-    rulesSet: string,
-    session: TpFetchSession | undefined,
-  ): Promise<{
+  private async importRulesSet({
+    rulesSet,
+    externalSystemName,
+    session,
+  }: ImportRulesSetOptions): Promise<{
     result: TpLiveOfficialTeamsRulesSetResult;
     session: TpFetchSession | undefined;
   }> {
@@ -93,7 +107,7 @@ export class TpLiveOfficialTeamsImportService {
       const write = await this.officialTeamsImport.importOfficialTeams({
         rulesSet,
         races,
-        externalSystemName: TP_EXTERNAL_SYSTEM_NAME,
+        externalSystemName,
       });
       return {
         result: {

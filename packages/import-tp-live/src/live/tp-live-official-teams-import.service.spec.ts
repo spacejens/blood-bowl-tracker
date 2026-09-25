@@ -13,6 +13,7 @@ import { TpImportResultsService } from '../tp-import-results.service';
 import { TpLiveOfficialTeamsImportService } from './tp-live-official-teams-import.service';
 import { TpOfficialTeamsFetchService } from './tp-official-teams-fetch.service';
 
+const EXTERNAL_SYSTEM_NAME = 'some-external-system';
 const ONE = { success: true, imported: 1, errors: [] };
 const WRITTEN: TpOfficialTeamsImportResult = {
   races: ONE,
@@ -58,8 +59,10 @@ describe('TpLiveOfficialTeamsImportService', () => {
     service = moduleRef.get(TpLiveOfficialTeamsImportService);
   });
 
-  it('fetches and writes every known rules set through one shared session, under TP', async () => {
-    const result = await service.importOfficialTeams();
+  it('fetches and writes every known rules set through one shared session, under the given external system', async () => {
+    const result = await service.importOfficialTeams({
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(fetcher.createSession).toHaveBeenCalledTimes(1);
     expect(
@@ -75,7 +78,7 @@ describe('TpLiveOfficialTeamsImportService', () => {
     expect(officialTeamsImport.importOfficialTeams).toHaveBeenCalledWith({
       rulesSet: 'BB2020',
       races: RACES,
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
     expect(result.rulesSets).toEqual(
       ['BB2020', 'DB2021', 'BB2025'].map((rulesSet) => ({
@@ -89,7 +92,10 @@ describe('TpLiveOfficialTeamsImportService', () => {
   it('fetches through a given session', async () => {
     const given = mock<TpFetchSession>();
 
-    await service.importOfficialTeams({ session: given });
+    await service.importOfficialTeams({
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      session: given,
+    });
 
     expect(fetcher.createSession).not.toHaveBeenCalled();
     expect(officialTeamsFetch.fetchOfficialTeams.mock.calls[0][0].session).toBe(
@@ -105,7 +111,9 @@ describe('TpLiveOfficialTeamsImportService', () => {
       },
     );
 
-    const result = await service.importOfficialTeams();
+    const result = await service.importOfficialTeams({
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.rulesSets[0]).toEqual({
       rulesSet: 'BB2020',
@@ -129,7 +137,9 @@ describe('TpLiveOfficialTeamsImportService', () => {
       throw new Error('no cookie jar available');
     });
 
-    const result = await service.importOfficialTeams();
+    const result = await service.importOfficialTeams({
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.rulesSets[0]).toEqual({
       rulesSet: 'BB2020',
@@ -156,7 +166,9 @@ describe('TpLiveOfficialTeamsImportService', () => {
       new Error('connection reset'),
     );
 
-    const result = await service.importOfficialTeams();
+    const result = await service.importOfficialTeams({
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.rulesSets[0]).toEqual({
       rulesSet: 'BB2020',
