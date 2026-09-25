@@ -15,6 +15,8 @@ import { TpEraResolutionService } from './tp-era-resolution.service';
 import { TpLiveTeamImportService } from './tp-live-team-import.service';
 import { TpRosterFetchService } from './tp-roster-fetch.service';
 
+const EXTERNAL_SYSTEM_NAME = 'some-external-system';
+
 const ROSTER: TpRoster = {
   id: 163386,
   teamName: 'Da Boyz',
@@ -70,7 +72,10 @@ describe('TpLiveTeamImportService', () => {
   it('fetches the roster, resolves its era, then imports the team and its players', async () => {
     stubHappyPath();
 
-    const result = await service.importTeam({ rosterId: 163386 });
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result).toEqual({
       team: TEAM_RESULT,
@@ -85,25 +90,29 @@ describe('TpLiveTeamImportService', () => {
     expect(eraResolution.resolveEra).toHaveBeenCalledWith({
       roster: ROSTER,
       era: undefined,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       errors: [],
     });
     expect(rosterImport.importRoster).toHaveBeenCalledWith({
       roster: ROSTER,
       era: 'Fourth era',
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
   });
 
   it('imports the team with no competition attached', async () => {
     stubHappyPath();
 
-    await service.importTeam({ rosterId: 163386 });
+    await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     // Exactly { roster, era, externalSystemName }: a live team import needs no competition.
     expect(rosterImport.importRoster).toHaveBeenCalledWith({
       roster: ROSTER,
       era: 'Fourth era',
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
     });
   });
 
@@ -119,7 +128,12 @@ describe('TpLiveTeamImportService', () => {
     });
     const session = mock<TpFetchSession>();
 
-    await service.importTeam({ rosterId: 163386, era: 'Fourth era', session });
+    await service.importTeam({
+      rosterId: 163386,
+      era: 'Fourth era',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+      session,
+    });
 
     expect(rosterFetch.fetchRoster).toHaveBeenCalledWith(
       expect.objectContaining({ session }),
@@ -139,7 +153,10 @@ describe('TpLiveTeamImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    const result = await service.importTeam({ rosterId: 163386 });
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.team.success).toBe(false);
     expect(result.team.errors).toHaveLength(1);
@@ -165,7 +182,10 @@ describe('TpLiveTeamImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    const result = await service.importTeam({ rosterId: 163386 });
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.team.success).toBe(false);
     expect(result.team.errors).toHaveLength(1);
@@ -179,7 +199,10 @@ describe('TpLiveTeamImportService', () => {
     eraResolution.resolveEra.mockResolvedValue('Fourth era');
     rosterImport.importRoster.mockRejectedValue(new Error('db down'));
 
-    const result = await service.importTeam({ rosterId: 163386 });
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.team.success).toBe(false);
     expect(result.team.errors).toHaveLength(1);
@@ -207,13 +230,14 @@ describe('TpLiveTeamImportService', () => {
 
     await service.importTeam({
       rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       matchEmbeddedPlayers: [departed],
     });
 
     expect(rosterImport.importRoster).toHaveBeenCalledWith({
       roster: ROSTER,
       era: 'Fourth era',
-      externalSystemName: 'TP',
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
       matchEmbeddedPlayers: [departed],
     });
   });
@@ -233,7 +257,10 @@ describe('TpLiveTeamImportService', () => {
       mercenaryPositionUsages: [],
     });
 
-    const result = await service.importTeam({ rosterId: 163386 });
+    const result = await service.importTeam({
+      rosterId: 163386,
+      externalSystemName: EXTERNAL_SYSTEM_NAME,
+    });
 
     expect(result.era).toBeUndefined();
     expect(result.team.success).toBe(false);
