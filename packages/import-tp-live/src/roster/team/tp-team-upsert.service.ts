@@ -46,7 +46,12 @@ export class TpTeamUpsertService {
    * coach id and name — created when unknown, its name refreshed when known
    * — so a coach never imported before does not block the team. A team whose
    * race cannot be resolved, or whose coach upsert fails, is recorded as an
-   * error and skipped rather than upserted with an invalid foreign key.
+   * error and skipped rather than upserted with an invalid foreign key. The
+   * race resolve and coach upsert run in parallel, so a coach can still be
+   * created or refreshed even when the race then turns out unresolvable and
+   * the team is skipped — intentional: the coach is a valid entity in its
+   * own right, and a later import of the same roster converges once the
+   * race is resolvable.
    * Returns every team era the team now has — the era sync only ever adds,
    * so an era an earlier import linked stays linked — or undefined when
    * nothing was upserted.
