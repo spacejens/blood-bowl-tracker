@@ -14,7 +14,7 @@ import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
-import { TpOfficialTeamsImportService } from './official-teams/tp-official-teams-import.service';
+import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
 import type { InducedStarPlayerHireGroup } from './players/tp-induced-star-players-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpLastingInjuryBackfillImportService } from './players/tp-lasting-injury-backfill-import.service';
@@ -103,7 +103,7 @@ async function run(): Promise<ImportResult> {
     // BBL's are a converted single snapshot. It runs before the rosters,
     // because players resolve their position against what it upserts.
     const officialTeamsOutcome = await app
-      .get(TpOfficialTeamsImportService)
+      .get(TpOfficialTeamsFilesImportService)
       .importOfficialTeams({ officialTeams, skillMastersByMasterId });
     const { characteristicsByPositionId } = officialTeamsOutcome;
 

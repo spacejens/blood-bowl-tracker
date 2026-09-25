@@ -14,7 +14,7 @@ import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { TpOfficialTeamsImportService } from './tp-official-teams-import.service';
+import { TpOfficialTeamsFilesImportService } from './tp-official-teams-files-import.service';
 
 const CANNED_RESULT: ImportResult = { success: true, imported: -1, errors: [] };
 const STATS = { move: 5, strength: 3, agility: 3, passing: 4, armour: 9 };
@@ -39,8 +39,8 @@ function outcome(
   };
 }
 
-describe('TpOfficialTeamsImportService', () => {
-  let service: TpOfficialTeamsImportService;
+describe('TpOfficialTeamsFilesImportService', () => {
+  let service: TpOfficialTeamsFilesImportService;
   let client: DeepMockProxy<ApiClient>;
   let importRunner: MockProxy<ImportRunnerService>;
   let importResults: MockProxy<ImportResultService>;
@@ -55,7 +55,7 @@ describe('TpOfficialTeamsImportService', () => {
     externalSystemName.getTpSystemName.mockReturnValue('TP');
     const moduleRef = await Test.createTestingModule({
       providers: [
-        TpOfficialTeamsImportService,
+        TpOfficialTeamsFilesImportService,
         { provide: API_CLIENT, useValue: client },
         { provide: ImportRunnerService, useValue: importRunner },
         { provide: ImportResultService, useValue: importResults },
@@ -65,7 +65,7 @@ describe('TpOfficialTeamsImportService', () => {
         },
       ],
     }).compile();
-    service = moduleRef.get(TpOfficialTeamsImportService);
+    service = moduleRef.get(TpOfficialTeamsFilesImportService);
   });
 
   it("sends each rules set's races in one call, with every scanned skill name", async () => {

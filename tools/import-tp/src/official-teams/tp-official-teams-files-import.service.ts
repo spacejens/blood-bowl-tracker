@@ -16,8 +16,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { OfficialTeamsEntry } from '../source/official-teams-collection.service';
 
-/** Options for {@link TpOfficialTeamsImportService.importOfficialTeams}. */
-export interface ImportOfficialTeamsOptions {
+/** Options for {@link TpOfficialTeamsFilesImportService.importOfficialTeams}. */
+export interface ImportOfficialTeamsFilesOptions {
   /** Every downloaded official-list race, tagged with its rules set folder. */
   officialTeams: OfficialTeamsEntry[];
   /** The skillMasterId -> name lookup scanned from the downloaded mirror. */
@@ -25,7 +25,7 @@ export interface ImportOfficialTeamsOptions {
 }
 
 /** What importing the whole official team list did, one result per stage. */
-export interface OfficialTeamsImportOutcome {
+export interface OfficialTeamsFilesImportOutcome {
   racesResult: ImportResult;
   positionsResult: ImportResult;
   characteristicsResult: ImportResult;
@@ -60,7 +60,7 @@ interface Tally {
 }
 
 @Injectable()
-export class TpOfficialTeamsImportService {
+export class TpOfficialTeamsFilesImportService {
   constructor(
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
@@ -76,12 +76,14 @@ export class TpOfficialTeamsImportService {
    * upsert a skill no earlier import has registered yet); the server writes
    * the races, positions, characteristics, keywords and starting skills. A
    * call that fails outright is recorded under races and the other rules
-   * sets still import.
+   * sets still import. This includes an unexpected database error on the
+   * server: it comes back as a rejected call, which is recorded the same
+   * way as any other failure rather than propagating out of this method.
    */
   async importOfficialTeams({
     officialTeams,
     skillMastersByMasterId,
-  }: ImportOfficialTeamsOptions): Promise<OfficialTeamsImportOutcome> {
+  }: ImportOfficialTeamsFilesOptions): Promise<OfficialTeamsFilesImportOutcome> {
     const externalSystemName = this.externalSystemName.getTpSystemName();
     const skillMasters = [...skillMastersByMasterId].map(
       ([skillMasterId, master]) => ({

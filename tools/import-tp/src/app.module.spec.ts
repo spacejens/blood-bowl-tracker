@@ -15,7 +15,7 @@ import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
-import { TpOfficialTeamsImportService } from './official-teams/tp-official-teams-import.service';
+import { TpOfficialTeamsFilesImportService } from './official-teams/tp-official-teams-files-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpRosterFilesImportService } from './rosters/tp-roster-files-import.service';
 import { TpRosterPlayerFactsService } from './rosters/tp-roster-player-facts.service';
@@ -116,8 +116,8 @@ describe('AppModule', () => {
     expect(moduleRef.get(TpMatchFilesImportService)).toBeInstanceOf(
       TpMatchFilesImportService,
     );
-    expect(moduleRef.get(TpOfficialTeamsImportService)).toBeInstanceOf(
-      TpOfficialTeamsImportService,
+    expect(moduleRef.get(TpOfficialTeamsFilesImportService)).toBeInstanceOf(
+      TpOfficialTeamsFilesImportService,
     );
   });
 
