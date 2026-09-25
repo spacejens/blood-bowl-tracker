@@ -211,6 +211,9 @@ effect immediately.
   tooling: which Discord users have ever narrowed a command with an optional
   filter argument versus those who have only ever invoked commands plain,
   optionally narrowed to a recent window, replied ephemerally.
+- [`/importtp`](slash-commands/import-tp.md) — league-administrator tooling:
+  imports the TP competition, match, team or official team list a URL
+  points to, right away, replied ephemerally with a per-stage summary.
 
 ### Drill-down buttons and blank entity names
 
