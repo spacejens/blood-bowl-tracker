@@ -24,6 +24,15 @@ const TOURNAMENT: TpCompetitionTournament = {
 };
 const DATES = [new Date('2026-01-10'), new Date('2026-06-20')];
 
+const storedCompetition = (startDate: string, endDate: string | null) => ({
+  id: 12,
+  name: TOURNAMENT.name,
+  type: 'season' as const,
+  eraId: 40,
+  startDate,
+  endDate,
+});
+
 describe('TpCompetitionUpsertService', () => {
   let service: TpCompetitionUpsertService;
   let externalSystems: MockProxy<ExternalSystemsService>;
@@ -80,6 +89,16 @@ describe('TpCompetitionUpsertService', () => {
       errors,
     });
 
+  const overlay = (playedDates: Date[]) =>
+    service.upsertCompetition({
+      tournament: TOURNAMENT,
+      playedDates,
+      era: 'Fourth era',
+      externalSystemName: 'TP',
+      overlayExisting: true,
+      errors,
+    });
+
   it('upserts a new competition by TP id with its name, era, type and dates, and no group', async () => {
     await expect(upsert()).resolves.toEqual(upsertedCompetition());
     expect(externalSystems.upsert).toHaveBeenCalledWith({
@@ -91,6 +110,7 @@ describe('TpCompetitionUpsertService', () => {
       externalId: 'Fourth era',
     });
     expect(span.derive).toHaveBeenCalledWith(DATES);
+    expect(competitions.findById).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
       name: 'tLoEGBBL Säsong 30',
       type: 'season',
@@ -118,6 +138,7 @@ describe('TpCompetitionUpsertService', () => {
     await expect(upsert()).resolves.toEqual(upsertedCompetition());
     expect(eras.resolve).not.toHaveBeenCalled();
     expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.findById).not.toHaveBeenCalled();
     expect(competitions.upsert).toHaveBeenCalledWith({
       name: 'tLoEGBBL Säsong 30',
       teamEraIds: [],
@@ -128,22 +149,21 @@ describe('TpCompetitionUpsertService', () => {
 
   it('overlays era, type and dates on an already-imported competition when asked', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-06-20'),
+    );
 
-    await expect(
-      service.upsertCompetition({
-        tournament: TOURNAMENT,
-        playedDates: DATES,
-        era: 'Fourth era',
-        externalSystemName: 'TP',
-        overlayExisting: true,
-        errors,
-      }),
-    ).resolves.toEqual(upsertedCompetition());
+    await expect(overlay(DATES)).resolves.toEqual(upsertedCompetition());
     expect(eras.resolve).toHaveBeenCalledWith({
       externalSystemId: 1,
       externalId: 'Fourth era',
     });
-    expect(span.derive).toHaveBeenCalledWith(DATES);
+    expect(competitions.findById).toHaveBeenCalledWith(12);
+    expect(span.derive).toHaveBeenCalledWith([
+      ...DATES,
+      new Date('2026-01-10'),
+      new Date('2026-06-20'),
+    ]);
     expect(competitions.upsert).toHaveBeenCalledWith({
       name: 'tLoEGBBL Säsong 30',
       type: 'season',
@@ -154,6 +174,90 @@ describe('TpCompetitionUpsertService', () => {
       externalIds: [{ externalSystemId: 1, externalId: '18442' }],
     });
     expect(errors).toEqual([]);
+  });
+
+  // Zero new played dates means no new information about the competition at
+  // all, so era, type and dates are all left exactly as stored rather than
+  // re-resolved or recomputed from a merge that could misclassify or falsely
+  // close an ongoing one.
+  it('keeps the stored era, type and dates when overlaying a competition with no new dated matches', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+
+    await expect(overlay([])).resolves.toEqual(upsertedCompetition());
+    expect(eras.resolve).not.toHaveBeenCalled();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.findById).not.toHaveBeenCalled();
+    expect(competitions.upsert).toHaveBeenCalledWith({
+      name: 'tLoEGBBL Säsong 30',
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '18442' }],
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('widens the stored date range with newly observed match dates', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', '2026-03-01'),
+    );
+    const earlier = new Date('2025-12-20');
+    const later = new Date('2026-04-15');
+
+    await overlay([earlier, later]);
+
+    expect(span.derive).toHaveBeenCalledWith([
+      earlier,
+      later,
+      new Date('2026-01-10'),
+      new Date('2026-03-01'),
+    ]);
+  });
+
+  it('adds only the stored start date when the stored competition has no end date', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(
+      storedCompetition('2026-01-10', null),
+    );
+    const played = [new Date('2026-02-01')];
+
+    await overlay(played);
+
+    expect(span.derive).toHaveBeenCalledWith([
+      ...played,
+      new Date('2026-01-10'),
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('records one error when the resolved competition cannot be read back by id', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockResolvedValue(undefined);
+
+    await expect(overlay(DATES)).resolves.toBeUndefined();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message:
+          'Skipping competition "tLoEGBBL Säsong 30": stored competition could not be read back after being resolved.',
+      },
+    ]);
+  });
+
+  it('records one error, rather than rejecting, when reading the stored competition back fails', async () => {
+    competitions.resolve.mockResolvedValue({ found: true, id: 12 });
+    competitions.findById.mockRejectedValue(new Error('db down'));
+
+    await expect(overlay(DATES)).resolves.toBeUndefined();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message: 'Skipping competition "tLoEGBBL Säsong 30": db down',
+      },
+    ]);
   });
 
   it('records one error when the TP system cannot be set up', async () => {
@@ -180,9 +284,11 @@ describe('TpCompetitionUpsertService', () => {
   });
 
   it('records one error when no fixture is dated', async () => {
+    // A competition not yet stored has no stored dates to fall back on.
     span.derive.mockReturnValue(undefined);
 
     await expect(upsert()).resolves.toBeUndefined();
+    expect(competitions.findById).not.toHaveBeenCalled();
     expect(errors).toEqual([
       {
         item: { competition: 18442 },
