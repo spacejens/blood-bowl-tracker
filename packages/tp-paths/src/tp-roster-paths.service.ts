@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+/** A roster page path: `roster/<positive integer id>`, nothing else. */
+const ROSTER_FRONTEND_PATH = /^roster\/([1-9]\d*)$/;
+
 /**
  * TP's paths for one team roster, exactly as TP's own frontend requests them
  * for a roster page: the API path its data is fetched from, relative to TP's
@@ -16,5 +19,17 @@ export class TpRosterPathsService {
 
   frontendPath(rosterId: number | string): string {
     return `roster/${rosterId}`;
+  }
+
+  /**
+   * The reverse of `frontendPath`: the roster id a roster page path shows, or
+   * undefined when the path is not a roster page (including a non-numeric,
+   * non-positive or out-of-range id). Never throws.
+   */
+  matchFrontendPath(path: string): number | undefined {
+    const match = ROSTER_FRONTEND_PATH.exec(path);
+    if (!match) return undefined;
+    const rosterId = Number(match[1]);
+    return Number.isSafeInteger(rosterId) ? rosterId : undefined;
   }
 }
