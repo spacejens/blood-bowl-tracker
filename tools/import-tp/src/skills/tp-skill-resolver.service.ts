@@ -36,10 +36,10 @@ export class TpSkillResolverService {
    * every TP position id on one position row.
    *
    * Built by inverting the whole scanned lookup UP FRONT rather than
-   * accumulated while refs are produced: StartingSkillsImportService upserts
-   * a name at most once per run, using the FIRST ref it sees for that name,
-   * so a set grown ref by ref would register only the ids seen before that
-   * ref happened to be built.
+   * accumulated while refs are produced: `TpPlayerSkillsImportService`
+   * upserts a skill name at most once per run, using the FIRST ref it sees
+   * for that name, so a set grown ref by ref would register only the ids
+   * seen before that ref happened to be built.
    */
   collectSkillMasterIds(
     skillMastersByMasterId: Map<number, TpSkillMaster>,

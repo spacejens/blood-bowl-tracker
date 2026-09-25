@@ -118,7 +118,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 
 ## Architecture
 
-Teams, players, competitions, matches and TP's official team list are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, `TpCompetitionsImportService` sends each competition's parsed data to `tpCompetitions.import`, `TpMatchFilesImportService` sends each match file's raw content to `tpMatches.import`, and `TpOfficialTeamsImportService` sends each rules set's parsed races, plus the scanned skill names, to `tpOfficialTeams.import`, all implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the skills and career SPP counts later steps need.
+Teams, players, competitions, matches and TP's official team list are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, `TpCompetitionsImportService` sends each competition's parsed data to `tpCompetitions.import`, `TpMatchFilesImportService` sends each match file's raw content to `tpMatches.import`, and `TpOfficialTeamsFilesImportService` sends each rules set's parsed races, plus the scanned skill names, to `tpOfficialTeams.import`, all implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the skills and career SPP counts later steps need.
 
 - **ImportTpConfigService** — loads `import-tp-config.json5` (JSON5), exposing
   raw top-level values via `get<T>(key)` and the api-server base URL via
@@ -161,7 +161,7 @@ Teams, players, competitions, matches and TP's official team list are imported s
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
   coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
   later team-import sub-issue will use to resolve each team's coach; unused here.
-- **TpOfficialTeamsImportService** — imports TP's official team list (read via
+- **TpOfficialTeamsFilesImportService** — imports TP's official team list (read via
   `OfficialTeamsCollectionService`, not from played rosters) through
   `tpOfficialTeams.import`, one call per `teams/<rulesSet>` folder. Each call
   sends that rules set's parsed races and the whole scanned
@@ -360,8 +360,8 @@ events and its outcome together — see
 the lasting-injury backfill, and finally missing trophy awards — aggregating each step's
 `ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
 The official team list import runs after coaches; it has no FK dependency on the earlier import
-steps. Roster import runs after it (each player resolves a team era and a position, needing the
-starting-skills catalog already loaded).
+steps. Roster import runs after it (each player resolves a position against the positions the
+official team list import already upserted).
 Competitions run after that because linking a registered team and awarding it a trophy both need
 its team era. Match files run after competitions because resolving a match's context needs its
 competition imported and both teams' team eras resolvable. SPP adjustments run last of the match-related steps because
@@ -400,21 +400,20 @@ other two fields are decoded unconditionally, for any rules set that carries
 them: DB2021 publishes the full `positionTypes` set, and both BB2020 and
 DB2021 publish `isBigGuy` (Trolls, Minotaurs, and similar Big Guys), so an
 earlier-rules-set entry can still end up with real positional keyword codes,
-including Big Guy. `TpKeywordCatalogService` reads the curated keyword catalogue once per run
-(via `KeywordsImportService.listKeywords`), keyed by each keyword's
-`tourplay.net` external id, and
-the server-side official team list import resolves every position's codes against it
-and syncs the resulting `(position, rules set, keyword)` rows. A code with no
-curated match is reported once as an import error, naming the position it was
-first seen on and pointing at
-`tools/import-manual/data/before-other-importers/keywords.json5`; the
-position's other keywords are still written. The same catalogue also decodes a
-`Hatred`/`Animosity` skill's own type-3 target code — see
-[Keyword target decoding](./keyword-target-decoding.md).
+including Big Guy. The server-side official team list import resolves every position's codes
+against its own curated keyword catalogue (`TpOfficialKeywordCatalogService`, in
+`packages/import-tp-live`) and syncs the resulting `(position, rules set, keyword)` rows. A code
+with no curated match is reported once as an import error, naming the position it was first seen
+on and pointing at `tools/import-manual/data/before-other-importers/keywords.json5`; the
+position's other keywords are still written. `tools/import-tp`'s own `TpKeywordCatalogService`
+reads the same curated catalogue independently (via `KeywordsImportService.listKeywords`), keyed
+by each keyword's `tourplay.net` external id, but only to decode a `Hatred`/`Animosity` skill's
+own type-3 target code — see [Keyword target decoding](./keyword-target-decoding.md).
 
 ## Related documentation
 
 - [import-tp-live](../import-tp-live/index.md) — the server-side team/player import behind `tpRosters.import` and the live team import, and the server-side match import behind `tpMatches.import` and the live match import (see its [match-import.md](../import-tp-live/match-import.md)).
+- [official-teams-import.md](../import-tp-live/official-teams-import.md) — the server-side official team list import behind `tpOfficialTeams.import` and the live official-teams import.
 - [file-format.md](./file-format.md) — working notes on the source JSON format.
 - [keyword-target-decoding.md](./keyword-target-decoding.md) — type-3
   `Hatred`/`Animosity` skill-attribute decoding and skillMasterId curation.

@@ -37,10 +37,14 @@ export interface ImportHiresOptions {
     rulesSetIdByEraName: Map<string, number>;
     /**
      * Each Position's accumulated characteristics, keyed by DB position id
-     * then rules set DB id, from `packages/import-tp-live`'s
-     * `TpOfficialPositionsUpsertService`. A star hired
-     * mid-season via an `inducements_roll` event has no `lineUps[]` entry, so
-     * no characteristics of their own -- a freshly-hired star's are the
+     * then rules set DB id. The server builds these (via
+     * `packages/import-tp-live`'s `TpOfficialCharacteristicsSyncService`)
+     * and returns them as `positionCharacteristics` in the
+     * `tpOfficialTeams.import` result; this tool's own
+     * `TpOfficialTeamsFilesImportService` (in `tools/import-tp/src/official-teams/`)
+     * assembles them into this map. A star hired mid-season via an
+     * `inducements_roll` event has no `lineUps[]` entry, so no
+     * characteristics of their own -- a freshly-hired star's are the
      * position template's. Optional -- callers/tests that don't exercise star
      * hires can omit it.
      */
