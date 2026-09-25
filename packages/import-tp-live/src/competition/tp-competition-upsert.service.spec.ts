@@ -232,13 +232,20 @@ describe('TpCompetitionUpsertService', () => {
     expect(errors).toEqual([]);
   });
 
-  it('derives from the played dates alone when the resolved competition cannot be found by id', async () => {
+  it('records one error when the resolved competition cannot be read back by id', async () => {
     competitions.resolve.mockResolvedValue({ found: true, id: 12 });
     competitions.findById.mockResolvedValue(undefined);
 
-    await expect(overlay(DATES)).resolves.toEqual(upsertedCompetition());
-    expect(span.derive).toHaveBeenCalledWith(DATES);
-    expect(errors).toEqual([]);
+    await expect(overlay(DATES)).resolves.toBeUndefined();
+    expect(span.derive).not.toHaveBeenCalled();
+    expect(competitions.upsert).not.toHaveBeenCalled();
+    expect(errors).toEqual([
+      {
+        item: { competition: 18442 },
+        message:
+          'Skipping competition "tLoEGBBL Säsong 30": stored competition could not be read back after being resolved.',
+      },
+    ]);
   });
 
   it('records one error when the TP system cannot be set up', async () => {

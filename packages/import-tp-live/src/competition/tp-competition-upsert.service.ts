@@ -141,9 +141,17 @@ export class TpCompetitionUpsertService {
       if (competitionRef.found && playedDates.length === 0) {
         fields = { eraId: eraRef.id };
       } else {
-        const span = this.span.derive(
-          await this.datesToDerive(competitionRef, playedDates),
-        );
+        const dates = await this.datesToDerive(competitionRef, playedDates);
+        if (dates === undefined) {
+          errors.push(
+            this.importResults.error({
+              item: { competition: tournament.id },
+              message: `Skipping competition "${tournament.name}": stored competition could not be read back after being resolved.`,
+            }),
+          );
+          return undefined;
+        }
+        const span = this.span.derive(dates);
         if (span === undefined) {
           errors.push(
             this.importResults.error({
@@ -191,19 +199,21 @@ export class TpCompetitionUpsertService {
    * when there are new dated matches to derive from (or the competition is
    * new): this call's played dates, plus an already-stored competition's
    * own start and end dates, so an overlay only ever widens the stored
-   * range. Falls back to the played dates alone when the stored competition
-   * cannot be read back.
+   * range. Undefined when the competition was just resolved as existing but
+   * its row cannot be read back — the caller treats that as a failure
+   * rather than silently deriving from the played dates alone, which could
+   * shrink the stored range or reclassify its type.
    */
   private async datesToDerive(
     competitionRef: ResolveResult,
     playedDates: Date[],
-  ): Promise<Date[]> {
+  ): Promise<Date[] | undefined> {
     if (!competitionRef.found) {
       return playedDates;
     }
     const existing = await this.competitions.findById(competitionRef.id);
     if (existing === undefined) {
-      return playedDates;
+      return undefined;
     }
     return [
       ...playedDates,
