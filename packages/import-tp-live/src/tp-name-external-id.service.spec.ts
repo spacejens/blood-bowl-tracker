@@ -17,6 +17,10 @@ describe('TpNameExternalIdService', () => {
     expect(service.forTeam('Da Boyz')).toBe('Da Boyz');
   });
 
+  it("uses a coach's bare name", () => {
+    expect(service.forCoach('Grimgor')).toBe('Grimgor');
+  });
+
   it("uses a star position's bare name", () => {
     expect(service.forStarPosition('Giant Mercenary')).toBe('Giant Mercenary');
   });

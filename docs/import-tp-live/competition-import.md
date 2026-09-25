@@ -67,9 +67,9 @@ team, with its `rosterId`, and `era`: the era the competition was imported
 under — the given one or the one the teams agreed on — or undefined when the
 import stopped before settling one.
 
-A team whose coach was never imported fails with a "could not resolve coach"
-error, exactly as a plain live team import does. There is no live coach
-import yet, so a brand-new coach's team cannot be imported live.
+A team whose coach was never imported before is still imported: the live
+team import creates the coach from the roster's own coach id and name, with
+no NAF number (see [index.md](index.md)).
 
 ## The shared core
 

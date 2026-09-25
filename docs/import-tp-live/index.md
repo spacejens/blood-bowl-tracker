@@ -87,16 +87,19 @@ for how a live match import ties a team and a competition together.
 What must already be in the database:
 
 - the team's race (by its TP race code);
-- its coach (by TP coach id);
 - the era, with the rules set it declares;
 - the positions its players play (by TP `lineUpMasterId`).
 
-A missing race or coach skips the team, and a missing position skips that
-player. Each is reported as an error. A live import always skips a team whose
-coach cannot be resolved: TP's roster carries only its internal coach id,
-never a coach name, and there is no live coach import. So a brand-new team
-whose coach was never imported before (by `tools/import-tp` or
-`tools/import-bbl`) fails with a "could not resolve coach" error.
+The team's coach need not exist yet. It is upserted from the roster's own
+coach: its TP coach id (`player.applicationUserId`) and name
+(`player.userNameToShow`), keyed by both the TP id and the Name system. A
+coach already known by either id gets its name refreshed from the roster; an
+unknown one is created. TP's roster carries no NAF number, so a coach created
+live has none until a later bulk import (`tools/import-tp` or
+`tools/import-bbl`) adds it.
+
+A missing race or a failed coach upsert skips the team, and a missing
+position skips that player. Each is reported as an error.
 
 A live import brings in the roster's current state only. It has no match
 data, so it adds no departed players seen only in match snapshots and no
@@ -151,7 +154,7 @@ in the result:
 | Era not in the database                                                      | `team`, naming the era and roster                    |
 | Era declares no single rules set                                             | `team`; the import continues without characteristics |
 | External systems cannot be set up                                            | `team`                                               |
-| Race or coach unresolvable, team upsert failure                              | `team`                                               |
+| Race unresolvable, coach or team upsert failure                              | `team`                                               |
 | Position unresolvable, player upsert failure                                 | `players`                                            |
 
 When the team is not imported, its players are not attempted and `players`
