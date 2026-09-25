@@ -10,6 +10,7 @@ import { ErasModule } from './eras/eras.module';
 import { KeywordsModule } from './keywords/keywords.module';
 import { LeaguesModule } from './leagues/leagues.module';
 import { MatchFilesModule } from './match-files/match-files.module';
+import { OfficialTeamsModule } from './official-teams/official-teams.module';
 import { PlayersModule } from './players/players.module';
 import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
@@ -42,6 +43,7 @@ export class AppModule {
         RacesModule,
         RostersModule,
         MatchFilesModule,
+        OfficialTeamsModule,
         PositionsModule,
         KeywordsModule,
         PlayersModule,

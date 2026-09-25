@@ -16,6 +16,7 @@ import { TpKeywordCatalogService } from './keywords/tp-keyword-catalog.service';
 import { TpPositionKeywordsImportService } from './keywords/tp-position-keywords-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchFilesImportService } from './match-files/tp-match-files-import.service';
+import { TpOfficialTeamsImportService } from './official-teams/tp-official-teams-import.service';
 import { TpInducedStarPlayersStepService } from './players/tp-induced-star-players-step.service';
 import { TpPositionCharacteristicsImportService } from './positions/tp-position-characteristics-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
@@ -127,6 +128,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpMatchFilesImportService)).toBeInstanceOf(
       TpMatchFilesImportService,
+    );
+    expect(moduleRef.get(TpOfficialTeamsImportService)).toBeInstanceOf(
+      TpOfficialTeamsImportService,
     );
   });
 

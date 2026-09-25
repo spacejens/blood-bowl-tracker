@@ -118,7 +118,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 
 ## Architecture
 
-Teams, players, competitions and matches are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, `TpCompetitionsImportService` sends each competition's parsed data to `tpCompetitions.import`, and `TpMatchFilesImportService` sends each match file's raw content to `tpMatches.import`, all implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the skills and career SPP counts later steps need.
+Teams, players, competitions, matches and TP's official team list are imported server-side: `TpRosterFilesImportService` sends each roster file's raw content to the `tpRosters.import` procedure, `TpCompetitionsImportService` sends each competition's parsed data to `tpCompetitions.import`, `TpMatchFilesImportService` sends each match file's raw content to `tpMatches.import`, and `TpOfficialTeamsImportService` sends each rules set's parsed races, plus the scanned skill names, to `tpOfficialTeams.import`, all implemented by `packages/import-tp-live` (see [docs/import-tp-live/index.md](../import-tp-live/index.md)). The tool never parses a roster or a match for those upserts; it does parse rosters and matches for competition participation and for the skills and career SPP counts later steps need.
 
 - **ImportTpConfigService** — loads `import-tp-config.json5` (JSON5), exposing
   raw top-level values via `get<T>(key)` and the api-server base URL via
@@ -161,17 +161,21 @@ Teams, players, competitions and matches are imported server-side: `TpRosterFile
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
   coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
   later team-import sub-issue will use to resolve each team's coach; unused here.
-- **TpRacesImportService** — upserts each race from TP's official team list
-  (read via `OfficialTeamsCollectionService`, not from played rosters),
-  grouped by the list's own display name so rule-set-variant codes merge onto
-  one row. Each upsert carries every distinct code as a TP external id (all in
-  one call for merge semantics), the display name as a Name external id, and
-  every configured era declaring any rules set the race appears on — resolved
-  from era config (`league.eras[].identity.rulesSets`), not from which
-  rosters happened to use the race in which era. Returns `raceNamesById` (DB
-  race id -> display name), consumed by the positions import to build a Name
-  external id; downstream consumers otherwise resolve a race server-side by
-  its `teamRaceCode`.
+- **TpOfficialTeamsImportService** — imports TP's official team list (read via
+  `OfficialTeamsCollectionService`, not from played rosters) through
+  `tpOfficialTeams.import`, one call per `teams/<rulesSet>` folder. Each call
+  sends that rules set's parsed races and the whole scanned
+  `skillMasterId -> name` lookup; the server (see
+  [import-tp-live's official team list import](../import-tp-live/official-teams-import.md))
+  upserts the races (variant codes merged by display name), positions and
+  stars (race-scoped / bare Name ids, official characteristics winning over
+  legacy), their availability in every TP era declaring the rules set, and
+  their characteristics, keywords and starting skills. The `teams/<rulesSet>`
+  folder name must be spelled exactly like the rules set's name in
+  `league.eras[].identity.rulesSets`, since the server resolves the rules set
+  by that name. Returns one `ImportResult` per stage plus
+  `characteristicsByPositionId` (positionId -> rulesSetId ->
+  characteristics), consumed by the hired-star step below.
 - **TpRosterFilesImportService** — calls `tpRosters.import` once per
   distinct (era, roster id), since a roster file appears under every
   competition its team played in. Each call sends the file's raw content,
@@ -183,47 +187,6 @@ Teams, players, competitions and matches are imported server-side: `TpRosterFile
   server's era sync only ever adds, so its eras accumulate. Returns
   `teamErasByRosterId`, `playerIdsByLineUpId`, `insertedPlayerIds` and
   `mercenaryPositionUsages` for the later steps.
-- **TpPositionsImportService** — upserts each position from TP's official
-  team list (read via `OfficialTeamsCollectionService`, not from played
-  rosters), grouped by `(raceId, name)` — one unified path for regular and
-  star positions alike, distinguished only by `isStarPlayer`. Because
-  `TpRacesImportService` already merges a race's rules-set-variant codes onto
-  one row, the same position seen under different variant codes collapses
-  into the same group. Each group's TP external ids are its official-list
-  `tpPositionId`s (one upsert call for merge semantics); a star's Name
-  external id is its bare name (matching the convention the hired-star-player
-  path below already uses, so both paths dedupe onto the same `Position`
-  row), while a regular position's Name external id is race-scoped
-  (`${raceName}: ${positionName}`, since position names aren't globally
-  unique). After each upsert, `syncRaceEras` records which of the group's eras
-  the position was seen under — for star positions too, since the official
-  list states directly which race may field which star under which rules set,
-  so their availability comes straight from that, not from observed hires.
-  Each group
-  also carries the characteristics the official list reports per `(position,
-rules set)` (see
-  [file-format-official-teams.md](./file-format-official-teams.md)),
-  resolving each era's rules set via `TpEraRulesSetResolverService`. That does
-  need conflict resolution: an official roster (`teamRosterType === 0`) and a
-  legacy one (`1`) of the same race can both carry the same `(position, rules
-set)` with different stats — three BB2020 positions really do (Norse Yhetee,
-  Vampire Thrall Lineman, Vampire Blitzer) — so
-  `recordCharacteristicsForRulesSet` tags each recorded value with the roster
-  kind it came from and lets the official value win regardless of which roster
-  is processed first. A slot only a legacy roster carries keeps its legacy
-  value, which is strictly better than dropping the position. Returns
-  `characteristicsByPositionId` (positionId -> rulesSetId ->
-  characteristics), consumed by `TpPositionCharacteristicsImportService`
-  below.
-- **TpPositionCharacteristicsImportService** — writes each position's
-  accumulated `characteristicsByPositionId` entries into
-  `position_rules_sets` via the shared `PositionRulesSetsImportService`, one
-  sync call per position so one bad position's characteristics don't reject
-  every other position's. Because a position's batch spans every rules set it
-  was accumulated under, a future rules set with no Passing characteristic
-  would have its whole position's batch rejected by server-side validation —
-  not an issue today, since every rules set TP currently covers (BB2020,
-  DB2021, BB2025) has Passing. Runs right after positions import.
 - **Player import (server-side, `TpRosterPlayersImportService` in `packages/import-tp-live`)** —
   imports every roster player instance from `lineUps[]`, in the same `tpRosters.import` call that
   upserts the team (`teamErasByRosterId` above is this call's own return value, not an input to
@@ -299,8 +262,8 @@ set)` with different stats — three BB2020 positions really do (Norse Yhetee,
   match-event type references a player by `lineUpMasterId` yet). Star
   position race/era availability is not derived from any of this: TP's
   official team list already states directly which race may field which star
-  under which rules set, so `TpPositionsImportService`'s `syncRaceEras` calls
-  (above) cover star positions the same way they cover regular ones — this
+  under which rules set, so the official team list import's race/era sync
+  (above) covers star positions the same way it covers regular ones — this
   step needs no equivalent bookkeeping of its own.
 - **TpRosterPlayerFactsService** — reads each imported roster player's
   skills and career SPP counts off the parsed roster files, keyed by DB
@@ -382,10 +345,11 @@ a database carrying lasting-injury columns from a partial rollout.
 `main.ts` orchestrates these in dependency order — league, then rule sets, then eras, then
 the competition scan (producing `matchesByCompetitionTpId`, consumed by the hired-star and match-file steps below),
 then coaches, then the roster files and TP's official team list, each scanned and parsed once
-client-side for the bulk tool's own local steps below (the roster import call re-sends each
-file's raw content, which `TpRosterImportService.importRawRoster` parses a second time,
-server-side), then races, then positions, then position characteristics, then the keyword catalog
-and position keywords, then starting skills, then roster import — teams and players together, one
+client-side (the roster import call re-sends each file's raw content, which
+`TpRosterImportService.importRawRoster` parses a second time, server-side), then the skill-name
+scan, then the official team list import (races, positions, characteristics, keywords and
+starting skills, all in one `tpOfficialTeams.import` call per rules set), then the keyword
+catalogue, then roster import — teams and players together, one
 `tpRosters.import` call per distinct era/roster pair (a roster id in more than one era is sent
 once per era; see [import-tp-live's architecture](../import-tp-live/index.md#what-it-owns)) —
 then induced star hires, then roster player facts (skills and career SPP counts), then player
@@ -395,9 +359,9 @@ events and its outcome together — see
 [import-tp-live's match import](../import-tp-live/match-import.md)), then SPP adjustments, then
 the lasting-injury backfill, and finally missing trophy awards — aggregating each step's
 `ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
-Races and positions run after coaches; they have no FK dependency on the earlier import steps
-(only on each other, in that order). Roster import runs after positions and skills (each player
-resolves a team era and a position, needing the starting-skills catalog already loaded).
+The official team list import runs after coaches; it has no FK dependency on the earlier import
+steps. Roster import runs after it (each player resolves a team era and a position, needing the
+starting-skills catalog already loaded).
 Competitions run after that because linking a registered team and awarding it a trophy both need
 its team era. Match files run after competitions because resolving a match's context needs its
 competition imported and both teams' team eras resolvable. SPP adjustments run last of the match-related steps because
@@ -439,7 +403,7 @@ earlier-rules-set entry can still end up with real positional keyword codes,
 including Big Guy. `TpKeywordCatalogService` reads the curated keyword catalogue once per run
 (via `KeywordsImportService.listKeywords`), keyed by each keyword's
 `tourplay.net` external id, and
-`TpPositionKeywordsImportService` resolves every position's codes against it
+the server-side official team list import resolves every position's codes against it
 and syncs the resulting `(position, rules set, keyword)` rows. A code with no
 curated match is reported once as an import error, naming the position it was
 first seen on and pointing at
