@@ -39,6 +39,9 @@ export type {
   ImportRawMatchOptions,
 } from './match/tp-match-import.service';
 export { TpMatchImportService } from './match/tp-match-import.service';
+export { TpOfficialTeamsModule } from './official-teams/tp-official-teams.module';
+export type { ImportOfficialTeamsOptions } from './official-teams/tp-official-teams-import.service';
+export { TpOfficialTeamsImportService } from './official-teams/tp-official-teams-import.service';
 export { TpRosterModule } from './roster/tp-roster.module';
 export type {
   ImportRawRosterOptions,
