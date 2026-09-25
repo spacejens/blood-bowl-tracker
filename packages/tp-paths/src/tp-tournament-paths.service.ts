@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+/** A tournament page path: a non-empty slug, optionally followed by more. */
+const TOURNAMENT_FRONTEND_PATH = /^([^/]+)(?:\/.*)?$/;
+
 /**
  * TP's paths for one tournament, exactly as TP's own frontend requests them:
  * API paths relative to TP's backend API base URL, and page paths relative to
@@ -42,5 +45,16 @@ export class TpTournamentPathsService {
   /** One of the tournament's pages (e.g. `scores`, `news`). */
   frontendPath(slug: string, page: string): string {
     return `${slug}/${page}`;
+  }
+
+  /**
+   * The reverse of `frontendPath`: the tournament slug a page path starts
+   * with — the slug alone, or the slug followed by any page. Knows nothing of
+   * other page kinds that share this shape (a roster page, the teams page, a
+   * match page); a caller wanting those told apart checks them first. Never
+   * throws.
+   */
+  matchFrontendPath(path: string): string | undefined {
+    return TOURNAMENT_FRONTEND_PATH.exec(path)?.[1];
   }
 }

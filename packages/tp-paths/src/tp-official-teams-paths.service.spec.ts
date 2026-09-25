@@ -34,4 +34,23 @@ describe('TpOfficialTeamsPathsService', () => {
   it('lists every known rules set by its canonical name', () => {
     expect(paths.knownRulesSets()).toEqual(['BB2020', 'DB2021', 'BB2025']);
   });
+
+  describe('matchFrontendPath', () => {
+    it('matches the teams page path', () => {
+      expect(paths.matchFrontendPath('teams')).toBe(true);
+    });
+
+    it('round-trips its own frontendPath', () => {
+      expect(paths.matchFrontendPath(paths.frontendPath())).toBe(true);
+    });
+
+    it.each([
+      ['an extra segment', 'teams/25'],
+      ['a differently-cased path', 'Teams'],
+      ['a similar path', 'team'],
+      ['an empty path', ''],
+    ])('does not match %s', (_label, path) => {
+      expect(paths.matchFrontendPath(path)).toBe(false);
+    });
+  });
 });
