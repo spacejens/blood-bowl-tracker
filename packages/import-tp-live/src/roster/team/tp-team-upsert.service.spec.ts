@@ -4,6 +4,7 @@ import {
   RacesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -68,9 +69,9 @@ describe('TpTeamUpsertService', () => {
     service = moduleRef.get(TpTeamUpsertService);
   });
 
-  const upsert = () =>
+  const upsert = (rosterOverrides: Partial<TpRoster> = {}) =>
     service.upsertTeam({
-      roster: tpRoster(),
+      roster: tpRoster(rosterOverrides),
       context: rosterContext(),
       errors,
     });
@@ -158,6 +159,18 @@ describe('TpTeamUpsertService', () => {
     expect(coaches.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Grimgor' }),
     );
+    expect(teams.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ coachId: 8 }),
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('omits the name and Name external id when the coach display name is blank', async () => {
+    await upsert({ coachName: '' });
+
+    expect(coaches.upsert).toHaveBeenCalledWith({
+      externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'c-42' }],
+    });
     expect(teams.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ coachId: 8 }),
     );

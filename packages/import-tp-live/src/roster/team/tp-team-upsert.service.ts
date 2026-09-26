@@ -44,7 +44,11 @@ export class TpTeamUpsertService {
    * its roster id (TP external id) and its name (Name external id); its race
    * resolves by TP race code. Its coach is upserted from the roster's own
    * coach id and name — created when unknown, its name refreshed when known
-   * — so a coach never imported before does not block the team. A team whose
+   * — so a coach never imported before does not block the team. A blank
+   * (trimmed-empty) coach name omits both the `name` field and the Name
+   * external id from the upsert, so an already-known coach still resolves
+   * by TP id alone without its stored name or Name-system identity being
+   * corrupted to an empty string. A team whose
    * race cannot be resolved, or whose coach upsert fails, is recorded as an
    * error and skipped rather than upserted with an invalid foreign key. The
    * race resolve and coach upsert run in parallel, so a coach can still be
@@ -62,16 +66,20 @@ export class TpTeamUpsertService {
     errors,
   }: UpsertTeamOptions): Promise<TeamEra[] | undefined> {
     const coachData: UpsertCoach = {
-      name: roster.coachName,
+      ...(roster.coachName === '' ? {} : { name: roster.coachName }),
       externalIds: [
         {
           externalSystemId: context.tpSystemId,
           externalId: roster.coachTpId,
         },
-        {
-          externalSystemId: context.nameSystemId,
-          externalId: this.nameExternalId.forCoach(roster.coachName),
-        },
+        ...(roster.coachName === ''
+          ? []
+          : [
+              {
+                externalSystemId: context.nameSystemId,
+                externalId: this.nameExternalId.forCoach(roster.coachName),
+              },
+            ]),
       ],
     };
     const [race, coachUpsert] = await Promise.all([
