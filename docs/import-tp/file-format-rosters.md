@@ -26,8 +26,15 @@ teamRaceCode, raceName, coachTpId, positions, starPositions, players }`:
   the import (race display names now come from the official team list
   instead).
 - `coachTpId` — extracted from `player.applicationUserId`, TP's stable coach
-  account id. Looked up in `coachIdsByTpId` from `TpCoachesImportService` to
-  resolve the team's coach.
+  account id. Sent server-side (with `coachName` below) to upsert the team's
+  coach — see `coachName`.
+- `coachName` — extracted from `player.userNameToShow`, trimmed: the coach's
+  display name. The server-side team import (`TpTeamUpsertService` in
+  `packages/import-tp-live`, shared by the live team import and this bulk
+  import's `tpRosters.import` call) upserts the coach from `coachTpId` and
+  `coachName` — creating it if unknown, refreshing its name if already known —
+  so this file, not `TpCoachesImportService`'s separate inscriptions-based
+  coach import, is what a team's coach identity and name ultimately come from.
 - `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
   becomes `{ tpPositionId: id, name: position, characteristics: { move: ma,
 strength: st, agility: ag, passing: pa, armour: av } }`. Parsed here, but
@@ -80,8 +87,10 @@ the same run.
 
 **Teams** are keyed by roster `id` and `teamName`
 (one TP and one Name external id). Their race resolves server-side, by
-`teamRaceCode`, and their coach server-side, by `coachTpId`; a team whose race
-or coach cannot be resolved is recorded as an error and skipped.
+`teamRaceCode`; a team whose race cannot be resolved is recorded as an error
+and skipped. Their coach is upserted server-side, from `coachTpId` and
+`coachName` (created if unknown, its name refreshed if already known); only a
+genuine coach-upsert failure records an error and skips the team.
 
 **Players** import every roster's `players`
 entry: each resolves a team era (roster id + era, via

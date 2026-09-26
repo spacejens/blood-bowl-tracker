@@ -222,7 +222,7 @@ describe('ImportTpReplyService', () => {
         kind: 'roster',
         rosterId: 163386,
         result: {
-          team: failedWith('could not resolve coach'),
+          team: failedWith('could not resolve race for code "orc"'),
           players: imported(0),
           era: undefined,
         },
@@ -237,7 +237,7 @@ describe('ImportTpReplyService', () => {
           '- Players: 0 imported',
           '',
           '**Errors**',
-          '- Team: could not resolve coach',
+          '- Team: could not resolve race for code "orc"',
         ].join('\n'),
       );
     });

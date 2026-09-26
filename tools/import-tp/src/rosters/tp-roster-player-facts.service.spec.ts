@@ -33,6 +33,7 @@ function entry(players: TpRosterPlayer[], rosterId = 163386): RosterEntry {
     teamRaceCode: 'Orc',
     raceName: 'Orc',
     coachTpId: 'coach-1',
+    coachName: 'Coach 1',
     positions: [],
     starPositions: [],
     players,

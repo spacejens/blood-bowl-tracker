@@ -4,6 +4,7 @@ import {
   RacesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -22,6 +23,7 @@ import {
 import { TpTeamUpsertService } from './tp-team-upsert.service';
 
 type TeamUpsertResult = Awaited<ReturnType<TeamsService['upsert']>>;
+type CoachUpsertResult = Awaited<ReturnType<CoachesService['upsert']>>;
 
 describe('TpTeamUpsertService', () => {
   let service: TpTeamUpsertService;
@@ -36,7 +38,10 @@ describe('TpTeamUpsertService', () => {
     teams = mock<TeamsService>();
     errors = [];
     races.resolve.mockResolvedValue({ found: true, id: 7 });
-    coaches.resolve.mockResolvedValue({ found: true, id: 8 });
+    coaches.upsert.mockResolvedValue({
+      coach: mock<CoachUpsertResult['coach']>({ id: 8 }),
+      created: true,
+    });
     // The eras array is assigned after mock() runs, not passed into its
     // initial partial: vitest-mock-extended recursively proxies every
     // nested object present at construction time (array elements included),
@@ -64,9 +69,9 @@ describe('TpTeamUpsertService', () => {
     service = moduleRef.get(TpTeamUpsertService);
   });
 
-  const upsert = () =>
+  const upsert = (rosterOverrides: Partial<TpRoster> = {}) =>
     service.upsertTeam({
-      roster: tpRoster(),
+      roster: tpRoster(rosterOverrides),
       context: rosterContext(),
       errors,
     });
@@ -86,17 +91,26 @@ describe('TpTeamUpsertService', () => {
     });
   });
 
-  it('resolves the race by team race code and the coach by TP coach id', async () => {
+  it('resolves the race by team race code', async () => {
     await upsert();
 
     expect(races.resolve).toHaveBeenCalledWith({
       externalSystemId: TP_SYSTEM_ID,
       externalId: 'orc',
     });
-    expect(coaches.resolve).toHaveBeenCalledWith({
-      externalSystemId: TP_SYSTEM_ID,
-      externalId: 'c-42',
+  });
+
+  it("upserts the roster's coach by TP coach id and name", async () => {
+    await upsert();
+
+    expect(coaches.upsert).toHaveBeenCalledWith({
+      name: 'Grimgor',
+      externalIds: [
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'c-42' },
+        { externalSystemId: NAME_SYSTEM_ID, externalId: 'Grimgor' },
+      ],
     });
+    expect(coaches.resolve).not.toHaveBeenCalled();
   });
 
   it("returns every team era the team now has, not only this call's", async () => {
@@ -121,16 +135,58 @@ describe('TpTeamUpsertService', () => {
     ]);
   });
 
-  it('skips and records an error when the coach cannot be resolved', async () => {
-    coaches.resolve.mockResolvedValue({ found: false });
+  it('creates a coach not previously known and imports the team under it', async () => {
+    coaches.upsert.mockResolvedValue({
+      coach: mock<CoachUpsertResult['coach']>({ id: 99 }),
+      created: true,
+    });
+
+    await expect(upsert()).resolves.toBeDefined();
+    expect(teams.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ coachId: 99 }),
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it("refreshes an already-known coach's name from the roster and imports the team", async () => {
+    coaches.upsert.mockResolvedValue({
+      coach: mock<CoachUpsertResult['coach']>({ id: 8 }),
+      created: false,
+    });
+
+    await upsert();
+
+    expect(coaches.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Grimgor' }),
+    );
+    expect(teams.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ coachId: 8 }),
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('omits the name and Name external id when the coach display name is blank', async () => {
+    await upsert({ coachName: '' });
+
+    expect(coaches.upsert).toHaveBeenCalledWith({
+      externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'c-42' }],
+    });
+    expect(teams.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ coachId: 8 }),
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('skips the team and records an error when the coach upsert fails', async () => {
+    coaches.upsert.mockRejectedValue(new Error('coach conflict'));
 
     await expect(upsert()).resolves.toBeUndefined();
     expect(teams.upsert).not.toHaveBeenCalled();
     expect(errors).toEqual([
       {
-        item: { team: 163386, coachTpId: 'c-42' },
+        item: { team: 163386, coachTpId: 'c-42', coachName: 'Grimgor' },
         message:
-          'Failed to import team "Da Boyz": could not resolve coach "c-42"',
+          'Failed to import team "Da Boyz": could not import coach "Grimgor": coach conflict',
       },
     ]);
   });

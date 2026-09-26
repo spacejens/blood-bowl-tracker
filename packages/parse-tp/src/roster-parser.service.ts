@@ -212,6 +212,8 @@ export interface TpRoster {
   teamRaceCode: string;
   raceName: string;
   coachTpId: string;
+  /** The coach's display name (`player.userNameToShow`), trimmed. */
+  coachName: string;
   positions: TpRosterPosition[];
   starPositions: TpRosterPosition[];
   players: TpRosterPlayer[];
@@ -321,6 +323,7 @@ const RosterSchema = z.object({
   teamRace: z.string(),
   player: z.object({
     applicationUserId: z.string(),
+    userNameToShow: z.string(),
   }),
   lineUps: z.array(LineUpSchema),
   rosterMaster: z.object({
@@ -356,6 +359,7 @@ export class RosterParserService {
       teamRaceCode: data.teamRace,
       raceName: data.rosterMaster.name,
       coachTpId: data.player.applicationUserId,
+      coachName: data.player.userNameToShow.trim(),
       positions: data.rosterMaster.lineUpMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
